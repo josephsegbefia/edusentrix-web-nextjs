@@ -1,0 +1,41 @@
+import { Schema, model, models, Types } from "mongoose";
+export type AppRole =
+  | "platformAdmin"
+  | "schoolAdmin"
+  | "staff"
+  | "teacher"
+  | "parent"
+  | "student";
+
+export interface IUser {
+  _id: Types.ObjectId;
+  supabaseUserId: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  avatarUrl?: string;
+  roles: AppRole[];
+  schoolId?: Types.ObjectId | null;
+  pendingOnboarding?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const userSchema = new Schema<IUser>(
+  {
+    supabaseUserId: { type: String, required: true, index: true, unique: true },
+    email: { type: String, required: true, lowercase: true, index: true },
+    firstName: String,
+    lastName: String,
+    avatarUrl: String,
+    roles: { type: [String], default: [] },
+    schoolId: { type: Schema.Types.ObjectId, ref: "School", default: null },
+    pendingOnboarding: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+userSchema.index({ email: 1, supabaseUserId: 1 });
+
+export const User = models.User || model<IUser>("User", userSchema);

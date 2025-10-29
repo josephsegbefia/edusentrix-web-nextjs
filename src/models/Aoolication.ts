@@ -1,0 +1,50 @@
+import { Schema, model, models, Types } from "mongoose";
+
+export interface IApplication {
+  _id: Types.ObjectId;
+  adminFirstName: string;
+  adminLastName: string;
+  adminEmail: string;
+  adminPhone?: string;
+  schoolName: string;
+  schoolType: "Basic" | "Secondary";
+  city?: string;
+  region?: string;
+  message?: string;
+  status: "submitted" | "reviewed" | "approved" | "rejected";
+  linkedSchoolId?: Types.ObjectId | null;
+  processedBy?: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const applicationSchema = new Schema<IApplication>(
+  {
+    adminFirstName: { type: String, required: true },
+    adminLastName: { type: String, required: true },
+    adminEmail: { type: String, required: true, lowercase: true, index: true },
+    adminPhone: String,
+    schoolName: { type: String, required: true },
+    schoolType: { type: String, enum: ["Basic", "Secondary"], required: true },
+    city: String,
+    region: String,
+    message: String,
+    status: {
+      type: String,
+      enum: ["submitted", "reviewed", "approved", "rejected"],
+      default: "submitted",
+    },
+    linkedSchoolId: {
+      type: Schema.Types.ObjectId,
+      ref: "School",
+      default: null,
+    },
+    processedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+  },
+  { timestamps: true }
+);
+
+applicationSchema.index({ adminEmail: 1, schoolName: 1 });
+
+export const Application =
+  models.Application || model<IApplication>("Application", applicationSchema);

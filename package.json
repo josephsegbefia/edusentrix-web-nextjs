@@ -12,6 +12,7 @@
     "seed:banks:dry": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --dryRun"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/ssr": "^0.7.0",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.24",
+    "@types/nodemailer": "^7.0.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/yargs": "^17.0.34",

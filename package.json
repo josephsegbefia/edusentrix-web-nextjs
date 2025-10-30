@@ -12,10 +12,10 @@
     "seed:banks:dry": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --dryRun"
   },
   "dependencies": {
-    "@getbrevo/brevo": "^3.0.1",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
+    "@sendinblue/client": "^3.3.1",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.77.0",
     "@tanstack/react-query": "^5.90.5",

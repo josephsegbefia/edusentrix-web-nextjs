@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { div } from "framer-motion/client";
 
 const FormSchema = z.object({
   adminFirstName: z.string().min(2, "First name is too short"),
@@ -222,7 +223,7 @@ export default function EnrollPage() {
                     <SelectTrigger className="bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer">
                       <SelectValue placeholder="Select school type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-primary">
                       <SelectItem value="Basic" className="cursor-pointer">
                         Basic School
                       </SelectItem>
@@ -293,7 +294,7 @@ export default function EnrollPage() {
                   type="submit"
                   disabled={loading}
                   aria-busy={loading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-6 rounded-lg font-semibold text-base transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none disabled:opacity-50 cursor-pointer"
+                  className="w-full bg-linear-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-6 rounded-lg font-semibold text-base transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none disabled:opacity-50 cursor-pointer"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center">

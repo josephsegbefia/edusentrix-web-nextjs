@@ -1,88 +1,80 @@
-// src/lib/email/brevo.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
-import * as Brevo from "@getbrevo/brevo"; //
+import * as SibApiV3Sdk from "@sendinblue/client";
+import {
+  renderTemplate,
+  type TemplateKey,
+  type TemplatePayload,
+} from "./templates";
 
-import { renderTemplate, TemplateKey, TemplatePayload } from "./templates";
+const { BREVO_API_KEY, BREVO_FROM_EMAIL, BREVO_FROM_NAME } = process.env;
 
-const { BREVO_API_KEY, FROM_EMAIL, BREVO_FROM_NAME, BREVO_FROM_EMAIL } =
-  process.env;
+if (!BREVO_API_KEY) throw new Error("BREVO_API_KEY is not set");
+if (!BREVO_FROM_EMAIL) throw new Error("BREVO_FROM_EMAIL is not set");
+if (!BREVO_FROM_NAME) throw new Error("BREVO_FROM_NAME is not set");
 
-type Recipient = { email: string; name?: string };
+/** Singleton API instance configured like your example */
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+// Match example's pattern (SDK expects 'apiKey' – not 'api-key')
+(apiInstance as any).authentications["apiKey"].apiKey = BREVO_API_KEY;
 
-let apiInstance: Brevo.TransactionalEmailsApi | null = null;
+export type Recipient = { email: string; name?: string };
 
-function getClient() {
-  if (apiInstance) return apiInstance;
-
-  apiInstance = new Brevo.TransactionalEmailsApi();
-  apiInstance.setApiKey(
-    Brevo.TransactionalEmailsApiApiKeys.apiKey,
-    (BREVO_API_KEY as string) || ""
-  );
-  return apiInstance;
-}
-
+/** Template-based email (recommended for app usage) */
 export async function sendEmail<K extends TemplateKey>(
   to: string | Recipient[],
   template: K,
   data: TemplatePayload[K]
-): Promise<void> {
-  const api = getClient();
-  const payload = renderTemplate(template, data);
+): Promise<{ messageId?: string }> {
+  const { subject, htmlContent, textContent } = renderTemplate(template, data);
 
-  const send = new Brevo.SendSmtpEmail();
-  send.subject = payload.subject;
-  send.htmlContent = payload.htmlContent;
-  send.textContent = payload.textContent;
+  const msg = new SibApiV3Sdk.SendSmtpEmail();
+  msg.subject = subject;
+  msg.htmlContent = htmlContent;
+  if (textContent) msg.textContent = textContent;
 
-  send.sender = {
-    email: (FROM_EMAIL as string) || "",
-    name: BREVO_FROM_NAME as string,
-  };
-  send.replyTo = {
-    email: (BREVO_FROM_EMAIL as string) || "",
-    name: "Edusentrix Support",
-  };
-
-  if (typeof to === "string") {
-    send.to = [{ email: to }];
-  } else {
-    send.to = to;
-  }
-
-  // Optional headers (example): set list-unsubscribe if you have one
-  // send.headers = { "List-Unsubscribe": "<mailto:unsubscribe@edusentrix.com>" };
+  msg.sender = { email: BREVO_FROM_EMAIL!, name: BREVO_FROM_NAME! };
+  msg.to = typeof to === "string" ? [{ email: to }] : to;
 
   try {
-    await api.sendTransacEmail(send);
-  } catch (err: unknown) {
-    // Bubble up a clean error; log raw for diagnostics
-    let detail = "Unknown error";
-    if (err && typeof err === "object") {
-      const anyErr = err as { response?: { body?: unknown }; message?: string };
-      detail =
-        (anyErr.response?.body as string) ?? anyErr.message ?? String(err);
-    }
+    const res = await apiInstance.sendTransacEmail(msg);
+    return { messageId: (res as any)?.body?.messageId };
+  } catch (error: any) {
+    const detail = error?.response?.body
+      ? JSON.stringify(error.response.body)
+      : error?.message ?? String(error);
     console.error("[Brevo] sendTransacEmail error:", detail);
     throw new Error("Failed to send email");
   }
 }
 
-// Usage example
-/**
- * // app/api/test-email/route.ts
-export const runtime = "nodejs";
+/** Raw email sender matching your example signature (handy for quick tests) */
+export async function sendRawEmail(opts: {
+  to: string;
+  subject: string;
+  htmlContent: string;
+  senderEmail?: string;
+  senderName?: string;
+}) {
+  const { to, subject, htmlContent, senderEmail, senderName } = opts;
 
-import { NextResponse } from "next/server";
-import { sendEmail } from "@/lib/email/brevo";
+  const msg = new SibApiV3Sdk.SendSmtpEmail();
+  msg.subject = subject;
+  msg.htmlContent = htmlContent;
 
-export async function POST() {
-  await sendEmail("recipient@example.com", "SCHOOL_INVITE", {
-    schoolName: "Sample Basic School",
-    setupLink: "https://app.edusentrix.com/onboard?token=abc123",
-  });
+  msg.sender = {
+    email: senderEmail || BREVO_FROM_EMAIL!,
+    name: senderName || BREVO_FROM_NAME!,
+  };
+  msg.to = [{ email: to }];
 
-  return NextResponse.json({ ok: true });
+  try {
+    await apiInstance.sendTransacEmail(msg);
+  } catch (error: any) {
+    const detail = error?.response?.body
+      ? JSON.stringify(error.response.body)
+      : error?.message ?? String(error);
+    console.error("[Brevo] sendTransacEmail error:", detail);
+    throw new Error("Failed to send email");
+  }
 }
-
- */

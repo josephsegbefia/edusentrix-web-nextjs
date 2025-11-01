@@ -1,13 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { supabaseServer } from "@/lib/supabase/server";
 import { User } from "@/models/User";
 import { School } from "@/models/School";
-import { Subject } from "@/models/Subject";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
-import { Invite } from "@/models/Invite";
-import { startSession } from "mongoose";
 
 const BodySchema = z.object({
   schoolId: z.string().min(1),
@@ -17,8 +16,8 @@ const BodySchema = z.object({
       z.object({
         yearLabel: z.string().min(1),
         term: z.string().min(1),
-        startDate: z.string().datetime(), // ISO
-        endDate: z.string().datetime(),
+        startDate: z.string().min(1),
+        endDate: z.string().min(1),
         isCurrent: z.boolean().optional().default(false),
       })
     )
@@ -32,116 +31,90 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const parsed = BodySchema.safeParse(await req.json());
-  if (!parsed.success)
+  if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  const { schoolId, periods } = parsed.data;
 
   await connectToDatabase();
 
-  const user = await User.findOne({ supabaseUserId: data.user.id });
-  if (!user?.schoolId)
-    return NextResponse.json({ error: "No school bound" }, { status: 409 });
-  if (String(user.schoolId) !== parsed.data.schoolId) {
-    return NextResponse.json(
-      { error: "Forbidden for this school" },
-      { status: 403 }
-    );
+  const me = await User.findOne({ supabaseUserId: data.user.id });
+  if (!me?.schoolId || String(me.schoolId) !== schoolId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const school = await School.findById(user.schoolId);
-  if (!school)
-    return NextResponse.json({ error: "School not found" }, { status: 404 });
+  // Ensure exactly one current (if multiple flagged current, pick the last)
+  let currentIdx = periods.findIndex((p) => p.isCurrent);
+  if (currentIdx === -1) currentIdx = 0;
 
-  const session = await startSession();
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    session.startTransaction();
-
-    // Upsert subjects
-    const uniq = Array.from(
-      new Set(parsed.data.subjects.map((s) => s.trim()).filter(Boolean))
-    );
-    if (uniq.length === 0) throw new Error("No valid subjects");
-
-    for (const name of uniq) {
-      await Subject.updateOne(
-        { schoolId: school._id, name },
-        {
-          $setOnInsert: { schoolId: school._id, name, isActive: true },
-          $set: { isActive: true },
-        },
-        { upsert: true, session, collation: { locale: "en", strength: 2 } }
-      );
+    const school = await School.findById(me.schoolId).session(session);
+    if (!school) {
+      await session.abortTransaction();
+      session.endSession();
+      return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
-    // Replace periods (simple approach)
-    await AcademicPeriod.deleteMany({ schoolId: school._id }, { session });
-    await AcademicPeriod.insertMany(
-      parsed.data.periods.map((p) => ({
-        schoolId: school._id,
-        yearLabel: p.yearLabel,
-        term: p.term,
-        startDate: new Date(p.startDate),
-        endDate: new Date(p.endDate),
-        isCurrent: !!p.isCurrent,
-      })),
-      { session }
-    );
+    // Upsert all periods (unique on schoolId+yearLabel+term)
+    const inserts = [];
+    let currentPeriodId: any = null;
 
-    // Ensure single current period
-    const anyCurrent = parsed.data.periods.some((p) => p.isCurrent);
-    if (!anyCurrent) {
-      await AcademicPeriod.updateOne(
+    for (let i = 0; i < periods.length; i++) {
+      const p = periods[i];
+      const doc = await AcademicPeriod.findOneAndUpdate(
+        {
+          schoolId: school._id,
+          yearLabel: p.yearLabel,
+          term: p.term,
+        },
+        {
+          $set: {
+            startDate: new Date(p.startDate),
+            endDate: new Date(p.endDate),
+            isCurrent: false, // set below for the chosen one
+          },
+        },
+        { new: true, upsert: true, session }
+      );
+
+      if (i === currentIdx) currentPeriodId = doc._id;
+      inserts.push(doc);
+    }
+
+    if (currentPeriodId) {
+      // Set the chosen period as current
+      await AcademicPeriod.updateMany(
         { schoolId: school._id },
+        { $set: { isCurrent: false } },
+        { session }
+      );
+      await AcademicPeriod.findByIdAndUpdate(
+        currentPeriodId,
         { $set: { isCurrent: true } },
         { session }
       );
-    } else {
-      // Enforce only one current
-      const current = await AcademicPeriod.find(
-        { schoolId: school._id },
-        null,
-        { session }
-      ).sort({ createdAt: 1 });
-      let marked = false;
-      for (const ap of current) {
-        if (ap.isCurrent && !marked) {
-          marked = true;
-        } else if (ap.isCurrent && marked) {
-          ap.isCurrent = false;
-          await ap.save({ session });
-        }
-      }
     }
 
-    // Finalize school + user + invite
+    // Activate school and set pointer
     school.status = "active";
+    school.currentPeriodId = currentPeriodId ?? null;
     await school.save({ session });
 
-    // Assign role if missing
-    if (!user.roles.includes("school_admin")) user.roles.push("school_admin");
-    user.pendingOnboarding = false;
-    await user.save({ session });
-
-    // Mark latest pending invite accepted for this email/school (if any)
-    await Invite.updateOne(
-      {
-        email: user.email.toLowerCase(),
-        schoolId: school._id,
-        status: "pending",
-        expiresAt: { $gt: new Date() },
-      },
-      { $set: { status: "accepted" } },
-      { session }
-    );
-
     await session.commitTransaction();
+    session.endSession();
+
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch (e) {
     await session.abortTransaction();
+    session.endSession();
+    console.error("[onboarding/finish] txn failed:", e);
     return NextResponse.json(
-      { error: "Finalize failed", details: `${err}` },
+      { error: "Failed to finalize. Please try again later." },
       { status: 500 }
     );
-  } finally {
-    session.endSession();
   }
 }

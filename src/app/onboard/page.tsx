@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BankBranchCombo } from "@/components/banks/BankBranchCombo";
 import {
   Select,
   SelectContent,
@@ -56,6 +57,11 @@ export default function OnboardPage() {
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<1 | 2>(1);
   const [data, setData] = useState<Bootstrap | null>(null);
+  const [bankPick, setBankPick] = useState<{
+    bankName: string;
+    branchName: string;
+    sortCode: string;
+  } | null>(null);
 
   // Step 1: admin profile state
   const [name, setName] = useState("");
@@ -126,6 +132,16 @@ export default function OnboardPage() {
           setSortCode(payload.school.bank?.sortCode || "");
           setAccountName(payload.school.bank?.accountName || "");
           setAccountNumber(payload.school.bank?.accountNumber || "");
+
+          setBankPick((prev) => {
+            const b = payload.school?.bank;
+            if (!b?.bankName || !b?.branchName || !b?.sortCode) return prev;
+            return {
+              bankName: b.bankName,
+              branchName: b.branchName,
+              sortCode: b.sortCode,
+            };
+          });
         }
         setSubjectPool(payload.subjectSuggestions || []);
         setSelectedSubjects(payload.subjectSuggestions.slice(0, 5)); // pick some by default
@@ -484,6 +500,27 @@ export default function OnboardPage() {
                   <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
                     Bank Details
                   </h2>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Bank & Branch
+                    </Label>
+                    <BankBranchCombo
+                      value={bankPick}
+                      onChange={(v) => {
+                        setBankPick(v);
+                        setBankName(v?.bankName || "");
+                        setBranchName(v?.branchName || "");
+                        setSortCode(v?.sortCode || "");
+                      }}
+                      nameHiddenSortCode="sortCode"
+                    />
+                    {bankPick && (
+                      <p className="text-xs text-gray-500">
+                        Selected: <strong>{bankPick.bankName}</strong> -{" "}
+                        {bankPick.branchName} (sort: {bankPick.sortCode})
+                      </p>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label

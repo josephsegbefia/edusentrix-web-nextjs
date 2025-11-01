@@ -18,6 +18,8 @@ export interface IUser {
   roles: AppRole[];
   schoolId?: Types.ObjectId | null;
   pendingOnboarding?: boolean;
+  dateOfBirth?: Date;
+  address?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +34,8 @@ const userSchema = new Schema<IUser>(
     roles: { type: [String], default: [] },
     schoolId: { type: Schema.Types.ObjectId, ref: "School", default: null },
     pendingOnboarding: { type: Boolean, default: false },
+    dateOfBirth: Date,
+    address: String,
   },
   { timestamps: true }
 );

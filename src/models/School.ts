@@ -26,6 +26,7 @@ export interface ISchool {
   name: string;
   type: SchoolType;
   address?: string;
+  email?: string;
   city?: string;
   region?: string;
   bank?: ISchoolBank;
@@ -42,6 +43,7 @@ const schoolSchema = new Schema<ISchool>(
     name: { type: String, required: true, trim: true },
     type: { type: String, enum: ["Basic", "Secondary"], required: true },
     address: String,
+    email: String,
     city: String,
     region: String,
     bank: {

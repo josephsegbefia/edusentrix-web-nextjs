@@ -1,6 +1,6 @@
 import { Schema, model, models, Types } from "mongoose";
 export type AppRole =
-  | "platformAdmin"
+  | "platform_admin"
   | "schoolAdmin"
   | "staff"
   | "teacher"

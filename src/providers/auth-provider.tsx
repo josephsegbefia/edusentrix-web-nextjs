@@ -11,7 +11,7 @@ type Me = {
     | "teacher"
     | "parent"
     | "student"
-    | "platformAdmin";
+    | "platform_admin";
   schoolId?: string | null;
   schoolStatus?: "active" | "suspended";
   tier?: "Basic" | "Premium";

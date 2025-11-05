@@ -62,7 +62,7 @@ export default function HomePage() {
 /* ----------------------------- NAV ----------------------------- */
 function SiteNav() {
   return (
-    <header className="sticky top-0 z-50 bg-bg/70 backdrop-blur supports-[backdrop-filter]:bg-bg/60 border-b border-white/5">
+    <header className="sticky top-0 z-50 bg-bg/70 backdrop-blur supports-backdrop-filter:bg-bg/60 border-b border-white/5">
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-2">
           <div className="size-8 rounded-md bg-brand/15 grid place-items-center">

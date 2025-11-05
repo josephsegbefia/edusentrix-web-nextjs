@@ -10,7 +10,7 @@ export function RoleGate({
   redirect = "/",
 }: {
   allow: Array<
-    | "platformAdmin"
+    | "platform_admin"
     | "schoolAdmin"
     | "bursar"
     | "teacher"
@@ -27,7 +27,7 @@ export function RoleGate({
     if (!loading) {
       if (!isAuthenticated) router.replace(redirect);
       else if (me && !allow.includes(me.role)) router.replace(redirect);
-      else if (me?.schoolStatus === "suspended" && me.role !== "platformAdmin")
+      else if (me?.schoolStatus === "suspended" && me.role !== "platform_admin")
         router.replace("/suspended");
     }
   }, [loading, isAuthenticated, me, router, allow, redirect]);

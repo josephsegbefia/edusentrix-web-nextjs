@@ -2,7 +2,7 @@ import "server-only";
 
 const PAYSTACK_BASE = "https://api.paystack.co";
 
-const { PAYSTACK_SECRET_KEY, APP_URL } = process.env;
+const { PAYSTACK_SECRET_KEY } = process.env;
 function headers() {
   if (!PAYSTACK_SECRET_KEY) throw new Error("Missing PAYSTACK_SECRET_KEY");
 

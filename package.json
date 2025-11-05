@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seed:banks": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv",
     "seed:banks:drop": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --drop",
-    "seed:banks:dry": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --dryRun"
+    "seed:banks:dry": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --dryRun",
+    "admin:create": "tsx scripts/createPlatformAdmin.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

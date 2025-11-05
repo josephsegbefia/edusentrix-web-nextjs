@@ -13,7 +13,7 @@ export async function getCurrentUser() {
   return appUser;
 }
 
-export async function requireRole(...roles: Array<"platformAdmin" | "staff">) {
+export async function requireRole(...roles: Array<"platform_admin" | "staff">) {
   const user = await getCurrentUser();
   if (!user) return null;
   const ok = user.roles.some((r: any) => roles.includes(r as any));

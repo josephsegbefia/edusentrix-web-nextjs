@@ -18,7 +18,7 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const staff = await requireRole("platformAdmin", "staff");
+  const staff = await requireRole("platform_admin", "staff");
   if (!staff) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const parse = BodySchema.safeParse(await req.json());

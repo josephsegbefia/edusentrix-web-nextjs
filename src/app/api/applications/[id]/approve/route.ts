@@ -30,7 +30,7 @@ export async function POST(
 ) {
   const params = await ctx.params;
 
-  const staff = await requireRole("platformAdmin", "staff");
+  const staff = await requireRole("platform_admin", "staff");
   if (!staff) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const p = ParamsSchema.safeParse(params);

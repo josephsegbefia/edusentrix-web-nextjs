@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
 
 const PAYSTACK_BASE = "https://api.paystack.co";
@@ -36,29 +37,54 @@ export async function listGhanaBanks() {
  * (Fields naming varies in examples: "bank_code" and "settlement_bank" are used interchangeably)
  */
 
-export async function createSubaccount(params: {
+type CreateSubaccountInput = {
   businessName: string;
-  bankCode: string;
+  bankCode: string; // our seeded "sortCode"
   accountNumber: string;
-  percentageCharge?: number;
+  percentageCharge?: number; // defaults to 0
   contactEmail?: string;
-}) {
-  const body = {
-    business_name: params.businessName,
-    settlement_bank: params.bankCode,
-    account_number: params.accountNumber,
-    percentage_charge: params.percentageCharge,
-    currency: "GHS",
-    primary_contact_email: params.contactEmail,
-  };
+  description?: string;
+};
 
-  const res = await fetch(`{PAYSTACK_BASE}/subaccount`, {
+type PaystackSubaccount = {
+  id: number;
+  subaccount_code: string;
+};
+
+export async function createSubaccount(
+  input: CreateSubaccountInput
+): Promise<PaystackSubaccount> {
+  // Paystack NG uses settlement_bank; GH integrations often accept bank_code.
+  // We safely send both.
+  const payload: Record<string, any> = {
+    business_name: input.businessName,
+    bank_code: input.bankCode,
+    settlement_bank: input.bankCode, // tolerate either
+    account_number: input.accountNumber,
+    percentage_charge: input.percentageCharge ?? 0,
+    description: input.description ?? "EduSentrix school settlement subaccount",
+  };
+  if (input.contactEmail) payload.settlement_email = input.contactEmail;
+
+  const res = await fetch(`${PAYSTACK_BASE}/subaccount`, {
     method: "POST",
-    headers: headers(),
-    body: JSON.stringify(body),
+    headers: {
+      Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
   });
 
-  const j = await res.json();
-  if (!res.ok) throw new Error(j?.message || "Failed to create subaccount");
-  return j?.data as { subaccount_code: string; id: number };
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `Paystack error (${res.status}): ${text || res.statusText}`
+    );
+  }
+
+  const json = await res.json();
+  if (!json?.status || !json?.data) {
+    throw new Error(`Unexpected Paystack response: ${JSON.stringify(json)}`);
+  }
+  return json.data as PaystackSubaccount;
 }

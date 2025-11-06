@@ -1,25 +1,5 @@
 import { Schema, model, models, Types } from "mongoose";
-
 export type SchoolType = "Basic" | "Secondary";
-
-export interface ISchoolBank {
-  bankName?: string;
-  branchName?: string;
-  // For Paystack we actually need the bank 'code' (not branch sort code);
-  // We store it here but keep legacy 'sortCode' naming if your UI already uses it.
-  sortCode?: string;
-  accountName?: string;
-  accountNumber?: string;
-}
-
-export interface ISchoolBilling {
-  status: "idle" | "provisioning" | "provisioned" | "failed";
-  paystack?: {
-    subaccountCode?: string | null;
-    subaccountId?: number | null;
-    lastError?: string | null;
-  };
-}
 
 export interface ISchool {
   _id: Types.ObjectId;
@@ -29,11 +9,26 @@ export interface ISchool {
   email?: string;
   city?: string;
   region?: string;
-  bank?: ISchoolBank;
-  billing?: ISchoolBilling;
-  currentPeriodId?: Types.ObjectId | null;
+  bank?: {
+    bankName?: string;
+    branchName?: string;
+    sortCode?: string; // derived from Banks seed; not trusted from client
+    accountName?: string;
+    accountNumber?: string;
+  };
   status: "pending" | "active";
   createdBy?: Types.ObjectId | null;
+  onboarding?: {
+    finishedAt?: Date | null;
+  };
+  billing?: {
+    status?: "unprovisioned" | "provisioned" | "failed";
+    paystack?: {
+      subaccountCode?: string | null;
+      subaccountId?: string | null;
+      lastError?: string | null;
+    };
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,29 +44,27 @@ const schoolSchema = new Schema<ISchool>(
     bank: {
       bankName: String,
       branchName: String,
-      sortCode: { type: String, match: /^\d{3,6}$/ }, // Ghana bank 'code' is often 3 digits
+      sortCode: { type: String, match: /^\d{6}$/ }, // set on server from Banks seed
       accountName: String,
       accountNumber: String,
+    },
+    status: { type: String, enum: ["pending", "active"], default: "pending" },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    onboarding: {
+      finishedAt: { type: Date, default: null },
     },
     billing: {
       status: {
         type: String,
-        enum: ["idle", "provisioning", "provisioned", "failed"],
-        default: "idle",
+        enum: ["unprovisioned", "provisioned", "failed"],
+        default: "unprovisioned",
       },
       paystack: {
         subaccountCode: { type: String, default: null },
-        subaccountId: { type: Number, default: null },
+        subaccountId: { type: String, default: null },
         lastError: { type: String, default: null },
       },
     },
-    currentPeriodId: {
-      type: Schema.Types.ObjectId,
-      ref: "AcademicPeriod",
-      default: null,
-    },
-    status: { type: String, enum: ["pending", "active"], default: "pending" },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true }
 );

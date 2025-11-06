@@ -44,7 +44,10 @@ const applicationSchema = new Schema<IApplication>(
   { timestamps: true }
 );
 
-applicationSchema.index({ adminEmail: 1, schoolName: 1 });
+applicationSchema.index({ adminEmail: 1 });
+applicationSchema.index({ status: 1, createdAt: 1 });
+applicationSchema.index({ schoolType: 1 });
+applicationSchema.index({ schoolName: 1 });
 
 export const Application =
   models.Application || model<IApplication>("Application", applicationSchema);

@@ -1,8 +1,9 @@
 import { Schema, model, models, Types } from "mongoose";
 export type AppRole =
   | "platform_admin"
-  | "schoolAdmin"
+  | "school_admin"
   | "staff"
+  | "non_teaching_staff"
   | "teacher"
   | "parent"
   | "student";
@@ -15,7 +16,8 @@ export interface IUser {
   lastName?: string;
   phone?: string;
   avatarUrl?: string;
-  roles: AppRole[];
+  role: AppRole;
+  roles?: AppRole[];
   schoolId?: Types.ObjectId | null;
   pendingOnboarding?: boolean;
   dateOfBirth?: Date;
@@ -31,6 +33,19 @@ const userSchema = new Schema<IUser>(
     firstName: String,
     lastName: String,
     avatarUrl: String,
+    role: {
+      type: String,
+      enum: [
+        "platform_admin",
+        "school_admin",
+        "staff",
+        "non_teaching_staff",
+        "teacher",
+        "parent",
+        "student",
+      ],
+      required: true,
+    },
     roles: { type: [String], default: [] },
     schoolId: { type: Schema.Types.ObjectId, ref: "School", default: null },
     pendingOnboarding: { type: Boolean, default: false },

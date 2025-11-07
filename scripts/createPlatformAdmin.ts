@@ -14,8 +14,10 @@
  */
 
 import "dotenv/config";
+import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 
+config({ path: ".env.local" });
 // NOTE: use RELATIVE imports (no "@/...")
 import { connectToDatabase } from "../src/db/connectToDatabase";
 import { User } from "../src/models/User";
@@ -28,19 +30,24 @@ const argvEmail =
     return idx > -1 ? process.argv[idx + 1] : undefined;
   })();
 
-const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
+const { NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
+console.log(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 async function main() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!NEXT_PUBLIC_SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   }
   if (!argvEmail) throw new Error("Provide email via --email or EMAIL env var");
 
   await connectToDatabase();
 
-  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const supabaseAdmin = createClient(
+    NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+    }
+  );
 
   // 1) Create (or get) Supabase user WITHOUT a password
   //    If the user already exists, createUser will error; we then fetch the user.

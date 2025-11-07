@@ -1,68 +1,93 @@
+// src/providers/auth-provider.tsx
 "use client";
-import { createContext, useContext, useEffect, useMemo } from "react";
+
+import React, { createContext, useContext, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/supabase";
+import { supabase } from "@/lib/supabase/client";
 
-type Me = {
-  userId: string;
-  role:
-    | "schoolAdmin"
-    | "bursar"
-    | "teacher"
-    | "parent"
-    | "student"
-    | "platform_admin";
+type AppUser = {
+  _id: string;
+  email: string;
+  name?: string;
+  role?: string;
   schoolId?: string | null;
-  schoolStatus?: "active" | "suspended";
-  tier?: "Basic" | "Premium";
+  pendingOnboarding?: boolean;
 };
 
-type AuthContextValue = {
-  me: Me | null;
-  loading: boolean;
-  isAuthenticated: boolean;
+type AuthCtx = {
+  user: AppUser | null | undefined;
+  isLoading: boolean;
+  /** Triggers Supabase email magic-link flow */
+  loginWithMagicLink: (email: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextValue>({
-  me: null,
-  loading: true,
-  isAuthenticated: false,
-});
+const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
 
-  // Source of truth: /api/me (ssr-friendll later; csr for now)
+  // Load the “me” payload from your API (session must already be set via /auth/callback)
   const { data, isLoading } = useQuery({
     queryKey: ["me"],
-    queryFn: async (): Promise<Me | null> => {
-      const res = await fetch("api/me", { credentials: "include" });
-      if (!res.ok) return null;
-      return res.json();
+    queryFn: async () => {
+      const res = await fetch("/api/me", { cache: "no-store" });
+      if (res.status === 401) return null; // not signed in
+      if (!res.ok) throw new Error("failed");
+      return (await res.json()) as AppUser;
     },
-    staleTime: 60_000,
   });
 
-  // refetch when supabse auth state changes (login/logout/magic link)
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      qc.invalidateQueries({ queryKey: ["me"] });
+  /**
+   * Magic link sign-in (email). This sends the user an email containing the
+   * verification link that lands on /auth/callback, where you exchange the code
+   * and set the auth cookies (via your server helper).
+   */
+  const loginWithMagicLink = useCallback(async (email: string) => {
+    const redirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/auth/callback`
+        : undefined;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+        shouldCreateUser: true, // or false if you only want existing users
+      },
     });
-    return () => subscription.unsubscribe();
+
+    if (error) throw error;
+    // We do NOT invalidate /api/me here because session will be created
+    // only after the user clicks the magic link and returns to /auth/callback.
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    await qc.invalidateQueries({ queryKey: ["me"] });
   }, [qc]);
 
-  const value = useMemo(
+  const refresh = useCallback(async () => {
+    await qc.invalidateQueries({ queryKey: ["me"] });
+  }, [qc]);
+
+  const value = useMemo<AuthCtx>(
     () => ({
-      me: data ?? null,
-      loading: isLoading,
-      isAuthenticated: !!data,
+      user: data ?? null,
+      isLoading,
+      loginWithMagicLink,
+      logout,
+      refresh,
     }),
-    [data, isLoading]
+    [data, isLoading, loginWithMagicLink, logout, refresh]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}

@@ -46,8 +46,8 @@ export default async function ProtectedLayout({
   const pathname = ""; // derive from headers if you want strict route gating
 
   // If they're school_admin and pending, force onboarding except on /onboard itself:
-  const isschool_admin = roles.includes("school_admin" as AppRole);
-  if (isschool_admin && pendingOnboarding) {
+  const isSchool_admin = roles.includes("school_admin" as AppRole);
+  if (isSchool_admin && pendingOnboarding) {
     if (target !== "/onboard") redirect("/onboard");
   }
 

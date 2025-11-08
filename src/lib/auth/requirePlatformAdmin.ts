@@ -16,7 +16,7 @@ export async function requirePlatformAdmin() {
   await connectToDatabase();
   const meResult = await User.findOne({ supabaseUserId: data.user.id }).lean();
   const me = meResult as IUser | null;
-  if (!me || !me.roles.includes("platform_admin")) {
+  if (!me || !me.roles?.includes("platform_admin")) {
     return {
       ok: false as const,
       res: NextResponse.json({ error: "Forbidden" }, { status: 403 }),

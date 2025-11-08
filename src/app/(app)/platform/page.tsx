@@ -1,9 +1,10 @@
-export default function PlatformPage() {
+// src/app/(app)/platform/page.tsx
+export default function PlatformOverviewPage() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold">Platform Admin</h1>
-      <p className="text-gray-600 mt-2">
-        Approve applications, manage schools, users, and system config.
+    <div className="p-6">
+      <h1 className="text-xl font-semibold mb-2">Platform Overview</h1>
+      <p className="text-sm text-muted-foreground">
+        KPIs, queues, recent activity, and quick actions will live here.
       </p>
     </div>
   );

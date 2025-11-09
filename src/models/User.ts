@@ -46,7 +46,6 @@ const userSchema = new Schema<IUser>(
       ],
       required: true,
     },
-    roles: { type: [String], default: [] },
     schoolId: { type: Schema.Types.ObjectId, ref: "School", default: null },
     pendingOnboarding: { type: Boolean, default: false },
     dateOfBirth: Date,

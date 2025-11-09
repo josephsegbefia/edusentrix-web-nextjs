@@ -168,8 +168,6 @@ export async function POST(req: NextRequest) {
     status: "submitted",
   });
 
-  console.log(app);
-
   // Fire and forget OK for UX (await to stface errors during hardening)
   await sendEmail(`${app.adminEmail}`, "APPLICATION_RECEIVED", {
     name: `${app.adminFirstName}`,

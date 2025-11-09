@@ -7,7 +7,7 @@ import { User, type IUser } from "@/models/User";
 export async function requirePlatformAdmin() {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getUser();
-  console.log("DATA==>", data);
+
   if (!data.user)
     return {
       ok: false as const,
@@ -16,7 +16,7 @@ export async function requirePlatformAdmin() {
 
   await connectToDatabase();
   const meResult = await User.findOne({ supabaseUserId: data.user.id }).lean();
-  console.log("meResult", meResult);
+
   const me = meResult as IUser | null;
   if (!me || me.role !== "platform_admin") {
     return {

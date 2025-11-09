@@ -23,7 +23,11 @@ import {
 
 const nav = [
   { label: "Overview", href: "/platform", icon: LayoutDashboard, exact: true },
-  { label: "Applications", href: "/platform/applications", icon: CheckSquare },
+  {
+    label: "Applications",
+    href: "/platform/applications",
+    icon: CheckSquare,
+  },
   { label: "Schools", href: "/platform/schools", icon: Building2 },
   { label: "Users", href: "/platform/users", icon: Users },
   { label: "Billing", href: "/platform/billing", icon: Banknote },

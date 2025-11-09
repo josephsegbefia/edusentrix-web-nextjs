@@ -19,7 +19,7 @@ export function MetricsSkeleton() {
   );
 }
 
-export function CardSkeleton({ count = 6 }: { count?: number }) {
+export function CardsSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: count }).map((_, i) => (

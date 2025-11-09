@@ -1,8 +1,8 @@
 // src/components/platform/PlatformSidebar.tsx
 "use client";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import ActiveLink from "../nav/active/ActiveLink";
 import {
   LayoutDashboard,
   CheckSquare,
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/premium";
 
 const nav = [
-  { label: "Overview", href: "/platform", icon: LayoutDashboard },
+  { label: "Overview", href: "/platform", icon: LayoutDashboard, exact: true },
   { label: "Applications", href: "/platform/applications", icon: CheckSquare },
   { label: "Schools", href: "/platform/schools", icon: Building2 },
   { label: "Users", href: "/platform/users", icon: Users },
@@ -31,7 +31,7 @@ const nav = [
   { label: "Webhooks", href: "/platform/webhooks", icon: Webhook },
   { label: "Email Templates", href: "/platform/emails", icon: Mail },
   { label: "Feature Flags", href: "/platform/flags", icon: Flag },
-  { label: "Audit Log", href: "/platform/audit", icon: FileWarning },
+  { label: "Audit Logs", href: "/platform/audit", icon: FileWarning },
   { label: "Settings", href: "/platform/settings", icon: Settings },
 ];
 
@@ -41,17 +41,19 @@ export default function PlatformSidebar() {
     <aside className="hidden md:block w-64 shrink-0 border-r border-neutral-900 bg-card">
       <div className="p-3">
         <nav className="space-y-1">
-          {nav.map(({ label, href, icon: Icon }) => {
+          {nav.map(({ label, href, icon: Icon, exact }) => {
             const active = pathname === href || pathname.startsWith(href + "/");
             return (
-              <Link
+              <ActiveLink
                 key={href}
                 href={href}
+                exact={exact}
                 className={cn(premiumSideItem, active && premiumSideItemActive)}
+                activeClassName="nav-active"
               >
                 <Icon className="h-4 w-4" />
                 <span>{label}</span>
-              </Link>
+              </ActiveLink>
             );
           })}
         </nav>

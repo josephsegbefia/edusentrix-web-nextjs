@@ -94,7 +94,7 @@ export function BankBranchCombo(props: {
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="p-0 w-(--radix-popover-trigger-width)"
+          className="premiumMenuContent p-0 w-(--radix-popover-trigger-width)"
           align="start"
         >
           <Command shouldFilter={false}>

@@ -16,6 +16,10 @@ import {
   Building2,
   Landmark,
 } from "lucide-react";
+import {
+  premiumSideItem,
+  premiumSideItemActive,
+} from "@/components/ui/premium";
 
 const nav = [
   { label: "Overview", href: "/platform", icon: LayoutDashboard },
@@ -34,7 +38,7 @@ const nav = [
 export default function PlatformSidebar() {
   const pathname = usePathname();
   return (
-    <aside className="hidden md:block w-64 shrink-0  bg-card">
+    <aside className="hidden md:block w-64 shrink-0 border-r border-neutral-900 bg-card">
       <div className="p-3">
         <nav className="space-y-1">
           {nav.map(({ label, href, icon: Icon }) => {
@@ -43,12 +47,7 @@ export default function PlatformSidebar() {
               <Link
                 key={href}
                 href={href}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent",
-                  active
-                    ? "bg-accent text-accent-foreground"
-                    : "text-foreground"
-                )}
+                className={cn(premiumSideItem, active && premiumSideItemActive)}
               >
                 <Icon className="h-4 w-4" />
                 <span>{label}</span>

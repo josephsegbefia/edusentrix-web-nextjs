@@ -6,6 +6,7 @@ import { Application } from "@/models/Application";
 import { sendEmail } from "@/lib/email/brevo";
 import { z } from "zod";
 import { Types } from "mongoose";
+import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
 
 // Optional: ensure useful indexes in your model file (shown below).
 // applicationSchema.index({ status: 1, createdAt: -1 });
@@ -166,6 +167,16 @@ export async function POST(req: NextRequest) {
   const app = await Application.create({
     ...body.data,
     status: "submitted",
+  });
+
+  await recordApplicationAudit({
+    applicationId: app._id,
+    action: "submitted",
+    by: null, // public submitter
+    meta: {
+      adminEmail: app.adminEmail,
+      schoolName: app.schoolName,
+    },
   });
 
   // Fire and forget OK for UX (await to stface errors during hardening)

@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { Application } from "@/models/Application";
+import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
 
 const BodySchema = z.object({
   reason: z.string().min(3),
@@ -21,19 +23,46 @@ export async function POST(
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   await connectToDatabase();
-  const app = await Application.findById(params.id);
-  if (!app) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const session = await mongoose.startSession();
 
-  if (app.status !== "pending")
-    return NextResponse.json({ success: true, already: app.status });
+  try {
+    await session.withTransaction(async () => {
+      const app = await Application.findById(params.id).session(session);
+      if (!app) throw new Error("Not found");
 
-  app.status = "rejected";
-  (app as any).reviewedBy = guard.me!._id;
-  (app as any).reviewNote = parsed.data.reason;
-  (app as any).reviewedAt = new Date();
-  await app.save();
+      // Only allow reject from 'submitted' or 'reviewed'
+      if (!["submitted", "reviewed"].includes(app.status)) {
+        // If already rejected, make this idempotent
+        if (app.status === "rejected") return;
+        throw new Error(
+          `Invalid state transition from '${app.status}' to 'rejected'`
+        );
+      }
 
-  // (Optional) send rejection email with Brevo if you want.
+      app.status = "rejected";
+      app.processedBy = guard.me!._id as any;
+      await app.save({ session });
 
-  return NextResponse.json({ success: true });
+      await recordApplicationAudit(
+        {
+          applicationId: app._id,
+          action: "rejected",
+          by: guard.me!._id,
+          note: parsed.data.reason,
+        },
+        { session }
+      );
+    });
+
+    // (Optional) send rejection email here — non-fatal if it fails
+
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: "Reject failed", details: e?.message || String(e) },
+      { status: 500 }
+    );
+  } finally {
+    session.endSession();
+  }
 }

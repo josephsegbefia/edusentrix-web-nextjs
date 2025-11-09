@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
 
   // Auth + role enforcement (API side)
   const guard = await requirePlatformAdmin();
+  console.log("guard", guard);
   if (!guard.ok) return guard.res;
 
   await connectToDatabase();

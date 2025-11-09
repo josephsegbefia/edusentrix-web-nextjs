@@ -56,7 +56,12 @@ export default function ApplicationsList() {
         }
       );
       if (!res.ok) throw new Error("list");
-      return (await res.json()) as Page;
+      const payload = await res.json();
+      // API returns {success, data, {items, nextCursor}}
+      if (!payload?.success || !payload?.data) {
+        throw new Error("bad-payload");
+      }
+      return payload.data as Page;
     },
     getNextPageParam: (last) => last.nextCursor ?? null,
   });
@@ -76,7 +81,9 @@ export default function ApplicationsList() {
     return () => io.disconnect();
   }, [hasNextPage, isFetchingNextPage]);
 
-  const items = data?.pages.flatMap((p) => p.items) ?? [];
+  const items = (data?.pages ?? []).flatMap((p) =>
+    Array.isArray(p?.items) ? p.items : []
+  ) as Application[];
 
   return (
     <>

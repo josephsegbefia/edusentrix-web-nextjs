@@ -49,9 +49,12 @@ export default function ApplicationsFilters() {
 
   // Debounce search
   useEffect(() => {
+    const current = search.get("q") ?? "";
+    if (q === current) return;
     const id = setTimeout(() => set({ q: q || null }), 300);
     return () => clearTimeout(id);
-  }, [q, set]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, search]);
 
   const ranges = useMemo(
     () => [

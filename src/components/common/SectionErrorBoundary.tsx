@@ -1,5 +1,5 @@
 "use client";
-import React, { GetDerivedStateFromError } from "react";
+import React from "react";
 import { Button } from "../ui/button";
 
 type State = { hasError: boolean };
@@ -8,7 +8,7 @@ export class SectionErrorBoundary extends React.Component<
   State
 > {
   state: State = { hasError: false };
-  static GetDerivedStateFromError() {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
   componentDidCatch(_e: unknown) {

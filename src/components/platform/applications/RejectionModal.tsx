@@ -71,7 +71,7 @@ export function RejectionModal({
           </SheetHeader>
           <div className="mt-6 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-white/80">
+              <label className="text-sm font-medium text-white/80 mb-5">
                 Reason for rejection
               </label>
               <Textarea

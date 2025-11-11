@@ -42,7 +42,7 @@ const nav = [
 export default function PlatformSidebar() {
   const pathname = usePathname();
   return (
-    <aside className="hidden md:block w-64 shrink-0 border-r border-neutral-900 bg-card">
+    <aside className="hidden md:block fixed left-0 top-14 w-64 h-[calc(100vh-3.5rem)] shrink-0 border-r border-neutral-900 bg-card overflow-y-auto">
       <div className="p-3">
         <nav className="space-y-1">
           {nav.map(({ label, href, icon: Icon, exact }) => {

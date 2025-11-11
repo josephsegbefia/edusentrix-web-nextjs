@@ -57,17 +57,26 @@ export default function ApplicationCard({
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey });
+      await qc.cancelQueries({ queryKey: ["applications:metrics"] });
       const prev = qc.getQueryData(queryKey);
+      const prevMetrics = qc.getQueriesData({ queryKey: ["applications:metrics"] });
       updateListCache(qc, queryKey, application._id, "approved", activeStatus);
-      return { prev };
+      updateMetricsCache(qc, "pending", -1);
+      updateMetricsCache(qc, "approved", 1);
+      return { prev, prevMetrics };
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev !== undefined) qc.setQueryData(queryKey, ctx.prev);
+      if (ctx?.prevMetrics) {
+        ctx.prevMetrics.forEach(([key, data]) => {
+          qc.setQueryData(key, data);
+        });
+      }
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey });
-      qc.invalidateQueries({ queryKey: ["applications:list"] });
-      qc.invalidateQueries({ queryKey: ["applications:metrics"] });
+      qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
+      qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
     },
   });
 
@@ -89,17 +98,26 @@ export default function ApplicationCard({
     },
     onMutate: async () => {
       await qc.cancelQueries({ queryKey });
+      await qc.cancelQueries({ queryKey: ["applications:metrics"] });
       const prev = qc.getQueryData(queryKey);
+      const prevMetrics = qc.getQueriesData({ queryKey: ["applications:metrics"] });
       updateListCache(qc, queryKey, application._id, "rejected", activeStatus);
-      return { prev };
+      updateMetricsCache(qc, "pending", -1);
+      updateMetricsCache(qc, "rejected", 1);
+      return { prev, prevMetrics };
     },
     onError: (_e, _v, ctx) => {
       if (ctx?.prev !== undefined) qc.setQueryData(queryKey, ctx.prev);
+      if (ctx?.prevMetrics) {
+        ctx.prevMetrics.forEach(([key, data]) => {
+          qc.setQueryData(key, data);
+        });
+      }
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey });
-      qc.invalidateQueries({ queryKey: ["applications:list"] });
-      qc.invalidateQueries({ queryKey: ["applications:metrics"] });
+      qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
+      qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
     },
   });
 
@@ -234,4 +252,21 @@ function matchesFilter(
   if (activeStatus === "all") return true;
   if (activeStatus === "pending") return status === "pending";
   return status === activeStatus;
+}
+
+function updateMetricsCache(
+  qc: ReturnType<typeof useQueryClient>,
+  metric: "pending" | "approved" | "rejected",
+  delta: number
+) {
+  qc.setQueriesData<{ pending: number; approved: number; rejected: number }>(
+    { queryKey: ["applications:metrics"] },
+    (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        [metric]: Math.max(0, (old[metric] ?? 0) + delta),
+      };
+    }
+  );
 }

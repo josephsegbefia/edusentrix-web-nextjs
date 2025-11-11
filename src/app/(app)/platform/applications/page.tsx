@@ -17,10 +17,13 @@ export default async function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl md:text-3xl font-semibold">Applications</h1>
-
-      {/* Filters (client), always renderable */}
-      <ApplicationsFilters />
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm pb-6 pt-2 -mx-4 px-4">
+        <h1 className="text-2xl md:text-3xl font-semibold mb-6">
+          Applications
+        </h1>
+        {/* Filters (client), always renderable */}
+        <ApplicationsFilters />
+      </div>
 
       {/* Metrics are nice-to-have; don't block page */}
       <SectionErrorBoundary>

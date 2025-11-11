@@ -158,6 +158,23 @@ const formatRawValue = (value: unknown): string => {
   return String(value);
 };
 
+function updateMetricsCache(
+  qc: ReturnType<typeof useQueryClient>,
+  metric: "pending" | "approved" | "rejected",
+  delta: number
+) {
+  qc.setQueriesData<{ pending: number; approved: number; rejected: number }>(
+    { queryKey: ["applications:metrics"] },
+    (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        [metric]: Math.max(0, (old[metric] ?? 0) + delta),
+      };
+    }
+  );
+}
+
 export default function ApplicationDrawer({
   open,
   id,
@@ -196,10 +213,27 @@ export default function ApplicationDrawer({
         error: "Approve failed",
       });
     },
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["applications:metrics"] });
+      const prevMetrics = qc.getQueriesData({ queryKey: ["applications:metrics"] });
+      // Update metrics optimistically (from pending/reviewed to approved)
+      if (data?.status === "submitted" || data?.status === "reviewed") {
+        updateMetricsCache(qc, "pending", -1);
+        updateMetricsCache(qc, "approved", 1);
+      }
+      return { prevMetrics };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prevMetrics) {
+        ctx.prevMetrics.forEach(([key, data]) => {
+          qc.setQueryData(key, data);
+        });
+      }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["applications:list"] });
+      qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
       qc.invalidateQueries({ queryKey: ["applications:detail", id] });
-      qc.invalidateQueries({ queryKey: ["applications:metrics"] });
+      qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
       onOpenChange(false);
     },
   });
@@ -217,10 +251,27 @@ export default function ApplicationDrawer({
         error: "Reject failed",
       });
     },
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["applications:metrics"] });
+      const prevMetrics = qc.getQueriesData({ queryKey: ["applications:metrics"] });
+      // Update metrics optimistically (from pending/reviewed to rejected)
+      if (data?.status === "submitted" || data?.status === "reviewed") {
+        updateMetricsCache(qc, "pending", -1);
+        updateMetricsCache(qc, "rejected", 1);
+      }
+      return { prevMetrics };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prevMetrics) {
+        ctx.prevMetrics.forEach(([key, data]) => {
+          qc.setQueryData(key, data);
+        });
+      }
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["applications:list"] });
+      qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
       qc.invalidateQueries({ queryKey: ["applications:detail", id] });
-      qc.invalidateQueries({ queryKey: ["applications:metrics"] });
+      qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
       onOpenChange(false);
     },
   });

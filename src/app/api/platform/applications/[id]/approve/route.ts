@@ -31,7 +31,6 @@ export async function POST(
   const session = await mongoose.startSession();
 
   const { id } = await ctx.params;
-  console.log("appId ====>", id);
 
   try {
     let schoolIdCreated: mongoose.Types.ObjectId | null = null;

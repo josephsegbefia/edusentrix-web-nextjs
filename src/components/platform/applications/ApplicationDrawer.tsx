@@ -1,5 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { RejectionModal } from "./RejectionModal";
 
 type ApplicationDetail = {
   _id: string;
@@ -28,12 +30,34 @@ type ApplicationDetail = {
     email?: string;
     phone?: string;
   };
+  linkedSchool?: {
+    _id: string;
+    name: string;
+    type: "Basic" | "Secondary";
+    status: "pending" | "active" | "deactivated";
+    city?: string;
+    region?: string;
+  } | null;
   linkedSchoolId?: string | null;
-  processedBy?: string | null;
+  processedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | null;
+  processedById?: string | null;
   createdAt?: string;
   updatedAt?: string;
   raw?: unknown;
-  audit?: Array<{ action: string; by?: string; at: string; note?: string }>;
+  audit?: Array<{
+    action: string;
+    by?: {
+      _id: string;
+      name: string;
+      email: string;
+    };
+    at: string;
+    note?: string;
+  }>;
 };
 
 const getOrdinalSuffix = (day: number) => {
@@ -56,17 +80,26 @@ const formatDateHuman = (input?: string | null) => {
   return `${day}${suffix} ${month}, ${year}`;
 };
 
-const titleizeKey = (key: string) =>
-  key
-    .split(".")
-    .map((segment) =>
-      segment
-        .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-        .replace(/[_-]/g, " ")
-        .replace(/\b\w/g, (char) => char.toUpperCase())
-        .replace(/\bId\b/gi, "ID")
-    )
-    .join(" › ");
+const titleizeKey = (key: string) => {
+  // Remove "linkedSchoolId" prefix and clean up
+  let cleaned = key.replace(/^linkedSchoolId\./i, "");
+
+  // Remove "processedBy" prefix for nested fields
+  cleaned = cleaned.replace(/^processedBy\./i, "");
+
+  // Split by dots and format each segment
+  const segments = cleaned.split(".");
+  const formatted = segments.map((segment) =>
+    segment
+      .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+      .replace(/[_-]/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+      .replace(/\bId\b/gi, "ID")
+  );
+
+  // Return only the last segment (field name) without the "›" separator
+  return formatted[formatted.length - 1];
+};
 
 const flattenObject = (
   value: unknown,
@@ -137,6 +170,7 @@ export default function ApplicationDrawer({
   const isMobile = useIsMobile();
   const qc = useQueryClient();
   const { promise } = useBusyToast();
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["applications:detail", id],
@@ -145,6 +179,7 @@ export default function ApplicationDrawer({
       const res = await fetch(`/api/platform/applications/${id}`, {
         cache: "no-store",
       });
+      console.log("RES===>", res);
       if (!res.ok) throw new Error("detail");
       return (await res.json()) as ApplicationDetail;
     },
@@ -199,15 +234,69 @@ export default function ApplicationDrawer({
 
   const side = isMobile ? "bottom" : ("right" as const);
 
-  const payloadEntries =
+  // Filter and transform raw entries
+  const rawEntries =
     data?.raw && typeof data.raw === "object" ? flattenObject(data.raw) : [];
 
-  const canReview = data?.status === "submitted" || data?.status === "reviewed";
+  const payloadEntries = rawEntries
+    .filter((entry) => {
+      const key = entry.key.toLowerCase();
+      // Filter out ID-only fields and processedBy/linkedSchoolId references
+      if (
+        key === "linkedschoolid" ||
+        key === "linkedschoolid._id" ||
+        key === "processedby._id" ||
+        key === "processedby" ||
+        (key.endsWith("._id") && key !== "_id")
+      ) {
+        return false;
+      }
+      // Filter out nested processedBy fields (we'll add them separately)
+      if (key.startsWith("processedby.")) {
+        return false;
+      }
+      // Filter out duplicate CITY and REGION (already shown in main section)
+      if (key === "city" || key === "region") {
+        return false;
+      }
+      // Filter out linkedSchoolId.city and linkedSchoolId.region (duplicates)
+      if (key === "linkedschoolid.city" || key === "linkedschoolid.region") {
+        return false;
+      }
+      return true;
+    })
+    .map((entry) => {
+      const key = entry.key.toLowerCase();
+      // Differentiate STATUS entries
+      if (key === "status") {
+        // This is the application status - rename for clarity
+        return { key: "Application Status", value: entry.value };
+      }
+      if (key === "linkedschoolid.status") {
+        // This is the school status - rename it
+        return { key: "School Status", value: entry.value };
+      }
+      return entry;
+    });
+
+  // Add processedBy information from populated data
+  if (data?.processedBy) {
+    const processedByName = data.processedBy.name || data.processedBy.email;
+    // Check if "Processed By" already exists (shouldn't, but just in case)
+    const hasProcessedBy = payloadEntries.some(
+      (e) => e.key.toLowerCase() === "processed by"
+    );
+    if (!hasProcessedBy) {
+      payloadEntries.push({ key: "Processed By", value: processedByName });
+    }
+  }
+
+  const canReview = true; // Allow status changes for all statuses
 
   const reviewerLabel =
     data?.status === "reviewed"
       ? "Reviewed by"
-      : data?.status === "approved"
+      : data?.status === "approved" || data?.status === "rejected"
       ? "Processed by"
       : null;
 
@@ -216,7 +305,7 @@ export default function ApplicationDrawer({
       status,
       note,
     }: {
-      status: "submitted" | "reviewed";
+      status: "submitted" | "reviewed" | "approved" | "rejected";
       note?: string;
     }) => {
       const req = fetch(`/api/platform/applications/${id}`, {
@@ -341,45 +430,178 @@ export default function ApplicationDrawer({
                             : "—"}
                         </div>
                       </div>
-                      {reviewerLabel ? (
+                      {reviewerLabel && data.processedBy ? (
                         <div className="text-right text-xs text-white/60">
                           {reviewerLabel}
                           <div className="text-sm text-white/80">
-                            Platform Team
+                            {data.processedBy.name || "Platform Team"}
                           </div>
                         </div>
                       ) : null}
                     </div>
                     {canReview && (
                       <div className="flex flex-wrap items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-white/20 bg-white/5 text-white hover:bg-white/10"
-                          disabled={
-                            review.isPending ||
-                            approve.isPending ||
-                            reject.isPending
-                          }
-                          onClick={() => {
-                            const note = window.prompt(
-                              data.status === "submitted"
-                                ? "Optional note for review"
-                                : "Optional note for returning to submitted"
-                            );
-                            review.mutate({
-                              status:
-                                data.status === "submitted"
-                                  ? "reviewed"
-                                  : "submitted",
-                              note: note ?? undefined,
-                            });
-                          }}
-                        >
-                          {data.status === "submitted"
-                            ? "Mark as Reviewed"
-                            : "Return to Submitted"}
-                        </Button>
+                        {data.status === "submitted" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                            disabled={
+                              review.isPending ||
+                              approve.isPending ||
+                              reject.isPending
+                            }
+                            onClick={() => {
+                              const note = window.prompt(
+                                "Optional note for review"
+                              );
+                              review.mutate({
+                                status: "reviewed",
+                                note: note ?? undefined,
+                              });
+                            }}
+                          >
+                            Mark as Reviewed
+                          </Button>
+                        )}
+                        {data.status === "reviewed" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                              disabled={
+                                review.isPending ||
+                                approve.isPending ||
+                                reject.isPending
+                              }
+                              onClick={() => {
+                                const note = window.prompt(
+                                  "Optional note for returning to submitted"
+                                );
+                                review.mutate({
+                                  status: "submitted",
+                                  note: note ?? undefined,
+                                });
+                              }}
+                            >
+                              Return to Submitted
+                            </Button>
+                          </>
+                        )}
+                        {data.status === "approved" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                              disabled={
+                                review.isPending ||
+                                approve.isPending ||
+                                reject.isPending
+                              }
+                              onClick={() => {
+                                const note = window.prompt(
+                                  "Optional note for status change"
+                                );
+                                review.mutate({
+                                  status: "submitted",
+                                  note: note ?? undefined,
+                                });
+                              }}
+                            >
+                              Return to Submitted
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                              disabled={
+                                review.isPending ||
+                                approve.isPending ||
+                                reject.isPending
+                              }
+                              onClick={() => {
+                                const note = window.prompt(
+                                  "Optional note for rejection"
+                                );
+                                review.mutate({
+                                  status: "rejected",
+                                  note: note ?? undefined,
+                                });
+                              }}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                        {data.status === "rejected" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                              disabled={
+                                review.isPending ||
+                                approve.isPending ||
+                                reject.isPending
+                              }
+                              onClick={() => {
+                                const note = window.prompt(
+                                  "Optional note for status change"
+                                );
+                                review.mutate({
+                                  status: "submitted",
+                                  note: note ?? undefined,
+                                });
+                              }}
+                            >
+                              Return to Submitted
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                              disabled={
+                                review.isPending ||
+                                approve.isPending ||
+                                reject.isPending
+                              }
+                              onClick={() => {
+                                const note = window.prompt(
+                                  "Optional note for review"
+                                );
+                                review.mutate({
+                                  status: "reviewed",
+                                  note: note ?? undefined,
+                                });
+                              }}
+                            >
+                              Mark as Reviewed
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                              disabled={
+                                review.isPending ||
+                                approve.isPending ||
+                                reject.isPending
+                              }
+                              onClick={() => {
+                                const note = window.prompt(
+                                  "Optional note for approval"
+                                );
+                                review.mutate({
+                                  status: "approved",
+                                  note: note ?? undefined,
+                                });
+                              }}
+                            >
+                              Approve
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -402,6 +624,43 @@ export default function ApplicationDrawer({
                       </div>
                     </div>
                   </div>
+
+                  {/* Linked School */}
+                  {data.linkedSchool && (
+                    <div className="grid gap-1 rounded-2xl border border-white/10 bg-black/30 p-4">
+                      <div className="text-xs uppercase tracking-[0.2em] text-white/50">
+                        Linked School
+                      </div>
+                      <div className="text-base font-medium text-white">
+                        {data.linkedSchool.name}
+                      </div>
+                      <div className="text-sm text-white/60">
+                        {data.linkedSchool.type}
+                        {data.linkedSchool.city || data.linkedSchool.region
+                          ? ` · ${data.linkedSchool.city || ""}${
+                              data.linkedSchool.city && data.linkedSchool.region
+                                ? ", "
+                                : ""
+                            }${data.linkedSchool.region || ""}`
+                          : ""}
+                      </div>
+                      <div className="mt-1">
+                        <Badge
+                          className={cn(
+                            "text-xs",
+                            data.linkedSchool.status === "active"
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                              : data.linkedSchool.status === "pending"
+                              ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+                              : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+                          )}
+                          variant="outline"
+                        >
+                          {data.linkedSchool.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -446,7 +705,7 @@ export default function ApplicationDrawer({
                           <span>{formatDateHuman(a.at)}</span>
                         </div>
                         <div className="mt-2 text-sm text-white/80">
-                          {a.by ? "by Platform Team" : "System"}
+                          {a.by ? `by ${a.by.name}` : "System"}
                         </div>
                         {a.note ? (
                           <div className="mt-1 text-sm text-white/60">
@@ -470,12 +729,9 @@ export default function ApplicationDrawer({
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      const reason = window.prompt("Reason for rejection?");
-                      if (reason) reject.mutate(reason);
-                    }}
+                    onClick={() => setRejectionModalOpen(true)}
                     disabled={
-                      data.status !== "submitted" ||
+                      data.status === "rejected" ||
                       reject.isPending ||
                       approve.isPending ||
                       review.isPending
@@ -486,7 +742,7 @@ export default function ApplicationDrawer({
                   <Button
                     onClick={() => approve.mutate()}
                     disabled={
-                      data.status !== "submitted" ||
+                      data.status === "approved" ||
                       approve.isPending ||
                       reject.isPending ||
                       review.isPending
@@ -500,6 +756,12 @@ export default function ApplicationDrawer({
           )}
         </div>
       </SheetContent>
+      <RejectionModal
+        open={rejectionModalOpen}
+        onOpenChange={setRejectionModalOpen}
+        onConfirm={(reason) => reject.mutate(reason)}
+        isPending={reject.isPending}
+      />
     </Sheet>
   );
 }

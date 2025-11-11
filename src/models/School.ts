@@ -16,7 +16,7 @@ export interface ISchool {
     accountName?: string;
     accountNumber?: string;
   };
-  status: "pending" | "active";
+  status: "pending" | "active" | "deactivated";
   createdBy?: Types.ObjectId | null;
   onboarding?: {
     finishedAt?: Date | null;
@@ -48,7 +48,11 @@ const schoolSchema = new Schema<ISchool>(
       accountName: String,
       accountNumber: String,
     },
-    status: { type: String, enum: ["pending", "active"], default: "pending" },
+    status: {
+      type: String,
+      enum: ["pending", "active", "deactivated"],
+      default: "pending",
+    },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     onboarding: {
       finishedAt: { type: Date, default: null },

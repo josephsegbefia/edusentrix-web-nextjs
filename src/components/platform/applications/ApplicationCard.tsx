@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { useState } from "react";
 import {
   type QueryKey,
   useMutation,
@@ -9,6 +10,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RejectionModal } from "./RejectionModal";
 
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { useBusyToast } from "@/hooks/useBusyToast";
@@ -39,6 +41,7 @@ export default function ApplicationCard({
 }) {
   const qc = useQueryClient();
   const { promise, error } = useBusyToast();
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
 
   const approve = useMutation({
     mutationFn: async () => {
@@ -173,11 +176,7 @@ export default function ApplicationCard({
         <div className="flex flex-1 justify-end gap-2">
           <Button
             variant="outline"
-            onClick={() => {
-              const reason = window.prompt("Reason for rejection?");
-              if (!reason) return;
-              reject.mutate(reason);
-            }}
+            onClick={() => setRejectionModalOpen(true)}
             disabled={application.status !== "pending" || reject.isPending}
           >
             Reject
@@ -190,6 +189,12 @@ export default function ApplicationCard({
           </Button>
         </div>
       </div>
+      <RejectionModal
+        open={rejectionModalOpen}
+        onOpenChange={setRejectionModalOpen}
+        onConfirm={(reason) => reject.mutate(reason)}
+        isPending={reject.isPending}
+      />
     </Card>
   );
 }

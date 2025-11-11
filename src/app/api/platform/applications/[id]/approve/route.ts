@@ -49,39 +49,80 @@ export async function POST(
         );
       }
 
-      // 1) Create School (pending; onboarding will flip to active)
-      const school = await School.create(
-        [
-          {
-            name: app.schoolName,
-            type: app.schoolType,
-            address: (app as any).address || undefined, // only if you actually store address on Application
-            city: app.city || undefined,
-            region: app.region || undefined,
-            status: "pending",
-            createdBy: platformAdminId,
-          },
-        ],
-        { session }
-      ).then(([doc]) => doc);
+      // 1) Create or reuse School (pending; onboarding will flip to active)
+      let school: any;
+      if (app.linkedSchoolId) {
+        // School already exists from previous approval - reuse it
+        school = await School.findById(app.linkedSchoolId).session(session);
+        if (!school) {
+          throw new Error("Linked school not found");
+        }
+        // Update school status back to pending
+        school.status = "pending";
+        await school.save({ session });
+      } else {
+        // Create new school
+        school = await School.create(
+          [
+            {
+              name: app.schoolName,
+              type: app.schoolType,
+              address: (app as any).address || undefined,
+              city: app.city || undefined,
+              region: app.region || undefined,
+              status: "pending",
+              createdBy: platformAdminId,
+            },
+          ],
+          { session }
+        ).then(([doc]) => doc);
+      }
       schoolIdCreated = school._id;
 
       // 2) Ensure local User (by email); supabaseUserId may be added later on first login
       const adminFullName = `${app.adminFirstName} ${app.adminLastName}`.trim();
-      await User.updateOne(
-        { email: app.adminEmail.toLowerCase() },
-        {
-          $set: {
-            email: app.adminEmail.toLowerCase(),
-            name: adminFullName,
-            phone: app.adminPhone || null,
-            role: "school_admin",
-            schoolId: school._id,
-            pendingOnboarding: true,
+      const userEmail = app.adminEmail.toLowerCase();
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ email: userEmail })
+        .session(session)
+        .lean();
+
+      if (existingUser) {
+        // Update existing user without touching supabaseUserId
+        await User.updateOne(
+          { email: userEmail },
+          {
+            $set: {
+              email: userEmail,
+              name: adminFullName,
+              phone: app.adminPhone || null,
+              role: "school_admin",
+              schoolId: school._id,
+              pendingOnboarding: true,
+            },
           },
-        },
-        { upsert: true, session }
-      );
+          { session }
+        );
+      } else {
+        // User doesn't exist - create with a temporary unique supabaseUserId
+        // This will be updated when they first log in via Supabase
+        const tempSupabaseUserId = `temp_${new mongoose.Types.ObjectId().toString()}_${Date.now()}`;
+        await User.create(
+          [
+            {
+              email: userEmail,
+              supabaseUserId: tempSupabaseUserId,
+              name: adminFullName,
+              phone: app.adminPhone || null,
+              role: "school_admin",
+              schoolId: school._id,
+              pendingOnboarding: true,
+            },
+          ],
+          { session }
+        );
+      }
 
       // 3) Update application + link to school + mark who processed
       app.status = "approved";

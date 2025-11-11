@@ -20,7 +20,10 @@ function notFound(msg = "Not found") {
   return NextResponse.json({ error: msg }, { status: 404 });
 }
 
-export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
+export async function GET(
+  _req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getUser();
   if (!data.user)
@@ -34,7 +37,7 @@ export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
     .lean();
   if (!me || (me as any).role !== "platform_admin") return forbidden();
 
-  const { id } = ctx.params;
+  const { id } = await ctx.params;
   if (!id || !mongoose.isValidObjectId(id))
     return badRequest("Invalid application id");
 

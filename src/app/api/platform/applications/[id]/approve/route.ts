@@ -17,7 +17,7 @@ const BodySchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const guard = await requirePlatformAdmin();
   if (!guard.ok) return guard.res;
@@ -30,11 +30,15 @@ export async function POST(
   await connectToDatabase();
   const session = await mongoose.startSession();
 
+  const { id } = await ctx.params;
+  console.log("appId ====>", id);
+
   try {
     let schoolIdCreated: mongoose.Types.ObjectId | null = null;
 
     await session.withTransaction(async () => {
-      const app = await Application.findById(params.id).session(session);
+      const app = await Application.findById(id).session(session);
+
       if (!app) throw new Error("Application not found");
 
       // Only allow approve from 'submitted' or 'reviewed'
@@ -101,7 +105,7 @@ export async function POST(
 
     // 5) Generate magic link (best-effort) + email
     const APP_URL = process.env.APP_URL!;
-    const applicationDoc = await Application.findById(params.id).lean();
+    const applicationDoc = await Application.findById(id).lean();
     if (!applicationDoc || Array.isArray(applicationDoc)) {
       throw new Error("Application not found");
     }
@@ -132,6 +136,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, schoolId: schoolIdCreated });
   } catch (e: any) {
+    console.log("Error approving application", e);
     return NextResponse.json(
       { error: "Approval failed", details: e?.message || String(e) },
       { status: 500 }

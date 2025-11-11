@@ -13,14 +13,17 @@ export async function recordApplicationAudit(
   options?: { session?: ClientSession }
 ) {
   const { applicationId, action, by, note, meta } = params;
-  await ApplicationAudit.create(
-    {
-      applicationId: new Types.ObjectId(applicationId),
-      action,
-      by: by ? new Types.ObjectId(by as any) : null,
-      note,
-      meta: meta ?? null,
-    },
-    options
-  );
+  const doc = {
+    applicationId: new Types.ObjectId(applicationId),
+    action,
+    by: by ? new Types.ObjectId(by as any) : null,
+    note,
+    meta: meta ?? null,
+  };
+
+  const createOptions = options?.session
+    ? { session: options.session }
+    : undefined;
+
+  await ApplicationAudit.create([doc], createOptions);
 }

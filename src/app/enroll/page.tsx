@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -35,55 +34,93 @@ const FormSchema = z.object({
   message: z.string().optional(),
 });
 
+// Helper to extract a meaningful API error message
+async function parseApiError(res: Response) {
+  try {
+    const data = await res.json();
+    return data?.error || data?.message || res.statusText || "Request failed";
+  } catch {
+    return res.statusText || "Request failed";
+  }
+}
+
 export default function EnrollPage() {
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState(false);
+  const [status, setStatus] = useState<"idle" | "success">("idle");
   const [schoolType, setSchoolType] = useState<"Basic" | "Secondary" | "">("");
   const [region, setRegion] = useState<GhanaRegion | "">("");
   const { promise, error } = useBusyToast();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget as HTMLFormElement);
+    const formEl = e.currentTarget as HTMLFormElement;
+    const fd = new FormData(formEl);
     const raw = Object.fromEntries(fd.entries());
 
-    let parsed: z.infer<typeof FormSchema>;
-    try {
-      parsed = FormSchema.parse({
-        ...raw,
-        schoolType: schoolType || raw.schoolType,
-        region: region || raw.region,
-      });
-    } catch (err: any) {
+    // Validate with Zod
+    const result = FormSchema.safeParse({
+      ...raw,
+      schoolType: schoolType || (raw.schoolType as string | undefined),
+      region: region || (raw.region as string | undefined),
+    });
+
+    if (!result.success) {
       error(
-        err?.issues?.[0]?.message ?? "Please review your inputs and try again."
+        result.error.issues?.[0]?.message ??
+          "Please review your inputs and try again."
       );
       return;
     }
 
+    setStatus("idle");
     setLoading(true);
-    const req = fetch("/api/applications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed),
-    });
+
+    // Explicit submit function that throws on non-OK *or* success:false
+    const doSubmit = async () => {
+      const res = await fetch("/api/platform/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result.data),
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        const msg = await parseApiError(res);
+        throw new Error(msg || "Failed to submit. Please try again.");
+      }
+
+      const body = await res.json().catch(() => ({}));
+      if (body?.success === false) {
+        throw new Error(body?.error || "Failed to submit. Please try again.");
+      }
+
+      return body;
+    };
 
     try {
-      await promise(req, {
+      await promise(doSubmit(), {
         loading: "Submitting application…",
         success: "Application received. We’ll email you after review.",
         error: "Failed to submit. Please try again.",
       });
-      setOk(true);
-      (e.currentTarget as any).reset();
+
+      // Success → show success screen
+      setStatus("success");
+      formEl.reset();
       setSchoolType("");
       setRegion("");
+    } catch {
+      // Error → show toast (already handled by useBusyToast) and reset the form
+      formEl.reset();
+      setSchoolType("");
+      setRegion("");
+      setStatus("idle"); // stay on the form
     } finally {
       setLoading(false);
     }
   }
 
-  if (ok) {
+  if (status === "success") {
     return (
       <div className="relative min-h-dvh bg-bg text-white antialiased">
         <div
@@ -110,7 +147,7 @@ export default function EnrollPage() {
           </div>
           <Button
             className="mt-8 inline-flex items-center justify-center rounded-lg bg-brand px-6 py-3 font-medium text-black shadow-lg shadow-brand/20 transition hover:opacity-90"
-            onClick={() => setOk(false)}
+            onClick={() => setStatus("idle")}
           >
             Submit another application
           </Button>
@@ -119,6 +156,7 @@ export default function EnrollPage() {
     );
   }
 
+  // Default view → the form (unchanged look & feel)
   return (
     <div className="relative min-h-dvh bg-bg text-white antialiased">
       <div
@@ -218,7 +256,6 @@ export default function EnrollPage() {
                     />
                   </div>
                 </div>
-
               </section>
 
               <section className="space-y-4">
@@ -256,8 +293,15 @@ export default function EnrollPage() {
                         <SelectValue placeholder="Select school type" />
                       </SelectTrigger>
                       <SelectContent className="border border-white/10 bg-card text-white">
-                        <SelectItem value="Basic">Basic School</SelectItem>
-                        <SelectItem value="Secondary">Secondary School</SelectItem>
+                        <SelectItem value="Basic" className="cursor-pointer">
+                          Basic School
+                        </SelectItem>
+                        <SelectItem
+                          value="Secondary"
+                          className="cursor-pointer"
+                        >
+                          Secondary School
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -275,7 +319,11 @@ export default function EnrollPage() {
                       </SelectTrigger>
                       <SelectContent className="max-h-64 border border-white/10 bg-card text-white">
                         {GHANA_REGIONS.map((r) => (
-                          <SelectItem key={r} value={r}>
+                          <SelectItem
+                            key={r}
+                            value={r}
+                            className="cursor-pointer"
+                          >
                             {r}
                           </SelectItem>
                         ))}
@@ -300,7 +348,6 @@ export default function EnrollPage() {
                     />
                   </div>
                 </div>
-
               </section>
 
               <section className="space-y-2">

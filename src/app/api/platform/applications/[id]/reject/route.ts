@@ -13,7 +13,7 @@ const BodySchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const guard = await requirePlatformAdmin();
   if (!guard.ok) return guard.res;
@@ -25,9 +25,11 @@ export async function POST(
   await connectToDatabase();
   const session = await mongoose.startSession();
 
+  const { id } = await ctx.params;
+
   try {
     await session.withTransaction(async () => {
-      const app = await Application.findById(params.id).session(session);
+      const app = await Application.findById(id).session(session);
       if (!app) throw new Error("Not found");
 
       // Only allow reject from 'submitted' or 'reviewed'

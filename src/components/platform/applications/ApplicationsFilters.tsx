@@ -42,7 +42,7 @@ function useQuerySync() {
 export default function ApplicationsFilters() {
   const { search, set } = useQuerySync();
 
-  const status = search.get("status") ?? "pending";
+  const status = search.get("status") ?? "all";
   const type = search.get("type") ?? "all";
   const range = search.get("range") ?? "30d";
   const [q, setQ] = useState<string>(search.get("q") ?? "");
@@ -68,84 +68,113 @@ export default function ApplicationsFilters() {
   return (
     <div className="grid gap-3 md:grid-cols-12">
       {/* Status */}
-      <Select
-        value={status}
-        onValueChange={(v) => {
-          set({ status: v === "all" ? null : v });
-        }}
-      >
-        <SelectTrigger className="md:col-span-2 bg-card border border-white/10">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent className="premiumSelectContent">
-          {STATUS.map((s) => (
-            <SelectItem key={s} value={s} className="cursor-pointer">
-              {s}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="md:col-span-2 flex flex-col gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted">
+          Application Status
+        </span>
+        <Select
+          value={status}
+          onValueChange={(v) => {
+            set({ status: v === "all" ? null : v });
+          }}
+        >
+          <SelectTrigger className="bg-card border border-white/10">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent className="premiumSelectContent">
+            {STATUS.map((s) => (
+              <SelectItem
+                key={s}
+                value={s}
+                className="cursor-pointer capitalize"
+              >
+                {s === "all" ? "All statuses" : s}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Type */}
-      <Select
-        value={type}
-        onValueChange={(v) => {
-          set({ type: v === "all" ? null : v });
-        }}
-      >
-        <SelectTrigger className="md:col-span-2 bg-card border border-white/10">
-          <SelectValue placeholder="Type" />
-        </SelectTrigger>
-        <SelectContent className="premiumSelectContent">
-          {TYPES.map((t) => (
-            <SelectItem key={t} value={t} className="cursor-pointer">
-              {t}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="md:col-span-2 flex flex-col gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted">
+          School Type
+        </span>
+        <Select
+          value={type}
+          onValueChange={(v) => {
+            set({ type: v === "all" ? null : v });
+          }}
+        >
+          <SelectTrigger className="bg-card border border-white/10">
+            <SelectValue placeholder="All types" />
+          </SelectTrigger>
+          <SelectContent className="premiumSelectContent">
+            {TYPES.map((t) => (
+              <SelectItem key={t} value={t} className="cursor-pointer">
+                {t === "all" ? "All types" : t}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Date range quick-picks */}
-      <Select
-        value={range}
-        onValueChange={(v) => {
-          set({ range: v });
-        }}
-      >
-        <SelectTrigger className="md:col-span-2 bg-card border border-white/10">
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4" />
-            <SelectValue placeholder="Range" />
-          </div>
-        </SelectTrigger>
-        <SelectContent className="premiumSelectContent">
-          {ranges.map((r) => (
-            <SelectItem key={r.key} value={r.key} className="cursor-pointer">
-              {r.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="md:col-span-2 flex flex-col gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted">
+          Date Range
+        </span>
+        <Select
+          value={range}
+          onValueChange={(v) => {
+            set({ range: v });
+          }}
+        >
+          <SelectTrigger className="bg-card border border-white/10">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4" />
+              <SelectValue placeholder="Last 30 days" />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="premiumSelectContent">
+            {ranges.map((r) => (
+              <SelectItem key={r.key} value={r.key} className="cursor-pointer">
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Search */}
-      <Input
-        className="md:col-span-5 bg-card border border-white/10"
-        placeholder="Search school or admin…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <div className="md:col-span-5 flex flex-col gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted">
+          Search
+        </span>
+        <Input
+          className="bg-card border border-white/10"
+          placeholder="Search school or admin…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
 
       {/* Clear */}
-      <Button
-        variant="ghost"
-        className="md:col-span-1"
-        onClick={() => {
-          setQ("");
-          set({ status: null, type: null, q: null, range: "30d" });
-        }}
-      >
-        Reset
-      </Button>
+      <div className="md:col-span-1 flex flex-col gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted opacity-0">
+          reset
+        </span>
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() => {
+            setQ("");
+            set({ status: null, type: null, q: null, range: "30d" });
+          }}
+        >
+          Reset
+        </Button>
+      </div>
     </div>
   );
 }

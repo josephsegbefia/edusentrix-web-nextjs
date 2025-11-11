@@ -14,7 +14,7 @@ function useFilters() {
   const s = useSearchParams();
   return useMemo(
     () => ({
-      status: s.get("status") ?? "pending",
+      status: s.get("status") ?? "all",
       type: s.get("type") ?? undefined,
       q: s.get("q") ?? undefined,
       range: s.get("range") ?? "30d",
@@ -27,6 +27,10 @@ export default function ApplicationsList() {
   const filters = useFilters();
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const queryKey = useMemo(
+    () => ["applications:list", filters] as const,
+    [filters]
+  );
 
   const {
     data,
@@ -36,7 +40,7 @@ export default function ApplicationsList() {
     fetchNextPage,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["applications:list", filters],
+    queryKey,
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams();
@@ -118,6 +122,8 @@ export default function ApplicationsList() {
               <ApplicationCard
                 application={app}
                 onOpen={() => setSelectedId(app._id)}
+                activeStatus={filters.status ?? "all"}
+                queryKey={queryKey}
                 // optimistic updates are handled inside the card's mutations
               />
             </motion.div>

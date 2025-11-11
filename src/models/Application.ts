@@ -1,4 +1,8 @@
 import { Schema, model, models, Types } from "mongoose";
+import {
+  GHANA_REGIONS,
+  type GhanaRegion,
+} from "@/constants/ghanaRegions";
 
 export interface IApplication {
   _id: Types.ObjectId;
@@ -9,7 +13,7 @@ export interface IApplication {
   schoolName: string;
   schoolType: "Basic" | "Secondary";
   city?: string;
-  region?: string;
+  region: GhanaRegion;
   message?: string;
   status: "submitted" | "reviewed" | "approved" | "rejected";
   linkedSchoolId?: Types.ObjectId | null;
@@ -27,7 +31,7 @@ const applicationSchema = new Schema<IApplication>(
     schoolName: { type: String, required: true },
     schoolType: { type: String, enum: ["Basic", "Secondary"], required: true },
     city: String,
-    region: String,
+    region: { type: String, enum: GHANA_REGIONS, required: true },
     message: String,
     status: {
       type: String,

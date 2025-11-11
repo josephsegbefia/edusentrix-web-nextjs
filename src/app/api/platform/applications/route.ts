@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email/brevo";
 import { z } from "zod";
 import { Types } from "mongoose";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
+import { GhanaRegionSchema } from "@/constants/ghanaRegions";
 
 // Optional: ensure useful indexes in your model file (shown below).
 // applicationSchema.index({ status: 1, createdAt: -1 });
@@ -134,24 +135,7 @@ const BodySchema = z.object({
   schoolName: z.string().min(3),
   schoolType: z.enum(["Basic", "Secondary"]),
   city: z.string().optional(),
-  region: z.enum([
-    "Ahafo",
-    "Ashanti",
-    "Bono",
-    "Bono East",
-    "Central",
-    "Eastern",
-    "Greater Accra",
-    "North East",
-    "Northern",
-    "Oti",
-    "Savannah",
-    "Upper East",
-    "Upper West",
-    "Volta",
-    "Western",
-    "Western North",
-  ]),
+  region: GhanaRegionSchema,
   message: z.string().optional(),
 });
 

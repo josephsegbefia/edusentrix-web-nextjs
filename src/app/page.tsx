@@ -86,6 +86,12 @@ function SiteNav() {
         </nav>
         <div className="flex items-center gap-3">
           <Link
+            href="/enroll"
+            className="px-4 py-2 rounded-md text-sm font-medium bg-teal-300 text-black hover:opacity-90"
+          >
+            Enrol your school
+          </Link>
+          <Link
             href="/login"
             className="px-3 py-2 rounded-md text-sm bg-card border border-white/10 hover:border-white/20"
           >

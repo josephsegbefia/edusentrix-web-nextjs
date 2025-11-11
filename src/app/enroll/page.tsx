@@ -15,6 +15,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import {
+  GHANA_REGIONS,
+  GhanaRegionSchema,
+  type GhanaRegion,
+} from "@/constants/ghanaRegions";
 
 const FormSchema = z.object({
   adminFirstName: z.string().min(2, "First name is too short"),
@@ -26,7 +31,7 @@ const FormSchema = z.object({
     message: "Select a school type",
   }),
   city: z.string().optional(),
-  region: z.string().optional(),
+  region: GhanaRegionSchema,
   message: z.string().optional(),
 });
 
@@ -34,6 +39,7 @@ export default function EnrollPage() {
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
   const [schoolType, setSchoolType] = useState<"Basic" | "Secondary" | "">("");
+  const [region, setRegion] = useState<GhanaRegion | "">("");
   const { promise, error } = useBusyToast();
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -46,6 +52,7 @@ export default function EnrollPage() {
       parsed = FormSchema.parse({
         ...raw,
         schoolType: schoolType || raw.schoolType,
+        region: region || raw.region,
       });
     } catch (err: any) {
       error(
@@ -70,6 +77,7 @@ export default function EnrollPage() {
       setOk(true);
       (e.currentTarget as any).reset();
       setSchoolType("");
+      setRegion("");
     } finally {
       setLoading(false);
     }
@@ -77,53 +85,78 @@ export default function EnrollPage() {
 
   if (ok) {
     return (
-      <div className="mx-auto max-w-lg p-8 text-center">
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-8 mb-6">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">🎉</span>
+      <div className="relative min-h-dvh bg-bg text-white antialiased">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-60"
+          style={{
+            background:
+              "radial-gradient(60% 40% at 70% 10%, var(--color-brand) 0%, transparent 60%), radial-gradient(55% 35% at 15% 20%, var(--color-primary) 0%, transparent 70%)",
+            filter: "blur(80px)",
+          }}
+        />
+        <div className="relative mx-auto max-w-lg px-6 py-24 text-center">
+          <div className="rounded-3xl border border-white/10 bg-card/80 p-10 shadow-2xl backdrop-blur">
+            <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10 text-brand">
+              <span className="text-2xl">🎉</span>
+            </div>
+            <h1 className="mb-3 text-3xl font-semibold tracking-tight">
+              Application received
+            </h1>
+            <p className="text-sm text-muted">
+              We&apos;ll review your details and reach out via email with next
+              steps.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Thanks! 🎉</h1>
-          <p className="text-gray-600">
-            We&apos;ve received your application. We&apos;ll email you once
-            it&apos;s reviewed.
-          </p>
+          <Button
+            className="mt-8 inline-flex items-center justify-center rounded-lg bg-brand px-6 py-3 font-medium text-black shadow-lg shadow-brand/20 transition hover:opacity-90"
+            onClick={() => setOk(false)}
+          >
+            Submit another application
+          </Button>
         </div>
-        <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 cursor-pointer"
-          onClick={() => setOk(false)}
-        >
-          Submit another application
-        </Button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 py-8 px-4">
+    <div className="relative min-h-dvh bg-bg text-white antialiased">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-60"
+        style={{
+          background:
+            "radial-gradient(50% 50% at 15% 15%, var(--color-brand) 0%, transparent 60%), radial-gradient(60% 40% at 85% 10%, var(--color-primary) 0%, transparent 65%)",
+          filter: "blur(90px)",
+        }}
+      />
       <div className="mx-auto max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          {/* Header */}
-          <div className="bg-linear-to-r from-blue-600 to-indigo-700 px-8 py-6 text-white">
-            <h1 className="text-3xl font-bold mb-2">Enroll Your School</h1>
-            <p className="text-blue-100 opacity-90">
-              Join our educational platform and provide the best learning
-              experience for your students
+        <div className="relative mx-4 my-16 overflow-hidden rounded-3xl border border-white/10 bg-card/90 shadow-2xl backdrop-blur">
+          <div className="border-b border-white/10 bg-white/5 px-10 py-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-1 text-xs text-muted">
+              <span className="size-2 rounded-full bg-emerald-400" />
+              Secure onboarding for Ghanaian schools
+            </div>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight">
+              Enrol your school with EduSentrix
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-muted">
+              Tell us about your institution and we&apos;ll help you modernise
+              fee collection, communication, and operations.
             </p>
           </div>
 
-          {/* Form */}
-          <div className="p-8">
-            <form onSubmit={onSubmit} className="space-y-6">
-              {/* Admin Info */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                  Administrator Information
+          <div className="px-10 py-10">
+            <form onSubmit={onSubmit} className="space-y-8">
+              <section className="space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                  Administrator
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label
                       htmlFor="adminFirstName"
-                      className="text-sm font-medium text-gray-700"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
                     >
                       First name *
                     </Label>
@@ -132,13 +165,13 @@ export default function EnrollPage() {
                       name="adminFirstName"
                       autoComplete="given-name"
                       required
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label
                       htmlFor="adminLastName"
-                      className="text-sm font-medium text-gray-700"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
                     >
                       Last name *
                     </Label>
@@ -147,16 +180,16 @@ export default function EnrollPage() {
                       name="adminLastName"
                       autoComplete="family-name"
                       required
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label
                       htmlFor="adminEmail"
-                      className="text-sm font-medium text-gray-700"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
                     >
                       Email *
                     </Label>
@@ -166,13 +199,13 @@ export default function EnrollPage() {
                       type="email"
                       autoComplete="email"
                       required
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label
                       htmlFor="adminPhone"
-                      className="text-sm font-medium text-gray-700"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
                     >
                       Phone
                     </Label>
@@ -181,21 +214,21 @@ export default function EnrollPage() {
                       name="adminPhone"
                       placeholder="+233..."
                       autoComplete="tel"
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* School Info */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                  School Information
+              </section>
+
+              <section className="space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                  School
                 </h2>
                 <div className="space-y-2">
                   <Label
                     htmlFor="schoolName"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
                   >
                     School name *
                   </Label>
@@ -203,41 +236,59 @@ export default function EnrollPage() {
                     id="schoolName"
                     name="schoolName"
                     required
-                    className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    School type *
-                  </Label>
-                  {/* Hidden input ensures FormData includes value */}
-                  <input type="hidden" name="schoolType" value={schoolType} />
-                  <Select
-                    value={schoolType}
-                    onValueChange={(v) =>
-                      setSchoolType(v as "Basic" | "Secondary")
-                    }
-                  >
-                    <SelectTrigger className="bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer">
-                      <SelectValue placeholder="Select school type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-primary">
-                      <SelectItem value="Basic" className="cursor-pointer">
-                        Basic School
-                      </SelectItem>
-                      <SelectItem value="Secondary" className="cursor-pointer">
-                        Secondary School
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                      School type *
+                    </Label>
+                    <input type="hidden" name="schoolType" value={schoolType} />
+                    <Select
+                      value={schoolType}
+                      onValueChange={(v) =>
+                        setSchoolType(v as "Basic" | "Secondary")
+                      }
+                    >
+                      <SelectTrigger className="border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
+                        <SelectValue placeholder="Select school type" />
+                      </SelectTrigger>
+                      <SelectContent className="border border-white/10 bg-card text-white">
+                        <SelectItem value="Basic">Basic School</SelectItem>
+                        <SelectItem value="Secondary">Secondary School</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                      Region *
+                    </Label>
+                    <input type="hidden" name="region" value={region} />
+                    <Select
+                      value={region}
+                      onValueChange={(v) => setRegion(v as GhanaRegion)}
+                    >
+                      <SelectTrigger className="border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
+                        <SelectValue placeholder="Select region" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64 border border-white/10 bg-card text-white">
+                        {GHANA_REGIONS.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label
                       htmlFor="city"
-                      className="text-sm font-medium text-gray-700"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
                     >
                       City
                     </Label>
@@ -245,60 +296,37 @@ export default function EnrollPage() {
                       id="city"
                       name="city"
                       autoComplete="address-level2"
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="region"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Region
-                    </Label>
-                    <Input
-                      id="region"
-                      name="region"
-                      autoComplete="address-level1"
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Additional */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                  Additional Information
+              </section>
+
+              <section className="space-y-2">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                  Additional details
                 </h2>
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="message"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Message
-                  </Label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    rows={4}
-                    placeholder="Tell us about your school or any specific requirements..."
-                    className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-                  />
-                </div>
-              </div>
+                <Textarea
+                  id="message"
+                  name="message"
+                  rows={4}
+                  placeholder="Tell us about your school or any specific requirements..."
+                  className="border border-white/10 bg-white/5 text-sm text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                />
+              </section>
 
-              {/* Submit */}
-              <div className="pt-4">
+              <div className="pt-2">
                 <Button
                   type="submit"
                   disabled={loading}
                   aria-busy={loading}
-                  className="w-full bg-linear-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-6 rounded-lg font-semibold text-base transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none disabled:opacity-50 cursor-pointer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-6 py-4 text-sm font-semibold text-black shadow-lg shadow-brand/20 transition hover:opacity-90 disabled:opacity-60"
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center">
+                    <>
                       <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        className="size-5 animate-spin text-black/70"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -318,13 +346,13 @@ export default function EnrollPage() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         />
                       </svg>
-                      Submitting...
-                    </span>
+                      Submitting…
+                    </>
                   ) : (
-                    "Submit Application"
+                    "Submit application"
                   )}
                 </Button>
-                <p className="text-xs text-gray-500 text-center mt-3">
+                <p className="mt-3 text-center text-[11px] uppercase tracking-[0.24em] text-muted">
                   Fields marked with * are required
                 </p>
               </div>

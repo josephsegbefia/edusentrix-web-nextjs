@@ -1,3 +1,4 @@
+// src/app/api/platform/applications/[id]/approve/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
@@ -21,47 +22,34 @@ export async function POST(
 ) {
   const guard = await requirePlatformAdmin();
   if (!guard.ok) return guard.res;
-  const platformAdminId = guard.me!._id;
+  const reviewerId = guard.me!._id;
+  const { id } = await ctx.params;
 
   const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success)
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   await connectToDatabase();
-  const session = await mongoose.startSession();
-
-  const { id } = await ctx.params;
+  const session = await mongoose.connection.startSession();
 
   try {
     let schoolIdCreated: mongoose.Types.ObjectId | null = null;
 
     await session.withTransaction(async () => {
       const app = await Application.findById(id).session(session);
-
       if (!app) throw new Error("Application not found");
 
-      // Only allow approve from 'submitted' or 'reviewed'
       if (!["submitted", "reviewed"].includes(app.status)) {
-        // if already approved, treat as idempotent success
-        if (app.status === "approved") return;
-        throw new Error(
-          `Invalid state transition from '${app.status}' to 'approved'`
-        );
+        if (app.status === "approved") return; // idempotent
+        throw new Error(`Invalid transition from '${app.status}' → approved`);
       }
 
-      // 1) Create or reuse School (pending; onboarding will flip to active)
-      let school: any;
-      if (app.linkedSchoolId) {
-        // School already exists from previous approval - reuse it
-        school = await School.findById(app.linkedSchoolId).session(session);
-        if (!school) {
-          throw new Error("Linked school not found");
-        }
-        // Update school status back to pending
-        school.status = "pending";
-        await school.save({ session });
-      } else {
-        // Create new school
+      // 1) Create or reuse School
+      let school = app.linkedSchoolId
+        ? await School.findById(app.linkedSchoolId).session(session)
+        : null;
+
+      if (!school) {
         school = await School.create(
           [
             {
@@ -71,71 +59,72 @@ export async function POST(
               city: app.city || undefined,
               region: app.region || undefined,
               status: "pending",
-              createdBy: platformAdminId,
+              createdBy: reviewerId,
             },
           ],
           { session }
         ).then(([doc]) => doc);
+      } else {
+        school.status = "pending";
+        await school.save({ session });
       }
       schoolIdCreated = school._id;
 
-      // 2) Ensure local User (by email); supabaseUserId may be added later on first login
-      const adminFullName = `${app.adminFirstName} ${app.adminLastName}`.trim();
-      const userEmail = app.adminEmail.toLowerCase();
+      // 2) Ensure Supabase user exists and capture supabaseUserId
+      const email = app.adminEmail.toLowerCase();
+      const fullName = `${app.adminFirstName} ${app.adminLastName}`.trim();
 
-      // Check if user already exists
-      const existingUser = await User.findOne({ email: userEmail })
-        .session(session)
-        .lean();
-
-      if (existingUser) {
-        // Update existing user without touching supabaseUserId
-        await User.updateOne(
-          { email: userEmail },
-          {
-            $set: {
-              email: userEmail,
-              name: adminFullName,
-              phone: app.adminPhone || null,
-              role: "school_admin",
-              schoolId: school._id,
-              pendingOnboarding: true,
-            },
-          },
-          { session }
-        );
-      } else {
-        // User doesn't exist - create with a temporary unique supabaseUserId
-        // This will be updated when they first log in via Supabase
-        const tempSupabaseUserId = `temp_${new mongoose.Types.ObjectId().toString()}_${Date.now()}`;
-        await User.create(
-          [
-            {
-              email: userEmail,
-              supabaseUserId: tempSupabaseUserId,
-              name: adminFullName,
-              phone: app.adminPhone || null,
-              role: "school_admin",
-              schoolId: school._id,
-              pendingOnboarding: true,
-            },
-          ],
-          { session }
-        );
+      // Try to find an existing Supabase user by email
+      const existing = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 200,
+      });
+      let supabaseUserId: string | null = null;
+      if (!existing.error) {
+        const found = existing.data?.users?.find((u) => u.email === email);
+        supabaseUserId = found?.id ?? null;
       }
 
-      // 3) Update application + link to school + mark who processed
+      if (!supabaseUserId) {
+        // Create a Supabase user (confirmed) without starting a session
+        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: { name: fullName, createdBy: "platform_approval" },
+        });
+        if (error) throw error;
+        supabaseUserId = data.user?.id ?? null;
+        if (!supabaseUserId) throw new Error("No Supabase user id returned");
+      }
+
+      // 3) Upsert Mongo user with that supabaseUserId
+      await User.updateOne(
+        { supabaseUserId },
+        {
+          $set: {
+            supabaseUserId,
+            email,
+            name: fullName,
+            phone: app.adminPhone || null,
+            role: "school_admin",
+            schoolId: school._id,
+            pendingOnboarding: true,
+          },
+        },
+        { upsert: true, session }
+      );
+
+      // 4) Update application and audit
       app.status = "approved";
       app.linkedSchoolId = school._id as any;
-      app.processedBy = platformAdminId as any;
+      app.processedBy = reviewerId as any;
       await app.save({ session });
 
-      // 4) Audit
       await recordApplicationAudit(
         {
           applicationId: app._id,
           action: "approved",
-          by: platformAdminId,
+          by: reviewerId,
           note: parsed.data?.note,
           meta: { linkedSchoolId: String(school._id) },
         },
@@ -143,31 +132,34 @@ export async function POST(
       );
     });
 
-    // 5) Generate magic link (best-effort) + email
+    // 5) Send a **password setup** link (recovery) to /auth/reset
     const APP_URL = process.env.APP_URL!;
-    const applicationDoc = await Application.findById(id).lean();
-    if (!applicationDoc || Array.isArray(applicationDoc)) {
-      throw new Error("Application not found");
+    const appDoc = await Application.findById(id).lean();
+    if (!appDoc || Array.isArray(appDoc)) {
+      throw new Error("Application not found after approval");
     }
-    let setupLink = `${APP_URL}/onboard`;
 
+    let setupLink = `${APP_URL}/auth/reset`;
     try {
+      // Generate a "recovery" (set password) link that lands on our reset page
       const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email: applicationDoc.adminEmail,
-        options: { redirectTo: `${APP_URL}/onboard` as any },
+        type: "recovery",
+        email: appDoc.adminEmail,
+        options: {
+          redirectTo: `${APP_URL}/auth/reset` as any,
+        },
       } as any);
       if (!error && data?.properties?.action_link) {
         setupLink = data.properties.action_link;
       }
     } catch {
-      /* ignore; fallback in place */
+      /* fallback already set */
     }
 
-    // send invite
+    // 6) Email the school admin
     try {
-      await sendEmail(applicationDoc.adminEmail, "SCHOOL_INVITE", {
-        schoolName: applicationDoc.schoolName,
+      await sendEmail(appDoc.adminEmail, "SCHOOL_INVITE", {
+        schoolName: appDoc.schoolName,
         setupLink,
       });
     } catch {
@@ -176,7 +168,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, schoolId: schoolIdCreated });
   } catch (e: any) {
-    console.log("Error approving application", e);
+    console.log("Approval failed", e);
     return NextResponse.json(
       { error: "Approval failed", details: e?.message || String(e) },
       { status: 500 }

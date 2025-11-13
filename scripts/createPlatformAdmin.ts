@@ -1,117 +1,77 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// scripts/create_platform_admin.ts
 /**
- * Usage (recommended):
- *   pnpm dlx tsx scripts/createplatform_admin.ts --email admin@example.com
- *
- * Or add a package.json script:
- *   "scripts": { "admin:create": "tsx scripts/createplatform_admin.ts" }
- * Then run:
- *   EMAIL=admin@example.com pnpm run admin:create
- *
- * Env required:
- *   SUPABASE_URL=...
- *   SUPABASE_SERVICE_ROLE_KEY=...
- *   MONGODB_URI=...
+ * Usage:
+ *   EMAIL=admin@example.com pnpm tsx scripts/create_platform_admin.ts
  */
-
 import "dotenv/config";
-import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-
-config({ path: ".env.local" });
-// NOTE: use RELATIVE imports (no "@/...")
 import { connectToDatabase } from "../src/db/connectToDatabase";
 import { User } from "../src/models/User";
 
-// Read args/env
-const argvEmail =
-  process.env.EMAIL ||
-  (() => {
-    const idx = process.argv.indexOf("--email");
-    return idx > -1 ? process.argv[idx + 1] : undefined;
-  })();
-
-const { NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-console.log(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_URL } = process.env;
 
 async function main() {
-  if (!NEXT_PUBLIC_SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !APP_URL) {
+    throw new Error(
+      "Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or APP_URL"
+    );
   }
-  if (!argvEmail) throw new Error("Provide email via --email or EMAIL env var");
+
+  const email = process.env.EMAIL;
+  if (!email) throw new Error("Provide EMAIL env var");
 
   await connectToDatabase();
 
-  const supabaseAdmin = createClient(
-    NEXT_PUBLIC_SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    {
-      auth: { autoRefreshToken: false, persistSession: false },
-    }
-  );
-
-  // 1) Create (or get) Supabase user WITHOUT a password
-  //    If the user already exists, createUser will error; we then fetch the user.
-  let supabaseUserId: string | undefined;
-
-  const createRes = await supabaseAdmin.auth.admin.createUser({
-    email: argvEmail,
-    email_confirm: true, // immediately confirmed, since we’ll use magic links only
-    user_metadata: { role: "platform_admin" },
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  if (createRes.error) {
-    // If user exists already, fetch it
-    if (createRes.error.message?.toLowerCase().includes("already registered")) {
-      const list = await supabaseAdmin.auth.admin.listUsers();
-      const found = list.data.users.find((u) => u.email === argvEmail);
-      if (!found) throw createRes.error;
-      supabaseUserId = found.id;
-    } else {
-      throw createRes.error;
-    }
-  } else {
-    supabaseUserId = createRes.data.user?.id;
+  // 1) Ensure Supabase user
+  let supabaseUserId: string | null = null;
+  const list = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+  if (!list.error) {
+    supabaseUserId = list.data.users.find((u) => u.email === email)?.id ?? null;
+  }
+  if (!supabaseUserId) {
+    const created = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { role: "platform_admin", seeded: true },
+    });
+    if (created.error) throw created.error;
+    supabaseUserId = created.data.user?.id ?? null;
+    if (!supabaseUserId) throw new Error("No Supabase user id returned");
   }
 
-  if (!supabaseUserId) throw new Error("No supabase user id available");
+  // 2) Upsert Mongo user with platform_admin role
+  await User.updateOne(
+    { supabaseUserId },
+    {
+      $set: {
+        supabaseUserId,
+        email: email.toLowerCase(),
+        role: "platform_admin",
+        pendingOnboarding: false,
+      },
+    },
+    { upsert: true }
+  );
 
-  // 2) Generate a MAGIC LINK for this email
-  //    (No password auth; platform admin signs in via email link)
-  const { data: linkData, error: linkErr } =
-    await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: argvEmail,
-    });
+  // 3) Generate a password setup link (recovery)
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo: `${APP_URL}/auth/reset` as any },
+  } as any);
+  if (error) throw error;
 
-  if (linkErr) throw linkErr;
-
-  const actionLink = linkData?.properties?.action_link || null;
-
-  // 3) Upsert our App user with platform_admin role
-  const existing = await User.findOne({ supabaseUserId });
-  if (existing) {
-    existing.role = "platform_admin";
-    existing.email = argvEmail;
-    existing.pendingOnboarding = false;
-    await existing.save();
+  console.log("✅ Platform admin ensured:", email);
+  if (data?.properties?.action_link) {
+    console.log("\nSet password with this link (copy & open in browser):");
+    console.log(data.properties.action_link, "\n");
   } else {
-    await User.create({
-      supabaseUserId,
-      email: argvEmail,
-      name: "Platform Admin",
-      role: "platform_admin",
-      pendingOnboarding: false,
-    });
-  }
-
-  console.log("✅ Platform admin ensured:", argvEmail);
-  if (actionLink) {
-    console.log("\nMagic sign-in link (copy & open in browser):");
-    console.log(actionLink, "\n");
-  } else {
-    console.log(
-      "ℹ️ Magic link not returned. Ensure email templates are enabled or generate client-side with signInWithOtp."
-    );
+    console.log("No action link returned (check Supabase Auth URL config)");
   }
 }
 

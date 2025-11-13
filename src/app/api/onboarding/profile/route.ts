@@ -29,7 +29,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const b = parsed.data;
-  user.name = b.name;
+  // Parse name into firstName and lastName
+  const nameParts = b.name.trim().split(/\s+/);
+  user.firstName = nameParts[0] || "";
+  user.lastName = nameParts.slice(1).join(" ") || "";
   user.phone = b.phone ?? undefined;
   user.address = b.address ?? undefined;
   user.avatarUrl = b.avatarUrl ?? undefined;

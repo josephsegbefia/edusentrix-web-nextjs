@@ -1,23 +1,25 @@
+// src/models/User.ts
 import { Schema, model, models, Types } from "mongoose";
+
 export type AppRole =
   | "platform_admin"
   | "school_admin"
   | "staff"
-  | "non_teaching_staff"
   | "teacher"
   | "parent"
   | "student";
 
 export interface IUser {
   _id: Types.ObjectId;
-  supabaseUserId: string;
+  // Make optional here
+  supabaseUserId?: string;
   email: string;
+  name?: string; // keep this since you set `name` in routes
   firstName?: string;
   lastName?: string;
   phone?: string;
   avatarUrl?: string;
-  role: AppRole;
-  roles?: AppRole[];
+  role?: AppRole; // single role (you decided to move from roles[] to role)
   schoolId?: Types.ObjectId | null;
   pendingOnboarding?: boolean;
   dateOfBirth?: Date;
@@ -28,24 +30,31 @@ export interface IUser {
 
 const userSchema = new Schema<IUser>(
   {
-    supabaseUserId: { type: String, required: true, index: true, unique: true },
-    email: { type: String, required: true, lowercase: true, index: true },
+    // was: required: true — remove required
+    // important: unique + sparse so multiple docs without this field are allowed
+    supabaseUserId: { type: String, unique: true, sparse: true },
+
+    email: { type: String, required: true, lowercase: true },
+
+    name: String, // add this so your approve route writes don't get dropped
     firstName: String,
     lastName: String,
+    phone: String,
     avatarUrl: String,
+
     role: {
       type: String,
       enum: [
         "platform_admin",
         "school_admin",
         "staff",
-        "non_teaching_staff",
         "teacher",
         "parent",
         "student",
       ],
-      required: true,
+      default: undefined,
     },
+
     schoolId: { type: Schema.Types.ObjectId, ref: "School", default: null },
     pendingOnboarding: { type: Boolean, default: false },
     dateOfBirth: Date,
@@ -54,6 +63,9 @@ const userSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
+// keep simple indexes
+userSchema.index({ email: 1 });
+// optional compound index if you want faster lookups when both exist:
 userSchema.index({ email: 1, supabaseUserId: 1 });
 
 export const User = models.User || model<IUser>("User", userSchema);

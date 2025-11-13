@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns/format";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 type Bootstrap = {
   user: {
@@ -45,17 +47,27 @@ type Bootstrap = {
   subjectSuggestions: string[];
 };
 
-const PeriodSchema = z.object({
-  yearLabel: z.string().min(1),
-  term: z.string().min(1),
-  startDate: z.string().min(1),
-  endDate: z.string().min(1),
-  isCurrent: z.boolean().optional().default(false),
-});
+type Period = {
+  yearLabel: string;
+  term: string;
+  startDate: string;
+  endDate: string;
+  isCurrent?: boolean;
+};
+
+const STEPS = [
+  { id: 1, title: "Profile", description: "Your information" },
+  { id: 2, title: "School Details", description: "School information" },
+  { id: 3, title: "Banking", description: "Payment details" },
+  { id: 4, title: "Curriculum", description: "Subjects & periods" },
+] as const;
+
+type Step = (typeof STEPS)[number]["id"];
 
 export default function OnboardPage() {
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<1 | 2>(1);
+  const [saving, setSaving] = useState(false);
+  const [currentStep, setCurrentStep] = useState<Step>(1);
   const [data, setData] = useState<Bootstrap | null>(null);
   const [bankPick, setBankPick] = useState<{
     bankName: string;
@@ -86,7 +98,7 @@ export default function OnboardPage() {
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [newSubject, setNewSubject] = useState("");
 
-  const [periods, setPeriods] = useState<Array<z.infer<typeof PeriodSchema>>>([
+  const [periods, setPeriods] = useState<Period[]>([
     {
       yearLabel: `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
       term: "Term 1",
@@ -168,107 +180,159 @@ export default function OnboardPage() {
   };
 
   const canContinueStep1 = useMemo(() => name.trim().length >= 2, [name]);
+  const canContinueStep2 = useMemo(
+    () => schoolName.trim().length >= 2,
+    [schoolName]
+  );
+  const canContinueStep4 = useMemo(
+    () => selectedSubjects.length > 0 && periods.length > 0,
+    [selectedSubjects.length, periods.length]
+  );
 
   async function saveStep1() {
-    const res = await fetch("/api/onboarding/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        phone: phone || null,
-        dateOfBirth: dob ? new Date(dob).toISOString() : null,
-        address: address || null,
-        avatarUrl: avatarUrl || null,
-      }),
-    });
-    if (!res.ok) {
-      alert("Failed to save profile");
-      return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/onboarding/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          phone: phone || null,
+          dateOfBirth: dob ? new Date(dob).toISOString() : null,
+          address: address || null,
+          avatarUrl: avatarUrl || null,
+        }),
+      });
+      if (!res.ok) {
+        toast.error("Failed to save profile");
+        return;
+      }
+      toast.success("Profile saved");
+      setCurrentStep(2);
+    } catch {
+      toast.error("Failed to save profile");
+    } finally {
+      setSaving(false);
     }
-    setStep(2);
   }
 
-  async function saveSchool() {
-    if (!data?.school) return alert("No school bound to your account");
-    const res = await fetch("/api/onboarding/school", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        schoolId: data.school.id,
-        name: schoolName,
-        type: schoolType,
-        address: schoolAddress || null,
-        city: city || null,
-        region: region || null,
-        bank: {
-          bankName: bankName || null,
-          branchName: branchName || null,
-          sortCode: sortCode || null,
-          accountName: accountName || null,
-          accountNumber: accountNumber || null,
-        },
-      }),
-    });
-    if (!res.ok) {
-      alert("Failed to save school profile");
+  async function saveStep2() {
+    if (!data?.school) {
+      toast.error("No school bound to your account");
       return;
     }
-    alert("School profile saved");
+    setSaving(true);
+    try {
+      const res = await fetch("/api/onboarding/school", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId: data.school.id,
+          name: schoolName,
+          type: schoolType,
+          address: schoolAddress || null,
+          city: city || null,
+          region: region || null,
+          bank: {
+            bankName: bankName || null,
+            branchName: branchName || null,
+            sortCode: sortCode || null,
+            accountName: accountName || null,
+            accountNumber: accountNumber || null,
+          },
+        }),
+      });
+      if (!res.ok) {
+        toast.error("Failed to save school profile");
+        return;
+      }
+      toast.success("School profile saved");
+      setCurrentStep(3);
+    } catch {
+      toast.error("Failed to save school profile");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveStep3() {
+    // Step 3 is banking, which is part of school details
+    // We can save it here or move to step 2
+    await saveStep2();
   }
 
   async function finishOnboarding() {
-    if (!data?.school) return alert("No school bound");
-    if (selectedSubjects.length === 0)
-      return alert("Please select at least one subject");
-    if (periods.length === 0)
-      return alert("Please define at least one academic period");
+    if (!data?.school) {
+      toast.error("No school bound");
+      return;
+    }
+    if (selectedSubjects.length === 0) {
+      toast.error("Please select at least one subject");
+      return;
+    }
+    if (periods.length === 0) {
+      toast.error("Please define at least one academic period");
+      return;
+    }
 
     // basic validation
     for (const p of periods) {
       if (!p.yearLabel || !p.term || !p.startDate || !p.endDate) {
-        return alert("Please complete all academic period fields");
+        toast.error("Please complete all academic period fields");
+        return;
       }
       if (new Date(p.endDate) <= new Date(p.startDate)) {
-        return alert(
+        toast.error(
           `End date must be after start date for ${p.yearLabel} - ${p.term}`
         );
+        return;
       }
     }
 
-    const res = await fetch("/api/onboarding/finish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        schoolId: data.school.id,
-        subjects: selectedSubjects,
-        periods: periods.map((p) => ({
-          ...p,
-          startDate: new Date(p.startDate).toISOString(),
-          endDate: new Date(p.endDate).toISOString(),
-          isCurrent: !!p.isCurrent,
-        })),
-      }),
-    });
-    if (!res.ok) {
-      const e = await res.json().catch(() => null);
-      alert(`Failed to finalize: ${e?.details ?? res.statusText}`);
-      return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/onboarding/finish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId: data.school.id,
+          subjects: selectedSubjects,
+          periods: periods.map((p) => ({
+            ...p,
+            startDate: new Date(p.startDate).toISOString(),
+            endDate: new Date(p.endDate).toISOString(),
+            isCurrent: !!p.isCurrent,
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => null);
+        toast.error(`Failed to finalize: ${e?.details ?? res.statusText}`);
+        return;
+      }
+      toast.success("Onboarding completed!");
+      // redirect to dashboard
+      setTimeout(() => {
+        window.location.href = "/admin";
+      }, 1500);
+    } catch {
+      toast.error("Failed to finalize onboarding");
+    } finally {
+      setSaving(false);
     }
-    // redirect to dashboard
-    window.location.href = "/dashboard";
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 py-8 px-4 flex items-center justify-center">
-        <div className="text-gray-700">Loading…</div>
+      <div className="min-h-screen bg-bg text-white flex items-center justify-center">
+        <div className="text-muted">Loading…</div>
       </div>
     );
   }
   if (!data?.school) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 py-8 px-4 flex items-center justify-center">
-        <div className="text-gray-700">
+      <div className="min-h-screen bg-bg text-white flex items-center justify-center">
+        <div className="text-muted">
           No school invite found for your account.
         </div>
       </div>
@@ -276,542 +340,619 @@ export default function OnboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 py-8 px-4">
-      <div className="mx-auto max-w-2xl">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          {/* Header */}
-          <div className="bg-linear-to-r from-blue-600 to-indigo-700 px-8 py-6 text-white">
-            <h1 className="text-3xl font-bold mb-2">
-              {step === 1 ? "Complete Your Profile" : "School Setup"}
-            </h1>
-            <p className="text-blue-100 opacity-90">
-              {step === 1
-                ? "Let's start by setting up your administrator profile"
-                : "Configure your school information and curriculum"}
-            </p>
-            {/* Progress bar */}
-            <div className="mt-4 h-2 w-full bg-blue-500/30 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-white rounded-full transition-all duration-300"
-                style={{ width: `${(step / 2) * 100}%` }}
-              />
-            </div>
-          </div>
+    <div className="min-h-screen bg-bg text-white">
+      {/* Premium gradient background */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 opacity-60"
+        style={{
+          background:
+            "radial-gradient(50% 50% at 15% 15%, var(--color-brand) 0%, transparent 60%), radial-gradient(60% 40% at 85% 10%, var(--color-primary) 0%, transparent 65%)",
+          filter: "blur(90px)",
+        }}
+      />
 
-          {/* Form Content */}
-          <div className="p-8">
-            {step === 1 && (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                    Administrator Information
-                  </h2>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="name"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Full name *
-                    </Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="phone"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Phone
-                      </Label>
-                      <Input
-                        id="phone"
-                        placeholder="+233…"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="dob"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Date of birth
-                      </Label>
-                      <Input
-                        id="dob"
-                        type="date"
-                        value={dob}
-                        onChange={(e) => setDob(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="address"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Address
-                    </Label>
-                    <Textarea
-                      id="address"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      rows={3}
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="avatarUrl"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Avatar URL
-                    </Label>
-                    <Input
-                      id="avatarUrl"
-                      placeholder="https://…"
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                  </div>
-                </div>
+      <div className="relative mx-auto max-w-5xl px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            School Onboarding
+          </h1>
+          <p className="text-muted">
+            Complete your school setup in a few simple steps
+          </p>
+        </div>
 
-                <div className="pt-4">
-                  <Button
-                    onClick={saveStep1}
-                    disabled={!canContinueStep1}
-                    className="w-full bg-linear-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white py-3 px-6 rounded-lg font-semibold text-base transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none disabled:opacity-50 cursor-pointer"
+        {/* Step indicator */}
+        <div className="mb-8 flex items-center justify-between">
+          {STEPS.map((step, idx) => (
+            <div key={step.id} className="flex items-center flex-1">
+              <div className="flex flex-col items-center flex-1">
+                <button
+                  onClick={() => {
+                    // Allow going back to completed steps
+                    if (step.id < currentStep) {
+                      setCurrentStep(step.id);
+                    }
+                  }}
+                  className={`flex items-center justify-center size-12 rounded-full border-2 transition-all ${
+                    step.id < currentStep
+                      ? "bg-brand border-brand text-black cursor-pointer hover:scale-105"
+                      : step.id === currentStep
+                      ? "bg-primary border-primary text-white"
+                      : "bg-card border-border text-muted"
+                  }`}
+                >
+                  {step.id < currentStep ? (
+                    <CheckCircle2 className="size-6" />
+                  ) : (
+                    <span className="font-semibold">{step.id}</span>
+                  )}
+                </button>
+                <div className="mt-2 text-center">
+                  <div
+                    className={`text-sm font-medium ${
+                      step.id === currentStep ? "text-white" : "text-muted"
+                    }`}
                   >
-                    Save & Continue
-                  </Button>
-                  <p className="text-xs text-gray-500 text-center mt-3">
-                    Fields marked with * are required
-                  </p>
+                    {step.title}
+                  </div>
+                  <div className="text-xs text-muted mt-0.5">
+                    {step.description}
+                  </div>
                 </div>
               </div>
-            )}
+              {idx < STEPS.length - 1 && (
+                <div
+                  className={`h-0.5 flex-1 mx-4 transition-colors ${
+                    step.id < currentStep ? "bg-brand" : "bg-border"
+                  }`}
+                />
+              )}
+            </div>
+          ))}
+        </div>
 
-            {step === 2 && (
-              <div className="space-y-6">
-                {/* School Profile */}
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                    School Information
-                  </h2>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="schoolName"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      School name
-                    </Label>
-                    <Input
-                      id="schoolName"
-                      value={schoolName}
-                      onChange={(e) => setSchoolName(e.target.value)}
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
+        {/* Step content */}
+        <motion.div
+          key={currentStep}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+          className="bg-card/90 backdrop-blur border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+        >
+          <div className="p-8 md:p-12">
+            <AnimatePresence mode="wait">
+              {currentStep === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-2">
+                      Your Profile
+                    </h2>
+                    <p className="text-muted">Tell us a bit about yourself</p>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">
-                        Type
+                      <Label htmlFor="name" className="text-sm font-medium">
+                        Full name *
                       </Label>
-                      <Select
-                        value={schoolType}
-                        onValueChange={(v: "Basic" | "Secondary") =>
-                          setSchoolType(v)
-                        }
-                      >
-                        <SelectTrigger className="bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors cursor-pointer">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white">
-                          <SelectItem value="Basic" className="cursor-pointer">
-                            Basic
-                          </SelectItem>
-                          <SelectItem
-                            value="Secondary"
-                            className="cursor-pointer"
-                          >
-                            Secondary
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        className="bg-background/50 border-border"
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-sm font-medium">
+                          Phone
+                        </Label>
+                        <Input
+                          id="phone"
+                          placeholder="+233..."
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="bg-background/50 border-border"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dob" className="text-sm font-medium">
+                          Date of birth
+                        </Label>
+                        <Input
+                          id="dob"
+                          type="date"
+                          value={dob}
+                          onChange={(e) => setDob(e.target.value)}
+                          className="bg-background/50 border-border"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="schoolAddress"
-                        className="text-sm font-medium text-gray-700"
-                      >
+                      <Label htmlFor="address" className="text-sm font-medium">
                         Address
                       </Label>
-                      <Input
-                        id="schoolAddress"
-                        value={schoolAddress}
-                        onChange={(e) => setSchoolAddress(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="city"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        City
-                      </Label>
-                      <Input
-                        id="city"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      <Textarea
+                        id="address"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        rows={3}
+                        className="bg-background/50 border-border resize-none"
+                        placeholder="Your address"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label
-                        htmlFor="region"
-                        className="text-sm font-medium text-gray-700"
+                        htmlFor="avatarUrl"
+                        className="text-sm font-medium"
                       >
-                        Region
+                        Avatar URL
                       </Label>
                       <Input
-                        id="region"
-                        value={region}
-                        onChange={(e) => setRegion(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        id="avatarUrl"
+                        placeholder="https://..."
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        className="bg-background/50 border-border"
                       />
                     </div>
                   </div>
-                </div>
 
-                {/* Banking */}
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                    Bank Details
-                  </h2>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                      Bank & Branch
-                    </Label>
-                    <BankBranchCombo
-                      value={bankPick}
-                      onChange={(v) => {
-                        setBankPick(v);
-                        setBankName(v?.bankName || "");
-                        setBranchName(v?.branchName || "");
-                        setSortCode(v?.sortCode || "");
-                      }}
-                      nameHiddenSortCode="sortCode"
-                    />
-                    {bankPick && (
-                      <p className="text-xs text-gray-500">
-                        Selected: <strong>{bankPick.bankName}</strong> -{" "}
-                        {bankPick.branchName} (sort: {bankPick.sortCode})
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="bankName"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Bank name
-                      </Label>
-                      <Input
-                        id="bankName"
-                        value={bankName}
-                        onChange={(e) => setBankName(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="branchName"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Branch name
-                      </Label>
-                      <Input
-                        id="branchName"
-                        value={branchName}
-                        onChange={(e) => setBranchName(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="sortCode"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Sort code (6 digits)
-                      </Label>
-                      <Input
-                        id="sortCode"
-                        value={sortCode}
-                        onChange={(e) =>
-                          setSortCode(
-                            e.target.value.replace(/\D/g, "").slice(0, 6)
-                          )
-                        }
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="accountName"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Account name
-                      </Label>
-                      <Input
-                        id="accountName"
-                        value={accountName}
-                        onChange={(e) => setAccountName(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="accountNumber"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Account number
-                      </Label>
-                      <Input
-                        id="accountNumber"
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value)}
-                        className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end pt-4">
                     <Button
-                      variant="secondary"
-                      onClick={saveSchool}
-                      className="cursor-pointer"
+                      onClick={saveStep1}
+                      disabled={!canContinueStep1 || saving}
+                      className="bg-brand text-black hover:opacity-90"
                     >
-                      Save school profile
+                      {saving ? "Saving..." : "Continue"}
+                      <ArrowRight className="ml-2 size-4" />
                     </Button>
                   </div>
-                </div>
+                </motion.div>
+              )}
 
-                {/* Subjects */}
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                    Subjects
-                  </h2>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add custom subject"
-                      value={newSubject}
-                      onChange={(e) => setNewSubject(e.target.value)}
-                      onKeyDown={(e) =>
-                        e.key === "Enter"
-                          ? (e.preventDefault(), addSubject())
-                          : null
-                      }
-                      className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                    />
-                    <Button
-                      type="button"
-                      onClick={addSubject}
-                      className="cursor-pointer"
-                    >
-                      Add
-                    </Button>
+              {currentStep === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-2">
+                      School Information
+                    </h2>
+                    <p className="text-muted">
+                      Basic details about your school
+                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {subjectPool.map((s) => {
-                      const active = selectedSubjects.includes(s);
-                      return (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() =>
-                            active
-                              ? removeSubject(s)
-                              : setSelectedSubjects((prev) => [...prev, s])
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="schoolName"
+                        className="text-sm font-medium"
+                      >
+                        School name *
+                      </Label>
+                      <Input
+                        id="schoolName"
+                        value={schoolName}
+                        onChange={(e) => setSchoolName(e.target.value)}
+                        className="bg-background/50 border-border"
+                        placeholder="Your School Name"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Type</Label>
+                        <Select
+                          value={schoolType}
+                          onValueChange={(v: "Basic" | "Secondary") =>
+                            setSchoolType(v)
                           }
-                          className={`px-3 py-1 rounded-full border text-sm cursor-pointer transition-colors ${
-                            active
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "border-gray-300 hover:border-blue-500"
-                          }`}
                         >
-                          {s}
-                        </button>
-                      );
-                    })}
+                          <SelectTrigger className="bg-background/50 border-border">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            <SelectItem value="Basic">Basic</SelectItem>
+                            <SelectItem value="Secondary">Secondary</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="schoolAddress"
+                          className="text-sm font-medium"
+                        >
+                          Address
+                        </Label>
+                        <Input
+                          id="schoolAddress"
+                          value={schoolAddress}
+                          onChange={(e) => setSchoolAddress(e.target.value)}
+                          className="bg-background/50 border-border"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="city" className="text-sm font-medium">
+                          City
+                        </Label>
+                        <Input
+                          id="city"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="bg-background/50 border-border"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="region" className="text-sm font-medium">
+                          Region
+                        </Label>
+                        <Input
+                          id="region"
+                          value={region}
+                          onChange={(e) => setRegion(e.target.value)}
+                          className="bg-background/50 border-border"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Academic Periods */}
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                    Academic Periods
-                  </h2>
-                  {periods.map((p, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end"
+                  <div className="flex justify-between pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentStep(1)}
+                      className="border-border"
                     >
+                      <ArrowLeft className="mr-2 size-4" />
+                      Back
+                    </Button>
+                    <Button
+                      onClick={saveStep2}
+                      disabled={!canContinueStep2 || saving}
+                      className="bg-brand text-black hover:opacity-90"
+                    >
+                      {saving ? "Saving..." : "Continue"}
+                      <ArrowRight className="ml-2 size-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentStep === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-2">
+                      Bank Details
+                    </h2>
+                    <p className="text-muted">
+                      Payment and banking information
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">
+                        Bank & Branch
+                      </Label>
+                      <BankBranchCombo
+                        value={bankPick}
+                        onChange={(v) => {
+                          setBankPick(v);
+                          setBankName(v?.bankName || "");
+                          setBranchName(v?.branchName || "");
+                          setSortCode(v?.sortCode || "");
+                        }}
+                        nameHiddenSortCode="sortCode"
+                      />
+                      {bankPick && (
+                        <p className="text-xs text-muted">
+                          Selected: <strong>{bankPick.bankName}</strong> -{" "}
+                          {bankPick.branchName} (sort: {bankPick.sortCode})
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          Year label
+                        <Label
+                          htmlFor="accountName"
+                          className="text-sm font-medium"
+                        >
+                          Account name
                         </Label>
                         <Input
-                          value={p.yearLabel}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setPeriods((arr) =>
-                              arr.map((x, i) =>
-                                i === idx ? { ...x, yearLabel: v } : x
-                              )
-                            );
-                          }}
-                          className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          id="accountName"
+                          value={accountName}
+                          onChange={(e) => setAccountName(e.target.value)}
+                          className="bg-background/50 border-border"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          Term
+                        <Label
+                          htmlFor="accountNumber"
+                          className="text-sm font-medium"
+                        >
+                          Account number
                         </Label>
                         <Input
-                          value={p.term}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setPeriods((arr) =>
-                              arr.map((x, i) =>
-                                i === idx ? { ...x, term: v } : x
-                              )
-                            );
-                          }}
-                          className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          id="accountNumber"
+                          value={accountNumber}
+                          onChange={(e) => setAccountNumber(e.target.value)}
+                          className="bg-background/50 border-border"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          Start
-                        </Label>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentStep(2)}
+                      className="border-border"
+                    >
+                      <ArrowLeft className="mr-2 size-4" />
+                      Back
+                    </Button>
+                    <Button
+                      onClick={saveStep3}
+                      disabled={saving}
+                      className="bg-brand text-black hover:opacity-90"
+                    >
+                      {saving ? "Saving..." : "Continue"}
+                      <ArrowRight className="ml-2 size-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {currentStep === 4 && (
+                <motion.div
+                  key="step4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6"
+                >
+                  <div>
+                    <h2 className="text-2xl font-semibold mb-2">
+                      Curriculum Setup
+                    </h2>
+                    <p className="text-muted">
+                      Configure subjects and academic periods
+                    </p>
+                  </div>
+
+                  {/* Subjects */}
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">
+                        Subjects
+                      </Label>
+                      <div className="flex gap-2 mb-4">
                         <Input
-                          type="date"
-                          value={p.startDate}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setPeriods((arr) =>
-                              arr.map((x, i) =>
-                                i === idx ? { ...x, startDate: v } : x
-                              )
-                            );
-                          }}
-                          className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                          placeholder="Add custom subject"
+                          value={newSubject}
+                          onChange={(e) => setNewSubject(e.target.value)}
+                          onKeyDown={(e) =>
+                            e.key === "Enter"
+                              ? (e.preventDefault(), addSubject())
+                              : null
+                          }
+                          className="bg-background/50 border-border"
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">
-                          End
-                        </Label>
-                        <Input
-                          type="date"
-                          value={p.endDate}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setPeriods((arr) =>
-                              arr.map((x, i) =>
-                                i === idx ? { ...x, endDate: v } : x
-                              )
-                            );
-                          }}
-                          className="bg-white text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
-                      </div>
-                      <div className="flex gap-2">
                         <Button
                           type="button"
-                          variant={p.isCurrent ? "default" : "outline"}
-                          onClick={() => setCurrentPeriod(idx)}
-                          className="cursor-pointer"
+                          onClick={addSubject}
+                          variant="outline"
+                          className="border-border"
                         >
-                          {p.isCurrent ? "Current" : "Make current"}
+                          Add
                         </Button>
-                        {periods.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() =>
-                              setPeriods((arr) =>
-                                arr.filter((_, i) => i !== idx)
-                              )
-                            }
-                            className="cursor-pointer"
-                          >
-                            Remove
-                          </Button>
-                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {subjectPool.map((s) => {
+                          const active = selectedSubjects.includes(s);
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() =>
+                                active
+                                  ? removeSubject(s)
+                                  : setSelectedSubjects((prev) => [...prev, s])
+                              }
+                              className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                                active
+                                  ? "bg-brand text-black border-brand"
+                                  : "border-border hover:border-brand/50"
+                              }`}
+                            >
+                              {s}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
-                  ))}
-                  <div className="flex justify-between items-center pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        setPeriods((arr) => [
-                          ...arr,
-                          {
-                            yearLabel: `${new Date().getFullYear()}/${
-                              new Date().getFullYear() + 1
-                            }`,
-                            term: `Term ${arr.length + 1}`,
-                            startDate: format(new Date(), "yyyy-MM-dd"),
-                            endDate: format(
-                              new Date(
-                                new Date().setMonth(new Date().getMonth() + 3)
+
+                    {/* Academic Periods */}
+                    <div className="space-y-4">
+                      <Label className="text-sm font-medium block">
+                        Academic Periods
+                      </Label>
+                      {periods.map((p, idx) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end p-4 bg-background/30 rounded-lg border border-border"
+                        >
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted">
+                              Year label
+                            </Label>
+                            <Input
+                              value={p.yearLabel}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setPeriods((arr) =>
+                                  arr.map((x, i) =>
+                                    i === idx ? { ...x, yearLabel: v } : x
+                                  )
+                                );
+                              }}
+                              className="bg-background/50 border-border"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted">Term</Label>
+                            <Input
+                              value={p.term}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setPeriods((arr) =>
+                                  arr.map((x, i) =>
+                                    i === idx ? { ...x, term: v } : x
+                                  )
+                                );
+                              }}
+                              className="bg-background/50 border-border"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted">Start</Label>
+                            <Input
+                              type="date"
+                              value={p.startDate}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setPeriods((arr) =>
+                                  arr.map((x, i) =>
+                                    i === idx ? { ...x, startDate: v } : x
+                                  )
+                                );
+                              }}
+                              className="bg-background/50 border-border"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted">End</Label>
+                            <Input
+                              type="date"
+                              value={p.endDate}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setPeriods((arr) =>
+                                  arr.map((x, i) =>
+                                    i === idx ? { ...x, endDate: v } : x
+                                  )
+                                );
+                              }}
+                              className="bg-background/50 border-border"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={p.isCurrent ? "default" : "outline"}
+                              onClick={() => setCurrentPeriod(idx)}
+                              size="sm"
+                              className={
+                                p.isCurrent
+                                  ? "bg-brand text-black"
+                                  : "border-border"
+                              }
+                            >
+                              {p.isCurrent ? "Current" : "Set current"}
+                            </Button>
+                            {periods.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() =>
+                                  setPeriods((arr) =>
+                                    arr.filter((_, i) => i !== idx)
+                                  )
+                                }
+                                size="sm"
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          setPeriods((arr) => [
+                            ...arr,
+                            {
+                              yearLabel: `${new Date().getFullYear()}/${
+                                new Date().getFullYear() + 1
+                              }`,
+                              term: `Term ${arr.length + 1}`,
+                              startDate: format(new Date(), "yyyy-MM-dd"),
+                              endDate: format(
+                                new Date(
+                                  new Date().setMonth(new Date().getMonth() + 3)
+                                ),
+                                "yyyy-MM-dd"
                               ),
-                              "yyyy-MM-dd"
-                            ),
-                            isCurrent: false,
-                          },
-                        ])
-                      }
-                      className="cursor-pointer"
-                    >
-                      Add period
-                    </Button>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        onClick={() => setStep(1)}
-                        className="cursor-pointer"
+                              isCurrent: false,
+                            },
+                          ])
+                        }
+                        className="border-border"
                       >
-                        Back
-                      </Button>
-                      <Button
-                        onClick={finishOnboarding}
-                        className="bg-linear-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white cursor-pointer"
-                      >
-                        Finish onboarding
+                        Add period
                       </Button>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
+
+                  <div className="flex justify-between pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentStep(3)}
+                      className="border-border"
+                    >
+                      <ArrowLeft className="mr-2 size-4" />
+                      Back
+                    </Button>
+                    <Button
+                      onClick={finishOnboarding}
+                      disabled={!canContinueStep4 || saving}
+                      className="bg-brand text-black hover:opacity-90"
+                    >
+                      {saving ? "Finishing..." : "Complete Onboarding"}
+                      <CheckCircle2 className="ml-2 size-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -38,6 +38,8 @@ export async function GET() {
   const supabase = await supabaseServer();
   const { data } = await supabase.auth.getUser();
 
+  console.log("DATA===>", data);
+
   if (!data?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -47,12 +49,16 @@ export async function GET() {
   let appUser = await User.findOne({ supabaseUserId: data.user.id });
 
   if (!appUser) {
+    // Try to get role from Supabase user metadata, or default to school_admin if pendingOnboarding
+    const roleFromMetadata = data.user.user_metadata?.role;
+    const defaultRole = roleFromMetadata || "school_admin"; // Default to school_admin for onboarding users
+
     appUser = await User.create({
       supabaseUserId: data.user.id,
       email: data.user.email.toLocaleLowerCase(),
-      firstName: data.user.user_metadata?.full_name,
-      lastName: data.user.user_metadata?.last_name,
-      roles: [],
+      firstName: data.user.user_metadata?.full_name || data.user.user_metadata?.firstName,
+      lastName: data.user.user_metadata?.last_name || data.user.user_metadata?.lastName,
+      role: defaultRole,
       pendingOnboarding: true,
     });
   }

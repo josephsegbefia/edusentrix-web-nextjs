@@ -108,14 +108,28 @@ export async function GET() {
   await connectToDatabase();
   const appUser = await User.findOne({ supabaseUserId: data.user.id })
     .select(
-      "_id email firstName  lastName avatartUrl role pendingOnboarding schoolId"
+      "_id email firstName lastName name avatarUrl role pendingOnboarding schoolId"
     )
     .lean<IUser>();
 
   if (!appUser)
     return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const name = [appUser.firstName, appUser.lastName].filter(Boolean).join(" ");
+  // Use name field if available, otherwise construct from firstName/lastName
+  const name =
+    appUser.name ||
+    [appUser.firstName, appUser.lastName].filter(Boolean).join(" ") ||
+    undefined;
+
+  // Get school status if schoolId exists
+  let schoolStatus: string | undefined;
+  if (appUser.schoolId) {
+    const { School } = await import("@/models/School");
+    const school = await School.findById(appUser.schoolId)
+      .select("status")
+      .lean();
+    schoolStatus = school ? (school as any).status : undefined;
+  }
 
   return NextResponse.json({
     _id: String(appUser._id),
@@ -125,5 +139,6 @@ export async function GET() {
     pendingOnboarding: !!appUser.pendingOnboarding,
     schoolId: appUser.schoolId ? String(appUser.schoolId) : null,
     avatarUrl: appUser.avatarUrl,
+    schoolStatus,
   });
 }

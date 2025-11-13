@@ -132,29 +132,15 @@ export async function POST(
       );
     });
 
-    // 5) Send a **password setup** link (recovery) to /auth/reset
-    const APP_URL = process.env.APP_URL!;
+    // 5) Send a **password setup** link to /authentication/reset
+    const APP_URL = process.env.APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const appDoc = await Application.findById(id).lean();
     if (!appDoc || Array.isArray(appDoc)) {
       throw new Error("Application not found after approval");
     }
 
-    let setupLink = `${APP_URL}/auth/reset`;
-    try {
-      // Generate a "recovery" (set password) link that lands on our reset page
-      const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-        type: "recovery",
-        email: appDoc.adminEmail,
-        options: {
-          redirectTo: `${APP_URL}/auth/reset` as any,
-        },
-      } as any);
-      if (!error && data?.properties?.action_link) {
-        setupLink = data.properties.action_link;
-      }
-    } catch {
-      /* fallback already set */
-    }
+    // Send them to the reset page with email prefilled and purpose=set_password
+    const setupLink = `${APP_URL}/authentication/reset?email=${encodeURIComponent(appDoc.adminEmail)}&purpose=set_password`;
 
     // 6) Email the school admin
     try {
@@ -162,7 +148,8 @@ export async function POST(
         schoolName: appDoc.schoolName,
         setupLink,
       });
-    } catch {
+    } catch (err) {
+      console.error("Failed to send approval email:", err);
       /* non-fatal */
     }
 

@@ -1,87 +1,144 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createBrowserClient } from "@supabase/ssr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useBusyToast } from "@/hooks/useBusyToast";
-import { PageLoader } from "@/components/loading/page-loader";
 import { Label } from "@/components/ui/label";
+import { useBusyToast } from "@/hooks/useBusyToast";
+
+type Phase = "request" | "verify" | "success";
+
+const PASSWORD_HINT =
+  "Minimum 8 characters, with uppercase, lowercase and a number.";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const sp = useSearchParams();
   const { promise, error: toastError } = useBusyToast();
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  // Query params
+  const initialEmail = sp.get("email") ?? "";
+  const rawPurpose = (sp.get("purpose") ?? "set_password").toLowerCase();
+  const purpose: "set_password" | "reset_password" =
+    rawPurpose === "reset_password" ? "reset_password" : "set_password";
 
-  const [phase, setPhase] = useState<
-    "exchanging" | "ready" | "updating" | "done" | "error"
-  >("exchanging");
+  // UI state
+  const [phase, setPhase] = useState<Phase>("request");
+  const [email, setEmail] = useState(initialEmail);
+  const [otp, setOtp] = useState("");
   const [pwd, setPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  // Supabase sends us here with a code param, which we exchange for a session
   useEffect(() => {
-    const code = searchParams.get("code");
-    if (!code) {
-      setPhase("error");
-      return;
-    }
-    (async () => {
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) {
-        setPhase("error");
-      } else {
-        setPhase("ready");
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (initialEmail) setEmail(initialEmail);
+  }, [initialEmail]);
 
-  async function onSubmit(e: React.FormEvent) {
+  const canSubmitRequest = useMemo(
+    () => !!email && !submitting,
+    [email, submitting]
+  );
+
+  const canSubmitVerify = useMemo(
+    () =>
+      !!email &&
+      !!otp &&
+      !!pwd &&
+      !!confirmPwd &&
+      pwd === confirmPwd &&
+      !submitting,
+    [email, otp, pwd, confirmPwd, submitting]
+  );
+
+  async function handleRequest(e: React.FormEvent) {
     e.preventDefault();
-    if (!pwd || pwd.length < 0 || pwd !== confirmPwd) {
-      toastError(
-        !pwd || pwd.length < 0
-          ? "Password is required"
-          : "Passwords do not match"
-      );
+    if (!email) {
+      toastError("Enter your email to continue.");
       return;
     }
-    setPhase("updating");
+    setSubmitting(true);
+
     try {
       await promise(
-        (async () => {
-          const { error } = await supabase.auth.updateUser({ password: pwd });
-          if (error) throw error;
-        })(),
+        fetch("/api/auth/request-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, purpose }),
+        }).then(async (r) => {
+          if (!r.ok) {
+            const j = await r.json().catch(() => ({}));
+            throw new Error(j?.error || "Failed to send code");
+          }
+          return r.json();
+        }),
         {
-          loading: "Setting your password...",
-          success: "Password set! Signing in...",
-          error: "Could not set password",
+          loading: "Sending verification code…",
+          success: "Code sent. Check your email.",
+          error: "Couldn’t send code. Try again.",
         }
       );
-      setPhase("done");
-      // After updateUser, you still have an active session; decide where to go:
-      // Hit our server to figure out the right destination based on role/onboarding
-      router.replace("/auth/callback");
+      setPhase("verify");
     } catch {
-      setPhase("ready");
+      // keep phase on request; user can retry
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  if (phase === "exchanging") return <PageLoader />;
-  if (phase === "error") {
-    return (
-      <div className="min-h-dvh grid place-items-center text-rose-300">
-        Invalid or expired link. Please request a new one from the login screen
-      </div>
-    );
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!otp || !pwd || !confirmPwd) {
+      toastError("Complete all fields.");
+      return;
+    }
+    if (pwd !== confirmPwd) {
+      toastError("Passwords do not match.");
+      return;
+    }
+    // quick client-side sanity (server still enforces)
+    if (
+      pwd.length < 8 ||
+      !/[a-z]/.test(pwd) ||
+      !/[A-Z]/.test(pwd) ||
+      !/[0-9]/.test(pwd)
+    ) {
+      toastError(PASSWORD_HINT);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await promise(
+        fetch("/api/auth/provision-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp, password: pwd, purpose }),
+        }).then(async (r) => {
+          if (!r.ok) {
+            const j = await r.json().catch(() => ({}));
+            throw new Error(j?.error || "Couldn’t set password");
+          }
+          return r.json();
+        }),
+        {
+          loading: "Setting your password…",
+          success: "Password set successfully.",
+          error: "Couldn’t set password.",
+        }
+      );
+
+      setPhase("success");
+      // Send them to login with email prefilled
+      router.replace(
+        `/authentication/login?email=${encodeURIComponent(email)}`
+      );
+    } catch {
+      // stay on verify to allow retry
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -94,14 +151,105 @@ export default function ResetPasswordPage() {
             "radial-gradient(50% 50% at 15% 15%, var(--color-brand) 0%, transparent 60%), radial-gradient(60% 40% at 85% 10%, var(--color-primary) 0%, transparent 65%)",
           filter: "blur(90px)",
         }}
-      >
-        <div className="relative mx-auto max-w-lg px-6 py-24">
-          <div className="rounded-3xl border border-white/10 bg-card/90 p-10 shadow-2xl backdrop-blur">
-            <h1 className="mb-1 text-2xl font-semibold">Set Your Password</h1>
-            <p className="text-sm text-muted mb-6">
-              Create a secure password to access your account.
-            </p>
-            <form onSubmit={onSubmit} className="space-y-4">
+      />
+      <div className="relative mx-auto max-w-lg px-6 py-24">
+        <div className="rounded-3xl border border-white/10 bg-card/90 p-10 shadow-2xl backdrop-blur">
+          {/* Header */}
+          <h1 className="mb-1 text-2xl font-semibold">
+            {phase === "request" &&
+              (purpose === "reset_password"
+                ? "Reset your password"
+                : "Set your password")}
+            {phase === "verify" && "Verify & set password"}
+            {phase === "success" && "All set!"}
+          </h1>
+          <p className="text-sm text-muted mb-6">
+            {phase === "request" &&
+              (purpose === "reset_password"
+                ? "Enter your email and we’ll send a verification code."
+                : "Enter your email and we’ll send a verification code to set your password.")}
+            {phase === "verify" &&
+              "Enter the code we emailed you and choose a secure password."}
+            {phase === "success" &&
+              "Your password has been set. Taking you to the sign-in page…"}
+          </p>
+
+          {/* Phase: Request Code */}
+          {phase === "request" && (
+            <form onSubmit={handleRequest} className="space-y-5">
+              <div>
+                <Label
+                  htmlFor="email"
+                  className="text-xs uppercase tracking-[0.2rem] text-muted"
+                >
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@school.edu"
+                  className="mt-1 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-brand"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={!canSubmitRequest}
+                className="w-full rounded-xl bg-brand px-6 py-4 text-sm font-semibold text-black shadow-lg shadow-brand/20 hover:opacity-90 disabled:opacity-60"
+              >
+                {submitting ? "Sending…" : "Send verification code"}
+              </Button>
+            </form>
+          )}
+
+          {/* Phase: Verify + Set Password */}
+          {phase === "verify" && (
+            <form onSubmit={handleVerify} className="space-y-5">
+              <div>
+                <Label className="text-xs uppercase tracking-[0.2rem] text-muted">
+                  Email
+                </Label>
+                <Input
+                  type="email"
+                  value={email}
+                  disabled
+                  className="mt-1 border border-white/10 bg-white/5 text-white placeholder:text-muted"
+                />
+              </div>
+
+              <div>
+                <Label
+                  htmlFor="otp"
+                  className="text-xs uppercase tracking-[0.2rem] text-muted"
+                >
+                  Verification Code
+                </Label>
+                <Input
+                  id="otp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="6-digit code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.trim())}
+                  className="mt-1 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-brand"
+                  required
+                />
+                <div className="flex justify-end mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={submitting}
+                    className="h-8 border-white/20 bg-white/5 text-white hover:bg-white/10"
+                    onClick={handleRequest}
+                  >
+                    Resend code
+                  </Button>
+                </div>
+              </div>
+
               <div>
                 <Label className="text-xs uppercase tracking-[0.2rem] text-muted">
                   New Password
@@ -110,10 +258,15 @@ export default function ResetPasswordPage() {
                   type="password"
                   value={pwd}
                   onChange={(e) => setPwd(e.target.value)}
+                  placeholder="••••••••"
                   className="mt-1 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-brand"
                   required
                 />
+                <p className="mt-2 text-[11px] uppercase tracking-[0.18rem] text-muted">
+                  {PASSWORD_HINT}
+                </p>
               </div>
+
               <div>
                 <Label className="text-xs uppercase tracking-[0.2rem] text-muted">
                   Confirm Password
@@ -122,19 +275,43 @@ export default function ResetPasswordPage() {
                   type="password"
                   value={confirmPwd}
                   onChange={(e) => setConfirmPwd(e.target.value)}
+                  placeholder="••••••••"
                   className="mt-1 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-brand"
                   required
                 />
               </div>
+
               <Button
                 type="submit"
-                disabled={phase === "updating"}
+                disabled={!canSubmitVerify}
                 className="w-full rounded-xl bg-brand px-6 py-4 text-sm font-semibold text-black shadow-lg shadow-brand/20 hover:opacity-90 disabled:opacity-60"
               >
-                {phase === "updating" ? "Updating..." : "Set Password"}
+                {submitting ? "Saving…" : "Set password"}
               </Button>
             </form>
-          </div>
+          )}
+
+          {/* Phase: Success (brief) */}
+          {phase === "success" && (
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                <div className="text-emerald-300 text-sm">
+                  Your password has been set successfully.
+                </div>
+              </div>
+              <Button
+                type="button"
+                className="w-full rounded-xl bg-brand px-6 py-4 text-sm font-semibold text-black shadow-lg shadow-brand/20 hover:opacity-90"
+                onClick={() =>
+                  router.replace(
+                    `/authentication/login?email=${encodeURIComponent(email)}`
+                  )
+                }
+              >
+                Continue to sign in
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

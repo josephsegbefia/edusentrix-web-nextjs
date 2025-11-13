@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { useAuth } from "@/providers/auth-provider";
+import { PageLoader } from "@/components/loading/page-loader";
 
 type Step = "email" | "password";
+
+/** Determine redirect path based on user role */
+function getRedirectPath(role?: string, pendingOnboarding?: boolean): string {
+  if (role === "school_admin" && pendingOnboarding) {
+    return "/onboarding";
+  }
+  switch (role) {
+    case "platform_admin":
+    case "platformAdmin":
+      return "/platform";
+    case "school_admin":
+    case "schoolAdmin":
+      return "/admin";
+    case "teacher":
+      return "/teacher";
+    case "parent":
+      return "/parent";
+    case "student":
+      return "/student";
+    default:
+      return "/dashboard";
+  }
+}
 
 export default function LoginPage() {
   const [step, setStep] = useState<Step>("email");
@@ -25,6 +50,20 @@ export default function LoginPage() {
   const urlError = params.get("error") || undefined;
   const next = params.get("next") || undefined;
   const { promise, error: toastError, success: toastSuccess } = useBusyToast();
+  const { loading, isAuthenticated, me } = useAuth();
+
+  // Redirect authenticated users away from login page
+  useEffect(() => {
+    if (!loading && isAuthenticated && me) {
+      const redirectPath = getRedirectPath(me.role, me.pendingOnboarding);
+      router.replace(redirectPath);
+    }
+  }, [loading, isAuthenticated, me, router]);
+
+  // Show loading state while checking authentication
+  if (loading || (isAuthenticated && me)) {
+    return <PageLoader />;
+  }
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,18 +128,42 @@ export default function LoginPage() {
       });
 
       // 2) Now sign in with password (client-side so Supabase sets cookies)
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data: signInData, error } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
       if (error) {
         setSubmitting(false);
+        console.error("SignIn error:", error);
         toastError(error.message || "Invalid credentials");
         return;
       }
 
+      console.log("SignIn successful:", {
+        user: signInData?.user?.email,
+        session: !!signInData?.session,
+      });
+
+      // Verify session was created before redirecting
+      const { data: sessionCheck } = await supabase.auth.getSession();
+      if (!sessionCheck?.session) {
+        console.error("Session not created after signIn");
+        setSubmitting(false);
+        toastError("Session creation failed. Please try again.");
+        return;
+      }
+
+      console.log("Session verified, waiting briefly for cookies to sync...");
+
+      // Small delay to ensure cookies are fully set before redirect
+      // This helps with cookie synchronization between client and server
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // 3) Hand off to callback for role-aware routing & onboarding rules
+      // Use window.location.href instead of router.push to ensure cookies are sent
+      // with the request (full page reload ensures cookies are included)
       const origin =
         typeof window !== "undefined"
           ? window.location.origin
@@ -110,10 +173,11 @@ export default function LoginPage() {
       const dest = `${origin}/auth/callback${
         qs.toString() ? `?${qs.toString()}` : ""
       }`;
-      // Use client navigation to avoid a full page flicker
-      router.push(dest);
+      // Full page navigation ensures cookies are sent to server
+      window.location.href = dest;
     } catch (err: any) {
       setSubmitting(false);
+      console.log("SIgnin Error ===>", err);
       const msg =
         err?.message ||
         "We couldn't sign you in. Please check your password and try again.";

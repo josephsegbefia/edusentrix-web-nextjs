@@ -12,11 +12,17 @@ type AppUser = {
   role?: string;
   schoolId?: string | null;
   pendingOnboarding?: boolean;
+  schoolStatus?: string;
 };
 
 type AuthCtx = {
+  // Legacy properties for compatibility
   user: AppUser | null | undefined;
   isLoading: boolean;
+  // Properties expected by role-gate and other components
+  me: AppUser | null | undefined;
+  loading: boolean;
+  isAuthenticated: boolean;
   /** Triggers Supabase email magic-link flow */
   loginWithMagicLink: (email: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -28,7 +34,7 @@ const Ctx = createContext<AuthCtx | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
 
-  // Load the “me” payload from your API (session must already be set via /auth/callback)
+  // Load the "me" payload from your API (session must already be set via /auth/callback)
   const { data, isLoading } = useQuery({
     queryKey: ["me"],
     queryFn: async () => {
@@ -72,15 +78,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await qc.invalidateQueries({ queryKey: ["me"] });
   }, [qc]);
 
+  const isAuthenticated = data !== null && data !== undefined;
+
   const value = useMemo<AuthCtx>(
     () => ({
+      // Legacy properties
       user: data ?? null,
       isLoading,
+      // Properties expected by role-gate
+      me: data ?? null,
+      loading: isLoading,
+      isAuthenticated,
       loginWithMagicLink,
       logout,
       refresh,
     }),
-    [data, isLoading, loginWithMagicLink, logout, refresh]
+    [data, isLoading, isAuthenticated, loginWithMagicLink, logout, refresh]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

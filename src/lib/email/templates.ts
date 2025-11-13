@@ -8,7 +8,8 @@ export type TemplateKey =
   | "ADMIN_CREATED"
   | "USER_INVITE"
   | "APPLICATION_RECEIVED"
-  | "REMINDER";
+  | "REMINDER"
+  | "PASSWORD_OTP";
 
 export type TemplatePayload = {
   SCHOOL_INVITE: { schoolName: string; setupLink: string };
@@ -33,6 +34,9 @@ export type TemplatePayload = {
     location?: string;
     description?: string;
     actionLink?: string;
+  };
+  PASSWORD_OTP: {
+    code: string;
   };
 };
 
@@ -211,6 +215,28 @@ export const EmailTemplates: {
     `;
     return {
       subject: `Reminder: ${data.title}`,
+      htmlContent,
+      textContent: stripHtml(htmlContent),
+    };
+  },
+
+  PASSWORD_OTP: (data) => {
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <h2 style="color: #4361ee;">Password Reset Code</h2>
+        <p>Hello,</p>
+        <p>You requested a password reset code. Use the code below to reset your password:</p>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #4361ee; margin: 0;">${data.code}</p>
+        </div>
+        <p style="color: #6c757d; font-size: 0.9em;">This code will expire in 10 minutes.</p>
+        <p>If you did not request this code, please ignore this email or contact support if you have concerns.</p>
+        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
+      </div>
+    `;
+    return {
+      subject: `Your Edusentrix Password Reset Code`,
       htmlContent,
       textContent: stripHtml(htmlContent),
     };

@@ -1,19 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
+// src/app/auth/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser as clerkCurrentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User } from "@/models/User";
+import { User, type IUser } from "@/models/User";
 
-function decideNextPath(appUser: {
+/** Role-based landing */
+function decideNextPath(u: {
   role?: string;
   pendingOnboarding?: boolean;
-}) {
-  if (appUser.role === "school_admin" && appUser.pendingOnboarding)
-    return "/onboarding";
-  switch (appUser.role) {
+}): string {
+  if (u.role === "school_admin" && u.pendingOnboarding) return "/onboarding";
+  switch (u.role) {
     case "platform_admin":
     case "platformAdmin":
       return "/platform";
@@ -31,84 +28,73 @@ function decideNextPath(appUser: {
   }
 }
 
-// internal-only
-function sanitizeNextParam(url: URL) {
+/** Only allow internal relative ?next=/... */
+function safeNext(url: URL) {
   const n = url.searchParams.get("next");
-  if (!n || !n.startsWith("/")) return null;
+  if (!n) return null;
+  if (!n.startsWith("/")) return null;
   return n;
 }
 
 export async function GET(req: NextRequest) {
-  // With Clerk, the session cookie is already set here
+  const url = new URL(req.url);
   const { userId } = await auth();
+
+  // No active session → back to sign-in
   if (!userId) {
-    return NextResponse.redirect(
-      new URL("/sign-in?error=unauthorized", req.url)
-    );
+    url.pathname = "/sign-in";
+    url.searchParams.set("error", "unauthorized");
+    return NextResponse.redirect(url);
   }
+
+  // Get Clerk user + ensure Mongo user
+  const clerk = await clerkClient();
+  const cUser = await clerk.users.getUser(userId);
+
+  const email = cUser?.emailAddresses?.[0]?.emailAddress?.toLowerCase() ?? "";
+  const role =
+    (cUser.publicMetadata?.role as string | undefined) ||
+    (cUser.privateMetadata?.role as string | undefined);
 
   await connectToDatabase();
 
-  // Try find Mongo user by clerkUserId; if missing, bind via email
-  const docRaw = await User.findOne({ clerkUserId: userId })
-    .select("role pendingOnboarding email")
-    .lean();
-
-  // Normalize to ensure it's a single document, not an array
-  const docRawNormalized = Array.isArray(docRaw) ? docRaw[0] : docRaw;
-  let doc: { role?: any; pendingOnboarding?: any; email?: any } | null =
-    docRawNormalized as any;
-
-  if (!doc) {
-    const cu = await clerkCurrentUser();
-    const email = cu?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
-    if (!email) {
-      return NextResponse.redirect(
-        new URL("/sign-in?error=user_not_found", req.url)
+  // Find by clerkUserId, else fallback to email, then repair link
+  let appUser: IUser | null = (await User.findOne({
+    clerkUserId: userId,
+  }).lean()) as IUser | null;
+  if (!appUser && email) {
+    const byEmail = (await User.findOne({ email }).lean()) as IUser | null;
+    if (byEmail) {
+      await User.updateOne(
+        { _id: byEmail._id },
+        { $set: { clerkUserId: userId } }
       );
+      appUser = { ...byEmail, clerkUserId: userId };
     }
-
-    const byEmailRaw = await User.findOne({ email }).lean();
-    if (!byEmailRaw) {
-      return NextResponse.redirect(
-        new URL("/sign-in?error=user_not_found", req.url)
-      );
-    }
-
-    // Normalize to ensure it's a single document, not an array
-    const byEmail = Array.isArray(byEmailRaw) ? byEmailRaw[0] : byEmailRaw;
-    if (!byEmail) {
-      return NextResponse.redirect(
-        new URL("/sign-in?error=user_not_found", req.url)
-      );
-    }
-
-    // Type assertion to access properties from Mongoose lean result
-    const byEmailTyped = byEmail as any;
-    await User.updateOne(
-      { _id: byEmailTyped._id },
-      { $set: { clerkUserId: userId } }
-    );
-    doc = {
-      role: byEmailTyped.role,
-      pendingOnboarding: byEmailTyped.pendingOnboarding,
-      email: byEmailTyped.email,
-    } as any;
+  }
+  // Soft-create if still not found (unscoped user)
+  if (!appUser) {
+    const created = await User.create({
+      clerkUserId: userId,
+      email,
+      role: role ?? undefined,
+      pendingOnboarding: role === "school_admin" ? true : false,
+    });
+    appUser = created.toObject() as IUser;
   }
 
-  if (!doc) {
-    return NextResponse.redirect(
-      new URL("/sign-in?error=user_not_found", req.url)
-    );
+  // If role not set in DB but present in Clerk metadata, persist it
+  if (!appUser.role && role) {
+    await User.updateOne({ _id: appUser._id }, { $set: { role } });
+    appUser.role = role as IUser["role"];
   }
 
-  const safeNext = sanitizeNextParam(new URL(req.url));
   const dest =
-    safeNext ||
+    safeNext(url) ??
     decideNextPath({
-      role: doc.role,
-      pendingOnboarding: !!doc.pendingOnboarding,
+      role: appUser.role,
+      pendingOnboarding: !!appUser.pendingOnboarding,
     });
 
-  return NextResponse.redirect(new URL(dest, req.url));
+  return NextResponse.redirect(new URL(dest, url));
 }

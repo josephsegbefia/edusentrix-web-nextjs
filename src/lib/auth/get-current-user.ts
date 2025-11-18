@@ -1,8 +1,8 @@
+// src/lib/auth/get-current-user.ts
 import "server-only";
-import { redirect } from "next/navigation";
-import { auth, currentUser as clerkCurrentUser } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User } from "@/models/User";
+import { User, type IUser } from "@/models/User";
 
 export type AppRole =
   | "platform_admin"
@@ -25,65 +25,47 @@ export type CurrentAppUser = {
 };
 
 export async function getCurrentUser(): Promise<CurrentAppUser | null> {
-  const authResult = await auth();
-  const userId = authResult.userId;
+  const { userId } = await auth();
   if (!userId) return null;
 
   await connectToDatabase();
 
-  // We use clerkUserId as the canonical identity link
-  const docRaw = await User.findOne({ clerkUserId: userId })
+  // Prefer direct link by clerkUserId
+  let doc: IUser | null = (await User.findOne({ clerkUserId: userId })
     .select(
       "_id email firstName lastName avatarUrl role schoolId pendingOnboarding createdAt updatedAt"
     )
-    .lean();
+    .lean()) as IUser | null;
 
-  // Normalize to ensure it's a single document, not an array
-  const doc = Array.isArray(docRaw) ? docRaw[0] : docRaw;
-
+  // Repair path if needed (email match)
   if (!doc) {
-    // As a fallback, try by email
-    const cu = await clerkCurrentUser();
-    const email = cu?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
-    if (!email) return null;
+    const clerk = await clerkClient();
+    const cUser = await clerk.users.getUser(userId);
+    const email =
+      cUser?.emailAddresses?.[0]?.emailAddress?.toLowerCase() ?? undefined;
 
-    const byEmailRaw = await User.findOne({ email }).lean();
-    if (!byEmailRaw) return null;
+    if (email) {
+      const byEmail = (await User.findOne({ email })
+        .select(
+          "_id email firstName lastName avatarUrl role schoolId pendingOnboarding createdAt updatedAt"
+        )
+        .lean()) as IUser | null;
 
-    // Normalize to ensure it's a single document, not an array
-    const byEmail = Array.isArray(byEmailRaw) ? byEmailRaw[0] : byEmailRaw;
-    if (!byEmail) return null;
-
-    // bind clerkUserId now for future lookups
-    await User.updateOne(
-      { _id: byEmail._id },
-      { $set: { clerkUserId: userId } }
-    );
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const byEmailTyped = byEmail as any;
-    const name =
-      [byEmailTyped.firstName, byEmailTyped.lastName]
-        .filter(Boolean)
-        .join(" ") || undefined;
-    return {
-      _id: String(byEmail._id),
-      email: byEmail.email,
-      name,
-      avatarUrl: byEmail.avatarUrl,
-      role: byEmail.role as AppRole | undefined,
-      schoolId: byEmail.schoolId ? String(byEmail.schoolId) : undefined,
-      pendingOnboarding: !!byEmail.pendingOnboarding,
-      createdAt: byEmail.createdAt,
-      updatedAt: byEmail.updatedAt,
-    };
+      if (byEmail) {
+        await User.updateOne(
+          { _id: byEmail._id },
+          { $set: { clerkUserId: userId } }
+        );
+        doc = { ...byEmail, clerkUserId: userId };
+      }
+    }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const docTyped = doc as any;
+  if (!doc) return null;
+
   const name =
-    [docTyped.firstName, docTyped.lastName].filter(Boolean).join(" ") ||
-    undefined;
+    [doc.firstName, doc.lastName].filter(Boolean).join(" ") || undefined;
+
   return {
     _id: String(doc._id),
     email: doc.email,
@@ -98,7 +80,11 @@ export async function getCurrentUser(): Promise<CurrentAppUser | null> {
 }
 
 export async function requireUser() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
-  return user;
+  const me = await getCurrentUser();
+  if (!me) {
+    // Clerk's middleware already protects most routes, but this keeps layout guards explicit
+    // Note: Can't use next/navigation redirect in server-only lib; guard in loaders/layouts
+    throw new Error("Unauthenticated");
+  }
+  return me;
 }

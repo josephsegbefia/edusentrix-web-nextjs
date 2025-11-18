@@ -1,4 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 // Define public routes (everything else is protected)
 const isPublicRoute = createRouteMatcher([
@@ -9,14 +11,15 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   // public APIs (adjust to your needs)
-  "/api/platform/applications", // GET public list if you allow
-  "/api/banks/search", // if public
+  // GET public list if you allow
+  "/api/banks/search",
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    // Protect all non-public routes
-    await auth();
+export default clerkMiddleware(async (auth, req: NextRequest) => {
+  // Centralized guard: if no session and route not public -> go to sign in
+  const { userId } = await auth();
+  if (!userId && !isPublicRoute(req)) {
+    return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 });
 

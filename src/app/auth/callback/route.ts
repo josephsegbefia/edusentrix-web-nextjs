@@ -1,23 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { auth, currentUser as clerkCurrentUser } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
-import type { EmailOtpType } from "@supabase/supabase-js";
 
-/** Centralized routing after login */
 function decideNextPath(appUser: {
   role?: string;
   pendingOnboarding?: boolean;
-  schoolId?: string | null;
 }) {
-  if (appUser.role === "school_admin" && appUser.pendingOnboarding) {
-    return "/onboarding"; // soft landing to start school onboarding
-  }
+  if (appUser.role === "school_admin" && appUser.pendingOnboarding)
+    return "/onboarding";
   switch (appUser.role) {
     case "platform_admin":
     case "platformAdmin":
@@ -36,168 +31,84 @@ function decideNextPath(appUser: {
   }
 }
 
-/** Only allow safe internal next params */
+// internal-only
 function sanitizeNextParam(url: URL) {
   const n = url.searchParams.get("next");
-  if (!n) return null;
-  if (!n.startsWith("/")) return null;
+  if (!n || !n.startsWith("/")) return null;
   return n;
 }
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const res = NextResponse.next();
-
-  // These appear only for PKCE or OTP-based flows
-  const code = url.searchParams.get("code");
-  const tokenHash = url.searchParams.get("token_hash");
-  const otpType = url.searchParams.get("type") as EmailOtpType | null;
-  const email = url.searchParams.get("email") || undefined;
-
-  // Debug: Log cookies received
-  const cookieHeader = req.headers.get("cookie");
-  console.log("Callback - Cookies received:", cookieHeader ? "Yes" : "No");
-  if (cookieHeader) {
-    // Log cookie names (not values for security)
-    const cookieNames = cookieHeader
-      .split(";")
-      .map((c) => c.split("=")[0].trim());
-    console.log("Callback - Cookie names:", cookieNames);
-  }
-  console.log("Callback - URL params:", {
-    code: !!code,
-    tokenHash: !!tokenHash,
-    otpType,
-    email,
-  });
-
-  const supabase = await supabaseServer();
-
-  // --- 1) Establish or validate a session ---
-  try {
-    if (code) {
-      // PKCE exchange (e.g., magic link PKCE or password signup confirmation)
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) {
-        console.error("PKCE exchange error:", error);
-        return NextResponse.redirect(
-          new URL("/authentication/login?error=auth", url)
-        );
-      }
-    } else if (tokenHash && otpType) {
-      // Admin-generated magic/invite/recovery links
-      const { error } = await supabase.auth.verifyOtp({
-        type: otpType,
-        token_hash: tokenHash,
-        ...(email ? { email } : {}),
-      } as any);
-      if (error) {
-        console.error("OTP verify error:", error);
-        return NextResponse.redirect(
-          new URL("/authentication/login?error=auth", url)
-        );
-      }
-    } else {
-      // For password signin: Try to get session and user
-      // First, try to refresh the session
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.getSession();
-
-      console.log("Session check:", {
-        hasSession: !!sessionData?.session,
-        sessionError: sessionError?.message,
-      });
-
-      // If no session, try to get user directly
-      if (sessionError || !sessionData?.session) {
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-        console.log("User check:", {
-          hasUser: !!userData?.user,
-          userError: userError?.message,
-        });
-
-        if (!userData?.user) {
-          console.error(
-            "No session or user found. Session error:",
-            sessionError?.message,
-            "User error:",
-            userError?.message
-          );
-          return NextResponse.redirect(
-            new URL("/authentication/login?error=missing_token", url)
-          );
-        }
-        // User exists but session might not be fully synced, continue anyway
-      }
-      // We have a valid session or user; continue
-    }
-  } catch (err) {
-    console.error("Auth callback error:", err);
+  // With Clerk, the session cookie is already set here
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.redirect(
-      new URL("/authentication/login?error=auth", url)
+      new URL("/sign-in?error=unauthorized", req.url)
     );
   }
 
-  // --- 2) We should now have a session cookie. Fetch the Supabase user. ---
-  const { data: auth, error: authError } = await supabase.auth.getUser();
-
-  if (authError) {
-    console.error("Get user error:", authError);
-  }
-
-  if (!auth.user) {
-    console.error("No user found after session check");
-    return NextResponse.redirect(
-      new URL("/authentication/login?error=unauthorized", url)
-    );
-  }
-
-  console.log("Auth successful for user:", auth.user.email);
-
-  // --- 3) Link to our App user record (repair if email-linked) ---
   await connectToDatabase();
 
-  let doc = await User.findOne({ supabaseUserId: auth.user.id })
-    .select("role pendingOnboarding schoolId supabaseUserId email")
+  // Try find Mongo user by clerkUserId; if missing, bind via email
+  const docRaw = await User.findOne({ clerkUserId: userId })
+    .select("role pendingOnboarding email")
     .lean();
 
-  if (!doc && auth.user.email) {
-    const byEmail = await User.findOne({ email: auth.user.email.toLowerCase() })
-      .select("role pendingOnboarding schoolId supabaseUserId email")
-      .lean();
+  // Normalize to ensure it's a single document, not an array
+  const docRawNormalized = Array.isArray(docRaw) ? docRaw[0] : docRaw;
+  let doc: { role?: any; pendingOnboarding?: any; email?: any } | null =
+    docRawNormalized as any;
 
-    if (byEmail && !Array.isArray(byEmail)) {
-      if (
-        !("supabaseUserId" in byEmail) ||
-        !byEmail.supabaseUserId ||
-        String(byEmail.supabaseUserId).startsWith("temp_")
-      ) {
-        await User.updateOne(
-          { _id: byEmail._id },
-          { $set: { supabaseUserId: auth.user.id } }
-        );
-      }
-      doc = { ...byEmail, supabaseUserId: auth.user.id } as typeof byEmail;
+  if (!doc) {
+    const cu = await clerkCurrentUser();
+    const email = cu?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
+    if (!email) {
+      return NextResponse.redirect(
+        new URL("/sign-in?error=user_not_found", req.url)
+      );
     }
+
+    const byEmailRaw = await User.findOne({ email }).lean();
+    if (!byEmailRaw) {
+      return NextResponse.redirect(
+        new URL("/sign-in?error=user_not_found", req.url)
+      );
+    }
+
+    // Normalize to ensure it's a single document, not an array
+    const byEmail = Array.isArray(byEmailRaw) ? byEmailRaw[0] : byEmailRaw;
+    if (!byEmail) {
+      return NextResponse.redirect(
+        new URL("/sign-in?error=user_not_found", req.url)
+      );
+    }
+
+    // Type assertion to access properties from Mongoose lean result
+    const byEmailTyped = byEmail as any;
+    await User.updateOne(
+      { _id: byEmailTyped._id },
+      { $set: { clerkUserId: userId } }
+    );
+    doc = {
+      role: byEmailTyped.role,
+      pendingOnboarding: byEmailTyped.pendingOnboarding,
+      email: byEmailTyped.email,
+    } as any;
   }
 
   if (!doc) {
-    // You can soft-create here if you want; for now, bounce to login with a clear error
     return NextResponse.redirect(
-      new URL("/authentication/login?error=user_not_found", url)
+      new URL("/sign-in?error=user_not_found", req.url)
     );
   }
 
-  const appUser = {
-    role: (doc as any).role as string | undefined,
-    pendingOnboarding: !!(doc as any).pendingOnboarding,
-    schoolId: (doc as any).schoolId ? String((doc as any).schoolId) : null,
-  };
+  const safeNext = sanitizeNextParam(new URL(req.url));
+  const dest =
+    safeNext ||
+    decideNextPath({
+      role: doc.role,
+      pendingOnboarding: !!doc.pendingOnboarding,
+    });
 
-  // --- 4) Optional ?next= override (internal-only) ---
-  const safeNext = sanitizeNextParam(url);
-  const dest = safeNext || decideNextPath(appUser);
-
-  return NextResponse.redirect(new URL(dest, url));
+  return NextResponse.redirect(new URL(dest, req.url));
 }

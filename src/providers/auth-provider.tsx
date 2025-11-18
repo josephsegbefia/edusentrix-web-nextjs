@@ -1,30 +1,32 @@
-// src/providers/auth-provider.tsx
 "use client";
 
 import React, { createContext, useContext, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
+import { useUser, useClerk } from "@clerk/nextjs";
+
+export type AppRole =
+  | "platform_admin"
+  | "school_admin"
+  | "staff"
+  | "teacher"
+  | "parent"
+  | "student";
 
 type AppUser = {
   _id: string;
   email: string;
-  name?: string;
-  role?: string;
-  schoolId?: string | null;
+  name: string;
+  role?: AppRole;
+  schoolId?: string;
   pendingOnboarding?: boolean;
   schoolStatus?: string;
 };
 
 type AuthCtx = {
-  // Legacy properties for compatibility
-  user: AppUser | null | undefined;
-  isLoading: boolean;
-  // Properties expected by role-gate and other components
   me: AppUser | null | undefined;
   loading: boolean;
   isAuthenticated: boolean;
-  /** Triggers Supabase email magic-link flow */
-  loginWithMagicLink: (email: string) => Promise<void>;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -33,67 +35,43 @@ const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
+  const { isSignedIn } = useUser();
+  const { signOut, openSignIn } = useClerk();
 
-  // Load the "me" payload from your API (session must already be set via /auth/callback)
   const { data, isLoading } = useQuery({
     queryKey: ["me"],
     queryFn: async () => {
       const res = await fetch("/api/me", { cache: "no-store" });
-      if (res.status === 401) return null; // not signed in
-      if (!res.ok) throw new Error("failed");
+      if (res.status === 401) return null;
+      if (!res.ok) throw new Error("Failed to fetch user data");
       return (await res.json()) as AppUser;
     },
   });
 
-  /**
-   * Magic link sign-in (email). This sends the user an email containing the
-   * verification link that lands on /auth/callback, where you exchange the code
-   * and set the auth cookies (via your server helper).
-   */
-  const loginWithMagicLink = useCallback(async (email: string) => {
-    const redirectTo =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback`
-        : undefined;
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectTo,
-        shouldCreateUser: true, // or false if you only want existing users
-      },
-    });
-
-    if (error) throw error;
-    // We do NOT invalidate /api/me here because session will be created
-    // only after the user clicks the magic link and returns to /auth/callback.
-  }, []);
+  const login = useCallback(async () => {
+    openSignIn({ redirectUrl: "/auth/callback" });
+  }, [openSignIn]);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    await signOut();
     await qc.invalidateQueries({ queryKey: ["me"] });
-  }, [qc]);
+    window.location.href = "/sign-in";
+  }, [signOut, qc]);
 
   const refresh = useCallback(async () => {
     await qc.invalidateQueries({ queryKey: ["me"] });
   }, [qc]);
 
-  const isAuthenticated = data !== null && data !== undefined;
-
   const value = useMemo<AuthCtx>(
     () => ({
-      // Legacy properties
-      user: data ?? null,
-      isLoading,
-      // Properties expected by role-gate
       me: data ?? null,
       loading: isLoading,
-      isAuthenticated,
-      loginWithMagicLink,
+      isAuthenticated: !!isSignedIn && !!data,
+      login,
       logout,
       refresh,
     }),
-    [data, isLoading, isAuthenticated, loginWithMagicLink, logout, refresh]
+    [data, isLoading, isSignedIn, login, logout, refresh]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

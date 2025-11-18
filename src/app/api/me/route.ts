@@ -1,144 +1,61 @@
-// import { NextResponse } from "next/server";
-// import { supabaseServer } from "@/lib/supabase/server";
-// import { connectToDatabase } from "@/db/connectToDatabase";
-// import { User, type IUser } from "@/models/User";
-// import { School } from "@/models/School";
-
-// export async function GET() {
-//   const supabase = await supabaseServer();
-//   const { data, error } = await supabase.auth.getUser();
-//   if (error || !data.user) {
-//     console.log(error);
-//     return NextResponse.json(
-//       { ok: false, reason: "unauthorized" },
-//       { status: 401 }
-//     );
-//   }
-
-//   await connectToDatabase();
-//   const appUserResult = await User.findOne({
-//     supabaseUserId: data.user.id,
-//   }).lean();
-//   const appUser = appUserResult as IUser | null;
-
-//   if (!appUser) {
-//     return NextResponse.json({ ok: false, reason: "no_user" }, { status: 404 });
-//   }
-
-//   let school: any = null;
-//   if (appUser.schoolId) {
-//     school = await School.findById(appUser.schoolId).lean();
-//   }
-
-//   // Get primary role (prioritize platform_admin, otherwise use first role)
-//   const primaryRole: string | undefined = appUser.roles.includes(
-//     "platform_admin"
-//   )
-//     ? "platform_admin"
-//     : appUser.roles[0];
-//   // Normalize role name for client (convert camelCase to snake_case for consistency)
-//   const role: string =
-//     primaryRole === "school_admin" ? "school_admin" : primaryRole || "";
-
-//   const pendingOnboardingBool: boolean =
-//     role === "school_admin" || primaryRole === "school_admin"
-//       ? !!(school
-//           ? school.onboarding?.completed === false
-//           : appUser.pendingOnboarding)
-//       : false;
-
-// Redirect to appropriate dashboard based on role
-// Routes match the actual protected route structure:
-// - platform_admin -> /appsentrix (protected route)
-// - school_admin -> /admin (protected route)
-// - teacher -> /teacher (protected route)
-// - parent -> /parent (protected route)
-// - student -> /student (protected route)
-// - bursar -> /bursar (protected route)
-//   let redirect = "/";
-//   if (role === "platform_admin") {
-//     redirect = "/appsentrix";
-//   } else if (role === "school_admin" || primaryRole === "school_admin") {
-//     redirect = pendingOnboardingBool ? "/onboard" : "/admin";
-//   } else if (primaryRole === "teacher") {
-//     redirect = "/teacher";
-//   } else if (primaryRole === "parent") {
-//     redirect = "/parent";
-//   } else if (primaryRole === "student") {
-//     redirect = "/student";
-//   } else if (primaryRole === "bursar") {
-//     redirect = "/bursar";
-//   }
-
-//   return NextResponse.json({
-//     ok: true,
-//     user: {
-//       id: appUser._id?.toString(),
-//       email: appUser.email,
-//       name:
-//         [appUser.firstName, appUser.lastName].filter(Boolean).join(" ") || "",
-//       role,
-//       schoolId: appUser.schoolId?.toString() ?? null,
-//       pendingOnboarding: pendingOnboardingBool,
-//     },
-//     school: school
-//       ? {
-//           id: school._id.toString(),
-//           name: school.name,
-//           status: school.status,
-//           onboardingCompleted: !!school.onboarding?.completed,
-//         }
-//       : null,
-//     redirect,
-//   });
-// }
-
-// src/app/api/me/route.ts
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { auth, currentUser as clerkCurrentUser } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User, type IUser } from "@/models/User";
+import { User } from "@/models/User";
 
 export async function GET() {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const { userId } = await auth();
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await connectToDatabase();
-  const appUser = await User.findOne({ supabaseUserId: data.user.id })
+
+  const docRaw = await User.findOne({ clerkUserId: userId })
     .select(
-      "_id email firstName lastName name avatarUrl role pendingOnboarding schoolId"
+      "_id email firstName lastName avatarUrl role schoolId pendingOnboarding createdAt updatedAt"
     )
-    .lean<IUser>();
+    .lean();
 
-  if (!appUser)
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  // Normalize to ensure it's a single document, not an array
+  let doc = Array.isArray(docRaw) ? docRaw[0] : docRaw;
 
-  // Use name field if available, otherwise construct from firstName/lastName
-  const name =
-    appUser.name ||
-    [appUser.firstName, appUser.lastName].filter(Boolean).join(" ") ||
-    undefined;
+  if (!doc) {
+    const cu = await clerkCurrentUser();
+    const email = cu?.emailAddresses?.[0]?.emailAddress?.toLowerCase();
+    if (!email)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Get school status if schoolId exists
-  let schoolStatus: string | undefined;
-  if (appUser.schoolId) {
-    const { School } = await import("@/models/School");
-    const school = await School.findById(appUser.schoolId)
-      .select("status")
-      .lean();
-    schoolStatus = school ? (school as any).status : undefined;
+    const byEmailRaw = await User.findOne({ email }).lean();
+    if (!byEmailRaw)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Normalize to ensure it's a single document, not an array
+    const byEmail = Array.isArray(byEmailRaw) ? byEmailRaw[0] : byEmailRaw;
+    if (!byEmail)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    await User.updateOne(
+      { _id: byEmail._id },
+      { $set: { clerkUserId: userId } }
+    );
+    doc = byEmail;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const docTyped = doc as any;
+  const name =
+    [docTyped.firstName, docTyped.lastName].filter(Boolean).join(" ") ||
+    undefined;
+
   return NextResponse.json({
-    _id: String(appUser._id),
-    email: appUser.email,
+    _id: String(doc._id),
+    email: doc.email,
     name,
-    role: appUser.role ?? undefined,
-    pendingOnboarding: !!appUser.pendingOnboarding,
-    schoolId: appUser.schoolId ? String(appUser.schoolId) : null,
-    avatarUrl: appUser.avatarUrl,
-    schoolStatus,
+    avatarUrl: doc.avatarUrl,
+    role: doc.role,
+    schoolId: doc.schoolId ? String(doc.schoolId) : null,
+    pendingOnboarding: !!doc.pendingOnboarding,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
   });
 }

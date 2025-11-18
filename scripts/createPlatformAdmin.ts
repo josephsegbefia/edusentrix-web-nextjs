@@ -1,94 +1,133 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// scripts/create_platform_admin.ts
+// scripts/createPlatformAdmin.ts
 /**
  * Usage:
  *   EMAIL=admin@example.com pnpm admin:create
  *
- * The script automatically loads variables from .env.local or .env files.
- *
- * Required environment variables (in .env.local/.env or passed inline):
- *   - SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL
- *   - SUPABASE_SERVICE_ROLE_KEY
- *   - APP_URL
+ * Env needed:
+ *   - CLERK_SECRET_KEY
+ *   - APP_URL (e.g., https://app.edusentrix.com)
  *   - MONGODB_URI
- *   - EMAIL (can be passed inline)
  */
 import { config } from "dotenv";
 import { resolve } from "path";
-// Load .env.local first (Next.js convention), then fallback to .env
 config({ path: resolve(process.cwd(), ".env.local") });
 config({ path: resolve(process.cwd(), ".env") });
-import { createClient } from "@supabase/supabase-js";
+
+import { createClerkClient } from "@clerk/backend";
 import { connectToDatabase } from "../src/db/connectToDatabase";
 import { User } from "../src/models/User";
 
-// Use NEXT_PUBLIC_SUPABASE_URL if SUPABASE_URL is not set (for .env.local compatibility)
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const { SUPABASE_SERVICE_ROLE_KEY, APP_URL } = process.env;
-
 async function main() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !APP_URL) {
-    throw new Error(
-      "Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or APP_URL"
-    );
-  }
+  const email = (process.env.EMAIL || "").toLowerCase().trim();
+  const { CLERK_SECRET_KEY, APP_URL } = process.env;
 
-  const email = process.env.EMAIL;
   if (!email) throw new Error("Provide EMAIL env var");
+  if (!CLERK_SECRET_KEY) throw new Error("Missing CLERK_SECRET_KEY");
+  if (!APP_URL) throw new Error("Missing APP_URL");
+
+  // Init Clerk (backend SDK)
+  const clerk = createClerkClient({ secretKey: CLERK_SECRET_KEY });
+
+  // Look up existing Clerk user by email
+  const existingList = await clerk.users.getUserList({
+    query: email,
+    limit: 5,
+  });
+  const existing = existingList.data?.find((u) =>
+    (u.emailAddresses || []).some(
+      (ea) => ea.emailAddress.toLowerCase() === email
+    )
+  );
 
   await connectToDatabase();
 
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  let clerkUserId: string | null = existing?.id ?? null;
+  let deliveredByInvitation = false;
+  let signInTokenUrl: string | undefined;
 
-  // 1) Ensure Supabase user
-  let supabaseUserId: string | null = null;
-  const list = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-  if (!list.error) {
-    supabaseUserId = list.data.users.find((u) => u.email === email)?.id ?? null;
-  }
-  if (!supabaseUserId) {
-    const created = await admin.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      user_metadata: { role: "platform_admin", seeded: true },
+  if (!clerkUserId) {
+    // Try the invitation flow first (requires Email address identifier enabled)
+    try {
+      await clerk.invitations.createInvitation({
+        emailAddress: email,
+        // After the invite acceptance/sign-in, Clerk will redirect here:
+        redirectUrl: `${APP_URL}/auth/callback`,
+      });
+      deliveredByInvitation = true; // Clerk emails the link directly
+      console.log("✅ Invitation created. Clerk will email the user.");
+    } catch (err: any) {
+      // If invitations aren’t supported (email identifiers not enabled), fall back
+      const isInviteUnsupported =
+        Array.isArray(err?.errors) &&
+        err.errors.some((e: any) => e.code === "invitations_not_supported");
+
+      if (!isInviteUnsupported) {
+        console.error("❌ Clerk invitation failed with unexpected error:", err);
+        throw err;
+      }
+
+      console.warn(
+        "⚠️  Invitations not supported on this Clerk instance. " +
+          "Falling back to user creation + sign-in token."
+      );
+
+      // Create user WITHOUT requiring a password
+      const created = await clerk.users.createUser({
+        emailAddress: [email],
+        skipPasswordRequirement: true,
+        publicMetadata: { role: "platform_admin" },
+      });
+      clerkUserId = created.id;
+
+      // Generate a sign-in token (passwordless one-time link)
+      const token = await clerk.signInTokens.createSignInToken({
+        userId: created.id,
+        // 1 hour token; adjust to taste
+        expiresInSeconds: 60 * 60,
+      });
+      signInTokenUrl = token.url; // Send this URL to the user via your mailer
+    }
+  } else {
+    // Ensure role is reflected in Clerk metadata if user exists
+    await clerk.users.updateUser(clerkUserId, {
+      publicMetadata: { role: "platform_admin" },
     });
-    if (created.error) throw created.error;
-    supabaseUserId = created.data.user?.id ?? null;
-    if (!supabaseUserId) throw new Error("No Supabase user id returned");
   }
 
-  // 2) Upsert Mongo user with platform_admin role
+  // Upsert your local Mongo user
   await User.updateOne(
-    { supabaseUserId },
+    { email },
     {
       $set: {
-        supabaseUserId,
-        email: email.toLowerCase(),
+        email,
         role: "platform_admin",
         pendingOnboarding: false,
+        clerkUserId: clerkUserId || undefined,
       },
     },
     { upsert: true }
   );
 
-  // 3) Generate a password setup link (recovery)
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email,
-    options: { redirectTo: `${APP_URL}/authentication/reset` as any },
-  } as any);
-  if (error) throw error;
+  console.log(`\n✅ Platform admin ensured in Mongo for ${email}\n`);
 
-  console.log("✅ Platform admin ensured:", email);
-  if (data?.properties?.action_link) {
-    console.log("\nSet password with this link (copy & open in browser):");
-    console.log(data.properties.action_link, "\n");
+  if (deliveredByInvitation) {
+    console.log(
+      "📧 Clerk has sent an invitation email (requires Email address identifier to be enabled in the Clerk dashboard)."
+    );
+  } else if (signInTokenUrl) {
+    console.log("🔗 Send this one-time sign-in URL to the user:");
+    console.log(signInTokenUrl, "\n");
+    console.log(
+      "Tip: After they land in your app (session established), redirect them to your Set Password screen."
+    );
   } else {
-    console.log("No action link returned (check Supabase Auth URL config)");
+    console.log("User already existed; they can sign in normally.");
   }
+
+  console.log(
+    "If you want Invitations to work, enable Email address as an identifier in Clerk → User & Authentication settings."
+  );
 }
 
 main().catch((e) => {

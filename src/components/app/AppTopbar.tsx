@@ -1,21 +1,22 @@
 // src/components/app/AppTopbar.tsx
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { CurrentAppUser } from "@/lib/auth/get-current-user";
-import { supabase } from "@/lib/supabase/client";
+import { useClerk } from "@clerk/nextjs";
 
 import { PanelsTopLeft } from "lucide-react";
 import { premiumTopLink } from "@/components/ui/premium";
 import { AppTopbarUserMenu } from "./AppTopbarUserMenu";
 
 export default function AppTopbar({ user }: { user: CurrentAppUser }) {
-  const router = useRouter();
+  const { signOut } = useClerk();
+
   const initial = (user.name || user.email || "?").charAt(0).toUpperCase();
 
+  // inside your component (e.g., AppTopbarUserMenu.tsx)
   const onSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
+    await signOut();
+    window.location.href = "/sign-in";
   };
 
   return (

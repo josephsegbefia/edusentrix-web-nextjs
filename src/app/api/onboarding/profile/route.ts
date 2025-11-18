@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   await connectToDatabase();
 
-  const user = await User.findOne({ supabaseUserId: data.user.id });
+  const user = await User.findOne({ clerkUserId: data.user.id });
   if (!user)
     return NextResponse.json({ error: "User not found" }, { status: 404 });
 

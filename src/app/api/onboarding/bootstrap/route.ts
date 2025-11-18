@@ -1,10 +1,9 @@
-import connectToDatabase from "@/db/connectToDatabase";
-import { supabaseServer } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invite, IInvite } from "@/models/Invite";
 import { School, ISchool } from "@/models/School";
 import { User } from "@/models/User";
-
-import { NextResponse } from "next/server";
 
 const BASIC_SUBJECTS = [
   "Mathematics",
@@ -18,6 +17,7 @@ const BASIC_SUBJECTS = [
   "Creative Arts",
   "Physical Education",
 ];
+
 const SECONDARY_SUBJECTS = [
   "Core Mathematics",
   "English Language",
@@ -35,38 +35,58 @@ const SECONDARY_SUBJECTS = [
 ];
 
 export async function GET() {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-
-  console.log("DATA===>", data);
-
-  if (!data?.user?.email) {
+  // 1) Require a signed-in Clerk session
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // 2) Load the Clerk user and primary email
+  const clerk = await clerkClient();
+  const clerkUser = await clerk.users.getUser(userId);
+
+  const primaryEmail =
+    clerkUser.emailAddresses.find(
+      (ea) => ea.id === clerkUser.primaryEmailAddressId
+    )?.emailAddress ||
+    clerkUser.emailAddresses[0]?.emailAddress ||
+    "";
+
+  if (!primaryEmail) {
+    return NextResponse.json(
+      { error: "No email associated with this account" },
+      { status: 401 }
+    );
+  }
+
+  // 3) DB bootstrap / lookup
   await connectToDatabase();
 
-  let appUser = await User.findOne({ supabaseUserId: data.user.id });
+  let appUser = await User.findOne({ clerkUserId: clerkUser.id });
 
+  // If we don't have a local user yet, create one from Clerk profile
   if (!appUser) {
-    // Try to get role from Supabase user metadata, or default to school_admin if pendingOnboarding
-    const roleFromMetadata = data.user.user_metadata?.role;
-    const defaultRole = roleFromMetadata || "school_admin"; // Default to school_admin for onboarding users
+    const roleFromMetadata =
+      (clerkUser.publicMetadata?.role as string | undefined) || undefined;
 
     appUser = await User.create({
-      supabaseUserId: data.user.id,
-      email: data.user.email.toLocaleLowerCase(),
-      firstName: data.user.user_metadata?.full_name || data.user.user_metadata?.firstName,
-      lastName: data.user.user_metadata?.last_name || data.user.user_metadata?.lastName,
-      role: defaultRole,
+      clerkUserId: clerkUser.id,
+      email: primaryEmail.toLowerCase(),
+      firstName:
+        clerkUser.firstName ||
+        (clerkUser.publicMetadata?.firstName as string | undefined),
+      lastName:
+        clerkUser.lastName ||
+        (clerkUser.publicMetadata?.lastName as string | undefined),
+      role: roleFromMetadata || "school_admin",
       pendingOnboarding: true,
     });
   }
 
-  // IF user is not bound to a school, attach with latest valid invite for this email
+  // 4) If the user isn't attached to a school yet, bind via latest valid invite
   if (!appUser.schoolId) {
     const invite = (await Invite.findOne({
-      email: data.user.email.toLocaleLowerCase(),
+      email: primaryEmail.toLowerCase(),
       status: "pending",
       expiresAt: { $gt: new Date() },
     })
@@ -79,12 +99,15 @@ export async function GET() {
     }
   }
 
+  // 5) Fetch school + subject suggestions
   const school = appUser.schoolId
     ? ((await School.findById(appUser.schoolId).lean()) as ISchool | null)
     : null;
+
   const subjectSuggestions =
     school?.type === "Secondary" ? SECONDARY_SUBJECTS : BASIC_SUBJECTS;
 
+  // 6) Response in the same shape your frontend expects
   return NextResponse.json({
     user: {
       email: appUser.email,
@@ -108,6 +131,6 @@ export async function GET() {
           status: school.status,
         }
       : null,
-    subjectSuggestions: subjectSuggestions,
+    subjectSuggestions,
   });
 }

@@ -43,7 +43,7 @@ export default async function DashboardHub() {
 
   await connectToDatabase();
   const appUser = await User.findOne({
-    supabaseUserId: data.user.id,
+    clerkUserId: data.user.id,
   })
     .select("roles pendingOnboarding")
     .lean<IUser>();

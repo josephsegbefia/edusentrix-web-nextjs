@@ -1,28 +1,34 @@
 import "server-only";
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User, type IUser } from "@/models/User";
+import { User } from "@/models/User";
 
 export async function requirePlatformAdmin() {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-
-  if (!data.user)
+  const { userId } = await auth();
+  if (!userId) {
     return {
       ok: false as const,
       res: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     };
+  }
 
   await connectToDatabase();
-  const meResult = await User.findOne({ supabaseUserId: data.user.id }).lean();
+  const meRaw = await User.findOne({ clerkUserId: userId })
+    .select("_id role")
+    .lean();
 
-  const me = meResult as IUser | null;
-  if (!me || me.role !== "platform_admin") {
+  // Normalize to ensure it's a single document, not an array
+  const me = Array.isArray(meRaw) ? meRaw[0] : meRaw;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const meTyped = me as any;
+  if (!me || meTyped.role !== "platform_admin") {
     return {
       ok: false as const,
       res: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
     };
   }
+
   return { ok: true as const, me };
 }

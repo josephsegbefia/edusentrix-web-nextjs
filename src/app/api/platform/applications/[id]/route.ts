@@ -35,7 +35,7 @@ export async function GET(
   await connectToDatabase();
 
   // platform_admin only
-  const me = await User.findOne({ supabaseUserId: data.user.id })
+  const me = await User.findOne({ clerkUserId: data.user.id })
     .select("_id role name email")
     .lean();
   if (!me || (me as any).role !== "platform_admin") return forbidden();
@@ -160,7 +160,7 @@ export async function PATCH(
 
   await connectToDatabase();
 
-  const me = await User.findOne({ supabaseUserId: data.user.id })
+  const me = await User.findOne({ clerkUserId: data.user.id })
     .select("_id role name")
     .lean();
   if (!me || (me as any).role !== "platform_admin") return forbidden();

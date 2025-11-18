@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   await connectToDatabase();
 
-  const meResult = await User.findOne({ supabaseUserId: data.user.id }).lean();
+  const meResult = await User.findOne({ clerkUserId: data.user.id }).lean();
   const me: IUser | null = meResult as IUser | null;
   if (!me?.schoolId)
     return NextResponse.json({ error: "No school bound" }, { status: 409 });

@@ -12,7 +12,7 @@ export type AppRole =
 export interface IUser {
   _id: Types.ObjectId;
   // Make optional here
-  supabaseUserId?: string;
+  clerkUserId?: string;
   email: string;
   name?: string; // keep this since you set `name` in routes
   firstName?: string;
@@ -32,7 +32,7 @@ const userSchema = new Schema<IUser>(
   {
     // was: required: true — remove required
     // important: unique + sparse so multiple docs without this field are allowed
-    supabaseUserId: { type: String, unique: true, sparse: true },
+    clerkUserId: { type: String, unique: true, sparse: true },
 
     email: { type: String, required: true, lowercase: true },
 
@@ -66,6 +66,6 @@ const userSchema = new Schema<IUser>(
 // keep simple indexes
 userSchema.index({ email: 1 });
 // optional compound index if you want faster lookups when both exist:
-userSchema.index({ email: 1, supabaseUserId: 1 });
+userSchema.index({ email: 1, clerkUserId: 1 });
 
 export const User = models.User || model<IUser>("User", userSchema);

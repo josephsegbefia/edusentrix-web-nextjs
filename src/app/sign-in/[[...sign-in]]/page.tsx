@@ -20,8 +20,7 @@ export default function SignInPage() {
         <SignIn
           routing="path"
           path="/sign-in"
-          afterSignInUrl="/auth/callback"
-          afterSignUpUrl="/auth/callback"
+          fallbackRedirectUrl="/auth/callback"
           /** Hide/disable "Sign up" */
           signUpUrl={undefined}
           appearance={{

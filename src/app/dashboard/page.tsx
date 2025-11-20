@@ -1,75 +1,42 @@
 export const runtime = "nodejs";
 
 import { redirect } from "next/navigation";
-import { connectToDatabase } from "@/db/connectToDatabase";
-import { supabaseServer } from "@/lib/supabase/server";
-import { User, type IUser } from "@/models/User";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
 
-function routeFor(user: {
-  role: string | null;
-  primaryRole?: string | null;
-  pendingOnboarding?: boolean;
-}) {
-  if (user.pendingOnboarding) return "/onboard";
+function routeFor(user: { role?: string | null; pendingOnboarding?: boolean }) {
+  if (user.pendingOnboarding) return "/onboarding";
+
   const r = (user.role || "").toLowerCase();
-  const primary = (user.primaryRole || "").toLowerCase();
 
-  // Platform admin -> /appsentrix (matches protected route structure)
-  if (r === "platform_admin" || r === "platformadmin") return "/appsentrix";
+  // Platform admin -> /platform
+  if (r === "platform_admin" || r === "platformadmin") return "/platform";
 
-  // School admin -> /admin (matches protected route structure)
-  if (
-    r === "schooladmin" ||
-    r === "school_admin" ||
-    r === "admin" ||
-    primary === "schooladmin"
-  )
+  // School admin -> /admin
+  if (r === "school_admin" || r === "schooladmin" || r === "admin") {
     return "/admin";
+  }
 
-  // Other roles -> their respective protected routes
-  if (primary === "teacher") return "/teacher";
-  if (primary === "parent") return "/parent";
-  if (primary === "student") return "/student";
-  if (primary === "bursar") return "/bursar";
+  // Other roles -> their respective routes
+  if (r === "teacher") return "/teacher";
+  if (r === "parent") return "/parent";
+  if (r === "student") return "/student";
+  if (r === "bursar") return "/bursar";
 
   // Default to onboarding if role is unknown
-  return "/onboard";
+  return "/onboarding";
 }
 
 export default async function DashboardHub() {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/login");
+  const appUser = await getCurrentUser();
 
-  await connectToDatabase();
-  const appUser = await User.findOne({
-    clerkUserId: data.user.id,
-  })
-    .select("roles pendingOnboarding")
-    .lean<IUser>();
-
-  if (!appUser) redirect("/onboard"); // fresh invite, no user doc yet
-
-  // Get primary role (prioritize platform_admin, otherwise use first role)
-  const roles = (
-    Array.isArray(appUser.roles) && appUser.roles.length > 0
-      ? appUser.roles
-      : appUser.role
-      ? [appUser.role]
-      : []
-  ) as string[];
-  const primaryRole = roles.includes("platform_admin")
-    ? "platform_admin"
-    : roles[0];
-  // Normalize role name (convert camelCase to snake_case for consistency)
-  const role =
-    primaryRole === "schoolAdmin" ? "school_admin" : primaryRole || null;
+  if (!appUser) {
+    redirect("/sign-in");
+  }
 
   redirect(
     routeFor({
-      role,
-      primaryRole,
-      pendingOnboarding: !!appUser.pendingOnboarding,
+      role: appUser.role,
+      pendingOnboarding: appUser.pendingOnboarding,
     })
   );
 }

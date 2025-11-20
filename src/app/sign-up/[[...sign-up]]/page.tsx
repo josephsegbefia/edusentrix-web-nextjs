@@ -41,8 +41,7 @@ export default function SignUpPage() {
               routing="path"
               path="/sign-up"
               signInUrl="/sign-in"
-              afterSignInUrl="/auth/callback"
-              afterSignUpUrl="/auth/callback"
+              fallbackRedirectUrl="/auth/callback"
               appearance={{
                 variables: {
                   colorPrimary: "#0ea5e9", // Brand color (sky blue)

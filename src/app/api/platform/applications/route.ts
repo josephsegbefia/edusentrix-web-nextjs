@@ -140,33 +140,62 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const json = await req.json();
-  const body = BodySchema.safeParse(json);
-  if (!body.success) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  try {
+    const json = await req.json();
+    const body = BodySchema.safeParse(json);
+    if (!body.success) {
+      console.error(
+        "POST /api/platform/applications - Invalid payload:",
+        body.error
+      );
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    await connectToDatabase();
+
+    const app = await Application.create({
+      ...body.data,
+      status: "submitted",
+    });
+
+    console.log("POST /api/platform/applications - Application created:", app);
+
+    await recordApplicationAudit({
+      applicationId: app._id,
+      action: "submitted",
+      by: null, // public submitter
+      meta: {
+        adminEmail: app.adminEmail,
+        schoolName: app.schoolName,
+      },
+    });
+
+    // Fire and forget OK for UX (await to stface errors during hardening)
+    try {
+      await sendEmail(`${app.adminEmail}`, "APPLICATION_RECEIVED", {
+        name: `${app.adminFirstName}`,
+      });
+    } catch (emailError) {
+      console.error(
+        "POST /api/platform/applications - Email send failed:",
+        emailError
+      );
+      // Don't fail the request if email fails
+    }
+
+    return NextResponse.json({ success: true, id: app._id, app: app });
+  } catch (error) {
+    console.error("POST /api/platform/applications - Error:", error);
+    console.error(
+      "POST /api/platform/applications - Error stack:",
+      error instanceof Error ? error.stack : "No stack trace"
+    );
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
-
-  await connectToDatabase();
-
-  const app = await Application.create({
-    ...body.data,
-    status: "submitted",
-  });
-
-  await recordApplicationAudit({
-    applicationId: app._id,
-    action: "submitted",
-    by: null, // public submitter
-    meta: {
-      adminEmail: app.adminEmail,
-      schoolName: app.schoolName,
-    },
-  });
-
-  // Fire and forget OK for UX (await to stface errors during hardening)
-  await sendEmail(`${app.adminEmail}`, "APPLICATION_RECEIVED", {
-    name: `${app.adminFirstName}`,
-  });
-
-  return NextResponse.json({ success: true, id: app._id, app: app });
 }

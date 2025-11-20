@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { useUser, useClerk as useClerkAuth, useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 export type AppRole =
   | "platform_admin"
@@ -26,7 +27,7 @@ type AuthCtx = {
   me: AppUser | null | undefined;
   loading: boolean;
   isAuthenticated: boolean;
-  login: () => Promise<void>;
+
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -35,8 +36,9 @@ const Ctx = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
+  const router = useRouter();
   const { isSignedIn } = useUser();
-  const { signOut, openSignIn } = useClerk();
+  const { signOut } = useClerk();
 
   const { data, isLoading } = useQuery({
     queryKey: ["me"],
@@ -48,15 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const login = useCallback(async () => {
-    openSignIn({ redirectUrl: "/auth/callback" });
-  }, [openSignIn]);
-
   const logout = useCallback(async () => {
     await signOut();
     await qc.invalidateQueries({ queryKey: ["me"] });
-    window.location.href = "/sign-in";
-  }, [signOut, qc]);
+    router.push("/sign-in");
+  }, [signOut, qc, router]);
 
   const refresh = useCallback(async () => {
     await qc.invalidateQueries({ queryKey: ["me"] });
@@ -67,11 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       me: data ?? null,
       loading: isLoading,
       isAuthenticated: !!isSignedIn && !!data,
-      login,
       logout,
       refresh,
     }),
-    [data, isLoading, isSignedIn, login, logout, refresh]
+    [data, isLoading, isSignedIn, logout, refresh]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

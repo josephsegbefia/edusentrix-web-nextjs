@@ -1,43 +1,44 @@
-import connectToDatabase from "@/db/connectToDatabase";
-import { supabaseServer } from "@/lib/supabase/server";
-import { User } from "@/models/User";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
+import { connectToDatabase } from "@/db/connectToDatabase";
+import { User } from "@/models/User";
 
-const BodySchema = z.object({
-  name: z.string().min(2),
-  phone: z.string().min(6).optional().nullable(),
-  dateOfBirth: z.iso.datetime().optional().nullable(),
-  address: z.string().optional().nullable(),
-  avatarUrl: z.url().optional().nullable(),
+const Body = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  phone: z.string().optional(),
+  avatarUrl: z.string().url().optional(),
+  address: z.string().optional(),
+  dateOfBirth: z.string().optional(),
 });
 
-export async function POST(req: NextRequest) {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user)
+export async function POST(req: Request) {
+  const { userId } = await auth();
+  if (!userId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const parsed = BodySchema.safeParse(await req.json());
+  const parsed = Body.safeParse(await req.json().catch(() => ({})));
+
   if (!parsed.success)
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
   await connectToDatabase();
 
-  const user = await User.findOne({ clerkUserId: data.user.id });
-  if (!user)
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  await User.updateOne(
+    { clerkUserId: userId },
+    {
+      $set: {
+        firstName: parsed.data.firstName,
+        lastName: parsed.data.lastName,
+        phone: parsed.data.phone ?? null,
+        avatarUrl: parsed.data.avatarUrl ?? null,
+        address: parsed.data.address ?? null,
+        dateOfBirth: parsed.data.dateOfBirth ?? null,
+      },
+    },
+    { upsert: false }
+  );
 
-  const b = parsed.data;
-  // Parse name into firstName and lastName
-  const nameParts = b.name.trim().split(/\s+/);
-  user.firstName = nameParts[0] || "";
-  user.lastName = nameParts.slice(1).join(" ") || "";
-  user.phone = b.phone ?? undefined;
-  user.address = b.address ?? undefined;
-  user.avatarUrl = b.avatarUrl ?? undefined;
-  user.dateOfBirth = b.dateOfBirth ? new Date(b.dateOfBirth) : undefined;
-
-  await user.save();
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ ok: true });
 }

@@ -54,9 +54,17 @@ export function BankBranchCombo(props: {
           `/api/banks/search?query=${encodeURIComponent(q)}`,
           { cache: "no-store" }
         );
-        const data = await res.json();
-        setItems(data.items || []);
-      } catch {
+        if (!res.ok) {
+          throw new Error(`API error: ${res.status}`);
+        }
+        const result = await res.json();
+        if (result.success && Array.isArray(result.data)) {
+          setItems(result.data);
+        } else {
+          setItems([]);
+        }
+      } catch (error) {
+        console.error("Bank search error:", error);
         setItems([]);
       } finally {
         setLoading(false);

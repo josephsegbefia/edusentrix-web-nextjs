@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { BankBranchCombo } from "@/components/banks/BankBranchCombo";
 import {
   Select,
@@ -15,13 +16,14 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns/format";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 type Bootstrap = {
   user: {
     email: string;
-    name: string;
+    firstName: string;
+    lastName: string;
     phone: string;
     dateOfBirth: string | null;
     address: string;
@@ -76,7 +78,8 @@ export default function OnboardPage() {
   } | null>(null);
 
   // Step 1: admin profile state
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [dob, setDob] = useState<string>("");
   const [address, setAddress] = useState("");
@@ -122,7 +125,8 @@ export default function OnboardPage() {
         setData(payload);
 
         // hydrate step 1
-        setName(payload.user.name || "");
+        setFirstName(payload.user.firstName || "");
+        setLastName(payload.user.lastName || "");
         setPhone(payload.user.phone || "");
         setDob(
           payload.user.dateOfBirth
@@ -179,7 +183,10 @@ export default function OnboardPage() {
     setPeriods((arr) => arr.map((p, i) => ({ ...p, isCurrent: i === idx })));
   };
 
-  const canContinueStep1 = useMemo(() => name.trim().length >= 2, [name]);
+  const canContinueStep1 = useMemo(
+    () => firstName.trim().length >= 1 && lastName.trim().length >= 1,
+    [firstName, lastName]
+  );
   const canContinueStep2 = useMemo(
     () => schoolName.trim().length >= 2,
     [schoolName]
@@ -196,15 +203,17 @@ export default function OnboardPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          phone: phone || null,
-          dateOfBirth: dob ? new Date(dob).toISOString() : null,
-          address: address || null,
-          avatarUrl: avatarUrl || null,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phone: phone.trim() || undefined,
+          dateOfBirth: dob ? new Date(dob).toISOString() : undefined,
+          address: address.trim() || undefined,
+          avatarUrl: avatarUrl.trim() || undefined,
         }),
       });
       if (!res.ok) {
-        toast.error("Failed to save profile");
+        const error = await res.json().catch(() => null);
+        toast.error(error?.error || "Failed to save profile");
         return;
       }
       toast.success("Profile saved");
@@ -228,22 +237,23 @@ export default function OnboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           schoolId: data.school.id,
-          name: schoolName,
+          name: schoolName.trim(),
           type: schoolType,
-          address: schoolAddress || null,
-          city: city || null,
-          region: region || null,
+          address: schoolAddress.trim() || undefined,
+          city: city.trim() || undefined,
+          region: region.trim() || undefined,
           bank: {
-            bankName: bankName || null,
-            branchName: branchName || null,
-            sortCode: sortCode || null,
-            accountName: accountName || null,
-            accountNumber: accountNumber || null,
+            bankName: bankName.trim() || undefined,
+            branchName: branchName.trim() || undefined,
+            sortCode: sortCode.trim() || undefined,
+            accountName: accountName.trim() || undefined,
+            accountNumber: accountNumber.trim() || undefined,
           },
         }),
       });
       if (!res.ok) {
-        toast.error("Failed to save school profile");
+        const error = await res.json().catch(() => null);
+        toast.error(error?.error || "Failed to save school profile");
         return;
       }
       toast.success("School profile saved");
@@ -257,8 +267,44 @@ export default function OnboardPage() {
 
   async function saveStep3() {
     // Step 3 is banking, which is part of school details
-    // We can save it here or move to step 2
-    await saveStep2();
+    // Save the school data (including banking) and progress to step 4
+    if (!data?.school) {
+      toast.error("No school bound to your account");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/onboarding/school", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId: data.school.id,
+          name: schoolName.trim(),
+          type: schoolType,
+          address: schoolAddress.trim() || undefined,
+          city: city.trim() || undefined,
+          region: region.trim() || undefined,
+          bank: {
+            bankName: bankName.trim() || undefined,
+            branchName: branchName.trim() || undefined,
+            sortCode: sortCode.trim() || undefined,
+            accountName: accountName.trim() || undefined,
+            accountNumber: accountNumber.trim() || undefined,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        toast.error(error?.error || "Failed to save bank details");
+        return;
+      }
+      toast.success("Bank details saved");
+      setCurrentStep(4);
+    } catch {
+      toast.error("Failed to save bank details");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function finishOnboarding() {
@@ -293,21 +339,10 @@ export default function OnboardPage() {
     try {
       const res = await fetch("/api/onboarding/finish", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schoolId: data.school.id,
-          subjects: selectedSubjects,
-          periods: periods.map((p) => ({
-            ...p,
-            startDate: new Date(p.startDate).toISOString(),
-            endDate: new Date(p.endDate).toISOString(),
-            isCurrent: !!p.isCurrent,
-          })),
-        }),
       });
       if (!res.ok) {
         const e = await res.json().catch(() => null);
-        toast.error(`Failed to finalize: ${e?.details ?? res.statusText}`);
+        toast.error(`Failed to finalize: ${e?.error ?? res.statusText}`);
         return;
       }
       toast.success("Onboarding completed!");
@@ -325,104 +360,173 @@ export default function OnboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-bg text-white flex items-center justify-center">
-        <div className="text-muted">Loading…</div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="size-12 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+          <p className="text-muted">Loading onboarding data…</p>
+        </motion.div>
       </div>
     );
   }
   if (!data?.school) {
     return (
       <div className="min-h-screen bg-bg text-white flex items-center justify-center">
-        <div className="text-muted">
-          No school invite found for your account.
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md px-6"
+        >
+          <div className="text-6xl mb-4">📚</div>
+          <h2 className="text-2xl font-semibold mb-2">
+            No School Invite Found
+          </h2>
+          <p className="text-muted">
+            Please ensure you have a valid school invitation linked to your
+            account.
+          </p>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-bg text-white">
+    <div className="min-h-screen bg-bg text-white relative overflow-hidden">
       {/* Premium gradient background */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 opacity-60"
+        className="pointer-events-none fixed inset-0 opacity-50"
         style={{
           background:
             "radial-gradient(50% 50% at 15% 15%, var(--color-brand) 0%, transparent 60%), radial-gradient(60% 40% at 85% 10%, var(--color-primary) 0%, transparent 65%)",
-          filter: "blur(90px)",
+          filter: "blur(100px)",
         }}
       />
 
-      <div className="relative mx-auto max-w-5xl px-4 py-8">
+      {/* Animated grid pattern */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+          backgroundSize: "50px 50px",
+        }}
+      />
+
+      <div className="relative mx-auto max-w-6xl px-4 py-12 md:py-16">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">
-            School Onboarding
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12 text-center"
+        >
+          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-brand/10 border border-brand/20">
+            <Sparkles className="size-4 text-brand" />
+            <span className="text-sm font-medium text-brand">School Setup</span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
+            Welcome to EduSentrix
           </h1>
-          <p className="text-muted">
-            Complete your school setup in a few simple steps
+          <p className="text-lg text-muted max-w-2xl mx-auto">
+            Complete your school setup in a few simple steps. Let&apos;s get you
+            started.
           </p>
-        </div>
+        </motion.div>
 
         {/* Step indicator */}
-        <div className="mb-8 flex items-center justify-between">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-12 flex items-center justify-between"
+        >
           {STEPS.map((step, idx) => (
             <div key={step.id} className="flex items-center flex-1">
               <div className="flex flex-col items-center flex-1">
-                <button
+                <motion.button
                   onClick={() => {
                     // Allow going back to completed steps
                     if (step.id < currentStep) {
                       setCurrentStep(step.id);
                     }
                   }}
-                  className={`flex items-center justify-center size-12 rounded-full border-2 transition-all ${
+                  whileHover={step.id < currentStep ? { scale: 1.1 } : {}}
+                  whileTap={{ scale: 0.95 }}
+                  className={`relative flex items-center justify-center size-14 rounded-full border-2 transition-all shadow-lg ${
                     step.id < currentStep
-                      ? "bg-brand border-brand text-black cursor-pointer hover:scale-105"
+                      ? "bg-brand border-brand text-black cursor-pointer hover:shadow-brand/50"
                       : step.id === currentStep
-                      ? "bg-primary border-primary text-white"
-                      : "bg-card border-border text-muted"
+                      ? "bg-primary border-primary text-white shadow-primary/30"
+                      : "bg-card/50 border-border text-muted backdrop-blur-sm"
                   }`}
                 >
                   {step.id < currentStep ? (
-                    <CheckCircle2 className="size-6" />
+                    <CheckCircle2 className="size-7" />
                   ) : (
-                    <span className="font-semibold">{step.id}</span>
+                    <span className="font-bold text-lg">{step.id}</span>
                   )}
-                </button>
-                <div className="mt-2 text-center">
+                  {step.id === currentStep && (
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-primary"
+                      animate={{
+                        scale: [1, 1.2, 1],
+                        opacity: [0.5, 0, 0.5],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                      }}
+                    />
+                  )}
+                </motion.button>
+                <div className="mt-3 text-center">
                   <div
-                    className={`text-sm font-medium ${
+                    className={`text-sm font-semibold ${
                       step.id === currentStep ? "text-white" : "text-muted"
                     }`}
                   >
                     {step.title}
                   </div>
-                  <div className="text-xs text-muted mt-0.5">
+                  <div className="text-xs text-muted/80 mt-1">
                     {step.description}
                   </div>
                 </div>
               </div>
               {idx < STEPS.length - 1 && (
-                <div
-                  className={`h-0.5 flex-1 mx-4 transition-colors ${
-                    step.id < currentStep ? "bg-brand" : "bg-border"
-                  }`}
-                />
+                <div className="relative h-1 flex-1 mx-6">
+                  <div className="absolute inset-0 bg-border rounded-full" />
+                  <motion.div
+                    className={`absolute inset-0 rounded-full ${
+                      step.id < currentStep ? "bg-brand" : "bg-transparent"
+                    }`}
+                    initial={{ width: 0 }}
+                    animate={{
+                      width: step.id < currentStep ? "100%" : "0%",
+                    }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
               )}
             </div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Step content */}
         <motion.div
           key={currentStep}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2 }}
-          className="bg-card/90 backdrop-blur border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative"
         >
-          <div className="p-8 md:p-12">
+          {/* Subtle glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-primary/5 pointer-events-none" />
+
+          <div className="relative p-8 md:p-12">
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
                 <motion.div
@@ -430,57 +534,100 @@ export default function OnboardPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="space-y-6"
+                  className="space-y-8"
                 >
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-2">
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
                       Your Profile
                     </h2>
-                    <p className="text-muted">Tell us a bit about yourself</p>
+                    <p className="text-muted text-base">
+                      Tell us a bit about yourself to personalize your
+                      experience
+                    </p>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">
-                        Full name *
+                  <div className="space-y-6">
+                    {/* Avatar Upload */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-semibold">
+                        Profile Photo
                       </Label>
-                      <Input
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                        className="bg-background/50 border-border"
-                        placeholder="John Doe"
+                      <ImageUpload
+                        value={avatarUrl}
+                        onChange={setAvatarUrl}
+                        maxSizeMB={5}
                       />
                     </div>
+
+                    {/* Name Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-sm font-medium">
-                          Phone
+                        <Label
+                          htmlFor="firstName"
+                          className="text-sm font-semibold"
+                        >
+                          First Name *
                         </Label>
                         <Input
-                          id="phone"
-                          placeholder="+233..."
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          className="bg-background/50 border-border"
+                          id="firstName"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          required
+                          className="bg-background/50 border-border h-11"
+                          placeholder="John"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="dob" className="text-sm font-medium">
-                          Date of birth
+                        <Label
+                          htmlFor="lastName"
+                          className="text-sm font-semibold"
+                        >
+                          Last Name *
+                        </Label>
+                        <Input
+                          id="lastName"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          required
+                          className="bg-background/50 border-border h-11"
+                          placeholder="Doe"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="phone"
+                          className="text-sm font-semibold"
+                        >
+                          Phone Number
+                        </Label>
+                        <Input
+                          id="phone"
+                          placeholder="+233 XX XXX XXXX"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="bg-background/50 border-border h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dob" className="text-sm font-semibold">
+                          Date of Birth
                         </Label>
                         <Input
                           id="dob"
                           type="date"
                           value={dob}
                           onChange={(e) => setDob(e.target.value)}
-                          className="bg-background/50 border-border"
+                          className="bg-background/50 border-border h-11"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="address" className="text-sm font-medium">
+                      <Label
+                        htmlFor="address"
+                        className="text-sm font-semibold"
+                      >
                         Address
                       </Label>
                       <Textarea
@@ -489,31 +636,17 @@ export default function OnboardPage() {
                         onChange={(e) => setAddress(e.target.value)}
                         rows={3}
                         className="bg-background/50 border-border resize-none"
-                        placeholder="Your address"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="avatarUrl"
-                        className="text-sm font-medium"
-                      >
-                        Avatar URL
-                      </Label>
-                      <Input
-                        id="avatarUrl"
-                        placeholder="https://..."
-                        value={avatarUrl}
-                        onChange={(e) => setAvatarUrl(e.target.value)}
-                        className="bg-background/50 border-border"
+                        placeholder="Enter your full address"
                       />
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-4">
+                  <div className="flex justify-end pt-6 border-t border-border/50">
                     <Button
                       onClick={saveStep1}
                       disabled={!canContinueStep1 || saving}
-                      className="bg-brand text-black hover:opacity-90"
+                      size="lg"
+                      className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[140px]"
                     >
                       {saving ? "Saving..." : "Continue"}
                       <ArrowRight className="ml-2 size-4" />
@@ -528,43 +661,45 @@ export default function OnboardPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="space-y-6"
+                  className="space-y-8"
                 >
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-2">
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
                       School Information
                     </h2>
-                    <p className="text-muted">
+                    <p className="text-muted text-base">
                       Basic details about your school
                     </p>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="space-y-2">
                       <Label
                         htmlFor="schoolName"
-                        className="text-sm font-medium"
+                        className="text-sm font-semibold"
                       >
-                        School name *
+                        School Name *
                       </Label>
                       <Input
                         id="schoolName"
                         value={schoolName}
                         onChange={(e) => setSchoolName(e.target.value)}
-                        className="bg-background/50 border-border"
-                        placeholder="Your School Name"
+                        className="bg-background/50 border-border h-11"
+                        placeholder="Enter your school name"
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Type</Label>
+                        <Label className="text-sm font-semibold">
+                          School Type
+                        </Label>
                         <Select
                           value={schoolType}
                           onValueChange={(v: "Basic" | "Secondary") =>
                             setSchoolType(v)
                           }
                         >
-                          <SelectTrigger className="bg-background/50 border-border">
+                          <SelectTrigger className="bg-background/50 border-border h-11">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-popover">
@@ -576,7 +711,7 @@ export default function OnboardPage() {
                       <div className="space-y-2">
                         <Label
                           htmlFor="schoolAddress"
-                          className="text-sm font-medium"
+                          className="text-sm font-semibold"
                         >
                           Address
                         </Label>
@@ -584,40 +719,47 @@ export default function OnboardPage() {
                           id="schoolAddress"
                           value={schoolAddress}
                           onChange={(e) => setSchoolAddress(e.target.value)}
-                          className="bg-background/50 border-border"
+                          className="bg-background/50 border-border h-11"
+                          placeholder="School address"
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="city" className="text-sm font-medium">
+                        <Label htmlFor="city" className="text-sm font-semibold">
                           City
                         </Label>
                         <Input
                           id="city"
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
-                          className="bg-background/50 border-border"
+                          className="bg-background/50 border-border h-11"
+                          placeholder="City"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="region" className="text-sm font-medium">
+                        <Label
+                          htmlFor="region"
+                          className="text-sm font-semibold"
+                        >
                           Region
                         </Label>
                         <Input
                           id="region"
                           value={region}
                           onChange={(e) => setRegion(e.target.value)}
-                          className="bg-background/50 border-border"
+                          className="bg-background/50 border-border h-11"
+                          placeholder="Region"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-4">
+                  <div className="flex justify-between pt-6 border-t border-border/50">
                     <Button
                       variant="outline"
                       onClick={() => setCurrentStep(1)}
+                      size="lg"
                       className="border-border"
                     >
                       <ArrowLeft className="mr-2 size-4" />
@@ -626,7 +768,8 @@ export default function OnboardPage() {
                     <Button
                       onClick={saveStep2}
                       disabled={!canContinueStep2 || saving}
-                      className="bg-brand text-black hover:opacity-90"
+                      size="lg"
+                      className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[140px]"
                     >
                       {saving ? "Saving..." : "Continue"}
                       <ArrowRight className="ml-2 size-4" />
@@ -641,20 +784,20 @@ export default function OnboardPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="space-y-6"
+                  className="space-y-8"
                 >
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-2">
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
                       Bank Details
                     </h2>
-                    <p className="text-muted">
-                      Payment and banking information
+                    <p className="text-muted text-base">
+                      Payment and banking information for transactions
                     </p>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">
+                      <Label className="text-sm font-semibold">
                         Bank & Branch
                       </Label>
                       <BankBranchCombo
@@ -668,48 +811,58 @@ export default function OnboardPage() {
                         nameHiddenSortCode="sortCode"
                       />
                       {bankPick && (
-                        <p className="text-xs text-muted">
-                          Selected: <strong>{bankPick.bankName}</strong> -{" "}
-                          {bankPick.branchName} (sort: {bankPick.sortCode})
-                        </p>
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-xs text-muted mt-2 px-3 py-2 rounded-lg bg-brand/10 border border-brand/20"
+                        >
+                          Selected:{" "}
+                          <strong className="text-brand">
+                            {bankPick.bankName}
+                          </strong>{" "}
+                          - {bankPick.branchName} (sort: {bankPick.sortCode})
+                        </motion.p>
                       )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label
                           htmlFor="accountName"
-                          className="text-sm font-medium"
+                          className="text-sm font-semibold"
                         >
-                          Account name
+                          Account Name
                         </Label>
                         <Input
                           id="accountName"
                           value={accountName}
                           onChange={(e) => setAccountName(e.target.value)}
-                          className="bg-background/50 border-border"
+                          className="bg-background/50 border-border h-11"
+                          placeholder="Account holder name"
                         />
                       </div>
                       <div className="space-y-2">
                         <Label
                           htmlFor="accountNumber"
-                          className="text-sm font-medium"
+                          className="text-sm font-semibold"
                         >
-                          Account number
+                          Account Number
                         </Label>
                         <Input
                           id="accountNumber"
                           value={accountNumber}
                           onChange={(e) => setAccountNumber(e.target.value)}
-                          className="bg-background/50 border-border"
+                          className="bg-background/50 border-border h-11"
+                          placeholder="Account number"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-4">
+                  <div className="flex justify-between pt-6 border-t border-border/50">
                     <Button
                       variant="outline"
                       onClick={() => setCurrentStep(2)}
+                      size="lg"
                       className="border-border"
                     >
                       <ArrowLeft className="mr-2 size-4" />
@@ -718,7 +871,8 @@ export default function OnboardPage() {
                     <Button
                       onClick={saveStep3}
                       disabled={saving}
-                      className="bg-brand text-black hover:opacity-90"
+                      size="lg"
+                      className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[140px]"
                     >
                       {saving ? "Saving..." : "Continue"}
                       <ArrowRight className="ml-2 size-4" />
@@ -733,21 +887,21 @@ export default function OnboardPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="space-y-6"
+                  className="space-y-8"
                 >
-                  <div>
-                    <h2 className="text-2xl font-semibold mb-2">
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
                       Curriculum Setup
                     </h2>
-                    <p className="text-muted">
-                      Configure subjects and academic periods
+                    <p className="text-muted text-base">
+                      Configure subjects and academic periods for your school
                     </p>
                   </div>
 
                   {/* Subjects */}
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
-                      <Label className="text-sm font-medium mb-2 block">
+                      <Label className="text-sm font-semibold mb-3 block">
                         Subjects
                       </Label>
                       <div className="flex gap-2 mb-4">
@@ -775,7 +929,7 @@ export default function OnboardPage() {
                         {subjectPool.map((s) => {
                           const active = selectedSubjects.includes(s);
                           return (
-                            <button
+                            <motion.button
                               key={s}
                               type="button"
                               onClick={() =>
@@ -783,14 +937,16 @@ export default function OnboardPage() {
                                   ? removeSubject(s)
                                   : setSelectedSubjects((prev) => [...prev, s])
                               }
-                              className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${
                                 active
-                                  ? "bg-brand text-black border-brand"
-                                  : "border-border hover:border-brand/50"
+                                  ? "bg-brand text-black border-brand shadow-lg shadow-brand/20"
+                                  : "border-border hover:border-brand/50 hover:bg-card/50"
                               }`}
                             >
                               {s}
-                            </button>
+                            </motion.button>
                           );
                         })}
                       </div>
@@ -798,13 +954,15 @@ export default function OnboardPage() {
 
                     {/* Academic Periods */}
                     <div className="space-y-4">
-                      <Label className="text-sm font-medium block">
+                      <Label className="text-sm font-semibold block">
                         Academic Periods
                       </Label>
                       {periods.map((p, idx) => (
-                        <div
+                        <motion.div
                           key={idx}
-                          className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end p-4 bg-background/30 rounded-lg border border-border"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end p-5 bg-background/40 rounded-xl border border-border/50 backdrop-blur-sm"
                         >
                           <div className="space-y-2">
                             <Label className="text-xs text-muted">
@@ -899,7 +1057,7 @@ export default function OnboardPage() {
                               </Button>
                             )}
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
                       <Button
                         type="button"
@@ -930,10 +1088,11 @@ export default function OnboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-4">
+                  <div className="flex justify-between pt-6 border-t border-border/50">
                     <Button
                       variant="outline"
                       onClick={() => setCurrentStep(3)}
+                      size="lg"
                       className="border-border"
                     >
                       <ArrowLeft className="mr-2 size-4" />
@@ -942,7 +1101,8 @@ export default function OnboardPage() {
                     <Button
                       onClick={finishOnboarding}
                       disabled={!canContinueStep4 || saving}
-                      className="bg-brand text-black hover:opacity-90"
+                      size="lg"
+                      className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[180px]"
                     >
                       {saving ? "Finishing..." : "Complete Onboarding"}
                       <CheckCircle2 className="ml-2 size-4" />

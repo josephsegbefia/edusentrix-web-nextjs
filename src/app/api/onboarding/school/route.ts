@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { supabaseServer } from "@/lib/supabase/server";
 import { User, type IUser } from "@/models/User";
 import { School } from "@/models/School";
 import { resolveBankCode } from "@/lib/banks/banks";
@@ -30,9 +30,8 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user)
+  const { userId } = await auth();
+  if (!userId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const parsed = BodySchema.safeParse(await req.json());
@@ -41,8 +40,10 @@ export async function POST(req: NextRequest) {
 
   await connectToDatabase();
 
-  const meResult = await User.findOne({ clerkUserId: data.user.id }).lean();
-  const me: IUser | null = meResult as IUser | null;
+  const meResult = (await User.findOne({
+    clerkUserId: userId,
+  }).lean()) as IUser | null;
+  const me = meResult;
   if (!me?.schoolId)
     return NextResponse.json({ error: "No school bound" }, { status: 409 });
   if (String(me.schoolId) !== parsed.data.schoolId) {

@@ -1,4 +1,8 @@
 // src/app/(app)/admin/page.tsx
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
@@ -6,6 +10,7 @@ import {
   BookOpen,
   DollarSign,
   TrendingUp,
+  TrendingDown,
   Calendar,
   UserPlus,
   School,
@@ -13,25 +18,81 @@ import {
   ArrowRight,
   Clock,
   CheckCircle2,
+  Bell,
+  AlertCircle,
+  Search,
+  Mail,
+  MessageSquare,
+  PlusCircle,
+  ClipboardList,
 } from "lucide-react";
+
+/* --------------------------------------------------------------------------------
+   Helpers
+-------------------------------------------------------------------------------- */
+
+type Trend = { deltaPct: number; direction: "up" | "down" | "flat" };
+
+function termProgress(start?: string, end?: string) {
+  if (!start || !end) return { pct: 0, label: "Not Set" };
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  const now = Date.now();
+  if (now <= s) return { pct: 0, label: "Starts soon" };
+  if (now >= e) return { pct: 100, label: "Completed" };
+  const pct = Math.round(((now - s) / (e - s)) * 100);
+  return { pct, label: `${pct}% complete` };
+}
+
+/* --------------------------------------------------------------------------------
+   Reusable UI Blocks
+-------------------------------------------------------------------------------- */
 
 function MetricCard({
   label,
   value,
   accent,
   subtitle,
-  showTrending,
+  trend,
+  onClick,
   icon: Icon,
 }: {
   label: string;
   value: string | number;
-  accent: string;
+  accent: string; // Tailwind gradient classes e.g. "from-blue-500/25 via-blue-500/10 to-transparent"
   subtitle?: string;
-  showTrending?: boolean;
+  trend?: Trend;
+  onClick?: () => void;
   icon?: React.ComponentType<{ className?: string }>;
 }) {
+  const TrendIcon =
+    trend?.direction === "up"
+      ? TrendingUp
+      : trend?.direction === "down"
+      ? TrendingDown
+      : null;
+
+  const trendColor =
+    trend?.direction === "up"
+      ? "text-emerald-300"
+      : trend?.direction === "down"
+      ? "text-rose-300"
+      : "text-white/60";
+
+  const Wrapper: React.ElementType = onClick ? "button" : "div";
+
   return (
-    <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur lg:p-6">
+    <Wrapper
+      onClick={onClick}
+      className={[
+        "relative w-full overflow-hidden rounded-2xl border border-white/10",
+        "bg-gradient-to-br from-white/5 to-transparent p-5 lg:p-6",
+        "shadow-lg shadow-black/20 backdrop-blur",
+        onClick
+          ? "text-left transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          : "",
+      ].join(" ")}
+    >
       <div
         className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accent}`}
         aria-hidden="true"
@@ -48,68 +109,336 @@ function MetricCard({
         <div className="text-3xl font-semibold text-white drop-shadow-sm">
           {typeof value === "number" ? value.toLocaleString() : value}
         </div>
-        {subtitle && (
-          <div className="text-xs text-white/50 flex items-center gap-1">
-            {showTrending && <TrendingUp className="h-3 w-3" />}
-            <span>{subtitle}</span>
+        {(subtitle || trend) && (
+          <div className="flex items-center gap-2 text-xs text-white/60">
+            {trend && TrendIcon && (
+              <span className={`inline-flex items-center gap-1 ${trendColor}`}>
+                <TrendIcon className="h-3 w-3" />
+                {Math.abs(trend.deltaPct)}%
+              </span>
+            )}
+            {subtitle && <span>{subtitle}</span>}
           </div>
         )}
         <div className="h-[3px] w-12 rounded-full bg-white/30" />
       </div>
-    </Card>
+    </Wrapper>
   );
 }
 
+function QuickAction({
+  title,
+  description,
+  icon: Icon,
+  accent,
+  href,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  accent: string; // e.g. "bg-blue-500/20 border-blue-500/30"
+  href?: string;
+  onClick?: () => void;
+}) {
+  const Inner = (
+    <div className="group w-full text-left px-4 py-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200">
+      <div className="flex items-start gap-3">
+        <div className={`p-2 rounded-lg ${accent}`}>
+          <Icon className="h-4 w-4 text-white/80" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-white mb-1">{title}</div>
+          <div className="text-xs text-white/60">{description}</div>
+        </div>
+        <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+      </div>
+    </div>
+  );
+
+  if (href) return <Link href={href}>{Inner}</Link>;
+  return (
+    <button type="button" onClick={onClick} className="w-full text-left">
+      {Inner}
+    </button>
+  );
+}
+
+/** Minimal SVG donut (no libs) */
+function Donut({
+  segments,
+  size = 120,
+  stroke = 14,
+}: {
+  segments: { label: string; value: number; className: string }[];
+  size?: number;
+  stroke?: number;
+}) {
+  const total = segments.reduce((s, x) => s + x.value, 0);
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+
+  let offset = 0;
+  const arcs = segments.map((seg, i) => {
+    const frac = total ? seg.value / total : 0;
+    const dash = frac * c;
+    const arc = (
+      <circle
+        key={i}
+        r={r}
+        cx={size / 2}
+        cy={size / 2}
+        fill="transparent"
+        className={seg.className}
+        strokeWidth={stroke}
+        strokeDasharray={`${dash} ${c - dash}`}
+        strokeDashoffset={-offset}
+        strokeLinecap="butt"
+      />
+    );
+    offset += dash;
+    return arc;
+  });
+
+  return (
+    <div className="flex items-center gap-4">
+      <svg width={size} height={size} className="shrink-0">
+        {/* base ring */}
+        <circle
+          r={r}
+          cx={size / 2}
+          cy={size / 2}
+          fill="transparent"
+          className="stroke-white/10"
+          strokeWidth={stroke}
+        />
+        {total > 0 ? arcs : null}
+      </svg>
+      <div className="space-y-2">
+        {segments.map((s, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <span
+              className={[
+                "inline-block size-3 rounded-sm border",
+                s.className.replace("stroke-", "bg-").replace("/60", "/60"),
+              ].join(" ")}
+            />
+            <span className="text-white/70 min-w-[92px]">{s.label}</span>
+            <span className="text-white/90 font-medium">{s.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Tiny Recon pill */
+function ReconPill({ count }: { count: number }) {
+  if (count <= 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        Reconciled
+      </span>
+    );
+  }
+  return (
+    <Link
+      href="/admin/reconciliation"
+      className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-300 hover:opacity-90"
+    >
+      <AlertCircle className="h-3.5 w-3.5" />
+      {count} unmatched settlements
+    </Link>
+  );
+}
+
+/* --------------------------------------------------------------------------------
+   Command Palette (⌘K / Ctrl+K)
+-------------------------------------------------------------------------------- */
+
+type CmdItem = { id: string; label: string; kbd?: string; onRun: () => void };
+function useCommandPalette(items: CmdItem[]) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setOpen((v) => !v);
+      }
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return items;
+    return items.filter((i) => i.label.toLowerCase().includes(s));
+  }, [items, q]);
+
+  return { open, setOpen, q, setQ, filtered };
+}
+
+/* --------------------------------------------------------------------------------
+   Page
+-------------------------------------------------------------------------------- */
+
 export default function SchoolAdminOverviewPage() {
+  /* Placeholder data (wire later) */
+  const students = 0;
+  const studentsTrend: Trend = { deltaPct: 0, direction: "flat" };
+  const teachers = 0;
+  const teachersTrend: Trend = { deltaPct: 0, direction: "flat" };
+  const subjects = 0;
+  const subjectsTrend: Trend = { deltaPct: 0, direction: "flat" };
+  const revenue = "₵0";
+  const revenueTrend: Trend = { deltaPct: 0, direction: "flat" };
+
+  const period = { yearLabel: "—", term: "—", startDate: "", endDate: "" };
+  const progress = termProgress(period.startDate, period.endDate);
+
+  const collections = { collected: "₵0", outstanding: "₵0", rate: "0%" };
+  const reconUnmatched = 3;
+
+  const overdues = {
+    "0–7d": 0,
+    "8–14d": 0,
+    "15–30d": 0,
+    "30d+": 0,
+  };
+
+  const upcomingEvents = [
+    { id: 1, title: "—", when: "No events yet" },
+    { id: 2, title: " ", when: " " },
+    { id: 3, title: " ", when: " " },
+  ];
+
+  const suggestions = [
+    {
+      id: 1,
+      text: "You have ₵4,200 outstanding; send a reminder?",
+      actions: [
+        { icon: Mail, label: "Send Email", onClick: () => {} },
+        { icon: MessageSquare, label: "Send SMS", onClick: () => {} },
+      ],
+    },
+    {
+      id: 2,
+      text: "Grade 6 attendance dipped 12% this week; investigate?",
+      actions: [
+        { icon: ClipboardList, label: "View Attendance", onClick: () => {} },
+      ],
+    },
+  ];
+
+  const auditFeed = [
+    { id: 1, icon: CheckCircle2, text: "No recent activity yet", ts: "—" },
+  ];
+
+  const cmdItems: CmdItem[] = [
+    {
+      id: "search",
+      label: "Search (students, teachers, classes)",
+      kbd: "⌘K",
+      onRun: () => {},
+    },
+    { id: "create-student", label: "Create Student", onRun: () => {} },
+    { id: "add-class", label: "Add Class", onRun: () => {} },
+    { id: "add-fee", label: "Add Fee", onRun: () => {} },
+    { id: "send-reminder", label: "Send Fee Reminder", onRun: () => {} },
+    { id: "create-event", label: "Create Event", onRun: () => {} },
+    { id: "reports", label: "Generate Simple Report", onRun: () => {} },
+  ];
+  const palette = useCommandPalette(cmdItems);
+
+  const [showCreatePeriod, setShowCreatePeriod] = useState(false);
+
+  /* Donut segments */
+  const donutSegments = [
+    {
+      label: "0–7 days",
+      value: overdues["0–7d"],
+      className: "stroke-amber-300/80",
+    },
+    {
+      label: "8–14 days",
+      value: overdues["8–14d"],
+      className: "stroke-orange-300/80",
+    },
+    {
+      label: "15–30 days",
+      value: overdues["15–30d"],
+      className: "stroke-rose-300/80",
+    },
+    {
+      label: "30+ days",
+      value: overdues["30d+"],
+      className: "stroke-red-400/80",
+    },
+  ];
+
+  const overdueTotal = donutSegments.reduce((s, x) => s + x.value, 0);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted">
-          Welcome back! Here's an overview of your school.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+          <p className="text-muted">
+            Welcome back! Here&apos;s an overview of your school.
+          </p>
+        </div>
+
+        {/* Recon health pill */}
+        <div className="pt-1">
+          <ReconPill count={reconUnmatched} />
+        </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Students"
-          value={0}
+          value={students}
           accent="from-blue-500/25 via-blue-500/10 to-transparent"
-          subtitle="No change from last period"
-          showTrending={true}
+          subtitle="Vs previous period"
+          trend={studentsTrend}
           icon={GraduationCap}
         />
-
         <MetricCard
           label="Teachers"
-          value={0}
+          value={teachers}
           accent="from-purple-500/25 via-purple-500/10 to-transparent"
           subtitle="Active staff members"
+          trend={teachersTrend}
           icon={Users}
         />
-
         <MetricCard
           label="Subjects"
-          value={0}
+          value={subjects}
           accent="from-emerald-500/25 via-emerald-500/10 to-transparent"
           subtitle="Active subjects"
+          trend={subjectsTrend}
           icon={BookOpen}
         />
-
         <MetricCard
           label="Revenue"
-          value="₵0"
+          value={revenue}
           accent="from-amber-500/25 via-amber-500/10 to-transparent"
           subtitle="This academic period"
+          trend={revenueTrend}
           icon={DollarSign}
         />
       </div>
 
-      {/* Quick Actions & Academic Period */}
+      {/* Primary row: Quick Actions + Academic Period */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quick Actions Card */}
+        {/* Quick Actions */}
         <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-indigo-500/5 to-transparent"
@@ -124,73 +453,70 @@ export default function SchoolAdminOverviewPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
-            <button className="group w-full text-left px-4 py-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30 group-hover:bg-blue-500/30 transition-colors">
-                  <UserPlus className="h-4 w-4 text-blue-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white mb-1">
-                    Add New Student
-                  </div>
-                  <div className="text-xs text-white/60">
-                    Enroll a new student to your school
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
-              </div>
-            </button>
-
-            <button className="group w-full text-left px-4 py-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/20 border border-purple-500/30 group-hover:bg-purple-500/30 transition-colors">
-                  <School className="h-4 w-4 text-purple-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white mb-1">
-                    Create Class
-                  </div>
-                  <div className="text-xs text-white/60">
-                    Set up a new class or grade level
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
-              </div>
-            </button>
-
-            <button className="group w-full text-left px-4 py-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 group-hover:bg-emerald-500/30 transition-colors">
-                  <FileText className="h-4 w-4 text-emerald-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white mb-1">
-                    Generate Report
-                  </div>
-                  <div className="text-xs text-white/60">
-                    View analytics and generate reports
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
-              </div>
-            </button>
+            <QuickAction
+              title="Draft Fee Reminder (Email)"
+              description="Send a reminder to guardians with outstanding balances"
+              icon={Mail}
+              accent="bg-blue-500/20 border-blue-500/30"
+              onClick={() => {}}
+            />
+            <QuickAction
+              title="Draft Fee Reminder (SMS)"
+              description="Send a quick SMS nudge to guardians"
+              icon={MessageSquare}
+              accent="bg-cyan-500/20 border-cyan-500/30"
+              onClick={() => {}}
+            />
+            <QuickAction
+              title="Generate Simple Report"
+              description="Download a quick snapshot for management"
+              icon={ClipboardList}
+              accent="bg-emerald-500/20 border-emerald-500/30"
+              onClick={() => {}}
+            />
+            <QuickAction
+              title="Create Class"
+              description="Set up a new class or grade level"
+              icon={School}
+              accent="bg-purple-500/20 border-purple-500/30"
+              onClick={() => {}}
+            />
+            <QuickAction
+              title="Add New Student"
+              description="Enroll a new student to your school"
+              icon={UserPlus}
+              accent="bg-fuchsia-500/20 border-fuchsia-500/30"
+              onClick={() => {}}
+            />
           </CardContent>
         </Card>
 
-        {/* Academic Period Card */}
+        {/* Academic Period (with CTA when not set) */}
         <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/20 via-amber-500/5 to-transparent"
             aria-hidden="true"
           />
-          <CardHeader className="relative z-10">
+          <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
                 <Calendar className="h-4 w-4 text-amber-400" />
               </div>
               Academic Period
             </CardTitle>
+
+            {/* Status nudge CTA */}
+            {progress.label === "Not Set" && (
+              <button
+                type="button"
+                onClick={() => setShowCreatePeriod(true)}
+                className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:opacity-90"
+              >
+                Create period
+              </button>
+            )}
           </CardHeader>
+
           <CardContent className="relative z-10 space-y-4">
             <div className="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/5">
               <div className="p-3 rounded-lg bg-amber-500/20 border border-amber-500/30">
@@ -200,20 +526,22 @@ export default function SchoolAdminOverviewPage() {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-semibold text-white">Current Term</span>
                   <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400">
-                    Not Set
+                    {progress.label}
                   </span>
                 </div>
                 <div className="text-sm text-white/60 mb-3">
-                  No active academic period configured
+                  {progress.pct === 0 && progress.label === "Not Set"
+                    ? "No active academic period configured"
+                    : "Academic period in progress"}
                 </div>
                 <div className="flex items-center gap-4 text-xs text-white/50">
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
-                    <span>Start: —</span>
+                    <span>Start: {period.startDate || "—"}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
-                    <span>End: —</span>
+                    <span>End: {period.endDate || "—"}</span>
                   </div>
                 </div>
               </div>
@@ -222,12 +550,465 @@ export default function SchoolAdminOverviewPage() {
             <div className="pt-3 border-t border-white/10">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-white/50">Academic Year</span>
-                <span className="text-white/70 font-medium">—</span>
+                <span className="text-white/70 font-medium">
+                  {period.yearLabel}
+                </span>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Overdues & Risk + Collections Snapshot */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Overdues & Risk (Donut) */}
+        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-rose-500/15 via-rose-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-rose-500/20 border border-rose-500/30">
+                <DollarSign className="h-4 w-4 text-rose-300" />
+              </div>
+              Overdues &amp; Risk
+            </CardTitle>
+            <Link
+              href="/admin/overdue-report"
+              className="text-sm text-brand hover:opacity-80"
+            >
+              Overdue report →
+            </Link>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            {overdueTotal > 0 ? (
+              <Donut segments={donutSegments} />
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+                No overdue invoices yet.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Collections Snapshot (with Recon pill inline) */}
+        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                <DollarSign className="h-4 w-4 text-emerald-400" />
+              </div>
+              Collections Snapshot
+            </CardTitle>
+            <ReconPill count={reconUnmatched} />
+          </CardHeader>
+          <CardContent className="relative z-10 grid grid-cols-3 gap-4">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs text-white/60 mb-1">Collected</div>
+              <div className="text-lg font-semibold text-white">
+                {collections.collected}
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs text-white/60 mb-1">Outstanding</div>
+              <div className="text-lg font-semibold text-white">
+                {collections.outstanding}
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs text-white/60 mb-1">Collection Rate</div>
+              <div className="text-lg font-semibold text-white">
+                {collections.rate}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Attendance & Coverage + Upcoming Events */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Attendance placeholder stays premium but simple */}
+        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/15 via-blue-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
+                <Users className="h-4 w-4 text-blue-300" />
+              </div>
+              Attendance &amp; Coverage
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 grid grid-cols-3 gap-4">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs text-white/60 mb-1">Today</div>
+              <div className="text-lg font-semibold text-white">—</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs text-white/60 mb-1">7-day Trend</div>
+              <div className="text-xs text-white/70">No recent data</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="text-xs text-white/60 mb-1">Teacher Coverage</div>
+              <div className="text-lg font-semibold text-white">—</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Events + Add Event */}
+        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
+                <Calendar className="h-4 w-4 text-fuchsia-300" />
+              </div>
+              Upcoming Events
+            </CardTitle>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1.5 text-xs text-fuchsia-200 hover:opacity-90"
+              onClick={() => {}}
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Add event
+            </button>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {upcomingEvents.map((e) => (
+              <div
+                key={e.id}
+                className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
+              >
+                <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
+                  <Calendar className="h-4 w-4 text-fuchsia-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white/80">{e.title}</div>
+                  <div className="text-xs text-white/50 mt-0.5">{e.when}</div>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Admin Assistant (lightweight AI) + Contextual Suggestions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Admin Assistant */}
+        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-indigo-400/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-indigo-400/20 border border-indigo-400/30">
+                <Search className="h-4 w-4 text-indigo-200" />
+              </div>
+              Admin Assistant
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <textarea
+                rows={3}
+                placeholder="Ask: “Summarize collections this term”, “Draft a reminder for Grade 4 parents”…"
+                className="w-full resize-none rounded-lg border border-white/10 bg-transparent p-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
+              />
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  "Draft fee reminder",
+                  "Show recon issues",
+                  "List top absences",
+                  "Generate weekly summary",
+                ].map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 hover:bg-white/10"
+                    onClick={() => {}}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-black hover:opacity-90"
+                  onClick={() => {}}
+                >
+                  Ask
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contextual suggestions */}
+        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-400/15 via-amber-400/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-lg font-semibold">Suggestions</CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {suggestions.map((s) => (
+              <div
+                key={s.id}
+                className="rounded-xl border border-white/10 bg-white/5 p-4"
+              >
+                <div className="text-sm text-white/90 mb-3">{s.text}</div>
+                <div className="flex flex-wrap gap-2">
+                  {s.actions.map((a, i) => {
+                    const Icon = a.icon;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10"
+                        onClick={a.onClick}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity + Notices */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Activity */}
+        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 via-white/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-white/15 border border-white/20">
+                <CheckCircle2 className="h-4 w-4 text-white/70" />
+              </div>
+              Recent Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {auditFeed.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
+                >
+                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
+                    <Icon className="h-4 w-4 text-white/70" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-white/80">{item.text}</div>
+                    <div className="text-xs text-white/50 mt-0.5">
+                      {item.ts}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Notices */}
+        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
+                <Bell className="h-4 w-4 text-fuchsia-300" />
+              </div>
+              Notices
+            </CardTitle>
+            <button
+              type="button"
+              className="text-sm text-brand hover:opacity-80"
+              onClick={() => {}}
+            >
+              Create notice
+            </button>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
+                <Bell className="h-4 w-4 text-fuchsia-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-white/80">No notices yet</div>
+                <div className="text-xs text-white/50 mt-0.5">—</div>
+              </div>
+            </div>
+            <div className="pt-1">
+              <button
+                type="button"
+                className="text-sm text-white/70 hover:text-white/90"
+                onClick={() => {}}
+              >
+                See all notices →
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Command palette hint */}
+      <div className="flex items-center justify-center pt-4">
+        <button
+          type="button"
+          onClick={() => palette.setOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70 hover:bg-white/10"
+        >
+          <Search className="h-3.5 w-3.5" />
+          Press <span className="rounded bg-white/10 px-1.5 py-0.5">⌘K</span> to
+          search &amp; act
+        </button>
+      </div>
+
+      {/* Command Palette Modal */}
+      {palette.open && (
+        <div
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => palette.setOpen(false)}
+        >
+          <div
+            className="w-full max-w-xl rounded-2xl border border-white/10 bg-card/95 p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3">
+              <Search className="h-4 w-4 text-white/60" />
+              <input
+                autoFocus
+                value={palette.q}
+                onChange={(e) => palette.setQ(e.target.value)}
+                placeholder="Search or type a command…"
+                className="h-12 flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+              />
+            </div>
+            <div className="mt-2 max-h-72 overflow-auto rounded-xl border border-white/10 bg-white/5">
+              {palette.filtered.length === 0 ? (
+                <div className="p-4 text-sm text-white/60">No results</div>
+              ) : (
+                <ul className="divide-y divide-white/10">
+                  {palette.filtered.map((it) => (
+                    <li key={it.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-white/10"
+                        onClick={() => {
+                          palette.setOpen(false);
+                          it.onRun();
+                        }}
+                      >
+                        <span className="text-sm text-white/90">
+                          {it.label}
+                        </span>
+                        {it.kbd && (
+                          <span className="text-xs text-white/50 rounded bg-white/10 px-2 py-0.5">
+                            {it.kbd}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Academic Period (guided) – lightweight modal stub */}
+      {showCreatePeriod && (
+        <div
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setShowCreatePeriod(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-white/10 bg-card/95 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-1">
+              Create Academic Period
+            </h3>
+            <p className="text-sm text-white/60 mb-4">
+              A quick guided setup to start tracking term dates and progress.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/60 mb-1">Academic Year</div>
+                <input
+                  placeholder="2024/2025"
+                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+                />
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/60 mb-1">Term</div>
+                <input
+                  placeholder="1st Term"
+                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+                />
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/60 mb-1">Start Date</div>
+                <input
+                  type="date"
+                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+                />
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/60 mb-1">End Date</div>
+                <input
+                  type="date"
+                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10"
+                onClick={() => setShowCreatePeriod(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-black hover:opacity-90"
+                onClick={() => setShowCreatePeriod(false)}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

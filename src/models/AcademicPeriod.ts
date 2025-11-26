@@ -20,7 +20,7 @@ const academicPeriodSchema = new Schema<IAcademicPeriod>(
       required: true,
       index: true,
     },
-    yearLabel: { type: String, required: true },
+    yearLabel: { type: String, required: true, trim: true },
     term: { type: String, required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },

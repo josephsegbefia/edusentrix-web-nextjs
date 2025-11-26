@@ -86,7 +86,7 @@ function MetricCard({
       onClick={onClick}
       className={[
         "relative w-full overflow-hidden rounded-2xl border border-white/10",
-        "bg-gradient-to-br from-white/5 to-transparent p-5 lg:p-6",
+        "bg-linear-to-br from-white/5 to-transparent p-5 lg:p-6",
         "shadow-lg shadow-black/20 backdrop-blur",
         onClick
           ? "text-left transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
@@ -94,7 +94,7 @@ function MetricCard({
       ].join(" ")}
     >
       <div
-        className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${accent}`}
+        className={`pointer-events-none absolute inset-0 bg-linear-to-br ${accent}`}
         aria-hidden="true"
       />
       <div className="relative z-10 space-y-3">
@@ -439,9 +439,9 @@ export default function SchoolAdminOverviewPage() {
       {/* Primary row: Quick Actions + Academic Period */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-indigo-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/20 via-indigo-500/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10">
@@ -492,9 +492,9 @@ export default function SchoolAdminOverviewPage() {
         </Card>
 
         {/* Academic Period (with CTA when not set) */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/20 via-amber-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/20 via-amber-500/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex items-center justify-between">
@@ -562,9 +562,9 @@ export default function SchoolAdminOverviewPage() {
       {/* Overdues & Risk + Collections Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Overdues & Risk (Donut) */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-rose-500/15 via-rose-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex items-center justify-between">
@@ -593,9 +593,9 @@ export default function SchoolAdminOverviewPage() {
         </Card>
 
         {/* Collections Snapshot (with Recon pill inline) */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex items-center justify-between">
@@ -633,9 +633,9 @@ export default function SchoolAdminOverviewPage() {
       {/* Attendance & Coverage + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Attendance placeholder stays premium but simple */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/15 via-blue-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/15 via-blue-500/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10">
@@ -663,9 +663,9 @@ export default function SchoolAdminOverviewPage() {
         </Card>
 
         {/* Upcoming Events + Add Event */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex items-center justify-between">
@@ -706,9 +706,9 @@ export default function SchoolAdminOverviewPage() {
       {/* Admin Assistant (lightweight AI) + Contextual Suggestions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Admin Assistant */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-indigo-400/15 via-indigo-400/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-400/15 via-indigo-400/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex items-center justify-between">
@@ -757,9 +757,9 @@ export default function SchoolAdminOverviewPage() {
         </Card>
 
         {/* Contextual suggestions */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-400/15 via-amber-400/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-400/15 via-amber-400/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10">
@@ -797,9 +797,9 @@ export default function SchoolAdminOverviewPage() {
       {/* Recent Activity + Notices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 via-white/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/15 via-white/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10">
@@ -834,9 +834,9 @@ export default function SchoolAdminOverviewPage() {
         </Card>
 
         {/* Notices */}
-        <Card className="relative overflow-hidden border border-white/10 bg-gradient-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex flex-row items-center justify-between">
@@ -893,7 +893,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Command Palette Modal */}
       {palette.open && (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => palette.setOpen(false)}
         >
           <div
@@ -946,7 +946,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Create Academic Period (guided) – lightweight modal stub */}
       {showCreatePeriod && (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => setShowCreatePeriod(false)}
         >
           <div

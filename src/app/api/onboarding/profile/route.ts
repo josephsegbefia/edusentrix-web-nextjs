@@ -9,6 +9,7 @@ const Body = z.object({
   lastName: z.string().min(1),
   phone: z.string().optional(),
   avatarUrl: z.string().url().optional(),
+  avatarPublicId: z.string().optional(),
   address: z.string().optional(),
   dateOfBirth: z.string().optional(),
 });
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
         lastName: parsed.data.lastName,
         phone: parsed.data.phone ?? null,
         avatarUrl: parsed.data.avatarUrl ?? null,
+        avatarPublicId: parsed.data.avatarPublicId ?? null,
         address: parsed.data.address ?? null,
         dateOfBirth: parsed.data.dateOfBirth ?? null,
       },

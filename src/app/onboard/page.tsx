@@ -18,6 +18,7 @@ import { format } from "date-fns/format";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { ImageUploader } from "@/components/upload/ImageUploader";
 
 type Bootstrap = {
   user: {
@@ -84,6 +85,7 @@ export default function OnboardPage() {
   const [dob, setDob] = useState<string>("");
   const [address, setAddress] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarPublicId, setAvatarPublicId] = useState<string | null>(null);
 
   // Step 2: school + curriculum
   const [schoolName, setSchoolName] = useState("");
@@ -209,6 +211,7 @@ export default function OnboardPage() {
           dateOfBirth: dob ? new Date(dob).toISOString() : undefined,
           address: address.trim() || undefined,
           avatarUrl: avatarUrl.trim() || undefined,
+          avatarPublicId: avatarPublicId || undefined,
         }),
       });
       if (!res.ok) {
@@ -524,7 +527,7 @@ export default function OnboardPage() {
           className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative"
         >
           {/* Subtle glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-primary/5 pointer-events-none" />
+          <div className="absolute inset-0 bg-linear-to-br from-brand/5 via-transparent to-primary/5 pointer-events-none" />
 
           <div className="relative p-8 md:p-12">
             <AnimatePresence mode="wait">
@@ -537,7 +540,7 @@ export default function OnboardPage() {
                   className="space-y-8"
                 >
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+                    <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
                       Your Profile
                     </h2>
                     <p className="text-muted text-base">
@@ -552,11 +555,19 @@ export default function OnboardPage() {
                       <Label className="text-sm font-semibold">
                         Profile Photo
                       </Label>
-                      <ImageUpload
-                        value={avatarUrl}
-                        onChange={setAvatarUrl}
-                        maxSizeMB={5}
-                      />
+                      {data?.school ? (
+                        <ImageUploader
+                          schoolId={data.school.id}
+                          subjectRole="school_admins"
+                          maxSizeMB={5}
+                          onUploaded={({ url, publicId }) => {
+                            setAvatarUrl(url);
+                            setAvatarPublicId(publicId);
+                          }}
+                        />
+                      ) : (
+                        <div className="h-28 rounded-xl border border-border/50 bg-background/40 grid place-items-center text-muted text-sm"></div>
+                      )}
                     </div>
 
                     {/* Name Fields */}
@@ -664,7 +675,7 @@ export default function OnboardPage() {
                   className="space-y-8"
                 >
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+                    <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
                       School Information
                     </h2>
                     <p className="text-muted text-base">
@@ -890,7 +901,7 @@ export default function OnboardPage() {
                   className="space-y-8"
                 >
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+                    <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
                       Curriculum Setup
                     </h2>
                     <p className="text-muted text-base">

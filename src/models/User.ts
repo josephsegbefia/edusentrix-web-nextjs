@@ -19,6 +19,7 @@ export interface IUser {
   lastName?: string;
   phone?: string;
   avatarUrl?: string;
+  avatarPublicId?: string;
   role?: AppRole; // single role (you decided to move from roles[] to role)
   schoolId?: Types.ObjectId | null;
   pendingOnboarding?: boolean;
@@ -41,6 +42,7 @@ const userSchema = new Schema<IUser>(
     lastName: String,
     phone: String,
     avatarUrl: String,
+    avatarPublicId: String,
 
     role: {
       type: String,

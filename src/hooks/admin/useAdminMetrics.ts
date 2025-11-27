@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 export type Trend = { deltaPct: number; direction: "up" | "down" | "flat" };
 
 export type MetricsDTO = {

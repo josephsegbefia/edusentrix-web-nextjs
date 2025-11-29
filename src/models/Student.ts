@@ -9,8 +9,9 @@ export interface IStudent {
   userId?: Types.ObjectId | null; // optional link to User (Clerk-backed)
   admissionNo?: string | null;
   firstName: string;
+  middleName?: string | null;
   lastName: string;
-  sex?: "male" | "female" | "other";
+  sex?: "male" | "female";
   dateOfBirth?: Date | null;
 
   gradeId: Types.ObjectId; // required
@@ -40,8 +41,9 @@ const studentSchema = new Schema<IStudent>(
 
     admissionNo: { type: String, default: null, trim: true },
     firstName: { type: String, required: true, trim: true },
+    middleName: { type: String, default: null, trim: true },
     lastName: { type: String, required: true, trim: true },
-    sex: { type: String, enum: ["male", "female", "other"], default: "male" },
+    sex: { type: String, enum: ["male", "female"], default: "male" },
     dateOfBirth: { type: Date, default: null },
 
     gradeId: {

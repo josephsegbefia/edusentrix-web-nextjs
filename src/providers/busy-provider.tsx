@@ -27,8 +27,16 @@ export function BusyProvider({ children }: { children: React.ReactNode }) {
 
   // Prevent background scroll while busy (overlay blocks clicks)
   useEffect(() => {
-    if (isBusy) document.body.classList.add("overflow-hidden");
-    else document.body.classList.remove("overflow-hidden");
+    if (isBusy) {
+      document.body.classList.add("overflow-hidden");
+      // Prevent focus on any element behind the overlay
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement && activeElement.blur) {
+        activeElement.blur();
+      }
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
   }, [isBusy]);
 
   const value = useMemo<BusyCtx>(
@@ -47,17 +55,29 @@ export function BusyProvider({ children }: { children: React.ReactNode }) {
         {isBusy && (
           <motion.div
             key="busy-overlay"
-            className="fixed inset-0 z-60 grid place-items-center bg-black/40 backdrop-blur-sm pointer-events-auto"
+            data-busy-overlay
+            className="fixed inset-0 z-[9999] grid place-items-center bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            style={{ pointerEvents: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.preventDefault()}
+            onKeyDown={(e) => {
+              // Prevent all keyboard input when busy (except Escape which is handled by modals)
+              if (e.key !== "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+            tabIndex={-1}
           >
             <motion.div
               initial={{ scale: 0.98, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.98, opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="rounded-2xl border border-white/10 bg-card px-6 py-5 shadow-2xl"
+              className="rounded-2xl border border-white/10 bg-card px-6 py-5 shadow-2xl pointer-events-none"
             >
               <div className="flex items-center gap-3">
                 <Loader2 className="h-5 w-5 animate-spin" />

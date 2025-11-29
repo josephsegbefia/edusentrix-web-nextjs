@@ -27,11 +27,47 @@ import {
   ClipboardList,
 } from "lucide-react";
 
+/* ------------------ NEW: hooks + modals ------------------ */
+import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
+import { useAdminSSE } from "@/hooks/admin/useAdminSSE";
+import { useBusyToast } from "@/hooks/useBusyToast";
+
+import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
+import { CreateClassModal } from "@/components/modals/CreateClassModal";
+import { CreateStudentModal } from "@/components/modals/CreateStudentModal";
+import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
+import { format } from "date-fns/format";
+
 /* --------------------------------------------------------------------------------
    Helpers
 -------------------------------------------------------------------------------- */
 
 type Trend = { deltaPct: number; direction: "up" | "down" | "flat" };
+
+function getOrdinalSuffix(day: number): string {
+  if (day > 3 && day < 21) return "th";
+  switch (day % 10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
+}
+
+function formatDateLong(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(d.getTime())) return "—";
+  const day = d.getDate();
+  const ordinal = getOrdinalSuffix(day);
+  const weekday = format(d, "EEEE");
+  const month = format(d, "MMMM");
+  const year = format(d, "yyyy");
+  return `${weekday}, ${day}${ordinal} ${month} ${year}`;
+}
 
 function termProgress(start?: string, end?: string) {
   if (!start || !end) return { pct: 0, label: "Not Set" };
@@ -288,22 +324,65 @@ function useCommandPalette(items: CmdItem[]) {
 -------------------------------------------------------------------------------- */
 
 export default function SchoolAdminOverviewPage() {
-  /* Placeholder data (wire later) */
-  const students = 0;
-  const studentsTrend: Trend = { deltaPct: 0, direction: "flat" };
-  const teachers = 0;
-  const teachersTrend: Trend = { deltaPct: 0, direction: "flat" };
-  const subjects = 0;
-  const subjectsTrend: Trend = { deltaPct: 0, direction: "flat" };
-  const revenue = "₵0";
-  const revenueTrend: Trend = { deltaPct: 0, direction: "flat" };
+  /* NEW: metrics + SSE live updates */
+  const { data: m } = useAdminMetrics();
+  useAdminSSE();
 
-  const period = { yearLabel: "—", term: "—", startDate: "", endDate: "" };
-  const progress = termProgress(period.startDate, period.endDate);
+  const busy = useBusyToast();
 
-  const collections = { collected: "₵0", outstanding: "₵0", rate: "0%" };
-  const reconUnmatched = 3;
+  /* Mapped metrics (keep UI) */
+  const students = m?.students.total ?? 0;
+  const studentsTrend: Trend = m?.students.trend ?? {
+    deltaPct: 0,
+    direction: "flat",
+  };
 
+  const teachers = m?.teachers.total ?? 0;
+  const teachersTrend: Trend = m?.teachers.trend ?? {
+    deltaPct: 0,
+    direction: "flat",
+  };
+
+  const subjects = m?.subjects.total ?? 0;
+  const subjectsTrend: Trend = m?.subjects.trend ?? {
+    deltaPct: 0,
+    direction: "flat",
+  };
+
+  const revenue = `₵${(m?.revenue.current ?? 0).toLocaleString()}`;
+  const revenueTrend: Trend = m?.revenue.trend ?? {
+    deltaPct: 0,
+    direction: "flat",
+  };
+
+  const period = m?.period
+    ? {
+        yearLabel: m.period.yearLabel,
+        term: m.period.term,
+        startDate: formatDateLong(m.period.startDate),
+        endDate: formatDateLong(m.period.endDate),
+        startDateRaw: new Date(m.period.startDate).toISOString().slice(0, 10),
+        endDateRaw: new Date(m.period.endDate).toISOString().slice(0, 10),
+      }
+    : {
+        yearLabel: "—",
+        term: "—",
+        startDate: "",
+        endDate: "",
+        startDateRaw: "",
+        endDateRaw: "",
+      };
+  const progress = termProgress(period.startDateRaw, period.endDateRaw);
+
+  const collections = {
+    collected: `₵${(m?.collections.collected ?? 0).toLocaleString()}`,
+    outstanding: `₵${(m?.collections.outstanding ?? 0).toLocaleString()}`,
+    rate: `${(m?.collections.rate ?? 0).toFixed(0)}%`,
+  };
+
+  const reconUnmatched = 0; // no recon model yet
+
+  /* Overdues placeholder (no API yet) */
   const overdues = {
     "0–7d": 0,
     "8–14d": 0,
@@ -346,16 +425,45 @@ export default function SchoolAdminOverviewPage() {
       kbd: "⌘K",
       onRun: () => {},
     },
-    { id: "create-student", label: "Create Student", onRun: () => {} },
-    { id: "add-class", label: "Add Class", onRun: () => {} },
+    {
+      id: "create-student",
+      label: "Create Student",
+      onRun: () => setShowCreateStudent(true),
+    },
+    {
+      id: "add-class",
+      label: "Add Class",
+      onRun: () => setShowCreateClass(true),
+    },
     { id: "add-fee", label: "Add Fee", onRun: () => {} },
-    { id: "send-reminder", label: "Send Fee Reminder", onRun: () => {} },
+    {
+      id: "send-reminder",
+      label: "Send Fee Reminder",
+      onRun: () => setShowReminder("email"),
+    },
     { id: "create-event", label: "Create Event", onRun: () => {} },
     { id: "reports", label: "Generate Simple Report", onRun: () => {} },
   ];
   const palette = useCommandPalette(cmdItems);
 
+  /* Quick action modal state */
+  const [showReminder, setShowReminder] = useState<null | "email" | "sms">(
+    null
+  );
+  const [showCreateClass, setShowCreateClass] = useState(false);
+  const [showCreateStudent, setShowCreateStudent] = useState(false);
+
+  /* Academic period modal state */
   const [showCreatePeriod, setShowCreatePeriod] = useState(false);
+  const [yearLabelInput, setYearLabelInput] = useState("");
+  const [termInput, setTermInput] = useState("");
+  const [startDateInput, setStartDateInput] = useState("");
+  const [endDateInput, setEndDateInput] = useState("");
+  const [creatingPeriod, setCreatingPeriod] = useState(false);
+
+  /* Class & student create busy state */
+  const [creatingClass, setCreatingClass] = useState(false);
+  const [creatingStudent, setCreatingStudent] = useState(false);
 
   /* Donut segments */
   const donutSegments = [
@@ -382,6 +490,110 @@ export default function SchoolAdminOverviewPage() {
   ];
 
   const overdueTotal = donutSegments.reduce((s, x) => s + x.value, 0);
+
+  async function handleCreatePeriod() {
+    if (!yearLabelInput || !termInput || !startDateInput || !endDateInput) {
+      busy.error("Please fill all fields");
+      return;
+    }
+    setCreatingPeriod(true);
+    try {
+      const fetchPromise = fetch("/api/periods/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          yearLabel: yearLabelInput.trim(),
+          term: termInput.trim(),
+          startDate: startDateInput, // API coerces to Date
+          endDate: endDateInput,
+        }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || "Failed to create period");
+        }
+        return res;
+      });
+      await busy.promise(fetchPromise, {
+        loading: "Creating academic period…",
+        success: "Academic period created",
+        error: "Could not create period",
+      });
+      setShowCreatePeriod(false);
+      setYearLabelInput("");
+      setTermInput("");
+      setStartDateInput("");
+      setEndDateInput("");
+      // SSE will push period.updated; no manual refetch needed
+    } catch {
+      // Error already handled by busy.promise
+    } finally {
+      setCreatingPeriod(false);
+    }
+  }
+
+  async function handleCreateClass(payload: { gradeId: string; name: string }) {
+    setCreatingClass(true);
+    try {
+      const fetchPromise = fetch("/api/class-groups/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || "Failed to create class group");
+        }
+        return res;
+      });
+      await busy.promise(fetchPromise, {
+        loading: "Creating class group…",
+        success: "Class group created",
+        error: "Could not create class group",
+      });
+      setShowCreateClass(false);
+      // SSE can later emit classes.updated if you add it; for now metrics unaffected
+    } catch {
+      // Error already handled by busy.promise
+    } finally {
+      setCreatingClass(false);
+    }
+  }
+
+  async function handleCreateStudent(payload: {
+    firstName: string;
+    lastName: string;
+    sex?: "male" | "female";
+    dateOfBirth?: string;
+    gradeId?: string;
+    classGroupId?: string;
+  }) {
+    setCreatingStudent(true);
+    try {
+      const fetchPromise = fetch("/api/students/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const msg = await res.text();
+          throw new Error(msg || "Failed to add student");
+        }
+        return res;
+      });
+      await busy.promise(fetchPromise, {
+        loading: "Adding student…",
+        success: "Student added",
+        error: "Could not add student",
+      });
+      setShowCreateStudent(false);
+      // SSE will push students.updated (already supported)
+    } catch {
+      // Error already handled by busy.promise
+    } finally {
+      setCreatingStudent(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -458,35 +670,37 @@ export default function SchoolAdminOverviewPage() {
               description="Send a reminder to guardians with outstanding balances"
               icon={Mail}
               accent="bg-blue-500/20 border-blue-500/30"
-              onClick={() => {}}
+              onClick={() => setShowReminder("email")}
             />
             <QuickAction
               title="Draft Fee Reminder (SMS)"
               description="Send a quick SMS nudge to guardians"
               icon={MessageSquare}
               accent="bg-cyan-500/20 border-cyan-500/30"
-              onClick={() => {}}
+              onClick={() => setShowReminder("sms")}
             />
             <QuickAction
               title="Generate Simple Report"
               description="Download a quick snapshot for management"
               icon={ClipboardList}
               accent="bg-emerald-500/20 border-emerald-500/30"
-              onClick={() => {}}
+              onClick={() => {
+                /* open later */
+              }}
             />
             <QuickAction
               title="Create Class"
               description="Set up a new class or grade level"
               icon={School}
               accent="bg-purple-500/20 border-purple-500/30"
-              onClick={() => {}}
+              onClick={() => setShowCreateClass(true)}
             />
             <QuickAction
               title="Add New Student"
               description="Enroll a new student to your school"
               icon={UserPlus}
               accent="bg-fuchsia-500/20 border-fuchsia-500/30"
-              onClick={() => {}}
+              onClick={() => setShowCreateStudent(true)}
             />
           </CardContent>
         </Card>
@@ -534,13 +748,57 @@ export default function SchoolAdminOverviewPage() {
                     ? "No active academic period configured"
                     : "Academic period in progress"}
                 </div>
-                <div className="flex items-center gap-4 text-xs text-white/50">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" />
+                {progress.label !== "Not Set" && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between text-xs text-white/50 mb-2">
+                      <span>Term Progress</span>
+                      <span className="font-medium text-white/70">
+                        {progress.pct}%
+                      </span>
+                    </div>
+                    <div className="relative h-3 w-full overflow-hidden rounded-full bg-white/5 border border-white/10 shadow-inner">
+                      {/* Background glow effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent" />
+
+                      {/* Progress fill */}
+                      {progress.pct > 0 ? (
+                        <div
+                          className="relative h-full rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-300 shadow-lg shadow-amber-500/40 transition-all duration-700 ease-out"
+                          style={{ width: `${progress.pct}%` }}
+                        >
+                          {/* Shimmer effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
+
+                          {/* Glow pulse */}
+                          <div className="absolute inset-0 bg-amber-400/50 rounded-full animate-pulse" />
+                        </div>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center">
+                          <div className="text-[8px] text-white/30">
+                            Not started
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Progress indicator dot */}
+                      {progress.pct > 0 && progress.pct < 100 && (
+                        <div
+                          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-amber-400 shadow-lg shadow-amber-500/50 transition-all duration-700 ease-out"
+                          style={{ left: `calc(${progress.pct}% - 8px)` }}
+                        >
+                          <div className="absolute inset-0 rounded-full bg-amber-400/30 animate-ping" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-4 text-xs text-white/50 overflow-x-auto">
+                  <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
                     <span>Start: {period.startDate || "—"}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
                     <span>End: {period.endDate || "—"}</span>
                   </div>
                 </div>
@@ -893,7 +1151,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Command Palette Modal */}
       {palette.open && (
         <div
-          className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => palette.setOpen(false)}
         >
           <div
@@ -943,10 +1201,10 @@ export default function SchoolAdminOverviewPage() {
         </div>
       )}
 
-      {/* Create Academic Period (guided) – lightweight modal stub */}
+      {/* Create Academic Period (guided) – wired */}
       {showCreatePeriod && (
         <div
-          className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[60] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => setShowCreatePeriod(false)}
         >
           <div
@@ -964,6 +1222,8 @@ export default function SchoolAdminOverviewPage() {
                 <div className="text-xs text-white/60 mb-1">Academic Year</div>
                 <input
                   placeholder="2024/2025"
+                  value={yearLabelInput}
+                  onChange={(e) => setYearLabelInput(e.target.value)}
                   className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
                 />
               </div>
@@ -971,6 +1231,8 @@ export default function SchoolAdminOverviewPage() {
                 <div className="text-xs text-white/60 mb-1">Term</div>
                 <input
                   placeholder="1st Term"
+                  value={termInput}
+                  onChange={(e) => setTermInput(e.target.value)}
                   className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
                 />
               </div>
@@ -978,6 +1240,8 @@ export default function SchoolAdminOverviewPage() {
                 <div className="text-xs text-white/60 mb-1">Start Date</div>
                 <input
                   type="date"
+                  value={startDateInput}
+                  onChange={(e) => setStartDateInput(e.target.value)}
                   className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
                 />
               </div>
@@ -985,6 +1249,8 @@ export default function SchoolAdminOverviewPage() {
                 <div className="text-xs text-white/60 mb-1">End Date</div>
                 <input
                   type="date"
+                  value={endDateInput}
+                  onChange={(e) => setEndDateInput(e.target.value)}
                   className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
                 />
               </div>
@@ -995,20 +1261,59 @@ export default function SchoolAdminOverviewPage() {
                 type="button"
                 className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10"
                 onClick={() => setShowCreatePeriod(false)}
+                disabled={creatingPeriod}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-black hover:opacity-90"
-                onClick={() => setShowCreatePeriod(false)}
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-black hover:opacity-90 disabled:opacity-60"
+                onClick={handleCreatePeriod}
+                disabled={creatingPeriod}
               >
-                Continue
+                {creatingPeriod ? "Creating…" : "Continue"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Quick Action Modals */}
+      <ResponsiveModal
+        open={showReminder !== null}
+        onClose={() => setShowReminder(null)}
+        title={
+          showReminder === "sms"
+            ? "Draft Fee Reminder (SMS)"
+            : "Draft Fee Reminder (Email)"
+        }
+      >
+        <DraftReminderModal onClose={() => setShowReminder(null)} />
+      </ResponsiveModal>
+
+      <ResponsiveModal
+        open={showCreateClass}
+        onClose={() => setShowCreateClass(false)}
+        title="Create Class Group"
+      >
+        <CreateClassModal
+          onClose={() => setShowCreateClass(false)}
+          onSubmit={handleCreateClass}
+          isLoading={creatingClass}
+        />
+      </ResponsiveModal>
+
+      <ResponsiveModal
+        open={showCreateStudent}
+        onClose={() => setShowCreateStudent(false)}
+        title="Add New Student"
+      >
+        <CreateStudentModal
+          onClose={() => setShowCreateStudent(false)}
+          onSubmit={handleCreateStudent}
+          isLoading={creatingStudent}
+        />
+      </ResponsiveModal>
     </div>
   );
 }

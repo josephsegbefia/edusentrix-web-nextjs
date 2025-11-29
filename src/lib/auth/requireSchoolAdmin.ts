@@ -42,7 +42,7 @@ export async function requireSchoolAdmin() {
 
   const roles = membership?.roles || [];
   const isAdmin = roles.includes("school_admin");
-  if (isAdmin)
+  if (!isAdmin)
     throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   return { userId: user._id, schoolId: user.schoolId };

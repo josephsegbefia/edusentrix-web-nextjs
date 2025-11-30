@@ -40,6 +40,7 @@ import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
 import { format } from "date-fns/format";
 import type { CreateStudentInput } from "@/schemas/student";
 import { CreateClassGroupsModal } from "@/components/modals/CreateClassGroupsModal";
+import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -420,11 +421,13 @@ export default function SchoolAdminOverviewPage() {
   /* ---------------- NEW: Preflight for Create Class (seed grades if empty) --------------- */
   async function openCreateClassFlow() {
     try {
-      // Check grades (no cache)
-      const checkRes = await fetch("/api/grades", { cache: "no-store" });
+      // Step 1: Check and seed grades if empty
+      const checkGradesRes = await fetch("/api/admin/grades?active=1", {
+        cache: "no-store",
+      });
       let gradeCount = 0;
-      if (checkRes.ok) {
-        const json: any = await checkRes.json().catch(() => ({}));
+      if (checkGradesRes.ok) {
+        const json: any = await checkGradesRes.json().catch(() => ({}));
         const list = Array.isArray(json) ? json : json?.data;
         if (Array.isArray(list)) gradeCount = list.length;
         else if (typeof json?.total === "number") gradeCount = json.total;
@@ -437,15 +440,56 @@ export default function SchoolAdminOverviewPage() {
           }),
           {
             loading: "Preparing default grades…",
-            success: "Grades ready. You can now create class groups.",
-            error: "Couldn’t prepare grades",
+            success: "Grades ready.",
+            error: "Couldn't prepare grades",
+          }
+        );
+      }
+
+      // Step 2: Check school type and subjects
+      const schoolRes = await fetch("/api/admin/school", { cache: "no-store" });
+      let schoolType: "Basic" | "SHS" | null = null;
+      if (schoolRes.ok) {
+        const schoolJson: any = await schoolRes.json().catch(() => ({}));
+        schoolType = schoolJson?.data?.type === "SHS" ? "SHS" : "Basic";
+      }
+
+      // Step 3: Check subjects count
+      const checkSubjectsRes = await fetch("/api/admin/subjects?active=1", {
+        cache: "no-store",
+      });
+      let subjectCount = 0;
+      if (checkSubjectsRes.ok) {
+        const json: any = await checkSubjectsRes.json().catch(() => ({}));
+        const list = Array.isArray(json) ? json : json?.data;
+        if (Array.isArray(list)) subjectCount = list.length;
+        else if (typeof json?.total === "number") subjectCount = json.total;
+      }
+
+      // Step 4: Auto-create subjects for Basic schools if none exist
+      if (subjectCount === 0 && schoolType === "Basic") {
+        await busy.promise(
+          fetch("/api/admin/subjects/bulk", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ names: GHANA_BASIC_SUBJECTS }),
+          }).then(async (r) => {
+            if (!r.ok) {
+              const errorText = await r.text();
+              throw new Error(errorText || "Failed to create subjects");
+            }
+          }),
+          {
+            loading: "Creating default subjects for Basic school…",
+            success: "Subjects created successfully.",
+            error: "Couldn't create subjects",
           }
         );
       }
 
       setShowCreateClass(true);
     } catch (e: any) {
-      busy.error(e?.message || "Couldn’t prepare grades");
+      busy.error(e?.message || "Couldn't prepare class creation");
     }
   }
 

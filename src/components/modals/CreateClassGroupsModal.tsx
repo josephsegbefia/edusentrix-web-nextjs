@@ -85,8 +85,14 @@ export function CreateClassGroupsModal({ onClose }: Props) {
   }
 
   async function onSubmit(values: Form) {
-    await createGroups.mutateAsync(toPayload(values));
-    onClose();
+    try {
+      const payload = toPayload(values);
+      await createGroups.mutateAsync(payload);
+      onClose();
+    } catch (error) {
+      // Error is handled by mutation's onError callback
+      console.error("Failed to create class groups:", error);
+    }
   }
 
   return (
@@ -190,8 +196,10 @@ export function CreateClassGroupsModal({ onClose }: Props) {
               render={({ field }) => (
                 <Input
                   type="number"
-                  {...field}
                   value={field.value ?? ""}
+                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                  onBlur={field.onBlur}
+                  name={field.name}
                   placeholder="From (1)"
                   className="border border-white/10 bg-white/5 text-white"
                 />
@@ -203,8 +211,10 @@ export function CreateClassGroupsModal({ onClose }: Props) {
               render={({ field }) => (
                 <Input
                   type="number"
-                  {...field}
                   value={field.value ?? ""}
+                  onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                  onBlur={field.onBlur}
+                  name={field.name}
                   placeholder="To (3)"
                   className="border border-white/10 bg-white/5 text-white"
                 />
@@ -275,8 +285,10 @@ export function CreateClassGroupsModal({ onClose }: Props) {
           render={({ field }) => (
             <Input
               type="number"
-              {...field}
               value={field.value ?? ""}
+              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+              onBlur={field.onBlur}
+              name={field.name}
               placeholder="e.g., 35"
               className="border border-white/10 bg-white/5 text-white"
             />

@@ -39,7 +39,7 @@ export function DocumentUploader({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          kind: "doc",
+          kind: "document",
           schoolId,
           category,
         }),

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 // Body validation: we accept the "target" role/category to place under the correct folder
 const Body = z.object({
-  kind: z.enum(["avatar", "document"]),
+  kind: z.enum(["avatar", "document", "image", "doc"]),
   schoolId: z.string().min(1),
   // For avatars -> subject role (who the image is for): students | teachers | school_admins | parents | staff
   subjectRole: z.string().min(1).optional(), // used when kind is avatar
@@ -30,7 +30,11 @@ const ALLOWED_IMAGE_ROLES = new Set([
 ]);
 
 function cloudinarySign(params: Record<string, string>) {
-  const apiSecret = process.env.CLOUDINARY_API_SECRET!;
+  const apiSecret =
+    process.env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET_KEY;
+  if (!apiSecret) {
+    throw new Error("Missing Cloudinary credentials");
+  }
   // cloudinary signature: sort keys alphabetically, join as querystring without "file" and api_key, then sha1
   const toSign = Object.keys(params)
     .sort()
@@ -50,7 +54,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const { kind, schoolId, subjectRole, category } = parsed.data;
+  const { kind: rawKind, schoolId, subjectRole, category } = parsed.data;
+  const kind =
+    rawKind === "image" ? "avatar" : rawKind === "doc" ? "document" : rawKind;
 
   // Auth via Clerk
   const { userId } = await auth();
@@ -85,7 +91,7 @@ export async function POST(req: NextRequest) {
   const timestamp = Math.floor(Date.now() / 1000).toString();
 
   let folder = "";
-  let resource_type = "image";
+  let resource_type: "image" | "raw" = "image";
 
   if (kind === "avatar") {
     const roleFolder = (subjectRole || "").toLowerCase().trim();
@@ -102,24 +108,25 @@ export async function POST(req: NextRequest) {
     const cat = (category || "generic").toLowerCase().trim();
     folder = `schools/${schoolId}/documents/${cat}`;
     resource_type = "raw";
-
-    // Base params we sign (do not include the file itself)
-    const signedParams: Record<string, string> = {
-      timestamp,
-      folder,
-      unique_filename: "true",
-      overwrite: "false",
-    };
-    // Sign
-    const signature = cloudinarySign(signedParams);
-    return NextResponse.json({
-      uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${resource_type}/upload`,
-      cloudName,
-      apiKey,
-      signature,
-      timestamp,
-      folder,
-      resource_type,
-    });
   }
+
+  // Base params we sign (do not include the file itself)
+  const signedParams: Record<string, string> = {
+    timestamp,
+    folder,
+    unique_filename: "true",
+    overwrite: "false",
+  };
+
+  // Sign and return upload details
+  const signature = cloudinarySign(signedParams);
+  return NextResponse.json({
+    uploadUrl: `https://api.cloudinary.com/v1_1/${cloudName}/${resource_type}/upload`,
+    cloudName,
+    apiKey,
+    signature,
+    timestamp,
+    folder,
+    resource_type,
+  });
 }

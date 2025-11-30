@@ -4,11 +4,18 @@
 import React, { useState } from "react";
 import { FileDropzone } from "./FileDropzone";
 import { buildAvatarUrl } from "@/lib/cloudinary-url";
+import { useToast } from "@/hooks/useToast";
 
 type ImageUploaderProps = {
   schoolId: string;
   /** target subject role (where to store) — NOT the uploader's role */
-  subjectRole: "students" | "teachers" | "school_admins" | "parents" | "staff";
+  subjectRole:
+    | "students"
+    | "teachers"
+    | "school_admins"
+    | "parents"
+    | "staff"
+    | "bursars";
   maxSizeMB?: number; // default 5
   onUploaded: (payload: {
     publicId: string;
@@ -34,17 +41,28 @@ export function ImageUploader({
 }: ImageUploaderProps) {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const toast = useToast();
 
   async function handleUpload(file: File) {
     try {
       setBusy(true);
+      setUploadProgress(0);
+
+      // Create local preview immediately
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLocalPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
 
       // 1) Ask server for a Cloudinary signature and folder
       const signRes = await fetch("/api/uploads/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          kind: "image",
+          kind: "avatar",
           schoolId,
           subjectRole,
         }),
@@ -52,11 +70,12 @@ export function ImageUploader({
 
       if (!signRes.ok) {
         const j = await signRes.json().catch(() => ({}));
-        throw new Error(j?.error || "Signature failed");
+        throw new Error(j?.error || "Failed to get upload signature");
       }
       const sign = await signRes.json();
+      setUploadProgress(10);
 
-      // 2) Direct upload to Cloudinary
+      // 2) Direct upload to Cloudinary with progress tracking
       const fd = new FormData();
       fd.append("file", file);
       fd.append("api_key", sign.apiKey);
@@ -66,12 +85,50 @@ export function ImageUploader({
       fd.append("unique_filename", "true");
       fd.append("overwrite", "false");
 
-      const upRes = await fetch(sign.uploadUrl, { method: "POST", body: fd });
-      if (!upRes.ok) {
-        const j = await upRes.json().catch(() => ({}));
-        throw new Error(j?.error?.message || "Upload failed");
-      }
-      const data = await upRes.json();
+      // Use XMLHttpRequest for progress tracking
+      const uploadPromise = new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            // Progress from 10% to 90% (signature already done)
+            const progress = 10 + (e.loaded / e.total) * 80;
+            setUploadProgress(Math.min(progress, 90));
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              resolve(data);
+            } catch (e) {
+              reject(new Error("Invalid response from server"));
+            }
+          } else {
+            try {
+              const error = JSON.parse(xhr.responseText);
+              reject(new Error(error?.error?.message || "Upload failed"));
+            } catch {
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          reject(new Error("Network error during upload"));
+        });
+
+        xhr.addEventListener("abort", () => {
+          reject(new Error("Upload cancelled"));
+        });
+
+        xhr.open("POST", sign.uploadUrl);
+        xhr.send(fd);
+      });
+
+      const data = await uploadPromise;
+      setUploadProgress(95);
 
       // 3) Build a transformed display URL (bg removal + white + 1:1 + enhance)
       const publicId: string = data.public_id;
@@ -85,16 +142,35 @@ export function ImageUploader({
         h: 512,
         enableBgRemove: true,
       });
+
+      setUploadProgress(100);
       setPreview(displayUrl);
+      setLocalPreview(null); // Clear local preview once we have the processed one
+
+      // Small delay to show 100% before hiding progress
+      setTimeout(() => {
+        setUploadProgress(null);
+      }, 500);
 
       onUploaded({ publicId, url: displayUrl, width, height, bytes, format });
+      toast.success("Image uploaded successfully", {
+        description: "Your image has been processed and is ready to use.",
+      });
     } catch (e: any) {
       const msg = e?.message || "Upload error";
+      setLocalPreview(null);
+      setUploadProgress(null);
+      toast.error("Upload failed", {
+        description: msg,
+      });
       onError?.(msg);
     } finally {
       setBusy(false);
     }
   }
+
+  // Use processed preview if available, otherwise use local preview
+  const displayPreview = preview || localPreview;
 
   return (
     <div className={className}>
@@ -105,26 +181,10 @@ export function ImageUploader({
         onFile={handleUpload}
         disabled={busy}
         hint="JPG, PNG, WEBP • 1:1 crop with background removed automatically"
+        previewImage={displayPreview}
+        uploadProgress={uploadProgress}
+        showProgress={busy && uploadProgress !== null}
       />
-
-      {preview && (
-        <div className="mt-4 flex items-center gap-3">
-          <div className="size-16 overflow-hidden rounded-xl border border-white/10 bg-white/5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={preview}
-              alt="preview"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="text-xs text-white/70">
-            <div>Preview (transformed)</div>
-            <div className="text-white/50">
-              Stored as original with dynamic delivery
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

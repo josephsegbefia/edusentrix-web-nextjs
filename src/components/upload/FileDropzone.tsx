@@ -11,6 +11,9 @@ type Props = {
   className?: string;
   label?: string;
   hint?: string;
+  previewImage?: string | null;
+  uploadProgress?: number | null;
+  showProgress?: boolean;
 };
 
 export function FileDropzone({
@@ -21,6 +24,9 @@ export function FileDropzone({
   className,
   label,
   hint,
+  previewImage,
+  uploadProgress,
+  showProgress = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -93,21 +99,51 @@ export function FileDropzone({
       >
         <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/5 via-transparent to-transparent rounded-2xl" />
         <div className="flex items-center gap-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-white/80">
-              <path
-                fill="currentColor"
-                d="M19 15v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4h2v4h10v-4h2Zm-6-2l4-4h-3V3h-2v6H9l4 4Z"
-              />
-            </svg>
+          <div className="relative rounded-xl border border-white/10 bg-white/5 p-3 overflow-hidden flex-shrink-0">
+            {previewImage ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewImage}
+                  alt="Preview"
+                  className="w-12 h-12 object-cover rounded-lg"
+                />
+                {showProgress && uploadProgress !== null && uploadProgress < 100 && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                    <span className="text-xs font-semibold text-white">
+                      {Math.round(uploadProgress)}%
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <svg viewBox="0 0 24 24" className="w-6 h-6 text-white/80">
+                <path
+                  fill="currentColor"
+                  d="M19 15v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-4h2v4h10v-4h2Zm-6-2l4-4h-3V3h-2v6H9l4 4Z"
+                />
+              </svg>
+            )}
           </div>
           <div className="flex-1">
             <div className="text-white font-semibold">
-              Drag & drop or click to upload
+              {previewImage ? "Image uploaded" : "Drag & drop or click to upload"}
             </div>
             <div className="text-xs text-white/60 mt-1">
-              {hint ?? `Allowed: ${accept.join(", ")} · Max ${maxSizeMB}MB`}
+              {showProgress && uploadProgress !== null && uploadProgress < 100
+                ? `Uploading... ${Math.round(uploadProgress)}%`
+                : previewImage
+                ? "Click to replace image"
+                : hint ?? `Allowed: ${accept.join(", ")} · Max ${maxSizeMB}MB`}
             </div>
+            {showProgress && uploadProgress !== null && uploadProgress < 100 && (
+              <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-brand transition-all duration-300 rounded-full"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            )}
           </div>
         </div>
 

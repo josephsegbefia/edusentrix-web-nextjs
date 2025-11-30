@@ -292,7 +292,7 @@ export default function CreateStudentModal({
                         <SelectTrigger className="w-full border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
                           <SelectValue placeholder="Select sex" />
                         </SelectTrigger>
-                        <SelectContent className="z-50 border border-white/10 bg-card text-white">
+                        <SelectContent className="z-100 border border-white/10 bg-card text-white">
                           <SelectItem
                             value="male"
                             className="cursor-pointer focus:bg-white/10"

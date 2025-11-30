@@ -5,7 +5,13 @@ import { buildAvatarUrl } from "@/lib/cloudinary-url";
 
 type UseUploadFileOptions = {
   schoolId: string;
-  subjectRole: "students" | "teachers" | "school_admins" | "parents" | "staff";
+  subjectRole:
+    | "students"
+    | "teachers"
+    | "school_admins"
+    | "parents"
+    | "staff"
+    | "bursars";
 };
 
 type UploadResult = {
@@ -25,7 +31,7 @@ export function useUploadFile({ schoolId, subjectRole }: UseUploadFileOptions) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          kind: "image",
+          kind: "avatar",
           schoolId,
           subjectRole,
         }),

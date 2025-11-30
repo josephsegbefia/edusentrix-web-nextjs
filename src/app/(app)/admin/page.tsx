@@ -34,9 +34,10 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import { CreateClassModal } from "@/components/modals/CreateClassModal";
-import { CreateStudentModal } from "@/components/modals/CreateStudentModal";
+import CreateStudentModal from "@/components/modals/CreateStudentModal";
 import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
 import { format } from "date-fns/format";
+import type { CreateStudentInput } from "@/schemas/student";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -560,20 +561,21 @@ export default function SchoolAdminOverviewPage() {
     }
   }
 
-  async function handleCreateStudent(payload: {
-    firstName: string;
-    lastName: string;
-    sex?: "male" | "female";
-    dateOfBirth?: string;
-    gradeId?: string;
-    classGroupId?: string;
-  }) {
+  async function handleCreateStudent(payload: CreateStudentInput) {
     setCreatingStudent(true);
     try {
+      // Convert Date to ISO string for API
+      const apiPayload = {
+        ...payload,
+        dateOfBirth: payload.dateOfBirth
+          ? payload.dateOfBirth.toISOString().split("T")[0]
+          : undefined,
+      };
+
       const fetchPromise = fetch("/api/students/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(apiPayload),
       }).then(async (res) => {
         if (!res.ok) {
           const msg = await res.text();
@@ -758,16 +760,16 @@ export default function SchoolAdminOverviewPage() {
                     </div>
                     <div className="relative h-3 w-full overflow-hidden rounded-full bg-white/5 border border-white/10 shadow-inner">
                       {/* Background glow effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent" />
+                      <div className="absolute inset-0 bg-linear-to-r from-amber-500/10 via-amber-400/5 to-transparent" />
 
                       {/* Progress fill */}
                       {progress.pct > 0 ? (
                         <div
-                          className="relative h-full rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-300 shadow-lg shadow-amber-500/40 transition-all duration-700 ease-out"
+                          className="relative h-full rounded-full bg-linear-to-r from-amber-500 via-amber-400 to-amber-300 shadow-lg shadow-amber-500/40 transition-all duration-700 ease-out"
                           style={{ width: `${progress.pct}%` }}
                         >
                           {/* Shimmer effect */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
+                          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
 
                           {/* Glow pulse */}
                           <div className="absolute inset-0 bg-amber-400/50 rounded-full animate-pulse" />
@@ -1151,7 +1153,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Command Palette Modal */}
       {palette.open && (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => palette.setOpen(false)}
         >
           <div
@@ -1204,7 +1206,7 @@ export default function SchoolAdminOverviewPage() {
       {/* Create Academic Period (guided) – wired */}
       {showCreatePeriod && (
         <div
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => setShowCreatePeriod(false)}
         >
           <div

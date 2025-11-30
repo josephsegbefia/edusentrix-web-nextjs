@@ -56,7 +56,7 @@ export function BusyProvider({ children }: { children: React.ReactNode }) {
           <motion.div
             key="busy-overlay"
             data-busy-overlay
-            className="fixed inset-0 z-[9999] grid place-items-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-9999 grid place-items-center bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

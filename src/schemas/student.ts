@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const createStudentSchema = z
+export const CreateStudentSchema = z
   .object({
     firstName: z.string().trim().min(1, "First name is required"),
     middleName: z.string().trim().optional(),
@@ -12,11 +12,11 @@ export const createStudentSchema = z
     sex: z.enum(["male", "female"]).optional(),
     dateOfBirth: z.date().optional(), // ISO "YYYY-MM-DD"
     photoUrl: z.url().optional(), // Cloudinary URL
-    status: z.enum(["active", "inactive", "withdrawn"]).default("active"),
+    status: z.enum(["active", "inactive", "withdrawn"]),
     enrolledAt: z.string().optional(), // ISO "YYYY-MM-DD"
 
-    subjectAddIds: z.array(z.string().trim()).optional().default([]),
-    subjectRemoveIds: z.array(z.string().trim()).optional().default([]),
+    subjectAddIds: z.array(z.string().trim()),
+    subjectRemoveIds: z.array(z.string().trim()),
   })
   .refine(
     (v) => {
@@ -43,4 +43,4 @@ export const createStudentSchema = z
     }
   );
 
-export type CreateStudentInput = z.infer<typeof createStudentSchema>;
+export type CreateStudentInput = z.infer<typeof CreateStudentSchema>;

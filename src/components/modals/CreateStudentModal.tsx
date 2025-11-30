@@ -1,84 +1,675 @@
-import { useState } from "react";
+"use client";
 
-export function CreateStudentModal({
+import * as React from "react";
+import { useForm, useWatch, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CreateStudentSchema, CreateStudentInput } from "@/schemas/student";
+import { useBusyToast } from "@/hooks/useBusyToast";
+import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
+import { useClassGroupOptions } from "@/hooks/admin/useClassGroupOptions";
+import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
+import { useAuth } from "@/providers/auth-provider";
+import { ImageUploader } from "@/components/upload/ImageUploader";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+type Props = {
+  onClose: () => void;
+  onSubmit: (payload: CreateStudentInput) => Promise<void> | void;
+  isLoading?: boolean;
+};
+
+const STEPS = [
+  {
+    id: 1,
+    title: "Basic Information",
+    fields: [
+      "firstName",
+      "middleName",
+      "lastName",
+      "admissionNo",
+      "sex",
+      "dateOfBirth",
+      "enrolledAt",
+    ],
+  },
+  { id: 2, title: "Photo & Status", fields: ["photoUrl", "status"] },
+  { id: 3, title: "Grade & Class", fields: ["gradeId", "classGroupId"] },
+  {
+    id: 4,
+    title: "Subject Overrides",
+    fields: ["subjectAddIds", "subjectRemoveIds"],
+  },
+] as const;
+
+export default function CreateStudentModal({
   onClose,
   onSubmit,
   isLoading,
-}: {
-  onClose: () => void;
-  onSubmit: (data: {
-    firstName: string;
-    lastName: string;
-    gradeId: string;
-    classGroupId: string;
-  }) => void;
-  isLoading?: boolean;
-}) {
-  const [firstName, setFirst] = useState("");
-  const [lastName, setLast] = useState("");
-  const [gradeId, setGradeId] = useState("");
-  const [classGroupId, setClassGroupId] = useState("");
+}: Props) {
+  const busy = useBusyToast();
+  const { me } = useAuth();
+  const [currentStep, setCurrentStep] = React.useState(1);
+  const { data: grades = [], isLoading: loadingGrades } = useGradeOptions();
+
+  // Form setup
+  const {
+    register,
+    handleSubmit,
+    control,
+    resetField,
+    setValue,
+    trigger,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateStudentInput>({
+    resolver: zodResolver(CreateStudentSchema),
+    defaultValues: {
+      status: "active",
+      enrolledAt: new Date().toISOString().slice(0, 10),
+      subjectAddIds: [],
+      subjectRemoveIds: [],
+    },
+    mode: "onChange",
+  });
+
+  const gradeId = useWatch({ control, name: "gradeId" });
+  const subjectAddIds = useWatch({ control, name: "subjectAddIds" }) ?? [];
+  const subjectRemoveIds =
+    useWatch({ control, name: "subjectRemoveIds" }) ?? [];
+  const { data: classGroups = [], isLoading: loadingClasses } =
+    useClassGroupOptions(gradeId);
+  const { data: subjects = [], isLoading: loadingSubjects } =
+    useSubjectOptions();
+
+  // Reset classGroup when grade changes
+  React.useEffect(() => {
+    if (gradeId) {
+      resetField("classGroupId");
+    }
+  }, [gradeId, resetField]);
+
+  const currentStepData = STEPS[currentStep - 1];
+  const isFirstStep = currentStep === 1;
+  const isLastStep = currentStep === STEPS.length;
+
+  async function internalSubmit(values: CreateStudentInput) {
+    try {
+      await busy.promise(
+        Promise.resolve(
+          onSubmit({
+            ...values,
+            // ensure no overlap between add/remove (double-safety)
+            subjectRemoveIds: (values.subjectRemoveIds ?? []).filter(
+              (id) => !(values.subjectAddIds ?? []).includes(id)
+            ),
+          })
+        ),
+        {
+          loading: "Creating student…",
+          success: "Student created",
+          error: "Failed to create student",
+        }
+      );
+      onClose();
+    } catch (e: unknown) {
+      const errorMessage =
+        e instanceof Error ? e.message : "Failed to create student";
+      busy.error(errorMessage);
+    }
+  }
+
+  async function handleNext() {
+    const fields = currentStepData.fields;
+    const isValid = await trigger([...fields] as (keyof CreateStudentInput)[]);
+    if (isValid) {
+      setCurrentStep((s) => Math.min(s + 1, STEPS.length));
+    }
+  }
+
+  function handlePrevious() {
+    setCurrentStep((s) => Math.max(s - 1, 1));
+  }
+
+  if (!me?.schoolId) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
+        <div className="text-sm text-white/60">School ID not available</div>
+      </div>
+    );
+  }
 
   return (
-    <form
-      className="space-y-4"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (!firstName || !lastName || !gradeId || !classGroupId) return;
-        onSubmit({ firstName, lastName, gradeId, classGroupId });
-      }}
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-xs text-white/60 mb-1">First Name</div>
-          <input
-            value={firstName}
-            onChange={(e) => setFirst(e.target.value)}
-            className="w-full bg-transparent outline-none"
-          />
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-xs text-white/60 mb-1">Last Name</div>
-          <input
-            value={lastName}
-            onChange={(e) => setLast(e.target.value)}
-            className="w-full bg-transparent outline-none"
-          />
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-xs text-white/60 mb-1">Grade</div>
-          <input
-            value={gradeId}
-            onChange={(e) => setGradeId(e.target.value)}
-            className="w-full bg-transparent outline-none"
-          />
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-          <div className="text-xs text-white/60 mb-1">Class Group</div>
-          <input
-            value={classGroupId}
-            onChange={(e) => setClassGroupId(e.target.value)}
-            className="w-full bg-transparent outline-none"
-          />
-        </div>
+    <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
+      {/* Step Indicator */}
+      <div className="flex items-center justify-between pb-6">
+        {STEPS.map((step, index) => (
+          <React.Fragment key={step.id}>
+            <div className="flex flex-col items-center gap-2">
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
+                  currentStep > step.id
+                    ? "border-brand bg-brand text-black"
+                    : currentStep === step.id
+                    ? "border-brand bg-brand/20 text-brand"
+                    : "border-white/20 bg-white/5 text-white/40"
+                }`}
+              >
+                {currentStep > step.id ? (
+                  <Check className="h-5 w-5" />
+                ) : (
+                  <span className="text-sm font-semibold">{step.id}</span>
+                )}
+              </div>
+              <span
+                className={`text-xs ${
+                  currentStep >= step.id ? "text-white/80" : "text-white/40"
+                }`}
+              >
+                {step.title}
+              </span>
+            </div>
+            {index < STEPS.length - 1 && (
+              <div
+                className={`h-0.5 flex-1 transition-all mx-2 ${
+                  currentStep > step.id ? "bg-brand" : "bg-white/10"
+                }`}
+              />
+            )}
+          </React.Fragment>
+        ))}
       </div>
-      <div className="flex items-center justify-end gap-2">
-        <button
+
+      {/* Form Content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentStep}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+          className="space-y-6"
+        >
+          {/* Step 1: Basic Information */}
+          {currentStep === 1 && (
+            <section className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                Personal Details
+              </h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="firstName"
+                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                  >
+                    First name *
+                  </Label>
+                  <Input
+                    id="firstName"
+                    {...register("firstName")}
+                    placeholder="Ama"
+                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                  {errors.firstName && (
+                    <div className="text-xs text-rose-300">
+                      {errors.firstName.message}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="middleName"
+                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                  >
+                    Middle name
+                  </Label>
+                  <Input
+                    id="middleName"
+                    {...register("middleName")}
+                    placeholder="Akosua"
+                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="lastName"
+                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                  >
+                    Last name *
+                  </Label>
+                  <Input
+                    id="lastName"
+                    {...register("lastName")}
+                    placeholder="Mensah"
+                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                  {errors.lastName && (
+                    <div className="text-xs text-rose-300">
+                      {errors.lastName.message}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="admissionNo"
+                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                  >
+                    Admission Number
+                  </Label>
+                  <Input
+                    id="admissionNo"
+                    {...register("admissionNo")}
+                    placeholder="SCH-2025-0012"
+                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                    Sex
+                  </Label>
+                  <Controller
+                    name="sex"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        value={field.value || undefined}
+                        onValueChange={(value) => {
+                          field.onChange(value === "" ? undefined : value);
+                        }}
+                      >
+                        <SelectTrigger className="w-full border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
+                          <SelectValue placeholder="Select sex" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50 border border-white/10 bg-card text-white">
+                          <SelectItem
+                            value="male"
+                            className="cursor-pointer focus:bg-white/10"
+                          >
+                            Male
+                          </SelectItem>
+                          <SelectItem
+                            value="female"
+                            className="cursor-pointer focus:bg-white/10"
+                          >
+                            Female
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="dateOfBirth"
+                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                  >
+                    Date of Birth
+                  </Label>
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    {...register("dateOfBirth", {
+                      valueAsDate: true,
+                    })}
+                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                  {errors.dateOfBirth && (
+                    <div className="text-xs text-rose-300">
+                      {errors.dateOfBirth.message}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="enrolledAt"
+                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                  >
+                    Enrollment Date
+                  </Label>
+                  <Input
+                    id="enrolledAt"
+                    type="date"
+                    {...register("enrolledAt")}
+                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Step 2: Photo & Status */}
+          {currentStep === 2 && (
+            <section className="space-y-6">
+              <div className="space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                  Student Photo
+                </h2>
+                <ImageUploader
+                  schoolId={me.schoolId}
+                  subjectRole="students"
+                  onUploaded={(payload) => {
+                    setValue("photoUrl", payload.url, { shouldValidate: true });
+                  }}
+                  onError={(msg) => {
+                    busy.error(msg);
+                  }}
+                  className="w-full"
+                />
+                {errors.photoUrl && (
+                  <div className="text-xs text-rose-300">
+                    {errors.photoUrl.message}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                  Status
+                </h2>
+                <Controller
+                  name="status"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="grid grid-cols-3 gap-3">
+                      {(["active", "inactive", "withdrawn"] as const).map(
+                        (s) => (
+                          <label
+                            key={s}
+                            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
+                              field.value === s
+                                ? "border-brand bg-brand/20 text-brand"
+                                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              value={s}
+                              checked={field.value === s}
+                              onChange={() => field.onChange(s)}
+                              className="sr-only"
+                            />
+                            <span className="capitalize">{s}</span>
+                          </label>
+                        )
+                      )}
+                    </div>
+                  )}
+                />
+              </div>
+            </section>
+          )}
+
+          {/* Step 3: Grade & Class */}
+          {currentStep === 3 && (
+            <section className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                Academic Assignment
+              </h2>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                  Grade *
+                </Label>
+                <Controller
+                  name="gradeId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || ""}
+                      onValueChange={field.onChange}
+                      disabled={loadingGrades}
+                    >
+                      <SelectTrigger className="border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
+                        <SelectValue placeholder="Select grade" />
+                      </SelectTrigger>
+                      <SelectContent className="border border-white/10 bg-card text-white">
+                        {grades.map((g) => (
+                          <SelectItem
+                            key={g._id}
+                            value={g._id}
+                            className="cursor-pointer"
+                          >
+                            {g.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.gradeId && (
+                  <div className="text-xs text-rose-300">
+                    {errors.gradeId.message}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                  Class Group *
+                </Label>
+                <Controller
+                  name="classGroupId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || ""}
+                      onValueChange={field.onChange}
+                      disabled={!gradeId || loadingClasses}
+                    >
+                      <SelectTrigger className="border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
+                        <SelectValue
+                          placeholder={
+                            !gradeId
+                              ? "Select grade first"
+                              : loadingClasses
+                              ? "Loading classes…"
+                              : "Select class group"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="border border-white/10 bg-card text-white">
+                        {classGroups.map((c) => (
+                          <SelectItem
+                            key={c._id}
+                            value={c._id}
+                            className="cursor-pointer"
+                          >
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.classGroupId && (
+                  <div className="text-xs text-rose-300">
+                    {errors.classGroupId.message}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Step 4: Subject Overrides */}
+          {currentStep === 4 && (
+            <section className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                Subject Overrides
+              </h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                    Add Subjects
+                  </Label>
+                  <div className="max-h-64 overflow-auto rounded-lg border border-white/10 bg-white/5 p-4">
+                    {loadingSubjects ? (
+                      <div className="text-xs text-white/50 py-4 text-center">
+                        Loading subjects…
+                      </div>
+                    ) : subjects.length === 0 ? (
+                      <div className="text-xs text-white/50 py-4 text-center">
+                        No subjects available
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {subjects.map((s) => (
+                          <label
+                            key={s._id}
+                            className="flex items-center gap-3 rounded-md p-2.5 hover:bg-white/5 cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={subjectAddIds.includes(s._id)}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const current = new Set<string>(subjectAddIds);
+                                const rems = new Set<string>(subjectRemoveIds);
+                                if (checked) {
+                                  current.add(s._id);
+                                  rems.delete(s._id);
+                                } else {
+                                  current.delete(s._id);
+                                }
+                                setValue("subjectAddIds", Array.from(current), {
+                                  shouldValidate: true,
+                                });
+                                setValue("subjectRemoveIds", Array.from(rems), {
+                                  shouldValidate: true,
+                                });
+                              }}
+                              className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
+                            />
+                            <span className="text-sm text-white/80">
+                              {s.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                    Exclude Subjects
+                  </Label>
+                  <div className="max-h-64 overflow-auto rounded-lg border border-white/10 bg-white/5 p-4">
+                    {loadingSubjects ? (
+                      <div className="text-xs text-white/50 py-4 text-center">
+                        Loading subjects…
+                      </div>
+                    ) : subjects.length === 0 ? (
+                      <div className="text-xs text-white/50 py-4 text-center">
+                        No subjects available
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {subjects.map((s) => (
+                          <label
+                            key={s._id}
+                            className="flex items-center gap-3 rounded-md p-2.5 hover:bg-white/5 cursor-pointer transition-colors"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={subjectRemoveIds.includes(s._id)}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const current = new Set<string>(
+                                  subjectRemoveIds
+                                );
+                                const adds = new Set<string>(subjectAddIds);
+                                if (checked) {
+                                  current.add(s._id);
+                                  adds.delete(s._id);
+                                } else {
+                                  current.delete(s._id);
+                                }
+                                setValue(
+                                  "subjectRemoveIds",
+                                  Array.from(current),
+                                  { shouldValidate: true }
+                                );
+                                setValue("subjectAddIds", Array.from(adds), {
+                                  shouldValidate: true,
+                                });
+                              }}
+                              className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
+                            />
+                            <span className="text-sm text-white/80">
+                              {s.name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {errors.subjectRemoveIds && (
+                    <div className="text-xs text-rose-300">
+                      {errors.subjectRemoveIds.message}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between pt-6 border-t border-white/10">
+        <Button
           type="button"
-          onClick={onClose}
-          className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm"
+          variant="outline"
+          onClick={isFirstStep ? onClose : handlePrevious}
+          disabled={isSubmitting || isLoading}
+          className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
         >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={
-            isLoading || !firstName || !lastName || !gradeId || !classGroupId
-          }
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-black disabled:opacity-50"
-        >
-          {isLoading ? "Creating..." : "Create"}
-        </button>
+          <ChevronLeft className="h-4 w-4" />
+          {isFirstStep ? "Cancel" : "Previous"}
+        </Button>
+
+        <div className="flex gap-2">
+          {!isLastStep ? (
+            <Button
+              type="button"
+              onClick={handleNext}
+              disabled={isSubmitting || isLoading}
+              className="gap-2 bg-brand text-black hover:opacity-90"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              disabled={isSubmitting || isLoading}
+              className="gap-2 bg-brand text-black hover:opacity-90"
+            >
+              {isSubmitting || isLoading ? (
+                "Creating…"
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  Create Student
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     </form>
   );

@@ -18,11 +18,29 @@ const Ctx = createContext<BusyCtx | null>(null);
 export function BusyProvider({ children }: { children: React.ReactNode }) {
   const [manualCount, setManualCount] = useState(0);
 
-  // React Query global busy state
-  const fetching = useIsFetching();
+  // React Query mutations - always show overlay for mutations
   const mutating = useIsMutating();
-  const rqBusy = fetching + mutating > 0;
 
+  // Count only initial fetches (queries without cached data)
+  // Background refetches (queries with cached data) should NOT show overlay
+  const initialFetches = useIsFetching({
+    predicate: (query) => {
+      // Only count as "busy" if query is fetching AND has no cached data
+      // This distinguishes initial fetches from background refetches
+      const hasCachedData =
+        query.state.data !== undefined && query.state.data !== null;
+      // In React Query v5, use fetchStatus instead of isFetching()
+      const isFetching = query.state.fetchStatus === "fetching";
+
+      // Show overlay only for initial fetches (no cached data)
+      // Background refetches (has cached data) won't trigger overlay
+      return isFetching && !hasCachedData;
+    },
+  });
+
+  // Only show overlay for mutations, initial fetches, or manual busy states
+  // Background refetches (queries with cached data) won't trigger overlay
+  const rqBusy = initialFetches + mutating > 0;
   const isBusy = rqBusy || manualCount > 0;
 
   // Prevent background scroll while busy (overlay blocks clicks)

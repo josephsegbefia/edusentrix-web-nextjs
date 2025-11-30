@@ -1,5 +1,5 @@
 import { Schema, model, models, Types } from "mongoose";
-export type SchoolType = "Basic" | "Secondary";
+export type SchoolType = "Basic" | "SHS";
 
 export interface ISchool {
   _id: Types.ObjectId;
@@ -36,7 +36,7 @@ export interface ISchool {
 const schoolSchema = new Schema<ISchool>(
   {
     name: { type: String, required: true, trim: true },
-    type: { type: String, enum: ["Basic", "Secondary"], required: true },
+    type: { type: String, enum: ["Basic", "SHS"], required: true },
     address: String,
     email: String,
     city: String,

@@ -430,7 +430,7 @@ export default function OnboardPage() {
             <Sparkles className="size-4 text-brand" />
             <span className="text-sm font-medium text-brand">School Setup</span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-linear-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
             Welcome to EduSentrix
           </h1>
           <p className="text-lg text-muted max-w-2xl mx-auto">
@@ -798,7 +798,7 @@ export default function OnboardPage() {
                   className="space-y-8"
                 >
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+                    <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
                       Bank Details
                     </h2>
                     <p className="text-muted text-base">

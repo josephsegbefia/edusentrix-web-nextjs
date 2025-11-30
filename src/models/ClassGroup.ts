@@ -8,7 +8,6 @@ export interface IClassGroup {
   schoolId: Types.ObjectId;
   gradeId: Types.ObjectId;
   name: string; // e.g. "A", "B"
-  code?: string | null; // optional "JHS1A" etc.
   subjectIds: Types.ObjectId[]; // assigned subjects for the whole class group
   homeroomTeacherId?: Types.ObjectId | null;
   capacity?: number | null;
@@ -32,7 +31,7 @@ const classGroupSchema = new Schema<IClassGroup>(
       index: true,
     },
     name: { type: String, required: true, trim: true }, // "A"
-    code: { type: String, default: null },
+
     subjectIds: [{ type: Schema.Types.ObjectId, ref: "Subject", default: [] }],
     homeroomTeacherId: {
       type: Schema.Types.ObjectId,

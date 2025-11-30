@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(app)/admin/page.tsx
 "use client";
 
@@ -33,11 +34,12 @@ import { useAdminSSE } from "@/hooks/admin/useAdminSSE";
 import { useBusyToast } from "@/hooks/useBusyToast";
 
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
-import { CreateClassModal } from "@/components/modals/CreateClassModal";
+
 import CreateStudentModal from "@/components/modals/CreateStudentModal";
 import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
 import { format } from "date-fns/format";
 import type { CreateStudentInput } from "@/schemas/student";
+import { CreateClassGroupsModal } from "@/components/modals/CreateClassGroupsModal";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -96,7 +98,7 @@ function MetricCard({
 }: {
   label: string;
   value: string | number;
-  accent: string; // Tailwind gradient classes e.g. "from-blue-500/25 via-blue-500/10 to-transparent"
+  accent: string;
   subtitle?: string;
   trend?: Trend;
   onClick?: () => void;
@@ -174,7 +176,7 @@ function QuickAction({
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  accent: string; // e.g. "bg-blue-500/20 border-blue-500/30"
+  accent: string;
   href?: string;
   onClick?: () => void;
 }) {
@@ -201,7 +203,7 @@ function QuickAction({
   );
 }
 
-/** Minimal SVG donut (no libs) */
+/** Minimal SVG donut */
 function Donut({
   segments,
   size = 120,
@@ -240,7 +242,6 @@ function Donut({
   return (
     <div className="flex items-center gap-4">
       <svg width={size} height={size} className="shrink-0">
-        {/* base ring */}
         <circle
           r={r}
           cx={size / 2}
@@ -269,7 +270,6 @@ function Donut({
   );
 }
 
-/** Tiny Recon pill */
 function ReconPill({ count }: { count: number }) {
   if (count <= 0) {
     return (
@@ -291,7 +291,7 @@ function ReconPill({ count }: { count: number }) {
 }
 
 /* --------------------------------------------------------------------------------
-   Command Palette (⌘K / Ctrl+K)
+   Command Palette
 -------------------------------------------------------------------------------- */
 
 type CmdItem = { id: string; label: string; kbd?: string; onRun: () => void };
@@ -325,7 +325,6 @@ function useCommandPalette(items: CmdItem[]) {
 -------------------------------------------------------------------------------- */
 
 export default function SchoolAdminOverviewPage() {
-  /* NEW: metrics + SSE live updates */
   const { data: m } = useAdminMetrics();
   useAdminSSE();
 
@@ -381,9 +380,8 @@ export default function SchoolAdminOverviewPage() {
     rate: `${(m?.collections.rate ?? 0).toFixed(0)}%`,
   };
 
-  const reconUnmatched = 0; // no recon model yet
+  const reconUnmatched = 0; // placeholder
 
-  /* Overdues placeholder (no API yet) */
   const overdues = {
     "0–7d": 0,
     "8–14d": 0,
@@ -419,6 +417,38 @@ export default function SchoolAdminOverviewPage() {
     { id: 1, icon: CheckCircle2, text: "No recent activity yet", ts: "—" },
   ];
 
+  /* ---------------- NEW: Preflight for Create Class (seed grades if empty) --------------- */
+  async function openCreateClassFlow() {
+    try {
+      // Check grades (no cache)
+      const checkRes = await fetch("/api/grades", { cache: "no-store" });
+      let gradeCount = 0;
+      if (checkRes.ok) {
+        const json: any = await checkRes.json().catch(() => ({}));
+        const list = Array.isArray(json) ? json : json?.data;
+        if (Array.isArray(list)) gradeCount = list.length;
+        else if (typeof json?.total === "number") gradeCount = json.total;
+      }
+
+      if (gradeCount === 0) {
+        await busy.promise(
+          fetch("/api/admin/grades/seed", { method: "POST" }).then((r) => {
+            if (!r.ok) throw new Error("Failed to seed grades");
+          }),
+          {
+            loading: "Preparing default grades…",
+            success: "Grades ready. You can now create class groups.",
+            error: "Couldn’t prepare grades",
+          }
+        );
+      }
+
+      setShowCreateClass(true);
+    } catch (e: any) {
+      busy.error(e?.message || "Couldn’t prepare grades");
+    }
+  }
+
   const cmdItems: CmdItem[] = [
     {
       id: "search",
@@ -434,7 +464,7 @@ export default function SchoolAdminOverviewPage() {
     {
       id: "add-class",
       label: "Add Class",
-      onRun: () => setShowCreateClass(true),
+      onRun: openCreateClassFlow, // <-- use preflight
     },
     { id: "add-fee", label: "Add Fee", onRun: () => {} },
     {
@@ -462,11 +492,9 @@ export default function SchoolAdminOverviewPage() {
   const [endDateInput, setEndDateInput] = useState("");
   const [creatingPeriod, setCreatingPeriod] = useState(false);
 
-  /* Class & student create busy state */
-  const [creatingClass, setCreatingClass] = useState(false);
+  /* Student create busy state */
   const [creatingStudent, setCreatingStudent] = useState(false);
 
-  /* Donut segments */
   const donutSegments = [
     {
       label: "0–7 days",
@@ -489,7 +517,6 @@ export default function SchoolAdminOverviewPage() {
       className: "stroke-red-400/80",
     },
   ];
-
   const overdueTotal = donutSegments.reduce((s, x) => s + x.value, 0);
 
   async function handleCreatePeriod() {
@@ -505,7 +532,7 @@ export default function SchoolAdminOverviewPage() {
         body: JSON.stringify({
           yearLabel: yearLabelInput.trim(),
           term: termInput.trim(),
-          startDate: startDateInput, // API coerces to Date
+          startDate: startDateInput,
           endDate: endDateInput,
         }),
       }).then(async (res) => {
@@ -525,46 +552,16 @@ export default function SchoolAdminOverviewPage() {
       setTermInput("");
       setStartDateInput("");
       setEndDateInput("");
-      // SSE will push period.updated; no manual refetch needed
+      // SSE will push period.updated
     } catch {
-      // Error already handled by busy.promise
     } finally {
       setCreatingPeriod(false);
-    }
-  }
-
-  async function handleCreateClass(payload: { gradeId: string; name: string }) {
-    setCreatingClass(true);
-    try {
-      const fetchPromise = fetch("/api/class-groups/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }).then(async (res) => {
-        if (!res.ok) {
-          const msg = await res.text();
-          throw new Error(msg || "Failed to create class group");
-        }
-        return res;
-      });
-      await busy.promise(fetchPromise, {
-        loading: "Creating class group…",
-        success: "Class group created",
-        error: "Could not create class group",
-      });
-      setShowCreateClass(false);
-      // SSE can later emit classes.updated if you add it; for now metrics unaffected
-    } catch {
-      // Error already handled by busy.promise
-    } finally {
-      setCreatingClass(false);
     }
   }
 
   async function handleCreateStudent(payload: CreateStudentInput) {
     setCreatingStudent(true);
     try {
-      // Convert Date to ISO string for API
       const apiPayload = {
         ...payload,
         dateOfBirth: payload.dateOfBirth
@@ -589,9 +586,8 @@ export default function SchoolAdminOverviewPage() {
         error: "Could not add student",
       });
       setShowCreateStudent(false);
-      // SSE will push students.updated (already supported)
+      // SSE pushes students.updated
     } catch {
-      // Error already handled by busy.promise
     } finally {
       setCreatingStudent(false);
     }
@@ -607,8 +603,6 @@ export default function SchoolAdminOverviewPage() {
             Welcome back! Here&apos;s an overview of your school.
           </p>
         </div>
-
-        {/* Recon health pill */}
         <div className="pt-1">
           <ReconPill count={reconUnmatched} />
         </div>
@@ -686,16 +680,15 @@ export default function SchoolAdminOverviewPage() {
               description="Download a quick snapshot for management"
               icon={ClipboardList}
               accent="bg-emerald-500/20 border-emerald-500/30"
-              onClick={() => {
-                /* open later */
-              }}
+              onClick={() => {}}
             />
+            {/* preflight with seeding */}
             <QuickAction
               title="Create Class"
               description="Set up a new class or grade level"
               icon={School}
               accent="bg-purple-500/20 border-purple-500/30"
-              onClick={() => setShowCreateClass(true)}
+              onClick={openCreateClassFlow}
             />
             <QuickAction
               title="Add New Student"
@@ -707,7 +700,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        {/* Academic Period (with CTA when not set) */}
+        {/* Academic Period */}
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/20 via-amber-500/5 to-transparent"
@@ -721,7 +714,6 @@ export default function SchoolAdminOverviewPage() {
               Academic Period
             </CardTitle>
 
-            {/* Status nudge CTA */}
             {progress.label === "Not Set" && (
               <button
                 type="button"
@@ -759,19 +751,13 @@ export default function SchoolAdminOverviewPage() {
                       </span>
                     </div>
                     <div className="relative h-3 w-full overflow-hidden rounded-full bg-white/5 border border-white/10 shadow-inner">
-                      {/* Background glow effect */}
                       <div className="absolute inset-0 bg-linear-to-r from-amber-500/10 via-amber-400/5 to-transparent" />
-
-                      {/* Progress fill */}
                       {progress.pct > 0 ? (
                         <div
                           className="relative h-full rounded-full bg-linear-to-r from-amber-500 via-amber-400 to-amber-300 shadow-lg shadow-amber-500/40 transition-all duration-700 ease-out"
                           style={{ width: `${progress.pct}%` }}
                         >
-                          {/* Shimmer effect */}
                           <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
-
-                          {/* Glow pulse */}
                           <div className="absolute inset-0 bg-amber-400/50 rounded-full animate-pulse" />
                         </div>
                       ) : (
@@ -781,8 +767,6 @@ export default function SchoolAdminOverviewPage() {
                           </div>
                         </div>
                       )}
-
-                      {/* Progress indicator dot */}
                       {progress.pct > 0 && progress.pct < 100 && (
                         <div
                           className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-amber-400 shadow-lg shadow-amber-500/50 transition-all duration-700 ease-out"
@@ -821,7 +805,6 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Overdues & Risk + Collections Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Overdues & Risk (Donut) */}
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent"
@@ -852,7 +835,6 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        {/* Collections Snapshot (with Recon pill inline) */}
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
@@ -892,7 +874,6 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Attendance & Coverage + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Attendance placeholder stays premium but simple */}
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/15 via-blue-500/5 to-transparent"
@@ -922,8 +903,7 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        {/* Upcoming Events + Add Event */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
             aria-hidden="true"
@@ -963,9 +943,8 @@ export default function SchoolAdminOverviewPage() {
         </Card>
       </div>
 
-      {/* Admin Assistant (lightweight AI) + Contextual Suggestions */}
+      {/* Admin Assistant + Suggestions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Admin Assistant */}
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-400/15 via-indigo-400/5 to-transparent"
@@ -1016,7 +995,6 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        {/* Contextual suggestions */}
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-400/15 via-amber-400/5 to-transparent"
@@ -1056,7 +1034,6 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Recent Activity + Notices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/15 via-white/5 to-transparent"
@@ -1093,7 +1070,6 @@ export default function SchoolAdminOverviewPage() {
           </CardContent>
         </Card>
 
-        {/* Notices */}
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
@@ -1203,7 +1179,7 @@ export default function SchoolAdminOverviewPage() {
         </div>
       )}
 
-      {/* Create Academic Period (guided) – wired */}
+      {/* Create Academic Period (guided) */}
       {showCreatePeriod && (
         <div
           className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
@@ -1298,11 +1274,7 @@ export default function SchoolAdminOverviewPage() {
         onClose={() => setShowCreateClass(false)}
         title="Create Class Group"
       >
-        <CreateClassModal
-          onClose={() => setShowCreateClass(false)}
-          onSubmit={handleCreateClass}
-          isLoading={creatingClass}
-        />
+        <CreateClassGroupsModal onClose={() => setShowCreateClass(false)} />
       </ResponsiveModal>
 
       <ResponsiveModal

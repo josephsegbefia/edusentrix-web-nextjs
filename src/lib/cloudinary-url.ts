@@ -20,7 +20,6 @@ export function buildAvatarUrl(
 
   const width = opts?.w ?? 512;
   const height = opts?.h ?? 512;
-  const bg = opts?.enableBgRemove ?? true ? "e_background_removal" : "";
 
   const trans = [
     "c_fill",
@@ -28,7 +27,8 @@ export function buildAvatarUrl(
     "ar_1:1",
     `w_${width}`,
     `h_${height}`,
-    `s{bg}b_white`,
+    ...(opts?.enableBgRemove ?? true ? ["e_background_removal"] : []),
+    "b_white",
     "e_improve",
     "q_auto",
     "f_auto",

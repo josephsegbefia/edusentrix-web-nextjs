@@ -6,6 +6,8 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
 import { Subject, type ISubject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
+import { UserMembership } from "@/models/UserMembership";
+import { Teacher } from "@/models/Teacher";
 import mongoose from "mongoose";
 
 type Body = {
@@ -35,8 +37,11 @@ export async function POST(req: NextRequest) {
         body.homeroomClassGroupId?.trim() || undefined,
       subjectIds:
         body.subjectIds && body.subjectIds.length > 0
-          ? body.subjectIds.filter((id) => id && id.trim())
+          ? body.subjectIds
+              .map((id) => id?.trim())
+              .filter((id): id is string => !!id)
           : undefined,
+      status: body.status || "active",
     };
 
     // Validate required fields
@@ -148,7 +153,7 @@ export async function POST(req: NextRequest) {
         : new mongoose.Types.ObjectId(String(schoolId));
 
     // Create teacher user
-    const teacher = new User({
+    const teacherUser = new User({
       email: normalizedBody.email.toLowerCase().trim(),
       firstName: normalizedBody.firstName.trim(),
       lastName: normalizedBody.lastName.trim(),
@@ -158,12 +163,32 @@ export async function POST(req: NextRequest) {
       schoolId: schoolIdObj,
     });
 
-    await teacher.save();
+    await teacherUser.save();
 
     const teacherIdObj =
-      teacher._id instanceof mongoose.Types.ObjectId
-        ? teacher._id
-        : new mongoose.Types.ObjectId(String(teacher._id));
+      teacherUser._id instanceof mongoose.Types.ObjectId
+        ? teacherUser._id
+        : new mongoose.Types.ObjectId(String(teacherUser._id));
+
+    // Ensure membership entry for metrics/onboarding
+    await UserMembership.findOneAndUpdate(
+      { userId: teacherIdObj, schoolId: schoolIdObj },
+      { $addToSet: { roles: "teacher" }, $set: { status: "active" } },
+      { upsert: true }
+    );
+
+    // Persist teacher metadata (subjects + homeroom)
+    const teacherRecord = new Teacher({
+      schoolId: schoolIdObj,
+      userId: teacherIdObj,
+      subjectIds: subjectIds,
+      homeroomClassGroupId: normalizedBody.homeroomClassGroupId
+        ? new mongoose.Types.ObjectId(normalizedBody.homeroomClassGroupId)
+        : null,
+      status: normalizedBody.status || "active",
+    });
+
+    await teacherRecord.save();
 
     // Assign homeroom if provided
     if (normalizedBody.homeroomClassGroupId) {
@@ -172,22 +197,21 @@ export async function POST(req: NextRequest) {
           _id: new mongoose.Types.ObjectId(normalizedBody.homeroomClassGroupId),
           schoolId,
         },
-        { $set: { homeroomTeacherId: teacherIdObj } }
+        { $set: { homeroomTeacherId: teacherRecord._id } }
       );
     }
-
-    // TODO: Store subject assignments if Teacher model exists
-    // For now, we're storing teacher info in User model
-    // Subject assignments can be stored in a separate TeacherSubject junction table later
 
     return Response.json(
       {
         success: true,
         data: {
-          _id: String(teacher._id),
-          firstName: teacher.firstName,
-          lastName: teacher.lastName,
-          email: teacher.email,
+          _id: String(teacherRecord._id),
+          userId: String(teacherIdObj),
+          firstName: teacherUser.firstName,
+          lastName: teacherUser.lastName,
+          email: teacherUser.email,
+          subjectIds: subjectIds.map(String),
+          homeroomClassGroupId: normalizedBody.homeroomClassGroupId || null,
         },
       },
       { status: 201 }

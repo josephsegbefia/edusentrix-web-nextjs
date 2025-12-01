@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateTeacherSchema, CreateTeacherInput } from "@/schemas/teacher";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
-import { useClassGroupOptions } from "@/hooks/admin/useClassGroupOptions";
+import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
 import { useAuth } from "@/providers/auth-provider";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Input } from "@/components/ui/input";
@@ -52,8 +52,9 @@ export default function CreateTeacherModal({
   const [currentStep, setCurrentStep] = React.useState(1);
   const { data: subjects = [], isLoading: loadingSubjects } =
     useSubjectOptions();
+  const { data: grades = [] } = useGradeOptions();
   const [allClassGroups, setAllClassGroups] = React.useState<
-    Array<{ _id: string; name: string }>
+    Array<{ _id: string; name: string; gradeId?: string }>
   >([]);
   const [loadingClassGroups, setLoadingClassGroups] = React.useState(false);
 
@@ -79,10 +80,6 @@ export default function CreateTeacherModal({
   const firstName = useWatch({ control, name: "firstName" });
   const lastName = useWatch({ control, name: "lastName" });
   const subjectIds = useWatch({ control, name: "subjectIds" }) ?? [];
-  const homeroomClassGroupId = useWatch({
-    control,
-    name: "homeroomClassGroupId",
-  });
 
   // Fetch all class groups for homeroom selection
   React.useEffect(() => {
@@ -106,6 +103,10 @@ export default function CreateTeacherModal({
   const currentStepData = STEPS[currentStep - 1];
   const isFirstStep = currentStep === 1;
   const isLastStep = currentStep === STEPS.length;
+  const gradeLookup = React.useMemo(
+    () => new Map<string, string>(grades.map((g) => [g._id, g.name])),
+    [grades]
+  );
 
   async function internalSubmit(values: CreateTeacherInput) {
     try {
@@ -423,7 +424,7 @@ export default function CreateTeacherModal({
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                   Subject Assignments
                 </h2>
-                <div className="max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-4">
+                <div className="max-h-72 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-4">
                   {loadingSubjects ? (
                     <div className="text-xs text-white/50 py-4 text-center">
                       Loading subjects…
@@ -433,28 +434,42 @@ export default function CreateTeacherModal({
                       No subjects available. Please create subjects first.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {subjects.map((s) => (
-                        <label
-                          key={s._id}
-                          className="flex items-center gap-2 rounded-md p-2 border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={subjectIds.includes(s._id)}
-                            onChange={(e) => {
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {subjects.map((s) => {
+                        const isSelected = subjectIds.includes(s._id);
+                        return (
+                          <motion.button
+                            key={s._id}
+                            type="button"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
                               const set = new Set(subjectIds);
-                              if (e.target.checked) set.add(s._id);
-                              else set.delete(s._id);
+                              if (isSelected) set.delete(s._id);
+                              else set.add(s._id);
                               setValue("subjectIds", Array.from(set), {
                                 shouldValidate: true,
                               });
                             }}
-                            className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
-                          />
-                          <span className="text-sm text-white/80">{s.name}</span>
-                        </label>
-                      ))}
+                            className={`relative rounded-lg border-2 px-4 py-3 text-left transition-all ${
+                              isSelected
+                                ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
+                                : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                            }`}
+                          >
+                            {isSelected && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-brand text-black flex items-center justify-center"
+                              >
+                                <Check className="h-4 w-4" />
+                              </motion.div>
+                            )}
+                            <div className="font-semibold">{s.name}</div>
+                          </motion.button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -469,22 +484,78 @@ export default function CreateTeacherModal({
                   control={control}
                   render={({ field }) => (
                     <div className="space-y-2">
-                      <select
-                        {...field}
-                        value={field.value || ""}
-                        onChange={(e) =>
-                          field.onChange(e.target.value || undefined)
-                        }
-                        disabled={loadingClassGroups}
-                        className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <option value="">No homeroom assignment</option>
-                        {allClassGroups.map((cg) => (
-                          <option key={cg._id} value={cg._id}>
-                            {cg.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="max-h-72 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-4">
+                        {loadingClassGroups ? (
+                          <div className="text-xs text-white/50 py-4 text-center">
+                            Loading class groups…
+                          </div>
+                        ) : allClassGroups.length === 0 ? (
+                          <div className="text-xs text-white/50 py-4 text-center">
+                            No class groups available. Create one to set a homeroom.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <motion.button
+                              type="button"
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => field.onChange(undefined)}
+                              className={`relative rounded-lg border-2 px-4 py-3 text-left transition-all ${
+                                !field.value
+                                  ? "border-brand bg-brand/10 text-brand"
+                                  : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                              }`}
+                            >
+                              {!field.value && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-brand text-black flex items-center justify-center"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </motion.div>
+                              )}
+                              <div className="font-semibold">No homeroom</div>
+                              <div className="text-xs text-white/60">
+                                Skip assigning for now
+                              </div>
+                            </motion.button>
+
+                            {allClassGroups.map((cg) => {
+                              const selected = field.value === cg._id;
+                              return (
+                                <motion.button
+                                  key={cg._id}
+                                  type="button"
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={() => field.onChange(cg._id)}
+                                  className={`relative rounded-lg border-2 px-4 py-3 text-left transition-all ${
+                                    selected
+                                      ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
+                                      : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                                  }`}
+                                >
+                                  {selected && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-brand text-black flex items-center justify-center"
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </motion.div>
+                                  )}
+                                  <div className="font-semibold">{cg.name}</div>
+                                  <div className="text-xs text-white/60">
+                                    {gradeLookup.get(cg.gradeId ?? "") ||
+                                      "Grade"}
+                                  </div>
+                                </motion.button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                       <p className="text-xs text-white/50">
                         Assign this teacher as homeroom teacher for a class group
                       </p>

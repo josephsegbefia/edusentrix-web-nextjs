@@ -41,11 +41,11 @@ export function ResponsiveModal({
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: "spring", stiffness: 260, damping: 22 }}
               className={[
-                "w-full max-w-[65vw] rounded-2xl border border-white/10 bg-card/95 shadow-2xl",
+                "w-full max-w-[65vw] max-h-[90vh] rounded-2xl border border-white/10 bg-card/95 shadow-2xl flex flex-col",
                 widthClass ?? "max-w-4xl",
               ].join(" ")}
             >
-              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between flex-shrink-0">
                 <div className="text-base font-semibold">{title}</div>
                 <button
                   onClick={onClose}
@@ -54,7 +54,7 @@ export function ResponsiveModal({
                   ✕
                 </button>
               </div>
-              <div className="p-5">{children}</div>
+              <div className="p-5 overflow-y-auto flex-1 min-h-0">{children}</div>
             </motion.div>
           </div>
 
@@ -68,12 +68,12 @@ export function ResponsiveModal({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 250, damping: 28 }}
-              className="rounded-t-2xl border border-white/10 bg-card/95 shadow-2xl"
+              className="rounded-t-2xl border border-white/10 bg-card/95 shadow-2xl max-h-[90vh] flex flex-col"
             >
-              <div className="py-2">
+              <div className="py-2 flex-shrink-0">
                 <div className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
               </div>
-              <div className="px-5 pb-4">
+              <div className="px-5 pb-4 overflow-y-auto flex-1 min-h-0">
                 {title && (
                   <div className="text-base font-semibold mb-2">{title}</div>
                 )}

@@ -60,9 +60,11 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Date range management
 
 - **Class & Subject Management**
-  - Class group creation and management
-  - Subject configuration
-  - Teacher assignments
+  - Automatic grade seeding based on school type (Basic: Creche → JHS3, SHS: SHS1-3)
+  - Automatic subject creation for Basic schools (Ghana curriculum)
+  - Class group creation with flexible naming strategies (letters, numbers, custom names)
+  - Subject configuration and assignment
+  - Teacher assignments to class groups
 
 - **User Roles & Permissions**
   - Platform Admin: Manage school applications and platform settings
@@ -258,6 +260,8 @@ edusentrix-web-nextjs/
 │   │   ├── nav/                # Navigation components
 │   │   └── platform/           # Platform-specific components
 │   ├── constants/              # Application constants
+│   │   ├── grade-templates.ts  # Grade templates (Basic/SHS)
+│   │   └── ghana-basic-subjects.ts  # Ghana curriculum subjects
 │   ├── db/                     # Database utilities
 │   ├── hooks/                  # Custom React hooks
 │   ├── lib/                    # Utility libraries
@@ -366,8 +370,9 @@ The application uses Mongoose models located in `src/models/`:
 - **User**: User accounts and authentication
 - **School**: School information and settings
 - **Student**: Student records
+- **Grade**: Grade levels (automatically seeded based on school type)
 - **ClassGroup**: Class/grade groups
-- **Subject**: Subject/course definitions
+- **Subject**: Subject/course definitions (auto-created for Basic schools)
 - **AcademicPeriod**: Term and academic year periods
 - **Application**: School application submissions
 - **BankBranch**: Bank branch information

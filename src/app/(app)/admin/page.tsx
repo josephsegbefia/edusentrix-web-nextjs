@@ -631,7 +631,10 @@ export default function SchoolAdminOverviewPage() {
       });
       setShowCreateStudent(false);
       // SSE pushes students.updated
-    } catch {
+    } catch (e: unknown) {
+      // Error is already handled by busy.promise toast
+      // Re-throw so the modal can handle it (won't close on error)
+      throw e;
     } finally {
       setCreatingStudent(false);
     }

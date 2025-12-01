@@ -8,14 +8,18 @@ type Strategy =
   | { kind: "numbers"; from: number; to: number }
   | { kind: "custom"; names: string[] };
 
+type GradeConfig = {
+  gradeId: string;
+  strategy: Strategy;
+};
+
 export function useBulkCreateClassGroups() {
   const qc = useQueryClient();
   const busy = useBusyToast();
 
   return useMutation({
     mutationFn: async (payload: {
-      gradeIds: string[];
-      strategy: Strategy;
+      gradeConfigs: GradeConfig[];
       subjectIds?: string[];
       homeroomTeacherId?: string | null;
       capacity?: number | null;

@@ -13,9 +13,13 @@ type Strategy =
   | { kind: "numbers"; from: number; to: number }
   | { kind: "custom"; names: string[] };
 
-type Body = {
-  gradeIds: string[];
+type GradeConfig = {
+  gradeId: string;
   strategy: Strategy;
+};
+
+type Body = {
+  gradeConfigs: GradeConfig[];
   subjectIds?: string[];
   homeroomTeacherId?: string | null;
   capacity?: number | null;
@@ -44,12 +48,35 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const body = (await req.json()) as Body;
-    const gradeIds = (body.gradeIds ?? []).filter((id) =>
-      mongoose.isValidObjectId(id)
-    );
-    if (gradeIds.length === 0)
-      return new Response("Missing gradeIds", { status: 400 });
 
+    // Support both old format (backward compatibility) and new format
+    let gradeConfigs: GradeConfig[] = [];
+    if (body.gradeConfigs && Array.isArray(body.gradeConfigs)) {
+      // New format: per-grade configurations
+      gradeConfigs = body.gradeConfigs.filter(
+        (gc) => gc.gradeId && mongoose.isValidObjectId(gc.gradeId) && gc.strategy
+      );
+    } else {
+      // Old format: single strategy for all grades (backward compatibility)
+      const oldBody = body as any;
+      const gradeIds = (oldBody.gradeIds ?? []).filter((id: string) =>
+        mongoose.isValidObjectId(id)
+      );
+      if (gradeIds.length === 0 && gradeConfigs.length === 0)
+        return new Response("Missing gradeIds or gradeConfigs", { status: 400 });
+
+      if (oldBody.strategy) {
+        gradeConfigs = gradeIds.map((gradeId: string) => ({
+          gradeId,
+          strategy: oldBody.strategy,
+        }));
+      }
+    }
+
+    if (gradeConfigs.length === 0)
+      return new Response("No valid grade configurations", { status: 400 });
+
+    const gradeIds = gradeConfigs.map((gc) => gc.gradeId);
     const grades = await Grade.find({
       _id: { $in: gradeIds },
       schoolId,
@@ -62,9 +89,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const names = generateNames(body.strategy);
-    if (names.length === 0)
-      return new Response("No generated names", { status: 400 });
+    // Create a map for quick grade lookup
+    const gradeMap = new Map(grades.map((g) => [String(g._id), g]));
 
     // Validate subjectIds belong to this school
     let subjectIds: mongoose.Types.ObjectId[] = [];
@@ -83,12 +109,18 @@ export async function POST(req: NextRequest) {
     }
 
     const docs = [];
-    for (const g of grades) {
+    for (const config of gradeConfigs) {
+      const grade = gradeMap.get(config.gradeId);
+      if (!grade) continue;
+
+      const names = generateNames(config.strategy);
+      if (names.length === 0) continue;
+
       for (const n of names) {
         docs.push({
           schoolId,
-          gradeId: g._id,
-          name: `${g.name} ${n}`.replace(/\s+/g, " ").trim(),
+          gradeId: grade._id,
+          name: `${grade.name} ${n}`.replace(/\s+/g, " ").trim(),
           code: null,
           subjectIds,
           homeroomTeacherId: body.homeroomTeacherId ?? null,

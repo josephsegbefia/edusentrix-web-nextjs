@@ -10,18 +10,12 @@ import { useClassGroupOptions } from "@/hooks/admin/useClassGroupOptions";
 import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
 import { useAuth } from "@/providers/auth-provider";
 import { ImageUploader } from "@/components/upload/ImageUploader";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 type Props = {
   onClose: () => void;
@@ -52,6 +46,12 @@ const STEPS = [
   },
 ] as const;
 
+function getInitials(firstName?: string, lastName?: string): string {
+  const first = firstName?.charAt(0)?.toUpperCase() || "";
+  const last = lastName?.charAt(0)?.toUpperCase() || "";
+  return first + last || "?";
+}
+
 export default function CreateStudentModal({
   onClose,
   onSubmit,
@@ -70,6 +70,7 @@ export default function CreateStudentModal({
     resetField,
     setValue,
     trigger,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateStudentInput>({
     resolver: zodResolver(CreateStudentSchema),
@@ -83,11 +84,15 @@ export default function CreateStudentModal({
   });
 
   const gradeId = useWatch({ control, name: "gradeId" });
+  const classGroupId = useWatch({ control, name: "classGroupId" });
+  const photoUrl = useWatch({ control, name: "photoUrl" });
+  const firstName = useWatch({ control, name: "firstName" });
+  const lastName = useWatch({ control, name: "lastName" });
   const subjectAddIds = useWatch({ control, name: "subjectAddIds" }) ?? [];
   const subjectRemoveIds =
     useWatch({ control, name: "subjectRemoveIds" }) ?? [];
   const { data: classGroups = [], isLoading: loadingClasses } =
-    useClassGroupOptions(gradeId);
+    useClassGroupOptions(gradeId || "");
   const { data: subjects = [], isLoading: loadingSubjects } =
     useSubjectOptions();
 
@@ -104,27 +109,19 @@ export default function CreateStudentModal({
 
   async function internalSubmit(values: CreateStudentInput) {
     try {
-      await busy.promise(
-        Promise.resolve(
-          onSubmit({
-            ...values,
-            // ensure no overlap between add/remove (double-safety)
-            subjectRemoveIds: (values.subjectRemoveIds ?? []).filter(
-              (id) => !(values.subjectAddIds ?? []).includes(id)
-            ),
-          })
+      await onSubmit({
+        ...values,
+        // ensure no overlap between add/remove (double-safety)
+        subjectRemoveIds: (values.subjectRemoveIds ?? []).filter(
+          (id) => !(values.subjectAddIds ?? []).includes(id)
         ),
-        {
-          loading: "Creating student…",
-          success: "Student created",
-          error: "Failed to create student",
-        }
-      );
+      });
+      // Only close modal on success - parent handles errors and toasts
       onClose();
     } catch (e: unknown) {
-      const errorMessage =
-        e instanceof Error ? e.message : "Failed to create student";
-      busy.error(errorMessage);
+      // Error is already handled by handleCreateStudent's busy.promise toast
+      // Don't close modal on error, let user see the error and retry
+      console.error("Student creation error:", e);
     }
   }
 
@@ -140,6 +137,10 @@ export default function CreateStudentModal({
     setCurrentStep((s) => Math.max(s - 1, 1));
   }
 
+  function handleRemovePhoto() {
+    setValue("photoUrl", undefined, { shouldValidate: true });
+  }
+
   if (!me?.schoolId) {
     return (
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
@@ -147,6 +148,8 @@ export default function CreateStudentModal({
       </div>
     );
   }
+
+  const initials = getInitials(firstName, lastName);
 
   return (
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
@@ -283,30 +286,27 @@ export default function CreateStudentModal({
                     name="sex"
                     control={control}
                     render={({ field }) => (
-                      <Select
-                        value={field.value || undefined}
-                        onValueChange={(value) => {
-                          field.onChange(value === "" ? undefined : value);
-                        }}
-                      >
-                        <SelectTrigger className="w-full border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
-                          <SelectValue placeholder="Select sex" />
-                        </SelectTrigger>
-                        <SelectContent className="z-100 border border-white/10 bg-card text-white">
-                          <SelectItem
-                            value="male"
-                            className="cursor-pointer focus:bg-white/10"
+                      <div className="grid grid-cols-2 gap-3">
+                        {(["male", "female"] as const).map((s) => (
+                          <label
+                            key={s}
+                            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
+                              field.value === s
+                                ? "border-brand bg-brand/20 text-brand"
+                                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                            }`}
                           >
-                            Male
-                          </SelectItem>
-                          <SelectItem
-                            value="female"
-                            className="cursor-pointer focus:bg-white/10"
-                          >
-                            Female
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                            <input
+                              type="radio"
+                              value={s}
+                              checked={field.value === s}
+                              onChange={() => field.onChange(s)}
+                              className="sr-only"
+                            />
+                            <span className="capitalize">{s}</span>
+                          </label>
+                        ))}
+                      </div>
                     )}
                   />
                 </div>
@@ -359,19 +359,83 @@ export default function CreateStudentModal({
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                   Student Photo
                 </h2>
-                <ImageUploader
-                  schoolId={me.schoolId}
-                  subjectRole="students"
-                  onUploaded={(payload) => {
-                    setValue("photoUrl", payload.url, { shouldValidate: true });
-                  }}
-                  onError={(msg) => {
-                    busy.error(msg);
-                  }}
-                  className="w-full"
-                />
+
+                {/* Large Avatar Preview */}
+                <div className="flex flex-col items-center gap-4">
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="relative"
+                  >
+                    <div className="relative w-36 h-36 rounded-full border-4 border-white/10 bg-white/5 overflow-hidden shadow-lg">
+                      <AnimatePresence mode="wait">
+                        {photoUrl ? (
+                          <motion.div
+                            key="photo"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.2 }}
+                            className="relative w-full h-full"
+                          >
+                            <Image
+                              src={photoUrl}
+                              alt="Student photo"
+                              fill
+                              className="object-cover rounded-full"
+                              sizes="144px"
+                              priority
+                            />
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="initials"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand/20 to-brand/10"
+                          >
+                            <span className="text-4xl font-bold text-brand">
+                              {initials}
+                            </span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    {photoUrl && (
+                      <motion.button
+                        type="button"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        onClick={handleRemovePhoto}
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-rose-500 hover:bg-rose-600 border-2 border-white/10 flex items-center justify-center text-white shadow-lg transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </motion.button>
+                    )}
+                  </motion.div>
+
+                  {/* Upload Dropzone */}
+                  <div className="w-full">
+                    <ImageUploader
+                      schoolId={me.schoolId}
+                      subjectRole="students"
+                      onUploaded={(payload) => {
+                        setValue("photoUrl", payload.url, {
+                          shouldValidate: true,
+                        });
+                      }}
+                      onError={(msg) => {
+                        busy.error(msg);
+                      }}
+                      className="w-full"
+                      label=""
+                    />
+                  </div>
+                </div>
                 {errors.photoUrl && (
-                  <div className="text-xs text-rose-300">
+                  <div className="text-xs text-rose-300 text-center">
                     {errors.photoUrl.message}
                   </div>
                 )}
@@ -388,8 +452,10 @@ export default function CreateStudentModal({
                     <div className="grid grid-cols-3 gap-3">
                       {(["active", "inactive", "withdrawn"] as const).map(
                         (s) => (
-                          <label
+                          <motion.label
                             key={s}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
                               field.value === s
                                 ? "border-brand bg-brand/20 text-brand"
@@ -404,7 +470,7 @@ export default function CreateStudentModal({
                               className="sr-only"
                             />
                             <span className="capitalize">{s}</span>
-                          </label>
+                          </motion.label>
                         )
                       )}
                     </div>
@@ -416,40 +482,59 @@ export default function CreateStudentModal({
 
           {/* Step 3: Grade & Class */}
           {currentStep === 3 && (
-            <section className="space-y-4">
+            <section className="space-y-6">
               <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                 Academic Assignment
               </h2>
-              <div className="space-y-2">
+
+              {/* Grade Selection - Card Grid */}
+              <div className="space-y-3">
                 <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                  Grade *
+                  Select Grade *
                 </Label>
-                <Controller
-                  name="gradeId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value || ""}
-                      onValueChange={field.onChange}
-                      disabled={loadingGrades}
-                    >
-                      <SelectTrigger className="border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
-                        <SelectValue placeholder="Select grade" />
-                      </SelectTrigger>
-                      <SelectContent className="border border-white/10 bg-card text-white">
-                        {grades.map((g) => (
-                          <SelectItem
-                            key={g._id}
-                            value={g._id}
-                            className="cursor-pointer"
+                {loadingGrades ? (
+                  <div className="text-sm text-white/50 py-8 text-center">
+                    Loading grades...
+                  </div>
+                ) : grades.length === 0 ? (
+                  <div className="text-sm text-white/50 py-8 text-center">
+                    No grades available. Please create grades first.
+                  </div>
+                ) : (
+                  <Controller
+                    name="gradeId"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {grades.map((grade) => (
+                          <motion.button
+                            key={grade._id}
+                            type="button"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => field.onChange(grade._id)}
+                            className={`relative rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all text-left ${
+                              field.value === grade._id
+                                ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
+                                : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                            }`}
                           >
-                            {g.name}
-                          </SelectItem>
+                            {field.value === grade._id && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-brand text-black flex items-center justify-center"
+                              >
+                                <Check className="h-4 w-4" />
+                              </motion.div>
+                            )}
+                            <span>{grade.name}</span>
+                          </motion.button>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
+                      </div>
+                    )}
+                  />
+                )}
                 {errors.gradeId && (
                   <div className="text-xs text-rose-300">
                     {errors.gradeId.message}
@@ -457,50 +542,76 @@ export default function CreateStudentModal({
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                  Class Group *
-                </Label>
-                <Controller
-                  name="classGroupId"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value || ""}
-                      onValueChange={field.onChange}
-                      disabled={!gradeId || loadingClasses}
-                    >
-                      <SelectTrigger className="border border-white/10 bg-white/5 text-left text-white focus:border-brand focus:ring-1 focus:ring-brand">
-                        <SelectValue
-                          placeholder={
-                            !gradeId
-                              ? "Select grade first"
-                              : loadingClasses
-                              ? "Loading classes…"
-                              : "Select class group"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="border border-white/10 bg-card text-white">
-                        {classGroups.map((c) => (
-                          <SelectItem
-                            key={c._id}
-                            value={c._id}
-                            className="cursor-pointer"
-                          >
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.classGroupId && (
-                  <div className="text-xs text-rose-300">
-                    {errors.classGroupId.message}
-                  </div>
+              {/* Class Group Selection - Card Grid */}
+              <AnimatePresence mode="wait">
+                {gradeId && (
+                  <motion.div
+                    key={gradeId}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
+                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                      Select Class Group *
+                    </Label>
+                    {loadingClasses ? (
+                      <div className="text-sm text-white/50 py-8 text-center">
+                        Loading classes...
+                      </div>
+                    ) : classGroups.length === 0 ? (
+                      <div className="text-sm text-white/50 py-8 text-center border border-white/10 bg-white/5 rounded-lg p-4">
+                        No class groups available for this grade. Please create
+                        class groups first.
+                      </div>
+                    ) : (
+                      <Controller
+                        name="classGroupId"
+                        control={control}
+                        render={({ field }) => (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {classGroups.map((cg) => (
+                              <motion.button
+                                key={cg._id}
+                                type="button"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => field.onChange(cg._id)}
+                                className={`relative rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all text-left ${
+                                  field.value === cg._id
+                                    ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
+                                    : "border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10"
+                                }`}
+                              >
+                                {field.value === cg._id && (
+                                  <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-brand text-black flex items-center justify-center"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </motion.div>
+                                )}
+                                <div className="flex flex-col">
+                                  <span className="font-semibold">
+                                    {cg.name}
+                                  </span>
+                                </div>
+                              </motion.button>
+                            ))}
+                          </div>
+                        )}
+                      />
+                    )}
+                    {errors.classGroupId && (
+                      <div className="text-xs text-rose-300">
+                        {errors.classGroupId.message}
+                      </div>
+                    )}
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
             </section>
           )}
 

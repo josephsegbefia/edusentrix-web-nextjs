@@ -32,15 +32,21 @@ import {
 import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
 import { useAdminSSE } from "@/hooks/admin/useAdminSSE";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
 
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 
 import CreateStudentModal from "@/components/modals/CreateStudentModal";
+import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
 import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
 import { format } from "date-fns/format";
+import { toast as sonnerToast } from "sonner";
 import type { CreateStudentInput } from "@/schemas/student";
+import type { CreateTeacherInput } from "@/schemas/teacher";
 import { CreateClassGroupsModal } from "@/components/modals/CreateClassGroupsModal";
 import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
+import { ShimmerHighlight } from "@/components/onboarding/ShimmerHighlight";
+import { OnboardingProgressIndicator } from "@/components/onboarding/OnboardingProgressIndicator";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -173,6 +179,8 @@ function QuickAction({
   accent,
   href,
   onClick,
+  disabled = false,
+  highlighted = false,
 }: {
   title: string;
   description: string;
@@ -180,9 +188,22 @@ function QuickAction({
   accent: string;
   href?: string;
   onClick?: () => void;
+  disabled?: boolean;
+  highlighted?: boolean;
 }) {
   const Inner = (
-    <div className="group w-full text-left px-4 py-3.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200">
+    <div
+      className={`
+        group w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200
+        ${
+          disabled
+            ? "border-white/5 bg-white/5 opacity-40 cursor-not-allowed"
+            : highlighted
+            ? "border-white/20 bg-white/10"
+            : "border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20"
+        }
+      `}
+    >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${accent}`}>
           <Icon className="h-4 w-4 text-white/80" />
@@ -191,10 +212,23 @@ function QuickAction({
           <div className="font-semibold text-white mb-1">{title}</div>
           <div className="text-xs text-white/60">{description}</div>
         </div>
-        <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+        {!disabled && (
+          <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+        )}
       </div>
     </div>
   );
+
+  if (disabled) {
+    return (
+      <div
+        className="w-full cursor-not-allowed"
+        title="Complete previous steps first"
+      >
+        {Inner}
+      </div>
+    );
+  }
 
   if (href) return <Link href={href}>{Inner}</Link>;
   return (
@@ -521,12 +555,16 @@ export default function SchoolAdminOverviewPage() {
   ];
   const palette = useCommandPalette(cmdItems);
 
+  /* Onboarding progress */
+  const onboarding = useOnboardingProgress();
+
   /* Quick action modal state */
   const [showReminder, setShowReminder] = useState<null | "email" | "sms">(
     null
   );
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showCreateStudent, setShowCreateStudent] = useState(false);
+  const [showCreateTeacher, setShowCreateTeacher] = useState(false);
 
   /* Academic period modal state */
   const [showCreatePeriod, setShowCreatePeriod] = useState(false);
@@ -538,6 +576,7 @@ export default function SchoolAdminOverviewPage() {
 
   /* Student create busy state */
   const [creatingStudent, setCreatingStudent] = useState(false);
+  const [creatingTeacher, setCreatingTeacher] = useState(false);
 
   const donutSegments = [
     {
@@ -603,6 +642,49 @@ export default function SchoolAdminOverviewPage() {
     }
   }
 
+  async function handleCreateTeacher(payload: CreateTeacherInput) {
+    setCreatingTeacher(true);
+    try {
+      const fetchPromise = fetch("/api/admin/teachers/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(async (res) => {
+        if (!res.ok) {
+          let errorMsg = "Failed to add teacher";
+          try {
+            const errorData = await res.json();
+            errorMsg = errorData.error || errorMsg;
+            if (errorData.details) {
+              const details = Object.entries(errorData.details)
+                .filter(([, missing]) => missing)
+                .map(([field]) => field)
+                .join(", ");
+              if (details) {
+                errorMsg += `: Missing ${details}`;
+              }
+            }
+          } catch {
+            const text = await res.text();
+            errorMsg = text || errorMsg;
+          }
+          throw new Error(errorMsg);
+        }
+        return res;
+      });
+      await busy.promise(fetchPromise, {
+        loading: "Adding teacher…",
+        success: "Teacher added successfully",
+        error: "Could not add teacher",
+      });
+      setShowCreateTeacher(false);
+    } catch (e: unknown) {
+      throw e;
+    } finally {
+      setCreatingTeacher(false);
+    }
+  }
+
   async function handleCreateStudent(payload: CreateStudentInput) {
     setCreatingStudent(true);
     try {
@@ -640,6 +722,51 @@ export default function SchoolAdminOverviewPage() {
     }
   }
 
+  // Persistent onboarding toast notifications
+  const [toastId, setToastId] = React.useState<string | number | null>(null);
+  React.useEffect(() => {
+    // Dismiss previous toast if exists
+    if (toastId !== null) {
+      sonnerToast.dismiss(toastId);
+    }
+
+    let newToastId: string | number | null = null;
+    if (onboarding.step === "academic_period") {
+      newToastId = busy.toast(
+        "Welcome! Start by creating your academic period",
+        {
+          description: "This sets up your school's term and academic year.",
+          duration: Infinity, // Persistent until action taken
+        }
+      );
+    } else if (onboarding.step === "class_groups") {
+      newToastId = busy.toast("Great! Now create your first class group", {
+        description: "Set up classes for your grades to organize students.",
+        duration: Infinity,
+      });
+    } else if (onboarding.step === "teachers") {
+      newToastId = busy.toast("Excellent! Add your first teacher", {
+        description: "Assign subjects and homeroom classes to teachers.",
+        duration: Infinity,
+      });
+    } else if (onboarding.step === "students") {
+      newToastId = busy.toast("Almost there! Add your first student", {
+        description: "Enroll students and assign them to classes.",
+        duration: Infinity,
+      });
+    }
+
+    setToastId(newToastId);
+
+    // Cleanup on unmount
+    return () => {
+      if (newToastId !== null) {
+        sonnerToast.dismiss(newToastId);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onboarding.step]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -654,6 +781,14 @@ export default function SchoolAdminOverviewPage() {
           <ReconPill count={reconUnmatched} />
         </div>
       </div>
+
+      {/* Onboarding Progress Indicator */}
+      {onboarding.step !== "complete" && (
+        <OnboardingProgressIndicator
+          currentStep={onboarding.step}
+          progressPercentage={onboarding.progressPercentage}
+        />
+      )}
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -714,6 +849,7 @@ export default function SchoolAdminOverviewPage() {
               icon={Mail}
               accent="bg-blue-500/20 border-blue-500/30"
               onClick={() => setShowReminder("email")}
+              disabled={!onboarding.isActionEnabled("other")}
             />
             <QuickAction
               title="Draft Fee Reminder (SMS)"
@@ -721,6 +857,7 @@ export default function SchoolAdminOverviewPage() {
               icon={MessageSquare}
               accent="bg-cyan-500/20 border-cyan-500/30"
               onClick={() => setShowReminder("sms")}
+              disabled={!onboarding.isActionEnabled("other")}
             />
             <QuickAction
               title="Generate Simple Report"
@@ -728,22 +865,72 @@ export default function SchoolAdminOverviewPage() {
               icon={ClipboardList}
               accent="bg-emerald-500/20 border-emerald-500/30"
               onClick={() => {}}
+              disabled={!onboarding.isActionEnabled("other")}
             />
             {/* preflight with seeding */}
-            <QuickAction
-              title="Create Class"
-              description="Set up a new class or grade level"
-              icon={School}
-              accent="bg-purple-500/20 border-purple-500/30"
-              onClick={openCreateClassFlow}
-            />
-            <QuickAction
-              title="Add New Student"
-              description="Enroll a new student to your school"
-              icon={UserPlus}
-              accent="bg-fuchsia-500/20 border-fuchsia-500/30"
-              onClick={() => setShowCreateStudent(true)}
-            />
+            {onboarding.nextAction === "create_class_group" ? (
+              <ShimmerHighlight enabled={true}>
+                <QuickAction
+                  title="Create Class"
+                  description="Set up a new class or grade level"
+                  icon={School}
+                  accent="bg-purple-500/20 border-purple-500/30"
+                  onClick={openCreateClassFlow}
+                  highlighted={true}
+                />
+              </ShimmerHighlight>
+            ) : (
+              <QuickAction
+                title="Create Class"
+                description="Set up a new class or grade level"
+                icon={School}
+                accent="bg-purple-500/20 border-purple-500/30"
+                onClick={openCreateClassFlow}
+                disabled={!onboarding.isActionEnabled("create_class_group")}
+              />
+            )}
+            {onboarding.nextAction === "add_teacher" ? (
+              <ShimmerHighlight enabled={true}>
+                <QuickAction
+                  title="Add Teacher"
+                  description="Add a new teacher and assign subjects"
+                  icon={Users}
+                  accent="bg-orange-500/20 border-orange-500/30"
+                  onClick={() => setShowCreateTeacher(true)}
+                  highlighted={true}
+                />
+              </ShimmerHighlight>
+            ) : (
+              <QuickAction
+                title="Add Teacher"
+                description="Add a new teacher and assign subjects"
+                icon={Users}
+                accent="bg-orange-500/20 border-orange-500/30"
+                onClick={() => setShowCreateTeacher(true)}
+                disabled={!onboarding.isActionEnabled("add_teacher")}
+              />
+            )}
+            {onboarding.nextAction === "add_student" ? (
+              <ShimmerHighlight enabled={true}>
+                <QuickAction
+                  title="Add New Student"
+                  description="Enroll a new student to your school"
+                  icon={UserPlus}
+                  accent="bg-fuchsia-500/20 border-fuchsia-500/30"
+                  onClick={() => setShowCreateStudent(true)}
+                  highlighted={true}
+                />
+              </ShimmerHighlight>
+            ) : (
+              <QuickAction
+                title="Add New Student"
+                description="Enroll a new student to your school"
+                icon={UserPlus}
+                accent="bg-fuchsia-500/20 border-fuchsia-500/30"
+                onClick={() => setShowCreateStudent(true)}
+                disabled={!onboarding.isActionEnabled("add_student")}
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -762,13 +949,27 @@ export default function SchoolAdminOverviewPage() {
             </CardTitle>
 
             {progress.label === "Not Set" && (
-              <button
-                type="button"
-                onClick={() => setShowCreatePeriod(true)}
-                className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:opacity-90"
-              >
-                Create period
-              </button>
+              <>
+                {onboarding.nextAction === "academic_period" ? (
+                  <ShimmerHighlight enabled={true}>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePeriod(true)}
+                      className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:opacity-90"
+                    >
+                      Create period
+                    </button>
+                  </ShimmerHighlight>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowCreatePeriod(true)}
+                    className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:opacity-90"
+                  >
+                    Create period
+                  </button>
+                )}
+              </>
             )}
           </CardHeader>
 
@@ -864,12 +1065,18 @@ export default function SchoolAdminOverviewPage() {
               </div>
               Overdues &amp; Risk
             </CardTitle>
-            <Link
-              href="/admin/overdue-report"
-              className="text-sm text-brand hover:opacity-80"
-            >
-              Overdue report →
-            </Link>
+            {onboarding.step === "complete" ? (
+              <Link
+                href="/admin/overdue-report"
+                className="text-sm text-brand hover:opacity-80"
+              >
+                Overdue report →
+              </Link>
+            ) : (
+              <span className="text-sm text-white/40 cursor-not-allowed">
+                Overdue report →
+              </span>
+            )}
           </CardHeader>
           <CardContent className="relative z-10">
             {overdueTotal > 0 ? (
@@ -1333,6 +1540,18 @@ export default function SchoolAdminOverviewPage() {
           onClose={() => setShowCreateStudent(false)}
           onSubmit={handleCreateStudent}
           isLoading={creatingStudent}
+        />
+      </ResponsiveModal>
+
+      <ResponsiveModal
+        open={showCreateTeacher}
+        onClose={() => setShowCreateTeacher(false)}
+        title="Add New Teacher"
+      >
+        <CreateTeacherModal
+          onClose={() => setShowCreateTeacher(false)}
+          onSubmit={handleCreateTeacher}
+          isLoading={creatingTeacher}
         />
       </ResponsiveModal>
     </div>

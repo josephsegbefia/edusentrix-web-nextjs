@@ -69,25 +69,33 @@ export function useOnboardingProgress(): OnboardingProgress {
   }
 
   const isActionEnabled = (action: string): boolean => {
-    // Academic period button is always enabled (it's the first step)
-    if (action === "academic_period") return true;
-
-    // Class groups enabled after academic period
-    if (action === "create_class_group") return hasAcademicPeriod;
-
-    // Teachers enabled after class groups
-    if (action === "add_teacher") return hasAcademicPeriod && hasClassGroups;
-
-    // Students enabled after teachers
-    if (action === "add_student")
-      return hasAcademicPeriod && hasClassGroups && hasTeachers;
-
-    // All other actions enabled only after onboarding is complete
-    if (action === "other") {
-      return step === "complete";
+    // If onboarding is complete, enable everything
+    if (step === "complete") {
+      return true;
     }
 
-    if (step === "complete") return true;
+    // Academic period button is always enabled (it's the first step)
+    if (action === "academic_period") {
+      return nextAction === "academic_period";
+    }
+
+    // Only enable actions that match the current nextAction
+    if (action === "create_class_group") {
+      return nextAction === "create_class_group";
+    }
+
+    if (action === "add_teacher") {
+      return nextAction === "add_teacher";
+    }
+
+    if (action === "add_student") {
+      return nextAction === "add_student";
+    }
+
+    // All other actions disabled until onboarding is complete
+    if (action === "other") {
+      return false;
+    }
 
     return false;
   };

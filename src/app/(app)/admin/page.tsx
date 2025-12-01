@@ -964,7 +964,9 @@ export default function SchoolAdminOverviewPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreatePeriod(true)}
-                    className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:opacity-90"
+                    disabled={true}
+                    className="rounded-lg border border-amber-500/10 bg-amber-500/5 px-3 py-1.5 text-xs font-medium text-amber-300/40 hover:opacity-90 opacity-40 cursor-not-allowed"
+                    title="Complete previous steps first"
                   >
                     Create period
                   </button>
@@ -1169,14 +1171,26 @@ export default function SchoolAdminOverviewPage() {
               </div>
               Upcoming Events
             </CardTitle>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1.5 text-xs text-fuchsia-200 hover:opacity-90"
-              onClick={() => {}}
-            >
-              <PlusCircle className="h-3.5 w-3.5" />
-              Add event
-            </button>
+            {onboarding.step === "complete" ? (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1.5 text-xs text-fuchsia-200 hover:opacity-90"
+                onClick={() => {}}
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                Add event
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={true}
+                className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/10 bg-fuchsia-500/5 px-3 py-1.5 text-xs text-fuchsia-200/40 hover:opacity-90 opacity-40 cursor-not-allowed"
+                title="Complete onboarding first"
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                Add event
+              </button>
+            )}
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {upcomingEvents.map((e) => (

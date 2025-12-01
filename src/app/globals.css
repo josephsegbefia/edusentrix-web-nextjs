@@ -20,6 +20,147 @@
   --color-danger: #ef4444; /* errors */
 }
 
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Docs Prose Styles */
+.prose {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: white;
+  font-weight: 600;
+  margin-top: 2em;
+  margin-bottom: 1em;
+  scroll-margin-top: 4rem;
+}
+
+.prose h1 {
+  font-size: 2.25em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5em;
+}
+
+.prose h2 {
+  font-size: 1.75em;
+}
+
+.prose h3 {
+  font-size: 1.5em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.prose p {
+  margin-bottom: 1.25em;
+  line-height: 1.75;
+}
+
+.prose ul,
+.prose ol {
+  margin-bottom: 1.25em;
+  padding-left: 1.5em;
+}
+
+.prose li {
+  margin-bottom: 0.5em;
+}
+
+.prose code {
+  background: rgba(255, 255, 255, 0.1);
+  color: #0ea5e9;
+  padding: 0.125em 0.375em;
+  border-radius: 0.25em;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.prose pre {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5em;
+  padding: 1em;
+  overflow-x: auto;
+  margin-bottom: 1.5em;
+}
+
+.prose pre code {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0;
+}
+
+.prose blockquote {
+  border-left: 4px solid rgba(14, 165, 233, 0.5);
+  padding-left: 1em;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  margin: 1.5em 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0 0.5em 0.5em 0;
+}
+
+.prose a {
+  color: #0ea5e9;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose a:hover {
+  color: rgba(14, 165, 233, 0.8);
+}
+
+.prose strong {
+  font-weight: 600;
+  color: white;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+}
+
+.prose th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.75em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prose td {
+  padding: 0.75em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 2em 0;
+}
+
 /* =======================================
    shadcn-style CSS vars (for components)
    NOTE: Many shadcn components use classes

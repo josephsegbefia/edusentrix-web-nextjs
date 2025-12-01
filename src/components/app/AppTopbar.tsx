@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CurrentAppUser } from "@/lib/auth/get-current-user";
 import { useClerk } from "@clerk/nextjs";
 
-import { PanelsTopLeft } from "lucide-react";
+import { PanelsTopLeft, BookOpen } from "lucide-react";
 import { premiumTopLink } from "@/components/ui/premium";
 import { AppTopbarUserMenu } from "./AppTopbarUserMenu";
 
@@ -27,13 +27,14 @@ export default function AppTopbar({ user }: { user: CurrentAppUser }) {
           <Link href="/platform" className="font-semibold text-neutral-100">
             EduSentrix
           </Link>
-          {/* Example top links if/when you add them */}
+          {/* Navigation links */}
           <nav className="ml-6 hidden md:flex items-center gap-1">
-            <Link href="/dashboard" className={premiumTopLink}>
-              Dashboard
-            </Link>
-            <Link href="/reports" className={premiumTopLink}>
-              Reports
+            <Link
+              href="/docs"
+              className={`${premiumTopLink} flex items-center gap-2`}
+            >
+              <BookOpen className="h-4 w-4" />
+              Documentation & Help
             </Link>
           </nav>
         </div>

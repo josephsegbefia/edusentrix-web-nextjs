@@ -50,6 +50,16 @@ export function useToast() {
           : undefined,
     });
 
+  const warning = (title: string, opts?: Options) =>
+    baseToast.warning(title, {
+      description: opts?.description,
+      duration: opts?.duration ?? 5000,
+      action:
+        opts?.actionLabel && opts?.onAction
+          ? { label: opts.actionLabel, onClick: opts.onAction }
+          : undefined,
+    });
+
   // Helper for async flows
   const promise = <T>(
     p: Promise<T>,
@@ -61,5 +71,5 @@ export function useToast() {
       error: labels.error,
     });
 
-  return { toast, success, error, info, promise };
+  return { toast, success, error, info, warning, promise };
 }

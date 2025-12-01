@@ -3,6 +3,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { AppProviders } from "@/providers/app-providers";
 import { ClerkProvider } from "@clerk/nextjs";
+import { NetworkHealthWatcher } from "@/components/system/NetworkHealthWatcher";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className={inter.variable}>
         <body>
+          <NetworkHealthWatcher />
           <ToastProvider />
           <AppProviders>{children}</AppProviders>
         </body>

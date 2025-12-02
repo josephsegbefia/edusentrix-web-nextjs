@@ -3,38 +3,30 @@
 import * as React from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CreateTeacherSchema, CreateTeacherInput } from "@/schemas/teacher";
+import {
+  CreateTeacherSchema,
+  type CreateTeacherInput,
+} from "@/schemas/teacher";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
-import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/providers/auth-provider";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Check, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
 type Props = {
   onClose: () => void;
-  onSubmit: (payload: CreateTeacherInput) => Promise<void> | void;
+  onSubmit: (payload: CreateTeacherInput) => Promise<void>;
   isLoading?: boolean;
 };
 
-const STEPS = [
-  {
-    id: 1,
-    title: "Basic Information",
-    fields: ["firstName", "lastName", "email", "phone"],
-  },
-  { id: 2, title: "Photo & Status", fields: ["photoUrl", "status"] },
-  {
-    id: 3,
-    title: "Assignments",
-    fields: ["subjectIds", "homeroomClassGroupId"],
-  },
-] as const;
+type SubjectLite = { _id: string; name: string };
+type ClassGroupLite = { _id: string; name: string; gradeLabel?: string };
 
 function getInitials(firstName?: string, lastName?: string): string {
   const first = firstName?.charAt(0)?.toUpperCase() || "";
@@ -48,105 +40,161 @@ export default function CreateTeacherModal({
   isLoading,
 }: Props) {
   const busy = useBusyToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   const { me } = useAuth();
   const [currentStep, setCurrentStep] = React.useState(1);
-  const { data: subjects = [], isLoading: loadingSubjects } =
-    useSubjectOptions();
-  const { data: grades = [] } = useGradeOptions();
-  const [allClassGroups, setAllClassGroups] = React.useState<
-    Array<{ _id: string; name: string; gradeId?: string }>
-  >([]);
-  const [loadingClassGroups, setLoadingClassGroups] = React.useState(false);
 
-  // Form setup
   const {
     register,
     handleSubmit,
     control,
-    setValue,
     trigger,
-    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreateTeacherInput>({
     resolver: zodResolver(CreateTeacherSchema),
     defaultValues: {
-      status: "active",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      photoUrl: undefined,
       subjectIds: [],
+      homeroomClassGroupId: undefined,
+      status: "active",
     },
-    mode: "onChange",
+    mode: "onBlur",
+    shouldUnregister: false,
   });
 
-  const photoUrl = useWatch({ control, name: "photoUrl" });
   const firstName = useWatch({ control, name: "firstName" });
   const lastName = useWatch({ control, name: "lastName" });
+  const photoUrl = useWatch({ control, name: "photoUrl" });
   const subjectIds = useWatch({ control, name: "subjectIds" }) ?? [];
 
-  // Fetch all class groups for homeroom selection
-  React.useEffect(() => {
-    if (currentStep === 3 && me?.schoolId) {
-      setLoadingClassGroups(true);
-      fetch("/api/admin/class-groups?active=1")
-        .then((res) => res.json())
-        .then((json) => {
-          const groups = Array.isArray(json) ? json : json?.data || [];
-          setAllClassGroups(groups);
-        })
-        .catch(() => {
-          setAllClassGroups([]);
-        })
-        .finally(() => {
-          setLoadingClassGroups(false);
-        });
-    }
-  }, [currentStep, me?.schoolId]);
-
-  const currentStepData = STEPS[currentStep - 1];
   const isFirstStep = currentStep === 1;
-  const isLastStep = currentStep === STEPS.length;
-  const gradeLookup = React.useMemo(
-    () => new Map<string, string>(grades.map((g) => [g._id, g.name])),
-    [grades]
-  );
+  const isLastStep = currentStep === 3;
 
-  async function internalSubmit(values: CreateTeacherInput) {
-    try {
-      // Clean up the payload - remove empty strings and undefined values
-      const cleanedPayload: CreateTeacherInput = {
-        firstName: values.firstName.trim(),
-        lastName: values.lastName.trim(),
-        email: values.email.trim(),
-        phone: values.phone?.trim() || undefined,
-        photoUrl: values.photoUrl?.trim() || undefined,
-        status: values.status || "active",
-        subjectIds:
-          values.subjectIds && values.subjectIds.length > 0
-            ? values.subjectIds
-            : [],
-        homeroomClassGroupId:
-          values.homeroomClassGroupId?.trim() || undefined,
-      };
+  // ------- Debounced searches -------
+  const [qClass, setQClass] = React.useState("");
+  const dqClass = useDebouncedValue(qClass, 350);
+  const [classResults, setClassResults] = React.useState<ClassGroupLite[]>([]);
+  const [classLoading, setClassLoading] = React.useState(false);
 
-      await onSubmit(cleanedPayload);
-      onClose();
-    } catch (e: unknown) {
-      console.error("Teacher creation error:", e);
-    }
-  }
+  const [qSubj, setQSubj] = React.useState("");
+  const dqSubj = useDebouncedValue(qSubj, 350);
+  const [subjectResults, setSubjectResults] = React.useState<SubjectLite[]>([]);
+  const [subjectsLoading, setSubjectsLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (dqClass.trim().length < 1) {
+        setClassResults([]);
+        return;
+      }
+      setClassLoading(true);
+      try {
+        const res = await fetch(
+          `/api/admin/class-groups/search?q=${encodeURIComponent(
+            dqClass
+          )}&limit=12`,
+          { cache: "no-store" }
+        );
+        const json = await res.json();
+        if (alive && json?.success) setClassResults(json.data || []);
+      } catch {
+      } finally {
+        if (alive) setClassLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [dqClass]);
+
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (dqSubj.trim().length < 1) {
+        setSubjectResults([]);
+        return;
+      }
+      setSubjectsLoading(true);
+      try {
+        const res = await fetch(
+          `/api/admin/subjects/search?q=${encodeURIComponent(dqSubj)}&limit=12`,
+          { cache: "no-store" }
+        );
+        const json = await res.json();
+        if (alive && json?.success) setSubjectResults(json.data || []);
+      } catch {
+      } finally {
+        if (alive) setSubjectsLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [dqSubj]);
+
+  const toggleSubject = (id: string) => {
+    const current = new Set(subjectIds);
+    if (current.has(id)) current.delete(id);
+    else current.add(id);
+    setValue("subjectIds", Array.from(current), { shouldValidate: true });
+  };
 
   async function handleNext() {
-    const fields = currentStepData.fields;
-    const isValid = await trigger([...fields] as (keyof CreateTeacherInput)[]);
-    if (isValid) {
-      setCurrentStep((s) => Math.min(s + 1, STEPS.length));
+    if (currentStep === 1) {
+      const ok = await trigger(["firstName", "lastName", "email", "phone"]);
+      if (!ok) return;
     }
+    if (currentStep === 2) {
+      const ok = await trigger(["photoUrl", "status"]);
+      if (!ok) return;
+    }
+    setCurrentStep((s) => Math.min(3, s + 1));
   }
 
   function handlePrevious() {
-    setCurrentStep((s) => Math.max(s - 1, 1));
+    setCurrentStep((s) => Math.max(1, s - 1));
   }
 
   function handleRemovePhoto() {
     setValue("photoUrl", undefined, { shouldValidate: true });
+  }
+
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isLastStep) {
+      handleSubmit(internalSubmit)(e);
+    } else {
+      void handleNext();
+    }
+  };
+
+  async function internalSubmit(values: CreateTeacherInput) {
+    const payload: CreateTeacherInput = {
+      ...values,
+      subjectIds: (values.subjectIds || []).filter(Boolean),
+      homeroomClassGroupId: values.homeroomClassGroupId || undefined,
+      status: values.status ?? "active",
+    };
+    try {
+      await onSubmit(payload);
+      toastSuccess("Teacher created", {
+        description:
+          "We've sent an invite email so they can set a password and onboard.",
+      });
+      onClose();
+    } catch (e: unknown) {
+      const errorMessage =
+        e instanceof Error ? e.message : "Please check inputs and try again.";
+      toastError("Could not add teacher", {
+        description: errorMessage,
+      });
+    }
   }
 
   if (!me?.schoolId) {
@@ -160,44 +208,31 @@ export default function CreateTeacherModal({
   const initials = getInitials(firstName, lastName);
 
   return (
-    <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
-      {/* Step Indicator */}
+    <form
+      onSubmit={handleFormSubmit}
+      onKeyDown={(e) => {
+        if (!isLastStep && e.key === "Enter") {
+          e.preventDefault();
+          void handleNext();
+        }
+      }}
+      className="space-y-8"
+    >
+      {/* Step Indicator - Simple dots like CreateTeacherModal */}
       <div className="flex items-center justify-between pb-6">
-        {STEPS.map((step, index) => (
-          <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center gap-2">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
-                  currentStep > step.id
-                    ? "border-brand bg-brand text-black"
-                    : currentStep === step.id
-                    ? "border-brand bg-brand/20 text-brand"
-                    : "border-white/20 bg-white/5 text-white/40"
-                }`}
-              >
-                {currentStep > step.id ? (
-                  <Check className="h-5 w-5" />
-                ) : (
-                  <span className="text-sm font-semibold">{step.id}</span>
-                )}
-              </div>
-              <span
-                className={`text-xs ${
-                  currentStep >= step.id ? "text-white/80" : "text-white/40"
-                }`}
-              >
-                {step.title}
-              </span>
-            </div>
-            {index < STEPS.length - 1 && (
-              <div
-                className={`h-0.5 flex-1 transition-all mx-2 ${
-                  currentStep > step.id ? "bg-brand" : "bg-white/10"
-                }`}
-              />
-            )}
-          </React.Fragment>
-        ))}
+        <div className="text-sm text-white/70">
+          Step <span className="font-semibold">{currentStep}</span> of 3
+        </div>
+        <div className="flex gap-1">
+          {[1, 2, 3].map((i) => (
+            <span
+              key={i}
+              className={`h-1.5 w-8 rounded-full transition-all ${
+                i <= currentStep ? "bg-brand" : "bg-white/20"
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Form Content */}
@@ -338,7 +373,7 @@ export default function CreateTeacherModal({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand/20 to-brand/10"
+                            className="w-full h-full flex items-center justify-center bg-linear-to-br from-brand/20 to-brand/10"
                           >
                             <span className="text-4xl font-bold text-brand">
                               {initials}
@@ -378,6 +413,11 @@ export default function CreateTeacherModal({
                     />
                   </div>
                 </div>
+                {errors.photoUrl && (
+                  <div className="text-xs text-rose-300 text-center">
+                    {errors.photoUrl.message}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -424,18 +464,33 @@ export default function CreateTeacherModal({
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                   Subject Assignments
                 </h2>
+
+                {/* Subject Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                  <Input
+                    type="text"
+                    placeholder="Search subjects..."
+                    value={qSubj}
+                    onChange={(e) => setQSubj(e.target.value)}
+                    className="pl-10 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </div>
+
                 <div className="max-h-72 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-4">
-                  {loadingSubjects ? (
+                  {subjectsLoading ? (
                     <div className="text-xs text-white/50 py-4 text-center">
                       Loading subjects…
                     </div>
-                  ) : subjects.length === 0 ? (
+                  ) : subjectResults.length === 0 ? (
                     <div className="text-xs text-white/50 py-4 text-center">
-                      No subjects available. Please create subjects first.
+                      {qSubj.trim()
+                        ? "No subjects found matching your search"
+                        : "No subjects available. Please create subjects first."}
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {subjects.map((s) => {
+                      {subjectResults.map((s) => {
                         const isSelected = subjectIds.includes(s._id);
                         return (
                           <motion.button
@@ -443,14 +498,7 @@ export default function CreateTeacherModal({
                             type="button"
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            onClick={() => {
-                              const set = new Set(subjectIds);
-                              if (isSelected) set.delete(s._id);
-                              else set.add(s._id);
-                              setValue("subjectIds", Array.from(set), {
-                                shouldValidate: true,
-                              });
-                            }}
+                            onClick={() => toggleSubject(s._id)}
                             className={`relative rounded-lg border-2 px-4 py-3 text-left transition-all ${
                               isSelected
                                 ? "border-brand bg-brand/20 text-brand shadow-lg shadow-brand/20"
@@ -473,25 +521,45 @@ export default function CreateTeacherModal({
                     </div>
                   )}
                 </div>
+                {errors.subjectIds && (
+                  <div className="text-xs text-rose-300">
+                    {errors.subjectIds.message}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                   Homeroom Assignment (Optional)
                 </h2>
+
+                {/* Class Group Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                  <Input
+                    type="text"
+                    placeholder="Search class groups..."
+                    value={qClass}
+                    onChange={(e) => setQClass(e.target.value)}
+                    className="pl-10 border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </div>
+
                 <Controller
                   name="homeroomClassGroupId"
                   control={control}
                   render={({ field }) => (
                     <div className="space-y-2">
                       <div className="max-h-72 overflow-y-auto rounded-lg border border-white/10 bg-white/5 p-4">
-                        {loadingClassGroups ? (
+                        {classLoading ? (
                           <div className="text-xs text-white/50 py-4 text-center">
                             Loading class groups…
                           </div>
-                        ) : allClassGroups.length === 0 ? (
+                        ) : classResults.length === 0 ? (
                           <div className="text-xs text-white/50 py-4 text-center">
-                            No class groups available. Create one to set a homeroom.
+                            {qClass.trim()
+                              ? "No class groups found matching your search"
+                              : "No class groups available. Create one to set a homeroom."}
                           </div>
                         ) : (
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -521,7 +589,7 @@ export default function CreateTeacherModal({
                               </div>
                             </motion.button>
 
-                            {allClassGroups.map((cg) => {
+                            {classResults.map((cg) => {
                               const selected = field.value === cg._id;
                               return (
                                 <motion.button
@@ -546,10 +614,11 @@ export default function CreateTeacherModal({
                                     </motion.div>
                                   )}
                                   <div className="font-semibold">{cg.name}</div>
-                                  <div className="text-xs text-white/60">
-                                    {gradeLookup.get(cg.gradeId ?? "") ||
-                                      "Grade"}
-                                  </div>
+                                  {cg.gradeLabel && (
+                                    <div className="text-xs text-white/60">
+                                      {cg.gradeLabel}
+                                    </div>
+                                  )}
                                 </motion.button>
                               );
                             })}
@@ -557,7 +626,8 @@ export default function CreateTeacherModal({
                         )}
                       </div>
                       <p className="text-xs text-white/50">
-                        Assign this teacher as homeroom teacher for a class group
+                        Assign this teacher as homeroom teacher for a class
+                        group
                       </p>
                     </div>
                   )}

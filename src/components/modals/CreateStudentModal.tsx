@@ -153,43 +153,21 @@ export default function CreateStudentModal({
 
   return (
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
-      {/* Step Indicator */}
+      {/* Step Indicator - Simple dots like CreateTeacherModal */}
       <div className="flex items-center justify-between pb-6">
-        {STEPS.map((step, index) => (
-          <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center gap-2">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
-                  currentStep > step.id
-                    ? "border-brand bg-brand text-black"
-                    : currentStep === step.id
-                    ? "border-brand bg-brand/20 text-brand"
-                    : "border-white/20 bg-white/5 text-white/40"
-                }`}
-              >
-                {currentStep > step.id ? (
-                  <Check className="h-5 w-5" />
-                ) : (
-                  <span className="text-sm font-semibold">{step.id}</span>
-                )}
-              </div>
-              <span
-                className={`text-xs ${
-                  currentStep >= step.id ? "text-white/80" : "text-white/40"
-                }`}
-              >
-                {step.title}
-              </span>
-            </div>
-            {index < STEPS.length - 1 && (
-              <div
-                className={`h-0.5 flex-1 transition-all mx-2 ${
-                  currentStep > step.id ? "bg-brand" : "bg-white/10"
-                }`}
-              />
-            )}
-          </React.Fragment>
-        ))}
+        <div className="text-sm text-white/70">
+          Step <span className="font-semibold">{currentStep}</span> of {STEPS.length}
+        </div>
+        <div className="flex gap-1">
+          {STEPS.map((_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 w-8 rounded-full transition-all ${
+                i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Form Content */}

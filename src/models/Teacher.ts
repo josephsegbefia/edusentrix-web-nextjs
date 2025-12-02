@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/models/Teacher.ts
 import { Schema, model, models, Types } from "mongoose";
 
@@ -62,4 +61,5 @@ teacherSchema.pre("save", async function (next) {
   }
 });
 
-export const Teacher = models.Teacher || model<ITeacher>("Teacher", teacherSchema);
+export const Teacher =
+  models.Teacher || model<ITeacher>("Teacher", teacherSchema);

@@ -645,6 +645,9 @@ export default function SchoolAdminOverviewPage() {
   async function handleCreateTeacher(payload: CreateTeacherInput) {
     setCreatingTeacher(true);
     try {
+      // Log payload for debugging
+      console.log("Creating teacher with payload:", payload);
+
       const fetchPromise = fetch("/api/admin/teachers/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -655,6 +658,11 @@ export default function SchoolAdminOverviewPage() {
           try {
             const errorData = await res.json();
             errorMsg = errorData.error || errorMsg;
+            console.error("Teacher creation API error:", {
+              status: res.status,
+              error: errorData,
+              payload,
+            });
             if (errorData.details) {
               const details = Object.entries(errorData.details)
                 .filter(([, missing]) => missing)
@@ -667,6 +675,11 @@ export default function SchoolAdminOverviewPage() {
           } catch {
             const text = await res.text();
             errorMsg = text || errorMsg;
+            console.error("Teacher creation error (non-JSON):", {
+              status: res.status,
+              text,
+              payload,
+            });
           }
           throw new Error(errorMsg);
         }

@@ -16,6 +16,7 @@ import {
   School,
   UserCog,
   Mail,
+  CheckSquare,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -78,6 +79,11 @@ const nav = [
     label: "Settings",
     href: "/admin/settings",
     icon: Settings,
+  },
+  {
+    label: "Task Tracker",
+    href: "/admin/tasks",
+    icon: CheckSquare,
   },
 ];
 

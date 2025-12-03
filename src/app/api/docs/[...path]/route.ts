@@ -22,7 +22,12 @@ export async function GET(
       return new NextResponse("Invalid file type", { status: 400 });
     }
 
-    const filePath = join(process.cwd(), "content", "docs", pathString);
+    // Support both docs and tasks directories
+    const isTaskFile = pathString.startsWith("tasks/");
+    const baseDir = isTaskFile ? "tasks" : "docs";
+    const relativePath = isTaskFile ? pathString.replace("tasks/", "") : pathString;
+
+    const filePath = join(process.cwd(), "content", baseDir, relativePath);
 
     try {
       const content = await readFile(filePath, "utf-8");

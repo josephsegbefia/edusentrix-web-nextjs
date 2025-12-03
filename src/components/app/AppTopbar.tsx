@@ -7,6 +7,7 @@ import { useClerk } from "@clerk/nextjs";
 import { PanelsTopLeft, BookOpen } from "lucide-react";
 import { premiumTopLink } from "@/components/ui/premium";
 import { AppTopbarUserMenu } from "./AppTopbarUserMenu";
+import { NetworkIndicator } from "@/components/system/NetworkIndicator";
 
 export default function AppTopbar({ user }: { user: CurrentAppUser }) {
   const { signOut } = useClerk();
@@ -39,11 +40,14 @@ export default function AppTopbar({ user }: { user: CurrentAppUser }) {
           </nav>
         </div>
 
-        <AppTopbarUserMenu
-          user={user}
-          initial={initial}
-          onSignOut={onSignOut}
-        />
+        <div className="flex items-center gap-2">
+          <NetworkIndicator />
+          <AppTopbarUserMenu
+            user={user}
+            initial={initial}
+            onSignOut={onSignOut}
+          />
+        </div>
       </div>
     </header>
   );

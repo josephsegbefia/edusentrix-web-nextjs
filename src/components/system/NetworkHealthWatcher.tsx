@@ -5,133 +5,73 @@ import { useEffect, useRef } from "react";
 import { useNetworkHealth, NetworkQuality } from "@/hooks/useNetworkHealth";
 import { useToast } from "@/hooks/useToast";
 
-// rank for comparing improvements/degradations
-const rank: Record<NetworkQuality, number> = {
-  offline: 0,
-  poor: 1,
-  degraded: 2,
-  good: 3,
-};
-
 export function NetworkHealthWatcher() {
-  const { info, success, error, warning } = useToast();
-  const { quality, online, effectiveType, downlink, probeRtt } =
-    useNetworkHealth(20000);
+  const { success, error, warning } = useToast();
+  const { quality, online, effectiveType, probeRtt } = useNetworkHealth(20000);
   const lastShown = useRef<NetworkQuality | null>(null);
   const lastAt = useRef<number>(0);
 
   useEffect(() => {
     const now = Date.now();
+    const COOLDOWN_MS = 180000; // 3 minutes cooldown for repeated states
 
-    // Avoid spamming identical state within 30s
-    if (lastShown.current === quality && now - lastAt.current < 30000) return;
+    // Avoid spamming identical state within cooldown period
+    if (lastShown.current === quality && now - lastAt.current < COOLDOWN_MS) {
+      return;
+    }
 
-    const fmt = (v?: number) =>
-      typeof v === "number" ? Math.round(v).toString() : "—";
-
+    // CRITICAL TRANSITIONS ONLY:
+    // 1. Offline → Online (or any online state)
     if (!online || quality === "offline") {
-      error(
-        "You're offline",
-        {
+      // Only show if we weren't already offline
+      if (lastShown.current !== "offline") {
+        error("You're offline", {
           description:
             "No internet connection. Some features won't work until you reconnect.",
-        }
-      );
-      lastShown.current = "offline";
+        });
+        lastShown.current = "offline";
+        lastAt.current = now;
+      }
+      return;
+    }
+
+    // 2. Online → Good (restoration from offline/poor)
+    if (quality === "good" && lastShown.current && lastShown.current !== "good") {
+      // Only show if coming from offline or poor (not from degraded)
+      if (lastShown.current === "offline" || lastShown.current === "poor") {
+        success("Connection restored", {
+          description: `Back online with good quality${
+            effectiveType ? ` (${effectiveType})` : ""
+          }.`,
+        });
+        lastShown.current = "good";
+        lastAt.current = now;
+      }
+      return;
+    }
+
+    // 3. Good → Poor (critical degradation)
+    if (quality === "poor" && lastShown.current === "good") {
+      warning("Poor connection", {
+        description: `Very slow network. ${
+          effectiveType ? `(${effectiveType}) ` : ""
+        }${
+          typeof probeRtt === "number" ? `RTT ${Math.round(probeRtt)}ms.` : ""
+        } Some actions may fail.`,
+      });
+      lastShown.current = "poor";
       lastAt.current = now;
       return;
     }
 
-    // Improvements/restorations
-    if (lastShown.current && rank[quality] > rank[lastShown.current]) {
-      if (quality === "good") {
-        success(
-          "Connection restored",
-          {
-            description: `Back online with good quality${
-              effectiveType ? ` (${effectiveType})` : ""
-            }.`,
-          }
-        );
-      } else {
-        // improved but not yet "good"
-        info(
-          "Connection improved",
-          {
-            description: `Quality is now ${quality}. ${
-              effectiveType ? `Network: ${effectiveType}. ` : ""
-            }${
-              typeof downlink === "number"
-                ? `Downlink: ${downlink.toFixed(1)}Mbps. `
-                : ""
-            }${
-              typeof probeRtt === "number"
-                ? `RTT: ${Math.round(probeRtt)}ms.`
-                : ""
-            }`,
-          }
-        );
-      }
+    // Silently track state changes for degraded and other transitions
+    // (no toasts, but update lastShown for future comparisons)
+    if (lastShown.current !== quality) {
       lastShown.current = quality;
-      lastAt.current = now;
-      return;
+      // Only update timestamp if we showed a toast, otherwise keep old timestamp
+      // to allow showing toast if state persists and then changes
     }
-
-    // Degradations
-    if (!lastShown.current || rank[quality] < rank[lastShown.current]) {
-      if (quality === "poor") {
-        warning(
-          "Poor connection",
-          {
-            description: `Very slow network. ${effectiveType ? `(${effectiveType}) ` : ""}${
-              typeof probeRtt === "number" ? `RTT ${Math.round(probeRtt)}ms.` : ""
-            } Some actions may fail.`,
-          }
-        );
-      } else if (quality === "degraded") {
-        info(
-          "Degraded connection",
-          {
-            description: `${effectiveType ? `Network: ${effectiveType}. ` : ""}${
-              typeof downlink === "number"
-                ? `Downlink: ${downlink.toFixed(1)}Mbps. `
-                : ""
-            }${typeof probeRtt === "number" ? `RTT: ${fmt(probeRtt)}ms.` : ""}`,
-          }
-        );
-      } else if (quality === "good") {
-        // First mount scenario: silently accept "good" unless coming from worse (handled above)
-        // Show nothing to avoid noise.
-      }
-      lastShown.current = quality;
-      lastAt.current = now;
-      return;
-    }
-
-    // Same band but after 30s – refresh subtle info toast (for long-standing poor state)
-    if (
-      now - lastAt.current >= 60000 &&
-      (quality === "poor" || quality === "degraded")
-    ) {
-      if (quality === "poor") {
-        warning(
-          "Still poor connection",
-          {
-            description: "We'll keep retrying in the background.",
-          }
-        );
-      } else {
-        info(
-          "Connection still degraded",
-          {
-            description: "Performance may be impacted.",
-          }
-        );
-      }
-      lastShown.current = quality;
-      lastAt.current = now;
-    }
-  }, [info, success, error, warning, quality, online, effectiveType, downlink, probeRtt]);
+  }, [success, error, warning, quality, online, effectiveType, probeRtt]);
 
   return null; // Headless watcher
 }

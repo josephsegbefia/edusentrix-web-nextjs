@@ -15,6 +15,7 @@ import {
   Settings,
   School,
   UserCog,
+  Mail,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -37,6 +38,11 @@ const nav = [
     label: "Teachers",
     href: "/admin/teachers",
     icon: UserCog,
+  },
+  {
+    label: "Invitations",
+    href: "/admin/invitations",
+    icon: Mail,
   },
   {
     label: "Classes",

@@ -1,0 +1,93 @@
+import { NextRequest } from "next/server";
+import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { connectToDatabase } from "@/db/connectToDatabase";
+import { Invitation } from "@/models/Invitation";
+import mongoose from "mongoose";
+
+export async function GET(req: NextRequest) {
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status") as
+      | "pending"
+      | "accepted"
+      | "expired"
+      | "revoked"
+      | "failed"
+      | null;
+    const role = searchParams.get("role") as
+      | "teacher"
+      | "staff"
+      | "school_admin"
+      | null;
+
+    const filter: Record<string, unknown> = {
+      schoolId: new mongoose.Types.ObjectId(schoolId),
+    };
+
+    if (status) {
+      filter.status = status;
+    }
+
+    if (role) {
+      filter.role = role;
+    }
+
+    const invitations = await Invitation.find(filter)
+      .sort({ sentAt: -1 })
+      .populate("invitedBy", "firstName lastName email")
+      .lean();
+
+    // Convert to CSV
+    const headers = [
+      "Email",
+      "Role",
+      "Status",
+      "Sent Date",
+      "Expires Date",
+      "Accepted Date",
+      "Resend Count",
+      "Invited By",
+    ];
+
+    const rows = invitations.map((inv) => {
+      const invitedBy = inv.invitedBy
+        ? `${(inv.invitedBy as any).firstName || ""} ${
+            (inv.invitedBy as any).lastName || ""
+          }`.trim() || (inv.invitedBy as any).email
+        : "—";
+
+      return [
+        inv.email,
+        inv.role,
+        inv.status,
+        new Date(inv.sentAt).toLocaleDateString(),
+        new Date(inv.expiresAt).toLocaleDateString(),
+        inv.acceptedAt ? new Date(inv.acceptedAt).toLocaleDateString() : "—",
+        String(inv.resendCount),
+        invitedBy,
+      ];
+    });
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    return new Response(csv, {
+      headers: {
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="invitations-${new Date().toISOString().split("T")[0]}.csv"`,
+      },
+    });
+  } catch (e: unknown) {
+    console.error("Failed to export invitations:", e);
+    const message =
+      e instanceof Error ? e.message : "Failed to export invitations";
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}

@@ -33,6 +33,7 @@ import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
 import { useAdminSSE } from "@/hooks/admin/useAdminSSE";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
+import { useInvitationStats } from "@/hooks/admin/useInvitations";
 
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 
@@ -47,6 +48,7 @@ import { CreateClassGroupsModal } from "@/components/modals/CreateClassGroupsMod
 import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
 import { ShimmerHighlight } from "@/components/onboarding/ShimmerHighlight";
 import { OnboardingProgressIndicator } from "@/components/onboarding/OnboardingProgressIndicator";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -448,10 +450,6 @@ export default function SchoolAdminOverviewPage() {
     },
   ];
 
-  const auditFeed = [
-    { id: 1, icon: CheckCircle2, text: "No recent activity yet", ts: "—" },
-  ];
-
   /* ---------------- NEW: Preflight for Create Class (seed grades if empty) --------------- */
   async function openCreateClassFlow() {
     try {
@@ -557,6 +555,9 @@ export default function SchoolAdminOverviewPage() {
 
   /* Onboarding progress */
   const onboarding = useOnboardingProgress();
+
+  /* Invitation stats */
+  const { data: invitationStats } = useInvitationStats();
 
   /* Quick action modal state */
   const [showReminder, setShowReminder] = useState<null | "email" | "sms">(
@@ -737,10 +738,21 @@ export default function SchoolAdminOverviewPage() {
 
   // Persistent onboarding toast notifications
   const [toastId, setToastId] = React.useState<string | number | null>(null);
+
   React.useEffect(() => {
+    // Don't show toasts until data has loaded
+    if (onboarding.isLoading) {
+      return;
+    }
+
     // Dismiss previous toast if exists
     if (toastId !== null) {
       sonnerToast.dismiss(toastId);
+    }
+
+    // Only show toast if onboarding is not complete
+    if (onboarding.step === "complete") {
+      return;
     }
 
     let newToastId: string | number | null = null;
@@ -778,7 +790,7 @@ export default function SchoolAdminOverviewPage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboarding.step]);
+  }, [onboarding.step, onboarding.isLoading]);
 
   return (
     <div className="space-y-6">
@@ -796,7 +808,7 @@ export default function SchoolAdminOverviewPage() {
       </div>
 
       {/* Onboarding Progress Indicator */}
-      {onboarding.step !== "complete" && (
+      {!onboarding.isLoading && onboarding.step !== "complete" && (
         <OnboardingProgressIndicator
           currentStep={onboarding.step}
           progressPercentage={onboarding.progressPercentage}
@@ -838,6 +850,108 @@ export default function SchoolAdminOverviewPage() {
           icon={DollarSign}
         />
       </div>
+
+      {/* Enhanced Quick Stats */}
+      {invitationStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <div
+              className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/15 via-violet-500/5 to-transparent"
+              aria-hidden="true"
+            />
+            <CardContent className="relative z-10 p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-violet-500/20 border border-violet-500/30">
+                  <Mail className="h-4 w-4 text-violet-300" />
+                </div>
+                <div className="text-xs text-white/60 uppercase tracking-wider">
+                  Pending Invitations
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-amber-300">
+                {invitationStats.pending}
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                {invitationStats.total} total sent
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <div
+              className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
+              aria-hidden="true"
+            />
+            <CardContent className="relative z-10 p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                </div>
+                <div className="text-xs text-white/60 uppercase tracking-wider">
+                  Acceptance Rate
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-emerald-300">
+                {invitationStats.total > 0
+                  ? `${Math.round(
+                      (invitationStats.accepted / invitationStats.total) * 100
+                    )}%`
+                  : "—"}
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                {invitationStats.accepted} accepted
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <div
+              className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-500/15 via-orange-500/5 to-transparent"
+              aria-hidden="true"
+            />
+            <CardContent className="relative z-10 p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30">
+                  <Users className="h-4 w-4 text-orange-300" />
+                </div>
+                <div className="text-xs text-white/60 uppercase tracking-wider">
+                  Student/Teacher Ratio
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-white">
+                {teachers > 0 && students > 0
+                  ? `1:${Math.round(students / teachers)}`
+                  : "—"}
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                Students per teacher
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <div
+              className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
+              aria-hidden="true"
+            />
+            <CardContent className="relative z-10 p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30">
+                  <School className="h-4 w-4 text-cyan-300" />
+                </div>
+                <div className="text-xs text-white/60 uppercase tracking-wider">
+                  Class Groups
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-white">
+                {onboarding.hasClassGroups ? "Active" : "—"}
+              </div>
+              <div className="text-xs text-white/50 mt-1">
+                {onboarding.hasClassGroups
+                  ? "Classes configured"
+                  : "Setup required"}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Primary row: Quick Actions + Academic Period */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1141,6 +1255,54 @@ export default function SchoolAdminOverviewPage() {
         </Card>
       </div>
 
+      {/* Pending Invitations Card */}
+      {invitationStats && invitationStats.pending > 0 && (
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/15 via-violet-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-violet-500/20 border border-violet-500/30">
+                <Mail className="h-4 w-4 text-violet-300" />
+              </div>
+              Pending Invitations
+            </CardTitle>
+            <Link
+              href="/admin/invitations"
+              className="text-sm text-brand hover:opacity-80"
+            >
+              View all →
+            </Link>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex-1">
+                <div className="text-xs text-white/60 mb-1">Pending</div>
+                <div className="text-2xl font-bold text-amber-300">
+                  {invitationStats.pending}
+                </div>
+                <div className="text-xs text-white/50 mt-1">
+                  {invitationStats.pending === 1
+                    ? "invitation awaiting response"
+                    : "invitations awaiting response"}
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex-1">
+                <div className="text-xs text-white/60 mb-1">Total Sent</div>
+                <div className="text-2xl font-bold text-white">
+                  {invitationStats.total}
+                </div>
+                <div className="text-xs text-white/50 mt-1">
+                  {invitationStats.accepted} accepted
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Attendance & Coverage + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
@@ -1224,8 +1386,10 @@ export default function SchoolAdminOverviewPage() {
         </Card>
       </div>
 
-      {/* Admin Assistant + Suggestions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Activity Feed + Admin Assistant + Suggestions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ActivityFeed limit={8} />
+
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-400/15 via-indigo-400/5 to-transparent"
@@ -1315,41 +1479,7 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Recent Activity + Notices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/15 via-white/5 to-transparent"
-            aria-hidden="true"
-          />
-          <CardHeader className="relative z-10">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-white/15 border border-white/20">
-                <CheckCircle2 className="h-4 w-4 text-white/70" />
-              </div>
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="relative z-10 space-y-3">
-            {auditFeed.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
-                >
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <Icon className="h-4 w-4 text-white/70" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-white/80">{item.text}</div>
-                    <div className="text-xs text-white/50 mt-0.5">
-                      {item.ts}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+        <ActivityFeed limit={8} />
 
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div

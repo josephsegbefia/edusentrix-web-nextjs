@@ -17,13 +17,14 @@ export type OnboardingProgress = {
   isActionEnabled: (action: string) => boolean;
   nextAction: string | null;
   progressPercentage: number;
+  isLoading: boolean;
 };
 
 export function useOnboardingProgress(): OnboardingProgress {
-  const { data: metrics } = useAdminMetrics();
+  const { data: metrics, isLoading: metricsLoading } = useAdminMetrics();
 
   // Fetch class groups count
-  const { data: classGroupsData } = useQuery({
+  const { data: classGroupsData, isLoading: classGroupsLoading } = useQuery({
     queryKey: ["class-groups", "count"],
     queryFn: async () => {
       const res = await fetch("/api/admin/class-groups?active=1", {
@@ -36,6 +37,8 @@ export function useOnboardingProgress(): OnboardingProgress {
     },
     staleTime: 30_000,
   });
+
+  const isLoading = metricsLoading || classGroupsLoading;
 
   const hasAcademicPeriod = !!metrics?.period;
   const hasClassGroups = (classGroupsData?.count ?? 0) > 0;
@@ -109,5 +112,6 @@ export function useOnboardingProgress(): OnboardingProgress {
     isActionEnabled,
     nextAction,
     progressPercentage,
+    isLoading,
   };
 }

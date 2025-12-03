@@ -10,7 +10,9 @@ import { UserMembership } from "@/models/UserMembership";
 import { Teacher } from "@/models/Teacher";
 import { School } from "@/models/School";
 import { clerkClient } from "@clerk/nextjs/server";
+import { Invitation } from "@/models/Invitation";
 import { sendEmail } from "@/lib/email/brevo";
+import { recordActivity } from "@/lib/audit/recordActivity";
 import mongoose from "mongoose";
 
 type Body = {
@@ -26,7 +28,7 @@ type Body = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdmin();
     await connectToDatabase();
 
     const body = (await req.json()) as Body;
@@ -218,13 +220,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Send Clerk invitation email
+    // Send Clerk invitation email and create invitation record
     const APP_URL = process.env.APP_URL || "http://localhost:3000";
     const redirectUrl = `${APP_URL}/auth/callback`;
+    let clerkInvitationId: string | undefined;
+    let invitationStatus: "pending" | "failed" = "pending";
 
     try {
       const clerk = await clerkClient();
-      await clerk.invitations.createInvitation({
+      const clerkInvitation = await clerk.invitations.createInvitation({
         emailAddress: normalizedBody.email.toLowerCase().trim(),
         redirectUrl,
         publicMetadata: {
@@ -233,6 +237,7 @@ export async function POST(req: NextRequest) {
         },
         ignoreExisting: true, // Don't error if they were invited before
       });
+      clerkInvitationId = clerkInvitation.id;
 
       // Fetch school name for email
       const school = await School.findById(schoolIdObj)
@@ -249,9 +254,68 @@ export async function POST(req: NextRequest) {
       });
     } catch (inviteError) {
       console.error("Clerk invitation error:", inviteError);
+      invitationStatus = "failed";
       // Don't fail the request if invitation fails - teacher is already created
       // Admin can resend invitation later if needed
     }
+
+    // Create invitation record
+    try {
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+      await Invitation.create({
+        email: normalizedBody.email.toLowerCase().toLowerCase().trim(),
+        role: "teacher",
+        schoolId: schoolIdObj,
+        status: invitationStatus,
+        clerkInvitationId,
+        sentAt: new Date(),
+        expiresAt,
+        resendCount: 0,
+        invitedBy: new mongoose.Types.ObjectId(userId),
+        metadata: {
+          firstName: normalizedBody.firstName,
+          lastName: normalizedBody.lastName,
+          subjectIds: normalizedBody.subjectIds || [],
+          homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
+        },
+      });
+    } catch (inviteRecordError) {
+      console.error("Failed to create invitation record:", inviteRecordError);
+      // Don't fail the request - invitation record is for tracking only
+    }
+
+    // Record activity
+    await recordActivity({
+      schoolId: schoolIdObj,
+      userId: new mongoose.Types.ObjectId(userId),
+      type: "teacher.created",
+      entityType: "teacher",
+      entityId: String(teacherRecord._id),
+      description: `Created teacher: ${normalizedBody.firstName} ${normalizedBody.lastName} (${normalizedBody.email})`,
+      metadata: {
+        teacherId: String(teacherRecord._id),
+        email: normalizedBody.email,
+        subjectIds: normalizedBody.subjectIds || [],
+        homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
+      },
+    });
+
+    // Record activity
+    await recordActivity({
+      schoolId: schoolIdObj,
+      userId: new mongoose.Types.ObjectId(userId),
+      type: "teacher.created",
+      entityType: "Teacher",
+      entityId: teacherRecord._id,
+      description: `Created teacher: ${normalizedBody.firstName} ${normalizedBody.lastName} (${normalizedBody.email})`,
+      metadata: {
+        email: normalizedBody.email,
+        subjectIds: normalizedBody.subjectIds || [],
+        homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
+      },
+    });
 
     return Response.json(
       {

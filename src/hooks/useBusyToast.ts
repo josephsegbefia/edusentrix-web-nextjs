@@ -7,7 +7,7 @@ import { useToast } from "./useToast";
 type Labels = { loading: string; success: string; error: string };
 
 export function useBusyToast() {
-  const { promise: toastPromise, toast, success, error, info } = useToast();
+  const { promise: toastPromise, toast, success, error, info, dismiss } = useToast();
   const { beginBusy, endBusy } = useBusy();
 
   /** Just like toast.promise, but disables the page while pending */
@@ -20,5 +20,5 @@ export function useBusyToast() {
     }
   };
 
-  return { promise: busyPromise, toast, success, error, info };
+  return { promise: busyPromise, toast, success, error, info, dismiss };
 }

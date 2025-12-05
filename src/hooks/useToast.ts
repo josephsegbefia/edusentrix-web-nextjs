@@ -71,5 +71,9 @@ export function useToast() {
       error: labels.error,
     });
 
-  return { toast, success, error, info, warning, promise };
+  const dismiss = (toastId?: string | number) => {
+    baseToast.dismiss(toastId);
+  };
+
+  return { toast, success, error, info, warning, promise, dismiss };
 }

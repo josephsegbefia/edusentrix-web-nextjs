@@ -41,7 +41,6 @@ import CreateStudentModal from "@/components/modals/CreateStudentModal";
 import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
 import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
 import { format } from "date-fns/format";
-import { toast as sonnerToast } from "sonner";
 import type { CreateStudentInput } from "@/schemas/student";
 import type { CreateTeacherInput } from "@/schemas/teacher";
 import { CreateClassGroupsModal } from "@/components/modals/CreateClassGroupsModal";
@@ -747,7 +746,7 @@ export default function SchoolAdminOverviewPage() {
 
     // Dismiss previous toast if exists
     if (toastId !== null) {
-      sonnerToast.dismiss(toastId);
+      busy.dismiss(toastId);
     }
 
     // Only show toast if onboarding is not complete
@@ -786,7 +785,7 @@ export default function SchoolAdminOverviewPage() {
     // Cleanup on unmount
     return () => {
       if (newToastId !== null) {
-        sonnerToast.dismiss(newToastId);
+        busy.dismiss(newToastId);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

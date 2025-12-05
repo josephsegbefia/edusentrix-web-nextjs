@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useNetworkHealth, NetworkQuality } from "@/hooks/useNetworkHealth";
 import { Wifi, WifiOff } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -47,19 +48,36 @@ function getIndicatorConfig(quality: NetworkQuality, online: boolean) {
 }
 
 export function NetworkIndicator() {
+  const [mounted, setMounted] = useState(false);
   const { quality, online, effectiveType, downlink, probeRtt } = useNetworkHealth(20000);
 
-  const config = getIndicatorConfig(quality, online);
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Use a consistent default state for SSR
+  const config = mounted
+    ? getIndicatorConfig(quality, online)
+    : {
+        color: "bg-gray-500",
+        icon: Wifi,
+        label: "Checking Connection",
+        description: "Determining network status...",
+      };
+
   const Icon = config.icon;
 
-  const tooltipText = [
-    config.label,
-    effectiveType && `Network: ${effectiveType}`,
-    typeof downlink === "number" && `Downlink: ${downlink.toFixed(1)}Mbps`,
-    typeof probeRtt === "number" && `RTT: ${Math.round(probeRtt)}ms`,
-  ]
-    .filter(Boolean)
-    .join(" • ");
+  const tooltipText = mounted
+    ? [
+        config.label,
+        effectiveType && `Network: ${effectiveType}`,
+        typeof downlink === "number" && `Downlink: ${downlink.toFixed(1)}Mbps`,
+        typeof probeRtt === "number" && `RTT: ${Math.round(probeRtt)}ms`,
+      ]
+        .filter(Boolean)
+        .join(" • ")
+    : config.label;
 
   return (
     <TooltipProvider>

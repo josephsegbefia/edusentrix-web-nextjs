@@ -3,7 +3,10 @@
 import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
+import mongoose from "mongoose";
 import { Student } from "@/models/Student";
+import { Grade } from "@/models/Grade";
+import { ClassGroup } from "@/models/ClassGroup";
 import { StudentListItem, StudentListResponse } from "@/types/admin/student";
 
 function parsePositiveInt(value: string | null, fallback: number) {
@@ -25,10 +28,22 @@ function computeIsNew(enrolledAt?: Date | null, createdAt?: Date): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  try {
-    const { schoolId } = await requireSchoolAdmin();
-    await connectToDatabase();
+  const { schoolId } = await requireSchoolAdmin();
+  await connectToDatabase();
 
+  // Ensure models are registered before using populate
+  // In Next.js serverless environments, we need to ensure models are evaluated
+  // Accessing modelName or calling a method ensures registration
+  if (!mongoose.models.Grade) {
+    // Force registration by accessing the model
+    const _ = Grade.modelName;
+  }
+  if (!mongoose.models.ClassGroup) {
+    // Force registration by accessing the model
+    const _ = ClassGroup.modelName;
+  }
+
+  try {
     const { searchParams } = new URL(req.url);
 
     const page = parsePositiveInt(searchParams.get("page"), 1);

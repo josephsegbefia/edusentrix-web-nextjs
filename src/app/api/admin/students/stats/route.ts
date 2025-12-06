@@ -5,19 +5,39 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { ClassGroup } from "@/models/ClassGroup";
+import { Grade } from "@/models/Grade";
 
 import mongoose from "mongoose";
 import { StudentQuickStats } from "@/types/admin/student";
 
 export async function GET() {
-  try {
-    const { schoolId } = await requireSchoolAdmin();
-    await connectToDatabase();
+  const { schoolId } = await requireSchoolAdmin();
+  await connectToDatabase();
 
+  // Ensure models are registered before using populate
+  // Force registration by accessing modelName
+  if (!mongoose.models.Grade) {
+    const _ = Grade.modelName;
+  }
+  if (!mongoose.models.ClassGroup) {
+    const _ = ClassGroup.modelName;
+  }
+
+  if (!schoolId) {
+    return new NextResponse(
+      JSON.stringify({ success: false, error: "School ID not found" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  try {
+    // Mongoose queries accept strings directly, so we can use schoolId as-is
+    // This avoids the deprecation warning from new mongoose.Types.ObjectId(string)
     const schoolObjectId =
-      typeof schoolId === "string"
-        ? new mongoose.Types.ObjectId(schoolId)
-        : schoolId;
+      schoolId instanceof mongoose.Types.ObjectId ? schoolId : schoolId;
 
     const [total, newThisMonth, distributionRaw] = await Promise.all([
       Student.countDocuments({ schoolId: schoolObjectId }),

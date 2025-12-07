@@ -21,6 +21,7 @@ import {
   AlertCircle,
   GraduationCap,
 } from "lucide-react";
+import { StudentsCardGrid } from "@/components/admin/students/StudentsCardGrid";
 
 function getInitialTab(sp: URLSearchParams): StudentsTabId {
   const tab = sp.get("tab");
@@ -95,13 +96,13 @@ export default function StudentsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Students</h1>
+          <h1 className="mb-2 text-3xl font-bold">Students</h1>
           <p className="text-muted">
             Manage enrollment, class assignment, and academic records across the
             school
           </p>
         </div>
-        <div className="pt-1 flex items-center gap-2">
+        <div className="flex items-center gap-2 pt-1">
           <Button
             type="button"
             variant="outline"
@@ -138,7 +139,7 @@ export default function StudentsPage() {
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 pb-3">
-          <CardTitle className="text-sm font-semibold text-white/80 uppercase tracking-wider">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
             Student Directory
           </CardTitle>
         </CardHeader>
@@ -203,20 +204,49 @@ export default function StudentsPage() {
                   </span>{" "}
                   of {pagination.totalPages}
                 </div>
-                <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground/80">
-                  <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10">
+                <div className="hidden items-center gap-2 text-xs text-muted-foreground/80 md:flex">
+                  <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
                     View:{" "}
                     <span className="font-medium">
                       {viewMode === "cards" ? "Cards" : "Table"}
                     </span>
                   </span>
-                  <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10">
+                  <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
                     Tab: <span className="font-medium">{tab}</span>
                   </span>
                 </div>
               </div>
               {/* Phase 5+: Student cards grid will be rendered here */}
               {/* Phase 6+: Student table view will be rendered here */}
+              {viewMode === "cards" ? (
+                <StudentsCardGrid
+                  students={students}
+                  onView={(id) => {
+                    // Later: /admin/students/[id] detail page
+                    router.push(`/admin/students/${id}`);
+                  }}
+                  onEdit={(id) => {
+                    // TODO: open edit student modal
+                    console.log("Edit student", id);
+                  }}
+                  onAssignClass={(id) => {
+                    // TODO: open assign/change class flow
+                    console.log("Assign class for", id);
+                  }}
+                  onRecordPayment={(id) => {
+                    // TODO: open record payment modal
+                    console.log("Record payment for", id);
+                  }}
+                  onSendMessage={(id) => {
+                    // TODO: open message parent dialog
+                    console.log("Message parent for", id);
+                  }}
+                />
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-10 text-center text-sm text-muted-foreground/80">
+                  Table view coming soon.
+                </div>
+              )}
             </div>
           )}
         </CardContent>

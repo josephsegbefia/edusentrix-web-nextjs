@@ -8,6 +8,8 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
   DEFAULT_STUDENTS_PAGE_SIZE,
   type StudentsTabId,
+  type StudentsSortBy,
+  type StudentsSortOrder,
 } from "@/constants/students";
 import { useStudentListData } from "@/hooks/admin/useStudents";
 import { StudentsTabsNav } from "@/components/admin/students/StudentsTabsNav";
@@ -22,6 +24,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { StudentsCardGrid } from "@/components/admin/students/StudentsCardGrid";
+import { StudentsTable } from "@/components/admin/students/StudentsTable";
 
 function getInitialTab(sp: URLSearchParams): StudentsTabId {
   const tab = sp.get("tab");
@@ -54,6 +57,11 @@ export default function StudentsPage() {
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
   const [page, setPage] = React.useState(1);
 
+  const [sortBy, setSortBy] = React.useState<StudentsSortBy>("name");
+  const [sortOrder, setSortOrder] = React.useState<StudentsSortOrder>("asc");
+
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
   const debouncedSearch = useDebouncedValue(search, 400);
 
   React.useEffect(() => {
@@ -66,12 +74,25 @@ export default function StudentsPage() {
     router.replace(`/admin/students?${params.toString()}`);
   }, [tab, viewMode, debouncedSearch, page, router]);
 
+  // Reset sort + selection when tab changes (e.g., "recent" should default to latest)
+  React.useEffect(() => {
+    if (tab === "recent") {
+      setSortBy("createdAt");
+      setSortOrder("desc");
+    } else {
+      setSortBy("name");
+      setSortOrder("asc");
+    }
+    setPage(1);
+    setSelectedIds([]);
+  }, [tab]);
+
   const { students, pagination, isLoading, isError } = useStudentListData({
     page,
     limit: DEFAULT_STUDENTS_PAGE_SIZE,
     tab,
-    sortBy: tab === "recent" ? "createdAt" : "name",
-    sortOrder: tab === "recent" ? "desc" : "asc",
+    sortBy,
+    sortOrder,
     filters: {
       search: debouncedSearch || undefined,
     },
@@ -85,10 +106,47 @@ export default function StudentsPage() {
   function handleSearchChange(next: string) {
     setSearch(next);
     setPage(1);
+    setSelectedIds([]);
   }
 
   function handleViewModeChange(next: StudentsViewMode) {
     setViewMode(next);
+  }
+
+  function handleSortChange(column: StudentsSortBy) {
+    setSortBy((prevSortBy) => {
+      if (prevSortBy === column) {
+        setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
+        return prevSortBy;
+      } else {
+        setSortOrder("asc");
+        return column;
+      }
+    });
+    setPage(1);
+  }
+
+  function handleToggleRow(id: string) {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function handleToggleAllVisible(visibleIds: string[]) {
+    setSelectedIds((prev) => {
+      const allVisibleSelected =
+        visibleIds.length > 0 && visibleIds.every((id) => prev.includes(id));
+
+      if (allVisibleSelected) {
+        // Deselect all visible
+        return prev.filter((id) => !visibleIds.includes(id));
+      }
+
+      // Select all visible (merge with current selection)
+      const set = new Set(prev);
+      visibleIds.forEach((id) => set.add(id));
+      return Array.from(set);
+    });
   }
 
   return (
@@ -243,9 +301,34 @@ export default function StudentsPage() {
                   }}
                 />
               ) : (
-                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-10 text-center text-sm text-muted-foreground/80">
-                  Table view coming soon.
-                </div>
+                <StudentsTable
+                  students={students}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSortChange={handleSortChange}
+                  selectedIds={selectedIds}
+                  onToggleRow={handleToggleRow}
+                  onToggleAllVisible={handleToggleAllVisible}
+                  onView={(id) => {
+                    router.push(`/admin/students/${id}`);
+                  }}
+                  onEdit={(id) => {
+                    // TODO: open edit student modal
+                    console.log("Edit student", id);
+                  }}
+                  onAssignClass={(id) => {
+                    // TODO: open assign/change class flow
+                    console.log("Assign class for", id);
+                  }}
+                  onRecordPayment={(id) => {
+                    // TODO: open record payment modal
+                    console.log("Record payment for", id);
+                  }}
+                  onSendMessage={(id) => {
+                    // TODO: open message parent dialog
+                    console.log("Message parent for", id);
+                  }}
+                />
               )}
             </div>
           )}

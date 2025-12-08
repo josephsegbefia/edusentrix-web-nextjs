@@ -32,7 +32,7 @@ export type StudentListItem = {
   lastPaymentAt: string | null;
 
   academicBadge: AcademicBadge;
-  lastestAverage: number | null;
+  latestAverage: number | null;
   isTopPerformer: boolean;
 
   // convenience flags

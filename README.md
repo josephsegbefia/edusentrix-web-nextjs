@@ -43,9 +43,14 @@ EduSentrix is a comprehensive school management platform designed specifically f
 
 - **Student Management**
   - Student enrollment and profile management
+  - Premium students management page with card/table views
+  - Advanced search, filtering, and sorting
   - Class and grade assignments
   - Guardian/parent associations
   - Academic records tracking
+  - Fee status tracking and color-coded student cards
+  - Academic performance badges (Top 1%, Top 5%, Top 10%, Honours)
+  - Bulk actions and export functionality
 
 - **Fee Management**
   - Fee structure configuration
@@ -59,12 +64,20 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Period progress tracking
   - Date range management
 
+- **Teacher Management**
+  - Teacher creation with multi-step onboarding
+  - Subject and homeroom class assignments
+  - Teacher invitation system with email notifications
+  - Search and filter capabilities
+  - Image upload with Cloudinary integration
+
 - **Class & Subject Management**
   - Automatic grade seeding based on school type (Basic: Creche → JHS3, SHS: SHS1-3)
   - Automatic subject creation for Basic schools (Ghana curriculum)
   - Class group creation with flexible naming strategies (letters, numbers, custom names)
   - Subject configuration and assignment
   - Teacher assignments to class groups
+  - Dynamic search for class groups and subjects
 
 - **User Roles & Permissions**
   - Platform Admin: Manage school applications and platform settings
@@ -78,11 +91,27 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - School provisioning with Paystack subaccount creation
   - Guided onboarding process
 
+- **Invitation Management**
+  - Comprehensive invitation tracking system
+  - Invite teachers and school admins via email
+  - Track invitation status (pending, accepted, expired, revoked, failed)
+  - Resend and revoke invitations
+  - Export invitation data to CSV
+  - Activity logging for all invitation actions
+
+- **Activity & Audit Logging**
+  - Comprehensive activity feed on admin dashboard
+  - Track all system actions (student/teacher creation, invitations, etc.)
+  - Filterable by activity type and date range
+  - Real-time updates via Server-Sent Events (SSE)
+
 - **Analytics & Reporting**
   - Real-time dashboard metrics
   - Revenue tracking
   - Collection rate analysis
   - Student and teacher statistics
+  - Quick stats cards with trend indicators
+  - Class distribution visualization
 
 - **Document Management**
   - File uploads with Cloudinary integration
@@ -92,9 +121,12 @@ EduSentrix is a comprehensive school management platform designed specifically f
 
 - **Command Palette**: Quick actions via ⌘K / Ctrl+K
 - **Responsive Design**: Mobile-first approach with adaptive layouts
-- **Toast Notifications**: User feedback with Sonner
+- **Custom Toast System**: User feedback with custom toast provider
 - **Loading States**: Skeleton loaders and busy indicators
 - **Error Boundaries**: Graceful error handling
+- **Network Health Monitoring**: Real-time network status tracking with visual indicators
+- **Task Tracker**: Markdown-based deferred tasks tracking system
+- **Premium UI Design**: Modern, industry-standard design with gradient cards and animations
 
 ## 🛠 Tech Stack
 
@@ -235,6 +267,11 @@ edusentrix-web-nextjs/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── (app)/              # Protected app routes
 │   │   │   ├── admin/          # School admin dashboard
+│   │   │   │   ├── students/   # Students management page
+│   │   │   │   ├── teachers/   # Teachers management page
+│   │   │   │   ├── invitations/# Invitation management page
+│   │   │   │   ├── tasks/      # Task tracker page
+│   │   │   │   └── ...         # Other admin pages
 │   │   │   ├── teacher/        # Teacher portal
 │   │   │   ├── parent/         # Parent portal
 │   │   │   ├── student/        # Student portal
@@ -245,9 +282,14 @@ edusentrix-web-nextjs/
 │   │   │   └── onboarding/     # School onboarding
 │   │   ├── api/                # API routes
 │   │   │   ├── admin/          # Admin APIs
+│   │   │   │   ├── students/   # Student management APIs
+│   │   │   │   ├── teachers/   # Teacher management APIs
+│   │   │   │   ├── invitations/# Invitation management APIs
+│   │   │   │   └── ...         # Other admin APIs
 │   │   │   ├── onboarding/     # Onboarding APIs
 │   │   │   ├── periods/        # Academic period APIs
 │   │   │   ├── platform/       # Platform APIs
+│   │   │   ├── docs/           # Documentation API
 │   │   │   └── ...             # Other API endpoints
 │   │   ├── auth/               # Auth callbacks
 │   │   ├── dashboard/         # Main dashboard
@@ -256,8 +298,12 @@ edusentrix-web-nextjs/
 │   │   ├── ui/                 # shadcn/ui components
 │   │   ├── app/                # App-specific components
 │   │   ├── auth/               # Auth components
+│   │   ├── admin/              # Admin-specific components
+│   │   │   ├── students/       # Student management components
+│   │   │   └── stats/          # Dashboard stats components
 │   │   ├── modals/             # Modal components
 │   │   ├── nav/                # Navigation components
+│   │   ├── system/             # System components (network health, etc.)
 │   │   └── platform/           # Platform-specific components
 │   ├── constants/              # Application constants
 │   │   ├── grade-templates.ts  # Grade templates (Basic/SHS)
@@ -272,6 +318,9 @@ edusentrix-web-nextjs/
 │   ├── models/                 # Mongoose models
 │   ├── providers/              # React context providers
 │   └── middleware.ts           # Next.js middleware
+├── content/                    # Content files
+│   ├── docs/                   # Documentation markdown files
+│   └── tasks/                  # Task tracking markdown files
 ├── data/                       # Seed data files
 │   └── bank_sort_codes.csv     # Bank branch data
 ├── scripts/                    # Utility scripts
@@ -376,7 +425,9 @@ The application uses Mongoose models located in `src/models/`:
 - **AcademicPeriod**: Term and academic year periods
 - **Application**: School application submissions
 - **BankBranch**: Bank branch information
-- **Invite**: User invitation system
+- **Invitation**: Comprehensive invitation tracking (status, expiry, resend count, metadata)
+- **Activity**: System-wide activity logging and audit trail
+- **Invite**: Legacy user invitation system
 - **UserMembership**: User-school associations
 
 ### Database Connection

@@ -5,23 +5,12 @@ import {
   StudentListResponse,
   StudentListItem,
 } from "@/types/admin/student";
+import {
+  type StudentsTabId,
+  type StudentsSortBy,
+  type StudentsSortOrder,
+} from "@/constants/students";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-
-export type StudentsTabId =
-  | "all"
-  | "by-class"
-  | "fee-defaulters"
-  | "top-performers"
-  | "recent";
-
-export type StudentsSortBy =
-  | "name"
-  | "class"
-  | "feeStatus"
-  | "enrollmentDate"
-  | "createdAt";
-
-export type StudentsSortOrder = "asc" | "desc";
 
 export type StudentsFilters = {
   search?: string;

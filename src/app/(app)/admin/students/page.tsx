@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
   DEFAULT_STUDENTS_PAGE_SIZE,
+  STUDENTS_PAGE_SIZE_OPTIONS,
   type StudentsTabId,
   type StudentsSortBy,
   type StudentsSortOrder,
@@ -25,6 +26,7 @@ import {
 } from "lucide-react";
 import { StudentsCardGrid } from "@/components/admin/students/StudentsCardGrid";
 import { StudentsTable } from "@/components/admin/students/StudentsTable";
+import { StudentsPagination } from "@/components/admin/students/StudentsPagination";
 
 function getInitialTab(sp: URLSearchParams): StudentsTabId {
   const tab = sp.get("tab");
@@ -56,6 +58,7 @@ export default function StudentsPage() {
   );
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
   const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(DEFAULT_STUDENTS_PAGE_SIZE);
 
   const [sortBy, setSortBy] = React.useState<StudentsSortBy>("name");
   const [sortOrder, setSortOrder] = React.useState<StudentsSortOrder>("asc");
@@ -89,7 +92,7 @@ export default function StudentsPage() {
 
   const { students, pagination, isLoading, isError } = useStudentListData({
     page,
-    limit: DEFAULT_STUDENTS_PAGE_SIZE,
+    limit: pageSize,
     tab,
     sortBy,
     sortOrder,
@@ -147,6 +150,17 @@ export default function StudentsPage() {
       visibleIds.forEach((id) => set.add(id));
       return Array.from(set);
     });
+  }
+
+  function handleChangePage(nextPage: number) {
+    setPage(nextPage);
+    setSelectedIds([]);
+  }
+
+  function handleChangePageSize(nextSize: number) {
+    setPageSize(nextSize);
+    setPage(1);
+    setSelectedIds([]);
   }
 
   return (
@@ -336,6 +350,20 @@ export default function StudentsPage() {
       </Card>
 
       {/* Phase 7+: Pagination component will be plugged here */}
+      {!isLoading &&
+        !isError &&
+        pagination.total > 0 &&
+        pagination.totalPages > 0 && (
+          <StudentsPagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            pageSize={pageSize}
+            pageSizeOptions={STUDENTS_PAGE_SIZE_OPTIONS}
+            onChangePage={handleChangePage}
+            onChangePageSize={handleChangePageSize}
+          />
+        )}
     </div>
   );
 }

@@ -1,90 +1,176 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/api/admin/students/[id]/route.ts
+
 import { NextRequest } from "next/server";
+import mongoose from "mongoose";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
-import { StudentDetailDTO } from "@/types/admin/student";
+import { Activity } from "@/models/Activity";
 
 export async function GET(
   _req: NextRequest,
-  context: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
-
   try {
     const { schoolId } = await requireSchoolAdmin();
+    if (!schoolId) {
+      return new Response("School ID not found", { status: 400 });
+    }
     await connectToDatabase();
 
-    const student = await Student.findOne({
+    const { id } = await ctx.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return new Response("Invalid student id", { status: 400 });
+    }
+
+    const studentDoc = await Student.findOne({
       _id: id,
       schoolId,
     })
-      .populate("gradeId", "name")
-      .populate("classGroupId", "name gradeId")
+      .populate("gradeId")
+      .populate("classGroupId")
       .lean();
 
-    if (!student) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Student not found" }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+    if (!studentDoc) {
+      return new Response("Student not found", { status: 404 });
     }
 
-    const s: any = student;
-    const grade = s.gradeId as any | null;
-    const classGroup = s.classGroupId as any | null;
+    const student = studentDoc as any;
 
-    const firstName: string = s.firstName;
-    const lastName: string = s.lastName;
-    const middleName: string | null = s.middleName ?? null;
-    const fullName = [firstName, middleName, lastName]
+    const grade = student.gradeId as any | undefined;
+    const classGroup = student.classGroupId as any | undefined;
+
+    const fullName = [student.firstName, student.middleName, student.lastName]
       .filter(Boolean)
       .join(" ");
 
-    const detail: StudentDetailDTO = {
-      id: String(s._id),
-      admissionNumber: s.admissionNumber ?? null,
-      firstName,
-      middleName,
-      lastName,
-      fullName,
-      sex: s.sex ?? null,
-      dateOfBirth: s.dateOfBirth ? s.dateOfBirth.toISOString() : null,
-      photoUrl: s.photoUrl ?? null,
+    const dob = student.dateOfBirth ? new Date(student.dateOfBirth) : null;
+    const enrolledAt = student.enrolledAt ? new Date(student.enrolledAt) : null;
 
-      gradeId: grade?._id ? String(grade._id) : grade ? String(grade) : null,
-      gradeName: grade?.name ?? null,
-      classGroupId: classGroup?._id
-        ? String(classGroup._id)
-        : classGroup
-        ? String(classGroup)
+    let ageYears: number | null = null;
+    if (dob) {
+      const now = new Date();
+      let years = now.getFullYear() - dob.getFullYear();
+      const m = now.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) {
+        years--;
+      }
+      ageYears = years;
+    }
+
+    // Recent activity for this student – using entityType "student"
+    const recentActivitiesRaw = await Activity.find({
+      schoolId: schoolId,
+      entityType: "student",
+      entityId: new mongoose.Types.ObjectId(id),
+    })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate("userId", "firstName lastName email")
+      .lean();
+
+    const recentActivity = recentActivitiesRaw.map((item: any) => ({
+      id: item._id.toString(),
+      type: item.type as string,
+      description: item.description as string,
+      createdAt: item.createdAt?.toISOString?.() ?? new Date().toISOString(),
+      user: item.userId
+        ? {
+            id: item.userId._id.toString(),
+            firstName: item.userId.firstName ?? null,
+            lastName: item.userId.lastName ?? null,
+            email: item.userId.email ?? null,
+          }
         : null,
-      classGroupName: classGroup?.name ?? null,
+    }));
 
-      status: s.status,
-      enrolledAt: s.enrolledAt ? s.enrolledAt.toISOString() : null,
-      createdAt: s.createdAt.toISOString(),
-      updatedAt: s.updatedAt.toISOString(),
+    const dto = {
+      id: student._id.toString(),
+      schoolId: student.schoolId.toString(),
+      admissionNo: student.admissionNo ?? null,
+      firstName: student.firstName,
+      middleName: student.middleName ?? null,
+      lastName: student.lastName,
+      fullName,
+      sex: student.sex ?? null,
+      dateOfBirth: dob ? dob.toISOString() : null,
+      ageYears,
+      photoUrl: student.photoUrl ?? null,
+      status: student.status ?? "active",
+      enrolledAt: enrolledAt ? enrolledAt.toISOString() : null,
 
-      // Placeholders for now
-      feeStatus: "unknown",
-      amountOwed: 0,
-      latestAverage: null,
-      academicBadge: "none",
+      grade: grade
+        ? {
+            id: grade._id.toString(),
+            name: grade.name as string,
+            code: grade.code ?? null,
+            label: grade.name as string,
+          }
+        : null,
+
+      classGroup: classGroup
+        ? {
+            id: classGroup._id.toString(),
+            name: classGroup.name as string,
+            label: classGroup.fullLabel
+              ? (classGroup.fullLabel as string)
+              : grade
+              ? `${grade.name} ${classGroup.name}`
+              : (classGroup.name as string),
+          }
+        : null,
+
+      // Guardians will be filled when parent/guardian linking is live
+      guardians: [] as Array<{
+        id: string;
+        fullName: string;
+        relationship: string;
+        phone: string;
+        email?: string | null;
+        isPrimary: boolean;
+      }>,
+
+      // Fees, academics, attendance, behaviour are stubbed for now
+      feesSummary: null as {
+        currentTermLabel: string;
+        totalBilled: number;
+        totalPaid: number;
+        totalOutstanding: number;
+        currency: string;
+        status: "clear" | "partial" | "owing";
+        lastPaymentDate?: string | null;
+      } | null,
+
+      academicSummary: null as {
+        latestTermLabel?: string;
+        overallAverage?: number;
+        classPosition?: number;
+        totalSubjects?: number;
+        performanceTier?: "top" | "above_average" | "average" | "at_risk";
+        trend?: "up" | "down" | "stable";
+      } | null,
+
+      attendanceSummary: null as {
+        presentPercent?: number;
+        absentDays?: number;
+        lateDays?: number;
+      } | null,
+
+      behaviourSummary: null as {
+        incidentsCount?: number;
+        lastIncidentDate?: string | null;
+        positiveNotesCount?: number;
+      } | null,
+
+      recentActivity,
     };
 
-    return Response.json({ success: true, data: detail }, { status: 200 });
+    return Response.json({ success: true, data: dto }, { status: 200 });
   } catch (error: unknown) {
-    console.error("Failed to fetch student:", error);
+    console.error("Failed to fetch student detail:", error);
     const message =
-      error instanceof Error ? error.message : "Failed to fetch student";
-    return new Response(JSON.stringify({ success: false, error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+      error instanceof Error ? error.message : "Failed to fetch student detail";
+    return new Response(message, { status: 500 });
   }
 }

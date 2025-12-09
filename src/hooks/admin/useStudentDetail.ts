@@ -51,9 +51,10 @@ export type StudentDetailDTO = {
     totalBilled: number;
     totalPaid: number;
     totalOutstanding: number;
+    currency: string;
     status: "clear" | "partial" | "owing";
     latestPaymentDate?: string | null;
-  };
+  } | null;
   academicSummary: {
     latestTermLabel?: string;
     overallAverage?: number | null;
@@ -61,6 +62,11 @@ export type StudentDetailDTO = {
     totalSubjects?: number;
     performanceTier?: "top" | "above_average" | "average" | "at_risk" | "poor";
     trend?: "up" | "down" | "stable";
+  } | null;
+  attendanceSummary: {
+    presentPercent?: number;
+    absentDays?: number;
+    lateDays?: number;
   } | null;
   behaviourSummary: {
     incidentCount?: number;

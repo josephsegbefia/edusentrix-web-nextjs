@@ -24,9 +24,9 @@ export function StudentsQuickStatsSection() {
   const distribution = data?.classDistribution ?? [];
 
   return (
-    <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1.1fr)]">
+    <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(280px,1.1fr)]">
       {/* Main metrics grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
         <MetricStatCard
           label="Total Students"
           value={isLoading ? "…" : total.toLocaleString()}

@@ -27,6 +27,9 @@ import {
 import { StudentsCardGrid } from "@/components/admin/students/StudentsCardGrid";
 import { StudentsTable } from "@/components/admin/students/StudentsTable";
 import { StudentsPagination } from "@/components/admin/students/StudentsPagination";
+import { StudentsBulkActionsBar } from "@/components/admin/students/StudentsBulkActionsBar";
+import { StudentsCommandPalette } from "@/components/admin/students/StudentsCommandPalette";
+import { useExportStudents } from "@/hooks/admin/useExportStudents";
 
 function getInitialTab(sp: URLSearchParams): StudentsTabId {
   const tab = sp.get("tab");
@@ -64,8 +67,13 @@ export default function StudentsPage() {
   const [sortOrder, setSortOrder] = React.useState<StudentsSortOrder>("asc");
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [commandOpen, setCommandOpen] = React.useState(false);
+
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const debouncedSearch = useDebouncedValue(search, 400);
+
+  const { exportStudents, isExporting } = useExportStudents();
 
   React.useEffect(() => {
     const params = new URLSearchParams();
@@ -89,6 +97,37 @@ export default function StudentsPage() {
     setPage(1);
     setSelectedIds([]);
   }, [tab]);
+
+  // Keyboard shortcuts: "/" to focus search, Cmd/Ctrl+K for command palette
+  React.useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const isTyping =
+        tag === "input" ||
+        tag === "textarea" ||
+        (target && target.getAttribute("contenteditable") === "true");
+
+      // "/" focuses search when not already typing
+      if (e.key === "/" && !isTyping) {
+        e.preventDefault();
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+          searchInputRef.current.select?.();
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + K opens command palette
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCommandOpen((prev) => !prev);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const { students, pagination, isLoading, isError } = useStudentListData({
     page,
@@ -163,6 +202,69 @@ export default function StudentsPage() {
     setSelectedIds([]);
   }
 
+  // Phase 8: Bulk actions handlers – API wiring will come later
+  function handleClearSelection() {
+    setSelectedIds([]);
+  }
+
+  function handleBulkAssignClass() {
+    console.log("Bulk assign class for students: ", selectedIds);
+    // TODO: open bulk assign class modal
+  }
+
+  function handleBulkSendMessage() {
+    console.log("Bulk message parents for students: ", selectedIds);
+    // TODO: open bulk message dialog
+  }
+
+  function handleBulkExportSelected() {
+    if (!selectedIds.length) return;
+    exportStudents({
+      format: "csv",
+      tab,
+      sortBy,
+      sortOrder,
+      filters: { search: debouncedSearch || undefined },
+      selectedIds,
+    });
+  }
+
+  function handleBulkChangeStatus() {
+    console.log("Bulk change status for students: ", selectedIds);
+    // TODO: open status change modal (active/inactive/withdrawn)
+  }
+
+  function handleBulkMarkFeesCleared() {
+    console.log("Bulk mark fees cleared for students: ", selectedIds);
+    // TODO: integrate with fees system when available
+  }
+
+  // Phase 9: export current list with filters (all rows in current filter, not just current page)
+  function handleExportAll() {
+    exportStudents({
+      format: "csv",
+      tab,
+      sortBy,
+      sortOrder,
+      filters: { search: debouncedSearch || undefined },
+    });
+  }
+
+  function handleGoToTabFromPalette(nextTab: StudentsTabId) {
+    setTab(nextTab);
+    setCommandOpen(false);
+  }
+
+  function handleCreateStudent() {
+    // TODO Phase 10: open CreateStudent modal/wizard
+    console.log("Open create student flow");
+  }
+
+  function handleImportStudents() {
+    // TODO Phase 9: open import CSV dialog
+    console.log("Open import students dialog");
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -180,9 +282,7 @@ export default function StudentsPage() {
             variant="outline"
             size="sm"
             className="hidden md:inline-flex"
-            onClick={() => {
-              // TODO Phase 9: open import CSV dialog
-            }}
+            onClick={handleImportStudents}
           >
             <Upload className="h-4 w-4" />
             <span>Import Students</span>
@@ -191,9 +291,7 @@ export default function StudentsPage() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => {
-              // TODO Phase 10: open CreateStudent modal/wizard
-            }}
+            onClick={handleCreateStudent}
           >
             <Plus className="h-4 w-4" />
             <span>Add Student</span>
@@ -225,6 +323,9 @@ export default function StudentsPage() {
             onOpenFilters={() => {
               // Phase 4: show advanced filters panel
             }}
+            onExportAll={handleExportAll}
+            exportingAll={isExporting}
+            searchInputRef={searchInputRef}
           />
         </CardContent>
       </Card>
@@ -364,6 +465,34 @@ export default function StudentsPage() {
             onChangePageSize={handleChangePageSize}
           />
         )}
+
+      {/* Phase 8: Bulk actions toolbar */}
+      {selectedIds.length > 0 && (
+        <StudentsBulkActionsBar
+          selectedCount={selectedIds.length}
+          onClearSelection={handleClearSelection}
+          onAssignClass={handleBulkAssignClass}
+          onSendMessage={handleBulkSendMessage}
+          onExportSelected={handleBulkExportSelected}
+          onChangeStatus={handleBulkChangeStatus}
+          onMarkFeesCleared={handleBulkMarkFeesCleared}
+        />
+      )}
+
+      {/* Phase 9: Command palette for power actions */}
+      <StudentsCommandPalette
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        onFocusSearch={() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+            searchInputRef.current.select?.();
+          }
+        }}
+        onGoToTab={handleGoToTabFromPalette}
+        onCreateStudent={handleCreateStudent}
+        onImportStudents={handleImportStudents}
+      />
     </div>
   );
 }

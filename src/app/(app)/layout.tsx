@@ -9,9 +9,9 @@ export default async function AppLayout({
 }) {
   const user = await requireUser();
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
       <AppTopbar user={user} />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 overflow-x-hidden">{children}</main>
     </div>
   );
 }

@@ -32,7 +32,7 @@ export function StudentsPagination({
   const end = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-linear-to-br from-white/5 to-transparent px-4 py-3 text-xs text--muted-foreground shadow-lg shadow-black/15 backdrop-blur md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-linear-to-br from-white/5 to-transparent px-4 py-3 text-xs text-muted-foreground shadow-lg shadow-black/15 backdrop-blur md:flex-row md:items-center md:justify-between min-w-0">
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px]">
           Showing{" "}

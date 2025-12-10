@@ -13,37 +13,34 @@ export type StudentDetailTabId =
 export type StudentDetailDTO = {
   id: string;
   schoolId: string;
-  admissionNumber: string;
+  admissionNo: string | null;
   firstName: string;
-  middleName?: string | null;
+  middleName: string | null;
   lastName: string;
   fullName: string;
   sex: "male" | "female" | null;
   dateOfBirth: string | null;
   ageYears: number | null;
-  photoUrl?: string | null;
+  photoUrl: string | null;
   status: "active" | "inactive" | "withdrawn";
   enrolledAt: string | null;
   grade: {
     id: string;
     name: string;
-    code: string;
+    code: string | null;
     label: string;
   } | null;
-
   classGroup: {
     id: string;
     name: string;
     label: string;
   } | null;
-
   guardians: Array<{
     id: string;
     fullName: string;
     relationship: string;
+    phone: string;
     email?: string | null;
-    phone?: string | null;
-    photoUrl?: string | null;
     isPrimary: boolean;
   }>;
   feesSummary: {
@@ -53,14 +50,14 @@ export type StudentDetailDTO = {
     totalOutstanding: number;
     currency: string;
     status: "clear" | "partial" | "owing";
-    latestPaymentDate?: string | null;
+    lastPaymentDate?: string | null;
   } | null;
   academicSummary: {
     latestTermLabel?: string;
-    overallAverage?: number | null;
-    classPosition?: number | null;
+    overallAverage?: number;
+    classPosition?: number;
     totalSubjects?: number;
-    performanceTier?: "top" | "above_average" | "average" | "at_risk" | "poor";
+    performanceTier?: "top" | "above_average" | "average" | "at_risk";
     trend?: "up" | "down" | "stable";
   } | null;
   attendanceSummary: {
@@ -69,9 +66,9 @@ export type StudentDetailDTO = {
     lateDays?: number;
   } | null;
   behaviourSummary: {
-    incidentCount?: number;
+    incidentsCount?: number;
     lastIncidentDate?: string | null;
-    positiveNoteCount?: number;
+    positiveNotesCount?: number;
   } | null;
   recentActivity: Array<{
     id: string;
@@ -80,11 +77,68 @@ export type StudentDetailDTO = {
     createdAt: string;
     user: {
       id: string;
-      firstName: string;
+      firstName: string | null;
       lastName: string | null;
       email: string | null;
     } | null;
   }>;
+
+  // New: structures for richer tabs (currently stubbed from API)
+  academicRecords: {
+    terms: {
+      id: string;
+      label: string;
+      average?: number;
+      position?: number;
+      totalSubjects?: number;
+    }[];
+    subjectsByTerm: {
+      termId: string;
+      subjects: {
+        id: string;
+        name: string;
+        shortCode?: string;
+        teacherName?: string;
+        caScore?: number | null;
+        examScore?: number | null;
+        total?: number | null;
+        gradeLetter?: string | null;
+      }[];
+    }[];
+  } | null;
+
+  feeTimeline: {
+    id: string;
+    type: "invoice" | "payment";
+    label: string;
+    termLabel?: string;
+    amount: number;
+    date: string;
+    status?: "pending" | "paid" | "overdue" | "reversed";
+    method?: string;
+  }[];
+
+  attendanceEvents: {
+    id: string;
+    date: string;
+    status: "present" | "absent" | "late";
+  }[];
+
+  incidents: {
+    id: string;
+    date: string;
+    type: string;
+    severity: "low" | "medium" | "high";
+    summary: string;
+    recordedBy?: string;
+  }[];
+
+  documents: {
+    id: string;
+    name: string;
+    type: string;
+    uploadedAt: string;
+  }[];
 };
 
 export function useStudentDetail(studentId?: string) {
@@ -92,13 +146,21 @@ export function useStudentDetail(studentId?: string) {
     queryKey: ["admin-student-detail", studentId],
     enabled: Boolean(studentId),
     queryFn: async () => {
-      if (!studentId) throw new Error("Student ID is required");
+      if (!studentId) {
+        throw new Error("Missing student id");
+      }
+
       const res = await fetch(`/api/admin/students/${studentId}`, {
         cache: "no-store",
       });
-      if (!res.ok) throw new Error("Failed to fetch student detail");
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch student detail");
+      }
+
       const json = await res.json();
       return json.data as StudentDetailDTO;
     },
+    staleTime: 30_000,
   });
 }

@@ -164,6 +164,60 @@ export async function GET(
       } | null,
 
       recentActivity,
+
+      academicRecords: null as {
+        terms: {
+          id: string;
+          label: string;
+          average?: number;
+          position?: number;
+          totalSubjects?: number;
+        }[];
+        subjectsByTerm: {
+          termId: string;
+          subjects: {
+            id: string;
+            name: string;
+            shortCode?: string;
+            teacherName?: string;
+            caScore?: number | null;
+            examScore?: number | null;
+            total?: number | null;
+            gradeLetter?: string | null;
+          }[];
+        }[];
+      } | null,
+
+      feeTimeline: [] as {
+        id: string;
+        type: "invoice" | "payment";
+        label: string;
+        termLabel?: string;
+        amount: number;
+        date: string;
+        status?: "pending" | "paid" | "overdue" | "reversed";
+        method?: string;
+      }[],
+
+      attendanceEvents: [] as {
+        id: string;
+        date: string;
+        status: "present" | "absent" | "late";
+      }[],
+      incidents: [] as {
+        id: string;
+        date: string;
+        type: string;
+        severity: "low" | "medium" | "high";
+        summary: string;
+        recordedBy?: string;
+      }[],
+      documents: [] as {
+        id: string;
+        name: string;
+        type: string;
+        uploadedAt: string;
+      }[],
     };
 
     return Response.json({ success: true, data: dto }, { status: 200 });

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import {
   useStudentDetail,
   type StudentDetailTabId,
@@ -12,6 +12,11 @@ import {
 import { StudentDetailHeader } from "@/components/admin/students/detail/StudentDetailHeader";
 import { StudentDetailTabs } from "@/components/admin/students/detail/StudentDetailTabs";
 import { StudentOverviewTab } from "@/components/admin/students/detail/StudentOverviewTab";
+import { StudentAcademicsTab } from "@/components/admin/students/detail/StudentAcademicsTab";
+import { StudentFeesTab } from "@/components/admin/students/detail/StudentFeesTab";
+import { StudentBehaviourTab } from "@/components/admin/students/detail/StudentBehaviourTab";
+import { StudentRelationshipsTab } from "@/components/admin/students/detail/StudentRelationshipsTab";
+import { StudentActivityLogTab } from "@/components/admin/students/detail/StudentActivityLogTab";
 
 function getInitialTab(sp: URLSearchParams): StudentDetailTabId {
   const raw = sp.get("tab");
@@ -177,21 +182,17 @@ export default function StudentDetailPage() {
       <div className="mt-2">
         {activeTab === "overview" ? (
           <StudentOverviewTab student={student} />
-        ) : (
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardContent className="py-10 text-center text-xs text-muted-foreground/80">
-              <Loader2 className="mx-auto mb-3 h-5 w-5 animate-spin text-primary/70" />
-              <p className="mb-1 font-medium">
-                This section is coming online soon.
-              </p>
-              <p className="text-[11px]">
-                We&apos;ll wire up the{" "}
-                <span className="font-semibold">{activeTab}</span> tab with full
-                data (fees, academics, behaviour, etc.) in the next steps.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        ) : activeTab === "academics" ? (
+          <StudentAcademicsTab student={student} />
+        ) : activeTab === "fees" ? (
+          <StudentFeesTab student={student} />
+        ) : activeTab === "behaviour" ? (
+          <StudentBehaviourTab student={student} />
+        ) : activeTab === "relationships" ? (
+          <StudentRelationshipsTab student={student} />
+        ) : activeTab === "activity" ? (
+          <StudentActivityLogTab student={student} />
+        ) : null}
       </div>
     </div>
   );

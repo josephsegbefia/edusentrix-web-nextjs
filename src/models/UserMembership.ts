@@ -1,9 +1,11 @@
 import { Schema, model, models, Types } from "mongoose";
+import type { MembershipRole } from "@/lib/roles";
+
 export interface IUserMembership {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   schoolId: Types.ObjectId;
-  roles: Array<"school_admin" | "teacher" | "student" | "parent" | "bursar">;
+  roles: MembershipRole[];
   status: "active" | "invited" | "suspended";
   createdAt: Date;
   updatedAt: Date;
@@ -13,7 +15,12 @@ const membershipSchema = new Schema<IUserMembership>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true },
-    roles: { type: [String], default: [], index: true },
+    roles: {
+      type: [String],
+      enum: ["school_admin", "bursar", "teacher", "parent", "student"],
+      default: [],
+      index: true,
+    },
     status: {
       type: String,
       enum: ["active", "invited", "suspended"],

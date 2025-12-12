@@ -10,6 +10,7 @@ import {
   useStudentDetail,
   type StudentDetailTabId,
 } from "@/hooks/admin/useStudentDetail";
+import { useGuardianSSE } from "@/hooks/admin/useGuardianSSE";
 import { StudentDetailHeader } from "@/components/admin/students/detail/StudentDetailHeader";
 import { StudentDetailTabs } from "@/components/admin/students/detail/StudentDetailTabs";
 import { StudentOverviewTab } from "@/components/admin/students/detail/StudentOverviewTab";
@@ -46,6 +47,9 @@ function StudentDetailContent() {
   );
 
   const { data: student, isLoading, isError } = useStudentDetail(studentId);
+
+  // Real-time updates for guardians
+  useGuardianSSE(studentId);
 
   // Sync tab → URL
   React.useEffect(() => {

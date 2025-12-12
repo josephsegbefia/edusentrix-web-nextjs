@@ -4,14 +4,7 @@ import React, { createContext, useContext, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser, useClerk as useClerkAuth, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-
-export type AppRole =
-  | "platform_admin"
-  | "school_admin"
-  | "staff"
-  | "teacher"
-  | "parent"
-  | "student";
+import type { AppRole } from "@/lib/roles";
 
 type AppUser = {
   _id: string;

@@ -29,7 +29,7 @@ export default function AppTopbar({ user }: { user: CurrentAppUser }) {
   // Prevent hydration mismatch by ensuring consistent rendering
   if (!mounted) {
     return (
-      <header className="sticky top-0 z-40 w-full border-b border-neutral-900 bg-card">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-neutral-900 bg-card/95 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <PanelsTopLeft className="h-5 w-5 text-neutral-200" />
@@ -46,7 +46,7 @@ export default function AppTopbar({ user }: { user: CurrentAppUser }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-neutral-900 bg-card">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-neutral-900 bg-card/95 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <PanelsTopLeft className="h-5 w-5 text-neutral-200" />

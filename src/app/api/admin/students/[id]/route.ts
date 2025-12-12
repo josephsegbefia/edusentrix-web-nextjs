@@ -6,6 +6,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Activity } from "@/models/Activity";
+import { Guardian } from "@/models/Guardian";
 
 export async function GET(
   _req: NextRequest,
@@ -121,15 +122,25 @@ export async function GET(
           }
         : null,
 
-      // Guardians will be filled when parent/guardian linking is live
-      guardians: [] as Array<{
-        id: string;
-        fullName: string;
-        relationship: string;
-        phone: string;
-        email?: string | null;
-        isPrimary: boolean;
-      }>,
+      // Fetch guardians
+      guardians: (
+        await Guardian.find({
+          studentId: new mongoose.Types.ObjectId(id),
+        })
+          .populate("userId", "firstName lastName email avatarUrl")
+          .sort({ isPrimary: -1, createdAt: 1 })
+          .lean()
+      ).map((g: any) => {
+        const user = g.userId as any;
+        return {
+          id: String(g._id),
+          fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+          relationship: g.relationship as string,
+          phone: g.phone || "",
+          email: g.email || user.email || null,
+          isPrimary: g.isPrimary,
+        };
+      }),
 
       // Fees, academics, attendance, behaviour are stubbed for now
       feesSummary: null as {

@@ -3,14 +3,7 @@ import "server-only";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
-
-export type AppRole =
-  | "platform_admin"
-  | "school_admin"
-  | "staff"
-  | "teacher"
-  | "parent"
-  | "student";
+import type { AppRole } from "@/lib/roles";
 
 export type CurrentAppUser = {
   _id: string;

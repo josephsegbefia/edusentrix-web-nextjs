@@ -1,9 +1,10 @@
 import { Schema, model, models, Types } from "mongoose";
+import type { InvitationRole } from "@/lib/roles";
 
 export interface IInvitation {
   _id: Types.ObjectId;
   email: string;
-  role: "teacher" | "staff" | "school_admin";
+  role: InvitationRole;
   schoolId: Types.ObjectId;
   status: "pending" | "accepted" | "expired" | "revoked" | "failed";
   clerkInvitationId?: string;

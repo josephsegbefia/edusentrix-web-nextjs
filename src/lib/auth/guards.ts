@@ -1,7 +1,8 @@
 // src/lib/auth/guards.ts
 import "server-only";
 import { redirect } from "next/navigation";
-import type { AppRole, CurrentAppUser } from "./get-current-user";
+import type { AppRole } from "@/lib/roles";
+import type { CurrentAppUser } from "./get-current-user";
 
 export function assertRole(user: CurrentAppUser | null, allowed: AppRole[]) {
   if (!user) redirect("/login");

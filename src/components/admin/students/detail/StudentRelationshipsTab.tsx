@@ -4,6 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Users,
   FileText,
@@ -13,15 +14,54 @@ import {
   UserCheck,
   GraduationCap,
   FolderOpen,
+  Star,
+  Briefcase,
 } from "lucide-react";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
+import { ManageGuardiansContent } from "./ManageGuardiansModal";
+import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
+import { useGuardianSSE } from "@/hooks/admin/useGuardianSSE";
+import { useGuardians } from "@/hooks/admin/useGuardians";
+import { useDocumentSSE } from "@/hooks/admin/useDocumentSSE";
+import { cn } from "@/lib/utils";
 
 type Props = {
   student: StudentDetailDTO;
 };
 
+function getInitials(fullName: string): string {
+  const parts = fullName.trim().split(" ");
+  const first = parts[0]?.charAt(0)?.toUpperCase() || "";
+  const last = parts[parts.length - 1]?.charAt(0)?.toUpperCase() || "";
+  return first + last || "?";
+}
+
+function getRelationshipLabel(relationship: string): string {
+  const labels: Record<string, string> = {
+    mother: "Mother",
+    father: "Father",
+    guardian: "Guardian",
+    step_mother: "Step Mother",
+    step_father: "Step Father",
+    grandmother: "Grandmother",
+    grandfather: "Grandfather",
+    aunt: "Aunt",
+    uncle: "Uncle",
+    other: "Other",
+  };
+  return labels[relationship] || relationship;
+}
+
 export function StudentRelationshipsTab({ student }: Props) {
-  const { guardians, documents, grade, classGroup } = student;
+  const { documents, grade, classGroup } = student;
+  const [manageGuardiansOpen, setManageGuardiansOpen] = React.useState(false);
+
+  // Real-time updates for guardians and documents
+  useGuardianSSE(student.id);
+  useDocumentSSE(student.id);
+
+  // Fetch guardians with real-time updates
+  const { data: guardians = [] } = useGuardians(student.id);
 
   return (
     <div className="mt-4 space-y-6">
@@ -118,6 +158,7 @@ export function StudentRelationshipsTab({ student }: Props) {
             type="button"
             variant="outline"
             size="sm"
+            onClick={() => setManageGuardiansOpen(true)}
             className="cursor-pointer border border-white/20 bg-black/40 text-[11px] text-white/80 transition-all duration-200 hover:scale-105 hover:border-primary/50 hover:bg-primary/20 hover:text-primary-50 hover:shadow-md hover:shadow-primary/20 active:scale-95"
           >
             <Users className="mr-1.5 h-3.5 w-3.5" />
@@ -141,44 +182,79 @@ export function StudentRelationshipsTab({ student }: Props) {
               {guardians.map((g) => (
                 <div
                   key={g.id}
-                  className="group flex flex-col gap-2 rounded-lg border border-white/10 bg-black/30 px-4 py-3 transition-all hover:border-white/20 hover:bg-black/40"
+                  className={cn(
+                    "group relative flex flex-col gap-3 rounded-xl border bg-linear-to-br",
+                    "from-blue-500/10 via-blue-500/5 to-transparent",
+                    "border-blue-400/30 px-4 py-3 shadow-lg shadow-black/30 backdrop-blur-md",
+                    "transition-all duration-150 hover:-translate-y-[2px] hover:border-blue-400/50 hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
+                  )}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
-                        <UserCheck className="h-4 w-4 text-primary-200" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-foreground truncate">
-                            {g.fullName}
-                          </span>
-                          {g.isPrimary && (
-                            <Badge className="bg-primary/20 border border-primary/30 text-primary-100 text-[9px] font-medium">
-                              Primary
-                            </Badge>
-                          )}
+                  {/* Accent bar */}
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-1 rounded-l-xl bg-blue-400/80" />
+
+                  {/* Subtle top glow */}
+                  <div
+                    className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-white/30 to-transparent opacity-60"
+                    aria-hidden="true"
+                  />
+
+                  {/* Top row: avatar + name + badges */}
+                  <div className="flex items-start gap-3">
+                    <div className="relative shrink-0">
+                      <Avatar className="h-12 w-12 border-2 border-white/30 shadow-xl shadow-black/50 ring-2 ring-blue-400/20">
+                        {g.photoUrl ? (
+                          <AvatarImage src={g.photoUrl} alt={g.fullName} />
+                        ) : null}
+                        <AvatarFallback className="bg-linear-to-br from-blue-500/30 to-blue-600/20 text-sm font-bold text-blue-50">
+                          {getInitials(g.fullName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {g.isPrimary && (
+                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-card bg-primary ring-2 ring-card flex items-center justify-center">
+                          <Star className="h-2.5 w-2.5 fill-primary text-primary" />
                         </div>
-                        <Badge
-                          variant="outline"
-                          className="mt-1 border-white/20 bg-white/5 text-[10px]"
-                        >
-                          {g.relationship}
-                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex-1 space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="truncate text-sm font-semibold text-white">
+                          {g.fullName}
+                        </h3>
+                        {g.isPrimary && (
+                          <Badge className="bg-primary/20 border border-primary/30 text-primary-100 text-[9px] font-medium px-1.5 py-0.5">
+                            <Star className="mr-1 h-2.5 w-2.5 fill-primary" />
+                            Primary
+                          </Badge>
+                        )}
                       </div>
+                      <Badge
+                        variant="outline"
+                        className="border-white/20 bg-white/5 text-[10px] font-medium"
+                      >
+                        {getRelationshipLabel(g.relationship)}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1.5 pl-11">
+
+                  {/* Middle row: contact info */}
+                  <div className="flex flex-col gap-1.5 pl-14">
                     {g.phone && (
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground/90">
-                        <Phone className="h-3 w-3 shrink-0" />
+                      <div className="flex items-center gap-2 text-[11px] text-white/80">
+                        <Phone className="h-3 w-3 shrink-0 text-white/60" />
                         <span className="truncate">{g.phone}</span>
                       </div>
                     )}
                     {g.email && (
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground/90">
-                        <Mail className="h-3 w-3 shrink-0" />
+                      <div className="flex items-center gap-2 text-[11px] text-white/80">
+                        <Mail className="h-3 w-3 shrink-0 text-white/60" />
                         <span className="truncate">{g.email}</span>
+                      </div>
+                    )}
+                    {g.occupation && (
+                      <div className="flex items-center gap-2 text-[11px] text-white/80">
+                        <Briefcase className="h-3 w-3 shrink-0 text-white/60" />
+                        <span className="truncate">{g.occupation}</span>
                       </div>
                     )}
                   </div>
@@ -317,6 +393,19 @@ export function StudentRelationshipsTab({ student }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* Manage Guardians Modal */}
+      <ResponsiveModal
+        open={manageGuardiansOpen}
+        onClose={() => setManageGuardiansOpen(false)}
+        title="Manage Guardians"
+        widthClass="max-w-[60vw]"
+      >
+        <ManageGuardiansContent
+          studentId={student.id}
+          onClose={() => setManageGuardiansOpen(false)}
+        />
+      </ResponsiveModal>
     </div>
   );
 }

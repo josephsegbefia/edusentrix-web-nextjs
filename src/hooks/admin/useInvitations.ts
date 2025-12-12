@@ -7,7 +7,10 @@ export type InvitationStatus =
   | "revoked"
   | "failed";
 
-export type InvitationRole = "teacher" | "staff" | "school_admin";
+import type { InvitationRole } from "@/lib/roles";
+
+// Re-export for convenience
+export type { InvitationRole };
 
 export type Invitation = {
   _id: string;

@@ -5,6 +5,7 @@ import { Student } from "@/models/Student";
 import { UserMembership } from "@/models/UserMembership";
 import { Subject } from "@/models/Subject";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { Guardian } from "@/models/Guardian";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs"; // ensure node runtime for stream
@@ -39,6 +40,12 @@ export async function GET(req: NextRequest) {
         fullDocument: "updateLookup",
       });
 
+      // Watch for guardian changes
+      // We'll filter by student's schoolId in the change handler
+      const guardianWatch = Guardian.watch([], {
+        fullDocument: "updateLookup",
+      });
+
       const pushCounts = async () => {
         const [students, teachers, subjects] = await Promise.all([
           Student.countDocuments({ schoolId }),
@@ -68,12 +75,41 @@ export async function GET(req: NextRequest) {
       subjectWatch.on("change", onChangeCounts);
       periodWatch.on("change", onChangePeriod);
 
+      // Handle guardian changes - filter by student's schoolId
+      guardianWatch.on("change", async (change: any) => {
+        try {
+          const studentIdObj = change.fullDocument?.studentId || change.documentKey?.studentId;
+          if (!studentIdObj) return;
+
+          // Verify the student belongs to this school
+          const student = await Student.findById(studentIdObj)
+            .select("schoolId")
+            .lean();
+
+          if (student && String(student.schoolId) === String(schoolId)) {
+            send("guardians.updated", {
+              studentId: String(studentIdObj),
+              operationType: change.operationType,
+            });
+          }
+        } catch (err) {
+          console.error("Error processing guardian change:", err);
+        }
+      });
+
+      // TODO: Add document watching when Document model is created
+      // const documentWatch = Document.watch([...], { fullDocument: "updateLookup" });
+      // documentWatch.on("change", async (change: any) => {
+      //   // Filter by student's schoolId and send "documents.updated" event
+      // });
+
       const abort = req.signal;
       abort.addEventListener("abort", () => {
         studentWatch.close();
         teacherWatch.close();
         subjectWatch.close();
         periodWatch.close();
+        guardianWatch.close();
         controller.close();
       });
 

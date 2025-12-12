@@ -1,13 +1,6 @@
 // src/models/User.ts
 import { Schema, model, models, Types } from "mongoose";
-
-export type AppRole =
-  | "platform_admin"
-  | "school_admin"
-  | "staff"
-  | "teacher"
-  | "parent"
-  | "student";
+import type { AppRole } from "@/lib/roles";
 
 export interface IUser {
   _id: Types.ObjectId;
@@ -49,6 +42,7 @@ const userSchema = new Schema<IUser>(
       enum: [
         "platform_admin",
         "school_admin",
+        "bursar",
         "staff",
         "teacher",
         "parent",

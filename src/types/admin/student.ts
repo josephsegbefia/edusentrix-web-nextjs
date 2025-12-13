@@ -56,7 +56,13 @@ export type StudentQuickStats = {
   owingAmount: number;
   topPerformers: number;
   newThisMonth: number;
-  classDistribution: {
+  gradeDistribution: {
+    gradeId: string;
+    gradeName: string;
+    count: number;
+  }[];
+  // Keep classDistribution for backward compatibility (can be removed later)
+  classDistribution?: {
     classGroupId: string;
     classGroupName: string;
     gradeId: string | null;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import * as React from "react";
@@ -13,7 +14,7 @@ import { ImageUploader } from "@/components/upload/ImageUploader";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Check, X, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -156,7 +157,8 @@ export default function CreateStudentModal({
       {/* Step Indicator - Simple dots like CreateTeacherModal */}
       <div className="flex items-center justify-between pb-6">
         <div className="text-sm text-white/70">
-          Step <span className="font-semibold">{currentStep}</span> of {STEPS.length}
+          Step <span className="font-semibold">{currentStep}</span> of{" "}
+          {STEPS.length}
         </div>
         <div className="flex gap-1">
           {STEPS.map((_, i) => (
@@ -372,7 +374,7 @@ export default function CreateStudentModal({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand/20 to-brand/10"
+                            className="w-full h-full flex items-center justify-center bg-linear-to-br from-brand/20 to-brand/10"
                           >
                             <span className="text-4xl font-bold text-brand">
                               {initials}

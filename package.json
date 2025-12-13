@@ -10,6 +10,10 @@
     "seed:banks": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv",
     "seed:banks:drop": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --drop",
     "seed:banks:dry": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --dryRun",
+    "seed:jhs": "tsx scripts/seed-jhs-classes.ts",
+    "seed:jhs:dry": "tsx scripts/seed-jhs-classes.ts --dryRun",
+    "seed:academics": "tsx scripts/seed-academics.ts",
+    "seed:academics:dry": "tsx scripts/seed-academics.ts --dryRun",
     "admin:create": "tsx scripts/createPlatformAdmin.ts"
   },
   "dependencies": {
@@ -43,10 +47,12 @@
     "next": "16.0.1",
     "next-cloudinary": "^6.17.5",
     "nodemailer": "^7.0.10",
+    "openai": "^6.10.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.67.0",
     "react-markdown": "^10.1.0",
+    "recharts": "^3.5.1",
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",

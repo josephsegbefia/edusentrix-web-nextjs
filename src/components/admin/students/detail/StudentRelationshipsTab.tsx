@@ -11,7 +11,6 @@ import {
   School,
   Phone,
   Mail,
-  UserCheck,
   GraduationCap,
   FolderOpen,
   Star,
@@ -184,13 +183,13 @@ export function StudentRelationshipsTab({ student }: Props) {
                   key={g.id}
                   className={cn(
                     "group relative overflow-hidden rounded-2xl border border-white/10",
-                    "bg-gradient-to-br from-slate-800/50 via-slate-900/40 to-slate-950/50",
+                    "bg-linear-to-br from-slate-800/50 via-slate-900/40 to-slate-950/50",
                     "backdrop-blur-sm shadow-lg shadow-black/20",
                     "transition-all duration-200 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10"
                   )}
                 >
                   {/* Decorative corner accent */}
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-br from-primary/10 to-transparent rounded-bl-full" />
 
                   {/* Content */}
                   <div className="relative p-4 space-y-3">
@@ -201,7 +200,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                           {g.photoUrl ? (
                             <AvatarImage src={g.photoUrl} alt={g.fullName} />
                           ) : null}
-                          <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-900 text-base font-bold text-slate-200">
+                          <AvatarFallback className="bg-linear-to-br from-slate-700 to-slate-900 text-base font-bold text-slate-200">
                             {getInitials(g.fullName)}
                           </AvatarFallback>
                         </Avatar>
@@ -239,7 +238,9 @@ export function StudentRelationshipsTab({ student }: Props) {
                           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/50">
                             <Phone className="h-3.5 w-3.5 text-slate-400" />
                           </div>
-                          <span className="text-slate-300 truncate flex-1">{g.phone}</span>
+                          <span className="text-slate-300 truncate flex-1">
+                            {g.phone}
+                          </span>
                         </div>
                       )}
                       {g.email && (
@@ -247,7 +248,9 @@ export function StudentRelationshipsTab({ student }: Props) {
                           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/50">
                             <Mail className="h-3.5 w-3.5 text-slate-400" />
                           </div>
-                          <span className="text-slate-300 truncate flex-1">{g.email}</span>
+                          <span className="text-slate-300 truncate flex-1">
+                            {g.email}
+                          </span>
                         </div>
                       )}
                       {g.occupation && (
@@ -255,7 +258,9 @@ export function StudentRelationshipsTab({ student }: Props) {
                           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/50">
                             <Briefcase className="h-3.5 w-3.5 text-slate-400" />
                           </div>
-                          <span className="text-slate-300 truncate flex-1">{g.occupation}</span>
+                          <span className="text-slate-300 truncate flex-1">
+                            {g.occupation}
+                          </span>
                         </div>
                       )}
                     </div>

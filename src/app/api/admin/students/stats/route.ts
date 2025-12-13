@@ -39,39 +39,76 @@ export async function GET() {
     const schoolObjectId =
       schoolId instanceof mongoose.Types.ObjectId ? schoolId : schoolId;
 
-    const [total, newThisMonth, distributionRaw] = await Promise.all([
-      Student.countDocuments({ schoolId: schoolObjectId }),
+    const [total, newThisMonth, gradeDistributionRaw, classDistributionRaw] =
+      await Promise.all([
+        Student.countDocuments({ schoolId: schoolObjectId }),
 
-      // New this month (by enrolledAt if set, otherwise createdAt)
-      (async () => {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        return Student.countDocuments({
-          schoolId: schoolObjectId,
-          $or: [
-            { enrolledAt: { $gte: startOfMonth } },
-            {
-              enrolledAt: null,
-              createdAt: { $gte: startOfMonth },
+        // New this month (by enrolledAt if set, otherwise createdAt)
+        (async () => {
+          const now = new Date();
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+          return Student.countDocuments({
+            schoolId: schoolObjectId,
+            $or: [
+              { enrolledAt: { $gte: startOfMonth } },
+              {
+                enrolledAt: null,
+                createdAt: { $gte: startOfMonth },
+              },
+            ],
+          });
+        })(),
+
+        // Grade distribution – group by gradeId
+        Student.aggregate([
+          { $match: { schoolId: schoolObjectId } },
+          {
+            $group: {
+              _id: "$gradeId",
+              count: { $sum: 1 },
             },
-          ],
-        });
-      })(),
-
-      // Class distribution – group by classGroupId
-      Student.aggregate([
-        { $match: { schoolId: schoolObjectId } },
-        {
-          $group: {
-            _id: "$classGroupId",
-            count: { $sum: 1 },
           },
-        },
-      ]),
-    ]);
+        ]),
 
-    // Resolve class group + grade labels
-    const classGroupIds = distributionRaw
+        // Class distribution – group by classGroupId (kept for backward compatibility)
+        Student.aggregate([
+          { $match: { schoolId: schoolObjectId } },
+          {
+            $group: {
+              _id: "$classGroupId",
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+      ]);
+
+    // Resolve grade labels for grade distribution
+    const gradeIds = gradeDistributionRaw
+      .map((d: any) => d._id)
+      .filter(Boolean) as mongoose.Types.ObjectId[];
+
+    const grades = gradeIds.length
+      ? await Grade.find({ _id: { $in: gradeIds } }).lean()
+      : [];
+
+    const gradeMap = new Map<string, any>();
+    for (const grade of grades) {
+      gradeMap.set(String(grade._id), grade);
+    }
+
+    const gradeDistribution: StudentQuickStats["gradeDistribution"] =
+      gradeDistributionRaw.map((d: any) => {
+        const grade = gradeMap.get(String(d._id));
+
+        return {
+          gradeId: d._id ? String(d._id) : "unassigned",
+          gradeName: grade?.name ?? "Unassigned",
+          count: d.count ?? 0,
+        };
+      });
+
+    // Resolve class group + grade labels (for backward compatibility)
+    const classGroupIds = classDistributionRaw
       .map((d: any) => d._id)
       .filter(Boolean) as mongoose.Types.ObjectId[];
 
@@ -87,7 +124,7 @@ export async function GET() {
     }
 
     const classDistribution: StudentQuickStats["classDistribution"] =
-      distributionRaw.map((d: any) => {
+      classDistributionRaw.map((d: any) => {
         const cg = classGroupMap.get(String(d._id));
         const grade = cg?.gradeId as any | undefined;
 
@@ -107,7 +144,8 @@ export async function GET() {
       owingAmount: 0,
       topPerformers: 0,
       newThisMonth,
-      classDistribution,
+      gradeDistribution,
+      classDistribution, // Kept for backward compatibility
     };
 
     return NextResponse.json(stats, { status: 200 });

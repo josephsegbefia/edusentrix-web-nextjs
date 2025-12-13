@@ -5,7 +5,7 @@ import * as React from "react";
 import { GraduationCap, AlertCircle, Star, TrendingUp } from "lucide-react";
 import { useStudentStats } from "@/hooks/admin/useStudentStats";
 
-import { ClassDistributionList } from "./ClassDistributionList";
+// import { GradeDistributionCard } from "./GradeDistributionCard";
 import { MetricStatCard } from "../stats/MetricsStatCard";
 
 export function StudentsQuickStatsSection() {
@@ -21,10 +21,10 @@ export function StudentsQuickStatsSection() {
   const owingAmount = data?.owingAmount ?? 0;
   const topPerformers = data?.topPerformers ?? 0;
   const newThisMonth = data?.newThisMonth ?? 0;
-  const distribution = data?.classDistribution ?? [];
+  // const gradeDistribution = data?.gradeDistribution ?? [];
 
   return (
-    <section className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(280px,1.1fr)]">
+    <section className="grid gap-4">
       {/* Main metrics grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
         <MetricStatCard
@@ -76,8 +76,8 @@ export function StudentsQuickStatsSection() {
         />
       </div>
 
-      {/* Class distribution */}
-      <ClassDistributionList distribution={distribution} loading={isLoading} />
+      {/* Grade distribution - commented out for now */}
+      {/* <GradeDistributionCard distribution={gradeDistribution} loading={isLoading} /> */}
     </section>
   );
 }

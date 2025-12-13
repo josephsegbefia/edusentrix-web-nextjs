@@ -228,7 +228,7 @@ function StudentDetailContent() {
         {activeTab === "overview" ? (
           <StudentOverviewTab student={student} />
         ) : activeTab === "academics" ? (
-          <StudentAcademicsTab student={student} />
+          <StudentAcademicsTab studentId={studentId!} />
         ) : activeTab === "fees" ? (
           <StudentFeesTab student={student} />
         ) : activeTab === "behaviour" ? (

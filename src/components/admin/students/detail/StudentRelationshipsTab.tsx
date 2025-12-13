@@ -183,80 +183,82 @@ export function StudentRelationshipsTab({ student }: Props) {
                 <div
                   key={g.id}
                   className={cn(
-                    "group relative flex flex-col gap-3 rounded-xl border bg-linear-to-br",
-                    "from-blue-500/10 via-blue-500/5 to-transparent",
-                    "border-blue-400/30 px-4 py-3 shadow-lg shadow-black/30 backdrop-blur-md",
-                    "transition-all duration-150 hover:-translate-y-[2px] hover:border-blue-400/50 hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
+                    "group relative overflow-hidden rounded-2xl border border-white/10",
+                    "bg-gradient-to-br from-slate-800/50 via-slate-900/40 to-slate-950/50",
+                    "backdrop-blur-sm shadow-lg shadow-black/20",
+                    "transition-all duration-200 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10"
                   )}
                 >
-                  {/* Accent bar */}
-                  <div className="pointer-events-none absolute inset-y-0 left-0 w-1 rounded-l-xl bg-blue-400/80" />
+                  {/* Decorative corner accent */}
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
 
-                  {/* Subtle top glow */}
-                  <div
-                    className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-white/30 to-transparent opacity-60"
-                    aria-hidden="true"
-                  />
+                  {/* Content */}
+                  <div className="relative p-4 space-y-3">
+                    {/* Header: Avatar and Primary Badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="relative">
+                        <Avatar className="h-14 w-14 border-3 border-slate-700/50 shadow-lg ring-2 ring-slate-800/50">
+                          {g.photoUrl ? (
+                            <AvatarImage src={g.photoUrl} alt={g.fullName} />
+                          ) : null}
+                          <AvatarFallback className="bg-gradient-to-br from-slate-700 to-slate-900 text-base font-bold text-slate-200">
+                            {getInitials(g.fullName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {g.isPrimary && (
+                          <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-primary border-2 border-slate-900 flex items-center justify-center shadow-lg">
+                            <Star className="h-3 w-3 fill-white text-white" />
+                          </div>
+                        )}
+                      </div>
 
-                  {/* Top row: avatar + name + badges */}
-                  <div className="flex items-start gap-3">
-                    <div className="relative shrink-0">
-                      <Avatar className="h-12 w-12 border-2 border-white/30 shadow-xl shadow-black/50 ring-2 ring-blue-400/20">
-                        {g.photoUrl ? (
-                          <AvatarImage src={g.photoUrl} alt={g.fullName} />
-                        ) : null}
-                        <AvatarFallback className="bg-linear-to-br from-blue-500/30 to-blue-600/20 text-sm font-bold text-blue-50">
-                          {getInitials(g.fullName)}
-                        </AvatarFallback>
-                      </Avatar>
                       {g.isPrimary && (
-                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-card bg-primary ring-2 ring-card flex items-center justify-center">
-                          <Star className="h-2.5 w-2.5 fill-primary text-primary" />
-                        </div>
+                        <Badge className="bg-primary/20 border border-primary/40 text-primary-100 text-[10px] font-semibold px-2 py-1 shadow-sm">
+                          Primary Contact
+                        </Badge>
                       )}
                     </div>
 
-                    <div className="flex-1 space-y-1.5 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="truncate text-sm font-semibold text-white">
-                          {g.fullName}
-                        </h3>
-                        {g.isPrimary && (
-                          <Badge className="bg-primary/20 border border-primary/30 text-primary-100 text-[9px] font-medium px-1.5 py-0.5">
-                            <Star className="mr-1 h-2.5 w-2.5 fill-primary" />
-                            Primary
-                          </Badge>
-                        )}
+                    {/* Name and Relationship */}
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-bold text-white leading-tight">
+                        {g.fullName}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1 w-1 rounded-full bg-primary/60" />
+                        <span className="text-[11px] font-medium text-slate-300">
+                          {getRelationshipLabel(g.relationship)}
+                        </span>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="border-white/20 bg-white/5 text-[10px] font-medium"
-                      >
-                        {getRelationshipLabel(g.relationship)}
-                      </Badge>
                     </div>
-                  </div>
 
-                  {/* Middle row: contact info */}
-                  <div className="flex flex-col gap-1.5 pl-14">
-                    {g.phone && (
-                      <div className="flex items-center gap-2 text-[11px] text-white/80">
-                        <Phone className="h-3 w-3 shrink-0 text-white/60" />
-                        <span className="truncate">{g.phone}</span>
-                      </div>
-                    )}
-                    {g.email && (
-                      <div className="flex items-center gap-2 text-[11px] text-white/80">
-                        <Mail className="h-3 w-3 shrink-0 text-white/60" />
-                        <span className="truncate">{g.email}</span>
-                      </div>
-                    )}
-                    {g.occupation && (
-                      <div className="flex items-center gap-2 text-[11px] text-white/80">
-                        <Briefcase className="h-3 w-3 shrink-0 text-white/60" />
-                        <span className="truncate">{g.occupation}</span>
-                      </div>
-                    )}
+                    {/* Contact Information */}
+                    <div className="pt-2 space-y-2 border-t border-white/5">
+                      {g.phone && (
+                        <div className="flex items-center gap-2.5 text-[11px]">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/50">
+                            <Phone className="h-3.5 w-3.5 text-slate-400" />
+                          </div>
+                          <span className="text-slate-300 truncate flex-1">{g.phone}</span>
+                        </div>
+                      )}
+                      {g.email && (
+                        <div className="flex items-center gap-2.5 text-[11px]">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/50">
+                            <Mail className="h-3.5 w-3.5 text-slate-400" />
+                          </div>
+                          <span className="text-slate-300 truncate flex-1">{g.email}</span>
+                        </div>
+                      )}
+                      {g.occupation && (
+                        <div className="flex items-center gap-2.5 text-[11px]">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/50">
+                            <Briefcase className="h-3.5 w-3.5 text-slate-400" />
+                          </div>
+                          <span className="text-slate-300 truncate flex-1">{g.occupation}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

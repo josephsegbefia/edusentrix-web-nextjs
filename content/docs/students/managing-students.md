@@ -192,6 +192,74 @@ Navigate through large student lists:
 
 **Keyboard shortcut**: You can also use the command palette (`⌘K` / `Ctrl+K`) and search for the student by name.
 
+## Student Detail Page
+
+Clicking on any student opens a comprehensive detail page with multiple tabs for managing all aspects of the student's record.
+
+### Overview Tab
+
+The default tab showing:
+- **Student Header**: Photo, name, admission number, class, and status badges
+- **Quick Stats Cards**:
+  - Overall Average (academic performance)
+  - Attendance percentage
+  - Fee status summary
+  - Recent activity count
+- **Personal Information**: Date of birth, age, enrollment date
+- **Class Information**: Current grade and class group assignment
+
+### Academics Tab
+
+Academic performance tracking (coming soon):
+- Overall average and class position
+- Term-by-term performance breakdown
+- Subject-level grades (CA, Exam, Total, Grade Letter)
+- Performance trends and visualizations
+- Teacher comments and notes
+
+### Fees Tab
+
+Financial information:
+- Current term fee summary
+- Total billed, paid, and outstanding amounts
+- Payment timeline with history
+- Fee status indicators
+- Payment method tracking
+
+### Behaviour Tab
+
+Behavioral records:
+- Incident tracking (low, medium, high severity)
+- Positive notes and achievements
+- Behavior summary statistics
+- Date-stamped records with details
+
+### Relationships Tab
+
+Student connections:
+- **Guardians/Parents**:
+  - List of all linked guardians with photos
+  - Primary contact designation
+  - Contact information (phone, email, occupation)
+  - Manage guardians button for adding/editing
+- **Class & Enrollment**: Current grade and class group
+- **Documents**: Uploaded files and documents
+
+### Activity Tab
+
+Complete audit log:
+- All actions related to the student
+- User who performed each action
+- Timestamps for all activities
+- Filterable by activity type
+
+### Real-time Updates
+
+The student detail page features real-time updates via Server-Sent Events (SSE):
+- Guardian lists update automatically when guardians are added/removed
+- No page refresh needed to see changes
+- Changes sync across all open tabs/windows
+
 ## Student Status Management
 
 ### Active Students

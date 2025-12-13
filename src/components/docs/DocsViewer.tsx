@@ -42,6 +42,11 @@ const DOC_CATEGORIES: DocCategory[] = [
         slug: "managing-students",
         path: "students/managing-students.md",
       },
+      {
+        title: "Managing Guardians",
+        slug: "managing-guardians",
+        path: "students/managing-guardians.md",
+      },
     ],
   },
   {

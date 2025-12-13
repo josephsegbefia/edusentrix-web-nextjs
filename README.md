@@ -46,7 +46,20 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Premium students management page with card/table views
   - Advanced search, filtering, and sorting
   - Class and grade assignments
-  - Guardian/parent associations
+  - Comprehensive student detail pages with multiple tabs:
+    - Overview: Personal info, stats, and quick actions
+    - Academics: Performance tracking and gradebook (coming soon)
+    - Fees: Payment history and outstanding balances
+    - Behaviour: Incident tracking and positive notes
+    - Relationships: Guardian management and class assignments
+    - Activity: Complete audit log of student-related actions
+  - Guardian/parent management with real-time updates:
+    - Add, edit, and remove guardians
+    - Primary guardian designation (one per student)
+    - Parent account creation with Clerk invitations
+    - Occupation and contact information tracking
+    - Photo uploads via Cloudinary
+    - Real-time updates via Server-Sent Events (SSE)
   - Academic records tracking
   - Fee status tracking and color-coded student cards
   - Academic performance badges (Top 1%, Top 5%, Top 10%, Honours)
@@ -101,9 +114,20 @@ EduSentrix is a comprehensive school management platform designed specifically f
 
 - **Activity & Audit Logging**
   - Comprehensive activity feed on admin dashboard
-  - Track all system actions (student/teacher creation, invitations, etc.)
+  - Track all system actions (student/teacher creation, invitations, guardian management, etc.)
   - Filterable by activity type and date range
   - Real-time updates via Server-Sent Events (SSE)
+  - Student-specific activity logs on detail pages
+
+- **Guardian & Parent Management**
+  - Multi-step guardian creation form with photo upload
+  - Relationship selection (Mother, Father, Guardian, etc.)
+  - Primary contact designation (one per student)
+  - Parent account creation with Clerk invitation system
+  - Occupation and contact information tracking
+  - Real-time guardian list updates via SSE
+  - Support for parents linked to multiple students
+  - Automatic cleanup when parent has no remaining student links
 
 - **Analytics & Reporting**
   - Real-time dashboard metrics
@@ -127,6 +151,13 @@ EduSentrix is a comprehensive school management platform designed specifically f
 - **Network Health Monitoring**: Real-time network status tracking with visual indicators
 - **Task Tracker**: Markdown-based deferred tasks tracking system
 - **Premium UI Design**: Modern, industry-standard design with gradient cards and animations
+- **Real-time Updates**: Server-Sent Events (SSE) for live data synchronization:
+  - Student counts on dashboard
+  - Teacher counts on dashboard
+  - Subject counts on dashboard
+  - Guardian lists on student detail pages
+  - Academic period updates
+- **Fixed Navigation**: AppTopbar stays fixed at top for better navigation experience
 
 ## 🛠 Tech Stack
 
@@ -429,6 +460,7 @@ The application uses Mongoose models located in `src/models/`:
 - **Activity**: System-wide activity logging and audit trail
 - **Invite**: Legacy user invitation system
 - **UserMembership**: User-school associations
+- **Guardian**: Student-guardian relationships with primary contact designation
 
 ### Database Connection
 

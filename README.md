@@ -42,6 +42,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
 ### Core Functionality
 
 - **Student Management**
+
   - Student enrollment and profile management
   - Premium students management page with card/table views
   - Advanced search, filtering, and sorting
@@ -66,26 +67,78 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Bulk actions and export functionality
 
 - **Fee Management & Payments**
-  - Invoice-based fee system (one invoice per student per term)
-  - Flexible line-item payment allocation (parents choose what to pay first)
-  - Per-line-item installment support with flexible payment order
-  - Student credit/wallet system for overpayments
-  - Append-only invoice model with adjustments (no mutations after issue)
-  - Full reconciliation system (Internal Ledger ↔ Gateway ↔ Bank Statements)
-  - Payment intent tracking (gateway-safe architecture)
-  - Financial-grade accuracy (money stored as integers in minor units)
-  - Comprehensive audit trail with invoice event timeline
-  - Automated reminders for installments and overdue payments
-  - Outstanding balance management with reconciliation status
-  - Bank statement import and matching
-  - Paystack integration with webhook deduplication
+
+  - **Comprehensive Fees Dashboard** (`/admin/fees`):
+    - Real-time metrics: Total Revenue, Monthly Revenue, Outstanding, Collection Rate
+    - Invoice status overview (Draft, Issued, Partially Paid, Paid, Overdue, Cancelled)
+    - Upcoming due invoices (next 14 days) with student details
+    - Top defaulters list with outstanding balances
+    - Recent payments feed with payment method and invoice details
+    - Quick actions for common tasks
+    - Premium UI with gradient cards and real-time updates via SSE
+  - **Invoice Management**:
+    - **Single Invoice Creation**: Multi-step modal with debounced student search
+      - Select student with visual cards (photo, name, admission number)
+      - Choose academic period (current period card or past periods dropdown)
+      - Configure line items with fee structures or custom fees
+      - Set due dates and optional notes/terms
+      - Installment configuration per line item (custom schedules or auto-generated)
+    - **Bulk Invoice Creation**: Create invoices for multiple students at once
+      - Unified search for students, grades, and class groups
+      - Select by grade (shows class groups) or individual class groups
+      - Exclude specific students from class group selections
+      - Configure line items and installments for all selected students
+      - Review step showing total invoices and amounts
+    - **Invoice List Page** (`/admin/fees/invoices`):
+      - Premium design matching admin dashboard
+      - Advanced filtering (status, student, academic period, date range)
+      - Search by invoice number or student name
+      - Bulk selection with checkboxes
+      - Bulk actions: Issue, Cancel, Export (CSV)
+      - Status filter dropdown with premium styling
+      - Pagination with summary metrics
+    - **Invoice Detail Page** (`/admin/fees/invoices/[id]`):
+      - Premium card layout with summary metrics
+      - Line items with payment breakdown and status
+      - Installment schedule visualization (if applicable)
+      - Payment history with allocations
+      - Add adjustments (waivers, scholarships, penalties, corrections)
+      - Student credit management (view balance, apply to invoice)
+      - Invoice event timeline (complete audit trail)
+      - Issue, cancel, and export actions
+  - **Payment Recording**:
+    - Multi-step payment recording modal
+    - Select invoice with search and filters
+    - Flexible payment allocation to line items (parents choose what to pay)
+    - Support for multiple payment methods (Cash, Mobile Money, Bank Transfer, Card)
+    - Automatic installment status updates
+    - Student credit handling for overpayments
+  - **Core Features**:
+    - Invoice-based system (one invoice per student per academic period)
+    - Flexible line-item payment allocation (parents choose what to pay first)
+    - Per-line-item installment support with custom or auto-generated schedules
+    - Student credit/wallet system for overpayments (formal ledger)
+    - Append-only invoice model with adjustments (no mutations after issue)
+    - Financial-grade accuracy (money stored as integers in minor units - pesewas)
+    - Comprehensive audit trail with invoice event timeline
+    - Payment intent tracking (gateway-safe architecture for idempotency)
+    - Transaction-safe operations using MongoDB transactions
+    - Real-time updates via Server-Sent Events (SSE)
+  - **Advanced Features** (Planned):
+    - Full reconciliation system (Internal Ledger ↔ Gateway ↔ Bank Statements)
+    - Bank statement import and matching
+    - Automated reminders for installments and overdue payments
+    - Advanced analytics dashboard (revenue trends, aging analysis, payment methods, etc.)
+    - See `FEES_SYSTEM_STRATEGY.md` for complete roadmap
 
 - **Academic Period Management**
+
   - Term and academic year configuration
   - Period progress tracking
   - Date range management
 
 - **Academic Performance & Gradebook**
+
   - Comprehensive student analytics dashboard
   - Subject performance overview (top/bottom performers)
   - Overall performance trend charts with class comparison
@@ -99,6 +152,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Premium visualizations using Recharts
 
 - **Teacher Management**
+
   - Teacher creation with multi-step onboarding
   - Subject and homeroom class assignments
   - Teacher invitation system with email notifications
@@ -106,6 +160,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Image upload with Cloudinary integration
 
 - **Class & Subject Management**
+
   - Automatic grade seeding based on school type (Basic: Creche → JHS3, SHS: SHS1-3)
   - Automatic subject creation for Basic schools (Ghana curriculum)
   - Class group creation with flexible naming strategies (letters, numbers, custom names)
@@ -114,6 +169,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Dynamic search for class groups and subjects
 
 - **User Roles & Permissions**
+
   - Platform Admin: Manage school applications and platform settings
   - School Admin: Full school management capabilities
   - Teacher: Class and student management
@@ -121,11 +177,13 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Student: Access personal academic information
 
 - **School Onboarding**
+
   - Application submission workflow
   - School provisioning with Paystack subaccount creation
   - Guided onboarding process
 
 - **Invitation Management**
+
   - Comprehensive invitation tracking system
   - Invite teachers and school admins via email
   - Track invitation status (pending, accepted, expired, revoked, failed)
@@ -134,6 +192,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Activity logging for all invitation actions
 
 - **Activity & Audit Logging**
+
   - Comprehensive activity feed on admin dashboard
   - Track all system actions (student/teacher creation, invitations, guardian management, etc.)
   - Filterable by activity type and date range
@@ -141,6 +200,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Student-specific activity logs on detail pages
 
 - **Guardian & Parent Management**
+
   - Multi-step guardian creation form with photo upload
   - Relationship selection (Mother, Father, Guardian, etc.)
   - Primary contact designation (one per student)
@@ -151,6 +211,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Automatic cleanup when parent has no remaining student links
 
 - **Analytics & Reporting**
+
   - Real-time dashboard metrics
   - Revenue tracking
   - Collection rate analysis
@@ -178,6 +239,11 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Subject counts on dashboard
   - Guardian lists on student detail pages
   - Academic period updates
+  - Fees dashboard metrics (revenue, outstanding, collection rate)
+  - Invoice status counts
+  - Recent payments feed
+  - Upcoming due invoices
+  - Top defaulters list
 - **Fixed Navigation**: AppTopbar stays fixed at top for better navigation experience
 - **Optimized Data Fetching**: React Query with smart caching and no automatic refetching on window focus for better performance
 
@@ -323,6 +389,11 @@ edusentrix-web-nextjs/
 │   │   │   │   ├── students/   # Students management page
 │   │   │   │   ├── teachers/   # Teachers management page
 │   │   │   │   ├── invitations/# Invitation management page
+│   │   │   │   ├── fees/       # Fees & payments pages
+│   │   │   │   │   ├── page.tsx        # Fees dashboard
+│   │   │   │   │   ├── structures/     # Fee structures management
+│   │   │   │   │   ├── invoices/       # Invoice list and detail pages
+│   │   │   │   │   └── payments/       # Payment recording page
 │   │   │   │   ├── tasks/      # Task tracker page
 │   │   │   │   └── ...         # Other admin pages
 │   │   │   ├── teacher/        # Teacher portal
@@ -338,6 +409,12 @@ edusentrix-web-nextjs/
 │   │   │   │   ├── students/   # Student management APIs
 │   │   │   │   ├── teachers/   # Teacher management APIs
 │   │   │   │   ├── invitations/# Invitation management APIs
+│   │   │   │   ├── fees/       # Fees & payments APIs
+│   │   │   │   │   ├── structures/  # Fee structure APIs
+│   │   │   │   │   ├── invoices/   # Invoice APIs (CRUD, issue, cancel, bulk)
+│   │   │   │   │   ├── payments/   # Payment recording APIs
+│   │   │   │   │   ├── credit/    # Student credit APIs
+│   │   │   │   │   └── summary/   # Dashboard summary API
 │   │   │   │   └── ...         # Other admin APIs
 │   │   │   ├── onboarding/     # Onboarding APIs
 │   │   │   ├── periods/        # Academic period APIs
@@ -353,8 +430,19 @@ edusentrix-web-nextjs/
 │   │   ├── auth/               # Auth components
 │   │   ├── admin/              # Admin-specific components
 │   │   │   ├── students/       # Student management components
+│   │   │   ├── fees/           # Fees & payments components
+│   │   │   │   ├── InstallmentScheduleConfig.tsx
+│   │   │   │   ├── InstallmentScheduleView.tsx
+│   │   │   │   ├── StudentCreditManager.tsx
+│   │   │   │   ├── InvoiceEventTimeline.tsx
+│   │   │   │   └── InvoicesBulkActionsBar.tsx
 │   │   │   └── stats/          # Dashboard stats components
 │   │   ├── modals/             # Modal components
+│   │   │   ├── CreateInvoiceModal.tsx
+│   │   │   ├── BulkCreateInvoiceModal.tsx
+│   │   │   ├── RecordPaymentModal.tsx
+│   │   │   ├── AddAdjustmentModal.tsx
+│   │   │   └── CreateFeeStructureModal.tsx
 │   │   ├── nav/                # Navigation components
 │   │   ├── system/             # System components (network health, etc.)
 │   │   └── platform/           # Platform-specific components
@@ -363,10 +451,19 @@ edusentrix-web-nextjs/
 │   │   └── ghana-basic-subjects.ts  # Ghana curriculum subjects
 │   ├── db/                     # Database utilities
 │   ├── hooks/                  # Custom React hooks
+│   │   ├── admin/              # Admin-specific hooks
+│   │   │   ├── useFeeStructures.ts
+│   │   │   ├── useFeeSummary.ts
+│   │   │   ├── useInvoices.ts
+│   │   │   ├── usePayments.ts
+│   │   │   └── useFeesSSE.ts
 │   ├── lib/                    # Utility libraries
 │   │   ├── auth/               # Auth utilities
 │   │   ├── banks/              # Bank utilities
 │   │   ├── email/              # Email utilities
+│   │   ├── fees/               # Fees & payments utilities
+│   │   │   ├── money.ts        # Money conversion (minor units ↔ display)
+│   │   │   └── invoice-utils.ts # Invoice number generation, status calculations
 │   │   └── jobs/               # Background jobs
 │   ├── models/                 # Mongoose models
 │   ├── providers/              # React context providers
@@ -394,11 +491,13 @@ edusentrix-web-nextjs/
 ### Development Workflow
 
 1. **Start MongoDB** (if running locally):
+
    ```bash
    mongod
    ```
 
 2. **Start Development Server**:
+
    ```bash
    npm run dev
    ```
@@ -500,22 +599,22 @@ The application uses Mongoose models located in `src/models/`:
 - **Invite**: Legacy user invitation system
 - **UserMembership**: User-school associations
 - **Guardian**: Student-guardian relationships with primary contact designation
-- **FeeStructure**: Fee type templates (Tuition, Library, Sports, etc.)
-- **Invoice**: Student invoices per academic period (unique per student per term)
-- **InvoiceLineItem**: Individual fees within invoices (ordered by importance)
-- **PaymentIntent**: Payment attempt/initiation tracking (gateway-safe)
-- **Payment**: Completed payment transactions with allocations
-- **PaymentAllocation**: How payments are split across line items
-- **InstallmentSchedule**: Explicit installment schedules per line item
-- **StudentCreditBalance**: Student credit/wallet for overpayments
-- **InvoiceEvent**: Invoice timeline/audit trail
-- **GatewayEvent**: Gateway webhook event log (dedupe-safe)
-- **GatewaySettlement**: Paystack settlement/payout tracking
-- **BankStatementImport**: Imported bank statement files
-- **BankStatementLine**: Individual bank statement transactions
-- **ReconciliationSession**: Reconciliation workflow sessions
-- **ReconciliationMatch**: Matches between bank statements and payments
-- **ReconIssue**: Reconciliation issues requiring attention
+- **FeeStructure**: Fee type templates (Tuition, Library, Sports, etc.) with installment settings
+- **Invoice**: Student invoices per academic period (unique per student per term) with versioning
+- **InvoiceLineItem**: Individual fees within invoices (ordered by importance) with adjustment tracking
+- **PaymentIntent**: Payment attempt/initiation tracking (gateway-safe, idempotency)
+- **Payment**: Completed payment transactions with allocations and gateway references
+- **PaymentAllocation**: How payments are split across line items (flexible allocation)
+- **InstallmentSchedule**: Explicit installment schedules per line item with due dates and amounts
+- **StudentCreditBalance**: Student credit/wallet for overpayments (formal ledger with entries)
+- **InvoiceEvent**: Invoice timeline/audit trail (created, issued, paid, adjusted, cancelled, etc.)
+- **GatewayEvent**: Gateway webhook event log (dedupe-safe) - Planned
+- **GatewaySettlement**: Paystack settlement/payout tracking - Planned
+- **BankStatementImport**: Imported bank statement files - Planned
+- **BankStatementLine**: Individual bank statement transactions - Planned
+- **ReconciliationSession**: Reconciliation workflow sessions - Planned
+- **ReconciliationMatch**: Matches between bank statements and payments - Planned
+- **ReconIssue**: Reconciliation issues requiring attention - Planned
 
 ### Database Connection
 
@@ -524,6 +623,7 @@ The database connection is handled in `src/db/connectToDatabase.ts` with connect
 ### Indexes
 
 Models include appropriate indexes for performance:
+
 - Email lookups
 - Status filtering
 - School associations
@@ -553,6 +653,7 @@ Roles are defined in `src/lib/roles.ts`:
 ### Protected Routes
 
 Routes are protected via middleware (`src/middleware.ts`):
+
 - Public routes: Landing, enrollment, auth pages
 - Protected routes: All app routes require authentication
 - Role-based routing: Redirects based on user role
@@ -610,6 +711,11 @@ Ensure all environment variables are set in your production environment:
 - Ensure tests pass (if applicable)
 - Update documentation as needed
 - Follow existing code style
+
+## 📚 Additional Documentation
+
+- **Fees System Strategy**: See `FEES_SYSTEM_STRATEGY.md` for comprehensive documentation on the fees & payments system architecture, data models, business logic, and future enhancements
+- **Student Academics**: See `content/docs/students/academics-gradebook.md` for details on the student analytics and gradebook features
 
 ## 📞 Support
 

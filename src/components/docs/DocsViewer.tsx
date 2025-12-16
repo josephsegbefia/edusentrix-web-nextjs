@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Search, BookOpen, ChevronRight, Home } from "lucide-react";
+import { Search, BookOpen, ChevronRight, Home, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
@@ -84,6 +84,37 @@ const DOC_CATEGORIES: DocCategory[] = [
         title: "Managing Periods",
         slug: "managing-periods",
         path: "academic-periods/managing-periods.md",
+      },
+    ],
+  },
+  {
+    title: "Fees & Payments",
+    icon: <DollarSign className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Fees Dashboard",
+        slug: "fees-dashboard",
+        path: "fees/fees-dashboard.md",
+      },
+      {
+        title: "Managing Fee Structures",
+        slug: "managing-fee-structures",
+        path: "fees/managing-fee-structures.md",
+      },
+      {
+        title: "Creating Invoices",
+        slug: "creating-invoices",
+        path: "fees/creating-invoices.md",
+      },
+      {
+        title: "Recording Payments",
+        slug: "recording-payments",
+        path: "fees/recording-payments.md",
+      },
+      {
+        title: "Managing Student Credit",
+        slug: "managing-student-credit",
+        path: "fees/managing-student-credit.md",
       },
     ],
   },

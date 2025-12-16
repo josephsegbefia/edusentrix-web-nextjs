@@ -7,7 +7,7 @@ Welcome to EduSentrix, your comprehensive school management platform designed sp
 EduSentrix is a unified solution for:
 - **Student Management**: Track student records, enrollment, and academic progress with a premium, industry-standard interface
 - **Teacher Management**: Manage staff, assign subjects, and homeroom classes
-- **Fee Collection**: Streamline fee collection and payment tracking
+- **Fee Collection**: Comprehensive invoice-based fee system with flexible payment allocation, installments, and student credit management
 - **Academic Tracking**: Monitor academic periods, terms, and progress
 - **Parent Communication**: Keep parents informed via email and SMS
 - **Activity & Audit Logging**: Comprehensive activity feed tracking all system actions
@@ -30,6 +30,17 @@ EduSentrix is a unified solution for:
 - **Color-Coded Cards**: Visual indicators for fee status and student status
 - **Academic Badges**: Track top performers with performance badges
 - **Export Functionality**: Export student data to CSV for reporting
+
+### Fees & Payments
+- **Fees Dashboard**: Comprehensive financial overview with revenue tracking, invoice status, and collection metrics
+- **Invoice Management**: Create single or bulk invoices with flexible line items and installment support
+- **Payment Recording**: Record payments with flexible allocation to invoice line items
+- **Fee Structures**: Manage reusable fee templates for consistent invoicing
+- **Student Credit**: Handle overpayments and prepayments with formal credit ledger
+- **Real-Time Updates**: Live dashboard updates via Server-Sent Events (SSE)
+- **Bulk Operations**: Issue, cancel, and export invoices in bulk
+- **Invoice Adjustments**: Add waivers, scholarships, and corrections to issued invoices
+- **Payment Methods**: Support for Cash, Mobile Money, Bank Transfer, and Card payments
 
 ### Dashboard & Analytics
 - **Quick Stats**: Real-time metrics at a glance
@@ -71,6 +82,7 @@ The main dashboard provides quick access to:
 - **Dashboard** (`/admin`): Overview of school operations and quick stats
 - **Students** (`/admin/students`): Comprehensive student management with card/table views
 - **Teachers** (`/admin/teachers`): Teacher management and assignments
+- **Fees & Payments** (`/admin/fees`): Financial management, invoice creation, and payment tracking
 - **Invitations** (`/admin/invitations`): Track and manage teacher/admin invitations
 - **Tasks** (`/admin/tasks`): View deferred tasks and project milestones
 - **Documentation** (`/docs`): Access help documentation and guides
@@ -102,6 +114,18 @@ Speed up your workflow with keyboard shortcuts:
 - **Activity Feed**: Review activity feed to see what actions were taken
 
 ## Recent Updates
+
+### Fees & Payments System
+- Comprehensive fees dashboard with real-time metrics
+- Single and bulk invoice creation with student search
+- Flexible payment allocation to invoice line items
+- Installment schedule support (custom and auto-generated)
+- Student credit management with formal ledger
+- Invoice adjustments (waivers, scholarships, corrections)
+- Bulk operations (issue, cancel, export invoices)
+- Invoice event timeline for complete audit trail
+- Premium UI matching admin dashboard design
+- Real-time updates via Server-Sent Events (SSE)
 
 ### Students Management
 - Premium card and table view modes

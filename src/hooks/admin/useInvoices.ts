@@ -183,6 +183,28 @@ export function useCreateInvoice() {
   });
 }
 
+export function useBulkIssueInvoices() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const res = await fetch("/api/admin/fees/invoices/bulk/issue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceIds: ids }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to bulk issue invoices");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      qc.invalidateQueries({ queryKey: ["feeSummary"] });
+    },
+  });
+}
+
 export function useIssueInvoice() {
   const queryClient = useQueryClient();
 
@@ -203,6 +225,55 @@ export function useIssueInvoice() {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["invoice", id] });
       queryClient.invalidateQueries({ queryKey: ["feeSummary"] });
+    },
+  });
+}
+
+export function useBulkCancelInvoices() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (invoiceIds: string[]) => {
+      const res = await fetch(`/api/admin/fees/invoices/bulk/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceIds }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to bulk cancel invoices");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["feeSummary"] });
+    },
+  });
+}
+
+export function useBulkExportInvoices() {
+  return useMutation({
+    mutationFn: async (invoiceIds: string[]) => {
+      const res = await fetch(`/api/admin/fees/invoices/bulk/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceIds }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to export invoices");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoices-export-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      return { success: true };
     },
   });
 }

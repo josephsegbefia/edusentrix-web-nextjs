@@ -15,8 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   useInvoices,
   useCreateInvoice,
+  useBulkIssueInvoices,
+  useBulkCancelInvoices,
+  useBulkExportInvoices,
   type Invoice,
 } from "@/hooks/admin/useInvoices";
+import { InvoicesBulkActionsBar } from "@/components/admin/fees/InvoicesBulkActionsBar";
 import { formatMoney } from "@/lib/fees/money";
 import Link from "next/link";
 import {
@@ -116,10 +120,14 @@ export default function InvoicesPage() {
   const router = useRouter();
   const busy = useBusyToast();
   const createInvoice = useCreateInvoice();
+  const bulkIssueInvoices = useBulkIssueInvoices();
+  const bulkCancelInvoices = useBulkCancelInvoices();
+  const bulkExportInvoices = useBulkExportInvoices();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data, isLoading, error } = useInvoices({
     status: statusFilter === "all" ? undefined : statusFilter,
@@ -185,6 +193,111 @@ export default function InvoicesPage() {
 
   const invoices = data?.invoices || [];
   const pagination = data?.pagination;
+
+  // Filter invoices by search
+  const filteredInvoices = React.useMemo(() => {
+    if (!search.trim()) return invoices;
+    const searchLower = search.toLowerCase();
+    return invoices.filter((invoice: Invoice) => {
+      const invoiceNumber = invoice.invoiceNumber?.toLowerCase() || "";
+      const studentName = `${invoice.studentId?.firstName || ""} ${
+        invoice.studentId?.lastName || ""
+      }`.toLowerCase();
+      const admissionNo = invoice.studentId?.admissionNo?.toLowerCase() || "";
+      return (
+        invoiceNumber.includes(searchLower) ||
+        studentName.includes(searchLower) ||
+        admissionNo.includes(searchLower)
+      );
+    });
+  }, [invoices, search]);
+
+  const handleToggleRow = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleAllVisible = () => {
+    if (selectedIds.length === filteredInvoices.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredInvoices.map((inv: Invoice) => inv._id));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const handleBulkIssue = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      const result = (await busy.promise(
+        bulkIssueInvoices.mutateAsync(selectedIds),
+        {
+          loading: `Issuing ${selectedIds.length} invoice${
+            selectedIds.length !== 1 ? "s" : ""
+          }...`,
+          success: `Successfully issued invoices`,
+          error: "Failed to issue some invoices",
+        }
+      )) as unknown as {
+        results: {
+          succeeded: string[];
+          failed: Array<{ id: string; error: string }>;
+        };
+      };
+      if (result.results.failed.length > 0) {
+        console.warn("Some invoices failed to issue:", result.results.failed);
+      }
+      setSelectedIds([]);
+    } catch (error) {
+      // Error already handled by busy toast
+    }
+  };
+
+  const handleBulkCancel = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      const result = (await busy.promise(
+        bulkCancelInvoices.mutateAsync(selectedIds),
+        {
+          loading: `Cancelling ${selectedIds.length} invoice${
+            selectedIds.length !== 1 ? "s" : ""
+          }...`,
+          success: `Successfully cancelled invoices`,
+          error: "Failed to cancel some invoices",
+        }
+      )) as unknown as {
+        results: {
+          succeeded: string[];
+          failed: Array<{ id: string; error: string }>;
+        };
+      };
+      if (result.results.failed.length > 0) {
+        console.warn("Some invoices failed to cancel:", result.results.failed);
+      }
+      setSelectedIds([]);
+    } catch (error) {
+      // Error already handled by busy toast
+    }
+  };
+
+  const handleBulkExport = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await busy.promise(bulkExportInvoices.mutateAsync(selectedIds), {
+        loading: `Exporting ${selectedIds.length} invoice${
+          selectedIds.length !== 1 ? "s" : ""
+        }...`,
+        success: "Invoices exported successfully",
+        error: "Failed to export invoices",
+      });
+    } catch (error) {
+      // Error already handled by busy toast
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -262,52 +375,83 @@ export default function InvoicesPage() {
               <Skeleton className="h-20" />
               <Skeleton className="h-20" />
             </div>
-          ) : invoices.length === 0 ? (
+          ) : filteredInvoices.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
               No invoices found
             </p>
           ) : (
             <>
+              {/* Select All Checkbox */}
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/10">
+                <input
+                  type="checkbox"
+                  checked={
+                    filteredInvoices.length > 0 &&
+                    selectedIds.length === filteredInvoices.length
+                  }
+                  onChange={handleToggleAllVisible}
+                  className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
+                />
+                <label className="text-sm text-white/80 cursor-pointer">
+                  Select all ({filteredInvoices.length} invoice
+                  {filteredInvoices.length !== 1 ? "s" : ""})
+                </label>
+              </div>
+
               <div className="space-y-3">
-                {invoices.map((invoice: Invoice) => (
-                  <Link
+                {filteredInvoices.map((invoice: Invoice) => (
+                  <div
                     key={invoice._id}
-                    href={`/admin/fees/invoices/${invoice._id}`}
+                    className="group flex items-center my-3 justify-between p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
                   >
-                    <div className="group flex items-center my-3 justify-between p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <p className="font-semibold text-white">
-                            {invoice.invoiceNumber}
-                          </p>
-                          <InvoiceStatusBadge status={invoice.status} />
+                    <div className="flex items-center gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(invoice._id)}
+                        onChange={() => handleToggleRow(invoice._id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer shrink-0"
+                      />
+                      <Link
+                        href={`/admin/fees/invoices/${invoice._id}`}
+                        className="flex-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <p className="font-semibold text-white">
+                                {invoice.invoiceNumber}
+                              </p>
+                              <InvoiceStatusBadge status={invoice.status} />
+                            </div>
+                            <p className="text-sm text-white/80">
+                              {invoice.studentId?.firstName}{" "}
+                              {invoice.studentId?.lastName}
+                              {invoice.studentId?.admissionNo &&
+                                ` • ${invoice.studentId.admissionNo}`}
+                            </p>
+                            <p className="text-xs text-white/60 mt-1">
+                              {invoice.academicPeriodId?.yearLabel} •{" "}
+                              {invoice.academicPeriodId?.term}
+                            </p>
+                          </div>
+                          <div className="text-right mr-4">
+                            <p className="font-semibold text-white">
+                              {formatMoney(invoice.totalAmountMinor)}
+                            </p>
+                            <p className="text-sm text-white/60">
+                              Paid: {formatMoney(invoice.totalPaidMinor)}
+                            </p>
+                            <p className="text-xs text-white/50">
+                              Outstanding:{" "}
+                              {formatMoney(invoice.totalOutstandingMinor)}
+                            </p>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
                         </div>
-                        <p className="text-sm text-white/80">
-                          {invoice.studentId?.firstName}{" "}
-                          {invoice.studentId?.lastName}
-                          {invoice.studentId?.admissionNo &&
-                            ` • ${invoice.studentId.admissionNo}`}
-                        </p>
-                        <p className="text-xs text-white/60 mt-1">
-                          {invoice.academicPeriodId?.yearLabel} •{" "}
-                          {invoice.academicPeriodId?.term}
-                        </p>
-                      </div>
-                      <div className="text-right mr-4">
-                        <p className="font-semibold text-white">
-                          {formatMoney(invoice.totalAmountMinor)}
-                        </p>
-                        <p className="text-sm text-white/60">
-                          Paid: {formatMoney(invoice.totalPaidMinor)}
-                        </p>
-                        <p className="text-xs text-white/50">
-                          Outstanding:{" "}
-                          {formatMoney(invoice.totalOutstandingMinor)}
-                        </p>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-white/40 group-hover:text-white/60 group-hover:translate-x-1 transition-all" />
+                      </Link>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
 
@@ -345,6 +489,17 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <InvoicesBulkActionsBar
+          selectedCount={selectedIds.length}
+          onClearSelection={handleClearSelection}
+          onIssue={handleBulkIssue}
+          onCancel={handleBulkCancel}
+          onExportSelected={handleBulkExport}
+        />
+      )}
 
       {/* Create Invoice Modal */}
       <ResponsiveModal

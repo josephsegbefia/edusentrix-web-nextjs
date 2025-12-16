@@ -210,12 +210,73 @@ The default tab showing:
 
 ### Academics Tab
 
-Academic performance tracking (coming soon):
-- Overall average and class position
-- Term-by-term performance breakdown
-- Subject-level grades (CA, Exam, Total, Grade Letter)
-- Performance trends and visualizations
-- Teacher comments and notes
+A comprehensive gradebook and analytics dashboard for tracking student academic performance:
+
+#### Summary Cards
+Four key metrics displayed at the top:
+- **Overall Average**: Current term average with trend indicator (up/down/stable)
+- **Class Position**: Student's rank in class with total student count
+- **Performance Tier**: Auto-calculated tier (top, above_average, average, at_risk)
+- **Risk Level**: Risk assessment (low/medium/high) with strongest and weakest subjects
+
+#### Subject Performance Overview
+Visual card-based display showing:
+- **Top 3 Performers**: Best-performing subjects with scores and grade letters
+- **Areas for Improvement**: Bottom 3 subjects needing attention
+- Color-coded cards (green for strengths, amber/red for weaknesses)
+- Rank indicators and clear subject identification
+
+#### Overall Performance Trend
+Interactive line chart displaying:
+- **Student Performance**: Blue solid line showing performance over time
+- **Class Average**: Gray dashed line for comparison
+- **Academic Year Labels**: Clear term labels with year (e.g., "2024 Term 1")
+- **Year Filter**: Dropdown to filter by specific academic year
+- **Multi-term History**: View performance across multiple terms and years
+- **Hover Tooltips**: Detailed information on hover showing both student and class averages
+
+#### Subject Performance Over Time
+Deep-dive analysis for individual subjects:
+- **Subject Selector**: Choose any subject to analyze
+- **Year Filter**: Filter by academic year
+- **Trend Visualization**: Line chart showing subject performance across terms
+- **Pass Reference Line**: Visual indicator at 50% pass mark
+- **Current Score Display**: Summary card showing current term performance
+- **Term Labels**: Full academic period labels (e.g., "2024 Term 1")
+
+#### Academic Performance Table
+Comprehensive gradebook table with:
+- **Subject Breakdown**: All subjects with CA, Exam, and Total scores
+- **Grade Letters**: Letter grades based on grading scale
+- **Teacher Names**: Subject teacher information
+- **View Breakdown Button**: Click to see detailed assessment breakdown
+
+#### Assessment Breakdown Modal
+Detailed view of individual assessments:
+- **CA Summary**: Total CA scores and maximum possible
+- **Exam Summary**: Exam scores and maximum possible
+- **Individual Assessments**: List of all assessments with:
+  - Assessment type (CA, Exam, etc.)
+  - Title and date graded
+  - Score and percentage
+  - Weight/contribution
+  - Teacher remarks
+- **Color Coding**: Visual indicators for performance levels
+
+#### Teacher Comments Section
+- Subject-specific comments
+- General comments
+- Promotion recommendations
+- Behavior notes
+- Public/private comment visibility
+
+#### Features
+- **Term Selector**: Switch between different academic terms
+- **URL Synchronization**: Term selection persists in URL for sharing
+- **No Auto-refresh**: Page doesn't reload when switching tabs/windows
+- **Smart Caching**: Data cached for optimal performance
+- **Responsive Design**: Works seamlessly on all screen sizes
+- **Premium Visualizations**: Professional charts with smooth animations
 
 ### Fees Tab
 

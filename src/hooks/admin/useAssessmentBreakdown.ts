@@ -50,5 +50,7 @@ export function useAssessmentBreakdown(
       return res.json();
     },
     enabled: enabled && !!studentId && !!subjectId && !!termId,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }

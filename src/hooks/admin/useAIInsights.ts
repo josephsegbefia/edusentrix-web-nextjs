@@ -49,5 +49,7 @@ export function useAIInsights(
     },
     enabled: enabled && !!studentId,
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }

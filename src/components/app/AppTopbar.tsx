@@ -1,6 +1,6 @@
 // src/components/app/AppTopbar.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import Link from "next/link";
 import { CurrentAppUser } from "@/lib/auth/get-current-user";
 import { useClerk } from "@clerk/nextjs";
@@ -15,7 +15,9 @@ export default function AppTopbar({ user }: { user: CurrentAppUser }) {
   const { signOut } = useClerk();
 
   useEffect(() => {
-    setMounted(true);
+    startTransition(() => {
+      setMounted(true);
+    });
   }, []);
 
   const initial = (user.name || user.email || "?").charAt(0).toUpperCase();

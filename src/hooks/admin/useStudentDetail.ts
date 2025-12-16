@@ -145,6 +145,9 @@ export function useStudentDetail(studentId?: string) {
   return useQuery<StudentDetailDTO>({
     queryKey: ["admin-student-detail", studentId],
     enabled: Boolean(studentId),
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     queryFn: async () => {
       if (!studentId) {
         throw new Error("Missing student id");

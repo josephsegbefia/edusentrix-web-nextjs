@@ -43,6 +43,11 @@ const DOC_CATEGORIES: DocCategory[] = [
         path: "students/managing-students.md",
       },
       {
+        title: "Academics & Gradebook",
+        slug: "academics-gradebook",
+        path: "students/academics-gradebook.md",
+      },
+      {
         title: "Managing Guardians",
         slug: "managing-guardians",
         path: "students/managing-guardians.md",

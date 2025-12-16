@@ -6,6 +6,9 @@ import { UserMembership } from "@/models/UserMembership";
 import { Subject } from "@/models/Subject";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Guardian } from "@/models/Guardian";
+import { Payment } from "@/models/Payment";
+import { Invoice } from "@/models/Invoice";
+import mongoose from "mongoose";
 import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs"; // ensure node runtime for stream
@@ -97,6 +100,76 @@ export async function GET(req: NextRequest) {
         }
       });
 
+      // Watch for payment changes
+      const paymentWatch = Payment.watch(pipeline, {
+        fullDocument: "updateLookup",
+      });
+
+      // Watch for invoice changes
+      const invoiceWatch = Invoice.watch(pipeline, {
+        fullDocument: "updateLookup",
+      });
+
+      const pushFeeSummary = async () => {
+        const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
+        const [totalRevenueResult, totalOutstandingResult, overdueCount] = await Promise.all([
+          Payment.aggregate([
+            {
+              $match: {
+                schoolId: schoolIdObj,
+                status: "completed",
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$amountMinor" },
+              },
+            },
+          ]),
+          Invoice.aggregate([
+            {
+              $match: {
+                schoolId: schoolIdObj,
+                status: { $in: ["issued", "partially_paid", "overdue"] },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$totalOutstandingMinor" },
+              },
+            },
+          ]),
+          Invoice.countDocuments({
+            schoolId: schoolIdObj,
+            status: "overdue",
+          }),
+        ]);
+
+        const totalRevenueMinor = totalRevenueResult[0]?.total || 0;
+        const totalOutstandingMinor = totalOutstandingResult[0]?.total || 0;
+
+        send("fees.updated", {
+          totalRevenueMinor,
+          totalOutstandingMinor,
+          overdueCount,
+        });
+      };
+
+      paymentWatch.on("change", () => {
+        pushFeeSummary();
+        send("payments.updated", {});
+      });
+
+      invoiceWatch.on("change", () => {
+        pushFeeSummary();
+        send("invoices.updated", {});
+      });
+
+      // Initial fee summary push
+      pushFeeSummary();
+
       // TODO: Add document watching when Document model is created
       // const documentWatch = Document.watch([...], { fullDocument: "updateLookup" });
       // documentWatch.on("change", async (change: any) => {
@@ -110,6 +183,8 @@ export async function GET(req: NextRequest) {
         subjectWatch.close();
         periodWatch.close();
         guardianWatch.close();
+        paymentWatch.close();
+        invoiceWatch.close();
         controller.close();
       });
 

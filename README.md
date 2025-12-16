@@ -48,7 +48,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Class and grade assignments
   - Comprehensive student detail pages with multiple tabs:
     - Overview: Personal info, stats, and quick actions
-    - Academics: Performance tracking and gradebook (coming soon)
+    - Academics: Complete gradebook with analytics, charts, and performance tracking
     - Fees: Payment history and outstanding balances
     - Behaviour: Incident tracking and positive notes
     - Relationships: Guardian management and class assignments
@@ -65,17 +65,38 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Academic performance badges (Top 1%, Top 5%, Top 10%, Honours)
   - Bulk actions and export functionality
 
-- **Fee Management**
-  - Fee structure configuration
-  - Installment plans
-  - Payment tracking and reconciliation
-  - Automated reminders (Email & SMS)
-  - Outstanding balance management
+- **Fee Management & Payments**
+  - Invoice-based fee system (one invoice per student per term)
+  - Flexible line-item payment allocation (parents choose what to pay first)
+  - Per-line-item installment support with flexible payment order
+  - Student credit/wallet system for overpayments
+  - Append-only invoice model with adjustments (no mutations after issue)
+  - Full reconciliation system (Internal Ledger ↔ Gateway ↔ Bank Statements)
+  - Payment intent tracking (gateway-safe architecture)
+  - Financial-grade accuracy (money stored as integers in minor units)
+  - Comprehensive audit trail with invoice event timeline
+  - Automated reminders for installments and overdue payments
+  - Outstanding balance management with reconciliation status
+  - Bank statement import and matching
+  - Paystack integration with webhook deduplication
 
 - **Academic Period Management**
   - Term and academic year configuration
   - Period progress tracking
   - Date range management
+
+- **Academic Performance & Gradebook**
+  - Comprehensive student analytics dashboard
+  - Subject performance overview (top/bottom performers)
+  - Overall performance trend charts with class comparison
+  - Subject-specific performance tracking over time
+  - Assessment breakdown with detailed CA and exam scores
+  - Risk level calculation (low/medium/high)
+  - Multi-term historical data visualization
+  - Class average comparisons
+  - Teacher comments and notes
+  - Interactive charts with filters (year, subject, term)
+  - Premium visualizations using Recharts
 
 - **Teacher Management**
   - Teacher creation with multi-step onboarding
@@ -158,6 +179,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Guardian lists on student detail pages
   - Academic period updates
 - **Fixed Navigation**: AppTopbar stays fixed at top for better navigation experience
+- **Optimized Data Fetching**: React Query with smart caching and no automatic refetching on window focus for better performance
 
 ## 🛠 Tech Stack
 
@@ -432,6 +454,18 @@ npm run seed:banks:drop
 
 # Seed bank branches (dry run)
 npm run seed:banks:dry
+
+# Seed JHS classes and students
+npm run seed:jhs
+
+# Seed JHS classes (dry run)
+npm run seed:jhs:dry
+
+# Seed academic data (grades, assessments, term results)
+npm run seed:academics
+
+# Seed academic data (dry run)
+npm run seed:academics:dry
 ```
 
 ### Admin Scripts
@@ -454,6 +488,11 @@ The application uses Mongoose models located in `src/models/`:
 - **ClassGroup**: Class/grade groups
 - **Subject**: Subject/course definitions (auto-created for Basic schools)
 - **AcademicPeriod**: Term and academic year periods
+- **SubjectGrade**: Subject-level grades with CA and exam breakdowns
+- **TermResult**: Term-level aggregated results with class position
+- **Assessment**: Individual assessment records (CA, exam, etc.)
+- **TeacherComment**: Teacher comments and notes per subject/term
+- **GradingScale**: Configurable grading scales and grade mappings
 - **Application**: School application submissions
 - **BankBranch**: Bank branch information
 - **Invitation**: Comprehensive invitation tracking (status, expiry, resend count, metadata)
@@ -461,6 +500,22 @@ The application uses Mongoose models located in `src/models/`:
 - **Invite**: Legacy user invitation system
 - **UserMembership**: User-school associations
 - **Guardian**: Student-guardian relationships with primary contact designation
+- **FeeStructure**: Fee type templates (Tuition, Library, Sports, etc.)
+- **Invoice**: Student invoices per academic period (unique per student per term)
+- **InvoiceLineItem**: Individual fees within invoices (ordered by importance)
+- **PaymentIntent**: Payment attempt/initiation tracking (gateway-safe)
+- **Payment**: Completed payment transactions with allocations
+- **PaymentAllocation**: How payments are split across line items
+- **InstallmentSchedule**: Explicit installment schedules per line item
+- **StudentCreditBalance**: Student credit/wallet for overpayments
+- **InvoiceEvent**: Invoice timeline/audit trail
+- **GatewayEvent**: Gateway webhook event log (dedupe-safe)
+- **GatewaySettlement**: Paystack settlement/payout tracking
+- **BankStatementImport**: Imported bank statement files
+- **BankStatementLine**: Individual bank statement transactions
+- **ReconciliationSession**: Reconciliation workflow sessions
+- **ReconciliationMatch**: Matches between bank statements and payments
+- **ReconIssue**: Reconciliation issues requiring attention
 
 ### Database Connection
 

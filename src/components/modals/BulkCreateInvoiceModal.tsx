@@ -111,6 +111,7 @@ export default function BulkCreateInvoiceModal({
   const [excludeModalOpen, setExcludeModalOpen] = React.useState(false);
   const [excludeModalClassGroupId, setExcludeModalClassGroupId] =
     React.useState<string | null>(null);
+  const [excludeModalLoading, setExcludeModalLoading] = React.useState(false);
 
   const debouncedSearch = useDebouncedValue(unifiedSearchQuery, 350);
   const { data: feeStructuresData } = useFeeStructures({ isActive: true });
@@ -351,31 +352,105 @@ export default function BulkCreateInvoiceModal({
   const toggleGrade = async (gradeId: string) => {
     const newSet = new Set(selectedGradeIds);
     if (newSet.has(gradeId)) {
+      // Deselecting grade: remove grade, remove all class groups from this grade, and remove students from those class groups
       newSet.delete(gradeId);
-      // Fetch all students from this grade and remove them
+
+      // Fetch class groups for this grade
       try {
-        const res = await fetch(
-          `/api/admin/students?gradeId=${gradeId}&limit=500`,
-          { cache: "no-store" }
-        );
+        const res = await fetch(`/api/admin/class-groups?gradeId=${gradeId}`, {
+          cache: "no-store",
+        });
         const json = await res.json();
         if (json?.success) {
-          const studentsToRemove = new Set(
-            json.data?.map((s: any) => s.id) || []
-          );
-          setSelectedStudentIds((prev) => {
+          const classGroupsToRemove = (json.data || []).map((cg: any) => cg._id);
+
+          // Remove class groups from selection
+          setSelectedClassGroupIds((prev) => {
             const updated = new Set(prev);
-            studentsToRemove.forEach((id) => updated.delete(id));
+            classGroupsToRemove.forEach((id: string) => updated.delete(id));
             return updated;
+          });
+
+          // Remove students from those class groups
+          classGroupsToRemove.forEach((classGroupId: string) => {
+            const students = classGroupStudents.get(classGroupId) || [];
+            setSelectedStudentIds((prev) => {
+              const updated = new Set(prev);
+              students.forEach((s: any) => updated.delete(s.id));
+              return updated;
+            });
+            // Remove from classGroupStudents map
+            setClassGroupStudents((prev) => {
+              const updated = new Map(prev);
+              updated.delete(classGroupId);
+              return updated;
+            });
           });
         }
       } catch {
         // Ignore errors
       }
     } else {
+      // Selecting grade: just add to selectedGradeIds, don't add students
       newSet.add(gradeId);
     }
     setSelectedGradeIds(newSet);
+  };
+
+  // Fetch students for a class group (used when opening exclude modal)
+  const fetchClassGroupStudents = async (classGroupId: string) => {
+    // If students are already loaded, return early
+    if (classGroupStudents.has(classGroupId)) {
+      return;
+    }
+
+    setExcludeModalLoading(true);
+    try {
+      // Fetch all students by using a high limit and handling pagination if needed
+      const res = await fetch(
+        `/api/admin/students?classGroupId=${classGroupId}&limit=500`,
+        { cache: "no-store" }
+      );
+      const json = await res.json();
+      if (json?.success && json.data) {
+        // Check if we need to fetch more pages
+        const total = json.pagination?.total || json.data.length;
+        const limit = json.pagination?.limit || 500;
+
+        if (total > limit) {
+          // Fetch remaining pages
+          const pages = Math.ceil(total / limit);
+          const allStudents = [...json.data];
+
+          for (let page = 2; page <= pages; page++) {
+            const pageRes = await fetch(
+              `/api/admin/students?classGroupId=${classGroupId}&limit=${limit}&page=${page}`,
+              { cache: "no-store" }
+            );
+            const pageJson = await pageRes.json();
+            if (pageJson?.success && pageJson.data) {
+              allStudents.push(...pageJson.data);
+            }
+          }
+
+          setClassGroupStudents((prev) => {
+            const updated = new Map(prev);
+            updated.set(classGroupId, allStudents);
+            return updated;
+          });
+        } else {
+          setClassGroupStudents((prev) => {
+            const updated = new Map(prev);
+            updated.set(classGroupId, json.data);
+            return updated;
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch class group students:", error);
+    } finally {
+      setExcludeModalLoading(false);
+    }
   };
 
   const toggleClassGroup = async (classGroupId: string) => {
@@ -437,44 +512,8 @@ export default function BulkCreateInvoiceModal({
     setSelectedClassGroupIds(newSet);
   };
 
-  // Get all students from selected grades
-  React.useEffect(() => {
-    if (selectedGradeIds.size === 0) {
-      return;
-    }
-
-    let alive = true;
-    (async () => {
-      try {
-        const params = new URLSearchParams();
-        params.append("limit", "500");
-
-        Array.from(selectedGradeIds).forEach((gradeId) => {
-          params.append("gradeId", gradeId);
-        });
-
-        const res = await fetch(`/api/admin/students?${params}`, {
-          cache: "no-store",
-        });
-        const json = await res.json();
-        if (alive && json?.success) {
-          // Add all students from selected grades
-          setSelectedStudentIds((prev) => {
-            const updated = new Set(prev);
-            json.data?.forEach((student: any) => {
-              updated.add(student.id);
-            });
-            return updated;
-          });
-        }
-      } catch {
-        // Ignore errors
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [selectedGradeIds]);
+  // Note: Students are only added when class groups are selected, not when grades are selected
+  // This allows users to select a grade and then choose specific class groups
 
   const handleFeeStructureSelect = (index: number, feeStructureId: string) => {
     if (!feeStructureId || feeStructureId === "none") {
@@ -797,11 +836,11 @@ export default function BulkCreateInvoiceModal({
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="flex items-center gap-2 rounded-md bg-brand/20 border border-brand/30 px-3 py-1.5 cursor-pointer hover:bg-brand/30 transition-colors"
-                                onClick={() => {
-                                  if (studentCount > 0) {
-                                    setExcludeModalClassGroupId(classGroupId);
-                                    setExcludeModalOpen(true);
-                                  }
+                                onClick={async () => {
+                                  // Fetch students if not already loaded
+                                  await fetchClassGroupStudents(classGroupId);
+                                  setExcludeModalClassGroupId(classGroupId);
+                                  setExcludeModalOpen(true);
                                 }}
                               >
                                 <span className="text-xs font-medium text-brand flex-1">
@@ -1470,10 +1509,20 @@ export default function BulkCreateInvoiceModal({
           </DialogHeader>
           {excludeModalClassGroupId && (
             <div className="flex-1 overflow-hidden flex flex-col space-y-4">
-              <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
-                {classGroupStudents
-                  .get(excludeModalClassGroupId)
-                  ?.map((student: any) => {
+              {excludeModalLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-white/60">Loading students...</p>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
+                  {classGroupStudents.get(excludeModalClassGroupId)?.length === 0 ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-white/60">No students found in this class group</p>
+                    </div>
+                  ) : (
+                    classGroupStudents
+                      .get(excludeModalClassGroupId)
+                      ?.map((student: any) => {
                     const isSelected = selectedStudentIds.has(student.id);
                     return (
                       <motion.button
@@ -1520,8 +1569,10 @@ export default function BulkCreateInvoiceModal({
                         </div>
                       </motion.button>
                     );
-                  })}
-              </div>
+                  })
+                  )}
+                </div>
+              )}
               <div className="flex items-center justify-between pt-4 border-t border-white/10">
                 <p className="text-sm text-white/60">
                   {

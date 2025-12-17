@@ -6,8 +6,8 @@ import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { Student } from "@/models/Student";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
-import { formatMoney } from "@/lib/fees/money";
 import mongoose from "mongoose";
+import { InvoiceEvent } from "@/models/InvoiceEvent";
 
 export async function GET(
   req: NextRequest,
@@ -20,10 +20,21 @@ export async function GET(
     const { studentId } = await params;
 
     // Verify student exists and belongs to school
-    const student = await Student.findOne({
+    const studentDoc = await Student.findOne({
       _id: studentId,
       schoolId,
     }).lean();
+
+    // TypeScript incorrectly infers findOne().lean() could return an array
+    // findOne() always returns a single document or null, never an array
+    const student = (
+      Array.isArray(studentDoc) ? studentDoc[0] || null : studentDoc
+    ) as {
+      _id: mongoose.Types.ObjectId;
+      firstName: string;
+      lastName: string;
+      admissionNo?: string | null;
+    } | null;
 
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
@@ -105,7 +116,7 @@ export async function POST(
     }).session(session);
 
     if (!creditBalance) {
-      creditBalance = await StudentCreditBalance.create(
+      const created = await StudentCreditBalance.create(
         [
           {
             schoolId,
@@ -115,7 +126,8 @@ export async function POST(
           },
         ],
         { session }
-      )[0];
+      );
+      creditBalance = created[0];
     }
 
     if (creditBalance.balanceMinor < amount * 100) {
@@ -147,10 +159,44 @@ export async function POST(
 
     if (invoiceLineItemId && !lineItem) {
       await session.abortTransaction();
-      return NextResponse.json({ error: "Line item not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Line item not found" },
+        { status: 404 }
+      );
     }
 
     const amountMinor = Math.round(amount * 100);
+
+    // if lineitem is provided, validate outstanding balance
+    if (lineItem && amountMinor > lineItem.amountOutstandingMinor) {
+      await session.abortTransaction();
+      return NextResponse.json(
+        { error: "Amount exceeds line item outstanding balance" },
+        { status: 400 }
+      );
+    }
+
+    if (lineItem && amountMinor > invoice.totalOutstandingMinor) {
+      await session.abortTransaction();
+      return NextResponse.json(
+        { error: "Amount exceeds invoice outstanding balance" },
+        { status: 400 }
+      );
+    }
+
+    // when updating invoice totals
+    invoice.totalCreditAppliedMinor += amountMinor;
+
+    await InvoiceEvent.create([
+      {
+        invoiceId: invoice._id,
+        schoolId,
+        studentId: invoice.studentId,
+        eventType: "credit_applied",
+        description: "Credit applied: ${amountMinor / 100} GHS",
+        performedBy: userId || null,
+      },
+    ]);
 
     // Apply credit
     creditBalance.balanceMinor -= amountMinor;
@@ -159,7 +205,9 @@ export async function POST(
       amountMinor,
       appliedToInvoiceId: invoice._id,
       appliedToLineItemId: lineItem?._id || null,
-      reason: `Credit applied to ${lineItem ? lineItem.name : `invoice ${invoice.invoiceNumber}`}`,
+      reason: `Credit applied to ${
+        lineItem ? lineItem.name : `invoice ${invoice.invoiceNumber}`
+      }`,
       createdAt: new Date(),
     });
     await creditBalance.save({ session });
@@ -167,30 +215,33 @@ export async function POST(
     // Update invoice/line item (simplified - in production, you'd want to create a payment allocation)
     if (lineItem) {
       lineItem.amountPaidMinor += amountMinor;
-      lineItem.amountOutstandingMinor = lineItem.amountMinor - lineItem.amountPaidMinor;
+      lineItem.amountOutstandingMinor =
+        lineItem.amountMinor - lineItem.amountPaidMinor;
       lineItem.isFullyPaid = lineItem.amountOutstandingMinor <= 0;
       await lineItem.save({ session });
     }
 
     invoice.totalPaidMinor += amountMinor;
-    invoice.totalOutstandingMinor = invoice.totalAmountMinor - invoice.totalPaidMinor;
+    invoice.totalOutstandingMinor =
+      invoice.totalAmountMinor - invoice.totalPaidMinor;
     await invoice.save({ session });
 
     await session.commitTransaction();
 
-    const updatedCredit = await StudentCreditBalance.findById(creditBalance._id).lean();
+    const updatedCredit = await StudentCreditBalance.findById(
+      creditBalance._id
+    ).lean();
 
     return NextResponse.json({
       success: true,
       creditBalance: updatedCredit,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     await session.abortTransaction();
     console.error("Error applying credit:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to apply credit" },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to apply credit";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   } finally {
     await session.endSession();
   }

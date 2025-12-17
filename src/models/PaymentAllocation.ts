@@ -48,6 +48,15 @@ const paymentAllocationSchema = new Schema<IPaymentAllocation>(
 paymentAllocationSchema.index({ paymentId: 1 });
 paymentAllocationSchema.index({ invoiceLineItemId: 1 });
 paymentAllocationSchema.index({ installmentScheduleId: 1 });
+paymentAllocationSchema.index(
+  {
+    paymentId: 1,
+    invoiceLineItemId: 1,
+    installmentSchedule: 1,
+    installmentNumber: 1,
+  },
+  { unique: true }
+);
 
 export const PaymentAllocation =
   models.PaymentAllocation ||

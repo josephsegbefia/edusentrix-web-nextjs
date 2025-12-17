@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/fees/payments/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Payment } from "@/models/Payment";
 import { PaymentAllocation } from "@/models/PaymentAllocation";
@@ -10,11 +10,16 @@ import { InvoiceEvent } from "@/models/InvoiceEvent";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { InstallmentSchedule } from "@/models/InstallmentSchedule";
 import { toMinorUnits, validateAmountSum } from "@/lib/fees/money";
-import { updateLineItemTotals, calculateInvoiceTotals, calculateInvoiceStatus } from "@/lib/fees/invoice-utils";
+import {
+  updateLineItemTotals,
+  calculateInvoiceTotals,
+  calculateInvoiceStatus,
+} from "@/lib/fees/invoice-utils";
 import mongoose from "mongoose";
+import { requireFeesStaff } from "@/lib/auth/requireFeesStaff";
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireFeesStaff();
   await connectToDatabase();
 
   try {
@@ -93,7 +98,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireFeesStaff();
   await connectToDatabase();
 
   const session = await mongoose.startSession();
@@ -112,10 +117,19 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!invoiceId || !amount || !paymentMethod || !allocations || !Array.isArray(allocations)) {
+    if (
+      !invoiceId ||
+      !amount ||
+      !paymentMethod ||
+      !allocations ||
+      !Array.isArray(allocations)
+    ) {
       await session.abortTransaction();
       return NextResponse.json(
-        { error: "Invoice, amount, payment method, and allocations are required" },
+        {
+          error:
+            "Invoice, amount, payment method, and allocations are required",
+        },
         { status: 400 }
       );
     }
@@ -123,7 +137,9 @@ export async function POST(req: NextRequest) {
     const amountMinor = toMinorUnits(amount);
 
     // Validate allocations sum equals payment amount
-    const allocationAmounts = allocations.map((a: any) => toMinorUnits(a.amount));
+    const allocationAmounts = allocations.map((a: any) =>
+      toMinorUnits(a.amount)
+    );
     if (!validateAmountSum(allocationAmounts, amountMinor)) {
       await session.abortTransaction();
       return NextResponse.json(
@@ -152,7 +168,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate receipt number if not provided
-    const receiptNum = receiptNumber || `RCP-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+    const receiptNum =
+      receiptNumber ||
+      `RCP-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
 
     // Create payment
     const payment = await Payment.create(
@@ -183,7 +201,9 @@ export async function POST(req: NextRequest) {
       const allocationAmountMinor = toMinorUnits(allocation.amount);
 
       // Get line item
-      const lineItem = await InvoiceLineItem.findById(lineItemId).session(session);
+      const lineItem = await InvoiceLineItem.findById(lineItemId).session(
+        session
+      );
       if (!lineItem || lineItem.invoiceId.toString() !== invoiceId) {
         await session.abortTransaction();
         return NextResponse.json(
@@ -195,7 +215,8 @@ export async function POST(req: NextRequest) {
       // Check if allocation exceeds outstanding amount
       if (allocationAmountMinor > lineItem.amountOutstandingMinor) {
         // This is an overpayment for this line item
-        overpaymentMinor += allocationAmountMinor - lineItem.amountOutstandingMinor;
+        overpaymentMinor +=
+          allocationAmountMinor - lineItem.amountOutstandingMinor;
         // Allocate only up to outstanding amount
         const actualAllocationMinor = lineItem.amountOutstandingMinor;
 
@@ -255,13 +276,14 @@ export async function POST(req: NextRequest) {
         ).session(session);
         if (schedule) {
           schedule.amountPaidMinor += toMinorUnits(allocation.amount);
-          schedule.amountOutstandingMinor = schedule.amountMinor - schedule.amountPaidMinor;
+          schedule.amountOutstandingMinor =
+            schedule.amountMinor - schedule.amountPaidMinor;
           schedule.status =
             schedule.amountPaidMinor >= schedule.amountMinor
               ? "paid"
               : schedule.amountPaidMinor > 0
-                ? "partially_paid"
-                : "pending";
+              ? "partially_paid"
+              : "pending";
           await schedule.save({ session });
         }
       }
@@ -275,7 +297,7 @@ export async function POST(req: NextRequest) {
       }).session(session);
 
       if (!creditBalance) {
-        creditBalance = await StudentCreditBalance.create(
+        const created = await StudentCreditBalance.create(
           [
             {
               schoolId,
@@ -285,7 +307,8 @@ export async function POST(req: NextRequest) {
             },
           ],
           { session }
-        )[0];
+        );
+        creditBalance = created[0];
       }
 
       creditBalance.balanceMinor += overpaymentMinor;

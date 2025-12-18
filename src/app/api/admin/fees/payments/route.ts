@@ -8,13 +8,12 @@ import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { InvoiceEvent } from "@/models/InvoiceEvent";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
-import { InstallmentSchedule } from "@/models/InstallmentSchedule";
-import { toMinorUnits, validateAmountSum } from "@/lib/fees/money";
+import { toMinorUnits, validateAmountSum, formatMoney } from "@/lib/fees/money";
 import {
-  updateLineItemTotals,
   calculateInvoiceTotals,
   calculateInvoiceStatus,
 } from "@/lib/fees/invoice-utils";
+import { applyPaymentAllocations } from "@/lib/fees/applyPaymentAllocation";
 import mongoose from "mongoose";
 import { requireFeesStaff } from "@/lib/auth/requireFeesStaff";
 
@@ -32,7 +31,10 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
 
-    const query: any = { schoolId, status: "completed" };
+    const query: mongoose.FilterQuery<typeof Payment> = {
+      schoolId,
+      status: "completed",
+    };
 
     if (studentId) {
       query.studentId = new mongoose.Types.ObjectId(studentId);
@@ -114,6 +116,9 @@ export async function POST(req: NextRequest) {
       paymentDate,
       notes,
       receiptNumber,
+      approvalStatus,
+      submittedBy,
+      attachments,
     } = body;
 
     // Validate required fields
@@ -148,6 +153,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const isProofPending = approvalStatus === "pending";
+
     // Get invoice
     const invoice = await Invoice.findOne({
       _id: invoiceId,
@@ -172,8 +179,8 @@ export async function POST(req: NextRequest) {
       receiptNumber ||
       `RCP-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
 
-    // Create payment
-    const payment = await Payment.create(
+    // Create payment (pending or completed)
+    const [payment] = await Payment.create(
       [
         {
           schoolId,
@@ -184,110 +191,62 @@ export async function POST(req: NextRequest) {
           paymentMethod,
           receiptNumber: receiptNum,
           notes: notes || null,
-          receivedBy: userId || null,
-          status: "completed",
+          receivedBy: isProofPending ? null : userId || null,
+          status: isProofPending ? "pending" : "completed",
+          approvalStatus: isProofPending ? "pending" : "not_required",
+          submittedBy: submittedBy || null,
+          attachments: attachments || [],
+          requestedAllocations: isProofPending
+            ? allocations.map((a: any) => ({
+                invoiceLineItemId: a.invoiceLineItemId,
+                amountMinor: toMinorUnits(a.amount),
+                installmentScheduleId: a.installmentScheduleId || null,
+                installmentNumber: a.installmentNumber || null,
+                notes: a.notes || null,
+              }))
+            : [],
           reconciliationStatus: "unmatched",
         },
       ],
       { session }
     );
 
-    // Create allocations and update line items
-    let overpaymentMinor = 0;
-    const createdAllocations = [];
-
-    for (const allocation of allocations) {
-      const lineItemId = allocation.invoiceLineItemId;
-      const allocationAmountMinor = toMinorUnits(allocation.amount);
-
-      // Get line item
-      const lineItem = await InvoiceLineItem.findById(lineItemId).session(
-        session
+    if (isProofPending) {
+      // Optional: log invoice event “proof submitted”
+      await InvoiceEvent.create(
+        [
+          {
+            invoiceId: invoice._id,
+            schoolId,
+            studentId: invoice.studentId,
+            eventType: "payment_recorded",
+            description: `Payment proof submitted (${formatMoney(
+              amountMinor
+            )}) • Pending approval`,
+            performedBy: userId || null,
+            relatedPaymentId: payment._id,
+          },
+        ],
+        { session }
       );
-      if (!lineItem || lineItem.invoiceId.toString() !== invoiceId) {
-        await session.abortTransaction();
-        return NextResponse.json(
-          { error: `Invalid line item: ${lineItemId}` },
-          { status: 400 }
-        );
-      }
 
-      // Check if allocation exceeds outstanding amount
-      if (allocationAmountMinor > lineItem.amountOutstandingMinor) {
-        // This is an overpayment for this line item
-        overpaymentMinor +=
-          allocationAmountMinor - lineItem.amountOutstandingMinor;
-        // Allocate only up to outstanding amount
-        const actualAllocationMinor = lineItem.amountOutstandingMinor;
-
-        // Update line item
-        const updated = updateLineItemTotals(lineItem, actualAllocationMinor);
-        lineItem.amountPaidMinor = updated.amountPaidMinor;
-        lineItem.amountOutstandingMinor = updated.amountOutstandingMinor;
-        lineItem.isFullyPaid = updated.isFullyPaid;
-        lineItem.status = updated.status;
-        await lineItem.save({ session });
-
-        // Create allocation
-        const alloc = await PaymentAllocation.create(
-          [
-            {
-              paymentId: payment[0]._id,
-              invoiceLineItemId: lineItemId,
-              amountMinor: actualAllocationMinor,
-              installmentScheduleId: allocation.installmentScheduleId || null,
-              installmentNumber: allocation.installmentNumber || null,
-              notes: allocation.notes || null,
-            },
-          ],
-          { session }
-        );
-        createdAllocations.push(alloc[0]);
-      } else {
-        // Normal allocation
-        const updated = updateLineItemTotals(lineItem, allocationAmountMinor);
-        lineItem.amountPaidMinor = updated.amountPaidMinor;
-        lineItem.amountOutstandingMinor = updated.amountOutstandingMinor;
-        lineItem.isFullyPaid = updated.isFullyPaid;
-        lineItem.status = updated.status;
-        await lineItem.save({ session });
-
-        // Create allocation
-        const alloc = await PaymentAllocation.create(
-          [
-            {
-              paymentId: payment[0]._id,
-              invoiceLineItemId: lineItemId,
-              amountMinor: allocationAmountMinor,
-              installmentScheduleId: allocation.installmentScheduleId || null,
-              installmentNumber: allocation.installmentNumber || null,
-              notes: allocation.notes || null,
-            },
-          ],
-          { session }
-        );
-        createdAllocations.push(alloc[0]);
-      }
-
-      // Update installment schedule if applicable
-      if (allocation.installmentScheduleId) {
-        const schedule = await InstallmentSchedule.findById(
-          allocation.installmentScheduleId
-        ).session(session);
-        if (schedule) {
-          schedule.amountPaidMinor += toMinorUnits(allocation.amount);
-          schedule.amountOutstandingMinor =
-            schedule.amountMinor - schedule.amountPaidMinor;
-          schedule.status =
-            schedule.amountPaidMinor >= schedule.amountMinor
-              ? "paid"
-              : schedule.amountPaidMinor > 0
-              ? "partially_paid"
-              : "pending";
-          await schedule.save({ session });
-        }
-      }
+      await session.commitTransaction();
+      return NextResponse.json({ payment }, { status: 201 });
     }
+
+    // ✅ POST allocations + installments auto-fill here
+    const { overpaymentMinor } = await applyPaymentAllocations({
+      session,
+      paymentId: payment._id,
+      invoiceId: invoice._id,
+      allocations: allocations.map((a: any) => ({
+        invoiceLineItemId: a.invoiceLineItemId,
+        amountMinor: toMinorUnits(a.amount),
+        installmentScheduleId: a.installmentScheduleId || null,
+        installmentNumber: a.installmentNumber || null,
+        notes: a.notes || null,
+      })),
+    });
 
     // Handle overpayment - create credit
     if (overpaymentMinor > 0) {
@@ -315,7 +274,7 @@ export async function POST(req: NextRequest) {
       creditBalance.entries.push({
         type: "credit",
         amountMinor: overpaymentMinor,
-        sourcePaymentId: payment[0]._id,
+        sourcePaymentId: payment._id,
         reason: `Overpayment from payment ${receiptNum}`,
         createdAt: new Date(),
       });
@@ -361,7 +320,7 @@ export async function POST(req: NextRequest) {
           eventType: "payment_recorded",
           description: `Payment of ${amountMinor / 100} GHS recorded`,
           performedBy: userId || null,
-          relatedPaymentId: payment[0]._id,
+          relatedPaymentId: payment._id,
         },
       ],
       { session }
@@ -370,14 +329,14 @@ export async function POST(req: NextRequest) {
     await session.commitTransaction();
 
     // Fetch full payment with allocations
-    const fullPayment = await Payment.findById(payment[0]._id)
+    const fullPayment = await Payment.findById(payment._id)
       .populate("studentId", "firstName lastName")
       .populate("invoiceId", "invoiceNumber")
       .populate("receivedBy", "name email")
       .lean();
 
     const paymentAllocations = await PaymentAllocation.find({
-      paymentId: payment[0]._id,
+      paymentId: payment._id,
     })
       .populate("invoiceLineItemId", "name amountMinor")
       .lean();

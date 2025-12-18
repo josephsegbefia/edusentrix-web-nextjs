@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/fees/ledger/[studentId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
@@ -7,54 +6,50 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
-import { PaymentAllocation } from "@/models/PaymentAllocation";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
-import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 
-type LedgerStatus = "posted" | "pending_approval";
-
-type LedgerItem =
+type LedgerRow =
   | {
       id: string;
-      type: "invoice_issued";
+      kind: "invoice_issued";
+      date: string | Date;
+      title: string;
+      subtitle: string | null;
+      amountMinor: number;
       status: "posted";
-      date: string;
       invoiceId: string;
-      invoiceNumber: string;
-      termLabel?: string | null;
-      amountMinor: number; // charge
-      label: string;
     }
   | {
       id: string;
-      type: "payment_applied";
-      status: LedgerStatus;
-      date: string;
+      kind: "payment" | "payment_pending";
+      date: string | Date;
+      title: string;
+      subtitle: string | null;
+      amountMinor: number;
+      status: "pending" | "posted";
       invoiceId: string;
       paymentId: string;
-      receiptNumber?: string | null;
-      method: string;
-      appliedMinor: number; // applied to line items
-      label: string;
     }
   | {
       id: string;
-      type: "credit_added";
+      kind: "credit_added";
+      date: string | Date;
+      title: string;
+      subtitle: string | null;
+      amountMinor: number;
       status: "posted";
-      date: string;
-      paymentId?: string | null;
-      amountMinor: number; // unapplied credit
-      label: string;
+      sourcePaymentId: string | null;
     }
   | {
       id: string;
-      type: "credit_applied";
+      kind: "credit_applied";
+      date: string | Date;
+      title: string;
+      subtitle: string | null;
+      amountMinor: number;
       status: "posted";
-      date: string;
-      invoiceId: string;
-      invoiceLineItemId?: string | null;
-      amountMinor: number; // credit used to settle invoice/li
-      label: string;
+      appliedToInvoiceId: string | null;
+      appliedToLineItemId: string | null;
     };
 
 export async function GET(
@@ -66,195 +61,156 @@ export async function GET(
 
   const { studentId } = await params;
   const { searchParams } = new URL(req.url);
-  const includePending = searchParams.get("includePending") === "true";
 
-  // Optional: scope to one term/invoice
-  const invoiceIdFilter = searchParams.get("invoiceId");
+  const academicPeriodId = searchParams.get("academicPeriodId"); // "all" or ObjectId
+  const includePending = searchParams.get("includePending") !== "false";
 
-  // Validate student
-  const student = await Student.findOne({ _id: studentId, schoolId })
-    .select("_id firstName lastName admissionNo")
-    .lean();
-
-  if (!student) {
+  const student = await Student.findOne({ _id: studentId, schoolId }).lean();
+  if (!student)
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
-  }
 
-  // Invoices (issued/paid/overdue/partially_paid)
-  const invoiceQuery: any = {
+  const invoiceQuery: mongoose.FilterQuery<typeof Invoice> = {
     schoolId,
     studentId: new mongoose.Types.ObjectId(studentId),
-    status: { $ne: "draft" },
   };
-  if (invoiceIdFilter)
-    invoiceQuery._id = new mongoose.Types.ObjectId(invoiceIdFilter);
+  if (academicPeriodId && academicPeriodId !== "all") {
+    invoiceQuery.academicPeriodId = new mongoose.Types.ObjectId(
+      academicPeriodId
+    );
+  }
 
   const invoices = await Invoice.find(invoiceQuery)
-    .sort({ issueDate: -1 })
-    .select(
-      "_id invoiceNumber issueDate totalAmountMinor academicPeriodId status"
-    )
     .populate("academicPeriodId", "yearLabel term")
+    .sort({ issueDate: -1 })
     .lean();
 
   const invoiceIds = invoices.map((i) => i._id);
-
-  // Payments (completed always, and pending if includePending)
-  const paymentStatuses = includePending
-    ? ["completed", "pending"]
-    : ["completed"];
-  const payments = await Payment.find({
-    schoolId,
-    studentId: new mongoose.Types.ObjectId(studentId),
-    invoiceId: invoiceIds.length ? { $in: invoiceIds } : undefined,
-    status: { $in: paymentStatuses },
-  })
-    .sort({ paymentDate: -1 })
-    .select(
-      "_id invoiceId amountMinor paymentDate paymentMethod receiptNumber status"
-    )
-    .lean();
-
-  const paymentIds = payments.map((p) => p._id);
-
-  const allocations = paymentIds.length
-    ? await PaymentAllocation.find({ paymentId: { $in: paymentIds } })
-        .select(
-          "_id paymentId invoiceLineItemId amountMinor installmentScheduleId installmentNumber"
-        )
+  const payments = invoiceIds.length
+    ? await Payment.find({
+        schoolId,
+        invoiceId: { $in: invoiceIds },
+        $or: [
+          { status: "completed" },
+          includePending
+            ? { status: "pending", approvalStatus: "pending" }
+            : { _id: null },
+        ],
+      })
+        .sort({ paymentDate: -1 })
         .lean()
     : [];
 
-  const allocSumByPayment = new Map<string, number>();
-  for (const a of allocations) {
-    const k = String(a.paymentId);
-    allocSumByPayment.set(k, (allocSumByPayment.get(k) || 0) + a.amountMinor);
-  }
-
-  // Credit balance + entries
-  const creditBalanceDoc = await StudentCreditBalance.findOne({
+  const credit = await StudentCreditBalance.findOne({
     schoolId,
     studentId,
-  })
-    .select("balanceMinor entries")
-    .lean();
+  }).lean();
 
-  // TypeScript incorrectly infers findOne().lean() could return an array
-  // findOne() always returns a single document or null, never an array
-  const creditBalance = (
-    Array.isArray(creditBalanceDoc)
-      ? creditBalanceDoc[0] || null
-      : creditBalanceDoc
-  ) as { balanceMinor: number; entries: any[] } | null;
+  // Build rows: posted invoices + completed payments + pending payments + credit entries
+  const rows: LedgerRow[] = [];
 
-  // Optional enrichment for credit-applied labels (line item name)
-  const lineItemIds = (creditBalance?.entries || [])
-    .map((e: any) => e.appliedToLineItemId)
-    .filter(Boolean)
-    .map((x: any) => String(x));
-
-  const lineItems = lineItemIds.length
-    ? await InvoiceLineItem.find({ _id: { $in: lineItemIds } })
-        .select("_id name")
-        .lean()
-    : [];
-
-  const lineItemNameById = new Map(
-    lineItems.map((li) => [String(li._id), li.name])
-  );
-
-  const items: LedgerItem[] = [];
-
-  // 1) Issued invoices
   for (const inv of invoices) {
-    if (!inv.issueDate) continue;
-    const ap: any = inv.academicPeriodId;
-    const termLabel = ap
-      ? `${ap.yearLabel ?? ""} ${ap.term ?? ""}`.trim()
-      : null;
-
-    items.push({
-      id: `inv_${inv._id}`,
-      type: "invoice_issued",
-      status: "posted",
-      date: new Date(inv.issueDate).toISOString(),
-      invoiceId: String(inv._id),
-      invoiceNumber: inv.invoiceNumber,
-      termLabel,
-      amountMinor: inv.totalAmountMinor,
-      label: `Invoice issued (${inv.invoiceNumber})`,
-    });
+    if (inv.issueDate) {
+      rows.push({
+        id: `inv:${inv._id}`,
+        kind: "invoice_issued",
+        date: inv.issueDate,
+        title: `Invoice Issued • ${inv.invoiceNumber}`,
+        subtitle: inv.academicPeriodId
+          ? `${inv.academicPeriodId.yearLabel} • ${inv.academicPeriodId.term}`
+          : null,
+        amountMinor: inv.totalAmountMinor,
+        status: "posted",
+        invoiceId: String(inv._id),
+      });
+    }
   }
 
-  // 2) Payments (applied portion only) + Pending proof
   for (const p of payments) {
-    const appliedMinor = allocSumByPayment.get(String(p._id)) || 0;
-
-    items.push({
-      id: `pay_${p._id}`,
-      type: "payment_applied",
-      status: p.status === "pending" ? "pending_approval" : "posted",
-      date: new Date(p.paymentDate).toISOString(),
+    rows.push({
+      id: `pay:${p._id}`,
+      kind: p.status === "pending" ? "payment_pending" : "payment",
+      date: p.paymentDate,
+      title:
+        p.status === "pending"
+          ? `Payment Proof • Pending approval`
+          : `Payment Received • ${String(p.paymentMethod).replaceAll(
+              "_",
+              " "
+            )}`,
+      subtitle: p.receiptNumber ? `Receipt: ${p.receiptNumber}` : null,
+      amountMinor: p.amountMinor,
+      status: p.status === "pending" ? "pending" : "posted",
       invoiceId: String(p.invoiceId),
       paymentId: String(p._id),
-      receiptNumber: p.receiptNumber || null,
-      method: p.paymentMethod,
-      appliedMinor,
-      label:
-        p.status === "pending"
-          ? `Payment submitted (Pending approval)`
-          : `Payment applied (${p.receiptNumber ?? "receipt"})`,
     });
   }
 
-  // 3) Credit entries (overpayment credit lines + credit applied lines)
-  for (const entry of creditBalance?.entries || []) {
-    const createdAt = entry.createdAt
-      ? new Date(entry.createdAt).toISOString()
-      : new Date().toISOString();
+  // credit ledger lines:
+  // - credit added (overpayments) as separate row
+  // - credit applied (application) as separate row (filter to invoice when term chosen)
+  if (credit?.entries?.length) {
+    for (const e of credit.entries) {
+      if (academicPeriodId && academicPeriodId !== "all") {
+        // for term filter: include only (a) credits from payments on invoices in this term, or (b) applications to invoices in this term
+        const invoiceIdStr = e.appliedToInvoiceId
+          ? String(e.appliedToInvoiceId)
+          : null;
+        const isApplicationToTermInvoice =
+          invoiceIdStr && invoiceIds.some((x) => String(x) === invoiceIdStr);
 
-    if (entry.type === "credit") {
-      items.push({
-        id: `cr_${entry._id ?? createdAt}`,
-        type: "credit_added",
-        status: "posted",
-        date: createdAt,
-        paymentId: entry.sourcePaymentId ? String(entry.sourcePaymentId) : null,
-        amountMinor: entry.amountMinor,
-        label: entry.reason || "Credit added",
-      });
-    }
+        const isCreditFromTermPayment =
+          e.type === "credit" &&
+          e.sourcePaymentId &&
+          payments.some((p) => String(p._id) === String(e.sourcePaymentId));
 
-    if (entry.type === "application") {
-      const liName = entry.appliedToLineItemId
-        ? lineItemNameById.get(String(entry.appliedToLineItemId))
-        : null;
+        if (!isApplicationToTermInvoice && !isCreditFromTermPayment) continue;
+      }
 
-      items.push({
-        id: `cap_${entry._id ?? createdAt}`,
-        type: "credit_applied",
-        status: "posted",
-        date: createdAt,
-        invoiceId: entry.appliedToInvoiceId
-          ? String(entry.appliedToInvoiceId)
-          : "",
-        invoiceLineItemId: entry.appliedToLineItemId
-          ? String(entry.appliedToLineItemId)
-          : null,
-        amountMinor: entry.amountMinor,
-        label: entry.reason || `Credit applied${liName ? ` (${liName})` : ""}`,
-      });
+      if (e.type === "credit") {
+        rows.push({
+          id: `cr:${e.createdAt}:${e.amountMinor}:${String(
+            e.sourcePaymentId || ""
+          )}`,
+          kind: "credit_added",
+          date: e.createdAt,
+          title: "Credit Added (Overpayment)",
+          subtitle: e.reason || null,
+          amountMinor: e.amountMinor,
+          status: "posted",
+          sourcePaymentId: e.sourcePaymentId ? String(e.sourcePaymentId) : null,
+        });
+      } else if (e.type === "application") {
+        rows.push({
+          id: `crapp:${e.createdAt}:${e.amountMinor}:${String(
+            e.appliedToInvoiceId || ""
+          )}`,
+          kind: "credit_applied",
+          date: e.createdAt,
+          title: "Credit Applied",
+          subtitle: e.reason || null,
+          amountMinor: e.amountMinor,
+          status: "posted",
+          appliedToInvoiceId: e.appliedToInvoiceId
+            ? String(e.appliedToInvoiceId)
+            : null,
+          appliedToLineItemId: e.appliedToLineItemId
+            ? String(e.appliedToLineItemId)
+            : null,
+        });
+      }
     }
   }
 
-  // Sort newest first for UI
-  items.sort((a, b) => (a.date < b.date ? 1 : -1));
+  rows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const creditBalanceMinor =
+    credit && !Array.isArray(credit) ? credit.balanceMinor ?? 0 : 0;
 
   return NextResponse.json({
-    student,
     creditBalance: {
-      balanceMinor: creditBalance?.balanceMinor ?? 0,
+      balanceMinor: creditBalanceMinor,
     },
-    ledger: items,
+    ledger: rows,
+    scope: academicPeriodId && academicPeriodId !== "all" ? "term" : "all_time",
   });
 }

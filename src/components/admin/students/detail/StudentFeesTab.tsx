@@ -128,15 +128,19 @@ export function StudentFeesTab({ student }: Props) {
   // With “1 invoice per student per term”, we’ll display the first one in that term.
   const invoiceId = invoiceListData?.invoices?.[0]?._id ?? null;
 
-  const { data: ledgerData, isLoading: ledgerLoading } = useStudentFeesLedger({
-    studentId: student.id,
-    scope: ledgerScope,
-    includePending,
-    invoiceId: ledgerScope === "term" ? invoiceId : null,
-    academicPeriodId: ledgerScope === "term" ? academicPeriodId : null,
-  });
+  // Determine academicPeriodId for the hook
+  const ledgerAcademicPeriodId: string | "all" | null =
+    ledgerScope === "all"
+      ? "all"
+      : ledgerScope === "term"
+      ? academicPeriodId || "all"
+      : null;
 
-  // const ledgerRows = (ledgerData?.ledger ?? []) as any[];
+  const { data: ledgerData, isLoading: ledgerLoading } = useStudentFeesLedger(
+    student.id,
+    ledgerAcademicPeriodId,
+    includePending
+  );
 
   const { data: invoiceDetailData, isLoading: invoiceLoading } = useInvoice(
     invoiceId || ""
@@ -155,6 +159,81 @@ export function StudentFeesTab({ student }: Props) {
   }, [academicPeriodId, periods, student.feesSummary?.currentTermLabel]);
 
   const ledgerRows: LedgerRow[] = React.useMemo(() => {
+    // When scope is "all", use ledger data from API
+    if (ledgerScope === "all" && ledgerData?.ledger) {
+      // Map API ledger rows to component LedgerRow format
+      return ledgerData.ledger.map((row: any) => {
+        if (row.kind === "payment" || row.kind === "payment_pending") {
+          // Extract payment method from title more accurately
+          const titleLower = (row.title || "").toLowerCase();
+          let paymentMethod = "other";
+          if (titleLower.includes("cash")) {
+            paymentMethod = "cash";
+          } else if (
+            titleLower.includes("bank") ||
+            titleLower.includes("transfer")
+          ) {
+            paymentMethod = "bank_transfer";
+          } else if (
+            titleLower.includes("mobile") ||
+            titleLower.includes("momo")
+          ) {
+            paymentMethod = "mobile_money";
+          } else if (titleLower.includes("paystack")) {
+            paymentMethod = "paystack";
+          } else if (titleLower.includes("cheque")) {
+            paymentMethod = "cheque";
+          }
+
+          // Determine payment status
+          const isPending =
+            row.status === "pending" || row.kind === "payment_pending";
+
+          return {
+            id: row.id,
+            kind: "payment" as const,
+            date:
+              typeof row.date === "string" ? row.date : row.date.toISOString(),
+            title: row.title,
+            subtitle: row.subtitle ?? null,
+            amountMinor: row.amountMinor,
+            invoiceId: row.invoiceId,
+            payment: {
+              _id: row.paymentId,
+              amountMinor: row.amountMinor,
+              paymentDate:
+                typeof row.date === "string"
+                  ? row.date
+                  : row.date.toISOString(),
+              paymentMethod,
+              receiptNumber:
+                row.subtitle?.replace("Receipt: ", "") || undefined,
+              status: isPending ? "pending_approval" : "completed",
+              allocations: [],
+            } as any,
+            allocatedMinor: row.amountMinor, // API doesn't provide allocation breakdown
+            unallocatedMinor: 0,
+          } satisfies LedgerRow;
+        }
+        // For invoice and credit rows, map directly but ensure date is string
+        if (
+          row.kind === "invoice_issued" ||
+          row.kind === "credit_added" ||
+          row.kind === "credit_applied"
+        ) {
+          return {
+            ...row,
+            date:
+              typeof row.date === "string" ? row.date : row.date.toISOString(),
+            subtitle: row.subtitle ?? null,
+          } as LedgerRow;
+        }
+        // Fallback for unknown types
+        return row as LedgerRow;
+      });
+    }
+
+    // When scope is "term", build from invoiceDetail
     if (!invoiceDetail) {
       // fallback to your existing stub timeline if no invoice found for the selection
       const fallback = (student.feeTimeline ?? []).map((t) => {
@@ -289,9 +368,17 @@ export function StudentFeesTab({ student }: Props) {
     return rows.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-  }, [invoiceDetail, creditBalance, student.feeTimeline, termLabel]);
+  }, [
+    ledgerScope,
+    ledgerData,
+    invoiceDetail,
+    creditBalance,
+    student.feeTimeline,
+    termLabel,
+  ]);
 
-  const hasInvoice = Boolean(invoiceDetail?._id);
+  // For "all" scope, we don't need a specific invoice
+  const hasInvoice = ledgerScope === "all" ? true : Boolean(invoiceDetail?._id);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
@@ -367,6 +454,9 @@ export function StudentFeesTab({ student }: Props) {
                         {p.isCurrent ? " (Current)" : ""}
                       </option>
                     ))}
+                    <option value="all" className="text-black">
+                      All time
+                    </option>
                   </select>
                 </div>
               </div>
@@ -397,7 +487,7 @@ export function StudentFeesTab({ student }: Props) {
                   </p>
                 </div>
               </div>
-            ) : ledgerLoading ? (
+            ) : ledgerLoading || invoiceLoading ? (
               <div className="flex items-center justify-center gap-3 py-10 text-sm text-muted-foreground">
                 <Clock className="h-5 w-5 animate-spin" />
                 Loading ledger…

@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(app)/admin/fees/payments/record/page.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, startTransition } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,22 +33,28 @@ interface Allocation {
 export default function RecordPaymentPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { toast } = useToast();
+  const { error: toastError, success: toastSuccess } = useToast();
   const invoiceIdParam = searchParams.get("invoiceId");
 
   const [invoiceId, setInvoiceId] = useState(invoiceIdParam || "");
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "bank_transfer" | "mobile_money" | "paystack" | "cheque" | "other">("cash");
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentMethod, setPaymentMethod] = useState<
+    "cash" | "bank_transfer" | "mobile_money" | "paystack" | "cheque" | "other"
+  >("cash");
+  const [paymentDate, setPaymentDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [notes, setNotes] = useState("");
   const [allocations, setAllocations] = useState<Allocation[]>([]);
+  const initializedInvoiceIdRef = useRef<string | null>(null);
   const updateAllocationsWithTotal = (next: Allocation[]) => {
     setAllocations(next);
     const total = next.reduce((sum, a) => sum + a.amount, 0);
     setAmount(total.toFixed(2));
   };
 
-  const { data: invoiceData, isLoading: invoiceLoading } = useInvoice(invoiceId);
+  const { data: invoiceData, isLoading: invoiceLoading } =
+    useInvoice(invoiceId);
   const recordPayment = useRecordPayment();
   useFeesSSE();
 
@@ -55,28 +62,50 @@ export default function RecordPaymentPage() {
 
   // Initialize allocations when invoice loads
   useEffect(() => {
-    if (invoice && invoice.lineItems && allocations.length === 0) {
+    // Reset if invoiceId changed
+    if (initializedInvoiceIdRef.current !== invoiceId) {
+      initializedInvoiceIdRef.current = null;
+      startTransition(() => {
+        setAllocations([]);
+        setAmount("");
+      });
+    }
+
+    if (
+      invoice &&
+      invoice.lineItems &&
+      initializedInvoiceIdRef.current !== invoiceId
+    ) {
       const payableLineItems = invoice.lineItems.filter(
         (item: any) => !item.isAdjustment && item.amountOutstandingMinor > 0
       );
-      const initialAllocations: Allocation[] = payableLineItems.map((item: any) => {
-        const firstOutstandingInstallment = item.installments?.find(
-          (inst: any) => inst.amountOutstandingMinor > 0
-        );
-        return {
-          invoiceLineItemId: item._id,
-          amount: firstOutstandingInstallment
-            ? toMajorUnits(firstOutstandingInstallment.amountOutstandingMinor)
-            : toMajorUnits(item.amountOutstandingMinor),
-          installmentScheduleId: firstOutstandingInstallment?._id,
-          installmentNumber: firstOutstandingInstallment?.installmentNumber,
-        };
+      const initialAllocations: Allocation[] = payableLineItems.map(
+        (item: any) => {
+          const firstOutstandingInstallment = item.installments?.find(
+            (inst: any) => inst.amountOutstandingMinor > 0
+          );
+          return {
+            invoiceLineItemId: item._id,
+            amount: firstOutstandingInstallment
+              ? toMajorUnits(firstOutstandingInstallment.amountOutstandingMinor)
+              : toMajorUnits(item.amountOutstandingMinor),
+            installmentScheduleId: firstOutstandingInstallment?._id,
+            installmentNumber: firstOutstandingInstallment?.installmentNumber,
+          };
+        }
+      );
+      initializedInvoiceIdRef.current = invoiceId;
+      startTransition(() => {
+        updateAllocationsWithTotal(initialAllocations);
       });
-      updateAllocationsWithTotal(initialAllocations);
     }
-  }, [invoice, allocations.length]);
+  }, [invoice, invoiceId]);
 
-  const handleAllocationChange = (index: number, field: "amount" | "notes", value: string | number) => {
+  const handleAllocationChange = (
+    index: number,
+    field: "amount" | "notes",
+    value: string | number
+  ) => {
     const updated = [...allocations];
     updated[index] = { ...updated[index], [field]: value };
     updateAllocationsWithTotal(updated);
@@ -87,7 +116,8 @@ export default function RecordPaymentPage() {
 
     const unallocatedItems = invoice.lineItems.filter(
       (item: any) =>
-        !item.isAdjustment && !allocations.some((a) => a.invoiceLineItemId === item._id)
+        !item.isAdjustment &&
+        !allocations.some((a) => a.invoiceLineItemId === item._id)
     );
 
     if (unallocatedItems.length > 0) {
@@ -111,7 +141,7 @@ export default function RecordPaymentPage() {
     e.preventDefault();
 
     if (!invoiceId || !amount || allocations.length === 0) {
-      toast.error("Error", {
+      toastError("Error", {
         description: "Please fill in all required fields",
       });
       return;
@@ -121,7 +151,7 @@ export default function RecordPaymentPage() {
     const paymentAmount = parseFloat(amount);
 
     if (Math.abs(totalAllocated - paymentAmount) > 0.01) {
-      toast.error("Error", {
+      toastError("Error", {
         description: "Allocation amounts must sum to payment amount",
       });
       return;
@@ -143,24 +173,29 @@ export default function RecordPaymentPage() {
         notes: notes || undefined,
       });
 
-      toast.success("Success", {
+      toastSuccess("Success", {
         description: "Payment recorded successfully",
       });
 
       router.push(`/admin/fees/invoices/${invoiceId}`);
     } catch (error: any) {
-      toast.error("Error", {
+      toastError("Error", {
         description: error.message || "Failed to record payment",
       });
     }
   };
 
   const getLineItemName = (lineItemId: string) => {
-    return invoice?.lineItems?.find((item: any) => item._id === lineItemId)?.name || "Unknown";
+    return (
+      invoice?.lineItems?.find((item: any) => item._id === lineItemId)?.name ||
+      "Unknown"
+    );
   };
 
   const getLineItemOutstanding = (lineItemId: string) => {
-    const item = invoice?.lineItems?.find((item: any) => item._id === lineItemId);
+    const item = invoice?.lineItems?.find(
+      (item: any) => item._id === lineItemId
+    );
     return item ? toMajorUnits(item.amountOutstandingMinor) : 0;
   };
 
@@ -174,7 +209,9 @@ export default function RecordPaymentPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">Record Payment</h1>
-          <p className="text-muted-foreground">Record a payment for an invoice</p>
+          <p className="text-muted-foreground">
+            Record a payment for an invoice
+          </p>
         </div>
         <Button variant="ghost" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -210,7 +247,11 @@ export default function RecordPaymentPage() {
                 </p>
               </div>
             )}
-            {invoiceLoading && <p className="text-sm text-muted-foreground">Loading invoice...</p>}
+            {invoiceLoading && (
+              <p className="text-sm text-muted-foreground">
+                Loading invoice...
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -234,7 +275,10 @@ export default function RecordPaymentPage() {
               </div>
               <div>
                 <Label htmlFor="paymentMethod">Payment Method</Label>
-                <Select value={paymentMethod} onValueChange={(v: any) => setPaymentMethod(v)}>
+                <Select
+                  value={paymentMethod}
+                  onValueChange={(v: any) => setPaymentMethod(v)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -276,17 +320,21 @@ export default function RecordPaymentPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Payment Allocation</CardTitle>
-              {invoice && invoice.lineItems && allocations.length < invoice.lineItems.filter((li: any) => !li.isAdjustment).length && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddAllocation}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Line Item
-                </Button>
-              )}
+              {invoice &&
+                invoice.lineItems &&
+                allocations.length <
+                  invoice.lineItems.filter((li: any) => !li.isAdjustment)
+                    .length && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddAllocation}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Line Item
+                  </Button>
+                )}
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -303,12 +351,16 @@ export default function RecordPaymentPage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <p className="font-medium">{getLineItemName(allocation.invoiceLineItemId)}</p>
+                        <p className="font-medium">
+                          {getLineItemName(allocation.invoiceLineItemId)}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           Outstanding:{" "}
                           {formatMoney(
-                            invoice?.lineItems?.find((li: any) => li._id === allocation.invoiceLineItemId)
-                              ?.amountOutstandingMinor || 0
+                            invoice?.lineItems?.find(
+                              (li: any) =>
+                                li._id === allocation.invoiceLineItemId
+                            )?.amountOutstandingMinor || 0
                           )}
                         </p>
                       </div>
@@ -329,7 +381,11 @@ export default function RecordPaymentPage() {
                           step="0.01"
                           value={allocation.amount}
                           onChange={(e) =>
-                            handleAllocationChange(index, "amount", parseFloat(e.target.value) || 0)
+                            handleAllocationChange(
+                              index,
+                              "amount",
+                              parseFloat(e.target.value) || 0
+                            )
                           }
                           required
                         />
@@ -339,25 +395,39 @@ export default function RecordPaymentPage() {
                         <Select
                           value={allocation.installmentScheduleId || "lineitem"}
                           onValueChange={(v) => {
-                            const installments = getInstallmentsForItem(allocation.invoiceLineItemId);
+                            const installments = getInstallmentsForItem(
+                              allocation.invoiceLineItemId
+                            );
                             if (v === "lineitem") {
                               const updated = allocations.map((a, i) =>
                                 i === index
-                                  ? { ...a, installmentScheduleId: undefined, installmentNumber: undefined, amount: getLineItemOutstanding(allocation.invoiceLineItemId) }
+                                  ? {
+                                      ...a,
+                                      installmentScheduleId: undefined,
+                                      installmentNumber: undefined,
+                                      amount: getLineItemOutstanding(
+                                        allocation.invoiceLineItemId
+                                      ),
+                                    }
                                   : a
                               );
                               updateAllocationsWithTotal(updated);
                               return;
                             }
-                            const selected = installments.find((inst: any) => inst._id === v);
+                            const selected = installments.find(
+                              (inst: any) => inst._id === v
+                            );
                             const updated = allocations.map((a, i) =>
                               i === index
                                 ? {
                                     ...a,
                                     installmentScheduleId: v,
-                                    installmentNumber: selected?.installmentNumber,
+                                    installmentNumber:
+                                      selected?.installmentNumber,
                                     amount: selected
-                                      ? toMajorUnits(selected.amountOutstandingMinor)
+                                      ? toMajorUnits(
+                                          selected.amountOutstandingMinor
+                                        )
                                       : a.amount,
                                   }
                                 : a
@@ -369,10 +439,15 @@ export default function RecordPaymentPage() {
                             <SelectValue placeholder="Select installment" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="lineitem">Apply to line item</SelectItem>
-                            {getInstallmentsForItem(allocation.invoiceLineItemId).map((inst: any) => (
+                            <SelectItem value="lineitem">
+                              Apply to line item
+                            </SelectItem>
+                            {getInstallmentsForItem(
+                              allocation.invoiceLineItemId
+                            ).map((inst: any) => (
                               <SelectItem key={inst._id} value={inst._id}>
-                                Inst {inst.installmentNumber} • Due {new Date(inst.dueDate).toLocaleDateString()} •{" "}
+                                Inst {inst.installmentNumber} • Due{" "}
+                                {new Date(inst.dueDate).toLocaleDateString()} •{" "}
                                 {formatMoney(inst.amountOutstandingMinor)}
                               </SelectItem>
                             ))}
@@ -384,7 +459,9 @@ export default function RecordPaymentPage() {
                       <Label>Notes (Optional)</Label>
                       <Input
                         value={allocation.notes || ""}
-                        onChange={(e) => handleAllocationChange(index, "notes", e.target.value)}
+                        onChange={(e) =>
+                          handleAllocationChange(index, "notes", e.target.value)
+                        }
                         placeholder="Notes for this allocation..."
                       />
                     </div>
@@ -394,14 +471,24 @@ export default function RecordPaymentPage() {
                   <div className="flex items-center justify-between">
                     <p className="font-semibold">Total Allocated:</p>
                     <p className="font-bold text-lg">
-                      GHS {allocations.reduce((sum, a) => sum + a.amount, 0).toFixed(2)}
+                      GHS{" "}
+                      {allocations
+                        .reduce((sum, a) => sum + a.amount, 0)
+                        .toFixed(2)}
                     </p>
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm text-muted-foreground">Payment Amount:</p>
-                    <p className="text-sm font-semibold">GHS {parseFloat(amount || "0").toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Payment Amount:
+                    </p>
+                    <p className="text-sm font-semibold">
+                      GHS {parseFloat(amount || "0").toFixed(2)}
+                    </p>
                   </div>
-                  {Math.abs(allocations.reduce((sum, a) => sum + a.amount, 0) - parseFloat(amount || "0")) > 0.01 && (
+                  {Math.abs(
+                    allocations.reduce((sum, a) => sum + a.amount, 0) -
+                      parseFloat(amount || "0")
+                  ) > 0.01 && (
                     <p className="text-sm text-destructive mt-2">
                       Allocation amounts must match payment amount
                     </p>

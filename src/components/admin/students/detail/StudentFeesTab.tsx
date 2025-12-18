@@ -19,6 +19,7 @@ import {
   Layers,
   FileText,
 } from "lucide-react";
+import { useStudentFeesLedger } from "@/hooks/admin/useStudentFeesLedger";
 
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
@@ -94,7 +95,10 @@ function fmtSigned(minor: number) {
 
 export function StudentFeesTab({ student }: Props) {
   const { data: periodsData, isLoading: periodsLoading } = useAcademicPeriods();
-  const periods = periodsData?.periods ?? [];
+  const periods = React.useMemo(
+    () => periodsData?.periods ?? [],
+    [periodsData?.periods]
+  );
 
   const currentPeriod = React.useMemo(
     () => periods.find((p) => p.isCurrent) ?? null,
@@ -104,6 +108,9 @@ export function StudentFeesTab({ student }: Props) {
   const [academicPeriodId, setAcademicPeriodId] = React.useState<string | null>(
     null
   );
+
+  const [ledgerScope, setLedgerScope] = React.useState<"term" | "all">("term");
+  const [includePending, setIncludePending] = React.useState<boolean>(false);
 
   // Pick default term once periods arrive
   React.useEffect(() => {
@@ -120,6 +127,16 @@ export function StudentFeesTab({ student }: Props) {
 
   // With “1 invoice per student per term”, we’ll display the first one in that term.
   const invoiceId = invoiceListData?.invoices?.[0]?._id ?? null;
+
+  const { data: ledgerData, isLoading: ledgerLoading } = useStudentFeesLedger({
+    studentId: student.id,
+    scope: ledgerScope,
+    includePending,
+    invoiceId: ledgerScope === "term" ? invoiceId : null,
+    academicPeriodId: ledgerScope === "term" ? academicPeriodId : null,
+  });
+
+  // const ledgerRows = (ledgerData?.ledger ?? []) as any[];
 
   const { data: invoiceDetailData, isLoading: invoiceLoading } = useInvoice(
     invoiceId || ""
@@ -286,16 +303,55 @@ export function StudentFeesTab({ student }: Props) {
             aria-hidden="true"
           />
           <CardHeader className="relative z-10 flex flex-row items-start justify-between gap-3 pb-3">
-            <div>
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
-                Fees Ledger
-              </CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Term statement (invoice, payments, credit activity)
-              </p>
-            </div>
-
             <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2 rounded-md border border-white/10 bg-white/5 p-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setLedgerScope("term")}
+                  className={cn(
+                    "h-7 px-2 text-xs",
+                    ledgerScope === "term"
+                      ? "bg-white/10 text-white"
+                      : "text-white/60"
+                  )}
+                >
+                  Term
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setLedgerScope("all")}
+                  className={cn(
+                    "h-7 px-2 text-xs",
+                    ledgerScope === "all"
+                      ? "bg-white/10 text-white"
+                      : "text-white/60"
+                  )}
+                >
+                  All time
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setIncludePending((v) => !v)}
+                className={cn(
+                  "text-xs",
+                  includePending
+                    ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
+                    : ""
+                )}
+              >
+                <Clock className="h-4 w-4" />
+                {includePending ? "Pending: On" : "Pending: Off"}
+              </Button>
+
+              {/* keep your term dropdown visible even when All time is selected (optional) */}
               <div className="hidden md:block">
                 <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-2 py-1.5">
                   <Calendar className="h-4 w-4 text-white/60" />
@@ -341,7 +397,7 @@ export function StudentFeesTab({ student }: Props) {
                   </p>
                 </div>
               </div>
-            ) : invoiceLoading ? (
+            ) : ledgerLoading ? (
               <div className="flex items-center justify-center gap-3 py-10 text-sm text-muted-foreground">
                 <Clock className="h-5 w-5 animate-spin" />
                 Loading ledger…
@@ -354,6 +410,9 @@ export function StudentFeesTab({ student }: Props) {
             ) : (
               <div className="space-y-2">
                 {ledgerRows.map((row) => {
+                  const isPendingApproval =
+                    row.kind === "payment" &&
+                    row.payment.status === "pending_approval";
                   const isPayment = row.kind === "payment";
                   const isInvoice = row.kind === "invoice_issued";
                   const isCreditAdded = row.kind === "credit_added";
@@ -369,7 +428,14 @@ export function StudentFeesTab({ student }: Props) {
                     <ArrowUpRight className="h-4 w-4 text-sky-300/80" />
                   );
 
-                  const badge = isInvoice ? (
+                  const badge = isPendingApproval ? (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-400/25 bg-amber-500/10 text-amber-100"
+                    >
+                      Pending Approval
+                    </Badge>
+                  ) : isInvoice ? (
                     <Badge
                       variant="outline"
                       className="border-white/10 bg-white/5 text-white/70"
@@ -389,6 +455,13 @@ export function StudentFeesTab({ student }: Props) {
                       className="border-sky-400/20 bg-sky-500/10 text-sky-200"
                     >
                       Credit Applied
+                    </Badge>
+                  ) : isCreditAdded ? (
+                    <Badge
+                      variant="outline"
+                      className="border-sky-400/20 bg-sky-500/10 text-sky-200"
+                    >
+                      Credit Added
                     </Badge>
                   ) : (
                     <Badge
@@ -453,6 +526,8 @@ export function StudentFeesTab({ student }: Props) {
                               "text-sm font-semibold",
                               isInvoice
                                 ? "text-white/85"
+                                : isPendingApproval
+                                ? "text-amber-100"
                                 : isPayment
                                 ? "text-emerald-200"
                                 : "text-sky-200"
@@ -663,23 +738,23 @@ export function StudentFeesTab({ student }: Props) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs"
+                    className="flex-1 border-white/20 bg-white/5 text-xs text-white/80 transition-all duration-200 hover:border-emerald-400/50 hover:bg-emerald-500/20 hover:text-emerald-100 hover:shadow-md hover:shadow-emerald-500/20"
                   >
-                    <Receipt className="h-4 w-4" />
+                    <Receipt className="mr-1.5 h-4 w-4" />
                     Record Payment
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs"
+                    className="flex-1 border-white/20 bg-white/5 text-xs text-white/80 transition-all duration-200 hover:border-sky-400/50 hover:bg-sky-500/20 hover:text-sky-100 hover:shadow-md hover:shadow-sky-500/20"
                   >
-                    <Wallet className="h-4 w-4" />
+                    <Wallet className="mr-1.5 h-4 w-4" />
                     Apply Credit
                   </Button>
                 </div>

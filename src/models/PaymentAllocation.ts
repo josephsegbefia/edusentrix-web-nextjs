@@ -52,7 +52,7 @@ paymentAllocationSchema.index(
   {
     paymentId: 1,
     invoiceLineItemId: 1,
-    installmentSchedule: 1,
+    installmentScheduleId: 1,
     installmentNumber: 1,
   },
   { unique: true }

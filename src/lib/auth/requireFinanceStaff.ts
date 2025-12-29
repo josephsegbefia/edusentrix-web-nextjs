@@ -1,4 +1,4 @@
-// src/lib/auth/requireFeesStaff.ts
+// src/lib/auth/requireFinanceStaff.ts
 import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
@@ -12,7 +12,7 @@ function legacyRoleToArray(role?: string) {
   return ["staff"];
 }
 
-export async function requireFeesStaff() {
+export async function requireFinanceStaff() {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });

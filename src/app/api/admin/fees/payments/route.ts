@@ -1,361 +1,229 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/api/admin/fees/payments/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
+import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { Payment } from "@/models/Payment";
-import { PaymentAllocation } from "@/models/PaymentAllocation";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { InvoiceEvent } from "@/models/InvoiceEvent";
-import { StudentCreditBalance } from "@/models/StudentCreditBalance";
-import { toMinorUnits, validateAmountSum, formatMoney } from "@/lib/fees/money";
-import {
-  calculateInvoiceTotals,
-  calculateInvoiceStatus,
-} from "@/lib/fees/invoice-utils";
-import { applyPaymentAllocations } from "@/lib/fees/applyPaymentAllocation";
-import mongoose from "mongoose";
-import { requireFeesStaff } from "@/lib/auth/requireFeesStaff";
+import { StudentCreditBalance } from "@/models/StudentCreditBalance"; // create if missing
+import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
+import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice";
+import { formatMoney } from "@/lib/fees/money";
 
-export async function GET(req: NextRequest) {
-  const { schoolId } = await requireFeesStaff();
-  await connectToDatabase();
+const BodySchema = z.object({
+  studentId: z.string().min(1),
+  invoiceId: z.string().min(1),
 
-  try {
-    const { searchParams } = new URL(req.url);
-    const studentId = searchParams.get("studentId");
-    const invoiceId = searchParams.get("invoiceId");
-    const paymentMethod = searchParams.get("paymentMethod");
-    const dateFrom = searchParams.get("dateFrom");
-    const dateTo = searchParams.get("dateTo");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
+  amountMinor: z.number().int().positive(),
+  paymentDate: z.string().min(1), // ISO
+  paymentMethod: z.enum([
+    "cash",
+    "bank_transfer",
+    "mobile_money",
+    "paystack",
+    "cheque",
+    "other",
+  ]),
+  receiptNumber: z.string().optional(),
+  reference: z.string().optional(),
+  note: z.string().optional(),
 
-    const query: mongoose.FilterQuery<typeof Payment> = {
-      schoolId,
-      status: "completed",
-    };
+  status: z.enum(["completed", "pending_approval"]).default("completed"),
 
-    if (studentId) {
-      query.studentId = new mongoose.Types.ObjectId(studentId);
-    }
-    if (invoiceId) {
-      query.invoiceId = new mongoose.Types.ObjectId(invoiceId);
-    }
-    if (paymentMethod) {
-      query.paymentMethod = paymentMethod;
-    }
-    if (dateFrom || dateTo) {
-      query.paymentDate = {};
-      if (dateFrom) {
-        query.paymentDate.$gte = new Date(dateFrom);
-      }
-      if (dateTo) {
-        query.paymentDate.$lte = new Date(dateTo);
-      }
-    }
-
-    const skip = (page - 1) * limit;
-
-    const [payments, total] = await Promise.all([
-      Payment.find(query)
-        .sort({ paymentDate: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate("studentId", "firstName lastName admissionNo")
-        .populate("invoiceId", "invoiceNumber")
-        .populate("receivedBy", "name email")
-        .lean(),
-      Payment.countDocuments(query),
-    ]);
-
-    // Get allocations for each payment
-    const paymentsWithAllocations = await Promise.all(
-      payments.map(async (payment: any) => {
-        const allocations = await PaymentAllocation.find({
-          paymentId: payment._id,
-        })
-          .populate("invoiceLineItemId", "name amountMinor")
-          .lean();
-        return { ...payment, allocations };
+  allocationMode: z.enum(["auto", "manual"]).default("auto"),
+  allocations: z
+    .array(
+      z.object({
+        invoiceLineItemId: z.string().min(1),
+        amountMinor: z.number().int().positive(),
       })
-    );
-
-    return NextResponse.json({
-      payments: paymentsWithAllocations,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching payments:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch payments" },
-      { status: 500 }
-    );
-  }
-}
+    )
+    .optional(),
+});
 
 export async function POST(req: NextRequest) {
-  const { schoolId, userId } = await requireFeesStaff();
+  const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  const body = BodySchema.parse(await req.json());
 
-  try {
-    const body = await req.json();
-    const {
-      invoiceId,
-      amount,
-      paymentMethod,
-      allocations,
-      paymentDate,
-      notes,
-      receiptNumber,
-      approvalStatus,
-      submittedBy,
-      attachments,
-    } = body;
+  const invoice = await Invoice.findOne({
+    _id: new mongoose.Types.ObjectId(body.invoiceId),
+    schoolId,
+    studentId: body.studentId,
+  });
 
-    // Validate required fields
-    if (
-      !invoiceId ||
-      !amount ||
-      !paymentMethod ||
-      !allocations ||
-      !Array.isArray(allocations)
-    ) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        {
-          error:
-            "Invoice, amount, payment method, and allocations are required",
-        },
-        { status: 400 }
-      );
-    }
+  if (!invoice) {
+    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  }
 
-    const amountMinor = toMinorUnits(amount);
+  // Fetch line items from separate collection
+  const lineItems = await InvoiceLineItem.find({
+    invoiceId: invoice._id,
+  })
+    .sort({ displayOrder: 1 })
+    .lean();
 
-    // Validate allocations sum equals payment amount
-    const allocationAmounts = allocations.map((a: any) =>
-      toMinorUnits(a.amount)
-    );
-    if (!validateAmountSum(allocationAmounts, amountMinor)) {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { error: "Allocation amounts must sum to payment amount" },
-        { status: 400 }
-      );
-    }
+  // Normalize IDs to strings for consistent comparison
+  const normalizedLineItems = lineItems.map((li: any) => ({
+    ...li,
+    _id: String(li._id),
+  }));
 
-    const isProofPending = approvalStatus === "pending";
-
-    // Get invoice
-    const invoice = await Invoice.findOne({
-      _id: invoiceId,
-      schoolId,
-    }).session(session);
-
-    if (!invoice) {
-      await session.abortTransaction();
-      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
-    }
-
-    if (invoice.status === "cancelled") {
-      await session.abortTransaction();
-      return NextResponse.json(
-        { error: "Cannot record payment for cancelled invoice" },
-        { status: 400 }
-      );
-    }
-
-    // Generate receipt number if not provided
-    const receiptNum =
-      receiptNumber ||
-      `RCP-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
-
-    // Create payment (pending or completed)
-    const [payment] = await Payment.create(
-      [
-        {
-          schoolId,
-          studentId: invoice.studentId,
-          invoiceId: invoice._id,
-          amountMinor,
-          paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-          paymentMethod,
-          receiptNumber: receiptNum,
-          notes: notes || null,
-          receivedBy: isProofPending ? null : userId || null,
-          status: isProofPending ? "pending" : "completed",
-          approvalStatus: isProofPending ? "pending" : "not_required",
-          submittedBy: submittedBy || null,
-          attachments: attachments || [],
-          requestedAllocations: isProofPending
-            ? allocations.map((a: any) => ({
-                invoiceLineItemId: a.invoiceLineItemId,
-                amountMinor: toMinorUnits(a.amount),
-                installmentScheduleId: a.installmentScheduleId || null,
-                installmentNumber: a.installmentNumber || null,
-                notes: a.notes || null,
-              }))
-            : [],
-          reconciliationStatus: "unmatched",
-        },
-      ],
-      { session }
-    );
-
-    if (isProofPending) {
-      // Optional: log invoice event “proof submitted”
-      await InvoiceEvent.create(
-        [
-          {
-            invoiceId: invoice._id,
-            schoolId,
-            studentId: invoice.studentId,
-            eventType: "payment_recorded",
-            description: `Payment proof submitted (${formatMoney(
-              amountMinor
-            )}) • Pending approval`,
-            performedBy: userId || null,
-            relatedPaymentId: payment._id,
-          },
-        ],
-        { session }
-      );
-
-      await session.commitTransaction();
-      return NextResponse.json({ payment }, { status: 201 });
-    }
-
-    // ✅ POST allocations + installments auto-fill here
-    const { overpaymentMinor } = await applyPaymentAllocations({
-      session,
-      paymentId: payment._id,
-      invoiceId: invoice._id,
-      allocations: allocations.map((a: any) => ({
-        invoiceLineItemId: a.invoiceLineItemId,
-        amountMinor: toMinorUnits(a.amount),
-        installmentScheduleId: a.installmentScheduleId || null,
-        installmentNumber: a.installmentNumber || null,
-        notes: a.notes || null,
-      })),
+  const { allocations, allocatedMinor, unallocatedMinor } =
+    allocateToInvoiceLineItems({
+      lineItems: normalizedLineItems,
+      amountMinor: body.amountMinor,
+      mode: body.allocationMode,
+      manualAllocations: body.allocations,
     });
 
-    // Handle overpayment - create credit
-    if (overpaymentMinor > 0) {
-      let creditBalance = await StudentCreditBalance.findOne({
-        schoolId,
-        studentId: invoice.studentId,
-      }).session(session);
+  const paymentId = new mongoose.Types.ObjectId();
 
-      if (!creditBalance) {
-        const created = await StudentCreditBalance.create(
-          [
-            {
-              schoolId,
-              studentId: invoice.studentId,
-              balanceMinor: 0,
-              entries: [],
+  // Store payment as subdoc so invoiceDetail continues to work
+  const paymentSubdoc: any = {
+    _id: paymentId,
+    amountMinor: body.amountMinor,
+    paymentDate: body.paymentDate,
+    paymentMethod: body.paymentMethod,
+    receiptNumber: body.receiptNumber,
+    reference: body.reference,
+    note: body.note,
+    status: body.status,
+    createdAt: new Date(),
+    createdByUserId: userId ?? null,
+    allocations: allocations.map((a) => ({
+      _id: new mongoose.Types.ObjectId(),
+      invoiceLineItemId: new mongoose.Types.ObjectId(a.invoiceLineItemId),
+      amountMinor: a.amountMinor,
+    })),
+  };
+
+  invoice.payments = invoice.payments ?? [];
+  invoice.payments.push(paymentSubdoc);
+
+  let creditAddedMinor = 0;
+
+  if (body.status === "completed") {
+    // Apply to invoice line items NOW (posted)
+    applyAllocationsToInvoice(invoice, allocations, {
+      lineItems: normalizedLineItems,
+    });
+
+    // Persist updated line item balances
+    const allocatedIds = new Set(allocations.map((a) => String(a.invoiceLineItemId)));
+    const bulkUpdates = normalizedLineItems
+      .filter((li: any) => allocatedIds.has(String(li._id)))
+      .map((li: any) => {
+        const amountPaidMinor = li.amountPaidMinor ?? 0;
+        const amountOutstandingMinor =
+          li.amountOutstandingMinor ??
+          Math.max(0, (li.amountMinor ?? 0) - amountPaidMinor);
+        const isFullyPaid = amountOutstandingMinor <= 0;
+        const status = isFullyPaid
+          ? "paid"
+          : amountPaidMinor > 0
+          ? "partially_paid"
+          : "pending";
+
+        return {
+          updateOne: {
+            filter: { _id: li._id },
+            update: {
+              $set: {
+                amountPaidMinor,
+                amountOutstandingMinor,
+                isFullyPaid,
+                status,
+              },
             },
-          ],
-          { session }
-        );
-        creditBalance = created[0];
-      }
-
-      creditBalance.balanceMinor += overpaymentMinor;
-      creditBalance.entries.push({
-        type: "credit",
-        amountMinor: overpaymentMinor,
-        sourcePaymentId: payment._id,
-        reason: `Overpayment from payment ${receiptNum}`,
-        createdAt: new Date(),
+          },
+        };
       });
-      await creditBalance.save({ session });
+
+    if (bulkUpdates.length > 0) {
+      await InvoiceLineItem.bulkWrite(bulkUpdates);
     }
 
-    // Recalculate invoice totals
-    const lineItems = await InvoiceLineItem.find({
-      invoiceId: invoice._id,
-    }).session(session);
+    // Overpayment => credit wallet line (separate ledger line)
+    if (unallocatedMinor > 0) {
+      creditAddedMinor = unallocatedMinor;
 
-    const totals = calculateInvoiceTotals(
-      lineItems.map((li) => ({
-        amountMinor: li.amountMinor,
-        amountPaidMinor: li.amountPaidMinor,
-      }))
-    );
-
-    invoice.totalPaidMinor = totals.totalPaidMinor;
-    invoice.totalOutstandingMinor = totals.totalOutstandingMinor;
-
-    // Update invoice status
-    invoice.status = calculateInvoiceStatus(
-      invoice.totalPaidMinor,
-      invoice.totalAmountMinor,
-      lineItems,
-      invoice.issueDate
-    );
-
-    if (invoice.status === "paid") {
-      invoice.paidDate = new Date();
-    }
-
-    await invoice.save({ session });
-
-    // Create invoice event
-    await InvoiceEvent.create(
-      [
+      await StudentCreditBalance.updateOne(
+        { schoolId, studentId: body.studentId },
         {
-          invoiceId: invoice._id,
-          schoolId,
-          studentId: invoice.studentId,
-          eventType: "payment_recorded",
-          description: `Payment of ${amountMinor / 100} GHS recorded`,
-          performedBy: userId || null,
-          relatedPaymentId: payment._id,
+          $inc: { balanceMinor: creditAddedMinor },
+          $push: {
+            entries: {
+              type: "credit",
+              amountMinor: creditAddedMinor,
+              createdAt: new Date(),
+              reason: "Overpayment",
+              sourcePaymentId: paymentId,
+            },
+          },
         },
-      ],
-      { session }
-    );
+        { upsert: true }
+      );
 
-    await session.commitTransaction();
+      await InvoiceEvent.create({
+        schoolId,
+        invoiceId: invoice._id,
+        studentId: new mongoose.Types.ObjectId(body.studentId),
+        eventType: "adjustment_added",
+        description: `Credit added from overpayment: ${formatMoney(creditAddedMinor)}`,
+        metadata: { amountMinor: creditAddedMinor, sourcePaymentId: paymentId },
+        relatedPaymentId: paymentId,
+        performedBy: userId ? new mongoose.Types.ObjectId(userId) : null,
+      });
+    }
 
-    // Fetch full payment with allocations
-    const fullPayment = await Payment.findById(payment._id)
-      .populate("studentId", "firstName lastName")
-      .populate("invoiceId", "invoiceNumber")
-      .populate("receivedBy", "name email")
-      .lean();
-
-    const paymentAllocations = await PaymentAllocation.find({
-      paymentId: payment._id,
-    })
-      .populate("invoiceLineItemId", "name amountMinor")
-      .lean();
-
-    return NextResponse.json(
-      {
-        payment: { ...fullPayment, allocations: paymentAllocations },
-        overpaymentMinor,
+    await InvoiceEvent.create({
+      schoolId,
+      invoiceId: invoice._id,
+      studentId: new mongoose.Types.ObjectId(body.studentId),
+      eventType: "payment_recorded",
+      description: `Payment recorded: ${formatMoney(body.amountMinor)} via ${body.paymentMethod}`,
+      metadata: {
+        paymentId,
+        amountMinor: body.amountMinor,
+        allocatedMinor,
+        unallocatedMinor,
+        paymentMethod: body.paymentMethod,
       },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    await session.abortTransaction();
-    console.error("Error recording payment:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to record payment" },
-      { status: 500 }
-    );
-  } finally {
-    await session.endSession();
+      relatedPaymentId: paymentId,
+      performedBy: userId ? new mongoose.Types.ObjectId(userId) : null,
+    });
+  } else {
+    // pending_approval => DO NOT alter invoice totals/outstanding
+    await InvoiceEvent.create({
+      schoolId,
+      invoiceId: invoice._id,
+      studentId: new mongoose.Types.ObjectId(body.studentId),
+      eventType: "payment_recorded",
+      description: `Payment pending approval: ${formatMoney(body.amountMinor)} via ${body.paymentMethod}`,
+      metadata: {
+        paymentId,
+        amountMinor: body.amountMinor,
+        allocationMode: body.allocationMode,
+        paymentMethod: body.paymentMethod,
+      },
+      relatedPaymentId: paymentId,
+      performedBy: userId ? new mongoose.Types.ObjectId(userId) : null,
+    });
   }
+
+  await invoice.save();
+
+  return NextResponse.json({
+    ok: true,
+    paymentId: String(paymentId),
+    invoiceId: String(invoice._id),
+    allocatedMinor,
+    unallocatedMinor,
+    creditAddedMinor,
+    status: body.status,
+  });
 }

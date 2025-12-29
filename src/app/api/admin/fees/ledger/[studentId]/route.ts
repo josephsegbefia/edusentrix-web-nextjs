@@ -1,12 +1,13 @@
 // src/app/api/admin/fees/ledger/[studentId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { requireFeesStaff } from "@/lib/auth/requireFeesStaff";
+
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 
 type LedgerRow =
   | {
@@ -56,7 +57,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ studentId: string }> }
 ) {
-  const { schoolId } = await requireFeesStaff();
+  const { schoolId } = await requireFinanceStaff();
   await connectToDatabase();
 
   const { studentId } = await params;

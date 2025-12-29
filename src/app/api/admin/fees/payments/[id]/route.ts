@@ -2,7 +2,7 @@
 // src/app/api/admin/fees/payments/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { requireFeesStaff } from "@/lib/auth/requireFeesStaff";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Payment } from "@/models/Payment";
 import { PaymentAllocation } from "@/models/PaymentAllocation";
@@ -20,7 +20,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId } = await requireFeesStaff();
+  const { schoolId } = await requireFinanceStaff();
   await connectToDatabase();
 
   const { id } = await params;
@@ -47,7 +47,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId, userId } = await requireFeesStaff();
+  const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
 
   const { id } = await params;

@@ -24,12 +24,15 @@ export function useStudentCreditBalance(studentId?: string) {
     enabled: Boolean(studentId),
     queryFn: async () => {
       if (!studentId) throw new Error("Missing studnetId");
-      const res = await fetch(`/api/admin/fees/credit/${studentId}`, {
+      const res = await fetch(`/api/admin/fees/credits/${studentId}`, {
         cache: "no-store",
       });
       if (!res.ok) throw new Error("Failed to fetch credit balance");
       const json = await res.json();
-      return { creditBalance: json.creditBalance as StudentCreditBalanceDTO };
+      // API returns { creditBalance, student, invoices }
+      return {
+        creditBalance: json.creditBalance as StudentCreditBalanceDTO,
+      };
     },
     refetchOnWindowFocus: false,
     refetchOnMount: false,

@@ -43,7 +43,7 @@ export async function GET(
     // Get or create credit balance
     let creditBalance = await StudentCreditBalance.findOne({
       schoolId,
-      studentId,
+      studentId: new mongoose.Types.ObjectId(studentId),
     }).lean();
 
     if (!creditBalance) {
@@ -67,15 +67,53 @@ export async function GET(
       .populate("academicPeriodId", "yearLabel term")
       .lean();
 
+    // Format credit balance response
+    const formattedCreditBalance = creditBalance
+      ? {
+          _id: String(creditBalance._id),
+          schoolId: String(creditBalance.schoolId),
+          studentId: String(creditBalance.studentId),
+          balanceMinor: creditBalance.balanceMinor || 0,
+          entries: (creditBalance.entries || []).map((e: any) => ({
+            type: e.type,
+            amountMinor: e.amountMinor,
+            sourcePaymentId: e.sourcePaymentId
+              ? String(e.sourcePaymentId)
+              : null,
+            appliedToInvoiceId: e.appliedToInvoiceId
+              ? String(e.appliedToInvoiceId)
+              : null,
+            appliedToLineItemId: e.appliedToLineItemId
+              ? String(e.appliedToLineItemId)
+              : null,
+            reason: e.reason || "",
+            createdAt: e.createdAt
+              ? new Date(e.createdAt).toISOString()
+              : new Date().toISOString(),
+          })),
+          createdAt: creditBalance.createdAt
+            ? new Date(creditBalance.createdAt).toISOString()
+            : undefined,
+        }
+      : null;
+
     return NextResponse.json({
-      creditBalance,
+      creditBalance: formattedCreditBalance,
       student: {
-        _id: student._id,
+        _id: String(student._id),
         firstName: student.firstName,
         lastName: student.lastName,
         admissionNo: student.admissionNo,
       },
-      invoices,
+      invoices: invoices.map((inv: any) => ({
+        ...inv,
+        _id: String(inv._id),
+        schoolId: String(inv.schoolId),
+        studentId: String(inv.studentId),
+        academicPeriodId: inv.academicPeriodId
+          ? String(inv.academicPeriodId._id || inv.academicPeriodId)
+          : null,
+      })),
     });
   } catch (error) {
     console.error("Error fetching credit balance:", error);

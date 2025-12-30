@@ -38,6 +38,19 @@ export interface IPayment {
   // Status
   status: "pending" | "completed" | "failed" | "refunded" | "reversed";
 
+  // Approval workflow
+  approvalStatus: "not_required" | "pending" | "approved" | "rejected";
+  requestedAllocations?: Array<{
+    invoiceLineItemId: Types.ObjectId;
+    amountMinor: number;
+    installmentScheduleId?: Types.ObjectId | null;
+    installmentNumber?: number | null;
+    notes?: string | null;
+  }>;
+  reviewedBy?: Types.ObjectId | null;
+  reviewedAt?: Date | null;
+  reviewNotes?: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,6 +113,33 @@ const paymentSchema = new Schema<IPayment>(
       default: "completed",
       required: true,
     },
+    approvalStatus: {
+      type: String,
+      enum: ["not_required", "pending", "approved", "rejected"],
+      default: "not_required",
+      required: true,
+      index: true,
+    },
+    requestedAllocations: [
+      {
+        invoiceLineItemId: {
+          type: Schema.Types.ObjectId,
+          ref: "InvoiceLineItem",
+          required: true,
+        },
+        amountMinor: { type: Number, required: true },
+        installmentScheduleId: {
+          type: Schema.Types.ObjectId,
+          ref: "InstallmentSchedule",
+          default: null,
+        },
+        installmentNumber: { type: Number, default: null },
+        notes: { type: String, default: null, trim: true },
+      },
+    ],
+    reviewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    reviewedAt: { type: Date, default: null },
+    reviewNotes: { type: String, default: null, trim: true },
   },
   { timestamps: true }
 );

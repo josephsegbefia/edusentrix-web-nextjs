@@ -78,24 +78,60 @@ export async function GET(
 
     const skip = (page - 1) * limit;
 
-    // Fetch payments
+    // Payments are stored in the Payment collection
+    // Build payment query
+    const paymentQuery: any = {
+      schoolId,
+      studentId: new mongoose.Types.ObjectId(studentId),
+    };
+
+    if (invoiceId) {
+      paymentQuery.invoiceId = new mongoose.Types.ObjectId(invoiceId);
+    }
+
+    if (paymentMethod) {
+      paymentQuery.paymentMethod = paymentMethod;
+    }
+
+    if (status) {
+      paymentQuery.status = status;
+    }
+
+    if (dateFrom || dateTo) {
+      paymentQuery.paymentDate = {};
+      if (dateFrom) {
+        paymentQuery.paymentDate.$gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        paymentQuery.paymentDate.$lte = new Date(dateTo);
+      }
+    }
+
+    // Fetch payments from Payment collection
     const [payments, total] = await Promise.all([
-      Payment.find(query)
+      Payment.find(paymentQuery)
         .sort({ paymentDate: -1, createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("invoiceId", "invoiceNumber academicPeriodId")
+        .populate("invoiceId", "invoiceNumber academicPeriodId issueDate")
         .lean(),
-      Payment.countDocuments(query),
+      Payment.countDocuments(paymentQuery),
     ]);
 
-    // Fetch allocations for payments
+    // Fetch allocations for payments (if PaymentAllocation collection exists)
     const paymentIds = payments.map((p: any) => p._id);
-    const allocations = await PaymentAllocation.find({
-      paymentId: { $in: paymentIds },
-    })
-      .populate("invoiceLineItemId", "name")
-      .lean();
+    let allocations: any[] = [];
+    if (paymentIds.length > 0) {
+      try {
+        allocations = await PaymentAllocation.find({
+          paymentId: { $in: paymentIds },
+        })
+          .populate("invoiceLineItemId", "name")
+          .lean();
+      } catch {
+        // PaymentAllocation might not exist, continue without allocations
+      }
+    }
 
     const allocationsByPaymentId = new Map<string, any[]>();
     for (const alloc of allocations) {
@@ -106,29 +142,27 @@ export async function GET(
       allocationsByPaymentId.get(pid)!.push(alloc);
     }
 
-    // Calculate summary
-    const allPayments = await Payment.find({
+    // Calculate summary - only count completed payments
+    // Query all completed payments for the student (ignoring filters for summary)
+    const summaryQuery: any = {
       schoolId,
       studentId: new mongoose.Types.ObjectId(studentId),
-    }).lean();
+      status: "completed",
+    };
 
-    const totalPaid = allPayments.reduce(
+    const completedPayments = await Payment.find(summaryQuery)
+      .populate("invoiceId", "issueDate")
+      .lean();
+
+    const totalPaid = completedPayments.reduce(
       (sum, p) => sum + (p.amountMinor || 0),
       0
     );
 
     // Calculate average payment time (days from invoice issue to payment)
-    const paymentsWithInvoice = await Payment.find({
-      schoolId,
-      studentId: new mongoose.Types.ObjectId(studentId),
-      status: "completed",
-    })
-      .populate("invoiceId", "issueDate")
-      .lean();
-
     let totalDays = 0;
     let countWithIssueDate = 0;
-    for (const p of paymentsWithInvoice) {
+    for (const p of completedPayments) {
       const invoice = p.invoiceId as any;
       if (invoice?.issueDate && p.paymentDate) {
         const days =
@@ -145,7 +179,7 @@ export async function GET(
 
     // Payment method breakdown
     const paymentMethodBreakdown: Record<string, number> = {};
-    for (const p of allPayments) {
+    for (const p of completedPayments) {
       const method = p.paymentMethod || "unknown";
       paymentMethodBreakdown[method] =
         (paymentMethodBreakdown[method] || 0) + (p.amountMinor || 0);
@@ -160,7 +194,7 @@ export async function GET(
         invoiceId: p.invoiceId
           ? {
               _id: String(p.invoiceId._id),
-              invoiceNumber: p.invoiceId.invoiceNumber,
+              invoiceNumber: p.invoiceId.invoiceNumber || "",
               academicPeriodId: p.invoiceId.academicPeriodId
                 ? String(p.invoiceId.academicPeriodId)
                 : null,
@@ -170,7 +204,7 @@ export async function GET(
       })),
       summary: {
         totalPaid,
-        paymentCount: allPayments.length,
+        paymentCount: completedPayments.length, // Already filtered to completed payments
         averagePaymentTime,
         paymentMethodBreakdown,
       },

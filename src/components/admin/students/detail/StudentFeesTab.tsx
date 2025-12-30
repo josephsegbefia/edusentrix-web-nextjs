@@ -40,6 +40,7 @@ import { useStudentCreditBalance } from "@/hooks/admin/useStudentCreditBalance";
 import { useInvoices, useInvoice } from "@/hooks/admin/useInvoices";
 import { useStudentFeesLedger } from "@/hooks/admin/useStudentFeesLedger";
 import { useStudentFeesSummary } from "@/hooks/admin/useStudentFeesSummary";
+import { useStudentFeesSSE } from "@/hooks/admin/useStudentFeesSSE";
 import { RecordPaymentModal } from "@/components/admin/fees/payments/RecordPaymentModal";
 import { ApplyCreditModal } from "@/components/admin/fees/credits/ApplyCreditModal";
 
@@ -129,6 +130,9 @@ export function StudentFeesTab({ student }: Props) {
     invoiceId || ""
   );
   const invoiceDetail = invoiceDetailData?.invoice ?? null;
+
+  // Real-time updates for payments/credits/invoices
+  useStudentFeesSSE({ studentId: student.id, invoiceId });
 
   // Credit wallet
   const { data: creditData } = useStudentCreditBalance(student.id);

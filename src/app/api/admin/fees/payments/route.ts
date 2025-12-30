@@ -8,6 +8,8 @@ import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { InvoiceEvent } from "@/models/InvoiceEvent";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance"; // create if missing
+import { Payment } from "@/models/Payment";
+import { PaymentAllocation } from "@/models/PaymentAllocation";
 import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
 import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice";
 import { formatMoney } from "@/lib/fees/money";
@@ -213,6 +215,46 @@ export async function POST(req: NextRequest) {
       relatedPaymentId: paymentId,
       performedBy: userId ? new mongoose.Types.ObjectId(userId) : null,
     });
+  }
+
+  // Create Payment record (for history + SSE + approvals)
+  const paymentDoc = await Payment.create({
+    _id: paymentId,
+    schoolId: new mongoose.Types.ObjectId(schoolId),
+    studentId: new mongoose.Types.ObjectId(body.studentId),
+    invoiceId: invoice._id,
+    amountMinor: body.amountMinor,
+    paymentDate: new Date(body.paymentDate),
+    paymentMethod: body.paymentMethod,
+    receiptNumber: body.receiptNumber || null,
+    notes: body.note || null,
+    status: body.status === "completed" ? "completed" : "pending",
+    approvalStatus: body.status === "completed" ? "not_required" : "pending",
+    receivedBy: userId ? new mongoose.Types.ObjectId(userId) : null,
+    requestedAllocations:
+      body.status === "pending_approval"
+        ? allocations.map((a) => ({
+            invoiceLineItemId: new mongoose.Types.ObjectId(a.invoiceLineItemId),
+            amountMinor: a.amountMinor,
+            installmentScheduleId: null,
+            installmentNumber: null,
+            notes: null,
+          }))
+        : [],
+  });
+
+  // Persist allocations for completed payments (used by history + ledger)
+  if (body.status === "completed" && allocations.length > 0) {
+    await PaymentAllocation.insertMany(
+      allocations.map((a) => ({
+        paymentId: paymentDoc._id,
+        invoiceLineItemId: new mongoose.Types.ObjectId(a.invoiceLineItemId),
+        amountMinor: a.amountMinor,
+        installmentScheduleId: null,
+        installmentNumber: null,
+        notes: null,
+      }))
+    );
   }
 
   await invoice.save();

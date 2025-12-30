@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
 import {
@@ -31,6 +30,7 @@ import {
 } from "lucide-react";
 import { useStudentPayments } from "@/hooks/admin/useStudentPayments";
 import { PaymentDetailsDrawer } from "@/components/admin/fees/payments/PaymentDetailsDrawer";
+import { premiumMenuContent } from "@/components/ui/premium";
 
 type Props = {
   studentId: string;
@@ -115,6 +115,15 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
   const payments = data?.payments ?? [];
   const pagination = data?.pagination;
   const summary = data?.summary;
+
+  const paymentMethodLabel =
+    paymentMethodFilter === "all"
+      ? "All methods"
+      : String(paymentMethodFilter).replaceAll("_", " ");
+  const statusLabel =
+    statusFilter === "all"
+      ? "All status"
+      : String(statusFilter).replaceAll("_", " ");
 
   // Client-side search and sorting
   const filteredAndSorted = React.useMemo(() => {
@@ -218,33 +227,77 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
                 className="pl-9 bg-white/5 border-white/10"
               />
             </div>
-            <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] bg-white/5 border-white/10">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                <SelectItem value="cheque">Cheque</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] bg-white/5 border-white/10">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="reversed">Reversed</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex w-full items-center justify-between rounded-full border-white/15 bg-white/5 px-3 text-xs text-white/80 sm:w-[190px]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    {paymentMethodLabel}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className={premiumMenuContent} align="start">
+                <DropdownMenuItem onClick={() => setPaymentMethodFilter("all")}>
+                  All methods
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPaymentMethodFilter("cash")}>
+                  Cash
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPaymentMethodFilter("bank_transfer")}>
+                  Bank Transfer
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPaymentMethodFilter("mobile_money")}>
+                  Mobile Money
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPaymentMethodFilter("cheque")}>
+                  Cheque
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPaymentMethodFilter("paystack")}>
+                  Paystack
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setPaymentMethodFilter("other")}>
+                  Other
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex w-full items-center justify-between rounded-full border-white/15 bg-white/5 px-3 text-xs text-white/80 sm:w-[190px]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    {statusLabel}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className={premiumMenuContent} align="start">
+                <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                  All status
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("pending")}>
+                  Pending
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("completed")}>
+                  Completed
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("reversed")}>
+                  Reversed
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("failed")}>
+                  Failed
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Sort controls */}

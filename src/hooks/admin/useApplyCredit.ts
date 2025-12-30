@@ -24,10 +24,15 @@ export function useApplyCredit() {
       return data;
     },
     onSuccess: () => {
+      // Invalidate all fees-related queries for instant updates
       qc.invalidateQueries({ queryKey: ["invoices"] });
       qc.invalidateQueries({ queryKey: ["invoice"] });
       qc.invalidateQueries({ queryKey: ["studentFeesLedger"] });
       qc.invalidateQueries({ queryKey: ["studentCreditBalance"] });
+      qc.invalidateQueries({ queryKey: ["student-payments"] });
+      qc.invalidateQueries({ queryKey: ["student-fees-summary"] });
+      qc.invalidateQueries({ queryKey: ["student-invoices"] });
+      qc.invalidateQueries({ queryKey: ["student-installments"] });
     },
   });
 }

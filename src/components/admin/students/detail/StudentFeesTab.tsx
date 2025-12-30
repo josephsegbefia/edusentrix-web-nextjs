@@ -1031,32 +1031,42 @@ export function StudentFeesTab({ student }: Props) {
                         new Date(a.createdAt).getTime()
                     )
                     .slice(0, 6)
-                    .map((e: any) => (
-                      <div
-                        key={`${e.createdAt}-${e.amountMinor}-${e.type}`}
-                        className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs"
-                      >
-                        <div>
-                          <div className="font-medium text-white/80">
+                    .map((e: any, index: number) => {
+                      // Create unique key using index and entry identifiers
+                      const uniqueId = e.sourcePaymentId
+                        ? `payment-${e.sourcePaymentId}`
+                        : e.appliedToInvoiceId
+                        ? `invoice-${e.appliedToInvoiceId}-${
+                            e.appliedToLineItemId || ""
+                          }`
+                        : `entry-${index}`;
+                      return (
+                        <div
+                          key={`credit-${uniqueId}-${e.createdAt}-${e.amountMinor}-${e.type}`}
+                          className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs"
+                        >
+                          <div>
+                            <div className="font-medium text-white/80">
+                              {e.type === "credit"
+                                ? "Credit added"
+                                : "Credit applied"}
+                            </div>
+                            <div className="mt-1 text-muted-foreground">
+                              {fmtDate(e.createdAt)}
+                              {e.reason ? (
+                                <span className="text-white/30"> • </span>
+                              ) : null}
+                              {e.reason ?? ""}
+                            </div>
+                          </div>
+                          <div className="font-semibold text-sky-200">
                             {e.type === "credit"
-                              ? "Credit added"
-                              : "Credit applied"}
-                          </div>
-                          <div className="mt-1 text-muted-foreground">
-                            {fmtDate(e.createdAt)}
-                            {e.reason ? (
-                              <span className="text-white/30"> • </span>
-                            ) : null}
-                            {e.reason ?? ""}
+                              ? fmtSigned(e.amountMinor)
+                              : fmtSigned(-e.amountMinor)}
                           </div>
                         </div>
-                        <div className="font-semibold text-sky-200">
-                          {e.type === "credit"
-                            ? fmtSigned(e.amountMinor)
-                            : fmtSigned(-e.amountMinor)}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               ) : (
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-xs text-muted-foreground">

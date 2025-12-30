@@ -45,9 +45,42 @@ const BodySchema = z.object({
     .optional(),
 });
 
+// One-time index fix - drop and recreate paystackReference index with correct config
+let indexFixed = false;
+async function fixPaystackReferenceIndex() {
+  if (indexFixed) return;
+  try {
+    const indexes = await Payment.collection.getIndexes();
+    const existingIndex = indexes.paystackReference_1;
+    if (existingIndex && !existingIndex.partialFilterExpression) {
+      // Drop old index
+      await Payment.collection.dropIndex("paystackReference_1").catch(() => {
+        // Ignore if already dropped
+      });
+      // Recreate with correct config
+      await Payment.collection.createIndex(
+        { paystackReference: 1 },
+        {
+          unique: true,
+          sparse: true,
+          partialFilterExpression: { paystackReference: { $ne: null } },
+          name: "paystackReference_1",
+        }
+      );
+      indexFixed = true;
+    }
+  } catch (error) {
+    // Ignore errors, will retry next time
+    console.warn("Failed to fix paystackReference index:", error);
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
+
+  // Fix index if needed (one-time)
+  await fixPaystackReferenceIndex();
 
   const body = BodySchema.parse(await req.json());
 
@@ -218,7 +251,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Create Payment record (for history + SSE + approvals)
-  const paymentDoc = await Payment.create({
+  // Only include paystackReference if it exists to avoid unique index conflicts
+  const paymentData: any = {
     _id: paymentId,
     schoolId: new mongoose.Types.ObjectId(schoolId),
     studentId: new mongoose.Types.ObjectId(body.studentId),
@@ -241,7 +275,24 @@ export async function POST(req: NextRequest) {
             notes: null,
           }))
         : [],
-  });
+  };
+
+  // Only include paystackReference if it has a value (to avoid unique index issues with null)
+  // Delete the property if not provided to ensure Mongoose doesn't set default null
+  if (body.paystackReference && body.paystackReference.trim()) {
+    paymentData.paystackReference = body.paystackReference.trim();
+  } else {
+    // Delete the property to ensure it's not included in the document
+    delete paymentData.paystackReference;
+  }
+
+  // Ensure paystackReference is truly omitted if not provided (not null or undefined)
+  // This prevents MongoDB unique index conflicts
+  if (!paymentData.paystackReference) {
+    delete paymentData.paystackReference;
+  }
+
+  const paymentDoc = await Payment.create(paymentData);
 
   // Persist allocations for completed payments (used by history + ledger)
   if (body.status === "completed" && allocations.length > 0) {

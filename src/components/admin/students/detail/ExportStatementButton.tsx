@@ -44,7 +44,7 @@ export function ExportStatementButton({
   admissionNo,
   academicPeriodId,
 }: Props) {
-  const { toast } = useToast();
+  const toast = useToast();
   const [isExporting, setIsExporting] = React.useState(false);
 
   // Fetch all data needed for export

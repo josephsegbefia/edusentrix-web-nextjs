@@ -87,7 +87,7 @@ const paymentSchema = new Schema<IPayment>(
       enum: ["cash", "bank_transfer", "mobile_money", "paystack", "cheque", "other"],
       required: true,
     },
-    paystackReference: { type: String, default: null, trim: true },
+    paystackReference: { type: String, default: undefined, trim: true, sparse: true },
     paystackTransactionId: { type: String, default: null, trim: true },
     gatewaySettlementId: {
       type: Schema.Types.ObjectId,
@@ -148,7 +148,16 @@ const paymentSchema = new Schema<IPayment>(
 paymentSchema.index({ schoolId: 1, studentId: 1 });
 paymentSchema.index({ schoolId: 1, invoiceId: 1 });
 paymentSchema.index({ schoolId: 1, paymentDate: 1 });
-paymentSchema.index({ paystackReference: 1 }, { unique: true, sparse: true });
+// Sparse unique index: only unique when paystackReference is not null
+// Multiple null values are allowed
+paymentSchema.index(
+  { paystackReference: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { paystackReference: { $ne: null } },
+  }
+);
 paymentSchema.index({ reconciliationStatus: 1 });
 paymentSchema.index({ gatewaySettlementId: 1 });
 

@@ -9,6 +9,7 @@ import { InvoiceEvent } from "@/models/InvoiceEvent";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
 import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice";
+import { formatMoney } from "@/lib/fees/money";
 
 const BodySchema = z.object({
   studentId: z.string().min(1),
@@ -147,9 +148,11 @@ export async function POST(req: NextRequest) {
   await InvoiceEvent.create({
     schoolId,
     invoiceId: invoice._id,
-    type: "credit_applied",
-    createdAt: new Date(),
-    meta: { appliedMinor, note: body.note ?? null },
+    studentId: new mongoose.Types.ObjectId(body.studentId),
+    eventType: "credit_applied",
+    description: `Credit applied: ${formatMoney(appliedMinor)}${body.note ? ` - ${body.note}` : ""}`,
+    metadata: { appliedMinor, note: body.note ?? null },
+    performedBy: userId ? new mongoose.Types.ObjectId(userId) : null,
   });
 
   await invoice.save();

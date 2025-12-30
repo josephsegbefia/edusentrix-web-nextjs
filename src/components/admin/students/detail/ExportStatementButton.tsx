@@ -44,7 +44,7 @@ export function ExportStatementButton({
   admissionNo,
   academicPeriodId,
 }: Props) {
-  const toast = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [isExporting, setIsExporting] = React.useState(false);
 
   // Fetch all data needed for export
@@ -139,10 +139,10 @@ export function ExportStatementButton({
           downloadTextStatement(statementData);
         }
 
-        toast.success("Statement exported successfully");
+        toastSuccess("Statement exported successfully");
       } catch (error) {
         console.error("Export error:", error);
-        toast.error("Failed to export statement");
+        toastError("Failed to export statement");
       } finally {
         setIsExporting(false);
       }
@@ -155,7 +155,8 @@ export function ExportStatementButton({
       studentName,
       admissionNo,
       academicPeriodId,
-      toast,
+      toastSuccess,
+      toastError,
     ]
   );
 

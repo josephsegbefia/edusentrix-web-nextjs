@@ -2,18 +2,25 @@ import { NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
-import { UserMembership } from "@/models/UserMembership";
+import { Teacher } from "@/models/Teacher";
 import { Subject } from "@/models/Subject";
 import { AcademicPeriod, IAcademicPeriod } from "@/models/AcademicPeriod";
+import mongoose from "mongoose";
 
 export async function GET() {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
 
+  // Ensure schoolId is properly converted to ObjectId
+  const schoolIdObj =
+    schoolId instanceof mongoose.Types.ObjectId
+      ? schoolId
+      : new mongoose.Types.ObjectId(String(schoolId));
+
   const [studentsTotal, teachersTotal, subjectsTotal] = await Promise.all([
-    Student.countDocuments({ schoolId }),
-    UserMembership.countDocuments({ schoolId, roles: { $in: ["teacher"] } }),
-    Subject.countDocuments({ schoolId }),
+    Student.countDocuments({ schoolId: schoolIdObj }),
+    Teacher.countDocuments({ schoolId: schoolIdObj, status: "active" }),
+    Subject.countDocuments({ schoolId: schoolIdObj }),
   ]);
 
   const periodRaw = await AcademicPeriod.findOne({ schoolId, isCurrent: true })

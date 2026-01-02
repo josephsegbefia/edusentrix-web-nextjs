@@ -7,6 +7,12 @@ import mongoose from "mongoose";
 export async function GET(req: NextRequest) {
   try {
     const { schoolId } = await requireSchoolAdmin();
+    if (!schoolId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "School ID not found" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -15,8 +21,14 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 50));
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
 
+    // Ensure schoolId is properly converted to ObjectId
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
     const filter: Record<string, unknown> = {
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     };
 
     if (action) {

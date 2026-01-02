@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireRole } from "@/lib/auth/guards";
 import { Invite } from "@/models/Invite";
 import { School } from "@/models/School";
-import { generateOnboardingMagicLink } from "@/server/invites/generateOnboardingMagicLink";
+import { generateOnboardingMagicLink } from "@/lib/auth/generateOnboardingMagicLink";
 import { sendEmail } from "@/lib/email/brevo";
 
 const BodySchema = z.object({

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // scripts/seed-academics.ts
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local" });
@@ -13,14 +14,13 @@ import { School } from "../src/models/School";
 import { Student } from "../src/models/Student";
 import { ClassGroup } from "../src/models/ClassGroup";
 import { Subject } from "../src/models/Subject";
-import { Grade } from "../src/models/Grade";
 import { AcademicPeriod } from "../src/models/AcademicPeriod";
 import { SubjectGrade } from "../src/models/SubjectGrade";
 import { TermResult } from "../src/models/TermResult";
 import { TeacherComment } from "../src/models/TeacherComment";
 import { Teacher } from "../src/models/Teacher";
 import { User } from "../src/models/User";
-import { GradingScale } from "../src/models/GradingScale";
+import { GradingScale, type IGradingScale } from "../src/models/GradingScale";
 import {
   resolveGradingScaleLetter,
   calculateTermResultFromSubjectGrades,
@@ -50,8 +50,16 @@ const TEACHER_NAMES = [
   { firstName: "Ama", lastName: "Mensah", subjects: ["English Language"] },
   { firstName: "Kofi", lastName: "Boateng", subjects: ["Integrated Science"] },
   { firstName: "Akosua", lastName: "Darko", subjects: ["Social Studies"] },
-  { firstName: "Yaw", lastName: "Owusu", subjects: ["Religious and Moral Education"] },
-  { firstName: "Abena", lastName: "Agyeman", subjects: ["Information and Communication Technology"] },
+  {
+    firstName: "Yaw",
+    lastName: "Owusu",
+    subjects: ["Religious and Moral Education"],
+  },
+  {
+    firstName: "Abena",
+    lastName: "Agyeman",
+    subjects: ["Information and Communication Technology"],
+  },
   { firstName: "Kojo", lastName: "Appiah", subjects: ["Ghanaian Language"] },
   { firstName: "Efua", lastName: "Osei", subjects: ["French"] },
   { firstName: "Kwaku", lastName: "Amoah", subjects: ["Physical Education"] },
@@ -186,14 +194,19 @@ async function main() {
     .select("_id name gradeId subjectIds")
     .lean();
 
-  const classGroupMap = new Map(
-    classGroups.map((cg) => [cg._id.toString(), cg])
+  const classGroupMap = new Map<string, (typeof classGroups)[number]>(
+    classGroups.map((cg) => [
+      (cg._id as mongoose.Types.ObjectId).toString(),
+      cg,
+    ])
   );
 
   // Get all unique subject IDs
   const allSubjectIds = new Set<mongoose.Types.ObjectId>();
   classGroups.forEach((cg) => {
-    cg.subjectIds.forEach((sid) => allSubjectIds.add(sid));
+    cg.subjectIds.forEach((sid: mongoose.Types.ObjectId) =>
+      allSubjectIds.add(sid)
+    );
   });
 
   const subjects = await Subject.find({
@@ -202,7 +215,9 @@ async function main() {
     .select("_id name code")
     .lean();
 
-  const subjectMap = new Map(subjects.map((s) => [s._id.toString(), s]));
+  const subjectMap = new Map<string, (typeof subjects)[number]>(
+    subjects.map((s) => [(s._id as mongoose.Types.ObjectId).toString(), s])
+  );
   console.log(`  ✓ Found ${subjects.length} subjects`);
 
   // Step 3: Get or create grading scale
@@ -230,7 +245,7 @@ async function main() {
 
     if (argv.dryRun) {
       console.log("  [DRY] Would create grading scale");
-      gradingScale = defaultScale as any;
+      gradingScale = defaultScale as IGradingScale;
     } else {
       gradingScale = await GradingScale.create(defaultScale);
       console.log("  ✓ Created grading scale");
@@ -253,12 +268,16 @@ async function main() {
     if (!subject) continue;
 
     // Find or create User
-    const email = `${teacherData.firstName.toLowerCase()}.${teacherData.lastName.toLowerCase()}@${school.name.toLowerCase().replace(/\s+/g, "")}.edu`;
+    const email = `${teacherData.firstName.toLowerCase()}.${teacherData.lastName.toLowerCase()}@${school.name
+      .toLowerCase()
+      .replace(/\s+/g, "")}.edu`;
     let user = await User.findOne({ email, schoolId });
 
     if (!user) {
       if (argv.dryRun) {
-        console.log(`  [DRY] Would create user: ${teacherData.firstName} ${teacherData.lastName}`);
+        console.log(
+          `  [DRY] Would create user: ${teacherData.firstName} ${teacherData.lastName}`
+        );
         user = { _id: new mongoose.Types.ObjectId() } as any;
       } else {
         user = await User.create({
@@ -268,7 +287,9 @@ async function main() {
           schoolId,
           role: "teacher",
         });
-        console.log(`  ✓ Created user: ${teacherData.firstName} ${teacherData.lastName}`);
+        console.log(
+          `  ✓ Created user: ${teacherData.firstName} ${teacherData.lastName}`
+        );
       }
     }
 
@@ -352,7 +373,10 @@ async function main() {
   // Group students by class group for term result calculations
   const studentsByClassGroup = new Map<
     string,
-    Array<{ studentId: mongoose.Types.ObjectId; gradeId: mongoose.Types.ObjectId }>
+    Array<{
+      studentId: mongoose.Types.ObjectId;
+      gradeId: mongoose.Types.ObjectId;
+    }>
   >();
 
   students.forEach((student) => {
@@ -361,8 +385,8 @@ async function main() {
       studentsByClassGroup.set(cgId, []);
     }
     studentsByClassGroup.get(cgId)!.push({
-      studentId: student._id,
-      gradeId: student.gradeId,
+      studentId: student._id as mongoose.Types.ObjectId,
+      gradeId: student.gradeId as mongoose.Types.ObjectId,
     });
   });
 
@@ -459,8 +483,9 @@ async function main() {
       }
 
       // Create TermResult
+      const classGroupId = classGroup._id as mongoose.Types.ObjectId;
       const classGroupStudents =
-        studentsByClassGroup.get(classGroup._id.toString()) || [];
+        studentsByClassGroup.get(classGroupId.toString()) || [];
       const totalStudents = classGroupStudents.length;
 
       // Calculate class position (random but realistic)
@@ -556,7 +581,9 @@ async function main() {
   console.log(`Teacher comments created: ${commentsCreated}`);
 
   if (argv.dryRun) {
-    console.log("\n🔍 This was a dry run. Use without --dryRun to apply changes.");
+    console.log(
+      "\n🔍 This was a dry run. Use without --dryRun to apply changes."
+    );
   } else {
     console.log("\n✅ Done!");
   }

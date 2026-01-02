@@ -7,14 +7,15 @@ import { toMinorUnits } from "@/lib/fees/money";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
 
   try {
+    const { id } = await ctx.params;
     const structure = await FeeStructure.findOne({
-      _id: params.id,
+      _id: id,
       schoolId,
     }).lean();
 
@@ -37,12 +38,13 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
 
   try {
+    const { id } = await ctx.params;
     const body = await req.json();
     const {
       name,
@@ -56,7 +58,7 @@ export async function PATCH(
     } = body;
 
     const structure = await FeeStructure.findOne({
-      _id: params.id,
+      _id: id,
       schoolId,
     });
 
@@ -101,14 +103,15 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
 
   try {
+    const { id } = await ctx.params;
     const structure = await FeeStructure.findOne({
-      _id: params.id,
+      _id: id,
       schoolId,
     });
 

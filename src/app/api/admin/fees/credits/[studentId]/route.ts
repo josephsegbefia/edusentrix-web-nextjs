@@ -41,19 +41,25 @@ export async function GET(
     }
 
     // Get or create credit balance
-    let creditBalance = await StudentCreditBalance.findOne({
+    const creditBalanceRaw = await StudentCreditBalance.findOne({
       schoolId,
       studentId: new mongoose.Types.ObjectId(studentId),
     }).lean();
 
+    // Normalize creditBalance (findOne().lean() can be inferred as array by TypeScript)
+    let creditBalance = Array.isArray(creditBalanceRaw)
+      ? creditBalanceRaw[0] || null
+      : creditBalanceRaw;
+
     if (!creditBalance) {
       // Create zero balance
-      creditBalance = await StudentCreditBalance.create({
+      const created = await StudentCreditBalance.create({
         schoolId,
         studentId,
         balanceMinor: 0,
         entries: [],
       });
+      creditBalance = created.toObject() as any;
     }
 
     // Get invoices with outstanding balances

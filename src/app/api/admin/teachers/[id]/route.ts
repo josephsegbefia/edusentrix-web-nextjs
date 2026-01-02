@@ -5,12 +5,13 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
 
-export async function GET(_req: NextRequest, ctx: { params: { id: string } }) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
 
   try {
-    const teacherRaw = await Teacher.findOne({ _id: ctx.params.id, schoolId })
+    const { id } = await ctx.params;
+    const teacherRaw = await Teacher.findOne({ _id: id, schoolId })
       .populate("userId", "firstName lastName email phone photoUrl")
       .populate("subjectIds", "name")
       .populate("homeroomClassGroupId", "name")

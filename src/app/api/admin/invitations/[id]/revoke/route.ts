@@ -8,13 +8,13 @@ import mongoose from "mongoose";
 
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     const { schoolId, userId } = await requireSchoolAdmin();
     await connectToDatabase();
 
-    const invitationId = params.id;
+    const { id: invitationId } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(invitationId)) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid invitation ID" }),

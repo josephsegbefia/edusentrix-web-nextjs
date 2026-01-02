@@ -47,8 +47,13 @@ export default function FeeStructuresPage() {
   };
 
   const handleCreate = async (payload: CreateFeeStructureInput) => {
+    // Normalize payload: convert null to undefined for optional fields
+    const normalizedPayload = {
+      ...payload,
+      description: payload.description ?? undefined,
+    };
     await busy.promise(
-      createStructure.mutateAsync(payload),
+      createStructure.mutateAsync(normalizedPayload),
       {
         loading: "Creating fee structure...",
         success: "Fee structure created successfully",

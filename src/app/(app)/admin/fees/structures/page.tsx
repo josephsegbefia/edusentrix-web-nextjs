@@ -51,6 +51,8 @@ export default function FeeStructuresPage() {
     const normalizedPayload = {
       ...payload,
       description: payload.description ?? undefined,
+      defaultAmount: payload.defaultAmount ?? undefined,
+      maxInstallments: payload.maxInstallments ?? undefined,
     };
     await busy.promise(
       createStructure.mutateAsync(normalizedPayload),

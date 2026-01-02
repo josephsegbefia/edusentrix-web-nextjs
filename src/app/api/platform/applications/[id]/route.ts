@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { supabaseServer } from "@/lib/supabase/server";
+import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
 import { Application } from "@/models/Application";
@@ -27,17 +27,17 @@ export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user)
+  const { userId } = await auth();
+  if (!userId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await connectToDatabase();
 
   // platform_admin only
-  const me = await User.findOne({ clerkUserId: data.user.id })
+  const meRaw = await User.findOne({ clerkUserId: userId })
     .select("_id role name email")
     .lean();
+  const me = Array.isArray(meRaw) ? meRaw[0] : meRaw;
   if (!me || (me as any).role !== "platform_admin") return forbidden();
 
   const { id } = await ctx.params;
@@ -153,16 +153,16 @@ export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user)
+  const { userId } = await auth();
+  if (!userId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   await connectToDatabase();
 
-  const me = await User.findOne({ clerkUserId: data.user.id })
+  const meRaw = await User.findOne({ clerkUserId: userId })
     .select("_id role name")
     .lean();
+  const me = Array.isArray(meRaw) ? meRaw[0] : meRaw;
   if (!me || (me as any).role !== "platform_admin") return forbidden();
 
   const { id } = await ctx.params;

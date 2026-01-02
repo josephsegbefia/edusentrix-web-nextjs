@@ -20,7 +20,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import type { CreateFeeStructureInput } from "@/schemas/fee";
 
 export default function FeeStructuresPage() {
-  const { toast } = useToast();
+  const toast = useToast();
   const busy = useBusyToast();
   const { data, isLoading } = useFeeStructures();
   const createStructure = useCreateFeeStructure();

@@ -86,8 +86,16 @@ export default function InvoiceDetailPage() {
   const [showAdjustmentModal, setShowAdjustmentModal] = React.useState(false);
 
   const handleAddAdjustment = async (payload: AddAdjustmentInput) => {
+    // Normalize payload: convert null to undefined for description fields
+    const normalizedPayload = {
+      ...payload,
+      lineItems: payload.lineItems.map((item) => ({
+        ...item,
+        description: item.description ?? undefined,
+      })),
+    };
     await busy.promise(
-      addAdjustment.mutateAsync(payload),
+      addAdjustment.mutateAsync(normalizedPayload),
       {
         loading: "Adding adjustments...",
         success: "Adjustments added successfully",

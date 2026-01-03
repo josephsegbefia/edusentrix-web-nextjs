@@ -79,6 +79,18 @@ export async function POST(req: NextRequest) {
   const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
 
+  if (!schoolId) {
+    return NextResponse.json(
+      { error: "School ID not found" },
+      { status: 400 }
+    );
+  }
+
+  const schoolIdObj =
+    schoolId instanceof mongoose.Types.ObjectId
+      ? schoolId
+      : new mongoose.Types.ObjectId(String(schoolId));
+
   // Fix index if needed (one-time)
   await fixPaystackReferenceIndex();
 
@@ -254,7 +266,7 @@ export async function POST(req: NextRequest) {
   // Only include paystackReference if it exists to avoid unique index conflicts
   const paymentData: any = {
     _id: paymentId,
-    schoolId: new mongoose.Types.ObjectId(schoolId),
+    schoolId: schoolIdObj,
     studentId: new mongoose.Types.ObjectId(body.studentId),
     invoiceId: invoice._id,
     amountMinor: body.amountMinor,

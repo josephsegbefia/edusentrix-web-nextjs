@@ -72,9 +72,9 @@ export async function POST(
     if (invitation.clerkInvitationId) {
       try {
         const clerk = await clerkClient();
-        await clerk.invitations.revokeInvitation({
-          invitationId: invitation.clerkInvitationId,
-        });
+        await clerk.invitations.revokeInvitation(
+          String(invitation.clerkInvitationId)
+        );
       } catch (clerkError: unknown) {
         // Log but don't fail - invitation might already be revoked in Clerk
         console.warn("Clerk revoke error (may be already revoked):", clerkError);

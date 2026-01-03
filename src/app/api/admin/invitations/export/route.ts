@@ -9,6 +9,19 @@ export async function GET(req: NextRequest) {
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
 
+    if (!schoolId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "School ID not found" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Convert schoolId to ObjectId (inside try-catch to handle invalid formats)
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") as
       | "pending"
@@ -24,7 +37,7 @@ export async function GET(req: NextRequest) {
       | null;
 
     const filter: Record<string, unknown> = {
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     };
 
     if (status) {

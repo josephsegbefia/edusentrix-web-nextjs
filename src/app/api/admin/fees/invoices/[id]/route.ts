@@ -206,7 +206,8 @@ export async function POST(
           lineItem.numberOfInstallments >= 2
         ) {
           // Check if custom schedule was provided for this line item
-          const customSchedule = customSchedules[lineItem._id.toString()];
+          const lineItemId = lineItem._id as mongoose.Types.ObjectId;
+          const customSchedule = customSchedules[lineItemId.toString()];
 
           if (customSchedule && Array.isArray(customSchedule) && customSchedule.length > 0) {
             const amountsMinor = customSchedule.map((s: any) => toMinorUnits(s.amount));
@@ -226,7 +227,7 @@ export async function POST(
               await InstallmentSchedule.create(
                 [
                   {
-                    invoiceLineItemId: lineItem._id,
+                    invoiceLineItemId: lineItemId,
                     installmentNumber: scheduleItem.installmentNumber,
                     dueDate: new Date(scheduleItem.dueDate),
                     amountMinor: toMinorUnits(scheduleItem.amount),
@@ -255,7 +256,7 @@ export async function POST(
               await InstallmentSchedule.create(
                 [
                   {
-                    invoiceLineItemId: lineItem._id,
+                    invoiceLineItemId: lineItemId,
                     installmentNumber: i + 1,
                     dueDate,
                     amountMinor: installmentAmounts[i],

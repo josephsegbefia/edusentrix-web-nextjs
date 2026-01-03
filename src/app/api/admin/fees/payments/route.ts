@@ -30,6 +30,7 @@ const BodySchema = z.object({
   ]),
   receiptNumber: z.string().optional(),
   reference: z.string().optional(),
+  paystackReference: z.string().optional(),
   note: z.string().optional(),
 
   status: z.enum(["completed", "pending_approval"]).default("completed"),

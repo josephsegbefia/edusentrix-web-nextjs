@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { buildStudentAcademicsDTO } from "@/lib/academics/buildStudentAcademicsDTO";
 import OpenAI from "openai";
+import mongoose from "mongoose";
 import { Student } from "@/models/Student";
 
 const openai = new OpenAI({
@@ -36,14 +37,18 @@ export async function GET(
     // Get student and schoolId
     const student = await Student.findById(studentId)
       .select("schoolId firstName lastName")
-      .lean();
+      .lean<{
+        schoolId?: mongoose.Types.ObjectId;
+        firstName?: string;
+        lastName?: string;
+      } | null>();
 
-    if (!student) {
+    if (!student?.schoolId) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
     const schoolId = student.schoolId.toString();
-    const studentName = `${student.firstName} ${student.lastName}`.trim();
+    const studentName = `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim();
 
     // Build academics DTO
     const academicsDTO = await buildStudentAcademicsDTO({

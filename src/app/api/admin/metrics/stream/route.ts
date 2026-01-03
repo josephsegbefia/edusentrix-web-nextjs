@@ -87,9 +87,9 @@ export async function GET(req: NextRequest) {
           // Verify the student belongs to this school
           const student = await Student.findById(studentIdObj)
             .select("schoolId")
-            .lean();
+            .lean<{ schoolId?: mongoose.Types.ObjectId } | null>();
 
-          if (student && String(student.schoolId) === String(schoolId)) {
+          if (student?.schoolId && String(student.schoolId) === String(schoolId)) {
             send("guardians.updated", {
               studentId: String(studentIdObj),
               operationType: change.operationType,

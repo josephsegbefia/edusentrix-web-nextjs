@@ -26,8 +26,12 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 20));
 
+    if (!schoolId) {
+      throw new Error("Missing schoolId for invitation lookup");
+    }
+
     const filter: Record<string, unknown> = {
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: new mongoose.Types.ObjectId(String(schoolId)),
     };
 
     if (status) {

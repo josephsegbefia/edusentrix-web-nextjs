@@ -10,12 +10,23 @@ export async function GET(req: NextRequest) {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
 
+  if (!schoolId) {
+    return NextResponse.json(
+      { error: "School ID not found" },
+      { status: 400 }
+    );
+  }
+
+  const schoolIdObj =
+    schoolId instanceof mongoose.Types.ObjectId
+      ? schoolId
+      : new mongoose.Types.ObjectId(String(schoolId));
+
   try {
     // Get current date for calculations
     const now = new Date();
     const twoWeeksFromNow = new Date(now.getTime() + 1000 * 60 * 60 * 24 * 14);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
 
     // Total revenue (all completed payments)
     const totalRevenueResult = await Payment.aggregate([

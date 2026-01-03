@@ -5,6 +5,8 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
+import { ClassGroup } from "@/models/ClassGroup";
+import { Subject } from "@/models/Subject";
 import { escapeRegex, parsePositiveInt } from "@/lib/utils";
 import mongoose from "mongoose";
 
@@ -17,6 +19,8 @@ function startOfDayISO(d: Date) {
 export async function GET(req: NextRequest) {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
+
+  console.log("Registered models:", Object.keys(mongoose.models));
 
   try {
     // Ensure schoolId is properly converted to ObjectId
@@ -90,8 +94,16 @@ export async function GET(req: NextRequest) {
         .skip(skip)
         .limit(limit)
         .populate("userId", "firstName lastName email phone photoUrl")
-        .populate("subjectIds", "name")
-        .populate("homeroomClassGroupId", "name")
+        .populate({
+          path: "subjectIds",
+          select: "name",
+          model: Subject, // ensure Subject model is registered (tree-shake safe)
+        })
+        .populate({
+          path: "homeroomClassGroupId",
+          select: "name",
+          model: ClassGroup, // ensure ClassGroup model is registered (tree-shake safe)
+        })
         .lean(),
       Teacher.countDocuments(query),
     ]);

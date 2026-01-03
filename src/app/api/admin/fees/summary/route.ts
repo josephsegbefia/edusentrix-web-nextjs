@@ -11,10 +11,7 @@ export async function GET(req: NextRequest) {
   await connectToDatabase();
 
   if (!schoolId) {
-    return NextResponse.json(
-      { error: "School ID not found" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "School ID not found" }, { status: 400 });
   }
 
   const schoolIdObj =
@@ -99,9 +96,7 @@ export async function GET(req: NextRequest) {
 
     // Collection rate (total paid / total billed)
     const collectionRate =
-      totalBilledMinor > 0
-        ? (totalRevenueMinor / totalBilledMinor) * 100
-        : 0;
+      totalBilledMinor > 0 ? (totalRevenueMinor / totalBilledMinor) * 100 : 0;
 
     // Overdue invoices count
     const overdueCount = await Invoice.countDocuments({

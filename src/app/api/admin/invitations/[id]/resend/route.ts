@@ -16,6 +16,18 @@ export async function POST(
     const { schoolId, userId } = await requireSchoolAdmin();
     await connectToDatabase();
 
+    if (!schoolId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "School ID not found" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
     const { id: invitationId } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(invitationId)) {
       return new Response(
@@ -26,7 +38,7 @@ export async function POST(
 
     const invitation = await Invitation.findOne({
       _id: new mongoose.Types.ObjectId(invitationId),
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     }).lean();
 
     if (!invitation) {
@@ -63,7 +75,7 @@ export async function POST(
       });
 
       // Fetch school name for email
-      const school = await School.findById(schoolId)
+      const school = await School.findById(schoolIdObj)
         .select("name")
         .lean();
       const schoolName = school ? (school as any).name : "your school";
@@ -94,7 +106,7 @@ export async function POST(
 
       // Record activity
       await recordActivity({
-        schoolId,
+        schoolId: schoolIdObj,
         userId: new mongoose.Types.ObjectId(userId),
         type: "invitation.resent",
         entityType: "Invitation",
@@ -109,7 +121,7 @@ export async function POST(
 
       // Record activity
       await recordActivity({
-        schoolId: new mongoose.Types.ObjectId(schoolId),
+        schoolId: schoolIdObj,
         userId: new mongoose.Types.ObjectId(userId),
         type: "invitation.resent",
         entityType: "invitation",

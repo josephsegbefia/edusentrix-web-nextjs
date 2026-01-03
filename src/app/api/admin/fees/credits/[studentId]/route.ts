@@ -47,9 +47,11 @@ export async function GET(
     }).lean();
 
     // Normalize creditBalance (findOne().lean() can be inferred as array by TypeScript)
-    let creditBalance = Array.isArray(creditBalanceRaw)
-      ? creditBalanceRaw[0] || null
-      : creditBalanceRaw;
+    let creditBalance = (
+      Array.isArray(creditBalanceRaw)
+        ? creditBalanceRaw[0] || null
+        : creditBalanceRaw
+    ) as any;
 
     if (!creditBalance) {
       // Create zero balance

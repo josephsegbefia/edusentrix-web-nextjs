@@ -13,6 +13,18 @@ export async function DELETE(
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
 
+    if (!schoolId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "School ID not found" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
     const { id: invitationId } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(invitationId)) {
       return new Response(
@@ -21,10 +33,15 @@ export async function DELETE(
       );
     }
 
-    const invitation = await Invitation.findOne({
+    const invitationRaw = await Invitation.findOne({
       _id: new mongoose.Types.ObjectId(invitationId),
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     }).lean();
+
+    // Normalize invitation (findOne().lean() can be inferred as array by TypeScript)
+    const invitation = (
+      Array.isArray(invitationRaw) ? invitationRaw[0] || null : invitationRaw
+    ) as any;
 
     if (!invitation) {
       return new Response(
@@ -37,9 +54,9 @@ export async function DELETE(
     if (invitation.clerkInvitationId && invitation.status !== "revoked") {
       try {
         const clerk = await clerkClient();
-        await clerk.invitations.revokeInvitation({
-          invitationId: invitation.clerkInvitationId,
-        });
+        await clerk.invitations.revokeInvitation(
+          String(invitation.clerkInvitationId)
+        );
       } catch (clerkError: unknown) {
         // Log but don't fail - invitation might already be revoked in Clerk
         console.warn("Clerk revoke error (may be already revoked):", clerkError);

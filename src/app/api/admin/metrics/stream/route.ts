@@ -111,7 +111,11 @@ export async function GET(req: NextRequest) {
       });
 
       const pushFeeSummary = async () => {
-        const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
+        if (!schoolId) {
+          throw new Error("Missing schoolId for fee summary");
+        }
+
+        const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
         const [totalRevenueResult, totalOutstandingResult, overdueCount] = await Promise.all([
           Payment.aggregate([
             {

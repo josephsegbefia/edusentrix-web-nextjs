@@ -9,7 +9,11 @@ export async function GET(_req: NextRequest) {
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
 
-    const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
+    if (!schoolId) {
+      throw new Error("Missing schoolId for invitation stats lookup");
+    }
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
 
     const [total, pending, accepted, expired, revoked, failed] = await Promise.all([
       Invitation.countDocuments({ schoolId: schoolIdObj }),

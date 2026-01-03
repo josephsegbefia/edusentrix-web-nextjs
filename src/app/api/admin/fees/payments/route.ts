@@ -51,7 +51,7 @@ async function fixPaystackReferenceIndex() {
   if (indexFixed) return;
   try {
     const indexes = await Payment.collection.getIndexes();
-    const existingIndex = indexes.paystackReference_1;
+    const existingIndex = indexes.paystackReference_1 as any;
     if (existingIndex && !existingIndex.partialFilterExpression) {
       // Drop old index
       await Payment.collection.dropIndex("paystackReference_1").catch(() => {

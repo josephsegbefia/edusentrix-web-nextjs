@@ -36,10 +36,15 @@ export async function POST(
       );
     }
 
-    const invitation = await Invitation.findOne({
+    const invitationRaw = await Invitation.findOne({
       _id: new mongoose.Types.ObjectId(invitationId),
       schoolId: schoolIdObj,
     }).lean();
+
+    // Normalize invitation (findOne().lean() can be inferred as array by TypeScript)
+    const invitation = (
+      Array.isArray(invitationRaw) ? invitationRaw[0] || null : invitationRaw
+    ) as any;
 
     if (!invitation) {
       return new Response(

@@ -164,16 +164,28 @@ export async function PATCH(
     });
 
     // Fetch updated guardian
-    const updatedGuardian = await Guardian.findById(guardianIdObj)
+    const updatedGuardianRaw = await Guardian.findById(guardianIdObj)
       .populate("userId", "firstName lastName email avatarUrl")
       .lean();
 
-    const user = (updatedGuardian as any).userId as any;
+    // Normalize updatedGuardian (findById().lean() can be inferred as array by TypeScript)
+    const updatedGuardian = (
+      Array.isArray(updatedGuardianRaw) ? updatedGuardianRaw[0] || null : updatedGuardianRaw
+    ) as any;
+
+    if (!updatedGuardian) {
+      return NextResponse.json(
+        { success: false, error: "Guardian not found after update" },
+        { status: 404 }
+      );
+    }
+
+    const user = updatedGuardian.userId as any;
 
     return NextResponse.json({
       success: true,
       data: {
-        id: String(updatedGuardian!._id),
+        id: String(updatedGuardian._id),
         userId: String(user._id),
         fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
         relationship: (updatedGuardian as any).relationship,

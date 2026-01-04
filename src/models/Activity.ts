@@ -19,7 +19,11 @@ export type ActivityType =
   | "fee.updated"
   | "payment.received"
   | "report.generated"
-  | "settings.updated";
+  | "settings.updated"
+  | "guardian.created"
+  | "guardian.updated"
+  | "guardian.removed"
+  | "guardian.set_primary";
 
 export interface IActivity {
   _id: Types.ObjectId;

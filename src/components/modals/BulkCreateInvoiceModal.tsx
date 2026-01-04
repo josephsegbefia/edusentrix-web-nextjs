@@ -197,30 +197,28 @@ export default function BulkCreateInvoiceModal({
         studentParams.append("search", debouncedSearch);
         studentParams.append("limit", "50");
 
-        const [studentsRes, gradesRes, classGroupsRes] = await Promise.all([
+        const classGroupFetches =
+          selectedGradeIds.size > 0
+            ? Array.from(selectedGradeIds).map((gradeId) =>
+                fetch(`/api/admin/class-groups?gradeId=${gradeId}`, {
+                  cache: "no-store",
+                })
+              )
+            : [];
+
+        const [studentsRes, gradesRes, classGroupResponses] = await Promise.all([
           fetch(`/api/admin/students?${studentParams}`, {
             cache: "no-store",
           }),
           fetch("/api/admin/grades", { cache: "no-store" }),
-          selectedGradeIds.size > 0
-            ? Promise.all(
-                Array.from(selectedGradeIds).map((gradeId) =>
-                  fetch(`/api/admin/class-groups?gradeId=${gradeId}`, {
-                    cache: "no-store",
-                  })
-                )
-              )
-            : Promise.resolve([]),
+          Promise.all(classGroupFetches),
         ]);
 
         const studentsJson = await studentsRes.json();
         const gradesJson = await gradesRes.json();
-        const classGroupsData =
-          selectedGradeIds.size > 0
-            ? await Promise.all(
-                (classGroupsRes as Promise<Response>[]).map((res) => res.json())
-              )
-            : [];
+        const classGroupsData = classGroupResponses.length
+          ? await Promise.all(classGroupResponses.map((res) => res.json()))
+          : [];
 
         if (alive) {
           // Filter grades by search term
@@ -465,8 +463,8 @@ export default function BulkCreateInvoiceModal({
         );
         const json = await res.json();
         if (json?.success) {
-          const studentsToRemove = new Set(
-            json.data?.map((s: any) => s.id) || []
+          const studentsToRemove = new Set<string>(
+            (json.data || []).map((s: any) => String(s.id))
           );
           setSelectedStudentIds((prev) => {
             const updated = new Set(prev);
@@ -501,7 +499,7 @@ export default function BulkCreateInvoiceModal({
           });
           setSelectedStudentIds((prev) => {
             const updated = new Set(prev);
-            students.forEach((s: any) => updated.add(s.id));
+            students.forEach((s: any) => updated.add(String(s.id)));
             return updated;
           });
         }
@@ -1300,6 +1298,7 @@ export default function BulkCreateInvoiceModal({
                         2 && (
                         <InstallmentScheduleConfig
                           control={control}
+                          register={register}
                           lineItemIndex={index}
                           totalAmount={watch(`lineItems.${index}.amount`) || 0}
                           numberOfInstallments={

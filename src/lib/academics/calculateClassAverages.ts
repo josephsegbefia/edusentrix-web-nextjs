@@ -30,15 +30,17 @@ export async function calculateClassAverages(params: {
   }
 
   // Find all active students in this class group
-  const students = await Student.find({
+  const students = (await Student.find({
     schoolId: schoolKey,
     classGroupId: classGroupKey,
     status: "active",
   })
     .select("_id")
-    .lean();
+    .lean()) as Array<{ _id: mongoose.Types.ObjectId }>;
 
-  const studentIds = students.map((s) => s._id.toString());
+  const studentIds = students.map((s: { _id: mongoose.Types.ObjectId }) =>
+    s._id.toString()
+  );
 
   if (studentIds.length === 0) {
     return {};
@@ -50,7 +52,11 @@ export async function calculateClassAverages(params: {
       $match: {
         schoolId: new mongoose.Types.ObjectId(schoolKey),
         academicPeriodId: new mongoose.Types.ObjectId(periodKey),
-        studentId: { $in: studentIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        studentId: {
+          $in: studentIds.map(
+            (id: string) => new mongoose.Types.ObjectId(id)
+          ),
+        },
       },
     },
     {

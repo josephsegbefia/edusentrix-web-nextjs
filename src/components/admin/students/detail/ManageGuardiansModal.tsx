@@ -53,12 +53,21 @@ export function ManageGuardiansContent({
     setViewMode("list");
   };
 
-  const handleUpdate = async (data: UpdateGuardianInput) => {
+  const handleUpdate = async (data: CreateGuardianInput) => {
     if (!editingGuardian) return;
+    const updateInput: UpdateGuardianInput = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone ?? null,
+      relationship: data.relationship,
+      occupation: data.occupation ?? null,
+      photoUrl: data.photoUrl ?? null,
+      isPrimary: data.isPrimary,
+    };
     await busy.promise(
       updateGuardian.mutateAsync({
         guardianId: editingGuardian.id,
-        input: data,
+        input: updateInput,
       }),
       {
         loading: "Updating guardian...",

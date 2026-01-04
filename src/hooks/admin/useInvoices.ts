@@ -30,6 +30,7 @@ export interface Invoice {
   terms?: string | null;
   createdAt: string;
   updatedAt: string;
+  lineItems?: InvoiceLineItem[];
 }
 
 export interface InvoiceLineItem {

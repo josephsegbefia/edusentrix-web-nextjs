@@ -16,6 +16,7 @@ export function ClassDistributionList({
   distribution,
   loading = false,
 }: ClassDistributionListProps) {
+  const items = distribution ?? [];
   if (loading) {
     return (
       <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
@@ -43,7 +44,7 @@ export function ClassDistributionList({
     );
   }
 
-  if (!distribution.length) {
+  if (!items.length) {
     return (
       <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div
@@ -65,7 +66,7 @@ export function ClassDistributionList({
     );
   }
 
-  const max = Math.max(...distribution.map((d) => d.count || 0));
+  const max = Math.max(...items.map((d) => d.count || 0));
 
   return (
     <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
@@ -79,7 +80,7 @@ export function ClassDistributionList({
         </CardTitle>
       </CardHeader>
       <CardContent className="relative z-10 space-y-3">
-        {distribution.map((item) => {
+        {items.map((item) => {
           const key = `${item.gradeName ?? "No grade"}-${item.classGroupName}`;
           const pct = max > 0 ? (item.count / max) * 100 : 0;
 

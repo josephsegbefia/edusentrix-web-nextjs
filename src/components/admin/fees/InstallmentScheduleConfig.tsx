@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useFieldArray, Control, useWatch } from "react-hook-form";
+import { useFieldArray, Control, useWatch, UseFormRegister } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import type { BulkCreateInvoiceInput } from "@/schemas/bulk-invoice";
 
 type Props<T extends CreateInvoiceInput | BulkCreateInvoiceInput = CreateInvoiceInput> = {
   control: Control<T>;
+  register: UseFormRegister<T>;
   lineItemIndex: number;
   totalAmount: number;
   numberOfInstallments: number;
@@ -22,20 +23,23 @@ type Props<T extends CreateInvoiceInput | BulkCreateInvoiceInput = CreateInvoice
 
 export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCreateInvoiceInput = CreateInvoiceInput>({
   control,
+  register,
   lineItemIndex,
   totalAmount,
   numberOfInstallments,
   startDate,
 }: Props<T>) {
+  const fieldArrayName = `lineItems.${lineItemIndex}.installmentSchedule` as const;
+
   const { fields, append, remove, update } = useFieldArray({
     control,
-    name: `lineItems.${lineItemIndex}.installmentSchedule` as const,
+    name: fieldArrayName as any,
   });
 
   const installmentSchedule = useWatch({
     control,
-    name: `lineItems.${lineItemIndex}.installmentSchedule` as const,
-  });
+    name: fieldArrayName as any,
+  }) as Array<{ amount?: number }> | undefined;
 
   // Auto-generate installments when numberOfInstallments changes
   React.useEffect(() => {
@@ -60,11 +64,11 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
       if (fields.length !== newSchedule.length) {
         // Remove all and add new ones
         fields.forEach((_, idx) => remove(idx));
-        newSchedule.forEach((item) => append(item));
+        newSchedule.forEach((item) => append(item as any));
       } else {
         // Update existing
         newSchedule.forEach((item, idx) => {
-          update(idx, item);
+          update(idx, item as any);
         });
       }
     } else if (numberOfInstallments < 2) {
@@ -73,10 +77,10 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
     }
   }, [numberOfInstallments, totalAmount, startDate]);
 
-  const totalScheduled = installmentSchedule?.reduce(
-    (sum, inst) => sum + (inst?.amount || 0),
+  const totalScheduled = (installmentSchedule ?? []).reduce(
+    (sum: number, inst) => sum + (inst?.amount || 0),
     0
-  ) || 0;
+  );
   const difference = Math.abs(totalScheduled - totalAmount);
 
   return (
@@ -124,7 +128,9 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
                   <Label className="text-xs text-white/60">Due Date</Label>
                   <Input
                     type="date"
-                    {...control.register(`lineItems.${lineItemIndex}.installmentSchedule.${index}.dueDate` as const)}
+                    {...register(
+                      `lineItems.${lineItemIndex}.installmentSchedule.${index}.dueDate` as any
+                    )}
                     className="border border-white/10 bg-white/5 text-white text-sm h-9"
                   />
                 </div>
@@ -133,9 +139,12 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
                   <Input
                     type="number"
                     step="0.01"
-                    {...control.register(`lineItems.${lineItemIndex}.installmentSchedule.${index}.amount` as const, {
-                      valueAsNumber: true,
-                    })}
+                    {...register(
+                      `lineItems.${lineItemIndex}.installmentSchedule.${index}.amount` as any,
+                      {
+                        valueAsNumber: true,
+                      }
+                    )}
                     className="border border-white/10 bg-white/5 text-white text-sm h-9"
                   />
                 </div>
@@ -159,7 +168,7 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
               installmentNumber: nextNumber,
               dueDate: baseDate.toISOString().slice(0, 10),
               amount: 0,
-            });
+            } as any);
           }}
           className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
         >

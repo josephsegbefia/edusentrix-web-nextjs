@@ -73,8 +73,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const normalizedType =
+      parsed.data.type === "Secondary" ? "SHS" : parsed.data.type;
+
     school.name = parsed.data.name;
-    school.type = parsed.data.type;
+    school.type = normalizedType;
     school.address = parsed.data.address ?? undefined;
     school.email = parsed.data.email ?? undefined;
     school.city = parsed.data.city ?? undefined;

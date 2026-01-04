@@ -246,16 +246,16 @@ export function StudentCard({
         />
         <AcademicBadgePill
           badge={student.academicBadge}
-          latestAverage={student.lastestAverage}
+          latestAverage={student.latestAverage}
         />
       </div>
 
       {/* Bottom row: meta */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-200/80">
         <span>{enrolmentLabel}</span>
-        {student.lastestAverage !== null && (
+        {student.latestAverage !== null && (
           <span className="rounded-full bg-slate-900/70 px-2 py-0.5 text-[10px] text-slate-100">
-            Latest average: {student.lastestAverage.toFixed(0)}%
+            Latest average: {student.latestAverage.toFixed(0)}%
           </span>
         )}
       </div>

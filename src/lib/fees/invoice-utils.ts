@@ -1,5 +1,4 @@
 // src/lib/fees/invoice-utils.ts
-import type { IInvoice, IInvoiceLineItem } from "@/models/Invoice";
 import type { IInvoiceLineItem as InvoiceLineItemModel } from "@/models/InvoiceLineItem";
 
 /**

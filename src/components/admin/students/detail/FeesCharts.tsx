@@ -163,8 +163,10 @@ export function FeesCharts({ studentId }: Props) {
                 <span>Last {paymentTrendData.length} periods</span>
                 <span className="font-semibold text-emerald-200">
                   {formatMoney(
-                    paymentTrendData.reduce((sum, d) => sum + d.value, 0) /
-                      paymentTrendData.length
+                    paymentTrendData.reduce(
+                      (sum: number, d: { value: number }) => sum + d.value,
+                      0
+                    ) / paymentTrendData.length
                   )}{" "}
                   avg
                 </span>

@@ -245,11 +245,13 @@ export async function POST(
         school.status = "pending";
         await school.save({ session });
       } else {
+        const normalizedSchoolType =
+          app.schoolType === "Secondary" ? "SHS" : app.schoolType;
         school = await School.create(
           [
             {
               name: app.schoolName,
-              type: app.schoolType,
+              type: normalizedSchoolType,
               address: (app as any).address || undefined,
               city: app.city || undefined,
               region: app.region || undefined,

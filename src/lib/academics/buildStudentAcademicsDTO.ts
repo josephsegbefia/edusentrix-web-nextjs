@@ -365,7 +365,7 @@ export async function buildStudentAcademicsDTO(params: {
   // Get student's classGroupId
   const studentDoc = await Student.findById(studentKey)
     .select("classGroupId")
-    .lean();
+    .lean<{ classGroupId?: mongoose.Types.ObjectId } | null>();
   const classGroupId = studentDoc?.classGroupId;
 
   // Calculate class averages for selected term

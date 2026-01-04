@@ -104,8 +104,10 @@ export async function GET() {
     ? ((await School.findById(appUser.schoolId).lean()) as ISchool | null)
     : null;
 
-  const subjectSuggestions =
-    school?.type === "Secondary" ? SECONDARY_SUBJECTS : BASIC_SUBJECTS;
+  const schoolTypeRaw = (school as { type?: string } | null)?.type;
+  const isSecondary = schoolTypeRaw === "SHS" || schoolTypeRaw === "Secondary";
+  const subjectSuggestions = isSecondary ? SECONDARY_SUBJECTS : BASIC_SUBJECTS;
+  const schoolTypeForClient = isSecondary ? "Secondary" : "Basic";
 
   // 6) Response in the same shape your frontend expects
   return NextResponse.json({
@@ -123,7 +125,7 @@ export async function GET() {
       ? {
           id: String(school._id),
           name: school.name,
-          type: school.type,
+          type: schoolTypeForClient,
           address: school.address ?? "",
           city: school.city ?? "",
           region: school.region ?? "",

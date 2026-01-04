@@ -14,8 +14,6 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, Check, X, Mail, Phone, Briefcase, Star, StarOff } from "lucide-react";
 import type {
   GuardianRelationship,
-  CreateGuardianInput,
-  UpdateGuardianInput,
   GuardianData,
 } from "@/hooks/admin/useGuardians";
 
@@ -38,7 +36,7 @@ const GuardianFormSchema = z.object({
   ]),
   occupation: z.string().optional().nullable(),
   photoUrl: z.string().url().optional().nullable(),
-  isPrimary: z.boolean().default(false),
+  isPrimary: z.boolean(),
 });
 
 type GuardianFormInput = z.infer<typeof GuardianFormSchema>;
@@ -79,7 +77,7 @@ const RELATIONSHIP_OPTIONS: Array<{
 
 type Props = {
   guardian?: GuardianData | null;
-  onSubmit: (data: CreateGuardianInput | UpdateGuardianInput) => Promise<void>;
+  onSubmit: (data: GuardianFormInput) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
 };

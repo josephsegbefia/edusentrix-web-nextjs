@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
         lastPaymentAt,
 
         academicBadge,
-        lastestAverage: latestAverage,
+        latestAverage,
         isTopPerformer: academicBadge !== "none",
 
         isNew: computeIsNew(enrolledAt, createdAt),

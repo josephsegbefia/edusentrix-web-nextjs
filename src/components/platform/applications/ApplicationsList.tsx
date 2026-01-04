@@ -88,6 +88,12 @@ export default function ApplicationsList() {
   const items = (data?.pages ?? []).flatMap((p) =>
     Array.isArray(p?.items) ? p.items : []
   ) as Application[];
+  const activeStatus =
+    filters.status === "pending" ||
+    filters.status === "approved" ||
+    filters.status === "rejected"
+      ? filters.status
+      : "all";
 
   return (
     <>
@@ -122,7 +128,7 @@ export default function ApplicationsList() {
               <ApplicationCard
                 application={app}
                 onOpen={() => setSelectedId(app._id)}
-                activeStatus={filters.status ?? "all"}
+                activeStatus={activeStatus}
                 queryKey={queryKey}
                 // optimistic updates are handled inside the card's mutations
               />

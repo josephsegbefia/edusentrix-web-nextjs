@@ -767,6 +767,7 @@ export default function CreateInvoiceModal({
                           watch(`lineItems.${index}.numberOfInstallments`)! >= 2 && (
                             <InstallmentScheduleConfig
                               control={control}
+                              register={register}
                               lineItemIndex={index}
                               totalAmount={watch(`lineItems.${index}.amount`) || 0}
                               numberOfInstallments={watch(`lineItems.${index}.numberOfInstallments`) || 2}

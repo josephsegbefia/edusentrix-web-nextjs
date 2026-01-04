@@ -41,15 +41,19 @@ export async function POST(
         );
       }
 
+      const adminIdObj = guard.me?._id
+        ? new mongoose.Types.ObjectId(String(guard.me._id))
+        : null;
+
       app.status = "rejected";
-      app.processedBy = guard.me!._id as any;
+      app.processedBy = adminIdObj as any;
       await app.save({ session });
 
       await recordApplicationAudit(
         {
           applicationId: app._id,
           action: "rejected",
-          by: guard.me!._id,
+          by: adminIdObj,
           note: parsed.data.reason,
         },
         { session }

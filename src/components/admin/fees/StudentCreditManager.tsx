@@ -55,7 +55,7 @@ export function StudentCreditManager({
   invoices,
   onCreditApplied,
 }: Props) {
-  const { toast } = useToast();
+  const { error: toastError } = useToast();
   const busy = useBusyToast();
   const [showApplyModal, setShowApplyModal] = React.useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = React.useState("");
@@ -78,7 +78,7 @@ export function StudentCreditManager({
 
   const handleApplyCredit = async () => {
     if (!selectedInvoiceId || !amount || parseFloat(amount) <= 0) {
-      toast.error("Error", {
+      toastError("Error", {
         description: "Please select an invoice and enter an amount",
       });
       return;
@@ -86,7 +86,7 @@ export function StudentCreditManager({
 
     const amountValue = parseFloat(amount);
     if (amountValue > toMajorUnits(creditBalance)) {
-      toast.error("Error", {
+      toastError("Error", {
         description: "Amount exceeds available credit balance",
       });
       return;

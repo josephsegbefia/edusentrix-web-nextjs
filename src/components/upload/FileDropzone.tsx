@@ -31,6 +31,7 @@ export function FileDropzone({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const progress = typeof uploadProgress === "number" ? uploadProgress : null;
 
   const openPicker = () => {
     if (!disabled) inputRef.current?.click();
@@ -108,10 +109,10 @@ export function FileDropzone({
                   alt="Preview"
                   className="w-12 h-12 object-cover rounded-lg"
                 />
-                {showProgress && uploadProgress !== null && uploadProgress < 100 && (
+                {showProgress && progress !== null && progress < 100 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
                     <span className="text-xs font-semibold text-white">
-                      {Math.round(uploadProgress)}%
+                      {Math.round(progress)}%
                     </span>
                   </div>
                 )}
@@ -130,17 +131,17 @@ export function FileDropzone({
               {previewImage ? "Image uploaded" : "Drag & drop or click to upload"}
             </div>
             <div className="text-xs text-white/60 mt-1">
-              {showProgress && uploadProgress !== null && uploadProgress < 100
-                ? `Uploading... ${Math.round(uploadProgress)}%`
+              {showProgress && progress !== null && progress < 100
+                ? `Uploading... ${Math.round(progress)}%`
                 : previewImage
                 ? "Click to replace image"
                 : hint ?? `Allowed: ${accept.join(", ")} · Max ${maxSizeMB}MB`}
             </div>
-            {showProgress && uploadProgress !== null && uploadProgress < 100 && (
+            {showProgress && progress !== null && progress < 100 && (
               <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-brand transition-all duration-300 rounded-full"
-                  style={{ width: `${uploadProgress}%` }}
+                  style={{ width: `${progress}%` }}
                 />
               </div>
             )}

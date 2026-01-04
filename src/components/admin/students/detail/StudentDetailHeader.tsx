@@ -34,7 +34,7 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
     fullName,
     classGroup,
     grade,
-    admissionNumber,
+    admissionNo,
     status,
     photoUrl,
     ageYears,
@@ -105,11 +105,11 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
                   {classGroup.label}
                 </Badge>
               )}
-              {admissionNumber && (
+              {admissionNo && (
                 <span className="rounded-lg border border-white/20 bg-black/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                   Adm. No:{" "}
                   <span className="font-semibold text-foreground">
-                    {admissionNumber}
+                    {admissionNo}
                   </span>
                 </span>
               )}

@@ -12,7 +12,7 @@ export const InvoiceLineItemSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().max(500).optional().nullable(),
   amount: z.number().min(0.01, "Amount must be greater than 0"),
-  allowsInstallments: z.boolean().default(false),
+  allowsInstallments: z.boolean(),
   numberOfInstallments: z.number().int().min(2).max(12).optional().nullable(),
   installmentSchedule: z.array(InstallmentScheduleConfigSchema).optional().nullable(),
 });

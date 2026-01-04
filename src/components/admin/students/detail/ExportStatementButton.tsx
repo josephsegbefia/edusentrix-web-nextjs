@@ -69,15 +69,15 @@ export function ExportStatementButton({
 
         // Calculate summary
         const totalBilled = invoices.reduce(
-          (sum, inv: any) => sum + (inv.totalAmountMinor || 0),
+          (sum: number, inv: any) => sum + (inv.totalAmountMinor || 0),
           0
         );
         const totalPaid = invoices.reduce(
-          (sum, inv: any) => sum + (inv.totalPaidMinor || 0),
+          (sum: number, inv: any) => sum + (inv.totalPaidMinor || 0),
           0
         );
         const totalOutstanding = invoices.reduce(
-          (sum, inv: any) => sum + (inv.totalOutstandingMinor || 0),
+          (sum: number, inv: any) => sum + (inv.totalOutstandingMinor || 0),
           0
         );
 

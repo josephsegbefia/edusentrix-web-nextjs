@@ -6,9 +6,9 @@ export const CreateFeeStructureSchema = z.object({
   code: z.string().min(1, "Code is required").max(20).transform((val) => val.toUpperCase()),
   description: z.string().max(500).optional().nullable(),
   category: z.enum(["tuition", "library", "sports", "uniform", "other"]),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
   defaultAmount: z.number().min(0).optional().nullable(),
-  allowsInstallments: z.boolean().default(false),
+  allowsInstallments: z.boolean(),
   maxInstallments: z.number().int().min(2).max(12).optional().nullable(),
 });
 

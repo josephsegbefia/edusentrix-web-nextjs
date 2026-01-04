@@ -34,9 +34,14 @@ export async function GET(
 
     // Verify student exists and get schoolId
     const { Student } = await import("@/models/Student");
-    const student = await Student.findById(studentId)
+    const studentRaw = await Student.findById(studentId)
       .select("schoolId")
       .lean();
+
+    // Normalize student (findById().lean() can be inferred as array by TypeScript)
+    const student = (
+      Array.isArray(studentRaw) ? studentRaw[0] || null : studentRaw
+    ) as any;
 
     if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });

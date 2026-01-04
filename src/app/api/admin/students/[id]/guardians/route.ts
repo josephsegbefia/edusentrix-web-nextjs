@@ -161,7 +161,10 @@ export async function POST(
     const emailLower = validated.email.toLowerCase().trim();
 
     // Check if user with email already exists
-    let parentUser = await User.findOne({ email: emailLower }).lean();
+    const parentUserRaw = await User.findOne({ email: emailLower }).lean();
+    const parentUser = Array.isArray(parentUserRaw)
+      ? parentUserRaw[0] || null
+      : parentUserRaw;
 
     let userIdObj: mongoose.Types.ObjectId;
     let isNewUser = false;

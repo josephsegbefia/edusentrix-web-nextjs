@@ -50,12 +50,17 @@ export async function GET(
     const schoolId = student.schoolId.toString();
 
     // Verify academic period exists
-    const period = await AcademicPeriod.findOne({
+    const periodRaw = await AcademicPeriod.findOne({
       _id: termId,
       schoolId,
     })
       .select("yearLabel term")
       .lean();
+
+    // Normalize period (findOne().lean() can be inferred as array by TypeScript)
+    const period = (
+      Array.isArray(periodRaw) ? periodRaw[0] || null : periodRaw
+    ) as any;
 
     if (!period) {
       return NextResponse.json(
@@ -65,9 +70,14 @@ export async function GET(
     }
 
     // Get subject name
-    const subject = await Subject.findById(subjectId)
+    const subjectRaw = await Subject.findById(subjectId)
       .select("name code")
       .lean();
+
+    // Normalize subject (findById().lean() can be inferred as array by TypeScript)
+    const subject = (
+      Array.isArray(subjectRaw) ? subjectRaw[0] || null : subjectRaw
+    ) as any;
 
     if (!subject) {
       return NextResponse.json({ error: "Subject not found" }, { status: 404 });
@@ -84,12 +94,17 @@ export async function GET(
       .lean();
 
     // Get SubjectGrade summary
-    const subjectGrade = await SubjectGrade.findOne({
+    const subjectGradeRaw = await SubjectGrade.findOne({
       schoolId,
       studentId,
       subjectId,
       academicPeriodId: termId,
     }).lean();
+
+    // Normalize subjectGrade (findOne().lean() can be inferred as array by TypeScript)
+    const subjectGrade = (
+      Array.isArray(subjectGradeRaw) ? subjectGradeRaw[0] || null : subjectGradeRaw
+    ) as any;
 
     const termLabel = `${period.yearLabel} • ${period.term}`;
 

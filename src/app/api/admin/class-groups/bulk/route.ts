@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create a map for quick grade lookup
-    const gradeMap = new Map(grades.map((g) => [String(g._id), g]));
+    const gradeMap = new Map(grades.map((g: any) => [String(g._id), g]));
 
     // Validate subjectIds belong to this school
     let subjectIds: mongoose.Types.ObjectId[] = [];
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       const namesSet = new Set(docs.map((d) => d.name));
       const existing = await ClassGroup.countDocuments({
         schoolId,
-        gradeId: { $in: grades.map((g) => g._id) },
+        gradeId: { $in: grades.map((g: any) => g._id) },
         name: { $in: Array.from(namesSet) },
       });
       inserted = Math.max(0, docs.length - existing);

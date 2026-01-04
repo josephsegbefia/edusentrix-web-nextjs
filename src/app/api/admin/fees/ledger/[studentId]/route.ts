@@ -85,7 +85,7 @@ export async function GET(
     .sort({ issueDate: -1 })
     .lean();
 
-  const invoiceIds = invoices.map((i) => i._id);
+  const invoiceIds = invoices.map((i: any) => i._id);
   const payments = invoiceIds.length
     ? await Payment.find({
         schoolId,

@@ -115,8 +115,8 @@ export async function GET(
         subjectName: subject.name,
         termId,
         termLabel,
-        assessments: assessments.map((a) => ({
-          id: a._id.toString(),
+        assessments: assessments.map((a: any) => ({
+          id: String(a._id),
           assessmentType: a.assessmentType,
           title: a.title,
           score: a.score,

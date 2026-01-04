@@ -41,7 +41,7 @@ export async function GET(
       .sort({ displayOrder: 1 })
       .lean();
 
-    const lineItemIds = lineItems.map((li) => li._id);
+    const lineItemIds = lineItems.map((li: any) => li._id);
     const installments = await InstallmentSchedule.find({
       invoiceLineItemId: { $in: lineItemIds },
     })

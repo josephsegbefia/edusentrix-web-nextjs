@@ -43,10 +43,15 @@ export async function GET(
     }
 
     // Get current period
-    const currentPeriod = await AcademicPeriod.findOne({
+    const currentPeriodRaw = await AcademicPeriod.findOne({
       schoolId,
       isCurrent: true,
     }).lean();
+
+    // Normalize currentPeriod (findOne().lean() can be inferred as array by TypeScript)
+    const currentPeriod = (
+      Array.isArray(currentPeriodRaw) ? currentPeriodRaw[0] || null : currentPeriodRaw
+    ) as any;
 
     // Fetch all invoices
     const allInvoices = await Invoice.find({

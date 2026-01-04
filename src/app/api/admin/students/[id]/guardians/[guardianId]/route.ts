@@ -42,6 +42,18 @@ export async function PATCH(
     const { schoolId, userId } = await requireSchoolAdmin();
     await connectToDatabase();
 
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, error: "School ID not found" },
+        { status: 400 }
+      );
+    }
+
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
     const { id, guardianId } = await ctx.params;
 
     if (
@@ -57,7 +69,7 @@ export async function PATCH(
     // Verify student belongs to admin's school
     const student = await Student.findOne({
       _id: new mongoose.Types.ObjectId(id),
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     }).lean();
 
     if (!student) {
@@ -68,10 +80,15 @@ export async function PATCH(
     }
 
     // Find guardian
-    const guardian = await Guardian.findOne({
+    const guardianRaw = await Guardian.findOne({
       _id: new mongoose.Types.ObjectId(guardianId),
       studentId: new mongoose.Types.ObjectId(id),
     }).lean();
+
+    // Normalize guardian (findOne().lean() can be inferred as array by TypeScript)
+    const guardian = (
+      Array.isArray(guardianRaw) ? guardianRaw[0] || null : guardianRaw
+    ) as any;
 
     if (!guardian) {
       return NextResponse.json(
@@ -134,7 +151,7 @@ export async function PATCH(
 
     // Record activity
     await recordActivity({
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
       userId: new mongoose.Types.ObjectId(userId),
       type: "guardian.updated",
       entityType: "student",
@@ -203,6 +220,18 @@ export async function DELETE(
     const { schoolId, userId } = await requireSchoolAdmin();
     await connectToDatabase();
 
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, error: "School ID not found" },
+        { status: 400 }
+      );
+    }
+
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
     const { id, guardianId } = await ctx.params;
 
     if (
@@ -218,7 +247,7 @@ export async function DELETE(
     // Verify student belongs to admin's school
     const student = await Student.findOne({
       _id: new mongoose.Types.ObjectId(id),
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     }).lean();
 
     if (!student) {
@@ -229,10 +258,15 @@ export async function DELETE(
     }
 
     // Find guardian
-    const guardian = await Guardian.findOne({
+    const guardianRaw = await Guardian.findOne({
       _id: new mongoose.Types.ObjectId(guardianId),
       studentId: new mongoose.Types.ObjectId(id),
     }).lean();
+
+    // Normalize guardian (findOne().lean() can be inferred as array by TypeScript)
+    const guardian = (
+      Array.isArray(guardianRaw) ? guardianRaw[0] || null : guardianRaw
+    ) as any;
 
     if (!guardian) {
       return NextResponse.json(
@@ -261,7 +295,7 @@ export async function DELETE(
     if (otherGuardians === 0) {
       await UserMembership.deleteOne({
         userId: userIdObj,
-        schoolId: new mongoose.Types.ObjectId(schoolId),
+        schoolId: schoolIdObj,
       });
 
       // Optionally delete user account if they have no other relationships
@@ -284,7 +318,7 @@ export async function DELETE(
 
     // Record activity
     await recordActivity({
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
       userId: new mongoose.Types.ObjectId(userId),
       type: "guardian.removed",
       entityType: "student",

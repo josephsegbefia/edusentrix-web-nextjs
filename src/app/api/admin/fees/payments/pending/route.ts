@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       .select("_id")
       .lean();
 
-    query.invoiceId = { $in: invs.map((i) => i._id) };
+    query.invoiceId = { $in: invs.map((i: any) => i._id) };
   }
 
   const skip = (page - 1) * limit;

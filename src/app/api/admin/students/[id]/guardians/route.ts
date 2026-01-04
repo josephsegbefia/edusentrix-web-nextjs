@@ -52,10 +52,19 @@ export async function GET(
       );
     }
 
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, error: "School ID not found" },
+        { status: 400 }
+      );
+    }
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+
     // Verify student belongs to admin's school
     const student = await Student.findOne({
       _id: new mongoose.Types.ObjectId(id),
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     }).lean();
 
     if (!student) {
@@ -123,13 +132,22 @@ export async function POST(
       );
     }
 
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, error: "School ID not found" },
+        { status: 400 }
+      );
+    }
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+
     const body = await req.json();
     const validated = CreateGuardianSchema.parse(body);
 
     // Verify student belongs to admin's school
     const student = await Student.findOne({
       _id: new mongoose.Types.ObjectId(id),
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     }).lean();
 
     if (!student) {
@@ -139,7 +157,6 @@ export async function POST(
       );
     }
 
-    const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
     const studentIdObj = new mongoose.Types.ObjectId(id);
     const emailLower = validated.email.toLowerCase().trim();
 
@@ -291,16 +308,26 @@ export async function POST(
     });
 
     // Fetch created guardian with user data
-    const createdGuardian = await Guardian.findById(guardian._id)
+    const createdGuardianRaw = await Guardian.findById(guardian._id)
       .populate("userId", "firstName lastName email avatarUrl")
       .lean();
+    const createdGuardian = Array.isArray(createdGuardianRaw)
+      ? createdGuardianRaw[0] || null
+      : createdGuardianRaw;
+
+    if (!createdGuardian) {
+      return NextResponse.json(
+        { success: false, error: "Guardian not found after create" },
+        { status: 404 }
+      );
+    }
 
     const user = (createdGuardian as any).userId as any;
 
     return NextResponse.json({
       success: true,
       data: {
-        id: String(createdGuardian!._id),
+        id: String(createdGuardian._id),
         userId: String(user._id),
         fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
         relationship: (createdGuardian as any).relationship,
@@ -320,7 +347,7 @@ export async function POST(
         {
           success: false,
           error: "Validation error",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );

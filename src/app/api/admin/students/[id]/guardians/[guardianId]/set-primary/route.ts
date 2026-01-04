@@ -16,6 +16,23 @@ export async function PATCH(
     const { schoolId, userId } = await requireSchoolAdmin();
     await connectToDatabase();
 
+    if (!schoolId) {
+      return NextResponse.json(
+        { success: false, error: "School ID not found" },
+        { status: 400 }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "User ID not found" },
+        { status: 400 }
+      );
+    }
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const userIdObj = new mongoose.Types.ObjectId(String(userId));
+
     const { id, guardianId } = await ctx.params;
 
     if (
@@ -31,7 +48,7 @@ export async function PATCH(
     // Verify student belongs to admin's school
     const student = await Student.findOne({
       _id: new mongoose.Types.ObjectId(id),
-      schoolId: new mongoose.Types.ObjectId(schoolId),
+      schoolId: schoolIdObj,
     }).lean();
 
     if (!student) {
@@ -75,8 +92,8 @@ export async function PATCH(
 
     // Record activity
     await recordActivity({
-      schoolId: new mongoose.Types.ObjectId(schoolId),
-      userId: new mongoose.Types.ObjectId(userId),
+      schoolId: schoolIdObj,
+      userId: userIdObj,
       type: "guardian.set_primary",
       entityType: "student",
       entityId: String(studentIdObj),

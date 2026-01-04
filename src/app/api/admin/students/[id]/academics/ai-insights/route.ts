@@ -7,10 +7,6 @@ import OpenAI from "openai";
 import mongoose from "mongoose";
 import { Student } from "@/models/Student";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -142,6 +138,10 @@ Provide your analysis in this exact JSON format (no markdown, no code blocks, ju
 }
 
 Be specific, actionable, and culturally appropriate for Ghanaian education context.`;
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",

@@ -7,6 +7,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Activity } from "@/models/Activity";
 import { Guardian } from "@/models/Guardian";
+import { Grade } from "@/models/Grade";
 
 export async function GET(
   _req: NextRequest,
@@ -29,7 +30,7 @@ export async function GET(
       _id: id,
       schoolId,
     })
-      .populate("gradeId")
+      .populate({ path: "gradeId", model: Grade })
       .populate("classGroupId")
       .lean();
 

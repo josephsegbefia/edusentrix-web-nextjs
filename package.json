@@ -17,6 +17,7 @@
     "admin:create": "tsx scripts/createPlatformAdmin.ts"
   },
   "dependencies": {
+    "@clerk/backend": "^2.29.0",
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@clerk/nextjs": "^6.35.1",
     "@hookform/resolvers": "^5.2.2",

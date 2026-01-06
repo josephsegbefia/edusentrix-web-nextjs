@@ -72,15 +72,15 @@
 //   };
 // }
 
-// export async function requireUser() {
-//   const me = await getCurrentUser();
-//   if (!me) {
-//     // Clerk's middleware already protects most routes, but this keeps layout guards explicit
-//     // Note: Can't use next/navigation redirect in server-only lib; guard in loaders/layouts
-//     throw new Error("Unauthenticated");
-//   }
-//   return me;
-// }
+export async function requireUser() {
+  const me = await getCurrentUser();
+  if (!me) {
+    // Clerk's middleware already protects most routes, but this keeps layout guards explicit
+    // Note: Can't use next/navigation redirect in server-only lib; guard in loaders/layouts
+    throw new Error("Unauthenticated");
+  }
+  return me;
+}
 
 // src/lib/auth/get-current-user.ts
 import "server-only";

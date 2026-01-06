@@ -83,6 +83,7 @@ export async function requireUser() {
 }
 
 // src/lib/auth/get-current-user.ts
+// test after moving to organization github
 import "server-only";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";

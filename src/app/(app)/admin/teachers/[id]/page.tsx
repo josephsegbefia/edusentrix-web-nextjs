@@ -14,7 +14,7 @@ import {
   type TeacherDetailTabId,
 } from "@/components/admin/teachers/detail/TeacherDetailTabs";
 import { TeacherOverviewTab } from "@/components/admin/teachers/detail/TeacherOverviewTab";
-
+import { TeacherAssignmentsTab } from "@/components/admin/teachers/detail/TeacherAssignmentsTab";
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (!sp) return "overview";
   const raw = sp.get("tab");
@@ -223,13 +223,7 @@ function TeacherDetailContent() {
         {activeTab === "overview" ? (
           <TeacherOverviewTab teacher={teacher} />
         ) : activeTab === "assignments" ? (
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">
-                Assignments tab coming soon
-              </p>
-            </CardContent>
-          </Card>
+          <TeacherAssignmentsTab teacherId={teacherId} />
         ) : activeTab === "performance" ? (
           <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
             <CardContent className="p-6">

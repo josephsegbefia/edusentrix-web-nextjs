@@ -37,6 +37,6 @@ export function getInitialTeacherTab(
 export function getInitialTeacherView(
   sp: ReadonlyURLSearchParams
 ): TeachersViewMode {
-  const raw = (sp.get("view") || "table").trim() as TeachersViewMode;
-  return TEACHERS_VIEW_MODES.includes(raw) ? raw : "table";
+  const raw = (sp.get("view") || "cards").trim() as TeachersViewMode;
+  return TEACHERS_VIEW_MODES.includes(raw) ? raw : "cards";
 }

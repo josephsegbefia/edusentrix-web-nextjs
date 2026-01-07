@@ -285,14 +285,75 @@ export default function TeachersPage() {
               {viewMode === "cards" ? (
                 <TeachersCardGrid
                   teachers={teachers}
-                  selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
+                  onView={(id) => {
+                    router.push(`/admin/teachers/${id}`);
+                  }}
+                  onEdit={(id) => {
+                    // TODO: open edit teacher modal
+                    console.log("Edit teacher", id);
+                  }}
+                  onManageAccess={(id) => {
+                    // TODO: open manage access modal
+                    console.log("Manage access for", id);
+                  }}
+                  onSendMessage={(id) => {
+                    // TODO: open send message dialog
+                    console.log("Send message to", id);
+                  }}
                 />
               ) : (
                 <TeachersTable
                   teachers={teachers}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSortChange={(column) => {
+                    setSortBy((prevSortBy) => {
+                      if (prevSortBy === column) {
+                        setSortOrder((prevOrder) =>
+                          prevOrder === "asc" ? "desc" : "asc"
+                        );
+                        return prevSortBy;
+                      } else {
+                        setSortOrder("asc");
+                        return column;
+                      }
+                    });
+                    setPage(1);
+                  }}
                   selectedIds={selectedIds}
-                  onToggleSelect={toggleSelect}
+                  onToggleRow={toggleSelect}
+                  onToggleAllVisible={(visibleIds) => {
+                    setSelectedIds((prev) => {
+                      const allVisibleSelected =
+                        visibleIds.length > 0 &&
+                        visibleIds.every((id) => prev.includes(id));
+
+                      if (allVisibleSelected) {
+                        // Deselect all visible
+                        return prev.filter((id) => !visibleIds.includes(id));
+                      }
+
+                      // Select all visible (merge with current selection)
+                      const set = new Set(prev);
+                      visibleIds.forEach((id) => set.add(id));
+                      return Array.from(set);
+                    });
+                  }}
+                  onView={(id) => {
+                    router.push(`/admin/teachers/${id}`);
+                  }}
+                  onEdit={(id) => {
+                    // TODO: open edit teacher modal
+                    console.log("Edit teacher", id);
+                  }}
+                  onManageAccess={(id) => {
+                    // TODO: open manage access modal
+                    console.log("Manage access for", id);
+                  }}
+                  onSendMessage={(id) => {
+                    // TODO: open send message dialog
+                    console.log("Send message to", id);
+                  }}
                 />
               )}
             </div>

@@ -42,3 +42,22 @@ export type TeacherListResponse = {
     totalPages: number;
   };
 };
+
+export type TeacherDetailDTO = TeacherListItemDTO & {
+  updatedAt?: string | null;
+};
+
+export type TeacherDetailResponse = {
+  success: true;
+  data: TeacherDetailDTO;
+};
+
+export type TeacherQuickStatsResponse = {
+  success: true;
+  data: {
+    total: number;
+    active: number;
+    inactive: number;
+    homeroom: number;
+  };
+};

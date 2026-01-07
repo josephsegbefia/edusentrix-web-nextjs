@@ -1,9 +1,10 @@
 // src/hooks/admin/useTeachers.ts
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type {
   TeacherListResponse,
   TeacherDetailResponse,
 } from "@/types/admin/teacher";
+import type { CreateTeacherInput } from "@/schemas/teacher";
 import type {
   TeachersTabId,
   TeachersSortBy,
@@ -13,7 +14,8 @@ import type {
 export type TeachersFilters = {
   search?: string;
   subjectId?: string;
-  classGroupId?: string; // (reserved for future “teaches class group” when TeacherAssignment lands)
+  classGroupId?: string; // (reserved for future "teaches class group" when TeacherAssignment lands)
+  department?: string;
 };
 
 export type UseTeachersArgs = {
@@ -47,6 +49,7 @@ export function useTeachers({
       if (filters.subjectId) params.set("subjectId", filters.subjectId);
       if (filters.classGroupId)
         params.set("classGroupId", filters.classGroupId);
+      if (filters.department) params.set("department", filters.department);
 
       const res = await fetch(`/api/admin/teachers?${params.toString()}`, {
         cache: "no-store",
@@ -89,4 +92,26 @@ export function useTeacherListData(args: UseTeachersArgs) {
     isError,
     error,
   };
+}
+
+export function useCreateTeacher() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CreateTeacherInput): Promise<void> => {
+      const res = await fetch("/api/admin/teachers/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to create teacher" }));
+        throw new Error(error.error || "Failed to create teacher");
+      }
+    },
+    onSuccess: () => {
+      // Invalidate teachers list queries
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    },
+  });
 }

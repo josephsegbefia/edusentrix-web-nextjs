@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/app/(app)/admin/teachers/page.tsx
 "use client";
 
@@ -5,7 +6,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Loader2, AlertCircle, Users } from "lucide-react";
 
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
@@ -26,6 +27,12 @@ import { TeachersTable } from "@/components/admin/teachers/TeachersTable";
 import { TeachersCardGrid } from "@/components/admin/teachers/TeachersCardGrid";
 import { TeachersPagination } from "@/components/admin/teachers/TeachersPagination";
 import { TeachersBulkActionsBar } from "@/components/admin/teachers/TeachersBulkActionsBar";
+import { TeachersCommandPalette } from "@/components/admin/teachers/TeachersCommandPalette";
+
+import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
+import { TeachersAdvancedFiltersDialog } from "@/components/admin/teachers/TeachersAdvancedFiltersDialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useCreateTeacher } from "@/hooks/admin/useTeachers";
 
 function isTypingTarget(el: EventTarget | null) {
   if (!el || !(el as HTMLElement).tagName) return false;
@@ -47,35 +54,74 @@ export default function TeachersPage() {
   const [viewMode, setViewMode] = React.useState<TeachersViewMode>(() =>
     getInitialTeacherView(searchParams)
   );
+
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
   const [page, setPage] = React.useState(
     Number(searchParams.get("page") ?? "1") || 1
   );
 
   const [pageSize] = React.useState(DEFAULT_TEACHERS_PAGE_SIZE);
-  const [sortBy] = React.useState<TeachersSortBy>("name");
-  const [sortOrder] = React.useState<TeachersSortOrder>("asc");
+
+  const [sortBy, setSortBy] = React.useState<TeachersSortBy>(
+    (searchParams.get("sortBy") as TeachersSortBy) || "name"
+  );
+  const [sortOrder, setSortOrder] = React.useState<TeachersSortOrder>(
+    (searchParams.get("sortOrder") as TeachersSortOrder) || "asc"
+  );
+
+  // filters (URL-synced)
+  const [filters, setFilters] = React.useState(() => ({
+    subjectId: searchParams.get("subjectId") ?? "",
+    classGroupId: searchParams.get("classGroupId") ?? "",
+    department: searchParams.get("department") ?? "",
+  }));
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  const [commandOpen, setCommandOpen] = React.useState(false);
+
+  const createTeacher = useCreateTeacher();
+
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
-  // URL sync (same pattern as Students)
+  // URL sync
   React.useEffect(() => {
     const params = new URLSearchParams();
     params.set("tab", tab);
     params.set("view", viewMode);
     if (debouncedSearch) params.set("q", debouncedSearch);
     params.set("page", String(page));
-    router.replace(`/admin/teachers?${params.toString()}`);
-  }, [tab, viewMode, debouncedSearch, page, router]);
+    params.set("sortBy", sortBy);
+    params.set("sortOrder", sortOrder);
 
-  // Keyboard shortcuts: "/" focuses search
+    if (filters.subjectId) params.set("subjectId", filters.subjectId);
+    if (filters.classGroupId) params.set("classGroupId", filters.classGroupId);
+    if (filters.department) params.set("department", filters.department);
+
+    router.replace(`/admin/teachers?${params.toString()}`);
+  }, [
+    tab,
+    viewMode,
+    debouncedSearch,
+    page,
+    sortBy,
+    sortOrder,
+    filters,
+    router,
+  ]);
+
+  // Keyboard shortcuts: "/" focuses search, Cmd/Ctrl+K opens command palette
   React.useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "/" && !isTypingTarget(e.target)) {
         e.preventDefault();
         searchInputRef.current?.focus();
+      }
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCommandOpen((v) => !v);
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -88,7 +134,12 @@ export default function TeachersPage() {
     tab,
     sortBy,
     sortOrder,
-    filters: { search: debouncedSearch || undefined },
+    filters: {
+      search: debouncedSearch || undefined,
+      subjectId: filters.subjectId || undefined,
+      classGroupId: filters.classGroupId || undefined,
+      department: filters.department || undefined,
+    },
   });
 
   function toggleSelect(id: string) {
@@ -113,26 +164,30 @@ export default function TeachersPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="mb-2 text-3xl font-bold">Teachers</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage staff profiles, subjects, and homeroom assignments.
+          <p className="text-muted">
+            Manage staff profiles, subjects, and homeroom assignments across the
+            school
           </p>
         </div>
-
         <div className="flex items-center gap-2 pt-1">
           <Button
+            type="button"
             variant="outline"
-            className="gap-2"
+            size="sm"
+            className="hidden md:inline-flex"
             onClick={() => alert("CSV import coming next")}
           >
             <Upload className="h-4 w-4" />
-            Import
+            <span>Import Teachers</span>
           </Button>
           <Button
-            className="gap-2"
-            onClick={() => router.push("/admin/teachers/create")}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setCreateOpen(true)}
           >
             <Plus className="h-4 w-4" />
-            Add Teacher
+            <span>Add Teacher</span>
           </Button>
         </div>
       </div>
@@ -140,14 +195,19 @@ export default function TeachersPage() {
       {/* Quick stats */}
       <TeachersQuickStatsSection />
 
-      {/* Directory card */}
+      {/* Teacher directory shell */}
       <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-        <CardHeader>
-          <CardTitle>Teacher Directory</CardTitle>
+        <div
+          className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
+          aria-hidden="true"
+        />
+        <CardHeader className="relative z-10 pb-3">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
+            Teacher Directory
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="relative z-10 space-y-4">
           <TeachersTabsNav value={tab} onChange={handleTabChange} />
-
           <TeachersToolbar
             search={search}
             onSearchChange={(v) => {
@@ -156,59 +216,104 @@ export default function TeachersPage() {
             }}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            onOpenFilters={() => alert("Advanced filters coming next")}
+            onOpenFilters={() => setFiltersOpen(true)}
             onExportAll={() => alert("Export coming next")}
             searchInputRef={searchInputRef}
           />
         </CardContent>
       </Card>
 
-      {/* Data */}
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-        <CardContent className="p-6">
+      {/* Data summary shell – cards/table + pagination */}
+      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <div
+          className="pointer-events-none absolute inset-0 bg-linear-to-br from-muted/10 via-muted/5 to-transparent"
+          aria-hidden="true"
+        />
+        <CardContent className="relative z-10 py-8">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/40" />
-              <p className="text-sm text-muted-foreground">Loading teachers…</p>
+              <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
+              <p className="text-sm text-muted-foreground">
+                Loading teachers...
+              </p>
             </div>
           ) : isError ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <p className="text-sm text-red-300/80">Error loading teachers.</p>
+              <AlertCircle className="h-8 w-8 text-red-400/60" />
+              <p className="text-sm text-red-300/80">
+                There was a problem loading teachers.
+              </p>
             </div>
           ) : teachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <Users className="h-12 w-12 text-muted-foreground/40" />
               <p className="text-sm font-medium text-muted-foreground">
                 No teachers found
               </p>
               <p className="text-xs text-muted-foreground/80">
-                Try adjusting your search or filters.
+                {search
+                  ? "Try adjusting your search or filters"
+                  : "Get started by adding your first teacher"}
               </p>
             </div>
-          ) : viewMode === "cards" ? (
-            <TeachersCardGrid
-              teachers={teachers}
-              selectedIds={selectedIds}
-              onToggleSelect={toggleSelect}
-            />
           ) : (
-            <TeachersTable
-              teachers={teachers}
-              selectedIds={selectedIds}
-              onToggleSelect={toggleSelect}
-            />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <div className="text-muted-foreground">
+                  Showing{" "}
+                  <span className="font-semibold text-foreground">
+                    {teachers.length} teacher{teachers.length === 1 ? "" : "s"}
+                  </span>{" "}
+                  on page{" "}
+                  <span className="font-semibold text-foreground">
+                    {pagination.page}
+                  </span>{" "}
+                  of {pagination.totalPages}
+                </div>
+                <div className="hidden items-center gap-2 text-xs text-muted-foreground/80 md:flex">
+                  <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
+                    View:{" "}
+                    <span className="font-medium">
+                      {viewMode === "cards" ? "Cards" : "Table"}
+                    </span>
+                  </span>
+                  <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
+                    Tab: <span className="font-medium">{tab}</span>
+                  </span>
+                </div>
+              </div>
+              {viewMode === "cards" ? (
+                <TeachersCardGrid
+                  teachers={teachers}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                />
+              ) : (
+                <TeachersTable
+                  teachers={teachers}
+                  selectedIds={selectedIds}
+                  onToggleSelect={toggleSelect}
+                />
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Pagination */}
-      <TeachersPagination
-        page={pagination.page}
-        totalPages={pagination.totalPages}
-        onPageChange={(p) => {
-          setPage(p);
-          clearSelection();
-        }}
-      />
+      {!isLoading &&
+        !isError &&
+        pagination.total > 0 &&
+        pagination.totalPages > 0 && (
+          <TeachersPagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={(p) => {
+              setPage(p);
+              clearSelection();
+            }}
+          />
+        )}
 
       {/* Bulk actions */}
       {selectedIds.length > 0 ? (
@@ -217,6 +322,54 @@ export default function TeachersPage() {
           onClear={clearSelection}
         />
       ) : null}
+
+      {/* Create Teacher */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <CreateTeacherModal
+            onClose={() => {
+              setCreateOpen(false);
+              clearSelection();
+            }}
+            onSubmit={async (payload) => {
+              await createTeacher.mutateAsync(payload);
+            }}
+            isLoading={createTeacher.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Filters */}
+      <TeachersAdvancedFiltersDialog
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        value={filters}
+        onChange={(next) => {
+          setFilters(next);
+          setPage(1);
+          clearSelection();
+        }}
+        onClear={() => {
+          setFilters({ subjectId: "", classGroupId: "", department: "" });
+          setPage(1);
+          clearSelection();
+        }}
+      />
+
+      {/* Command Palette */}
+      <TeachersCommandPalette
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+        onFocusSearch={() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+            searchInputRef.current.select?.();
+          }
+        }}
+        onGoToTab={handleTabChange}
+        onCreateTeacher={() => setCreateOpen(true)}
+        onImportTeachers={() => alert("CSV import coming next")}
+      />
     </div>
   );
 }

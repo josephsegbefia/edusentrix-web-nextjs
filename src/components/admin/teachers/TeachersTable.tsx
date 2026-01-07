@@ -5,10 +5,10 @@ import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import type { TeacherListItem } from "@/types/admin/teacher";
+import type { TeacherListItemDTO } from "@/types/admin/teacher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-function statusClass(status: TeacherListItem["status"]) {
+function statusClass(status: TeacherListItemDTO["status"]) {
   switch (status) {
     case "active":
       return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
@@ -28,7 +28,7 @@ export function TeachersTable({
   selectedIds,
   onToggleSelect,
 }: {
-  teachers: TeacherListItem[];
+  teachers: TeacherListItemDTO[];
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
 }) {

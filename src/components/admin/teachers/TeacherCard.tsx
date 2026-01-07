@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { MoreVertical, Home } from "lucide-react";
-import type { TeacherListItem } from "@/types/admin/teacher";
+import type { TeacherListItemDTO } from "@/types/admin/teacher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-function statusTone(status: TeacherListItem["status"]) {
+function statusTone(status: TeacherListItemDTO["status"]) {
   switch (status) {
     case "active":
       return {
@@ -37,7 +37,7 @@ export function TeacherCard({
   selected,
   onToggleSelect,
 }: {
-  teacher: TeacherListItem;
+  teacher: TeacherListItemDTO;
   selected: boolean;
   onToggleSelect: (id: string) => void;
 }) {

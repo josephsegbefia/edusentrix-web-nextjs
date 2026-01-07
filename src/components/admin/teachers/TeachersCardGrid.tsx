@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import type { TeacherListItem } from "@/types/admin/teacher";
+import type { TeacherListItemDTO } from "@/types/admin/teacher";
 import { TeacherCard } from "./TeacherCard";
 
 export function TeachersCardGrid({
@@ -10,7 +10,7 @@ export function TeachersCardGrid({
   selectedIds,
   onToggleSelect,
 }: {
-  teachers: TeacherListItem[];
+  teachers: TeacherListItemDTO[];
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
 }) {

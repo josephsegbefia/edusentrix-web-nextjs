@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { TEACHER_TABS, type TeachersTabId } from "@/constants/teachers";
+import { TEACHERS_TABS, type TeachersTabId } from "@/constants/teachers";
 
 export function TeachersTabsNav({
   value,
@@ -14,7 +14,7 @@ export function TeachersTabsNav({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {TEACHER_TABS.map((t) => {
+      {TEACHERS_TABS.map((t) => {
         const active = t.id === value;
         return (
           <button

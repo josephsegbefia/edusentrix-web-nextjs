@@ -1,47 +1,89 @@
 // src/models/Teacher.ts
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, type InferSchemaType } from "mongoose";
 
-export interface ITeacher {
-  _id: Types.ObjectId;
-  userId: Types.ObjectId;
-  schoolId: Types.ObjectId;
-  subjectIds: Types.ObjectId[];
-  homeroomClassGroupId?: Types.ObjectId | null;
-  status: "active" | "inactive";
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const teacherSchema = new Schema<ITeacher>(
+const QualificationSchema = new Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+    type: {
+      type: String,
+      enum: ["degree", "diploma", "certificate", "other"],
       required: true,
-      index: true,
     },
+    name: { type: String, required: true, trim: true },
+    institution: { type: String, required: true, trim: true },
+    year: { type: Number, required: true, min: 1900, max: 2100 },
+    documentUrl: { type: String, required: false, trim: true },
+  },
+  { _id: false }
+);
+
+const EmergencyContactSchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    relationship: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
+    email: { type: String, required: false, trim: true },
+  },
+  { _id: false }
+);
+
+const TeacherSchema = new Schema(
+  {
     schoolId: {
       type: Schema.Types.ObjectId,
       ref: "School",
       required: true,
       index: true,
     },
-    subjectIds: [{ type: Schema.Types.ObjectId, ref: "Subject", default: [] }],
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    subjectIds: [{ type: Schema.Types.ObjectId, ref: "Subject", index: true }],
     homeroomClassGroupId: {
       type: Schema.Types.ObjectId,
       ref: "ClassGroup",
       default: null,
+      index: true,
     },
-    status: { type: String, enum: ["active", "inactive"], default: "active" },
+    status: {
+      type: String,
+      enum: ["active", "inactive", "on_leave", "terminated"],
+      default: "active",
+      index: true,
+    },
+    // Professional details
+    employeeId: { type: String, trim: true },
+    hireDate: { type: Date },
+    terminationDate: { type: Date },
+    department: { type: String, trim: true },
+    qualifications: { type: [QualificationSchema], default: [] },
+
+    // Capacity details
+    maxClasses: { type: Number, min: 0 },
+    maxStudents: { type: Number, min: 0 },
+
+    // Emergency / Internal contacts
+    emergencyContact: { type: EmergencyContactSchema, default: null },
+    notes: { type: String, trim: true },
+    tags: { type: [String], default: [], index: true },
   },
   { timestamps: true }
 );
 
-// One teacher per user per school
-teacherSchema.index({ schoolId: 1, userId: 1 }, { unique: true });
+// One teacher per user school
+TeacherSchema.index({ userId: 1, schoolId: 1 }, { unique: true });
 
+// employeeId unique per school (optional)
+TeacherSchema.index(
+  { schoolId: 1, employeeId: 1 },
+  { unique: true, sparse: true }
+);
+
+type ITeacher = InferSchemaType<typeof TeacherSchema>;
 // Guardrail: homeroom class group (when set) must belong to the same school
-teacherSchema.pre("save", async function (next) {
+TeacherSchema.pre("save", async function (next) {
   try {
     if (!this.homeroomClassGroupId) return next();
     const { ClassGroup } = await import("./ClassGroup");
@@ -62,4 +104,4 @@ teacherSchema.pre("save", async function (next) {
 });
 
 export const Teacher =
-  models.Teacher || model<ITeacher>("Teacher", teacherSchema);
+  models.Teacher || model<ITeacher>("Teacher", TeacherSchema);

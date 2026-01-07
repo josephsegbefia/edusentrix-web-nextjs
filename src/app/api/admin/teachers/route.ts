@@ -10,7 +10,16 @@ import { Subject } from "@/models/Subject";
 import { escapeRegex, parsePositiveInt } from "@/lib/utils";
 import mongoose from "mongoose";
 
-function startOfDayISO(d: Date) {
+function toObjectIdOrNull(id: string | null): mongoose.Types.ObjectId | null {
+  if (!id) return null;
+  try {
+    return new mongoose.Types.ObjectId(String(id));
+  } catch {
+    return null;
+  }
+}
+
+function startOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x;
@@ -20,10 +29,7 @@ export async function GET(req: NextRequest) {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
 
-  console.log("Registered models:", Object.keys(mongoose.models));
-
   try {
-    // Ensure schoolId is properly converted to ObjectId
     const schoolIdObj =
       schoolId instanceof mongoose.Types.ObjectId
         ? schoolId
@@ -36,109 +42,150 @@ export async function GET(req: NextRequest) {
       parsePositiveInt(searchParams.get("limit"), 25),
       100
     );
-    const search = searchParams.get("search")?.trim() || "";
+
+    // support both ?search= and legacy ?q=
+    const search = (
+      searchParams.get("search") ||
+      searchParams.get("q") ||
+      ""
+    ).trim();
+
     const tab = (searchParams.get("tab") || "all").trim();
+    const status = (searchParams.get("status") || "").trim(); // optional override
     const sortBy = (searchParams.get("sortBy") || "name").trim();
     const sortOrder =
       (searchParams.get("sortOrder") || "asc").trim() === "desc"
         ? "desc"
         : "asc";
-    const subjectId = searchParams.get("subjectId")?.trim() || "";
 
-    const query: Record<string, any> = { schoolId: schoolIdObj };
+    const subjectId = (searchParams.get("subjectId") || "").trim();
+    const classGroupId = (searchParams.get("classGroupId") || "").trim(); // homeroom filter
+    const department = (searchParams.get("department") || "").trim();
 
-    // Tabs -> filter status / homeroom
-    if (tab === "active") query.status = "active";
-    if (tab === "inactive") query.status = "inactive";
-    if (tab === "homeroom") query.homeroomClassGroupId = { $ne: null };
+    const subjectObjId = toObjectIdOrNull(subjectId);
+    const classGroupObjId = toObjectIdOrNull(classGroupId);
 
-    // Subject filter (simple: Teacher.subjectIds array)
-    if (subjectId) query.subjectIds = subjectId;
+    const match: Record<string, any> = { schoolId: schoolIdObj };
 
-    // Search (teacher name/email lives on User -> resolve userIds first)
-    if (search) {
-      const regex = new RegExp(escapeRegex(search), "i");
-      const users = await User.find({
-        schoolId: schoolIdObj,
-        $or: [{ firstName: regex }, { lastName: regex }, { email: regex }],
-      })
-        .select("_id")
-        .lean();
+    // Tabs
+    if (tab === "active") match.status = "active";
+    if (tab === "inactive") match.status = "inactive";
+    if (tab === "on_leave") match.status = "on_leave";
+    if (tab === "terminated") match.status = "terminated";
+    if (tab === "homeroom") match.homeroomClassGroupId = { $ne: null };
 
-      const userIds = users.map((u: any) => u._id);
-      if (userIds.length === 0) {
-        return Response.json({
-          success: true,
-          data: [],
-          pagination: { page, limit, total: 0, totalPages: 0 },
-        });
-      }
-      query.userId = { $in: userIds };
+    // Explicit status overrides tab
+    if (["active", "inactive", "on_leave", "terminated"].includes(status)) {
+      match.status = status;
     }
 
-    const sort: Record<string, 1 | -1> = {};
-    const dir: 1 | -1 = sortOrder === "desc" ? -1 : 1;
+    if (subjectObjId) match.subjectIds = subjectObjId;
+    if (classGroupObjId) match.homeroomClassGroupId = classGroupObjId;
 
-    if (sortBy === "createdAt") sort.createdAt = dir;
-    else if (sortBy === "status") sort.status = dir;
-    else {
-      // name sort: we sort in memory after populate user (safe for <=100/page)
-      sort.createdAt = -1;
+    if (department) {
+      match.department = new RegExp(escapeRegex(department), "i");
     }
+
+    const dir = sortOrder === "desc" ? -1 : 1;
+
+    const usersCollection = User.collection.name;
+    const subjectsCollection = Subject.collection.name;
+    const classGroupsCollection = ClassGroup.collection.name;
 
     const skip = (page - 1) * limit;
 
-    const [itemsRaw, total] = await Promise.all([
-      Teacher.find(query)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .populate("userId", "firstName lastName email phone photoUrl")
-        .populate({
-          path: "subjectIds",
-          select: "name",
-          model: Subject, // ensure Subject model is registered (tree-shake safe)
-        })
-        .populate({
-          path: "homeroomClassGroupId",
-          select: "name",
-          model: ClassGroup, // ensure ClassGroup model is registered (tree-shake safe)
-        })
-        .lean(),
-      Teacher.countDocuments(query),
-    ]);
+    const searchRegex = search ? new RegExp(escapeRegex(search), "i") : null;
 
-    // In-memory sort by name (because user is populated)
-    const items = Array.isArray(itemsRaw) ? itemsRaw : [];
-    if (sortBy === "name") {
-      items.sort((a: any, b: any) => {
-        const aL = (a?.userId?.lastName || "").toString().toLowerCase();
-        const bL = (b?.userId?.lastName || "").toString().toLowerCase();
-        const aF = (a?.userId?.firstName || "").toString().toLowerCase();
-        const bF = (b?.userId?.firstName || "").toString().toLowerCase();
-        const cmp = aL.localeCompare(bL) || aF.localeCompare(bF);
-        return sortOrder === "desc" ? -cmp : cmp;
-      });
-    }
+    const sortStage: Record<string, 1 | -1> =
+      sortBy === "createdAt"
+        ? { createdAt: dir, _id: 1 }
+        : sortBy === "status"
+        ? { status: dir, "user.lastName": 1, "user.firstName": 1, _id: 1 }
+        : sortBy === "hireDate"
+        ? { hireDate: dir, "user.lastName": 1, "user.firstName": 1, _id: 1 }
+        : { "user.lastName": dir, "user.firstName": dir, _id: 1 }; // name
 
-    const now = new Date();
-    const today = startOfDayISO(now);
+    const pipeline: any[] = [
+      { $match: match },
+
+      // join user
+      {
+        $lookup: {
+          from: usersCollection,
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+
+      // search across user + employeeId
+      ...(searchRegex
+        ? [
+            {
+              $match: {
+                $or: [
+                  { "user.firstName": searchRegex },
+                  { "user.lastName": searchRegex },
+                  { "user.email": searchRegex },
+                  { "user.phone": searchRegex },
+                  { employeeId: searchRegex },
+                ],
+              },
+            },
+          ]
+        : []),
+
+      // subjects + homeroom lookups
+      {
+        $lookup: {
+          from: subjectsCollection,
+          localField: "subjectIds",
+          foreignField: "_id",
+          as: "subjects",
+        },
+      },
+      {
+        $lookup: {
+          from: classGroupsCollection,
+          localField: "homeroomClassGroupId",
+          foreignField: "_id",
+          as: "homeroomArr",
+        },
+      },
+      { $addFields: { homeroom: { $first: "$homeroomArr" } } },
+
+      // paginate + total
+      {
+        $facet: {
+          items: [{ $sort: sortStage }, { $skip: skip }, { $limit: limit }],
+          total: [{ $count: "count" }],
+        },
+      },
+    ];
+
+    const agg = await Teacher.aggregate(pipeline);
+
+    const items = agg?.[0]?.items ?? [];
+    const total = agg?.[0]?.total?.[0]?.count ?? 0;
+
+    const today = startOfDay(new Date());
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const data = items.map((t: any) => {
-      const u = t.userId || {};
+      const u = t.user || {};
       const createdAt = t.createdAt ? new Date(t.createdAt) : new Date();
 
       return {
         id: String(t._id),
         userId: String(u._id || t.userId),
 
-        firstName: (u.firstName || "").toString(),
-        lastName: (u.lastName || "").toString(),
-        fullName: `${(u.firstName || "").toString()} ${(
+        firstName: String(u.firstName || ""),
+        lastName: String(u.lastName || ""),
+        fullName: `${String(u.firstName || "")} ${String(
           u.lastName || ""
-        ).toString()}`.trim(),
+        )}`.trim(),
 
         email: u.email ? String(u.email) : null,
         phone: u.phone ? String(u.phone) : null,
@@ -146,15 +193,21 @@ export async function GET(req: NextRequest) {
 
         status: (t.status || "active") as any,
 
-        subjects: (t.subjectIds || []).slice(0, 6).map((s: any) => ({
-          id: String(s._id),
-          name: String(s.name),
-        })),
-        homeroom: t.homeroomClassGroupId
-          ? {
-              id: String(t.homeroomClassGroupId._id),
-              name: String(t.homeroomClassGroupId.name),
-            }
+        employeeId: t.employeeId ? String(t.employeeId) : null,
+        department: t.department ? String(t.department) : null,
+        hireDate: t.hireDate ? new Date(t.hireDate).toISOString() : null,
+        terminationDate: t.terminationDate
+          ? new Date(t.terminationDate).toISOString()
+          : null,
+
+        subjects: Array.isArray(t.subjects)
+          ? t.subjects
+              .slice(0, 6)
+              .map((s: any) => ({ id: String(s._id), name: String(s.name) }))
+          : [],
+
+        homeroom: t.homeroom
+          ? { id: String(t.homeroom._id), name: String(t.homeroom.name) }
           : null,
 
         createdAt: createdAt.toISOString(),
@@ -169,7 +222,7 @@ export async function GET(req: NextRequest) {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
       },
     });
   } catch (error) {

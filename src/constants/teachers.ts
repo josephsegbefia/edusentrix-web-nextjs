@@ -1,49 +1,42 @@
-export type TeachersTabId = "all" | "active" | "inactive" | "homeroom";
-
-export const TEACHER_TABS: {
-  id: TeachersTabId;
-  label: string;
-  description: string;
-}[] = [
-  { id: "all", label: "All", description: "Full directory of teachers" },
-  { id: "active", label: "Active", description: "Currently active staff" },
-  {
-    id: "inactive",
-    label: "Inactive",
-    description: "Not currently active teachers",
-  },
-  {
-    id: "homeroom",
-    label: "Homeroom",
-    description: "Teachers assigned to homeroom classes",
-  },
-];
-
-export type TeachersViewMode = "table" | "cards";
-export type TeachersSortBy =
-  | "name"
-  | "email"
-  | "createdAt"
-  | "status"
-  | "homeroom";
-export type TeachersSortOrder = "asc" | "desc";
+// src/constants/teachers.ts
+import type { ReadonlyURLSearchParams } from "next/navigation";
 
 export const DEFAULT_TEACHERS_PAGE_SIZE = 25;
-export const TEACHERS_PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
 
-export function getInitialTeacherTab(searchParams: {
-  get(k: string): string | null;
-}): TeachersTabId {
-  const t = searchParams.get("tab");
-  if (t === "active" || t === "inactive" || t === "homeroom" || t === "all")
-    return t;
-  return "all";
+export const TEACHERS_TABS = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "inactive", label: "Inactive" },
+  { id: "on_leave", label: "On Leave" },
+  { id: "terminated", label: "Terminated" },
+  { id: "homeroom", label: "Homeroom" },
+] as const;
+
+export type TeachersTabId = (typeof TEACHERS_TABS)[number]["id"];
+
+export const TEACHERS_VIEW_MODES = ["table", "cards"] as const;
+export type TeachersViewMode = (typeof TEACHERS_VIEW_MODES)[number];
+
+export const TEACHERS_SORT_BY = [
+  "name",
+  "createdAt",
+  "status",
+  "hireDate",
+] as const;
+export type TeachersSortBy = (typeof TEACHERS_SORT_BY)[number];
+
+export type TeachersSortOrder = "asc" | "desc";
+
+export function getInitialTeacherTab(
+  sp: ReadonlyURLSearchParams
+): TeachersTabId {
+  const raw = (sp.get("tab") || "all").trim() as TeachersTabId;
+  return TEACHERS_TABS.some((t) => t.id === raw) ? raw : "all";
 }
 
-export function getInitialTeacherView(searchParams: {
-  get(k: string): string | null;
-}): TeachersViewMode {
-  const v = searchParams.get("view");
-  if (v === "cards" || v === "table") return v;
-  return "table";
+export function getInitialTeacherView(
+  sp: ReadonlyURLSearchParams
+): TeachersViewMode {
+  const raw = (sp.get("view") || "table").trim() as TeachersViewMode;
+  return TEACHERS_VIEW_MODES.includes(raw) ? raw : "table";
 }

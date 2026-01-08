@@ -80,9 +80,10 @@ Each grade can have:
 4. Click **"Edit"** to modify:
    - Class name
    - Subject assignments
-   - Homeroom teacher
    - Capacity
    - Status (Active/Inactive)
+
+**Note**: Homeroom teacher assignment is managed through the Teachers page. See [Managing Teachers](../teachers/managing-teachers.md) for details.
 
 ## Subject Assignment
 
@@ -101,17 +102,43 @@ After creation, you can:
 
 ### Assigning a Homeroom Teacher
 
-1. Navigate to the class group
-2. Click **"Assign Homeroom Teacher"**
-3. Select a teacher from the dropdown
-4. Save changes
+Homeroom teachers are assigned through the **Teachers** management page:
+
+**Option 1: When Creating a Teacher**
+1. Navigate to **Teachers** → Click **"Add Teacher"**
+2. Fill in teacher information
+3. In the **Homeroom Assignment** section, select the class group
+4. Save the teacher
+
+**Option 2: From Teacher Detail Page**
+1. Navigate to **Teachers** (`/admin/teachers`)
+2. Click on the teacher you want to assign
+3. Go to the **Overview** tab
+4. Click **"Edit"** (coming soon) or use the assignment management features
+5. Assign or change homeroom class
+
+**Option 3: Using Assignments Tab**
+1. Navigate to teacher's detail page
+2. Go to the **Assignments** tab
+3. Create a new assignment or manage existing ones
+4. Assign homeroom through the assignment system
 
 ### Homeroom Teacher Role
 
-- Manages the class
-- Monitors attendance
-- Communicates with parents
-- Generates class reports
+- **One per Class**: Only one teacher can be the homeroom teacher for each class group
+- **Class Management**: Manages the class and monitors student progress
+- **Attendance**: Monitors and records student attendance
+- **Parent Communication**: Primary point of contact for parents of students in the class
+- **Class Reports**: Generates class reports and updates
+- **Student Support**: Provides pastoral care and support to students
+
+### Viewing Homeroom Teachers
+
+- **From Teachers Page**: Filter by "Homeroom" tab to see all homeroom teachers
+- **From Class Groups**: View which teacher is assigned as homeroom (coming soon)
+- **From Teacher Cards**: Homeroom badge appears on teacher cards showing the class name
+
+For more details, see [Managing Teachers](../teachers/managing-teachers.md) and [Teacher Assignments](../teachers/teacher-assignments.md).
 
 ## Class Capacity
 

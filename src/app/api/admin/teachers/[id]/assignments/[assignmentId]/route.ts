@@ -15,14 +15,15 @@ function toObjectIdOrNull(id: string) {
 
 export async function DELETE(
   _req: NextRequest,
-  ctx: { params: { id: string; assignmentId: string } }
+  ctx: { params: Promise<{ id: string; assignmentId: string }> }
 ) {
   const { schoolId } = await requireSchoolAdmin();
   await connectToDatabase();
 
+  const { id, assignmentId } = await ctx.params;
   const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
-  const teacherObjId = toObjectIdOrNull(String(ctx.params.id));
-  const assignmentObjId = toObjectIdOrNull(String(ctx.params.assignmentId));
+  const teacherObjId = toObjectIdOrNull(String(id));
+  const assignmentObjId = toObjectIdOrNull(String(assignmentId));
 
   if (!teacherObjId || !assignmentObjId) {
     return Response.json({ error: "Invalid id" }, { status: 400 });

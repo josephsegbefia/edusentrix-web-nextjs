@@ -4,6 +4,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
@@ -1387,7 +1388,7 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Activity Feed + Admin Assistant + Suggestions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ActivityFeed limit={8} />
+        <ActivityFeed limit={5} />
 
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
@@ -1476,9 +1477,83 @@ export default function SchoolAdminOverviewPage() {
         </Card>
       </div>
 
-      {/* Recent Activity + Notices */}
+      {/* Quick Actions + Notices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ActivityFeed limit={8} />
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                <PlusCircle className="h-4 w-4 text-emerald-300" />
+              </div>
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setCreateStudentOpen(true)}
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
+              >
+                <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
+                  <GraduationCap className="h-4 w-4 text-blue-300" />
+                </div>
+                <span className="text-xs font-medium text-white/90">
+                  Add Student
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateTeacherOpen(true)}
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
+              >
+                <div className="p-2 rounded-lg bg-purple-500/20 border border-purple-500/30">
+                  <Users className="h-4 w-4 text-purple-300" />
+                </div>
+                <span className="text-xs font-medium text-white/90">
+                  Add Teacher
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateClassGroupsOpen(true)}
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
+              >
+                <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                  <School className="h-4 w-4 text-emerald-300" />
+                </div>
+                <span className="text-xs font-medium text-white/90">
+                  Create Class
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/admin/fees/invoices/create")}
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
+              >
+                <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                  <DollarSign className="h-4 w-4 text-amber-300" />
+                </div>
+                <span className="text-xs font-medium text-white/90">
+                  Create Invoice
+                </span>
+              </button>
+            </div>
+            <div className="pt-2 border-t border-white/10">
+              <Link
+                href="/admin/students"
+                className="flex items-center justify-between text-sm text-white/70 hover:text-white/90 transition-colors"
+              >
+                <span>View all students</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div

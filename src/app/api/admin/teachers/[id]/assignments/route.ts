@@ -121,7 +121,10 @@ export async function GET(
   return Response.json({ success: true, data });
 }
 
-export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
+export async function POST(
+  req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
   const auth = await requireSchoolAdmin();
   const schoolId = auth.schoolId;
   const userId = (auth as any).userId || null;
@@ -129,8 +132,9 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
   await connectToDatabase();
 
   try {
+    const { id } = await ctx.params;
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
-    const teacherObjId = toObjectIdOrThrow(String(ctx.params.id), "teacherId");
+    const teacherObjId = toObjectIdOrThrow(String(id), "teacherId");
 
     const body = await req.json();
 

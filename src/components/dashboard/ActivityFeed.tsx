@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useActivity } from "@/hooks/admin/useActivity";
 import {
   Users,
@@ -14,9 +15,11 @@ import {
   Settings,
   Clock,
   GraduationCap,
+  ArrowRight,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { motion } from "framer-motion";
+import { ActivityViewAllModal } from "./ActivityViewAllModal";
 
 function getActivityIcon(type: string) {
   if (type.includes("student")) return GraduationCap;
@@ -40,7 +43,8 @@ function getActivityColor(type: string) {
   return "text-white/60";
 }
 
-export function ActivityFeed({ limit = 10 }: { limit?: number }) {
+export function ActivityFeed({ limit = 5 }: { limit?: number }) {
+  const [viewAllOpen, setViewAllOpen] = React.useState(false);
   const { data: activityData, isLoading } = useActivity({ limit });
 
   const activities = activityData?.data || [];
@@ -73,13 +77,25 @@ export function ActivityFeed({ limit = 10 }: { limit?: number }) {
         className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
         aria-hidden="true"
       />
-      <CardHeader className="relative z-10">
+      <CardHeader className="relative z-10 flex items-center justify-between">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
             <Clock className="h-4 w-4 text-indigo-300" />
           </div>
           Recent Activity
         </CardTitle>
+        {activities.length > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewAllOpen(true)}
+            className="text-xs text-brand hover:text-brand/80 h-auto py-1 px-2"
+          >
+            View All
+            <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="relative z-10">
         {activities.length === 0 ? (
@@ -131,6 +147,7 @@ export function ActivityFeed({ limit = 10 }: { limit?: number }) {
           </div>
         )}
       </CardContent>
+      <ActivityViewAllModal open={viewAllOpen} onOpenChange={setViewAllOpen} />
     </Card>
   );
 }

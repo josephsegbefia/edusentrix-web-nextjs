@@ -30,10 +30,13 @@ export async function DELETE(
     }
 
     // Find the activity and verify it belongs to the school
-    const activity = await Activity.findOne({
+    const activityRaw = await Activity.findOne({
       _id: activityId,
       schoolId: schoolIdObj,
     }).lean();
+
+    // Normalize lean result
+    const activity = Array.isArray(activityRaw) ? activityRaw[0] : activityRaw;
 
     if (!activity) {
       return Response.json(
@@ -45,7 +48,7 @@ export async function DELETE(
     // Check if activity is older than a month
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    const activityDate = new Date(activity.createdAt);
+    const activityDate = new Date((activity as any).createdAt);
 
     if (activityDate >= oneMonthAgo) {
       return Response.json(

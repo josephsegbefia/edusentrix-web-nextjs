@@ -39,6 +39,10 @@ import { useRouter } from "next/navigation";
 import type { CreateInvoiceInput } from "@/schemas/invoice";
 import { premiumMenuContent, premiumMenuItem } from "@/components/ui/premium";
 import { cn } from "@/lib/utils";
+import {
+  PeriodBlockedAlert,
+  useOperationBlocked,
+} from "@/components/dashboard/PeriodBlockedAlert";
 
 function InvoiceStatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -128,6 +132,10 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  // Check if invoice creation is blocked due to period status
+  const { isBlocked: isInvoiceCreationBlocked, message: blockedMessage } =
+    useOperationBlocked("invoices");
 
   const { data, isLoading, error } = useInvoices({
     status: statusFilter === "all" ? undefined : statusFilter,
@@ -321,13 +329,27 @@ export default function InvoicesPage() {
           </div>
         </div>
         <Button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-brand hover:bg-brand/90"
+          onClick={() => {
+            if (isInvoiceCreationBlocked) {
+              busy.error(
+                blockedMessage || "Cannot create invoices without an active academic period"
+              );
+              return;
+            }
+            setShowCreateModal(true);
+          }}
+          className={cn(
+            "bg-brand hover:bg-brand/90",
+            isInvoiceCreationBlocked && "opacity-50 cursor-not-allowed"
+          )}
         >
           <PlusCircle className="h-4 w-4 mr-2" />
           Create Invoice
         </Button>
       </div>
+
+      {/* Period Warning Alert */}
+      <PeriodBlockedAlert operation="invoices" />
 
       {/* Filters */}
       <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">

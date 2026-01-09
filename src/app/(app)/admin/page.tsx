@@ -49,6 +49,9 @@ import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
 import { ShimmerHighlight } from "@/components/onboarding/ShimmerHighlight";
 import { OnboardingProgressIndicator } from "@/components/onboarding/OnboardingProgressIndicator";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { PeriodWarningBanner } from "@/components/dashboard/PeriodWarningBanner";
+import { PeriodExpiryModal } from "@/components/dashboard/PeriodExpiryModal";
+import { usePeriodStatus } from "@/hooks/admin/usePeriodStatus";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -569,11 +572,31 @@ export default function SchoolAdminOverviewPage() {
 
   /* Academic period modal state */
   const [showCreatePeriod, setShowCreatePeriod] = useState(false);
+  const [showPeriodExpiryModal, setShowPeriodExpiryModal] = useState(false);
   const [yearLabelInput, setYearLabelInput] = useState("");
   const [termInput, setTermInput] = useState("");
   const [startDateInput, setStartDateInput] = useState("");
   const [endDateInput, setEndDateInput] = useState("");
   const [creatingPeriod, setCreatingPeriod] = useState(false);
+
+  /* Period status for warnings */
+  const { data: periodStatus } = usePeriodStatus();
+
+  /* Auto-show period expiry modal for critical statuses */
+  React.useEffect(() => {
+    if (
+      periodStatus &&
+      (periodStatus.status === "no_period" ||
+        periodStatus.status === "expired" ||
+        periodStatus.status === "expiring_critical")
+    ) {
+      // Small delay to let the page load first
+      const timer = setTimeout(() => {
+        setShowPeriodExpiryModal(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [periodStatus?.status]);
 
   /* Student create busy state */
   const [creatingStudent, setCreatingStudent] = useState(false);
@@ -806,6 +829,11 @@ export default function SchoolAdminOverviewPage() {
           <ReconPill count={reconUnmatched} />
         </div>
       </div>
+
+      {/* Period Warning Banner */}
+      <PeriodWarningBanner
+        onCreatePeriod={() => setShowCreatePeriod(true)}
+      />
 
       {/* Onboarding Progress Indicator */}
       {!onboarding.isLoading && onboarding.step !== "complete" && (
@@ -1496,7 +1524,7 @@ export default function SchoolAdminOverviewPage() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setCreateStudentOpen(true)}
+                onClick={() => setShowCreateStudent(true)}
                 className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
               >
                 <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
@@ -1508,7 +1536,7 @@ export default function SchoolAdminOverviewPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setCreateTeacherOpen(true)}
+                onClick={() => setShowCreateTeacher(true)}
                 className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
               >
                 <div className="p-2 rounded-lg bg-purple-500/20 border border-purple-500/30">
@@ -1520,7 +1548,7 @@ export default function SchoolAdminOverviewPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setCreateClassGroupsOpen(true)}
+                onClick={() => setShowCreateClass(true)}
                 className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
               >
                 <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
@@ -1530,9 +1558,8 @@ export default function SchoolAdminOverviewPage() {
                   Create Class
                 </span>
               </button>
-              <button
-                type="button"
-                onClick={() => router.push("/admin/fees/invoices/create")}
+              <Link
+                href="/admin/fees/invoices"
                 className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
               >
                 <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
@@ -1541,7 +1568,7 @@ export default function SchoolAdminOverviewPage() {
                 <span className="text-xs font-medium text-white/90">
                   Create Invoice
                 </span>
-              </button>
+              </Link>
             </div>
             <div className="pt-2 border-t border-white/10">
               <Link
@@ -1785,6 +1812,16 @@ export default function SchoolAdminOverviewPage() {
           isLoading={creatingTeacher}
         />
       </ResponsiveModal>
+
+      {/* Period Expiry Modal (auto-shows for critical statuses) */}
+      <PeriodExpiryModal
+        open={showPeriodExpiryModal}
+        onOpenChange={setShowPeriodExpiryModal}
+        onCreatePeriod={() => {
+          setShowPeriodExpiryModal(false);
+          setShowCreatePeriod(true);
+        }}
+      />
     </div>
   );
 }

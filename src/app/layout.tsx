@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { AppProviders } from "@/providers/app-providers";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NetworkHealthWatcher } from "@/components/system/NetworkHealthWatcher";
+import { NetworkAccessibilityAnnouncer } from "@/components/system/NetworkAccessibilityAnnouncer";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
       <html lang="en" className={inter.variable}>
         <body>
           <NetworkHealthWatcher />
+          <NetworkAccessibilityAnnouncer />
           <ToastProvider />
           <AppProviders>{children}</AppProviders>
         </body>

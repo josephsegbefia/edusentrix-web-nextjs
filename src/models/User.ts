@@ -18,6 +18,8 @@ export interface IUser {
   pendingOnboarding?: boolean;
   dateOfBirth?: Date;
   address?: string;
+  /** Demo tenant ID - only set for demo environment data */
+  demoTenantId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,6 +57,8 @@ const userSchema = new Schema<IUser>(
     pendingOnboarding: { type: Boolean, default: false },
     dateOfBirth: Date,
     address: String,
+    // Demo tenant ID for demo environment isolation
+    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

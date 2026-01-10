@@ -29,6 +29,8 @@ export interface ISchool {
       lastError?: string | null;
     };
   };
+  /** Demo tenant ID - only set for demo environment data */
+  demoTenantId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +71,8 @@ const schoolSchema = new Schema<ISchool>(
         lastError: { type: String, default: null },
       },
     },
+    // Demo tenant ID for demo environment isolation
+    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

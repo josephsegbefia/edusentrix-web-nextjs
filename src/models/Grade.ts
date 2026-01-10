@@ -9,6 +9,8 @@ export interface IGrade {
   stage?: "Basic" | "Secondary" | "Other";
   order?: number; // sort order within the school
   isActive: boolean;
+  /** Demo tenant ID - only set for demo environment data */
+  demoTenantId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +32,8 @@ const gradeSchema = new Schema<IGrade>(
     },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    // Demo tenant ID for demo environment isolation
+    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

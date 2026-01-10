@@ -34,6 +34,8 @@ export interface IActivity {
   entityId?: Types.ObjectId; // ID of the affected entity
   description: string; // Human-readable description
   metadata?: Record<string, unknown>; // Additional context
+  /** Demo tenant ID - only set for demo environment data */
+  demoTenantId?: string | null;
   createdAt: Date;
 }
 
@@ -72,6 +74,8 @@ const activitySchema = new Schema<IActivity>(
       type: Schema.Types.Mixed,
       default: {},
     },
+    // Demo tenant ID for demo environment isolation
+    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

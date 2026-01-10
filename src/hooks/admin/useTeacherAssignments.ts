@@ -5,7 +5,12 @@ export type TeacherAssignmentDTO = {
   id: string;
   academicPeriodId: string;
   subject: { id: string; name: string } | null;
-  classGroup: { id: string; name: string } | null;
+  classGroup: {
+    id: string;
+    name: string;
+    gradeName?: string | null;
+    label?: string | null;
+  } | null;
   schedule: {
     dayOfWeek: number | null;
     startTime: string | null;
@@ -24,6 +29,27 @@ export type TeacherAssignmentDTO = {
 export type TeacherAssignmentsResponse = {
   success: true;
   data: TeacherAssignmentDTO[];
+};
+
+export type CreateTeacherAssignmentInput = {
+  academicPeriodId: string;
+  subjectId: string;
+  classGroupId: string;
+  status?: "active" | "inactive";
+  workloadHours?: number;
+  notes?: string;
+  schedule?: {
+    dayOfWeek?: number;
+    startTime?: string;
+    endTime?: string;
+    location?: string;
+  };
+};
+
+export type CreateTeacherAssignmentResponse = {
+  success: true;
+  data: { id: string };
+  warnings?: string[];
 };
 
 export function useTeacherAssignments(
@@ -57,44 +83,40 @@ export function useTeacherAssignments(
   });
 }
 
-export type CreateTeacherAssignmentInput = {
-  academicPeriodId: string;
-  subjectId: string;
-  classGroupId: string;
-  status?: "active" | "inactive";
-  workloadHours?: number;
-  notes?: string;
-  schedule?: {
-    dayOfWeek?: number;
-    startTime?: string;
-    endTime?: string;
-    location?: string;
-  };
-};
-
 export function useCreateTeacherAssignment(teacherId: string) {
   const qc = useQueryClient();
+
   return useMutation({
-    mutationFn: async (payload: CreateTeacherAssignmentInput) => {
+    mutationFn: async (
+      payload: CreateTeacherAssignmentInput
+    ): Promise<CreateTeacherAssignmentResponse> => {
       const res = await fetch(`/api/admin/teachers/${teacherId}/assignments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const json = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(json?.error || "Failed to create assignment");
-      return json as {
-        success: true;
-        data: { id: string };
-        warnings?: string[];
-      };
+
+      if (!res.ok) {
+        // preserve structured details for UI (conflicts, etc.)
+        const err = Object.assign(
+          new Error(json?.error || "Failed to create assignment"),
+          {
+            status: res.status,
+            meta: json,
+          }
+        );
+        throw err;
+      }
+
+      return json as CreateTeacherAssignmentResponse;
     },
     onSuccess: () => {
       qc.invalidateQueries({
         queryKey: ["teachers", "assignments", teacherId],
       });
-      qc.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] }); // subjects list may change
+      qc.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] }); // subjects may get auto-added
     },
   });
 }

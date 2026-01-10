@@ -25,6 +25,9 @@ export interface IStudent {
   status: "active" | "inactive" | "withdrawn";
   enrolledAt?: Date | null;
 
+  /** Demo tenant ID - only set for demo environment data */
+  demoTenantId?: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +76,8 @@ const studentSchema = new Schema<IStudent>(
       default: "active",
     },
     enrolledAt: { type: Date, default: null },
+    // Demo tenant ID for demo environment isolation
+    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

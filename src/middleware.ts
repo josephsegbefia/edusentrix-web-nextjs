@@ -13,6 +13,10 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/banks/search",
+  // Demo routes (no Clerk auth required)
+  "/demo",
+  "/demo/(.*)",
+  "/api/demo/(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
@@ -37,6 +41,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       "/auth/callback",
       "/favicon.ico",
       "/api/banks/search",
+      "/demo",
+      "/api/demo",
     ].some((p) => pathname === p || pathname.startsWith(p));
 
   if (!userId) {

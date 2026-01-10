@@ -242,10 +242,12 @@ export async function POST(
         status: "active",
         "schedule.dayOfWeek": schedule.dayOfWeek,
       })
+        .populate({ path: "subjectId", select: "name", model: Subject })
+        .populate({ path: "classGroupId", select: "name", model: ClassGroup })
         .select("schedule subjectId classGroupId")
         .lean();
 
-      const conflict = (existing || []).some((x: any) => {
+      const conflict = (existing || []).find((x: any) => {
         if (!x.schedule?.startTime || !x.schedule?.endTime) return false;
         return overlaps(
           schedule.startTime,
@@ -260,6 +262,27 @@ export async function POST(
           {
             error:
               "Schedule conflict: teacher already has an overlapping assignment for that day/time.",
+            conflict: {
+              id: String((conflict as any)._id),
+              subject: (conflict as any).subjectId
+                ? {
+                    id: String((conflict as any).subjectId._id),
+                    name: String((conflict as any).subjectId.name),
+                  }
+                : null,
+              classGroup: (conflict as any).classGroupId
+                ? {
+                    id: String((conflict as any).classGroupId._id),
+                    name: String((conflict as any).classGroupId.name),
+                  }
+                : null,
+              schedule: {
+                dayOfWeek: (conflict as any).schedule?.dayOfWeek ?? null,
+                startTime: (conflict as any).schedule?.startTime ?? null,
+                endTime: (conflict as any).schedule?.endTime ?? null,
+                location: (conflict as any).schedule?.location ?? null,
+              },
+            },
           },
           { status: 409 }
         );

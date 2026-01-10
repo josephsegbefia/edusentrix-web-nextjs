@@ -12,8 +12,6 @@ export interface IFeeStructure {
   defaultAmountMinor?: number | null; // Optional default amount in minor units (pesewas)
   allowsInstallments: boolean; // Whether this fee type allows installments
   maxInstallments?: number | null; // Max number of installments allowed
-  /** Demo tenant ID - only set for demo environment data */
-  demoTenantId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,8 +36,6 @@ const feeStructureSchema = new Schema<IFeeStructure>(
     defaultAmountMinor: { type: Number, default: null },
     allowsInstallments: { type: Boolean, default: false },
     maxInstallments: { type: Number, default: null },
-    // Demo tenant ID for demo environment isolation
-    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

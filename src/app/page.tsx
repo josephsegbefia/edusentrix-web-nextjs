@@ -98,10 +98,10 @@ function SiteNav() {
             Sign in
           </Link>
           <Link
-            href="/demo"
+            href="/enroll"
             className="px-4 py-2 rounded-md text-sm font-medium bg-brand text-black hover:opacity-90"
           >
-            Get a live demo
+            Enrol your school
           </Link>
         </div>
       </div>
@@ -142,10 +142,10 @@ function HeroSection() {
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <Link
-                href="/demo"
+                href="/enroll"
                 className="px-5 py-3 rounded-md font-medium bg-brand text-black text-sm hover:opacity-90"
               >
-                Get a live demo
+                Enrol your school
               </Link>
               <a
                 href="#how"
@@ -424,10 +424,10 @@ function PricingTeaser() {
             <li>MoMo + Paystack</li>
           </ul>
           <Link
-            href="/demo"
+            href="/enroll"
             className="mt-5 inline-block rounded-md bg-brand text-black px-4 py-2 text-sm font-medium hover:opacity-90"
           >
-            Request pricing
+            Enrol your school
           </Link>
         </div>
         <div className="rounded-xl border border-white/10 bg-card p-6 ring-1 ring-primary/30">
@@ -439,10 +439,10 @@ function PricingTeaser() {
             <li>Priority Support</li>
           </ul>
           <Link
-            href="/demo"
+            href="/enroll"
             className="mt-5 inline-block rounded-md bg-primary/20 text-primary px-4 py-2 text-sm font-medium hover:bg-primary/25"
           >
-            Talk to sales
+            Contact us
           </Link>
         </div>
       </div>
@@ -471,7 +471,7 @@ function FAQ() {
     },
     {
       q: "Is there a free trial?",
-      a: "We provide a live demo environment and can enable trial access upon request.",
+      a: "Contact us for more information about trial access and pricing options.",
     },
   ];
   return (
@@ -516,15 +516,15 @@ function FinalCTA() {
             Ready to modernize your school?
           </h3>
           <p className="mt-2 text-sm text-muted">
-            Book a 15-minute live demo. See fees, notices, timetables, and
+            Get started today. See fees, notices, timetables, and
             parent experience in action.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/demo"
+              href="/enroll"
               className="px-5 py-3 rounded-md font-medium bg-brand text-black text-sm hover:opacity-90"
             >
-              Get a live demo
+              Enrol your school
             </Link>
             <Link
               href="/login"

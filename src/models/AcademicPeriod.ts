@@ -8,8 +8,6 @@ export interface IAcademicPeriod {
   startDate: Date;
   endDate: Date;
   isCurrent: boolean;
-  /** Demo tenant ID - only set for demo environment data */
-  demoTenantId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,8 +25,6 @@ const academicPeriodSchema = new Schema<IAcademicPeriod>(
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     isCurrent: { type: Boolean, default: false },
-    // Demo tenant ID for demo environment isolation
-    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

@@ -51,9 +51,6 @@ export interface IPayment {
   reviewedAt?: Date | null;
   reviewNotes?: string | null;
 
-  /** Demo tenant ID - only set for demo environment data */
-  demoTenantId?: string | null;
-
   createdAt: Date;
   updatedAt: Date;
 }
@@ -143,8 +140,6 @@ const paymentSchema = new Schema<IPayment>(
     reviewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     reviewedAt: { type: Date, default: null },
     reviewNotes: { type: String, default: null, trim: true },
-    // Demo tenant ID for demo environment isolation
-    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

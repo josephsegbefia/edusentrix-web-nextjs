@@ -28,9 +28,6 @@ export interface IInvoice {
   notes?: string | null; // Internal notes
   terms?: string | null; // Payment terms
 
-  /** Demo tenant ID - only set for demo environment data */
-  demoTenantId?: string | null;
-
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,8 +71,6 @@ const invoiceSchema = new Schema<IInvoice>(
     paidDate: { type: Date, default: null },
     notes: { type: String, default: null, trim: true },
     terms: { type: String, default: null, trim: true },
-    // Demo tenant ID for demo environment isolation
-    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

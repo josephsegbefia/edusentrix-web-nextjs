@@ -68,8 +68,6 @@ const TeacherSchema = new Schema(
     emergencyContact: { type: EmergencyContactSchema, default: null },
     notes: { type: String, trim: true },
     tags: { type: [String], default: [], index: true },
-    // Demo tenant ID for demo environment isolation
-    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

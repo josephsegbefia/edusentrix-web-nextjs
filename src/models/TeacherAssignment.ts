@@ -26,8 +26,6 @@ export interface ITeacherAssignment {
   assignedBy?: Types.ObjectId | null; // keep optional (depends on requireSchoolAdmin return)
   assignedAt: Date;
 
-  /** Demo tenant ID - only set for demo environment data */
-  demoTenantId?: string | null;
 
   createdAt: Date;
   updatedAt: Date;
@@ -89,8 +87,6 @@ const TeacherAssignmentSchema = new Schema<ITeacherAssignment>(
     notes: { type: String, trim: true },
     assignedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     assignedAt: { type: Date, default: Date.now },
-    // Demo tenant ID for demo environment isolation
-    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

@@ -12,8 +12,6 @@ export interface IClassGroup {
   homeroomTeacherId?: Types.ObjectId | null;
   capacity?: number | null;
   isActive: boolean;
-  /** Demo tenant ID - only set for demo environment data */
-  demoTenantId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,8 +40,6 @@ const classGroupSchema = new Schema<IClassGroup>(
     },
     capacity: { type: Number, default: null },
     isActive: { type: Boolean, default: true },
-    // Demo tenant ID for demo environment isolation
-    demoTenantId: { type: String, default: null, index: true, sparse: true },
   },
   { timestamps: true }
 );

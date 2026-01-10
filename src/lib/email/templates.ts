@@ -9,11 +9,7 @@ export type TemplateKey =
   | "USER_INVITE"
   | "APPLICATION_RECEIVED"
   | "REMINDER"
-  | "PASSWORD_OTP"
-  | "DEMO_MAGIC_LINK"
-  | "DEMO_SALES_NOTIFICATION"
-  | "DEMO_HIGH_INTENT_ALERT"
-  | "DEMO_SESSION_ENDED";
+  | "PASSWORD_OTP";
 
 export type TemplatePayload = {
   SCHOOL_INVITE: { schoolName: string; setupLink: string };
@@ -41,36 +37,6 @@ export type TemplatePayload = {
   };
   PASSWORD_OTP: {
     code: string;
-  };
-  DEMO_MAGIC_LINK: {
-    name: string;
-    magicLink: string;
-    expiresInMinutes: number;
-  };
-  DEMO_SALES_NOTIFICATION: {
-    leadName: string;
-    leadEmail: string;
-    organization: string;
-    role: string;
-    schoolSize?: string;
-    country?: string;
-    timestamp: string;
-  };
-  DEMO_HIGH_INTENT_ALERT: {
-    leadName: string;
-    leadEmail: string;
-    organization: string;
-    signals: string[];
-    timeInDemo: string;
-    featuresViewed: string[];
-  };
-  DEMO_SESSION_ENDED: {
-    leadName: string;
-    leadEmail: string;
-    organization: string;
-    duration: string;
-    pagesVisited: string[];
-    actionsAttempted: string[];
   };
 };
 
@@ -271,151 +237,6 @@ export const EmailTemplates: {
     `;
     return {
       subject: `Your Edusentrix Password Reset Code`,
-      htmlContent,
-      textContent: stripHtml(htmlContent),
-    };
-  },
-
-  // Demo Templates
-  DEMO_MAGIC_LINK: (data) => {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
-        <h2 style="color: #4361ee;">Your EduSentrix Demo Awaits! 🎓</h2>
-        <p>Hello ${data.name},</p>
-        <p>Thank you for your interest in EduSentrix! Click the button below to access your personalized demo:</p>
-        <a href="${data.magicLink}"
-           style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #4361ee 0%, #3730a3 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; font-size: 16px;">
-          🚀 Access My Demo
-        </a>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0; color: #4361ee;">What you'll experience:</h3>
-          <ul style="color: #495057;">
-            <li>Complete school management dashboard</li>
-            <li>Student & teacher management</li>
-            <li>Class scheduling & assignments</li>
-            <li>Fee management & invoicing</li>
-            <li>Reports & analytics</li>
-          </ul>
-        </div>
-        <p style="color: #6c757d; font-size: 0.9em;">⏰ This link expires in ${data.expiresInMinutes} minutes.</p>
-        <p style="color: #6c757d; font-size: 0.9em;">Your demo session will last up to 2 hours.</p>
-        <hr style="border: none; border-top: 1px solid #dee2e6; margin: 30px 0;">
-        <p style="font-size: 0.8em; color: #6c757d;">
-          Questions? Reply to this email or contact us at <a href="mailto:sales@edusentrix.com">sales@edusentrix.com</a>
-        </p>
-        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
-      </div>
-    `;
-    return {
-      subject: `🎓 Your EduSentrix Demo Access Link`,
-      htmlContent,
-      textContent: stripHtml(htmlContent),
-    };
-  },
-
-  DEMO_SALES_NOTIFICATION: (data) => {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #4361ee 0%, #3730a3 100%); padding: 20px; border-radius: 8px 8px 0 0;">
-          <h2 style="color: white; margin: 0;">🎓 New Demo Signup!</h2>
-        </div>
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 8px 0; color: #6c757d;">Name:</td>
-              <td style="padding: 8px 0; font-weight: bold;">${data.leadName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6c757d;">Email:</td>
-              <td style="padding: 8px 0;"><a href="mailto:${data.leadEmail}">${data.leadEmail}</a></td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6c757d;">Organization:</td>
-              <td style="padding: 8px 0; font-weight: bold;">${data.organization}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6c757d;">Role:</td>
-              <td style="padding: 8px 0;">${data.role}</td>
-            </tr>
-            ${data.schoolSize ? `<tr><td style="padding: 8px 0; color: #6c757d;">School Size:</td><td style="padding: 8px 0;">${data.schoolSize}</td></tr>` : ""}
-            ${data.country ? `<tr><td style="padding: 8px 0; color: #6c757d;">Country:</td><td style="padding: 8px 0;">${data.country}</td></tr>` : ""}
-            <tr>
-              <td style="padding: 8px 0; color: #6c757d;">Time:</td>
-              <td style="padding: 8px 0;">${data.timestamp}</td>
-            </tr>
-          </table>
-        </div>
-        <p style="font-size: 0.8em; color: #6c757d; margin-top: 20px;">© ${new Date().getFullYear()} Edusentrix Sales Notification</p>
-      </div>
-    `;
-    return {
-      subject: `🎓 New Demo: ${data.leadName} from ${data.organization}`,
-      htmlContent,
-      textContent: stripHtml(htmlContent),
-    };
-  },
-
-  DEMO_HIGH_INTENT_ALERT: (data) => {
-    const signalsList = data.signals.map((s) => `<li>✅ ${s}</li>`).join("");
-    const featuresList = data.featuresViewed.slice(0, 10).map((f) => `<li>${f}</li>`).join("");
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 20px; border-radius: 8px 8px 0 0;">
-          <h2 style="color: white; margin: 0;">🔥 HIGH INTENT LEAD!</h2>
-        </div>
-        <div style="background: #fffbeb; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #f59e0b;">
-          <p style="font-size: 18px; margin-top: 0;"><strong>${data.leadName}</strong> from <strong>${data.organization}</strong></p>
-          <p>📧 <a href="mailto:${data.leadEmail}">${data.leadEmail}</a></p>
-          <p>⏱️ Time in demo: <strong>${data.timeInDemo}</strong></p>
-
-          <h3 style="color: #d97706;">Intent Signals:</h3>
-          <ul style="list-style: none; padding: 0;">${signalsList}</ul>
-
-          <h3 style="color: #4361ee;">Features Explored:</h3>
-          <ul>${featuresList}</ul>
-
-          <a href="mailto:${data.leadEmail}?subject=EduSentrix%20Demo%20Follow-up"
-             style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0;">
-            📞 Contact Now
-          </a>
-        </div>
-        <p style="font-size: 0.8em; color: #6c757d; margin-top: 20px;">© ${new Date().getFullYear()} Edusentrix Sales Alert</p>
-      </div>
-    `;
-    return {
-      subject: `🔥 HIGH INTENT: ${data.leadName} from ${data.organization}`,
-      htmlContent,
-      textContent: stripHtml(htmlContent),
-    };
-  },
-
-  DEMO_SESSION_ENDED: (data) => {
-    const pagesList = data.pagesVisited.slice(0, 15).map((p) => `<li>${p}</li>`).join("");
-    const actionsList = data.actionsAttempted.slice(0, 10).map((a) => `<li>${a}</li>`).join("");
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 20px; border-radius: 8px 8px 0 0;">
-          <h2 style="color: white; margin: 0;">📊 Demo Session Summary</h2>
-        </div>
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px;">
-          <p><strong>${data.leadName}</strong> from <strong>${data.organization}</strong></p>
-          <p>📧 <a href="mailto:${data.leadEmail}">${data.leadEmail}</a></p>
-          <p>⏱️ Session duration: <strong>${data.duration}</strong></p>
-
-          ${pagesList ? `<h3 style="color: #4361ee;">Pages Visited:</h3><ul>${pagesList}</ul>` : ""}
-          ${actionsList ? `<h3 style="color: #4361ee;">Actions Attempted:</h3><ul>${actionsList}</ul>` : ""}
-
-          <a href="mailto:${data.leadEmail}?subject=Thanks%20for%20trying%20EduSentrix"
-             style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0;">
-            ✉️ Send Follow-up
-          </a>
-        </div>
-        <p style="font-size: 0.8em; color: #6c757d; margin-top: 20px;">© ${new Date().getFullYear()} Edusentrix Sales</p>
-      </div>
-    `;
-    return {
-      subject: `📊 Demo Ended: ${data.leadName} (${data.duration})`,
       htmlContent,
       textContent: stripHtml(htmlContent),
     };

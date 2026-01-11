@@ -1,38 +1,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// src/app/api/admin/subjects/search/route.ts
 import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
+import mongoose from "mongoose";
 import { Subject } from "@/models/Subject";
+import { escapeRegex, parsePositiveInt } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
-  try {
-    const { schoolId } = await requireSchoolAdmin();
-    await connectToDatabase();
+  const { schoolId } = await requireSchoolAdmin();
+  await connectToDatabase();
 
-    const { searchParams } = new URL(req.url);
-    const q = (searchParams.get("q") || "").trim();
-    const limit = Math.min(Number(searchParams.get("limit") || 12), 50);
+  const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+  const { searchParams } = new URL(req.url);
 
-    const filter: any = { schoolId, isActive: true };
-    if (q) {
-      filter.name = {
-        $regex: q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-        $options: "i",
-      };
-    }
+  const q = (searchParams.get("q") || "").trim();
+  const limit = Math.min(parsePositiveInt(searchParams.get("limit"), 10), 25);
 
-    const items = await Subject.find(filter)
-      .select("_id name")
-      .sort({ name: 1 })
-      .limit(limit)
-      .lean();
+  const query: any = { schoolId: schoolIdObj };
+  if (q) query.name = new RegExp(escapeRegex(q), "i");
 
-    return Response.json({ success: true, data: items });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Failed to search subjects";
-    return new Response(JSON.stringify({ success: false, error: msg }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  const items = await Subject.find(query)
+    .select("_id name")
+    .limit(limit)
+    .lean();
+
+  return Response.json({
+    success: true,
+    data: (items || []).map((s: any) => ({
+      id: String(s._id),
+      name: String(s.name),
+    })),
+  });
 }

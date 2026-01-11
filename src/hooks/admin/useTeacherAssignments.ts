@@ -143,3 +143,69 @@ export function useDeactivateTeacherAssignment(teacherId: string) {
     },
   });
 }
+
+export type UpdateTeacherAssignmentInput = {
+  subjectId?: string;
+  classGroupId?: string;
+  academicPeriodId?: string;
+  status?: "active" | "inactive";
+  schedules?: Array<{
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    location?: string;
+  }> | null;
+  workloadHours?: number;
+  notes?: string | null;
+};
+
+export type UpdateTeacherAssignmentResponse = {
+  success: true;
+  data: { id: string };
+  warnings?: string[];
+};
+
+export function useUpdateTeacherAssignment(teacherId: string) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      assignmentId,
+      payload,
+    }: {
+      assignmentId: string;
+      payload: UpdateTeacherAssignmentInput;
+    }): Promise<UpdateTeacherAssignmentResponse> => {
+      const res = await fetch(
+        `/api/admin/teachers/${teacherId}/assignments/${assignmentId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // preserve structured details for UI (conflicts, etc.)
+        const err = Object.assign(
+          new Error(json?.error || "Failed to update assignment"),
+          {
+            status: res.status,
+            meta: json,
+          }
+        );
+        throw err;
+      }
+
+      return json as UpdateTeacherAssignmentResponse;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ["teachers", "assignments", teacherId],
+      });
+      qc.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] });
+    },
+  });
+}

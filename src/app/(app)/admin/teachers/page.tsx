@@ -30,9 +30,11 @@ import { TeachersBulkActionsBar } from "@/components/admin/teachers/TeachersBulk
 import { TeachersCommandPalette } from "@/components/admin/teachers/TeachersCommandPalette";
 
 import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
+import EditTeacherModal from "@/components/modals/EditTeacherModal";
 import { TeachersAdvancedFiltersDialog } from "@/components/admin/teachers/TeachersAdvancedFiltersDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useCreateTeacher } from "@/hooks/admin/useTeachers";
+import { useCreateTeacher, useUpdateTeacher, useTeacher, useActivateTeacher, useDeactivateTeacher, useDeleteTeacher } from "@/hooks/admin/useTeachers";
+import { useBusyToast } from "@/hooks/useBusyToast";
 
 function isTypingTarget(el: EventTarget | null) {
   if (!el || !(el as HTMLElement).tagName) return false;
@@ -78,10 +80,74 @@ export default function TeachersPage() {
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [editTeacherId, setEditTeacherId] = React.useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
 
   const createTeacher = useCreateTeacher();
+  const updateTeacher = useUpdateTeacher();
+  const activateTeacher = useActivateTeacher();
+  const deactivateTeacher = useDeactivateTeacher();
+  const deleteTeacher = useDeleteTeacher();
+  const busy = useBusyToast();
+
+  const isChangingStatus = activateTeacher.isPending || deactivateTeacher.isPending || deleteTeacher.isPending;
+
+  const handleActivateTeacher = async (teacherId: string) => {
+    const teacher = teachers.find(t => t.id === teacherId);
+    try {
+      await busy.promise(
+        activateTeacher.mutateAsync(teacherId),
+        {
+          loading: "Activating teacher...",
+          success: `${teacher?.fullName || "Teacher"} activated successfully`,
+          error: (e: Error) => e.message || "Failed to activate teacher",
+        }
+      );
+    } catch {
+      // Error already handled by busy.promise
+    }
+  };
+
+  const handleDeactivateTeacher = async (teacherId: string) => {
+    const teacher = teachers.find(t => t.id === teacherId);
+    if (!confirm(`Are you sure you want to deactivate ${teacher?.fullName || "this teacher"}?`)) return;
+    try {
+      await busy.promise(
+        deactivateTeacher.mutateAsync(teacherId),
+        {
+          loading: "Deactivating teacher...",
+          success: `${teacher?.fullName || "Teacher"} deactivated successfully`,
+          error: (e: Error) => e.message || "Failed to deactivate teacher",
+        }
+      );
+    } catch {
+      // Error already handled by busy.promise
+    }
+  };
+
+  const handleDeleteTeacher = async (teacherId: string) => {
+    const teacher = teachers.find(t => t.id === teacherId);
+    if (!confirm(`Are you sure you want to terminate ${teacher?.fullName || "this teacher"}?\n\nThis will:\n• Set their status to "Terminated"\n• Deactivate all their active assignments\n• Remove them as homeroom teacher (if applicable)\n\nThis action cannot be undone.`)) return;
+    try {
+      await busy.promise(
+        deleteTeacher.mutateAsync(teacherId),
+        {
+          loading: "Terminating teacher...",
+          success: `${teacher?.fullName || "Teacher"} terminated successfully`,
+          error: (e: Error) => e.message || "Failed to terminate teacher",
+        }
+      );
+    } catch {
+      // Error already handled by busy.promise
+    }
+  };
+
+  // Fetch teacher detail when editing
+  const { data: editTeacherData, isLoading: editTeacherLoading } = useTeacher(
+    editTeacherId ?? ""
+  );
+  const editTeacher = editTeacherData?.data;
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -289,8 +355,7 @@ export default function TeachersPage() {
                     router.push(`/admin/teachers/${id}`);
                   }}
                   onEdit={(id) => {
-                    // TODO: open edit teacher modal
-                    console.log("Edit teacher", id);
+                    setEditTeacherId(id);
                   }}
                   onManageAccess={(id) => {
                     // TODO: open manage access modal
@@ -343,8 +408,7 @@ export default function TeachersPage() {
                     router.push(`/admin/teachers/${id}`);
                   }}
                   onEdit={(id) => {
-                    // TODO: open edit teacher modal
-                    console.log("Edit teacher", id);
+                    setEditTeacherId(id);
                   }}
                   onManageAccess={(id) => {
                     // TODO: open manage access modal
@@ -354,6 +418,10 @@ export default function TeachersPage() {
                     // TODO: open send message dialog
                     console.log("Send message to", id);
                   }}
+                  onActivate={handleActivateTeacher}
+                  onDeactivate={handleDeactivateTeacher}
+                  onDelete={handleDeleteTeacher}
+                  isChangingStatus={isChangingStatus}
                 />
               )}
             </div>
@@ -380,6 +448,7 @@ export default function TeachersPage() {
       {selectedIds.length > 0 ? (
         <TeachersBulkActionsBar
           count={selectedIds.length}
+          selectedIds={selectedIds}
           onClear={clearSelection}
         />
       ) : null}
@@ -397,6 +466,49 @@ export default function TeachersPage() {
             }}
             isLoading={createTeacher.isPending}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Teacher */}
+      <Dialog
+        open={!!editTeacherId}
+        onOpenChange={(open) => {
+          if (!open) setEditTeacherId(null);
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {editTeacherLoading ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
+              <p className="text-sm text-muted-foreground">Loading teacher...</p>
+            </div>
+          ) : editTeacher ? (
+            <EditTeacherModal
+              teacher={editTeacher}
+              onClose={() => {
+                setEditTeacherId(null);
+              }}
+              onSubmit={async (payload) => {
+                await busy.promise(
+                  updateTeacher.mutateAsync({
+                    teacherId: editTeacherId!,
+                    payload,
+                  }),
+                  {
+                    loading: "Updating teacher...",
+                    success: "Teacher updated successfully",
+                    error: "Failed to update teacher",
+                  }
+                );
+              }}
+              isLoading={updateTeacher.isPending}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <AlertCircle className="h-8 w-8 text-red-400/60" />
+              <p className="text-sm text-red-300/80">Teacher not found</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

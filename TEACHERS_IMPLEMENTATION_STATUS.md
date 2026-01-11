@@ -3,6 +3,14 @@
 This document tracks what has been implemented and what remains to be done for the Teachers Management System, based on the `TEACHERS_PAGE_STRATEGY.md` and `TEACHERS_PAGE_CONTEXT.md` documents.
 
 **Last Updated**: December 2024
+**Last Reviewed**: December 2024 (Comprehensive review against `TEACHERS_PAGE_STRATEGY.md`)
+
+**Key Findings from Review**:
+- Edit Teacher functionality is non-functional: `TeacherRowActions` has "Edit details" button but clicking it does nothing. Requires: `PATCH /api/admin/teachers/:id` API, `EditTeacherModal` component, and `useUpdateTeacher` hook.
+- Assignment editing is missing: Can create and delete assignments but cannot edit existing ones. Requires: `PATCH /api/admin/teachers/assignments/:id` API, `EditAssignmentModal` component, and `useUpdateAssignment` hook.
+- 5 of 7 detail page tabs are placeholders (Performance, Attendance, Documents, Notes, Activity) - need full backend and frontend implementation.
+- Bulk operations UI exists (`TeachersBulkActionsBar`) but backend endpoints are missing.
+- Overall completion percentage adjusted from ~75% to ~55% after thorough review.
 
 ---
 
@@ -205,14 +213,23 @@ This document tracks what has been implemented and what remains to be done for t
 
 ## ❌ NOT STARTED / TODO
 
-### 1. Backend APIs - Missing Endpoints
+**Summary of Missing Items** (as of review against `TEACHERS_PAGE_STRATEGY.md`):
+- **Backend APIs**: 33 endpoints missing (out of 40+ required)
+- **Frontend Components**: 8 modals missing (including critical `EditTeacherModal`)
+- **React Query Hooks**: 20+ hooks missing (including critical `useUpdateTeacher`)
+- **Detail Page Tabs**: 5 of 7 tabs are placeholders (Performance, Attendance, Documents, Notes, Activity)
+- **Features**: Edit teacher, Edit assignment, Performance tracking, Attendance management, Document management, Notes system, Bulk operations, Export, CSV import, Workload visualization
 
-#### Teacher Management
-- ❌ `PATCH /api/admin/teachers/:id` - Update teacher
-- ❌ `DELETE /api/admin/teachers/:id` - Delete teacher (soft delete)
+---
+
+### 1. Backend APIs - Missing Endpoints (CRITICAL: 33 endpoints missing)
+
+#### Teacher Management (5 endpoints)
+- ❌ **CRITICAL** `PATCH /api/admin/teachers/:id` - Update teacher (Edit button exists but no API)
+- ❌ `DELETE /api/admin/teachers/:id` - Delete teacher (soft delete - set status to terminated)
 - ❌ `POST /api/admin/teachers/:id/activate` - Activate teacher
 - ❌ `POST /api/admin/teachers/:id/deactivate` - Deactivate teacher
-- ❌ `POST /api/admin/teachers/:id/reassign-homeroom` - Reassign homeroom
+- ❌ `POST /api/admin/teachers/:id/reassign-homeroom` - Reassign homeroom class
 
 #### Subject Assignments
 - ❌ `GET /api/admin/teachers/:id/subjects` - Get teacher's subjects (separate endpoint)
@@ -220,11 +237,11 @@ This document tracks what has been implemented and what remains to be done for t
 - ❌ `DELETE /api/admin/teachers/:id/subjects/:subjectId` - Remove subject
 - ❌ `GET /api/admin/teachers/subjects/:subjectId` - Get all teachers teaching subject
 
-#### Class Assignments
-- ❌ `PATCH /api/admin/teachers/assignments/:id` - Update assignment
-- ❌ `GET /api/admin/teachers/:id/homeroom` - Get homeroom class (separate endpoint)
-- ❌ `POST /api/admin/teachers/:id/homeroom` - Assign homeroom
-- ❌ `DELETE /api/admin/teachers/:id/homeroom` - Remove homeroom
+#### Class Assignments (4 endpoints)
+- ❌ **HIGH** `PATCH /api/admin/teachers/assignments/:id` - Update assignment (UI can create/delete but not edit)
+- ❌ `GET /api/admin/teachers/:id/homeroom` - Get homeroom class (separate endpoint - currently included in detail)
+- ❌ `POST /api/admin/teachers/:id/homeroom` - Assign homeroom class
+- ❌ `DELETE /api/admin/teachers/:id/homeroom` - Remove homeroom assignment
 
 #### Teacher Performance
 - ❌ `GET /api/admin/teachers/:id/performance` - Get performance metrics
@@ -280,30 +297,36 @@ This document tracks what has been implemented and what remains to be done for t
 - ❌ `TeacherNotesTab` - Needs backend integration
 - ❌ `TeacherActivityTab` - Needs backend integration
 
-#### Form Components
+#### Form Components (9 modals missing)
 - ✅ `CreateTeacherModal` - Complete
-- ❌ `EditTeacherModal` - Edit teacher form
-- ❌ `AssignSubjectModal` - Assign subject to teacher (can use existing assignment flow)
-- ❌ `AssignHomeroomModal` - Assign homeroom class
-- ❌ `EditAssignmentModal` - Edit assignment
-- ❌ `RecordAttendanceModal` - Record attendance
+- ❌ **CRITICAL** `EditTeacherModal` - Edit teacher form (Edit button in TeacherRowActions exists but modal missing)
+- ❌ `AssignSubjectModal` - Assign subject to teacher directly (can use existing assignment flow)
+- ❌ `AssignHomeroomModal` - Assign homeroom class modal
+- ❌ **HIGH** `EditAssignmentModal` - Edit existing assignment (can create/delete but not edit)
+- ❌ `RecordAttendanceModal` - Record teacher attendance
 - ❌ `SubmitLeaveRequestModal` - Submit leave request
-- ❌ `UploadDocumentModal` - Upload document
-- ❌ `AddNoteModal` - Add note
+- ❌ `UploadDocumentModal` - Upload document to teacher profile
+- ❌ `AddNoteModal` - Add internal note about teacher
 
-### 3. React Query Hooks - Missing
+### 3. React Query Hooks - Missing (20+ hooks missing)
 
-#### Subject Assignments
-- ❌ `useTeacherSubjects(teacherId)` - Get teacher's subjects (separate hook)
-- ❌ `useAssignSubject()` - Assign subject mutation
-- ❌ `useRemoveSubject()` - Remove subject mutation
-- ❌ `useTeachersBySubject(subjectId)` - Get teachers teaching subject
+#### Teacher Management Hooks
+- ❌ **CRITICAL** `useUpdateTeacher()` - Update teacher mutation (needed for EditTeacherModal)
+- ❌ `useDeleteTeacher()` - Delete teacher mutation (soft delete)
+- ❌ `useActivateTeacher()` - Activate teacher mutation
+- ❌ `useDeactivateTeacher()` - Deactivate teacher mutation
 
-#### Class Assignments
+#### Subject Assignments (4 hooks)
+- ❌ `useTeacherSubjects(teacherId)` - Get teacher's subjects (separate hook - currently in detail)
+- ❌ `useAssignSubject()` - Assign subject mutation (add to subjectIds array)
+- ❌ `useRemoveSubject()` - Remove subject mutation (remove from subjectIds array)
+- ❌ `useTeachersBySubject(subjectId)` - Get all teachers teaching a specific subject
+
+#### Class Assignments (4 hooks missing)
 - ✅ `useTeacherAssignments(teacherId, periodId?)` - Complete
 - ✅ `useCreateAssignment()` - Complete
 - ✅ `useDeleteAssignment()` - Complete
-- ❌ `useUpdateAssignment()` - Update assignment mutation
+- ❌ **HIGH** `useUpdateAssignment()` - Update assignment mutation (needed for EditAssignmentModal)
 - ❌ `useTeacherHomeroom(teacherId)` - Get homeroom class (separate hook)
 - ❌ `useAssignHomeroom()` - Assign homeroom mutation
 - ❌ `useRemoveHomeroom()` - Remove homeroom mutation
@@ -344,13 +367,13 @@ This document tracks what has been implemented and what remains to be done for t
 - ✅ **Advanced Filters** - Complete (subject, class group, department)
 - ✅ **Sorting** - Complete (name, hireDate, status, createdAt)
 - ✅ **Command Palette** - Complete implementation
-- ⚠️ **Bulk Actions** - UI exists, needs backend integration:
-  - Bulk assign subjects
-  - Bulk assign classes
-  - Bulk change status
-  - Bulk export
-- ❌ **Export Functionality** - CSV/Excel export (backend ready, UI needs implementation)
-- ❌ **CSV Import** - Bulk create teachers from CSV
+- ⚠️ **Bulk Actions** - UI exists (`TeachersBulkActionsBar`), needs backend integration:
+  - ❌ Bulk assign subjects
+  - ❌ Bulk assign classes
+  - ❌ Bulk change status
+  - ❌ Bulk export
+- ❌ **Export Functionality** - CSV/Excel export (backend endpoint missing, UI needs implementation)
+- ❌ **CSV Import** - Bulk create teachers from CSV (backend and UI both missing)
 
 #### Detail Page Features
 - ✅ **Complete Overview Tab** - All professional information
@@ -362,14 +385,14 @@ This document tracks what has been implemented and what remains to be done for t
 - ❌ **Activity Tab** - Needs backend integration
 
 #### Assignment Management
-- ✅ **View Assignments** - Complete
-- ✅ **Create Assignment** - Complete
-- ✅ **Delete Assignment** - Complete
-- ❌ **Edit Assignment** - Update existing assignments
-- ✅ **Conflict Detection** - Backend logic exists
-- ⚠️ **Workload Warnings** - Needs UI implementation
-- ✅ **Period-based Assignments** - Complete
-- ❌ **Assignment History** - Track assignment changes over time
+- ✅ **View Assignments** - Complete (`TeacherAssignmentsTab`)
+- ✅ **Create Assignment** - Complete (`CreateTeacherAssignmentModal`)
+- ✅ **Delete Assignment** - Complete (delete button in assignments list)
+- ❌ **HIGH** **Edit Assignment** - Update existing assignments (API and UI missing)
+- ✅ **Conflict Detection** - Backend logic exists in assignment creation
+- ⚠️ **Workload Warnings** - Backend can calculate, needs UI display in assignment modal
+- ✅ **Period-based Assignments** - Complete (academic period selection)
+- ❌ **Assignment History** - Track assignment changes over time (audit trail)
 
 #### Workload Management
 - ⚠️ **Workload Calculation** - Backend can calculate, needs UI display
@@ -414,18 +437,21 @@ This document tracks what has been implemented and what remains to be done for t
 ## 📋 PRIORITY RECOMMENDATIONS
 
 ### Phase 1: Core Functionality (High Priority) ✅ MOSTLY COMPLETE
-1. ✅ **Enhance Teacher Model** - Complete
+1. ✅ **Enhance Teacher Model** - Complete (all models exist)
 2. ✅ **Complete Teacher Detail Page** - Overview and Assignments tabs complete
 3. ✅ **Assignment Management** - View, create, delete complete
-4. ⚠️ **Edit Teacher** - Update teacher information (needs API and UI)
+4. ❌ **CRITICAL** **Edit Teacher** - Update teacher information (needs `PATCH /api/admin/teachers/:id` API, `EditTeacherModal` component, and `useUpdateTeacher` hook)
+   - Currently: `TeacherRowActions` has "Edit details" button but clicking it does nothing
+   - Required: Backend API, React hook, and modal component
 5. ✅ **Advanced Filters** - Complete
 
 ### Phase 2: Essential Features (Medium Priority)
-1. **Attendance Management** - Record attendance and manage leave
-2. **Document Management** - Upload and manage documents
-3. **Notes Management** - Internal notes system
-4. **Workload Visualization** - Calculate and display workload
-5. **Bulk Operations** - Bulk create, update, export (UI ready, needs backend)
+1. **HIGH** **Edit Assignment** - Update existing assignments (`PATCH /api/admin/teachers/assignments/:id`, `EditAssignmentModal`, `useUpdateAssignment`)
+2. **Attendance Management** - Record attendance and manage leave (all endpoints, hooks, modals, tabs)
+3. **Document Management** - Upload and manage documents (all endpoints, hooks, modals, tabs)
+4. **Notes Management** - Internal notes system (all endpoints, hooks, modals, tabs)
+5. **Workload Visualization** - Calculate and display workload in UI (data available, needs visualization)
+6. **Bulk Operations** - Bulk create, update, export (UI exists in `TeachersBulkActionsBar`, needs backend endpoints)
 
 ### Phase 3: Advanced Features (Lower Priority)
 1. **Performance Tracking** - Performance metrics and evaluations
@@ -468,14 +494,23 @@ This document tracks what has been implemented and what remains to be done for t
 
 ## 📊 COMPLETION STATUS
 
-- **Core Models**: ✅ 100%
-- **Basic APIs**: ✅ 90% (missing update/delete endpoints)
-- **List Page**: ✅ 95% (missing bulk operations backend)
-- **Detail Page**: ✅ 60% (Overview and Assignments complete, other tabs need backend)
-- **Assignment Management**: ✅ 80% (view/create/delete complete, update missing)
+- **Core Models**: ✅ 100% (6 models complete: Teacher, TeacherAssignment, TeacherPerformance, TeacherAttendance, TeacherDocument, TeacherNote)
+- **Basic APIs**: ⚠️ 45% (7 of 40+ endpoints - missing 33 endpoints including critical update/delete)
+  - ✅ List, Detail, Create, Stats, Assignments (GET/POST/DELETE)
+  - ❌ Update teacher, Delete teacher, Activate/Deactivate, Subject endpoints, Homeroom endpoints, Performance endpoints, Attendance endpoints, Documents endpoints, Notes endpoints, Bulk operations, Reports
+- **List Page**: ✅ 95% (missing bulk operations backend and export functionality)
+- **Detail Page**: ⚠️ 28% (2 of 7 tabs complete: Overview ✅, Assignments ✅, Performance ❌, Attendance ❌, Documents ❌, Notes ❌, Activity ❌)
+- **Assignment Management**: ⚠️ 60% (view/create/delete complete, update/edit missing)
+- **React Query Hooks**: ⚠️ 20% (4 of 24+ hooks - missing update, delete, subject, homeroom, performance, attendance, documents, notes hooks)
+- **Form Components**: ⚠️ 11% (1 of 9 modals - CreateTeacherModal ✅, missing 8 including critical EditTeacherModal)
 - **Documentation**: ✅ 100%
 
-**Overall Progress**: ~75% Complete
+**Overall Progress**: ~55% Complete (down from ~75% after thorough review)
+
+**Critical Missing Items:**
+1. **CRITICAL**: `PATCH /api/admin/teachers/:id` API + `EditTeacherModal` + `useUpdateTeacher` hook (Edit button exists but non-functional)
+2. **HIGH**: `PATCH /api/admin/teachers/assignments/:id` API + `EditAssignmentModal` + `useUpdateAssignment` hook (can create/delete but not edit)
+3. **MEDIUM**: All Performance, Attendance, Documents, Notes tabs (placeholders exist, need full implementation)
 
 ---
 

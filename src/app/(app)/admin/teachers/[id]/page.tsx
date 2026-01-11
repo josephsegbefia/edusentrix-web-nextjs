@@ -6,8 +6,10 @@ import { Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
-import { useTeacher } from "@/hooks/admin/useTeachers";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import { useTeacher, useUpdateTeacher, useActivateTeacher, useDeactivateTeacher, useDeleteTeacher } from "@/hooks/admin/useTeachers";
+import { useBusyToast } from "@/hooks/useBusyToast";
 import { TeacherDetailHeader } from "@/components/admin/teachers/detail/TeacherDetailHeader";
 import {
   TeacherDetailTabs,
@@ -15,6 +17,12 @@ import {
 } from "@/components/admin/teachers/detail/TeacherDetailTabs";
 import { TeacherOverviewTab } from "@/components/admin/teachers/detail/TeacherOverviewTab";
 import { TeacherAssignmentsTab } from "@/components/admin/teachers/detail/TeacherAssignmentsTab";
+import { TeacherAttendanceTab } from "@/components/admin/teachers/detail/TeacherAttendanceTab";
+import { TeacherDocumentsTab } from "@/components/admin/teachers/detail/TeacherDocumentsTab";
+import { TeacherNotesTab } from "@/components/admin/teachers/detail/TeacherNotesTab";
+import { TeacherPerformanceTab } from "@/components/admin/teachers/detail/TeacherPerformanceTab";
+import { TeacherActivityTab } from "@/components/admin/teachers/detail/TeacherActivityTab";
+import EditTeacherModal from "@/components/modals/EditTeacherModal";
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (!sp) return "overview";
   const raw = sp.get("tab");
@@ -36,14 +44,72 @@ function TeacherDetailContent() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const busy = useBusyToast();
 
   const teacherId = params?.id;
   const [activeTab, setActiveTab] = React.useState<TeacherDetailTabId>(() =>
     getInitialTab(searchParams)
   );
+  const [editOpen, setEditOpen] = React.useState(false);
 
   const { data, isLoading, isError } = useTeacher(String(teacherId));
   const teacher = data?.data;
+  const updateTeacher = useUpdateTeacher();
+  const activateTeacher = useActivateTeacher();
+  const deactivateTeacher = useDeactivateTeacher();
+  const deleteTeacher = useDeleteTeacher();
+
+  const isChangingStatus = activateTeacher.isPending || deactivateTeacher.isPending || deleteTeacher.isPending;
+
+  const handleActivate = async () => {
+    if (!teacher) return;
+    try {
+      await busy.promise(
+        activateTeacher.mutateAsync(teacher.id),
+        {
+          loading: "Activating teacher...",
+          success: "Teacher activated successfully",
+          error: (e: Error) => e.message || "Failed to activate teacher",
+        }
+      );
+    } catch {
+      // Error already handled by busy.promise
+    }
+  };
+
+  const handleDeactivate = async () => {
+    if (!teacher) return;
+    if (!confirm(`Are you sure you want to deactivate ${teacher.fullName}?`)) return;
+    try {
+      await busy.promise(
+        deactivateTeacher.mutateAsync(teacher.id),
+        {
+          loading: "Deactivating teacher...",
+          success: "Teacher deactivated successfully",
+          error: (e: Error) => e.message || "Failed to deactivate teacher",
+        }
+      );
+    } catch {
+      // Error already handled by busy.promise
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!teacher) return;
+    if (!confirm(`Are you sure you want to terminate ${teacher.fullName}?\n\nThis will:\n• Set their status to "Terminated"\n• Deactivate all their active assignments\n• Remove them as homeroom teacher (if applicable)\n\nThis action cannot be undone.`)) return;
+    try {
+      await busy.promise(
+        deleteTeacher.mutateAsync(teacher.id),
+        {
+          loading: "Terminating teacher...",
+          success: "Teacher terminated successfully",
+          error: (e: Error) => e.message || "Failed to terminate teacher",
+        }
+      );
+    } catch {
+      // Error already handled by busy.promise
+    }
+  };
 
   // Sync tab → URL
   React.useEffect(() => {
@@ -221,17 +287,36 @@ function TeacherDetailContent() {
 
       <div>
         {activeTab === "overview" ? (
-          <TeacherOverviewTab teacher={teacher} />
+          <TeacherOverviewTab
+            teacher={teacher}
+            onEdit={() => setEditOpen(true)}
+            onActivate={handleActivate}
+            onDeactivate={handleDeactivate}
+            onDelete={handleDelete}
+            isChangingStatus={isChangingStatus}
+          />
         ) : activeTab === "assignments" ? (
-          <TeacherAssignmentsTab teacherId={teacherId} />
+          <TeacherAssignmentsTab
+            teacher={{
+              id: teacher.id,
+              fullName: teacher.fullName,
+              maxClasses: teacher.maxClasses ?? null,
+            }}
+          />
+        ) : activeTab === "attendance" ? (
+          <TeacherAttendanceTab
+            teacher={{
+              id: teacher.id,
+              fullName: teacher.fullName,
+            }}
+          />
         ) : activeTab === "performance" ? (
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">
-                Performance tab coming soon
-              </p>
-            </CardContent>
-          </Card>
+          <TeacherPerformanceTab
+            teacher={{
+              id: teacher.id,
+              fullName: teacher.fullName,
+            }}
+          />
         ) : activeTab === "attendance" ? (
           <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
             <CardContent className="p-6">
@@ -241,31 +326,54 @@ function TeacherDetailContent() {
             </CardContent>
           </Card>
         ) : activeTab === "documents" ? (
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">
-                Documents tab coming soon
-              </p>
-            </CardContent>
-          </Card>
+          <TeacherDocumentsTab
+            teacher={{
+              id: teacher.id,
+              fullName: teacher.fullName,
+            }}
+          />
         ) : activeTab === "notes" ? (
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">
-                Notes tab coming soon
-              </p>
-            </CardContent>
-          </Card>
+          <TeacherNotesTab
+            teacher={{
+              id: teacher.id,
+              fullName: teacher.fullName,
+            }}
+          />
         ) : activeTab === "activity" ? (
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">
-                Activity tab coming soon
-              </p>
-            </CardContent>
-          </Card>
+          <TeacherActivityTab
+            teacher={{
+              id: teacher.id,
+              fullName: teacher.fullName,
+            }}
+          />
         ) : null}
       </div>
+
+      {/* Edit Teacher Modal */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {teacher && (
+            <EditTeacherModal
+              teacher={teacher}
+              onClose={() => setEditOpen(false)}
+              onSubmit={async (payload) => {
+                await busy.promise(
+                  updateTeacher.mutateAsync({
+                    teacherId: teacher.id,
+                    payload,
+                  }),
+                  {
+                    loading: "Updating teacher...",
+                    success: "Teacher updated successfully",
+                    error: "Failed to update teacher",
+                  }
+                );
+              }}
+              isLoading={updateTeacher.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

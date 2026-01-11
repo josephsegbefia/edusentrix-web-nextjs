@@ -26,6 +26,10 @@ type TeachersTableProps = {
   onEdit?: (id: string) => void;
   onManageAccess?: (id: string) => void;
   onSendMessage?: (id: string) => void;
+  onActivate?: (id: string) => void;
+  onDeactivate?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  isChangingStatus?: boolean;
 };
 
 type SortableHeaderProps = {
@@ -80,6 +84,10 @@ export function TeachersTable({
   onEdit,
   onManageAccess,
   onSendMessage,
+  onActivate,
+  onDeactivate,
+  onDelete,
+  isChangingStatus,
 }: TeachersTableProps) {
   const visibleIds = React.useMemo(() => teachers.map((t) => t.id), [teachers]);
 
@@ -295,10 +303,15 @@ export function TeachersTable({
                 <td className="px-3 py-2 align-middle text-right">
                   <TeacherRowActions
                     id={teacher.id}
+                    status={teacher.status}
                     onView={onView}
                     onEdit={onEdit}
                     onManageAccess={onManageAccess}
                     onSendMessage={onSendMessage}
+                    onActivate={onActivate}
+                    onDeactivate={onDeactivate}
+                    onDelete={onDelete}
+                    isChangingStatus={isChangingStatus}
                   />
                 </td>
               </tr>

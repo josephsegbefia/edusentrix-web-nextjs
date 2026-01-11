@@ -18,6 +18,12 @@ export interface ITeacherAssignment {
     endTime?: string; // "HH:MM"
     location?: string;
   };
+  schedules?: Array<{
+    dayOfWeek: number; // 0-6
+    startTime: string; // "HH:MM"
+    endTime: string; // "HH:MM"
+    location?: string;
+  }>;
 
   workloadHours?: number;
   status: AssignmentStatus;
@@ -36,6 +42,16 @@ const ScheduleSchema = new Schema(
     dayOfWeek: { type: Number, min: 0, max: 6 },
     startTime: { type: String, trim: true },
     endTime: { type: String, trim: true },
+    location: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
+const ScheduleItemSchema = new Schema(
+  {
+    dayOfWeek: { type: Number, required: true, min: 0, max: 6 },
+    startTime: { type: String, required: true, trim: true },
+    endTime: { type: String, required: true, trim: true },
     location: { type: String, trim: true },
   },
   { _id: false }
@@ -74,7 +90,8 @@ const TeacherAssignmentSchema = new Schema<ITeacherAssignment>(
       index: true,
     },
 
-    schedule: { type: ScheduleSchema, default: undefined },
+    schedule: { type: ScheduleSchema, default: undefined }, // Legacy single schedule
+    schedules: { type: [ScheduleItemSchema], default: undefined }, // New multiple schedules array
 
     workloadHours: { type: Number, default: 0 },
     status: {

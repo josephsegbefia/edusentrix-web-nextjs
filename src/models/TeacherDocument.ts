@@ -25,6 +25,9 @@ export interface ITeacherDocument {
   tags?: string[];
   notes?: string;
 
+  issueDate?: Date;
+  expiryDate?: Date;
+
   createdBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +64,9 @@ const TeacherDocumentSchema = new Schema<ITeacherDocument>(
     tags: { type: [String], default: [] },
     notes: { type: String },
 
+    issueDate: { type: Date },
+    expiryDate: { type: Date, index: true }, // Index for expiring documents query
+
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
@@ -68,6 +74,7 @@ const TeacherDocumentSchema = new Schema<ITeacherDocument>(
 
 TeacherDocumentSchema.index({ teacherId: 1, createdAt: -1 });
 TeacherDocumentSchema.index({ schoolId: 1, category: 1 });
+TeacherDocumentSchema.index({ schoolId: 1, expiryDate: 1 }); // For expiring documents query
 
 export const TeacherDocument =
   models.TeacherDocument ||

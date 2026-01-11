@@ -106,6 +106,15 @@ export async function GET(
           location: a.schedule.location || null,
         }
       : null,
+    schedules:
+      Array.isArray(a.schedules) && a.schedules.length > 0
+        ? a.schedules.map((s: any) => ({
+            dayOfWeek: typeof s.dayOfWeek === "number" ? s.dayOfWeek : null,
+            startTime: s.startTime || null,
+            endTime: s.endTime || null,
+            location: s.location || null,
+          }))
+        : null,
 
     workloadHours: typeof a.workloadHours === "number" ? a.workloadHours : 0,
     status: String(a.status || "active"),
@@ -148,30 +157,40 @@ export async function POST(
       "classGroupId"
     );
 
-    const schedule = body.schedule || null;
+    // Support both legacy single schedule and new schedules array
+    const schedules =
+      body.schedules && Array.isArray(body.schedules)
+        ? body.schedules
+        : body.schedule
+        ? [body.schedule]
+        : [];
 
-    // basic validations
-    if (
-      schedule?.dayOfWeek != null &&
-      (schedule.dayOfWeek < 0 || schedule.dayOfWeek > 6)
-    ) {
-      return Response.json({ error: "dayOfWeek must be 0-6" }, { status: 400 });
-    }
-    if (schedule?.startTime && !/^\d{2}:\d{2}$/.test(schedule.startTime)) {
-      return Response.json(
-        { error: "startTime must be HH:MM" },
-        { status: 400 }
-      );
-    }
-    if (schedule?.endTime && !/^\d{2}:\d{2}$/.test(schedule.endTime)) {
-      return Response.json({ error: "endTime must be HH:MM" }, { status: 400 });
-    }
-    if (schedule?.startTime && schedule?.endTime) {
-      const s = parseTimeToMinutes(schedule.startTime);
-      const e = parseTimeToMinutes(schedule.endTime);
-      if (s === null || e === null || s >= e) {
+    // Validate all schedules
+    for (let i = 0; i < schedules.length; i++) {
+      const s = schedules[i];
+      if (s.dayOfWeek == null || s.dayOfWeek < 0 || s.dayOfWeek > 6) {
         return Response.json(
-          { error: "schedule endTime must be after startTime" },
+          { error: `Schedule ${i + 1}: dayOfWeek must be 0-6` },
+          { status: 400 }
+        );
+      }
+      if (!s.startTime || !/^\d{2}:\d{2}$/.test(s.startTime)) {
+        return Response.json(
+          { error: `Schedule ${i + 1}: startTime must be HH:MM` },
+          { status: 400 }
+        );
+      }
+      if (!s.endTime || !/^\d{2}:\d{2}$/.test(s.endTime)) {
+        return Response.json(
+          { error: `Schedule ${i + 1}: endTime must be HH:MM` },
+          { status: 400 }
+        );
+      }
+      const startMins = parseTimeToMinutes(s.startTime);
+      const endMins = parseTimeToMinutes(s.endTime);
+      if (startMins === null || endMins === null || startMins >= endMins) {
+        return Response.json(
+          { error: `Schedule ${i + 1}: endTime must be after startTime` },
           { status: 400 }
         );
       }
@@ -229,82 +248,160 @@ export async function POST(
       warnings.push("Subject was added to teacher’s subject list.");
     }
 
-    // Schedule conflict check (only if schedule is provided)
-    if (
-      schedule?.dayOfWeek != null &&
-      schedule?.startTime &&
-      schedule?.endTime
-    ) {
+    // Schedule conflict check for all schedules
+    if (schedules.length > 0) {
+      // Get all existing assignments for this teacher and period
       const existing = await TeacherAssignment.find({
         schoolId: schoolIdObj,
         teacherId: teacherObjId,
         academicPeriodId: academicPeriodObjId,
         status: "active",
-        "schedule.dayOfWeek": schedule.dayOfWeek,
       })
         .populate({ path: "subjectId", select: "name", model: Subject })
         .populate({ path: "classGroupId", select: "name", model: ClassGroup })
-        .select("schedule subjectId classGroupId")
+        .select("schedule schedules subjectId classGroupId")
         .lean();
 
-      const conflict = (existing || []).find((x: any) => {
-        if (!x.schedule?.startTime || !x.schedule?.endTime) return false;
-        return overlaps(
-          schedule.startTime,
-          schedule.endTime,
-          x.schedule.startTime,
-          x.schedule.endTime
-        );
-      });
-
-      if (conflict) {
-        return Response.json(
-          {
-            error:
-              "Schedule conflict: teacher already has an overlapping assignment for that day/time.",
-            conflict: {
-              id: String((conflict as any)._id),
-              subject: (conflict as any).subjectId
-                ? {
-                    id: String((conflict as any).subjectId._id),
-                    name: String((conflict as any).subjectId.name),
-                  }
-                : null,
-              classGroup: (conflict as any).classGroupId
-                ? {
-                    id: String((conflict as any).classGroupId._id),
-                    name: String((conflict as any).classGroupId.name),
-                  }
-                : null,
-              schedule: {
-                dayOfWeek: (conflict as any).schedule?.dayOfWeek ?? null,
-                startTime: (conflict as any).schedule?.startTime ?? null,
-                endTime: (conflict as any).schedule?.endTime ?? null,
-                location: (conflict as any).schedule?.location ?? null,
-              },
-            },
-          },
-          { status: 409 }
-        );
+      // Check each new schedule against existing ones
+      for (const newSched of schedules) {
+        // Check against single schedule field (legacy)
+        for (const existingAssignment of existing || []) {
+          if ((existingAssignment as any).schedule) {
+            const exSched = (existingAssignment as any).schedule;
+            if (
+              exSched.dayOfWeek === newSched.dayOfWeek &&
+              exSched.startTime &&
+              exSched.endTime &&
+              overlaps(
+                newSched.startTime,
+                newSched.endTime,
+                exSched.startTime,
+                exSched.endTime
+              )
+            ) {
+              return Response.json(
+                {
+                  error:
+                    "Schedule conflict: teacher already has an overlapping assignment for that day/time.",
+                  conflict: {
+                    id: String((existingAssignment as any)._id),
+                    subject: (existingAssignment as any).subjectId
+                      ? {
+                          id: String((existingAssignment as any).subjectId._id),
+                          name: String(
+                            (existingAssignment as any).subjectId.name
+                          ),
+                        }
+                      : null,
+                    classGroup: (existingAssignment as any).classGroupId
+                      ? {
+                          id: String(
+                            (existingAssignment as any).classGroupId._id
+                          ),
+                          name: String(
+                            (existingAssignment as any).classGroupId.name
+                          ),
+                        }
+                      : null,
+                    schedule: {
+                      dayOfWeek: exSched.dayOfWeek ?? null,
+                      startTime: exSched.startTime ?? null,
+                      endTime: exSched.endTime ?? null,
+                      location: exSched.location ?? null,
+                    },
+                  },
+                },
+                { status: 409 }
+              );
+            }
+          }
+          // Check against schedules array (new)
+          if (Array.isArray((existingAssignment as any).schedules)) {
+            for (const exSched of (existingAssignment as any).schedules) {
+              if (
+                exSched.dayOfWeek === newSched.dayOfWeek &&
+                exSched.startTime &&
+                exSched.endTime &&
+                overlaps(
+                  newSched.startTime,
+                  newSched.endTime,
+                  exSched.startTime,
+                  exSched.endTime
+                )
+              ) {
+                return Response.json(
+                  {
+                    error:
+                      "Schedule conflict: teacher already has an overlapping assignment for that day/time.",
+                    conflict: {
+                      id: String((existingAssignment as any)._id),
+                      subject: (existingAssignment as any).subjectId
+                        ? {
+                            id: String(
+                              (existingAssignment as any).subjectId._id
+                            ),
+                            name: String(
+                              (existingAssignment as any).subjectId.name
+                            ),
+                          }
+                        : null,
+                      classGroup: (existingAssignment as any).classGroupId
+                        ? {
+                            id: String(
+                              (existingAssignment as any).classGroupId._id
+                            ),
+                            name: String(
+                              (existingAssignment as any).classGroupId.name
+                            ),
+                          }
+                        : null,
+                      schedule: {
+                        dayOfWeek: exSched.dayOfWeek ?? null,
+                        startTime: exSched.startTime ?? null,
+                        endTime: exSched.endTime ?? null,
+                        location: exSched.location ?? null,
+                      },
+                    },
+                  },
+                  { status: 409 }
+                );
+              }
+            }
+          }
+        }
       }
     }
 
     // Create assignment
     try {
-      const created = await TeacherAssignment.create({
+      const assignmentData: any = {
         schoolId: schoolIdObj,
         teacherId: teacherObjId,
         academicPeriodId: academicPeriodObjId,
         subjectId: subjectObjId,
         classGroupId: classGroupObjId,
-        schedule: schedule || undefined,
         workloadHours:
           typeof body.workloadHours === "number" ? body.workloadHours : 0,
         notes: body.notes ? String(body.notes) : undefined,
         status: body.status === "inactive" ? "inactive" : "active",
         assignedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : null,
         assignedAt: new Date(),
-      });
+      };
+
+      // Handle schedules: if multiple, use schedules array; if single, set both for compatibility
+      if (schedules.length > 0) {
+        if (schedules.length === 1) {
+          // Single schedule: set both fields for backward compatibility
+          assignmentData.schedule = schedules[0];
+          assignmentData.schedules = schedules;
+        } else {
+          // Multiple schedules: use schedules array, set first as schedule for compatibility
+          assignmentData.schedule = schedules[0];
+          assignmentData.schedules = schedules;
+        }
+      }
+
+      const created = await TeacherAssignment.create(assignmentData);
 
       return Response.json({
         success: true,

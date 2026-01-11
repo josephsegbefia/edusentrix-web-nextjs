@@ -1,176 +1,221 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/components/admin/teachers/detail/TeacherAssignmentsTab.tsx
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Plus, ClipboardList, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ClipboardList, Plus, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import {
-  useCreateTeacherAssignment,
-  useDeactivateTeacherAssignment,
+  useAcademicPeriods,
+  type AcademicPeriodDTO,
+} from "@/hooks/admin/useAcademicPeriods";
+import {
   useTeacherAssignments,
+  useDeactivateTeacherAssignment,
+  type TeacherAssignmentDTO,
 } from "@/hooks/admin/useTeacherAssignments";
+import { CreateTeacherAssignmentModal } from "@/components/admin/teachers/detail/CreateTeacherAssignmentModal";
+import { EditTeacherAssignmentModal } from "@/components/admin/teachers/detail/EditTeacherAssignmentModal";
 
-const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+export function TeacherAssignmentsTab({
+  teacher,
+}: {
+  teacher: { id: string; fullName: string; maxClasses: number | null };
+}) {
+  const { data: periodsRes } = useAcademicPeriods();
+  const periods = periodsRes?.periods ?? [];
+  const currentPeriod =
+    periods.find((p: AcademicPeriodDTO) => p.isCurrent) || periods[0] || null;
 
-function SchedulePill({ s }: { s: any }) {
-  if (!s || s.dayOfWeek == null || !s.startTime || !s.endTime) return null;
-  const day = DOW[s.dayOfWeek] ?? `D${s.dayOfWeek}`;
-  return (
-    <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/80">
-      {day} • {s.startTime}-{s.endTime}
-      {s.location ? (
-        <span className="ml-1 text-white/50">({s.location})</span>
-      ) : null}
-    </span>
-  );
-}
+  const [periodId, setPeriodId] = React.useState<string>("");
 
-export function TeacherAssignmentsTab({ teacherId }: { teacherId: string }) {
-  const [academicPeriodId, setAcademicPeriodId] = React.useState<string>(""); // optional filter
+  React.useEffect(() => {
+    if (!periodId && currentPeriod?._id) setPeriodId(currentPeriod._id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPeriod?._id]);
+
   const { data, isLoading, isError } = useTeacherAssignments(
-    teacherId,
-    academicPeriodId || undefined,
+    teacher.id,
+    periodId || undefined,
     "active"
   );
-
-  const { mutateAsync: deactivate, isPending: isDeactivating } =
-    useDeactivateTeacherAssignment(teacherId);
-
-  // We’ll wire create modal next; for now keep CTA consistent
-  const { mutateAsync: createAssignment } =
-    useCreateTeacherAssignment(teacherId);
-
   const assignments = data?.data ?? [];
 
+  const activeCount = assignments.length;
+  const maxClasses = teacher.maxClasses;
+  const atCapacity =
+    typeof maxClasses === "number" &&
+    maxClasses >= 0 &&
+    activeCount >= maxClasses;
+
+  const [open, setOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editingAssignment, setEditingAssignment] = React.useState<TeacherAssignmentDTO | null>(null);
+
+  const deactivateMutation = useDeactivateTeacherAssignment(teacher.id);
+
+  const handleEdit = (assignment: TeacherAssignmentDTO) => {
+    setEditingAssignment(assignment);
+    setEditOpen(true);
+  };
+
+  const handleDeactivate = async (assignment: TeacherAssignmentDTO) => {
+    if (!confirm(`Are you sure you want to deactivate this assignment?\n\n${assignment.subject?.name} • ${assignment.classGroup?.label || assignment.classGroup?.name}`)) {
+      return;
+    }
+    try {
+      await deactivateMutation.mutateAsync(assignment.id);
+      toast.success("Assignment deactivated", {
+        description: `${assignment.subject?.name || "Assignment"} has been deactivated.`,
+      });
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      toast.error(error?.message || "Failed to deactivate assignment");
+    }
+  };
+
   return (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
-        <CardTitle>Assignments</CardTitle>
-        <div className="flex items-center gap-2">
-          <Button
-            className="gap-2"
-            onClick={() =>
-              alert(
-                "Create assignment modal comes next (we’ll build it premium)"
-              )
-            }
-          >
+    <>
+      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <CardTitle>Assignments</CardTitle>
+          <Button className="gap-2" onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4" />
             Create Assignment
           </Button>
-        </div>
-      </CardHeader>
+        </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
-            Assign subjects to class groups (per academic period).
-          </div>
+        <CardContent className="space-y-4">
+          {atCapacity ? (
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 text-amber-100">
+              <p className="text-sm font-semibold">Capacity warning</p>
+              <p className="text-sm text-white/80">
+                This teacher currently has <b>{activeCount}</b> active
+                assignments (limit: <b>{maxClasses}</b>).
+              </p>
+            </div>
+          ) : null}
 
-          {/* Academic period filter (optional now; we’ll replace with real dropdown soon) */}
-          <input
-            value={academicPeriodId}
-            onChange={(e) => setAcademicPeriodId(e.target.value)}
-            placeholder="Filter by academicPeriodId (optional)"
-            className="h-9 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm md:w-[360px]"
-          />
-        </div>
+          <Separator className="bg-white/10" />
 
-        <Separator className="bg-white/10" />
-
-        {isLoading ? (
-          <div className="flex items-center gap-3 py-10">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/40" />
-            <p className="text-sm text-muted-foreground">
-              Loading assignments…
+          {isLoading ? (
+            <div className="flex items-center gap-3 py-10">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/40" />
+              <p className="text-sm text-muted-foreground">
+                Loading assignments…
+              </p>
+            </div>
+          ) : isError ? (
+            <p className="py-10 text-sm text-red-300/80">
+              Failed to load assignments.
             </p>
-          </div>
-        ) : isError ? (
-          <p className="py-10 text-sm text-red-300/80">
-            Failed to load assignments.
-          </p>
-        ) : assignments.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <div className="flex items-start gap-4">
-              <div className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5">
-                <ClipboardList className="h-5 w-5 text-white/80" />
+          ) : assignments.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="flex items-start gap-4">
+                <div className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5">
+                  <ClipboardList className="h-5 w-5 text-white/80" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-base font-semibold">No assignments yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Create the first assignment to connect a subject and class
+                    group for this teacher.
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-base font-semibold">No assignments yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Create the first assignment to connect a subject and class
-                  group for this teacher.
-                </p>
+              <div className="mt-4">
+                <Button className="gap-2" onClick={() => setOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Create Assignment
+                </Button>
               </div>
             </div>
-
-            <div className="mt-4">
-              <Button
-                className="gap-2"
-                onClick={() => alert("Create assignment modal comes next")}
-              >
-                <Plus className="h-4 w-4" />
-                Create Assignment
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {assignments.map((a) => (
-              <div
-                key={a.id}
-                className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:flex-row md:items-center md:justify-between"
-              >
-                <div className="min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-semibold">
-                      {a.subject?.name ?? "—"}{" "}
-                      <span className="text-muted-foreground/70">•</span>{" "}
-                      {a.classGroup?.name ?? "—"}
-                    </p>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "border-white/10 bg-white/5",
-                        a.status === "active"
-                          ? "text-emerald-200"
-                          : "text-slate-200"
+          ) : (
+            <div className="space-y-2">
+              {assignments.map((a) => (
+                <div
+                  key={a.id}
+                  className="group flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/8"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm font-semibold">
+                        {a.subject?.name ?? "—"}{" "}
+                        <span className="text-muted-foreground/70">•</span>{" "}
+                        {a.classGroup?.label || a.classGroup?.name || "—"}
+                      </p>
+                      {a.schedule?.dayOfWeek != null &&
+                      a.schedule?.startTime &&
+                      a.schedule?.endTime ? (
+                        <p className="text-xs text-muted-foreground">
+                          Scheduled: {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][a.schedule.dayOfWeek] || a.schedule.dayOfWeek} • {a.schedule.startTime}
+                          -{a.schedule.endTime}
+                          {a.schedule.location ? ` • ${a.schedule.location}` : ""}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          No schedule set.
+                        </p>
                       )}
-                    >
-                      {a.status}
-                    </Badge>
-                    <SchedulePill s={a.schedule} />
+                      {a.notes ? (
+                        <p className="text-xs text-muted-foreground/80">
+                          {a.notes}
+                        </p>
+                      ) : null}
+                      {a.workloadHours > 0 && (
+                        <p className="text-xs text-muted-foreground/60">
+                          Workload: {a.workloadHours} hrs/week
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10"
+                        onClick={() => handleEdit(a)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-white/60 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => handleDeactivate(a)}
+                        disabled={deactivateMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-
-                  {a.notes ? (
-                    <p className="text-xs text-muted-foreground/80 line-clamp-2">
-                      {a.notes}
-                    </p>
-                  ) : null}
                 </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    disabled={isDeactivating}
-                    onClick={() => deactivate(a.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Deactivate
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      <CreateTeacherAssignmentModal
+        open={open}
+        onOpenChange={setOpen}
+        teacher={teacher}
+        currentActiveAssignmentsCount={activeCount}
+      />
+
+      {editingAssignment && (
+        <EditTeacherAssignmentModal
+          open={editOpen}
+          onOpenChange={(v) => {
+            setEditOpen(v);
+            if (!v) setEditingAssignment(null);
+          }}
+          teacher={teacher}
+          assignment={editingAssignment}
+        />
+      )}
+    </>
   );
 }

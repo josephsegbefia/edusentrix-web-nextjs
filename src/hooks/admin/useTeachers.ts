@@ -4,7 +4,7 @@ import type {
   TeacherListResponse,
   TeacherDetailResponse,
 } from "@/types/admin/teacher";
-import type { CreateTeacherInput } from "@/schemas/teacher";
+import type { CreateTeacherInput, UpdateTeacherInput } from "@/schemas/teacher";
 import type {
   TeachersTabId,
   TeachersSortBy,
@@ -111,6 +111,347 @@ export function useCreateTeacher() {
     },
     onSuccess: () => {
       // Invalidate teachers list queries
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    },
+  });
+}
+
+/**
+ * useUpdateTeacher - Mutation hook for updating teacher information
+ */
+export function useUpdateTeacher() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      teacherId,
+      payload,
+    }: {
+      teacherId: string;
+      payload: UpdateTeacherInput;
+    }): Promise<TeacherDetailResponse> => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to update teacher" }));
+        throw new Error(error.error || "Failed to update teacher");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate teachers list and detail queries
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", variables.teacherId] });
+      // Also invalidate stats
+      queryClient.invalidateQueries({ queryKey: ["teachers", "stats"] });
+    },
+  });
+}
+
+// ============== STATUS MANAGEMENT HOOKS ==============
+
+type StatusChangeResponse = {
+  success: boolean;
+  message: string;
+  data: { id: string; status: string };
+};
+
+/**
+ * useActivateTeacher - Mutation hook for activating a teacher
+ */
+export function useActivateTeacher() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (teacherId: string): Promise<StatusChangeResponse> => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}/activate`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to activate teacher" }));
+        throw new Error(error.error || "Failed to activate teacher");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, teacherId) => {
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "stats"] });
+    },
+  });
+}
+
+/**
+ * useDeactivateTeacher - Mutation hook for deactivating a teacher
+ */
+export function useDeactivateTeacher() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (teacherId: string): Promise<StatusChangeResponse> => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}/deactivate`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to deactivate teacher" }));
+        throw new Error(error.error || "Failed to deactivate teacher");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, teacherId) => {
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "stats"] });
+    },
+  });
+}
+
+/**
+ * useDeleteTeacher - Mutation hook for soft-deleting (terminating) a teacher
+ */
+export function useDeleteTeacher() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (teacherId: string): Promise<StatusChangeResponse> => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to terminate teacher" }));
+        throw new Error(error.error || "Failed to terminate teacher");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, teacherId) => {
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "stats"] });
+      // Also invalidate assignments as they get deactivated
+      queryClient.invalidateQueries({ queryKey: ["teachers", "assignments", teacherId] });
+    },
+  });
+}
+
+// ============== SUBJECT & HOMEROOM MANAGEMENT HOOKS ==============
+
+export type TeacherSubjectDTO = {
+  id: string;
+  name: string;
+  code: string | null;
+  isActive: boolean;
+};
+
+export type TeacherSubjectsResponse = {
+  success: boolean;
+  data: TeacherSubjectDTO[];
+};
+
+export type AssignSubjectsResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    added: number;
+    subjectNames: string[];
+  };
+};
+
+export type RemoveSubjectResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    subjectId: string;
+    subjectName: string;
+  };
+};
+
+/**
+ * useTeacherSubjects - Query hook for fetching teacher's subjects
+ */
+export function useTeacherSubjects(teacherId: string) {
+  return useQuery<TeacherSubjectsResponse>({
+    queryKey: ["teachers", "subjects", teacherId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}/subjects`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch teacher subjects");
+      return res.json();
+    },
+    enabled: !!teacherId,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * useAssignSubjects - Mutation hook for assigning subjects to a teacher
+ */
+export function useAssignSubjects() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      teacherId,
+      subjectIds,
+    }: {
+      teacherId: string;
+      subjectIds: string[];
+    }): Promise<AssignSubjectsResponse> => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}/subjects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subjectIds }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to assign subjects" }));
+        throw new Error(error.error || "Failed to assign subjects");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["teachers", "subjects", variables.teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", variables.teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    },
+  });
+}
+
+/**
+ * useRemoveSubject - Mutation hook for removing a subject from a teacher
+ */
+export function useRemoveSubject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      teacherId,
+      subjectId,
+    }: {
+      teacherId: string;
+      subjectId: string;
+    }): Promise<RemoveSubjectResponse> => {
+      const res = await fetch(
+        `/api/admin/teachers/${teacherId}/subjects/${subjectId}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to remove subject" }));
+        throw new Error(error.error || "Failed to remove subject");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["teachers", "subjects", variables.teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", variables.teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    },
+  });
+}
+
+export type TeacherHomeroomResponse = {
+  success: boolean;
+  data: {
+    id: string;
+    name: string;
+    gradeName: string | null;
+  } | null;
+};
+
+export type AssignHomeroomResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    name: string;
+    gradeName: string | null;
+  };
+};
+
+export type RemoveHomeroomResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    classGroupId: string;
+    className: string;
+  };
+};
+
+/**
+ * useTeacherHomeroom - Query hook for fetching teacher's homeroom
+ */
+export function useTeacherHomeroom(teacherId: string) {
+  return useQuery<TeacherHomeroomResponse>({
+    queryKey: ["teachers", "homeroom", teacherId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}/homeroom`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch teacher homeroom");
+      return res.json();
+    },
+    enabled: !!teacherId,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * useAssignHomeroom - Mutation hook for assigning homeroom to a teacher
+ */
+export function useAssignHomeroom() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      teacherId,
+      classGroupId,
+    }: {
+      teacherId: string;
+      classGroupId: string;
+    }): Promise<AssignHomeroomResponse> => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}/homeroom`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classGroupId }),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to assign homeroom" }));
+        throw new Error(error.error || "Failed to assign homeroom");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["teachers", "homeroom", variables.teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", variables.teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    },
+  });
+}
+
+/**
+ * useRemoveHomeroom - Mutation hook for removing homeroom from a teacher
+ */
+export function useRemoveHomeroom() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (teacherId: string): Promise<RemoveHomeroomResponse> => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}/homeroom`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to remove homeroom" }));
+        throw new Error(error.error || "Failed to remove homeroom");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, teacherId) => {
+      queryClient.invalidateQueries({ queryKey: ["teachers", "homeroom", teacherId] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
     },
   });

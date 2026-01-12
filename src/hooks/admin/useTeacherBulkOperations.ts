@@ -34,6 +34,28 @@ export type BulkChangeStatusResponse = {
   };
 };
 
+export type BulkAssignClassesInput = {
+  teacherIds: string[];
+  classGroupId: string;
+};
+
+export type BulkAssignClassesResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    teachersProcessed: number;
+    classGroup: {
+      id: string;
+      name: string;
+      gradeName?: string | null;
+    };
+    results: Array<{
+      teacherId: string;
+      success: boolean;
+    }>;
+  };
+};
+
 /**
  * useBulkAssignSubjects - Mutation hook for bulk assigning subjects to teachers
  */
@@ -79,6 +101,33 @@ export function useBulkChangeStatus() {
       if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Failed to change status" }));
         throw new Error(error.error || "Failed to change status");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    },
+  });
+}
+
+/**
+ * useBulkAssignClasses - Mutation hook for bulk assigning homeroom classes to teachers
+ */
+export function useBulkAssignClasses() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      payload: BulkAssignClassesInput
+    ): Promise<BulkAssignClassesResponse> => {
+      const res = await fetch("/api/admin/teachers/bulk-assign-classes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to assign classes" }));
+        throw new Error(error.error || "Failed to assign classes");
       }
       return res.json();
     },

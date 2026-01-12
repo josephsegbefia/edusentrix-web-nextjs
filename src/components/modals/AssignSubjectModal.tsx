@@ -172,15 +172,17 @@ export function AssignSubjectModal({
 
           {/* Subject search combobox */}
           <div className="space-y-2">
-            <Label className="text-sm">Search Subjects</Label>
+            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+              Search Subjects
+            </Label>
             <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
               <PopoverTrigger asChild>
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 w-full justify-between border-white/10 bg-white/5 hover:bg-white/8"
+                  className="h-10 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/8"
                 >
-                  <span className="text-muted-foreground">
+                  <span className={cn("truncate", subjectQuery ? "text-white" : "text-muted-foreground")}>
                     {subjectQuery || "Search subjects to assign..."}
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 opacity-70" />
@@ -190,7 +192,7 @@ export function AssignSubjectModal({
               <PopoverContent
                 className={cn(
                   premiumSelectContent,
-                  "w-[var(--radix-popover-trigger-width)] p-1"
+                  "w-[var(--radix-popover-trigger-width)] p-1 max-h-[400px]"
                 )}
               >
                 <Command shouldFilter={false} className="bg-transparent">
@@ -200,7 +202,7 @@ export function AssignSubjectModal({
                     onValueChange={setSubjectQuery}
                     className="border-b border-neutral-800/60 bg-transparent"
                   />
-                  <CommandList>
+                  <CommandList className="max-h-[300px] overflow-y-auto">
                     {subjectsQ.isLoading ? (
                       <div className="px-3 py-3 text-sm text-neutral-400">
                         Searching…
@@ -244,7 +246,7 @@ export function AssignSubjectModal({
           {/* Already assigned subjects info */}
           {existingSubjects.length > 0 && (
             <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-              <p className="text-xs font-medium text-muted-foreground mb-2">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted mb-2">
                 Already Assigned ({existingSubjects.length})
               </p>
               <div className="flex flex-wrap gap-2">
@@ -262,18 +264,21 @@ export function AssignSubjectModal({
           )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 border-t border-white/10 pt-4">
           <Button
+            type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={assignSubjectsMutation.isPending}
+            className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
           >
             Cancel
           </Button>
           <Button
+            type="button"
             onClick={handleSubmit}
             disabled={assignSubjectsMutation.isPending || selectedSubjectIds.size === 0}
-            className="gap-2"
+            className="gap-2 bg-brand text-black hover:opacity-90"
           >
             {assignSubjectsMutation.isPending
               ? "Assigning…"

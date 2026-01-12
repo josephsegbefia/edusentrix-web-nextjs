@@ -14,20 +14,15 @@ import {
   Clock,
   Plus,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +65,7 @@ import {
   type TeacherAssignmentDTO,
   type UpdateTeacherAssignmentInput,
 } from "@/hooks/admin/useTeacherAssignments";
+import { useTeacherWorkload } from "@/hooks/admin/useTeacherWorkload";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
 
 const DOW = [
@@ -182,7 +178,7 @@ function Combobox({
 }) {
   return (
     <div className="space-y-2">
-      {label && <Label className="text-sm">{label}</Label>}
+      {label && <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">{label}</Label>}
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger asChild>
           <Button
@@ -205,7 +201,7 @@ function Combobox({
         <PopoverContent
           className={cn(
             premiumSelectContent,
-            "w-[var(--radix-popover-trigger-width)] p-1"
+            "w-[var(--radix-popover-trigger-width)] p-1 max-h-[400px]"
           )}
         >
           <Command shouldFilter={false} className="bg-transparent">
@@ -215,7 +211,7 @@ function Combobox({
               onValueChange={setQuery}
               className="border-b border-neutral-800/60 bg-transparent"
             />
-            <CommandList>
+            <CommandList className="max-h-[300px] overflow-y-auto">
               {isLoading ? (
                 <div className="px-3 py-3 text-sm text-neutral-400">
                   Searching…
@@ -321,6 +317,9 @@ export function EditTeacherAssignmentModal({
   }, [open, assignment.id]);
 
   const { mutateAsync, isPending } = useUpdateTeacherAssignment(teacher.id);
+  const academicPeriodId = form.watch("academicPeriodId");
+  const { data: workloadData } = useTeacherWorkload(teacher.id, academicPeriodId || undefined);
+  const workload = workloadData?.data;
 
   const [subjectOpen, setSubjectOpen] = React.useState(false);
   const [classOpen, setClassOpen] = React.useState(false);
@@ -375,6 +374,24 @@ export function EditTeacherAssignmentModal({
   async function onSubmit(values: FormValues) {
     setWarnings([]);
     setConflict(null);
+
+    // Check workload if class group is being changed
+    if (workload && values.classGroupId !== assignment.classGroup?.id) {
+      // If changing to a different class, check if it would exceed capacity
+      // Note: We're replacing one class with another, so class count stays the same
+      // But we should still check if the new class would push over student limits
+      const wouldExceedStudents = workload.capacity.maxStudents && workload.current.students > workload.capacity.maxStudents;
+
+      if (wouldExceedStudents) {
+        const shouldProceed = window.confirm(
+          `⚠️ Workload Warning\n\nThis change may affect the teacher's student capacity.\n\nCurrent students: ${workload.current.students}\nMax capacity: ${workload.capacity.maxStudents}\n\nDo you want to proceed anyway?`
+        );
+
+        if (!shouldProceed) {
+          return;
+        }
+      }
+    }
 
     const payload: UpdateTeacherAssignmentInput = {};
 
@@ -441,21 +458,90 @@ export function EditTeacherAssignmentModal({
 
   const includeSchedule = form.watch("includeSchedule");
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[720px] max-h-[90vh] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl">Edit Assignment</DialogTitle>
-          <DialogDescription className="text-sm">
-            Update assignment for{" "}
-            <span className="font-medium text-white/90">
-              {teacher.fullName}
-            </span>
-          </DialogDescription>
-        </DialogHeader>
+  // Escape to close + lock body scroll (Dialog-like behavior, without Dialog)
+  React.useEffect(() => {
+    if (!open) return;
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 -mx-1">
-          <div className="px-1 space-y-5">
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) onOpenChange(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, isPending, onOpenChange]);
+
+  // match CreateStudentModal behavior: if closed, render nothing (parent controls open)
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        aria-modal="true"
+        role="dialog"
+      >
+        {/* Overlay */}
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+          onMouseDown={(e) => {
+            // click outside to close
+            if (e.target === e.currentTarget && !isPending) onOpenChange(false);
+          }}
+        />
+
+        {/* Panel */}
+        <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className={cn(
+              // SOLID dark panel (like CreateStudentModal vibe)
+              "w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+            )}
+          >
+            {/* Header (clear + underlined) */}
+            <div className="px-6 pt-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <h1 className="text-lg font-semibold">Edit Assignment</h1>
+                  <p className="text-sm text-white/60">
+                    Update assignment for{" "}
+                    <span className="font-medium text-white/85">
+                      {teacher.fullName}
+                    </span>
+                    .
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPending}
+                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="mt-5 h-px bg-white/10" />
+            </div>
+
+            {/* Body (scrollable) */}
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
+              <div className="space-y-6">
             {/* conflict banner */}
             {conflict ? (
               <Callout tone="warning" title="Schedule conflict detected">
@@ -506,21 +592,24 @@ export function EditTeacherAssignmentModal({
                   ) : null}
                 </Callout>
 
-                <DialogFooter className="flex-shrink-0 mt-4">
+                <div className="flex items-center justify-end pt-2">
                   <Button
                     variant="outline"
+                    className="border-white/10 bg-white/5 text-white hover:bg-white/10"
                     onClick={() => onOpenChange(false)}
                   >
                     Close
                   </Button>
-                </DialogFooter>
+                </div>
               </div>
             ) : (
               <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="grid gap-4 md:grid-cols-2">
                   {/* Academic period */}
                   <div className="space-y-2">
-                    <Label>Academic Period</Label>
+                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                      Academic Period *
+                    </Label>
                     <Select
                       value={form.watch("academicPeriodId")}
                       onValueChange={(v) =>
@@ -529,7 +618,7 @@ export function EditTeacherAssignmentModal({
                         })
                       }
                     >
-                      <SelectTrigger className="border-white/10 bg-white/5">
+                      <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                         <SelectValue
                           placeholder={
                             periodsLoading ? "Loading…" : "Select academic period"
@@ -569,7 +658,7 @@ export function EditTeacherAssignmentModal({
 
                   {/* Status */}
                   <div className="space-y-2">
-                    <Label>Status</Label>
+                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Status</Label>
                     <Select
                       value={form.watch("status")}
                       onValueChange={(v) =>
@@ -578,7 +667,7 @@ export function EditTeacherAssignmentModal({
                         })
                       }
                     >
-                      <SelectTrigger className="border-white/10 bg-white/5">
+                      <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent className={premiumSelectContent}>
@@ -602,13 +691,15 @@ export function EditTeacherAssignmentModal({
                 <div className="grid gap-4 md:grid-cols-2">
                   {/* Workload hours */}
                   <div className="space-y-2">
-                    <Label>Workload (hours/week)</Label>
+                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                      Workload (hours/week)
+                    </Label>
                     <Input
                       type="number"
                       min={0}
                       max={80}
                       step={1}
-                      className="border-white/10 bg-white/5"
+                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                       {...form.register("workloadHours")}
                     />
                   </div>
@@ -718,7 +809,7 @@ export function EditTeacherAssignmentModal({
                               className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
                             >
                               <div className="flex items-center justify-between">
-                                <Label className="text-sm font-medium">
+                                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                                   Schedule {idx + 1}
                                 </Label>
                                 <Button
@@ -741,7 +832,7 @@ export function EditTeacherAssignmentModal({
 
                               <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
-                                  <Label>Day</Label>
+                                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Day</Label>
                                   <Select
                                     value={String(schedule.dayOfWeek ?? 1)}
                                     onValueChange={(v) => {
@@ -755,7 +846,7 @@ export function EditTeacherAssignmentModal({
                                       });
                                     }}
                                   >
-                                    <SelectTrigger className="border-white/10 bg-white/5">
+                                    <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                                       <SelectValue placeholder="Select day" />
                                     </SelectTrigger>
                                     <SelectContent className={premiumSelectContent}>
@@ -781,7 +872,7 @@ export function EditTeacherAssignmentModal({
                                 </div>
 
                                 <div className="space-y-2">
-                                  <Label>Location (Class Group)</Label>
+                                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Location (Class Group)</Label>
                                   <Combobox
                                     label=""
                                     placeholder="Select class group for location"
@@ -818,10 +909,10 @@ export function EditTeacherAssignmentModal({
                                 </div>
 
                                 <div className="space-y-2">
-                                  <Label>Start time</Label>
+                                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Start time</Label>
                                   <Input
                                     type="time"
-                                    className="border-white/10 bg-white/5"
+                                    className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
                                     value={schedule.startTime || ""}
                                     onChange={(e) => {
                                       const current = form.getValues("schedules") || [];
@@ -845,10 +936,10 @@ export function EditTeacherAssignmentModal({
                                 </div>
 
                                 <div className="space-y-2">
-                                  <Label>End time</Label>
+                                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">End time</Label>
                                   <Input
                                     type="time"
-                                    className="border-white/10 bg-white/5"
+                                    className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
                                     value={schedule.endTime || ""}
                                     onChange={(e) => {
                                       const current = form.getValues("schedules") || [];
@@ -907,9 +998,9 @@ export function EditTeacherAssignmentModal({
                 </Accordion>
 
                 <div className="space-y-2">
-                  <Label>Notes (optional)</Label>
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Notes (optional)</Label>
                   <Textarea
-                    className="min-h-[90px] border-white/10 bg-white/5"
+                    className="min-h-[90px] border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                     {...form.register("notes")}
                   />
                 </div>
@@ -925,30 +1016,41 @@ export function EditTeacherAssignmentModal({
                 ) : null}
               </form>
             )}
-          </div>
-        </div>
 
-        {!result && (
-          <DialogFooter className="flex-shrink-0 gap-2 mt-4 pt-4 border-t border-white/10">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={form.handleSubmit(onSubmit)}
-              className="gap-2"
-              disabled={isPending}
-            >
-              {isPending ? "Saving…" : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        )}
-      </DialogContent>
-    </Dialog>
+            {!result && (
+              <div className="flex items-center justify-between pt-6 border-t border-white/10">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isPending}
+                  className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={form.handleSubmit(onSubmit)}
+                  disabled={isPending}
+                  className="gap-2 bg-brand text-black hover:opacity-90"
+                >
+                  {isPending ? (
+                    "Saving…"
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

@@ -172,7 +172,7 @@ export function AddNoteModal({
           <DialogTitle className="text-xl">
             {mode === "edit" ? "Edit Note" : "Add Note"}
           </DialogTitle>
-          <DialogDescription className="text-sm">
+          <DialogDescription className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
             {mode === "edit"
               ? "Update the note for this teacher"
               : `Add an internal note for ${teacherName}`}
@@ -182,7 +182,7 @@ export function AddNoteModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-sm">
+              <Label htmlFor="title" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Title *
               </Label>
               <Input
@@ -197,14 +197,14 @@ export function AddNoteModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-sm">
+              <Label htmlFor="category" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Category
               </Label>
               <Select
                 value={watch("category") || "general"}
                 onValueChange={(value) => setValue("category", value as TeacherNoteCategory)}
               >
-                <SelectTrigger className="border-white/10 bg-white/5">
+                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -232,7 +232,7 @@ export function AddNoteModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content" className="text-sm">
+            <Label htmlFor="content" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Content *
             </Label>
             <Textarea
@@ -248,7 +248,7 @@ export function AddNoteModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="visibility" className="text-sm">
+            <Label htmlFor="visibility" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Visibility *
             </Label>
             <Select
@@ -281,7 +281,7 @@ export function AddNoteModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tagInput" className="text-sm">
+            <Label htmlFor="tagInput" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Tags (optional)
             </Label>
             <div className="flex gap-2">
@@ -329,19 +329,20 @@ export function AddNoteModal({
             )}
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 border-t border-white/10 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting || isPending}
+              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || isPending}
-              className="gap-2"
+              className="gap-2 bg-brand text-black hover:opacity-90"
             >
               {isSubmitting || isPending
                 ? `${mode === "edit" ? "Updating" : "Creating"}…`

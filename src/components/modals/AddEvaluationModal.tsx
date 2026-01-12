@@ -174,7 +174,7 @@ export function AddEvaluationModal({
       <DialogContent className="sm:max-w-[700px] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">Record Performance Evaluation</DialogTitle>
-          <DialogDescription className="text-sm">
+          <DialogDescription className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
             Record a performance evaluation for {teacherName}
           </DialogDescription>
         </DialogHeader>
@@ -182,14 +182,14 @@ export function AddEvaluationModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="academicPeriodId" className="text-sm">
+              <Label htmlFor="academicPeriodId" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Academic Period *
               </Label>
               <Select
                 value={watch("academicPeriodId")}
                 onValueChange={(value) => setValue("academicPeriodId", value)}
               >
-                <SelectTrigger className="border-white/10 bg-white/5">
+                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                   <SelectValue placeholder="Select academic period" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -212,14 +212,14 @@ export function AddEvaluationModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="overallRating" className="text-sm">
+              <Label htmlFor="overallRating" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Overall Rating *
               </Label>
               <Select
                 value={String(watch("overallRating"))}
                 onValueChange={(value) => setValue("overallRating", Number(value))}
               >
-                <SelectTrigger className="border-white/10 bg-white/5">
+                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                   <SelectValue placeholder="Select rating" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -243,7 +243,7 @@ export function AddEvaluationModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="strengthInput" className="text-sm">
+            <Label htmlFor="strengthInput" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Strengths (optional)
             </Label>
             <div className="flex gap-2">
@@ -287,7 +287,7 @@ export function AddEvaluationModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="areaInput" className="text-sm">
+            <Label htmlFor="areaInput" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Areas for Improvement (optional)
             </Label>
             <div className="flex gap-2">
@@ -331,7 +331,7 @@ export function AddEvaluationModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="goalInput" className="text-sm">
+            <Label htmlFor="goalInput" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Goals (optional)
             </Label>
             <div className="flex gap-2">
@@ -375,7 +375,7 @@ export function AddEvaluationModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="comments" className="text-sm">
+            <Label htmlFor="comments" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Comments (optional)
             </Label>
             <Textarea
@@ -390,16 +390,17 @@ export function AddEvaluationModal({
             )}
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 border-t border-white/10 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting || isPending}
+              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || isPending} className="gap-2">
+            <Button type="submit" disabled={isSubmitting || isPending} className="gap-2 bg-brand text-black hover:opacity-90">
               {isSubmitting || isPending ? "Recording…" : "Record Evaluation"}
             </Button>
           </DialogFooter>

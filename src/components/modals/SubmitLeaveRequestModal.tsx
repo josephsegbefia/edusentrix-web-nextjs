@@ -139,14 +139,14 @@ export function SubmitLeaveRequestModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="startDate" className="text-sm">
+              <Label htmlFor="startDate" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Start Date *
               </Label>
               <Input
                 id="startDate"
                 type="date"
                 {...register("startDate")}
-                className="border-white/10 bg-white/5"
+                className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
               />
               {errors.startDate && (
                 <p className="text-xs text-red-300/80">{errors.startDate.message}</p>
@@ -154,14 +154,14 @@ export function SubmitLeaveRequestModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="endDate" className="text-sm">
+              <Label htmlFor="endDate" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 End Date *
               </Label>
               <Input
                 id="endDate"
                 type="date"
                 {...register("endDate")}
-                className="border-white/10 bg-white/5"
+                className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
               />
               {errors.endDate && (
                 <p className="text-xs text-red-300/80">{errors.endDate.message}</p>
@@ -178,14 +178,14 @@ export function SubmitLeaveRequestModal({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="leaveType" className="text-sm">
+            <Label htmlFor="leaveType" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Leave Type *
             </Label>
             <Select
               value={watch("leaveType")}
               onValueChange={(value) => setValue("leaveType", value as LeaveType)}
             >
-              <SelectTrigger className="border-white/10 bg-white/5">
+              <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                 <SelectValue placeholder="Select leave type" />
               </SelectTrigger>
               <SelectContent className={premiumSelectContent}>
@@ -212,14 +212,14 @@ export function SubmitLeaveRequestModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reason" className="text-sm">
+            <Label htmlFor="reason" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Reason *
             </Label>
             <Textarea
               id="reason"
               {...register("reason")}
               placeholder="Enter reason for leave request..."
-              className="min-h-[100px] border-white/10 bg-white/5"
+              className="min-h-[100px] border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
               maxLength={500}
             />
             {errors.reason && (
@@ -228,31 +228,32 @@ export function SubmitLeaveRequestModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes" className="text-sm">
+            <Label htmlFor="notes" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Additional Notes (optional)
             </Label>
             <Textarea
               id="notes"
               {...register("notes")}
               placeholder="Any additional information..."
-              className="min-h-[80px] border-white/10 bg-white/5"
+              className="min-h-[80px] border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
               maxLength={1000}
             />
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 border-t border-white/10 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting || submitLeaveRequestMutation.isPending}
+              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || submitLeaveRequestMutation.isPending}
-              className="gap-2"
+              className="gap-2 bg-brand text-black hover:opacity-90"
             >
               {isSubmitting || submitLeaveRequestMutation.isPending
                 ? "Submitting…"

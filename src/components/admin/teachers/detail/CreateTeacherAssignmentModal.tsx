@@ -14,20 +14,15 @@ import {
   Clock,
   Plus,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,6 +61,7 @@ import {
   useClassGroupSearch,
 } from "@/hooks/admin/useDirectorySearch";
 import { useCreateTeacherAssignment } from "@/hooks/admin/useTeacherAssignments";
+import { useTeacherWorkload } from "@/hooks/admin/useTeacherWorkload";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
 
 const DOW = [
@@ -118,6 +114,20 @@ const schema = baseSchema.superRefine((val, ctx) => {
 
 type FormValues = z.infer<typeof schema>;
 
+const STEPS = [
+  {
+    id: 1,
+    title: "Assignment Details",
+    fields: ["academicPeriodId", "workloadHours", "subjectId", "classGroupId"],
+  },
+  {
+    id: 2,
+    title: "Schedules",
+    fields: ["includeSchedule", "schedules"],
+  },
+  { id: 3, title: "Notes & Confirm", fields: ["notes"] },
+] as const;
+
 function Callout({
   tone,
   title,
@@ -131,7 +141,7 @@ function Callout({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-4 backdrop-blur",
+        "rounded-2xl border p-4",
         tone === "warning"
           ? "border-amber-400/20 bg-amber-500/10 text-amber-100"
           : "border-sky-400/20 bg-sky-500/10 text-sky-100"
@@ -165,7 +175,7 @@ function Combobox({
   onSelect,
   emptyText,
 }: {
-  label: string;
+  label?: string;
   placeholder: string;
   valueLabel: string | null;
   open: boolean;
@@ -179,13 +189,18 @@ function Combobox({
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-sm">{label}</Label>
+      {label ? (
+        <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+          {label}
+        </Label>
+      ) : null}
+
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger asChild>
           <Button
             type="button"
             variant="outline"
-            className="h-10 w-full justify-between border-white/10 bg-white/5 hover:bg-white/8"
+            className="h-10 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10 focus-visible:ring-1 focus-visible:ring-brand"
           >
             <span
               className={cn(
@@ -202,7 +217,7 @@ function Combobox({
         <PopoverContent
           className={cn(
             premiumSelectContent,
-            "w-[var(--radix-popover-trigger-width)] p-1"
+            "w-(--radix-popover-trigger-width) p-1 max-h-[400px]"
           )}
         >
           <Command shouldFilter={false} className="bg-transparent">
@@ -212,7 +227,7 @@ function Combobox({
               onValueChange={setQuery}
               className="border-b border-neutral-800/60 bg-transparent"
             />
-            <CommandList>
+            <CommandList className="max-h-[300px] overflow-y-auto">
               {isLoading ? (
                 <div className="px-3 py-3 text-sm text-neutral-400">
                   Searching…
@@ -265,12 +280,14 @@ export function CreateTeacherAssignmentModal({
   currentActiveAssignmentsCount: number;
 }) {
   const { data: periodsRes, isLoading: periodsLoading } = useAcademicPeriods();
-  const periods = periodsRes?.periods ?? [];
+  const periods = React.useMemo(
+    () => periodsRes?.periods ?? [],
+    [periodsRes?.periods]
+  );
 
   const currentPeriod = React.useMemo(
     () => periods.find((p) => p.isCurrent) || periods[0] || null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [periods.length, periods.find((p) => p.isCurrent)?._id]
+    [periods]
   );
 
   const form = useForm<FormValues>({
@@ -284,43 +301,22 @@ export function CreateTeacherAssignmentModal({
       includeSchedule: false,
       schedules: [],
     },
+    mode: "onChange",
   });
-
-  // set default academic period when modal opens
-  React.useEffect(() => {
-    if (!open) return;
-    if (!form.getValues("academicPeriodId") && currentPeriod?._id) {
-      form.setValue("academicPeriodId", currentPeriod._id, {
-        shouldValidate: true,
-      });
-    }
-    // reset UI state each open
-    setResult(null);
-    setWarnings([]);
-    setConflict(null);
-    setLocationOpenIndex(null);
-    setLocationQuery("");
-    if (!open) {
-      form.reset({
-        academicPeriodId: "",
-        subjectId: "",
-        classGroupId: "",
-        workloadHours: 0,
-        notes: "",
-        includeSchedule: false,
-        schedules: [],
-      });
-      setSelectedSubjectLabel(null);
-      setSelectedClassLabel(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, currentPeriod?._id]);
 
   const { mutateAsync, isPending } = useCreateTeacherAssignment(teacher.id);
 
+  const academicPeriodId = form.watch("academicPeriodId");
+  const { data: workloadData } = useTeacherWorkload(
+    teacher.id,
+    academicPeriodId || undefined
+  );
+  const workload = workloadData?.data;
+
+  const [currentStep, setCurrentStep] = React.useState(1);
+
   const [subjectOpen, setSubjectOpen] = React.useState(false);
   const [classOpen, setClassOpen] = React.useState(false);
-
   const [subjectQuery, setSubjectQuery] = React.useState("");
   const [classQuery, setClassQuery] = React.useState("");
 
@@ -347,8 +343,9 @@ export function CreateTeacherAssignmentModal({
   >(null);
 
   // Location combobox state (using class groups for location)
-  // Track which schedule index is being edited for location
-  const [locationOpenIndex, setLocationOpenIndex] = React.useState<number | null>(null);
+  const [locationOpenIndex, setLocationOpenIndex] = React.useState<
+    number | null
+  >(null);
   const [locationQuery, setLocationQuery] = React.useState("");
   const locationQ = useDebouncedValue(locationQuery, 250);
   const locationGroupsQ = useClassGroupSearch(locationQ);
@@ -361,11 +358,7 @@ export function CreateTeacherAssignmentModal({
   const [conflict, setConflict] = React.useState<{
     subject?: { name: string };
     classGroup?: { name: string };
-    schedule?: {
-      dayOfWeek?: number;
-      startTime?: string;
-      endTime?: string;
-    };
+    schedule?: { dayOfWeek?: number; startTime?: string; endTime?: string };
   } | null>(null);
   const [result, setResult] = React.useState<{ id: string } | null>(null);
 
@@ -375,9 +368,107 @@ export function CreateTeacherAssignmentModal({
     maxClasses >= 0 &&
     currentActiveAssignmentsCount >= maxClasses;
 
+  // Escape to close + lock body scroll (Dialog-like behavior, without Dialog)
+  React.useEffect(() => {
+    if (!open) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) onOpenChange(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, isPending, onOpenChange]);
+
+  // reset / defaults on open
+  React.useEffect(() => {
+    if (!open) return;
+
+    setCurrentStep(1);
+    setResult(null);
+    setWarnings([]);
+    setConflict(null);
+    setLocationOpenIndex(null);
+    setLocationQuery("");
+
+    setSubjectOpen(false);
+    setClassOpen(false);
+    setSubjectQuery("");
+    setClassQuery("");
+
+    if (!form.getValues("academicPeriodId") && currentPeriod?._id) {
+      form.setValue("academicPeriodId", currentPeriod._id, {
+        shouldValidate: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, currentPeriod?._id]);
+
+  const includeSchedule = form.watch("includeSchedule");
+  const schedules = form.watch("schedules") || [];
+
+  const isFirstStep = currentStep === 1;
+  const isLastStep = currentStep === STEPS.length;
+
+  async function handleNext() {
+    const step = STEPS[currentStep - 1];
+    const fields = [...step.fields] as Array<keyof FormValues>;
+    const ok = await form.trigger(fields, { shouldFocus: true });
+    if (!ok) return;
+    setCurrentStep((s) => Math.min(s + 1, STEPS.length));
+  }
+
+  function handlePrevious() {
+    setCurrentStep((s) => Math.max(s - 1, 1));
+  }
+
+  const periodLabel = (pId: string) => {
+    const p = periods.find((x) => x._id === pId);
+    return p ? `${p.yearLabel} • ${p.term}` : "—";
+  };
+
   async function onSubmit(values: FormValues) {
     setWarnings([]);
     setConflict(null);
+
+    // Check workload before submitting (unchanged)
+    if (workload) {
+      const newClassCount = workload.current.classes + 1;
+      const wouldExceedClasses =
+        workload.capacity.maxClasses &&
+        newClassCount > workload.capacity.maxClasses;
+      const wouldExceedStudents =
+        workload.capacity.maxStudents &&
+        workload.current.students > workload.capacity.maxStudents;
+
+      if (wouldExceedClasses || wouldExceedStudents) {
+        const warningMessages: string[] = [];
+        if (wouldExceedClasses) {
+          warningMessages.push(
+            `This assignment would exceed the teacher's maximum class capacity (${workload.capacity.maxClasses} classes). Current: ${workload.current.classes}, After: ${newClassCount}`
+          );
+        }
+        if (wouldExceedStudents) {
+          warningMessages.push(
+            `This assignment may exceed the teacher's maximum student capacity (${workload.capacity.maxStudents} students). Current: ${workload.current.students}`
+          );
+        }
+
+        const shouldProceed = window.confirm(
+          `⚠️ Workload Warning\n\n${warningMessages.join(
+            "\n\n"
+          )}\n\nDo you want to proceed anyway?`
+        );
+
+        if (!shouldProceed) return;
+      }
+    }
 
     const payload = {
       academicPeriodId: values.academicPeriodId,
@@ -385,9 +476,12 @@ export function CreateTeacherAssignmentModal({
       classGroupId: values.classGroupId,
       workloadHours: values.workloadHours ?? 0,
       notes: values.notes || undefined,
-      schedules: values.includeSchedule && values.schedules && values.schedules.length > 0
-        ? values.schedules
-        : undefined,
+      schedules:
+        values.includeSchedule &&
+        values.schedules &&
+        values.schedules.length > 0
+          ? values.schedules
+          : undefined,
       status: "active" as const,
     };
 
@@ -413,553 +507,800 @@ export function CreateTeacherAssignmentModal({
     }
   }
 
-  const periodLabel = (pId: string) => {
-    const p = periods.find((x) => x._id === pId);
-    return p ? `${p.yearLabel} • ${p.term}` : "—";
-  };
-
-  const includeSchedule = form.watch("includeSchedule");
+  // match CreateStudentModal behavior: if closed, render nothing (parent controls open)
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[720px] max-h-[90vh] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-xl">Create Assignment</DialogTitle>
-          <DialogDescription className="text-sm">
-            Assign a subject and class group to{" "}
-            <span className="font-medium text-white/90">
-              {teacher.fullName}
-            </span>
-            .
-          </DialogDescription>
-        </DialogHeader>
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        aria-modal="true"
+        role="dialog"
+      >
+        {/* Overlay */}
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+          onMouseDown={(e) => {
+            // click outside to close
+            if (e.target === e.currentTarget && !isPending) onOpenChange(false);
+          }}
+        />
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 -mx-1">
-          <div className="px-1 space-y-5">
-            {/* capacity banner */}
-            {atCapacity ? (
-          <Callout tone="warning" title="Capacity warning">
-            This teacher already has <b>{currentActiveAssignmentsCount}</b>{" "}
-            active assignments
-            {typeof maxClasses === "number" ? (
-              <>
-                {" "}
-                (limit: <b>{maxClasses}</b>)
-              </>
-            ) : null}
-            . You can still proceed, but consider rebalancing workloads.
-          </Callout>
-        ) : null}
-
-            {/* conflict banner */}
-            {conflict ? (
-          <Callout tone="warning" title="Schedule conflict detected">
-            <div className="space-y-1">
-              <p className="text-white/80">
-                Overlaps with:{" "}
-                <b>
-                  {conflict.subject?.name ?? "Subject"} •{" "}
-                  {conflict.classGroup?.name ?? "Class"}
-                </b>
-              </p>
-              {conflict.schedule?.dayOfWeek != null &&
-              conflict.schedule?.startTime &&
-              conflict.schedule?.endTime ? (
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
-                  <Clock className="h-3.5 w-3.5" />
-                  {DOW[Number(conflict.schedule.dayOfWeek)]?.label ??
-                    `Day ${conflict.schedule.dayOfWeek}`}{" "}
-                  • {conflict.schedule.startTime}-{conflict.schedule.endTime}
-                </div>
-              ) : null}
-              <p className="text-white/70">
-                Adjust the day/time or remove schedule from this assignment.
-              </p>
-            </div>
-          </Callout>
-        ) : null}
-
-            {/* success state */}
-            {result ? (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-emerald-100">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
-                  <Check className="h-5 w-5" />
-                </div>
+        {/* Panel */}
+        <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className={cn(
+              // SOLID dark panel (like CreateStudentModal vibe)
+              "w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+            )}
+          >
+            {/* Header (clear + underlined) */}
+            <div className="px-6 pt-6">
+              <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold">Assignment created</p>
-                  <p className="text-sm text-white/80">
-                    {periodLabel(form.getValues("academicPeriodId"))} •{" "}
-                    {selectedSubjectLabel ?? "—"} • {selectedClassLabel ?? "—"}
+                  <h1 className="text-lg font-semibold">Create Assignment</h1>
+                  <p className="text-sm text-white/60">
+                    Assign a subject and class group to{" "}
+                    <span className="font-medium text-white/85">
+                      {teacher.fullName}
+                    </span>
+                    .
                   </p>
-                  {warnings.length ? (
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs font-semibold text-white/80">
-                        Warnings
-                      </p>
-                      <ul className="list-disc space-y-1 pl-5 text-sm text-white/75">
-                        {warnings.map((w, idx) => (
-                          <li key={idx}>{w}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
                 </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPending}
+                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
+
+              <div className="mt-5 h-px bg-white/10" />
             </div>
 
-              <DialogFooter className="flex-shrink-0 mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    form.reset();
-                    onOpenChange(false);
-                  }}
-                >
-                  Close
-                </Button>
-              </DialogFooter>
-            </div>
-          ) : (
-            <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Academic period */}
-              <div className="space-y-2">
-                <Label>Academic Period</Label>
-                <Select
-                  value={form.watch("academicPeriodId")}
-                  onValueChange={(v) =>
-                    form.setValue("academicPeriodId", v, {
-                      shouldValidate: true,
-                    })
-                  }
-                >
-                  <SelectTrigger className="border-white/10 bg-white/5">
-                    <SelectValue
-                      placeholder={
-                        periodsLoading ? "Loading…" : "Select academic period"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent className={premiumSelectContent}>
-                    {periods.map((p) => (
-                      <SelectItem
-                        key={p._id}
-                        value={p._id}
-                        className={premiumMenuItem}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{p.yearLabel}</span>
-                          <span className="text-neutral-500">•</span>
-                          <span>{p.term}</span>
-                          {p.isCurrent ? (
-                            <Badge
-                              variant="outline"
-                              className="ml-2 border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                            >
-                              Current
-                            </Badge>
+            {/* Body (scrollable) */}
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
+              <div className="space-y-6">
+                {/* banners */}
+                {atCapacity ? (
+                  <Callout tone="warning" title="Capacity warning">
+                    This teacher already has{" "}
+                    <b>{currentActiveAssignmentsCount}</b> active assignments
+                    {typeof maxClasses === "number" ? (
+                      <>
+                        {" "}
+                        (limit: <b>{maxClasses}</b>)
+                      </>
+                    ) : null}
+                    . You can still proceed, but consider rebalancing workloads.
+                  </Callout>
+                ) : null}
+
+                {conflict ? (
+                  <Callout tone="warning" title="Schedule conflict detected">
+                    <div className="space-y-1">
+                      <p className="text-white/80">
+                        Overlaps with:{" "}
+                        <b>
+                          {conflict.subject?.name ?? "Subject"} •{" "}
+                          {conflict.classGroup?.name ?? "Class"}
+                        </b>
+                      </p>
+                      {conflict.schedule?.dayOfWeek != null &&
+                      conflict.schedule?.startTime &&
+                      conflict.schedule?.endTime ? (
+                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+                          <Clock className="h-3.5 w-3.5" />
+                          {DOW[Number(conflict.schedule.dayOfWeek)]?.label ??
+                            `Day ${conflict.schedule.dayOfWeek}`}{" "}
+                          • {conflict.schedule.startTime}-
+                          {conflict.schedule.endTime}
+                        </div>
+                      ) : null}
+                      <p className="text-white/70">
+                        Adjust the day/time or remove schedule from this
+                        assignment.
+                      </p>
+                    </div>
+                  </Callout>
+                ) : null}
+
+                {result ? (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-emerald-100">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
+                          <Check className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold">
+                            Assignment created
+                          </p>
+                          <p className="text-sm text-white/80">
+                            {periodLabel(form.getValues("academicPeriodId"))} •{" "}
+                            {selectedSubjectLabel ?? "—"} •{" "}
+                            {selectedClassLabel ?? "—"}
+                          </p>
+                          {warnings.length ? (
+                            <div className="mt-2 space-y-1">
+                              <p className="text-xs font-semibold text-white/80">
+                                Warnings
+                              </p>
+                              <ul className="list-disc space-y-1 pl-5 text-sm text-white/75">
+                                {warnings.map((w, idx) => (
+                                  <li key={idx}>{w}</li>
+                                ))}
+                              </ul>
+                            </div>
                           ) : null}
                         </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.academicPeriodId ? (
-                  <p className="text-xs text-red-300/80">
-                    {form.formState.errors.academicPeriodId.message}
-                  </p>
-                ) : null}
-              </div>
+                      </div>
+                    </div>
 
-              {/* Workload hours */}
-              <div className="space-y-2">
-                <Label>Workload (hours/week)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={80}
-                  step={1}
-                  className="border-white/10 bg-white/5"
-                  {...form.register("workloadHours")}
-                />
-              </div>
-            </div>
+                    <div className="flex items-center justify-end pt-2">
+                      <Button
+                        variant="outline"
+                        className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        onClick={() => {
+                          form.reset();
+                          setSelectedSubjectLabel(null);
+                          setSelectedClassLabel(null);
+                          setResult(null);
+                          onOpenChange(false);
+                        }}
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-8"
+                  >
+                    {/* Step indicator (same style as CreateStudentModal) */}
+                    <div className="flex items-center justify-between pb-2">
+                      <div className="text-sm text-white/70">
+                        Step{" "}
+                        <span className="font-semibold">{currentStep}</span> of{" "}
+                        {STEPS.length}
+                      </div>
+                      <div className="flex gap-1">
+                        {STEPS.map((_, i) => (
+                          <span
+                            key={i}
+                            className={cn(
+                              "h-1.5 w-8 rounded-full transition-all",
+                              i + 1 <= currentStep ? "bg-brand" : "bg-white/20"
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
 
-            <Separator className="bg-white/10" />
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={currentStep}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-6"
+                      >
+                        {currentStep === 1 && (
+                          <section className="space-y-6">
+                            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                              Assignment Details
+                            </h2>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Subject */}
-              <Combobox
-                label="Subject"
-                placeholder="Select subject"
-                valueLabel={selectedSubjectLabel}
-                open={subjectOpen}
-                onOpenChange={setSubjectOpen}
-                query={subjectQuery}
-                setQuery={setSubjectQuery}
-                items={subjectItems}
-                isLoading={subjectsQ.isLoading}
-                emptyText="No subjects found."
-                onSelect={(id, label) => {
-                  form.setValue("subjectId", id, { shouldValidate: true });
-                  setSelectedSubjectLabel(label);
-                }}
-              />
-              {form.formState.errors.subjectId ? (
-                <p className="text-xs text-red-300/80 -mt-2">
-                  {form.formState.errors.subjectId.message}
-                </p>
-              ) : null}
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                                  Academic Period *
+                                </Label>
+                                <Select
+                                  value={form.watch("academicPeriodId")}
+                                  onValueChange={(v) =>
+                                    form.setValue("academicPeriodId", v, {
+                                      shouldValidate: true,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                                    <SelectValue
+                                      placeholder={
+                                        periodsLoading
+                                          ? "Loading…"
+                                          : "Select academic period"
+                                      }
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent
+                                    className={premiumSelectContent}
+                                  >
+                                    {periods.map((p) => (
+                                      <SelectItem
+                                        key={p._id}
+                                        value={p._id}
+                                        className={premiumMenuItem}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <span>{p.yearLabel}</span>
+                                          <span className="text-neutral-500">
+                                            •
+                                          </span>
+                                          <span>{p.term}</span>
+                                          {p.isCurrent ? (
+                                            <Badge
+                                              variant="outline"
+                                              className="ml-2 border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                                            >
+                                              Current
+                                            </Badge>
+                                          ) : null}
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {form.formState.errors.academicPeriodId ? (
+                                  <p className="text-xs text-rose-300">
+                                    {
+                                      form.formState.errors.academicPeriodId
+                                        .message
+                                    }
+                                  </p>
+                                ) : null}
+                              </div>
 
-              {/* Class group */}
-              <Combobox
-                label="Class Group"
-                placeholder="Select class group"
-                valueLabel={selectedClassLabel}
-                open={classOpen}
-                onOpenChange={setClassOpen}
-                query={classQuery}
-                setQuery={setClassQuery}
-                items={classItems}
-                isLoading={classGroupsQ.isLoading}
-                emptyText="No class groups found."
-                onSelect={(id, label) => {
-                  form.setValue("classGroupId", id, { shouldValidate: true });
-                  setSelectedClassLabel(label);
-                }}
-              />
-              {form.formState.errors.classGroupId ? (
-                <p className="text-xs text-red-300/80 -mt-2">
-                  {form.formState.errors.classGroupId.message}
-                </p>
-              ) : null}
-            </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                                  Workload (hours/week)
+                                </Label>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={80}
+                                  step={1}
+                                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                                  {...form.register("workloadHours")}
+                                />
+                              </div>
+                            </div>
 
-            <Accordion
-              type="single"
-              collapsible
-              className="rounded-2xl border border-white/10 bg-white/5"
-              onValueChange={(v) =>
-                form.setValue("includeSchedule", v === "schedule")
-              }
-            >
-              <AccordionItem value="schedule" className="border-none">
-                              <AccordionTrigger className="px-4 py-3 text-sm">
-                  Optional schedules (recommended)
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <div className="space-y-4">
-                    {(!form.watch("schedules") || form.watch("schedules")?.length === 0) && (
+                            <Separator className="bg-white/10" />
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <Combobox
+                                  label="Subject *"
+                                  placeholder="Select subject"
+                                  valueLabel={selectedSubjectLabel}
+                                  open={subjectOpen}
+                                  onOpenChange={setSubjectOpen}
+                                  query={subjectQuery}
+                                  setQuery={setSubjectQuery}
+                                  items={subjectItems}
+                                  isLoading={subjectsQ.isLoading}
+                                  emptyText="No subjects found."
+                                  onSelect={(id, label) => {
+                                    form.setValue("subjectId", id, {
+                                      shouldValidate: true,
+                                    });
+                                    setSelectedSubjectLabel(label);
+                                  }}
+                                />
+                                {form.formState.errors.subjectId ? (
+                                  <p className="text-xs text-rose-300">
+                                    {form.formState.errors.subjectId.message}
+                                  </p>
+                                ) : null}
+                              </div>
+
+                              <div className="space-y-2">
+                                <Combobox
+                                  label="Class Group *"
+                                  placeholder="Select class group"
+                                  valueLabel={selectedClassLabel}
+                                  open={classOpen}
+                                  onOpenChange={setClassOpen}
+                                  query={classQuery}
+                                  setQuery={setClassQuery}
+                                  items={classItems}
+                                  isLoading={classGroupsQ.isLoading}
+                                  emptyText="No class groups found."
+                                  onSelect={(id, label) => {
+                                    form.setValue("classGroupId", id, {
+                                      shouldValidate: true,
+                                    });
+                                    setSelectedClassLabel(label);
+                                  }}
+                                />
+                                {form.formState.errors.classGroupId ? (
+                                  <p className="text-xs text-rose-300">
+                                    {form.formState.errors.classGroupId.message}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+                          </section>
+                        )}
+
+                        {currentStep === 2 && (
+                          <section className="space-y-6">
+                            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                              Schedules
+                            </h2>
+
+                            <Accordion
+                              type="single"
+                              collapsible
+                              value={includeSchedule ? "schedule" : ""}
+                              className="rounded-2xl border border-white/10 bg-white/5"
+                              onValueChange={(v) =>
+                                form.setValue(
+                                  "includeSchedule",
+                                  v === "schedule"
+                                )
+                              }
+                            >
+                              <AccordionItem
+                                value="schedule"
+                                className="border-none"
+                              >
+                                <AccordionTrigger className="px-4 py-3 text-sm">
+                                  Optional schedules (recommended)
+                                </AccordionTrigger>
+                                <AccordionContent className="px-4 pb-4">
+                                  <div className="space-y-4">
+                                    {(!schedules || schedules.length === 0) && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full border-dashed border-white/20 bg-transparent hover:bg-white/5 hover:border-white/30"
+                                        onClick={() => {
+                                          form.setValue(
+                                            "schedules",
+                                            [
+                                              {
+                                                dayOfWeek: 1,
+                                                startTime: "",
+                                                endTime: "",
+                                                location: undefined,
+                                              },
+                                            ],
+                                            { shouldValidate: false }
+                                          );
+                                          if (
+                                            !form.getValues("includeSchedule")
+                                          ) {
+                                            form.setValue(
+                                              "includeSchedule",
+                                              true
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add First Schedule
+                                      </Button>
+                                    )}
+
+                                    {(schedules || []).map((schedule, idx) => {
+                                      const selectedLocationId =
+                                        schedule.location;
+                                      const selectedLocationLabel =
+                                        (selectedLocationId &&
+                                          locationItems.find(
+                                            (i) => i.id === selectedLocationId
+                                          )?.label) ||
+                                        null;
+
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <Label className="text-sm font-medium text-white/90">
+                                              Schedule {idx + 1}
+                                            </Label>
+
+                                            {(schedules || []).length > 1 && (
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-rose-300 hover:text-rose-200 hover:bg-rose-500/10"
+                                                onClick={() => {
+                                                  const current =
+                                                    form.getValues(
+                                                      "schedules"
+                                                    ) || [];
+                                                  form.setValue(
+                                                    "schedules",
+                                                    current.filter(
+                                                      (_, i) => i !== idx
+                                                    ),
+                                                    { shouldValidate: true }
+                                                  );
+                                                }}
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </Button>
+                                            )}
+                                          </div>
+
+                                          <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="space-y-2">
+                                              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                                                Day
+                                              </Label>
+                                              <Select
+                                                value={String(
+                                                  schedule.dayOfWeek ?? 1
+                                                )}
+                                                onValueChange={(v) => {
+                                                  const current =
+                                                    form.getValues(
+                                                      "schedules"
+                                                    ) || [];
+                                                  current[idx] = {
+                                                    ...current[idx],
+                                                    dayOfWeek: Number(v),
+                                                  };
+                                                  form.setValue(
+                                                    "schedules",
+                                                    current,
+                                                    {
+                                                      shouldValidate:
+                                                        includeSchedule,
+                                                    }
+                                                  );
+                                                }}
+                                              >
+                                                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                                                  <SelectValue placeholder="Select day" />
+                                                </SelectTrigger>
+                                                <SelectContent
+                                                  className={
+                                                    premiumSelectContent
+                                                  }
+                                                >
+                                                  {DOW.map((d) => (
+                                                    <SelectItem
+                                                      key={d.value}
+                                                      value={d.value}
+                                                      className={
+                                                        premiumMenuItem
+                                                      }
+                                                    >
+                                                      {d.label}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                              {form.formState.errors
+                                                ?.schedules?.[idx]
+                                                ?.dayOfWeek ? (
+                                                <p className="text-xs text-rose-300">
+                                                  {String(
+                                                    form.formState.errors
+                                                      .schedules[idx]?.dayOfWeek
+                                                      ?.message
+                                                  )}
+                                                </p>
+                                              ) : null}
+                                            </div>
+
+                                            <div className="space-y-2">
+                                              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                                                Location (Class Group)
+                                              </Label>
+                                              <Combobox
+                                                placeholder="Select class group for location"
+                                                valueLabel={
+                                                  selectedLocationLabel
+                                                }
+                                                open={locationOpenIndex === idx}
+                                                onOpenChange={(v) =>
+                                                  setLocationOpenIndex(
+                                                    v ? idx : null
+                                                  )
+                                                }
+                                                query={locationQuery}
+                                                setQuery={setLocationQuery}
+                                                items={locationItems}
+                                                isLoading={
+                                                  locationGroupsQ.isLoading
+                                                }
+                                                emptyText="No class groups found."
+                                                onSelect={(id) => {
+                                                  const current =
+                                                    form.getValues(
+                                                      "schedules"
+                                                    ) || [];
+                                                  current[idx] = {
+                                                    ...current[idx],
+                                                    location: id,
+                                                  };
+                                                  form.setValue(
+                                                    "schedules",
+                                                    current,
+                                                    {
+                                                      shouldValidate:
+                                                        includeSchedule,
+                                                    }
+                                                  );
+                                                  setLocationOpenIndex(null);
+                                                }}
+                                              />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                                                Start time
+                                              </Label>
+                                              <Input
+                                                type="time"
+                                                className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                                                value={schedule.startTime || ""}
+                                                onChange={(e) => {
+                                                  const current =
+                                                    form.getValues(
+                                                      "schedules"
+                                                    ) || [];
+                                                  current[idx] = {
+                                                    ...current[idx],
+                                                    startTime: e.target.value,
+                                                  };
+                                                  form.setValue(
+                                                    "schedules",
+                                                    current,
+                                                    {
+                                                      shouldValidate:
+                                                        includeSchedule,
+                                                    }
+                                                  );
+                                                }}
+                                              />
+                                            </div>
+
+                                            <div className="space-y-2">
+                                              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                                                End time
+                                              </Label>
+                                              <Input
+                                                type="time"
+                                                className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
+                                                value={schedule.endTime || ""}
+                                                onChange={(e) => {
+                                                  const current =
+                                                    form.getValues(
+                                                      "schedules"
+                                                    ) || [];
+                                                  current[idx] = {
+                                                    ...current[idx],
+                                                    endTime: e.target.value,
+                                                  };
+                                                  form.setValue(
+                                                    "schedules",
+                                                    current,
+                                                    {
+                                                      shouldValidate:
+                                                        includeSchedule,
+                                                    }
+                                                  );
+                                                }}
+                                              />
+                                              {form.formState.errors
+                                                ?.schedules?.[idx]?.endTime ? (
+                                                <p className="text-xs text-rose-300">
+                                                  {String(
+                                                    form.formState.errors
+                                                      .schedules[idx]?.endTime
+                                                      ?.message
+                                                  )}
+                                                </p>
+                                              ) : null}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      className="w-full border-dashed border-white/20 bg-transparent hover:bg-white/5 hover:border-white/30"
+                                      onClick={() => {
+                                        const current =
+                                          form.getValues("schedules") || [];
+                                        form.setValue(
+                                          "schedules",
+                                          [
+                                            ...current,
+                                            {
+                                              dayOfWeek: 1,
+                                              startTime: "",
+                                              endTime: "",
+                                              location: undefined,
+                                            },
+                                          ],
+                                          { shouldValidate: false }
+                                        );
+                                        if (
+                                          !form.getValues("includeSchedule")
+                                        ) {
+                                          form.setValue(
+                                            "includeSchedule",
+                                            true
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Add Another Schedule
+                                    </Button>
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </section>
+                        )}
+
+                        {currentStep === 3 && (
+                          <section className="space-y-6">
+                            <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
+                              Notes & Confirm
+                            </h2>
+
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                                Notes (optional)
+                              </Label>
+                              <Textarea
+                                className="min-h-[110px] border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                                {...form.register("notes")}
+                              />
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-3">
+                              <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                                Review
+                              </p>
+
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <div className="space-y-1">
+                                  <p className="text-xs text-white/50">
+                                    Academic period
+                                  </p>
+                                  <p className="text-sm text-white/85">
+                                    {periodLabel(
+                                      form.getValues("academicPeriodId")
+                                    )}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-xs text-white/50">
+                                    Workload
+                                  </p>
+                                  <p className="text-sm text-white/85">
+                                    {form.getValues("workloadHours") ?? 0}{" "}
+                                    hrs/week
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-xs text-white/50">
+                                    Subject
+                                  </p>
+                                  <p className="text-sm text-white/85">
+                                    {selectedSubjectLabel ?? "—"}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-xs text-white/50">
+                                    Class group
+                                  </p>
+                                  <p className="text-sm text-white/85">
+                                    {selectedClassLabel ?? "—"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="pt-2 border-t border-white/10">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs text-white/50">
+                                    Schedules
+                                  </p>
+                                  <p className="text-xs text-white/75">
+                                    {includeSchedule && schedules.length > 0
+                                      ? `${schedules.length} item(s)`
+                                      : "Not included"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {warnings.length ? (
+                              <Callout tone="info" title="Warnings">
+                                <ul className="list-disc space-y-1 pl-5">
+                                  {warnings.map((w, idx) => (
+                                    <li key={idx}>{w}</li>
+                                  ))}
+                                </ul>
+                              </Callout>
+                            ) : null}
+                          </section>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+
+                    {/* Footer nav (like CreateStudentModal) */}
+                    <div className="flex items-center justify-between pt-6 border-t border-white/10">
                       <Button
                         type="button"
                         variant="outline"
-                        className="w-full border-dashed border-white/20 hover:border-white/30"
                         onClick={() => {
-                          form.setValue(
-                            "schedules",
-                            [
-                              {
-                                dayOfWeek: 1,
-                                startTime: "",
-                                endTime: "",
-                                location: undefined,
-                              },
-                            ],
-                            { shouldValidate: false }
-                          );
-                          if (!form.getValues("includeSchedule")) {
-                            form.setValue("includeSchedule", true);
-                          }
+                          if (isFirstStep) onOpenChange(false);
+                          else handlePrevious();
                         }}
+                        disabled={isPending}
+                        className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add First Schedule
+                        <ChevronLeft className="h-4 w-4" />
+                        {isFirstStep ? "Cancel" : "Previous"}
                       </Button>
-                    )}
-                    {(form.watch("schedules") || []).map((schedule, idx) => {
-                      const selectedLocationId = schedule.location;
-                      const selectedLocationLabel =
-                        selectedLocationId &&
-                        locationItems.find((i) => i.id === selectedLocationId)
-                          ?.label || null;
-                      return (
-                        <div
-                          key={idx}
-                          className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
-                        >
-                          <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium">
-                              Schedule {idx + 1}
-                            </Label>
-                            {(form.watch("schedules") || []).length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-red-300 hover:text-red-200 hover:bg-red-500/10"
-                                onClick={() => {
-                                  const current = form.getValues("schedules") || [];
-                                  form.setValue(
-                                    "schedules",
-                                    current.filter((_, i) => i !== idx),
-                                    { shouldValidate: true }
-                                  );
-                                }}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
+
+                      <div className="flex gap-2">
+                        {!isLastStep ? (
+                          <Button
+                            type="button"
+                            onClick={handleNext}
+                            disabled={isPending}
+                            className="gap-2 bg-brand text-black hover:opacity-90"
+                          >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            onClick={form.handleSubmit(onSubmit)}
+                            disabled={isPending}
+                            className="gap-2 bg-brand text-black hover:opacity-90"
+                          >
+                            {isPending ? (
+                              "Creating…"
+                            ) : (
+                              <>
+                                <Check className="h-4 w-4" />
+                                Create Assignment
+                              </>
                             )}
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label>Day</Label>
-                              <Select
-                                value={String(schedule.dayOfWeek ?? 1)}
-                                onValueChange={(v) => {
-                                  const current = form.getValues("schedules") || [];
-                                  current[idx] = {
-                                    ...current[idx],
-                                    dayOfWeek: Number(v),
-                                  };
-                                  form.setValue("schedules", current, {
-                                    shouldValidate: includeSchedule,
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="border-white/10 bg-white/5">
-                                  <SelectValue placeholder="Select day" />
-                                </SelectTrigger>
-                                <SelectContent className={premiumSelectContent}>
-                                  {DOW.map((d) => (
-                                    <SelectItem
-                                      key={d.value}
-                                      value={d.value}
-                                      className={premiumMenuItem}
-                                    >
-                                      {d.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              {form.formState.errors?.schedules?.[idx]?.dayOfWeek ? (
-                                <p className="text-xs text-red-300/80">
-                                  {String(
-                                    form.formState.errors.schedules[idx]
-                                      ?.dayOfWeek?.message
-                                  )}
-                                </p>
-                              ) : null}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Location (Class Group)</Label>
-                              <Combobox
-                                label=""
-                                placeholder="Select class group for location"
-                                valueLabel={selectedLocationLabel || null}
-                                open={locationOpenIndex === idx}
-                                onOpenChange={(v) =>
-                                  setLocationOpenIndex(v ? idx : null)
-                                }
-                                query={locationQuery}
-                                setQuery={setLocationQuery}
-                                items={locationItems}
-                                isLoading={locationGroupsQ.isLoading}
-                                emptyText="No class groups found."
-                                onSelect={(id) => {
-                                  const current = form.getValues("schedules") || [];
-                                  current[idx] = {
-                                    ...current[idx],
-                                    location: id,
-                                  };
-                                  form.setValue("schedules", current, {
-                                    shouldValidate: includeSchedule,
-                                  });
-                                  setLocationOpenIndex(null);
-                                }}
-                              />
-                              {form.formState.errors?.schedules?.[idx]?.location ? (
-                                <p className="text-xs text-red-300/80">
-                                  {String(
-                                    form.formState.errors.schedules[idx]
-                                      ?.location?.message
-                                  )}
-                                </p>
-                              ) : null}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Start time</Label>
-                              <Input
-                                type="time"
-                                className="border-white/10 bg-white/5"
-                                value={schedule.startTime || ""}
-                                onChange={(e) => {
-                                  const current = form.getValues("schedules") || [];
-                                  current[idx] = {
-                                    ...current[idx],
-                                    startTime: e.target.value,
-                                  };
-                                  form.setValue("schedules", current, {
-                                    shouldValidate: includeSchedule,
-                                  });
-                                }}
-                              />
-                              {form.formState.errors?.schedules?.[idx]?.startTime ? (
-                                <p className="text-xs text-red-300/80">
-                                  {String(
-                                    form.formState.errors.schedules[idx]
-                                      ?.startTime?.message
-                                  )}
-                                </p>
-                              ) : null}
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>End time</Label>
-                              <Input
-                                type="time"
-                                className="border-white/10 bg-white/5"
-                                value={schedule.endTime || ""}
-                                onChange={(e) => {
-                                  const current = form.getValues("schedules") || [];
-                                  current[idx] = {
-                                    ...current[idx],
-                                    endTime: e.target.value,
-                                  };
-                                  form.setValue("schedules", current, {
-                                    shouldValidate: includeSchedule,
-                                  });
-                                }}
-                              />
-                              {form.formState.errors?.schedules?.[idx]?.endTime ? (
-                                <p className="text-xs text-red-300/80">
-                                  {String(
-                                    form.formState.errors.schedules[idx]
-                                      ?.endTime?.message
-                                  )}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full border-dashed border-white/20 hover:border-white/30"
-                      onClick={() => {
-                        const current = form.getValues("schedules") || [];
-                        form.setValue(
-                          "schedules",
-                          [
-                            ...current,
-                            {
-                              dayOfWeek: 1,
-                              startTime: "",
-                              endTime: "",
-                              location: undefined,
-                            },
-                          ],
-                          { shouldValidate: false }
-                        );
-                        if (!form.getValues("includeSchedule")) {
-                          form.setValue("includeSchedule", true);
-                        }
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Another Schedule
-                    </Button>
-                  </div>
-
-                  <div className="mt-4 space-y-2 rounded-lg border border-sky-400/20 bg-sky-500/10 p-3">
-                    <p className="text-xs font-semibold text-sky-100">
-                      Why add schedules?
-                    </p>
-                    <div className="space-y-1.5 text-xs text-sky-100/80">
-                      <p>
-                        <span className="font-medium">Multiple Time Slots:</span>{" "}
-                        If this teacher teaches the same subject and class group
-                        at different times (e.g., Monday 9am and Wednesday 2pm),
-                        you can add multiple schedules for the same assignment.
-                        This allows one assignment to have multiple time slots.
-                      </p>
-                      <p>
-                        <span className="font-medium">Conflict Detection:</span>{" "}
-                        When you specify the day, time, and location for each
-                        schedule, the system can automatically detect if this
-                        teacher would have overlapping classes. This prevents
-                        scheduling conflicts before they happen.
-                      </p>
-                      <p>
-                        <span className="font-medium">Cleaner Timetables:</span>{" "}
-                        Assignments with schedules will appear properly
-                        organized in timetable views, making it easier to see
-                        when and where classes occur. Without schedules,
-                        assignments appear as general assignments without
-                        specific time slots.
-                      </p>
-                      <p className="mt-2 text-sky-100/70">
-                        <span className="font-medium">Note:</span> Location
-                        refers to the class group where the class takes place.
-                        You can create assignments without schedules, but adding
-                        them now saves time later when building class timetables.
-                      </p>
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-
-            <div className="space-y-2">
-              <Label>Notes (optional)</Label>
-              <Textarea
-                className="min-h-[90px] border-white/10 bg-white/5"
-                {...form.register("notes")}
-              />
+                  </form>
+                )}
+              </div>
             </div>
-
-            {warnings.length ? (
-              <Callout tone="info" title="Warnings">
-                <ul className="list-disc space-y-1 pl-5">
-                  {warnings.map((w, idx) => (
-                    <li key={idx}>{w}</li>
-                  ))}
-                </ul>
-              </Callout>
-            ) : null}
-          </form>
-          )}
-          </div>
+          </motion.div>
         </div>
-
-        {!result && (
-          <DialogFooter className="flex-shrink-0 gap-2 mt-4 pt-4 border-t border-white/10">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={form.handleSubmit(onSubmit)}
-              className="gap-2"
-              disabled={isPending}
-            >
-              {isPending ? "Creating…" : "Create Assignment"}
-            </Button>
-          </DialogFooter>
-        )}
-      </DialogContent>
-    </Dialog>
+      </motion.div>
+    </AnimatePresence>
   );
 }

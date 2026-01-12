@@ -142,7 +142,7 @@ export function RecordAttendanceModal({
       <DialogContent className="sm:max-w-[600px] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur">
         <DialogHeader>
           <DialogTitle className="text-xl">Record Attendance</DialogTitle>
-          <DialogDescription className="text-sm">
+          <DialogDescription className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
             Record attendance for <span className="font-medium text-white/90">{teacherName}</span>
           </DialogDescription>
         </DialogHeader>
@@ -150,7 +150,7 @@ export function RecordAttendanceModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="date" className="text-sm">
+              <Label htmlFor="date" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Date *
               </Label>
               <Input
@@ -165,14 +165,14 @@ export function RecordAttendanceModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status" className="text-sm">
+              <Label htmlFor="status" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Status *
               </Label>
               <Select
                 value={status}
                 onValueChange={(value) => setValue("status", value as TeacherAttendanceStatus)}
               >
-                <SelectTrigger className="border-white/10 bg-white/5">
+                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -204,7 +204,7 @@ export function RecordAttendanceModal({
 
           {isLate && (
             <div className="space-y-2">
-              <Label htmlFor="minutesLate" className="text-sm">
+              <Label htmlFor="minutesLate" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Minutes Late
               </Label>
               <Input
@@ -223,14 +223,14 @@ export function RecordAttendanceModal({
 
           {isLeaveOrSick && (
             <div className="space-y-2">
-              <Label htmlFor="leaveType" className="text-sm">
+              <Label htmlFor="leaveType" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Leave Type *
               </Label>
               <Select
                 value={watch("leaveType") || ""}
                 onValueChange={(value) => setValue("leaveType", value as LeaveType)}
               >
-                <SelectTrigger className="border-white/10 bg-white/5">
+                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                   <SelectValue placeholder="Select leave type" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -259,7 +259,7 @@ export function RecordAttendanceModal({
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="checkInTime" className="text-sm">
+              <Label htmlFor="checkInTime" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Check In Time
               </Label>
               <Input
@@ -271,7 +271,7 @@ export function RecordAttendanceModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="checkOutTime" className="text-sm">
+              <Label htmlFor="checkOutTime" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Check Out Time
               </Label>
               <Input
@@ -285,7 +285,7 @@ export function RecordAttendanceModal({
 
           {(isLeaveOrSick || status === "absent") && (
             <div className="space-y-2">
-              <Label htmlFor="reason" className="text-sm">
+              <Label htmlFor="reason" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Reason
               </Label>
               <Textarea
@@ -302,7 +302,7 @@ export function RecordAttendanceModal({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="notes" className="text-sm">
+            <Label htmlFor="notes" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Notes (optional)
             </Label>
             <Textarea
@@ -314,19 +314,20 @@ export function RecordAttendanceModal({
             />
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 border-t border-white/10 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting || recordAttendanceMutation.isPending}
+              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || recordAttendanceMutation.isPending}
-              className="gap-2"
+              className="gap-2 bg-brand text-black hover:opacity-90"
             >
               {isSubmitting || recordAttendanceMutation.isPending
                 ? "Recording…"

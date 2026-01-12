@@ -1,4 +1,4 @@
-// src/components/modals/AssignHomeroomModal.tsx
+// src/components/modals/BulkAssignClassesModal.tsx
 "use client";
 
 import * as React from "react";
@@ -34,24 +34,21 @@ import {
 import {
   useClassGroupSearch,
 } from "@/hooks/admin/useDirectorySearch";
-import {
-  useAssignHomeroom,
-  useTeacherHomeroom,
-} from "@/hooks/admin/useTeachers";
+import { useBulkAssignClasses } from "@/hooks/admin/useTeacherBulkOperations";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  teacherId: string;
-  teacherName: string;
+  teacherIds: string[];
+  teacherCount: number;
 };
 
-export function AssignHomeroomModal({
+export function BulkAssignClassesModal({
   open,
   onOpenChange,
-  teacherId,
-  teacherName,
+  teacherIds,
+  teacherCount,
 }: Props) {
   const [selectedClassGroupId, setSelectedClassGroupId] = React.useState<string | null>(null);
   const [selectedClassLabel, setSelectedClassLabel] = React.useState<string | null>(null);
@@ -59,14 +56,12 @@ export function AssignHomeroomModal({
   const [classQuery, setClassQuery] = React.useState("");
   const classQ = useDebouncedValue(classQuery, 250);
   const classGroupsQ = useClassGroupSearch(classQ);
-  const { data: currentHomeroomData } = useTeacherHomeroom(teacherId);
-  const currentHomeroom = currentHomeroomData?.data ?? null;
-
-  const assignHomeroomMutation = useAssignHomeroom();
+  const bulkAssignClassesMutation = useBulkAssignClasses();
 
   const classItems = (classGroupsQ.data?.data ?? []).map((g) => ({
     id: g.id,
     label: g.label || g.name,
+    gradeName: g.gradeName,
   }));
 
   // Reset selection when modal opens
@@ -80,23 +75,21 @@ export function AssignHomeroomModal({
   }, [open]);
 
   const handleSubmit = async () => {
-    if (!selectedClassGroupId) {
+    if (!selectedClassGroupId || !teacherIds.length) {
       toast.error("Please select a class group");
       return;
     }
 
     try {
-      const result = await assignHomeroomMutation.mutateAsync({
-        teacherId,
+      const result = await bulkAssignClassesMutation.mutateAsync({
+        teacherIds,
         classGroupId: selectedClassGroupId,
       });
-
-      toast.success(result.message || "Homeroom assigned successfully");
-
+      toast.success(result.message || `Homeroom class assigned to ${teacherCount} teacher(s)`);
       onOpenChange(false);
     } catch (e: unknown) {
       const error = e as { message?: string };
-      toast.error(error.message || "Failed to assign homeroom");
+      toast.error(error.message || "Failed to assign homeroom class");
     }
   };
 
@@ -104,34 +97,25 @@ export function AssignHomeroomModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur">
         <DialogHeader>
-          <DialogTitle className="text-xl">Assign Homeroom</DialogTitle>
+          <DialogTitle className="text-xl">Assign Homeroom Class</DialogTitle>
           <DialogDescription className="text-sm">
-            Assign <span className="font-medium text-white/90">{teacherName}</span> as homeroom teacher
+            Assign a homeroom class to {teacherCount} selected teacher{teacherCount !== 1 ? "s" : ""}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Current homeroom info */}
-          {currentHomeroom && (
-            <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
-              <p className="text-xs font-medium text-amber-100 mb-1">
-                Current Homeroom
-              </p>
-              <p className="text-sm text-amber-200">
-                {currentHomeroom.name}
-                {currentHomeroom.gradeName && ` (${currentHomeroom.gradeName})`}
-              </p>
-              <p className="text-xs text-amber-100/70 mt-1">
-                Selecting a new class will replace this assignment
-              </p>
-            </div>
-          )}
+          <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
+            <p className="text-xs font-medium text-amber-100 mb-1">
+              Important Note
+            </p>
+            <p className="text-xs text-amber-200">
+              Each teacher can only have one homeroom class. If a teacher already has a different homeroom, it will be replaced.
+            </p>
+          </div>
 
           {/* Class group search combobox */}
           <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Select Class Group
-            </Label>
+            <Label className="text-sm">Select Class Group</Label>
             <Popover open={classOpen} onOpenChange={setClassOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -154,7 +138,7 @@ export function AssignHomeroomModal({
               <PopoverContent
                 className={cn(
                   premiumSelectContent,
-                  "w-[var(--radix-popover-trigger-width)] p-1 max-h-[400px]"
+                  "w-[var(--radix-popover-trigger-width)] p-1"
                 )}
               >
                 <Command shouldFilter={false} className="bg-transparent">
@@ -164,7 +148,7 @@ export function AssignHomeroomModal({
                     onValueChange={setClassQuery}
                     className="border-b border-neutral-800/60 bg-transparent"
                   />
-                  <CommandList className="max-h-[300px] overflow-y-auto">
+                  <CommandList>
                     {classGroupsQ.isLoading ? (
                       <div className="px-3 py-3 text-sm text-neutral-400">
                         Searching…
@@ -183,7 +167,7 @@ export function AssignHomeroomModal({
                                 value={it.id}
                                 onSelect={() => {
                                   setSelectedClassGroupId(it.id);
-                                  setSelectedClassLabel(it.label);
+                                  setSelectedClassLabel(it.label || it.id);
                                   setClassOpen(false);
                                 }}
                                 className={cn(
@@ -191,7 +175,14 @@ export function AssignHomeroomModal({
                                   "flex items-center justify-between"
                                 )}
                               >
-                                <span className="truncate">{it.label}</span>
+                                <span className="truncate">
+                                  {it.label}
+                                  {it.gradeName && (
+                                    <span className="text-neutral-400 ml-1">
+                                      ({it.gradeName})
+                                    </span>
+                                  )}
+                                </span>
                                 {isSelected && (
                                   <Check className="h-4 w-4 text-neutral-300" />
                                 )}
@@ -209,29 +200,26 @@ export function AssignHomeroomModal({
 
           <div className="rounded-lg border border-sky-400/20 bg-sky-500/10 p-3">
             <p className="text-xs text-sky-100/80">
-              <span className="font-medium">Note:</span> If the selected class already has a homeroom teacher,
-              you'll need to remove them first before assigning this teacher.
+              <span className="font-medium">Note:</span> If the selected class already has a homeroom teacher
+              (who is not among the selected teachers), you'll need to remove them first.
             </p>
           </div>
         </div>
 
-        <DialogFooter className="gap-2 border-t border-white/10 pt-4">
+        <DialogFooter className="gap-2">
           <Button
-            type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={assignHomeroomMutation.isPending}
-            className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+            disabled={bulkAssignClassesMutation.isPending}
           >
             Cancel
           </Button>
           <Button
-            type="button"
             onClick={handleSubmit}
-            disabled={assignHomeroomMutation.isPending || !selectedClassGroupId}
-            className="gap-2 bg-brand text-black hover:opacity-90"
+            disabled={bulkAssignClassesMutation.isPending || !selectedClassGroupId}
+            className="gap-2"
           >
-            {assignHomeroomMutation.isPending ? "Assigning…" : "Assign Homeroom"}
+            {bulkAssignClassesMutation.isPending ? "Assigning…" : "Assign Homeroom"}
           </Button>
         </DialogFooter>
       </DialogContent>

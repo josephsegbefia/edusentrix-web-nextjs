@@ -3,9 +3,10 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { X, Mail, UserCog, BookOpen, Download } from "lucide-react";
+import { X, Mail, UserCog, BookOpen, Download, GraduationCap } from "lucide-react";
 import { BulkChangeStatusModal } from "@/components/modals/BulkChangeStatusModal";
 import { BulkAssignSubjectsModal } from "@/components/modals/BulkAssignSubjectsModal";
+import { BulkAssignClassesModal } from "@/components/modals/BulkAssignClassesModal";
 import { useBulkExportTeachers } from "@/hooks/admin/useTeacherBulkOperations";
 import { toast } from "sonner";
 
@@ -20,6 +21,7 @@ export function TeachersBulkActionsBar({
 }) {
   const [statusModalOpen, setStatusModalOpen] = React.useState(false);
   const [subjectsModalOpen, setSubjectsModalOpen] = React.useState(false);
+  const [classesModalOpen, setClassesModalOpen] = React.useState(false);
   const bulkExportMutation = useBulkExportTeachers();
 
   const handleExport = async () => {
@@ -77,6 +79,15 @@ export function TeachersBulkActionsBar({
               variant="outline"
               size="sm"
               className="gap-2"
+              onClick={() => setClassesModalOpen(true)}
+            >
+              <GraduationCap className="h-4 w-4" />
+              Assign homeroom
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
               onClick={() => setStatusModalOpen(true)}
             >
               <UserCog className="h-4 w-4" />
@@ -110,6 +121,13 @@ export function TeachersBulkActionsBar({
       <BulkAssignSubjectsModal
         open={subjectsModalOpen}
         onOpenChange={setSubjectsModalOpen}
+        teacherIds={selectedIds}
+        teacherCount={count}
+      />
+
+      <BulkAssignClassesModal
+        open={classesModalOpen}
+        onOpenChange={setClassesModalOpen}
         teacherIds={selectedIds}
         teacherCount={count}
       />

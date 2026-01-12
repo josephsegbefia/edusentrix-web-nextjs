@@ -12,6 +12,9 @@ import { useRemoveSubject, useRemoveHomeroom, useTeacherSubjects, useTeacherHome
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { AssignSubjectModal } from "@/components/modals/AssignSubjectModal";
 import { AssignHomeroomModal } from "@/components/modals/AssignHomeroomModal";
+import { useTeacherWorkload } from "@/hooks/admin/useTeacherWorkload";
+import { AlertTriangle, TrendingUp, Users, BookOpen, Clock } from "lucide-react";
+import type { TeacherDetailTabId } from "@/components/admin/teachers/detail/TeacherDetailTabs";
 
 type TeacherOverviewTabProps = {
   teacher: {
@@ -36,6 +39,7 @@ type TeacherOverviewTabProps = {
   onDeactivate?: () => void;
   onDelete?: () => void;
   isChangingStatus?: boolean;
+  onNavigateToTab?: (tab: TeacherDetailTabId) => void;
 };
 
 function formatDate(value?: string | Date | null) {
@@ -86,6 +90,7 @@ export function TeacherOverviewTab({
   onDeactivate,
   onDelete,
   isChangingStatus,
+  onNavigateToTab,
 }: TeacherOverviewTabProps) {
   const canActivate = teacher.status === "inactive" || teacher.status === "terminated" || teacher.status === "on_leave";
   const canDeactivate = teacher.status === "active";
@@ -96,8 +101,10 @@ export function TeacherOverviewTab({
 
   const { data: subjectsData } = useTeacherSubjects(teacher.id);
   const { data: homeroomData } = useTeacherHomeroom(teacher.id);
+  const { data: workloadData } = useTeacherWorkload(teacher.id);
   const subjects = subjectsData?.data ?? [];
   const homeroom = homeroomData?.data ?? null;
+  const workload = workloadData?.data;
 
   const removeSubjectMutation = useRemoveSubject();
   const removeHomeroomMutation = useRemoveHomeroom();
@@ -271,6 +278,135 @@ export function TeacherOverviewTab({
             </div>
           </div>
 
+          {/* Workload Visualization */}
+          {workload && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80 mb-3">
+                Current Workload
+              </p>
+              <div className="space-y-4">
+                {/* Warnings */}
+                {(workload.warnings.isOverCapacity || workload.warnings.isAboveAverage) && (
+                  <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-300 mt-0.5" />
+                      <div className="flex-1 text-xs">
+                        {workload.warnings.isOverCapacity && (
+                          <p className="text-amber-200 font-medium mb-1">
+                            Over Capacity: This teacher has exceeded their maximum capacity limits.
+                          </p>
+                        )}
+                        {workload.warnings.isAboveAverage && !workload.warnings.isOverCapacity && (
+                          <p className="text-amber-200 font-medium mb-1">
+                            Above Average: This teacher's workload is significantly above the school average.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Workload Metrics */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">
+                        Classes
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold">{workload.current.classes}</p>
+                    {workload.capacity.maxClasses && (
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">of {workload.capacity.maxClasses}</span>
+                          <span className={workload.capacity.classUtilization && workload.capacity.classUtilization > 100 ? "text-red-400" : "text-muted-foreground"}>
+                            {workload.capacity.classUtilization?.toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${
+                              workload.capacity.classUtilization && workload.capacity.classUtilization > 100
+                                ? "bg-red-500"
+                                : workload.capacity.classUtilization && workload.capacity.classUtilization > 80
+                                ? "bg-amber-500"
+                                : "bg-emerald-500"
+                            }`}
+                            style={{
+                              width: `${Math.min(workload.capacity.classUtilization || 0, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80">
+                        Students
+                      </p>
+                    </div>
+                    <p className="text-2xl font-bold">{workload.current.students}</p>
+                    {workload.capacity.maxStudents && (
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">of {workload.capacity.maxStudents}</span>
+                          <span className={workload.capacity.studentUtilization && workload.capacity.studentUtilization > 100 ? "text-red-400" : "text-muted-foreground"}>
+                            {workload.capacity.studentUtilization?.toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${
+                              workload.capacity.studentUtilization && workload.capacity.studentUtilization > 100
+                                ? "bg-red-500"
+                                : workload.capacity.studentUtilization && workload.capacity.studentUtilization > 80
+                                ? "bg-amber-500"
+                                : "bg-emerald-500"
+                            }`}
+                            style={{
+                              width: `${Math.min(workload.capacity.studentUtilization || 0, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional Metrics */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">Workload Hours</p>
+                    </div>
+                    <p className="text-lg font-semibold">{workload.current.workloadHours}h</p>
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">vs School Avg</p>
+                    </div>
+                    <p className={`text-lg font-semibold ${
+                      workload.comparison.differenceFromAverage > 0 ? "text-amber-400" : "text-emerald-400"
+                    }`}>
+                      {workload.comparison.differenceFromAverage > 0 ? "+" : ""}
+                      {workload.comparison.differenceFromAverage.toFixed(1)} classes
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Avg: {workload.comparison.schoolAvgClasses.toFixed(1)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Meta */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -308,28 +444,28 @@ export function TeacherOverviewTab({
           <Button
             variant="outline"
             className="w-full justify-start"
-            onClick={() => alert("Manage assignments coming next")}
+            onClick={() => onNavigateToTab?.("assignments")}
           >
             Manage assignments
           </Button>
           <Button
             variant="outline"
             className="w-full justify-start"
-            onClick={() => alert("Record attendance coming next")}
+            onClick={() => onNavigateToTab?.("attendance")}
           >
             Record attendance
           </Button>
           <Button
             variant="outline"
             className="w-full justify-start"
-            onClick={() => alert("Upload documents coming next")}
+            onClick={() => onNavigateToTab?.("documents")}
           >
             Upload documents
           </Button>
           <Button
             variant="outline"
             className="w-full justify-start"
-            onClick={() => alert("Add note coming next")}
+            onClick={() => onNavigateToTab?.("notes")}
           >
             Add internal note
           </Button>

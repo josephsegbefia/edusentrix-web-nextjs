@@ -294,6 +294,7 @@ function TeacherDetailContent() {
             onDeactivate={handleDeactivate}
             onDelete={handleDelete}
             isChangingStatus={isChangingStatus}
+            onNavigateToTab={handleTabChange}
           />
         ) : activeTab === "assignments" ? (
           <TeacherAssignmentsTab

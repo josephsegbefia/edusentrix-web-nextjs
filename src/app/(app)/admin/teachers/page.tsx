@@ -31,6 +31,7 @@ import { TeachersCommandPalette } from "@/components/admin/teachers/TeachersComm
 
 import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
+import { ImportTeachersCSVModal } from "@/components/modals/ImportTeachersCSVModal";
 import { TeachersAdvancedFiltersDialog } from "@/components/admin/teachers/TeachersAdvancedFiltersDialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useCreateTeacher, useUpdateTeacher, useTeacher, useActivateTeacher, useDeactivateTeacher, useDeleteTeacher } from "@/hooks/admin/useTeachers";
@@ -80,6 +81,7 @@ export default function TeachersPage() {
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [createOpen, setCreateOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [editTeacherId, setEditTeacherId] = React.useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
@@ -241,7 +243,7 @@ export default function TeachersPage() {
             variant="outline"
             size="sm"
             className="hidden md:inline-flex"
-            onClick={() => alert("CSV import coming next")}
+            onClick={() => setImportOpen(true)}
           >
             <Upload className="h-4 w-4" />
             <span>Import Teachers</span>
@@ -456,6 +458,11 @@ export default function TeachersPage() {
       {/* Create Teacher */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <ImportTeachersCSVModal
+            open={importOpen}
+            onOpenChange={setImportOpen}
+          />
+
           <CreateTeacherModal
             onClose={() => {
               setCreateOpen(false);

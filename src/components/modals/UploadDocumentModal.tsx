@@ -181,7 +181,7 @@ export function UploadDocumentModal({
       <DialogContent className="sm:max-w-[600px] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">Upload Document</DialogTitle>
-          <DialogDescription className="text-sm">
+          <DialogDescription className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
             Upload a document for <span className="font-medium text-white/90">{teacherName}</span>
           </DialogDescription>
         </DialogHeader>
@@ -189,7 +189,7 @@ export function UploadDocumentModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* File Upload */}
           <div className="space-y-2">
-            <Label className="text-sm">Document File *</Label>
+            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Document File *</Label>
             <DocumentUploader
               schoolId={me.schoolId}
               category="teachers"
@@ -212,7 +212,7 @@ export function UploadDocumentModal({
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm">
+              <Label htmlFor="name" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Document Name *
               </Label>
               <Input
@@ -227,14 +227,14 @@ export function UploadDocumentModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type" className="text-sm">
+              <Label htmlFor="type" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Document Type *
               </Label>
               <Select
                 value={type}
                 onValueChange={(value) => setValue("type", value as TeacherDocumentType)}
               >
-                <SelectTrigger className="border-white/10 bg-white/5">
+                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent className={premiumSelectContent}>
@@ -265,7 +265,7 @@ export function UploadDocumentModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-sm">
+            <Label htmlFor="category" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Category (optional)
             </Label>
             <Input
@@ -278,7 +278,7 @@ export function UploadDocumentModal({
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="issueDate" className="text-sm">
+              <Label htmlFor="issueDate" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Issue Date (optional)
               </Label>
               <Input
@@ -290,7 +290,7 @@ export function UploadDocumentModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="expiryDate" className="text-sm">
+              <Label htmlFor="expiryDate" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                 Expiry Date (optional)
               </Label>
               <Input
@@ -306,7 +306,7 @@ export function UploadDocumentModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="tags" className="text-sm">
+            <Label htmlFor="tags" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Tags (optional, comma-separated)
             </Label>
             <Input
@@ -318,7 +318,7 @@ export function UploadDocumentModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes" className="text-sm">
+            <Label htmlFor="notes" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
               Notes (optional)
             </Label>
             <Textarea
@@ -330,19 +330,20 @@ export function UploadDocumentModal({
             />
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 border-t border-white/10 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting || uploadDocumentMutation.isPending}
+              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || uploadDocumentMutation.isPending || !uploadedFile}
-              className="gap-2"
+              className="gap-2 bg-brand text-black hover:opacity-90"
             >
               {isSubmitting || uploadDocumentMutation.isPending
                 ? "Uploading…"

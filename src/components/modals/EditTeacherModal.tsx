@@ -118,7 +118,14 @@ export default function EditTeacherModal({
           { cache: "no-store" }
         );
         const json = await res.json();
-        if (alive && json?.success) setClassResults(json.data || []);
+        if (alive && json?.success) {
+          // Map API response to match ClassGroupLite type
+          setClassResults((json.data || []).map((g: any) => ({
+            _id: g.id,
+            name: g.name,
+            gradeLabel: g.label || g.gradeName || undefined,
+          })));
+        }
       } catch {
       } finally {
         if (alive) setClassLoading(false);
@@ -141,7 +148,13 @@ export default function EditTeacherModal({
           { cache: "no-store" }
         );
         const json = await res.json();
-        if (alive && json?.success) setSubjectResults(json.data || []);
+        if (alive && json?.success) {
+          // Map API response to match SubjectLite type
+          setSubjectResults((json.data || []).map((s: any) => ({
+            _id: s.id,
+            name: s.name,
+          })));
+        }
       } catch {
       } finally {
         if (alive) setSubjectsLoading(false);

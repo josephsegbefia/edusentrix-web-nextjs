@@ -8,7 +8,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
-import { useTeacher, useUpdateTeacher, useActivateTeacher, useDeactivateTeacher, useDeleteTeacher } from "@/hooks/admin/useTeachers";
+import {
+  useTeacher,
+  useUpdateTeacher,
+  useActivateTeacher,
+  useDeactivateTeacher,
+  useDeleteTeacher,
+} from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { TeacherDetailHeader } from "@/components/admin/teachers/detail/TeacherDetailHeader";
 import {
@@ -59,19 +65,19 @@ function TeacherDetailContent() {
   const deactivateTeacher = useDeactivateTeacher();
   const deleteTeacher = useDeleteTeacher();
 
-  const isChangingStatus = activateTeacher.isPending || deactivateTeacher.isPending || deleteTeacher.isPending;
+  const isChangingStatus =
+    activateTeacher.isPending ||
+    deactivateTeacher.isPending ||
+    deleteTeacher.isPending;
 
   const handleActivate = async () => {
     if (!teacher) return;
     try {
-      await busy.promise(
-        activateTeacher.mutateAsync(teacher.id),
-        {
-          loading: "Activating teacher...",
-          success: "Teacher activated successfully",
-          error: (e: Error) => e.message || "Failed to activate teacher",
-        }
-      );
+      await busy.promise(activateTeacher.mutateAsync(teacher.id), {
+        loading: "Activating teacher...",
+        success: "Teacher activated successfully",
+        error: (e: Error) => e.message || "Failed to activate teacher",
+      });
     } catch {
       // Error already handled by busy.promise
     }
@@ -79,16 +85,14 @@ function TeacherDetailContent() {
 
   const handleDeactivate = async () => {
     if (!teacher) return;
-    if (!confirm(`Are you sure you want to deactivate ${teacher.fullName}?`)) return;
+    if (!confirm(`Are you sure you want to deactivate ${teacher.fullName}?`))
+      return;
     try {
-      await busy.promise(
-        deactivateTeacher.mutateAsync(teacher.id),
-        {
-          loading: "Deactivating teacher...",
-          success: "Teacher deactivated successfully",
-          error: (e: Error) => e.message || "Failed to deactivate teacher",
-        }
-      );
+      await busy.promise(deactivateTeacher.mutateAsync(teacher.id), {
+        loading: "Deactivating teacher...",
+        success: "Teacher deactivated successfully",
+        error: (e: Error) => e.message || "Failed to deactivate teacher",
+      });
     } catch {
       // Error already handled by busy.promise
     }
@@ -96,16 +100,18 @@ function TeacherDetailContent() {
 
   const handleDelete = async () => {
     if (!teacher) return;
-    if (!confirm(`Are you sure you want to terminate ${teacher.fullName}?\n\nThis will:\n• Set their status to "Terminated"\n• Deactivate all their active assignments\n• Remove them as homeroom teacher (if applicable)\n\nThis action cannot be undone.`)) return;
+    if (
+      !confirm(
+        `Are you sure you want to terminate ${teacher.fullName}?\n\nThis will:\n• Set their status to "Terminated"\n• Deactivate all their active assignments\n• Remove them as homeroom teacher (if applicable)\n\nThis action cannot be undone.`
+      )
+    )
+      return;
     try {
-      await busy.promise(
-        deleteTeacher.mutateAsync(teacher.id),
-        {
-          loading: "Terminating teacher...",
-          success: "Teacher terminated successfully",
-          error: (e: Error) => e.message || "Failed to terminate teacher",
-        }
-      );
+      await busy.promise(deleteTeacher.mutateAsync(teacher.id), {
+        loading: "Terminating teacher...",
+        success: "Teacher terminated successfully",
+        error: (e: Error) => e.message || "Failed to terminate teacher",
+      });
     } catch {
       // Error already handled by busy.promise
     }
@@ -318,14 +324,6 @@ function TeacherDetailContent() {
               fullName: teacher.fullName,
             }}
           />
-        ) : activeTab === "attendance" ? (
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground">
-                Attendance tab coming soon
-              </p>
-            </CardContent>
-          </Card>
         ) : activeTab === "documents" ? (
           <TeacherDocumentsTab
             teacher={{

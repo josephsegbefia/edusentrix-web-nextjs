@@ -8,28 +8,36 @@ import { Subject } from "@/models/Subject";
 import { escapeRegex, parsePositiveInt } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
-  await connectToDatabase();
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
 
-  const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
-  const { searchParams } = new URL(req.url);
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const { searchParams } = new URL(req.url);
 
-  const q = (searchParams.get("q") || "").trim();
-  const limit = Math.min(parsePositiveInt(searchParams.get("limit"), 10), 25);
+    const q = (searchParams.get("q") || "").trim();
+    const limit = Math.min(parsePositiveInt(searchParams.get("limit"), 10), 25);
 
-  const query: any = { schoolId: schoolIdObj };
-  if (q) query.name = new RegExp(escapeRegex(q), "i");
+    const query: any = { schoolId: schoolIdObj };
+    if (q) query.name = new RegExp(escapeRegex(q), "i");
 
-  const items = await Subject.find(query)
-    .select("_id name")
-    .limit(limit)
-    .lean();
+    const items = await Subject.find(query)
+      .select("_id name")
+      .limit(limit)
+      .lean();
 
-  return Response.json({
-    success: true,
-    data: (items || []).map((s: any) => ({
-      id: String(s._id),
-      name: String(s.name),
-    })),
-  });
+    return Response.json({
+      success: true,
+      data: (items || []).map((s: any) => ({
+        id: String(s._id),
+        name: String(s.name),
+      })),
+    });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to search subjects";
+    return Response.json(
+      { success: false, error: message },
+      { status: 500 }
+    );
+  }
 }

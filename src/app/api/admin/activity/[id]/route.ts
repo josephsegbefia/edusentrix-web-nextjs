@@ -30,13 +30,10 @@ export async function DELETE(
     }
 
     // Find the activity and verify it belongs to the school
-    const activityRaw = await Activity.findOne({
+    const activity = await Activity.findOne({
       _id: activityId,
       schoolId: schoolIdObj,
     }).lean();
-
-    // Normalize lean result
-    const activity = Array.isArray(activityRaw) ? activityRaw[0] : activityRaw;
 
     if (!activity) {
       return Response.json(

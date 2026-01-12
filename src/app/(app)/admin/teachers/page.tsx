@@ -6,7 +6,17 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Loader2, AlertCircle, Users, X } from "lucide-react";
+import {
+  Plus,
+  Upload,
+  Loader2,
+  AlertCircle,
+  Users,
+  X,
+  Sparkles,
+  ArrowRight,
+  Command,
+} from "lucide-react";
 
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
@@ -42,6 +52,7 @@ import {
   useDeleteTeacher,
 } from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { cn } from "@/lib/utils";
 
 function isTypingTarget(el: EventTarget | null) {
   if (!el || !(el as HTMLElement).tagName) return false;
@@ -321,36 +332,86 @@ export default function TeachersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="mb-2 text-3xl font-bold">Teachers</h1>
-          <p className="text-muted">
-            Manage staff profiles, subjects, and homeroom assignments across the
-            school
-          </p>
+    <div className="space-y-8">
+      {/* Premium Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+        {/* Background decorations */}
+        <div
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-gradient-to-tr from-emerald-500/10 via-teal-500/5 to-transparent blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
+                <Users className="h-6 w-6 text-indigo-300" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-white">
+                  Teachers
+                </h1>
+                <p className="text-sm text-white/60">
+                  Staff management & directory
+                </p>
+              </div>
+            </div>
+            <p className="max-w-lg text-sm leading-relaxed text-white/50">
+              Manage staff profiles, subjects, and homeroom assignments. Track
+              performance, attendance, and professional development across your
+              school.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="group gap-2 border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10 hover:text-white"
+              onClick={() => setImportOpen(true)}
+            >
+              <Upload className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+              <span>Import CSV</span>
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="group gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 hover:shadow-indigo-500/40"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
+              <span>Add Teacher</span>
+              <ArrowRight className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 pt-1">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="hidden md:inline-flex"
-            onClick={() => setImportOpen(true)}
-          >
-            <Upload className="h-4 w-4" />
-            <span>Import Teachers</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Teacher</span>
-          </Button>
+
+        {/* Keyboard shortcuts hint */}
+        <div className="relative z-10 mt-6 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+          <span className="text-[11px] uppercase tracking-wider text-white/40">
+            Shortcuts
+          </span>
+          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
+            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+              /
+            </kbd>
+            <span>Focus search</span>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/60">
+            <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px]">
+              <Command className="inline h-2.5 w-2.5" />K
+            </kbd>
+            <span>Command palette</span>
+          </div>
         </div>
       </div>
 
@@ -358,42 +419,44 @@ export default function TeachersPage() {
       <TeachersQuickStatsSection />
 
       {/* Teacher directory shell */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        {/* Decorative elements */}
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-transparent"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute -top-24 right-0 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
           aria-hidden="true"
         />
-        <CardHeader className="relative z-10 pb-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+          <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-                <Users className="h-5 w-5 text-white/80" />
+              <div className="relative">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 shadow-inner shadow-white/5">
+                  <Sparkles className="h-5 w-5 text-indigo-300" />
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-400" />
               </div>
-              <div className="space-y-1">
-                <CardTitle className="text-base font-semibold text-white">
+              <div className="space-y-0.5">
+                <CardTitle className="text-lg font-semibold tracking-tight text-white">
                   Teacher Directory
                 </CardTitle>
-                <p className="text-xs text-white/60">
-                  Search, filter, and manage staff profiles in one place.
+                <p className="text-xs text-white/50">
+                  Search, filter, and manage staff profiles
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                Focus search: /
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                Command palette: Ctrl/Cmd+K
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
+                {pagination?.total ?? 0} total
               </span>
             </div>
           </div>
-          <div className="mt-4 h-px bg-white/10" />
         </CardHeader>
-        <CardContent className="relative z-10 space-y-4 pb-6">
+
+        <CardContent className="relative z-10 space-y-5 p-6">
           <TeachersTabsNav value={tab} onChange={handleTabChange} />
           <TeachersToolbar
             search={search}
@@ -411,89 +474,148 @@ export default function TeachersPage() {
       </Card>
 
       {/* Data summary shell – cards/table + pagination */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        {/* Decorative elements */}
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-transparent"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute -bottom-24 left-0 h-56 w-56 rounded-full bg-muted/10 blur-3xl"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
           aria-hidden="true"
         />
-        <CardHeader className="relative z-10 pb-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+
+        <CardHeader className="relative z-10 border-b border-white/5 pb-0">
+          <div className="flex flex-col gap-3 pb-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
+              <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
                 Directory Results
               </CardTitle>
-              <p className="text-xs text-white/60">
-                Live results based on your current filters and sorting.
+              <p className="text-sm text-white/80">
+                {isLoading
+                  ? "Loading..."
+                  : `${pagination?.total ?? 0} teachers found`}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                View: {viewMode === "cards" ? "Cards" : "Table"}
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
+                  viewMode === "cards"
+                    ? "border-indigo-500/30 bg-indigo-500/10 text-indigo-300"
+                    : "border-white/10 bg-white/5 text-white/60"
+                )}
+              >
+                {viewMode === "cards" ? "Cards" : "Table"} view
               </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                Tab: {tab}
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium capitalize text-white/60">
+                {tab === "all" ? "All teachers" : tab.replace("_", " ")}
               </span>
             </div>
           </div>
-          <div className="mt-4 h-px bg-white/10" />
         </CardHeader>
-        <CardContent className="relative z-10 pt-2 pb-8">
+
+        <CardContent className="relative z-10 p-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
-              <p className="text-sm text-muted-foreground">
-                Loading teachers...
-              </p>
+            <div className="flex flex-col items-center justify-center gap-4 py-16">
+              <div className="relative">
+                <div className="h-12 w-12 animate-spin rounded-full border-2 border-indigo-500/20 border-t-indigo-500" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-indigo-400/60" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-white/80">
+                  Loading teachers...
+                </p>
+                <p className="text-xs text-white/50">
+                  Fetching your teacher directory
+                </p>
+              </div>
             </div>
           ) : isError ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <AlertCircle className="h-8 w-8 text-red-400/60" />
-              <p className="text-sm text-red-300/80">
-                There was a problem loading teachers.
-              </p>
+            <div className="flex flex-col items-center justify-center gap-4 py-16">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-red-500/30 bg-red-500/10">
+                <AlertCircle className="h-7 w-7 text-red-400" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-red-300">
+                  Failed to load teachers
+                </p>
+                <p className="text-xs text-red-300/60">
+                  Please try refreshing the page
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
             </div>
           ) : teachers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <Users className="h-12 w-12 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-muted-foreground">
-                No teachers found
-              </p>
-              <p className="text-xs text-muted-foreground/80">
-                {search
-                  ? "Try adjusting your search or filters"
-                  : "Get started by adding your first teacher"}
-              </p>
+            <div className="flex flex-col items-center justify-center gap-4 py-16">
+              <div className="relative">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-white/10 to-white/5">
+                  <Users className="h-10 w-10 text-white/30" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-indigo-500">
+                  <Plus className="h-4 w-4 text-white" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-base font-medium text-white/80">
+                  No teachers found
+                </p>
+                <p className="mt-1 max-w-xs text-sm text-white/50">
+                  {search
+                    ? "Try adjusting your search or filters to find what you're looking for"
+                    : "Get started by adding your first teacher to the directory"}
+                </p>
+              </div>
+              {!search && (
+                <Button
+                  size="sm"
+                  className="mt-2 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700"
+                  onClick={() => setCreateOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add your first teacher
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70 md:flex-row md:items-center md:justify-between">
-                <div>
-                  Showing{" "}
-                  <span className="font-semibold text-white">
-                    {teachers.length} teacher{teachers.length === 1 ? "" : "s"}
-                  </span>{" "}
-                  on page{" "}
-                  <span className="font-semibold text-white">
-                    {pagination.page}
-                  </span>{" "}
-                  of {pagination.totalPages}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-white/60">
-                  <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
-                    View:{" "}
-                    <span className="font-medium">
-                      {viewMode === "cards" ? "Cards" : "Table"}
+            <div className="space-y-5">
+              {/* Results summary bar */}
+              <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-gradient-to-r from-white/5 to-transparent px-4 py-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2 text-sm text-white/70">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-300">
+                    {teachers.length}
+                  </span>
+                  <span>
+                    teacher{teachers.length === 1 ? "" : "s"} on page{" "}
+                    <span className="font-medium text-white">
+                      {pagination.page}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium text-white">
+                      {pagination.totalPages}
                     </span>
                   </span>
-                  <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
-                    Tab: <span className="font-medium">{tab}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-white/50">
+                  <span>
+                    Total:{" "}
+                    <span className="font-medium text-white/70">
+                      {pagination.total}
+                    </span>{" "}
+                    records
                   </span>
                 </div>
               </div>
+
               {viewMode === "cards" ? (
                 <TeachersCardGrid
                   teachers={teachers}

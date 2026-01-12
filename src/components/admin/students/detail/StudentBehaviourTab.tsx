@@ -13,6 +13,7 @@ import {
   Shield,
   Award,
   AlertCircle,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
@@ -30,325 +31,400 @@ export function StudentBehaviourTab({ student }: Props) {
   const hasIncidents = incidents.length > 0;
 
   return (
-    <div className="mt-4 space-y-6">
+    <div className="space-y-6">
       {/* Premium Attendance Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
           <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent"
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-emerald-500/15 via-emerald-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
             aria-hidden="true"
           />
           <CardContent className="relative z-10 p-4">
-            <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 border border-emerald-400/30">
-                <CalendarCheck className="h-4 w-4 text-emerald-200" />
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                  Presence Rate
+                </div>
+                <div className="mt-1 text-2xl font-bold text-white">
+                  {attendanceSummary?.presentPercent != null
+                    ? `${attendanceSummary.presentPercent.toFixed(1)}%`
+                    : "--"}
+                </div>
+                <p className="text-[10px] text-white/50">
+                  Based on recorded sessions
+                </p>
               </div>
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
-                Presence Rate
-              </span>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-500/30 bg-linear-to-br from-emerald-500/20 to-emerald-600/20 shadow-inner shadow-white/5">
+                <CalendarCheck className="h-5 w-5 text-emerald-300" />
+              </div>
             </div>
-            <div className="mb-1 text-2xl font-bold text-foreground">
-              {attendanceSummary?.presentPercent != null
-                ? `${attendanceSummary.presentPercent.toFixed(1)}%`
-                : "--"}
-            </div>
-            <p className="text-[10px] text-muted-foreground/80">
-              Based on recorded sessions
-            </p>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
           <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-red-500/10 via-red-500/5 to-transparent"
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-red-500/15 via-red-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
             aria-hidden="true"
           />
           <CardContent className="relative z-10 p-4">
-            <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/20 border border-red-400/30">
-                <AlertCircle className="h-4 w-4 text-red-200" />
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                  Days Absent
+                </div>
+                <div className="mt-1 text-2xl font-bold text-white">
+                  {attendanceSummary?.absentDays ?? "--"}
+                </div>
+                <p className="text-[10px] text-white/50">
+                  Across the selected term
+                </p>
               </div>
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
-                Days Absent
-              </span>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-linear-to-br from-red-500/20 to-red-600/20 shadow-inner shadow-white/5">
+                <AlertCircle className="h-5 w-5 text-red-300" />
+              </div>
             </div>
-            <div className="mb-1 text-2xl font-bold text-foreground">
-              {attendanceSummary?.absentDays ?? "--"}
-            </div>
-            <p className="text-[10px] text-muted-foreground/80">
-              Across the selected term
-            </p>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
           <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent"
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-amber-500/15 via-amber-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
             aria-hidden="true"
           />
           <CardContent className="relative z-10 p-4">
-            <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20 border border-amber-400/30">
-                <Clock className="h-4 w-4 text-amber-200" />
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                  Late Arrivals
+                </div>
+                <div className="mt-1 text-2xl font-bold text-white">
+                  {attendanceSummary?.lateDays ?? "--"}
+                </div>
+                <p className="text-[10px] text-white/50">
+                  For morning sessions
+                </p>
               </div>
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
-                Late Arrivals
-              </span>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-linear-to-br from-amber-500/20 to-amber-600/20 shadow-inner shadow-white/5">
+                <Clock className="h-5 w-5 text-amber-300" />
+              </div>
             </div>
-            <div className="mb-1 text-2xl font-bold text-foreground">
-              {attendanceSummary?.lateDays ?? "--"}
-            </div>
-            <p className="text-[10px] text-muted-foreground/80">
-              For morning sessions
-            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Attendance Details */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/5 via-blue-500/2 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          aria-hidden="true"
+        />
+
         <CardHeader className="relative z-10 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 border border-blue-400/30">
-              <CalendarDays className="h-4 w-4 text-blue-200" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/30 bg-linear-to-br from-cyan-500/20 to-teal-500/20">
+              <CalendarDays className="h-4 w-4 text-cyan-300" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
+            <CardTitle className="text-base font-semibold text-white">
               Attendance Summary
             </CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="relative z-10 space-y-3 text-xs">
+
+        <CardContent className="relative z-10 space-y-4">
           {!hasAttendance ? (
-            <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
-              <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
-              <p className="text-[11px] text-muted-foreground/90">
-                No attendance data has been recorded for this student yet.
-              </p>
-              <p className="mt-1 text-[10px] text-muted-foreground/70">
-                Once daily attendance is captured, you&apos;ll see present,
-                absent and late patterns here.
-              </p>
+            <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-cyan-500/20 to-teal-500/20">
+                  <CalendarDays className="h-7 w-7 text-cyan-300" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-base font-semibold text-white">
+                    No attendance data yet
+                  </p>
+                  <p className="text-sm text-white/50">
+                    Once daily attendance is captured, you&apos;ll see present,
+                    absent and late patterns here.
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
-            <>
-              <div className="rounded-xl border border-white/10 bg-black/30 overflow-hidden">
-                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-black/40">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground/80" />
-                    <span className="text-[11px] font-semibold text-muted-foreground">
-                      Recent Attendance Events
-                    </span>
-                  </div>
+            <div className="rounded-xl border border-white/10 bg-white/2 overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-white/60" />
+                  <span className="text-xs font-semibold text-white/70">
+                    Recent Attendance Events
+                  </span>
                 </div>
-                {attendanceEvents.length === 0 ? (
-                  <div className="px-4 py-6 text-center">
-                    <CalendarDays className="mx-auto h-6 w-6 text-muted-foreground/50 mb-2" />
-                    <p className="text-[11px] text-muted-foreground/80">
-                      No detailed attendance events on file yet.
-                    </p>
-                  </div>
-                ) : (
-                  <ul className="max-h-64 space-y-1 overflow-auto px-3 py-2 text-[11px]">
-                    {attendanceEvents.map((event) => (
-                      <li
-                        key={event.id}
-                        className="group flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 transition-colors hover:bg-white/10"
-                      >
-                        <div className="flex items-center gap-2">
-                          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground/60" />
-                          <span className="text-foreground">
-                            {new Date(event.date).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className="border-white/20 bg-black/20 text-[10px] font-medium"
-                        >
-                          {event.status.toUpperCase()}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
-            </>
+              {attendanceEvents.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <CalendarDays className="mx-auto mb-2 h-6 w-6 text-white/40" />
+                  <p className="text-xs text-white/50">
+                    No detailed attendance events on file yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="max-h-64 space-y-2 overflow-auto p-3">
+                  {attendanceEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className="group flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 transition-colors hover:bg-white/8"
+                    >
+                      <div className="flex items-center gap-3">
+                        <CalendarDays className="h-4 w-4 text-white/50" />
+                        <span className="text-sm text-white">
+                          {new Date(event.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] font-medium",
+                          event.status === "present" &&
+                            "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+                          event.status === "absent" &&
+                            "border-red-500/30 bg-red-500/10 text-red-200",
+                          event.status === "late" &&
+                            "border-amber-500/30 bg-amber-500/10 text-amber-200",
+                          !["present", "absent", "late"].includes(
+                            event.status
+                          ) && "border-white/20 bg-white/5 text-white/70"
+                        )}
+                      >
+                        {event.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Behaviour & Incidents */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-red-500/5 via-red-500/2 to-transparent"
+          className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-rose-500/15 via-rose-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
-        <CardHeader className="relative z-10 flex flex-col gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/20 border border-red-400/30">
-              <Shield className="h-4 w-4 text-red-200" />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          aria-hidden="true"
+        />
+
+        <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-rose-500/30 bg-linear-to-br from-rose-500/20 to-rose-600/20 shadow-inner shadow-white/5">
+              <Shield className="h-5 w-5 text-rose-300" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
-              Behaviour & Incidents
-            </CardTitle>
+            <div className="space-y-0.5">
+              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+                Behaviour & Incidents
+              </CardTitle>
+              <p className="text-xs text-white/50">
+                {incidents.length} incident{incidents.length !== 1 ? "s" : ""}{" "}
+                recorded
+              </p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="cursor-pointer border border-white/20 bg-black/40 text-[11px] text-white/80 transition-all duration-200 hover:scale-105 hover:border-red-400/50 hover:bg-red-500/20 hover:text-red-100 hover:shadow-md hover:shadow-red-500/20 active:scale-95"
+              className="gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
             >
-              <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
+              <AlertTriangle className="h-4 w-4" />
               Log Incident
             </Button>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="cursor-pointer border border-white/20 bg-black/40 text-[11px] text-white/80 transition-all duration-200 hover:scale-105 hover:border-emerald-400/50 hover:bg-emerald-500/20 hover:text-emerald-100 hover:shadow-md hover:shadow-emerald-500/20 active:scale-95"
+              className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
             >
-              <ThumbsUp className="mr-1.5 h-3.5 w-3.5" />
+              <ThumbsUp className="h-4 w-4" />
               Add Merit
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="relative z-10 space-y-4 text-xs">
+
+        <CardContent className="relative z-10 space-y-6">
           {/* Behaviour Stats */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-red-500/10 to-transparent shadow-md">
-              <CardContent className="p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/20 border border-red-400/30">
-                    <AlertTriangle className="h-4 w-4 text-red-200" />
-                  </div>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+            <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
                     Incidents
-                  </span>
-                </div>
-                <div className="mb-1 text-2xl font-bold text-foreground">
-                  {behaviourSummary?.incidentsCount ?? incidents.length ?? 0}
-                </div>
-                <p className="text-[10px] text-muted-foreground/80">
-                  {behaviourSummary?.lastIncidentDate
-                    ? `Last on ${new Date(
-                        behaviourSummary.lastIncidentDate
-                      ).toLocaleDateString()}`
-                    : "No incident date recorded"}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-emerald-500/10 to-transparent shadow-md">
-              <CardContent className="p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 border border-emerald-400/30">
-                    <Award className="h-4 w-4 text-emerald-200" />
                   </div>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                  <div className="mt-1 text-xl font-bold text-white">
+                    {behaviourSummary?.incidentsCount ?? incidents.length ?? 0}
+                  </div>
+                  <p className="text-[10px] text-white/50">
+                    {behaviourSummary?.lastIncidentDate
+                      ? `Last on ${new Date(
+                          behaviourSummary.lastIncidentDate
+                        ).toLocaleDateString()}`
+                      : "No incident date recorded"}
+                  </p>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10">
+                  <AlertTriangle className="h-4 w-4 text-rose-300" />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
                     Positive Notes
-                  </span>
-                </div>
-                <div className="mb-1 text-2xl font-bold text-foreground">
-                  {behaviourSummary?.positiveNotesCount ?? 0}
-                </div>
-                <p className="text-[10px] text-muted-foreground/80">
-                  Commendations and merits
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-blue-500/10 to-transparent shadow-md">
-              <CardContent className="p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 border border-blue-400/30">
-                    <Shield className="h-4 w-4 text-blue-200" />
                   </div>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                  <div className="mt-1 text-xl font-bold text-white">
+                    {behaviourSummary?.positiveNotesCount ?? 0}
+                  </div>
+                  <p className="text-[10px] text-white/50">
+                    Commendations and merits
+                  </p>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
+                  <Award className="h-4 w-4 text-emerald-300" />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
                     Overall Behaviour
-                  </span>
+                  </div>
+                  <div className="mt-1 text-xl font-bold text-white">
+                    {behaviourSummary?.incidentsCount &&
+                    behaviourSummary.incidentsCount > 0
+                      ? "Monitor"
+                      : "Good"}
+                  </div>
+                  <p className="text-[10px] text-white/50">
+                    Internal indicator only
+                  </p>
                 </div>
-                <div className="mb-1 text-2xl font-bold text-foreground">
-                  {behaviourSummary?.incidentsCount &&
-                  behaviourSummary.incidentsCount > 0
-                    ? "Monitor"
-                    : "Good"}
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10">
+                  <Shield className="h-4 w-4 text-cyan-300" />
                 </div>
-                <p className="text-[10px] text-muted-foreground/80">
-                  Internal indicator only
-                </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Recent Incidents */}
-          <div className="rounded-xl border border-white/10 bg-black/30 overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-black/40">
+          <div className="rounded-xl border border-white/10 bg-white/2 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-muted-foreground/80" />
-                <span className="text-[11px] font-semibold text-muted-foreground">
+                <AlertTriangle className="h-4 w-4 text-white/60" />
+                <span className="text-xs font-semibold text-white/70">
                   Recent Incidents
                 </span>
               </div>
             </div>
             {!hasIncidents ? (
-              <div className="px-4 py-6 text-center">
-                <Shield className="mx-auto h-6 w-6 text-muted-foreground/50 mb-2" />
-                <p className="text-[11px] text-muted-foreground/80">
+              <div className="px-4 py-8 text-center">
+                <Shield className="mx-auto mb-2 h-6 w-6 text-white/40" />
+                <p className="text-xs text-white/50">
                   No incidents have been recorded for this student.
                 </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
+                >
+                  <Plus className="h-4 w-4" />
+                  Log First Incident
+                </Button>
               </div>
             ) : (
-              <ul className="max-h-64 space-y-2 overflow-auto px-3 py-2 text-[11px]">
+              <div className="max-h-80 space-y-3 overflow-auto p-4">
                 {incidents.map((incident) => (
-                  <li
+                  <div
                     key={incident.id}
-                    className="group rounded-lg bg-white/5 px-3 py-2.5 transition-colors hover:bg-white/10"
+                    className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5 p-4 transition-all duration-200 hover:border-rose-500/30 hover:bg-white/8"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {incident.type}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[9px] border font-medium",
-                              incident.severity === "high" &&
-                                "border-red-400/60 bg-red-500/10 text-red-100",
-                              incident.severity === "medium" &&
-                                "border-amber-400/60 bg-amber-500/10 text-amber-100",
-                              incident.severity === "low" &&
-                                "border-blue-400/60 bg-blue-500/10 text-blue-100"
+                    {/* Accent bar */}
+                    <div
+                      className={cn(
+                        "absolute inset-y-0 left-0 w-1 bg-linear-to-b",
+                        incident.severity === "high"
+                          ? "from-red-500 to-red-600"
+                          : incident.severity === "medium"
+                          ? "from-amber-500 to-amber-600"
+                          : "from-cyan-500 to-cyan-600"
+                      )}
+                      aria-hidden="true"
+                    />
+
+                    <div className="pl-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-white">
+                              {incident.type}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[9px] font-medium",
+                                incident.severity === "high" &&
+                                  "border-red-500/30 bg-red-500/10 text-red-200",
+                                incident.severity === "medium" &&
+                                  "border-amber-500/30 bg-amber-500/10 text-amber-200",
+                                incident.severity === "low" &&
+                                  "border-cyan-500/30 bg-cyan-500/10 text-cyan-200"
+                              )}
+                            >
+                              {incident.severity.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-xs text-white/60">
+                            {incident.summary}
+                          </p>
+                          <div className="mt-2 flex items-center gap-2 text-[9px] text-white/40">
+                            <CalendarDays className="h-3 w-3" />
+                            <span>
+                              {new Date(incident.date).toLocaleDateString()}
+                            </span>
+                            {incident.recordedBy && (
+                              <>
+                                <span>•</span>
+                                <span>Recorded by {incident.recordedBy}</span>
+                              </>
                             )}
-                          >
-                            {incident.severity.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-[10px] text-muted-foreground/90 line-clamp-2">
-                          {incident.summary}
-                        </p>
-                        <div className="mt-1.5 flex items-center gap-2 text-[9px] text-muted-foreground/70">
-                          <CalendarDays className="h-3 w-3" />
-                          <span>
-                            {new Date(incident.date).toLocaleDateString()}
-                          </span>
-                          {incident.recordedBy && (
-                            <>
-                              <span>•</span>
-                              <span>Recorded by {incident.recordedBy}</span>
-                            </>
-                          )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         </CardContent>

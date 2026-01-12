@@ -17,6 +17,7 @@ import {
   UserCog,
   Mail,
   CheckSquare,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -39,6 +40,11 @@ const nav = [
     label: "Teachers",
     href: "/admin/teachers",
     icon: UserCog,
+  },
+  {
+    label: "Staff Attendance",
+    href: "/admin/staff-attendance",
+    icon: ClipboardCheck,
   },
   {
     label: "Invitations",

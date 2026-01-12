@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,9 @@ import {
   UserCog,
   Home,
   BookOpen,
+  ExternalLink,
+  Calendar,
+  Briefcase,
 } from "lucide-react";
 
 type TeacherCardProps = {
@@ -28,44 +32,60 @@ type TeacherCardProps = {
   onSendMessage?: (id: string) => void;
 };
 
-type StatusTone = "neutral" | "success" | "danger" | "warning" | "muted";
+type StatusTone = "emerald" | "rose" | "amber" | "slate";
 
 function getStatusTone(t: TeacherListItemDTO): StatusTone {
   switch (t.status) {
     case "active":
-      return "success";
+      return "emerald";
     case "on_leave":
-      return "warning";
+      return "amber";
     case "terminated":
-      return "danger";
+      return "rose";
     case "inactive":
     default:
-      return "muted";
+      return "slate";
   }
 }
 
-const toneBorder: Record<StatusTone, string> = {
-  neutral: "border-white/10",
-  success: "border-emerald-400/40",
-  danger: "border-red-400/40",
-  warning: "border-amber-400/40",
-  muted: "border-slate-500/40",
-};
-
-const toneBg: Record<StatusTone, string> = {
-  neutral: "from-white/5 via-white/0 to-transparent",
-  success: "from-emerald-500/12 via-emerald-500/5 to-transparent",
-  danger: "from-red-500/12 via-red-500/5 to-transparent",
-  warning: "from-amber-500/12 via-amber-500/5 to-transparent",
-  muted: "from-slate-600/30 via-slate-700/40 to-transparent",
-};
-
-const toneAccent: Record<StatusTone, string> = {
-  neutral: "bg-white/10",
-  success: "bg-emerald-400/80",
-  danger: "bg-red-400/80",
-  warning: "bg-amber-400/80",
-  muted: "bg-slate-500/80",
+const toneConfig: Record<
+  StatusTone,
+  {
+    border: string;
+    bg: string;
+    glow: string;
+    accent: string;
+    badge: string;
+  }
+> = {
+  emerald: {
+    border: "border-emerald-500/30",
+    bg: "from-emerald-500/10 via-emerald-500/5 to-transparent",
+    glow: "bg-emerald-500/20",
+    accent: "bg-emerald-500",
+    badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  },
+  rose: {
+    border: "border-rose-500/30",
+    bg: "from-rose-500/10 via-rose-500/5 to-transparent",
+    glow: "bg-rose-500/20",
+    accent: "bg-rose-500",
+    badge: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+  },
+  amber: {
+    border: "border-amber-500/30",
+    bg: "from-amber-500/10 via-amber-500/5 to-transparent",
+    glow: "bg-amber-500/20",
+    accent: "bg-amber-500",
+    badge: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+  },
+  slate: {
+    border: "border-slate-500/30",
+    bg: "from-slate-600/20 via-slate-700/15 to-transparent",
+    glow: "bg-slate-500/20",
+    accent: "bg-slate-500",
+    badge: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+  },
 };
 
 export function TeacherCard({
@@ -76,15 +96,15 @@ export function TeacherCard({
   onSendMessage,
 }: TeacherCardProps) {
   const tone = getStatusTone(teacher);
+  const config = toneConfig[tone];
 
   const hireDateLabel = React.useMemo(() => {
-    if (!teacher.hireDate) return "Hire date unknown";
+    if (!teacher.hireDate) return null;
     const d = new Date(teacher.hireDate);
-    return `Hired ${d.toLocaleDateString(undefined, {
+    return d.toLocaleDateString(undefined, {
       month: "short",
-      day: "numeric",
       year: "numeric",
-    })}`;
+    });
   }, [teacher.hireDate]);
 
   const statusLabel = (() => {
@@ -122,152 +142,195 @@ export function TeacherCard({
         if (e.key === "Enter" || e.key === " ") handleCardClick();
       }}
       className={cn(
-        "relative flex flex-col gap-3 rounded-xl border bg-linear-to-br",
-        toneBg[tone],
-        toneBorder[tone],
-        "px-4 py-3 shadow-lg shadow-black/30 backdrop-blur-md",
-        "transition-transform duration-150 hover:-translate-y-[2px] hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
+        "group relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br backdrop-blur-xl",
+        config.bg,
+        config.border,
+        "shadow-xl shadow-black/30 transition-all duration-300",
+        "hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
       )}
     >
-      {/* Accent bar */}
+      {/* Glow effect on hover */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-1 rounded-l-xl",
-          toneAccent[tone]
+          "pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full blur-3xl transition-opacity duration-300",
+          config.glow,
+          "opacity-0 group-hover:opacity-100"
         )}
-      />
-
-      {/* Subtle top glow */}
-      <div
-        className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-white/30 to-transparent opacity-60"
         aria-hidden="true"
       />
 
-      {/* Top row: avatar + name + menu */}
-      <div className="flex items-start gap-3">
-        <TeacherAvatarStatus
-          fullName={teacher.fullName}
-          firstName={teacher.firstName}
-          lastName={teacher.lastName}
-          photoUrl={teacher.photoUrl}
-          status={teacher.status}
-          size="md"
-        />
+      {/* Top shine */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        aria-hidden="true"
+      />
 
-        <div className="flex-1 space-y-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
+      {/* Accent bar */}
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-y-0 left-0 w-1",
+          config.accent
+        )}
+      />
+
+      {/* Card content */}
+      <div className="relative z-10 flex flex-col gap-4 p-5">
+        {/* Header: Avatar + Name + Menu */}
+        <div className="flex items-start gap-4">
+          <div className="relative">
+            <TeacherAvatarStatus
+              fullName={teacher.fullName}
+              firstName={teacher.firstName}
+              lastName={teacher.lastName}
+              photoUrl={teacher.photoUrl}
+              status={teacher.status}
+              size="md"
+            />
+            {teacher.isNew && (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-900 bg-indigo-500 text-[8px] font-bold text-white">
+                N
+              </span>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 space-y-0.5">
                 <h3 className="truncate text-sm font-semibold text-white">
                   {teacher.fullName}
                 </h3>
-                {teacher.isNew && (
-                  <span className="inline-flex items-center rounded-full bg-blue-500/30 px-1.5 py-0.5 text-[10px] font-medium text-blue-50 backdrop-blur">
-                    New
-                  </span>
-                )}
+                <p className="truncate text-xs text-white/50">
+                  {teacher.email ?? "No email"}
+                </p>
               </div>
-              <p className="truncate text-[11px] text-white/70">
-                {teacher.email ?? "No email"}
-              </p>
-            </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0 rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="min-w-[180px] rounded-xl border border-white/10 bg-slate-900/95 p-1 text-xs text-slate-50 shadow-xl backdrop-blur-xl"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="min-w-[170px] border border-white/10 bg-slate-900/95 text-xs text-slate-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <DropdownMenuItem onClick={handleAction(onView)}>
-                  View profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAction(onEdit)}>
-                  <Pencil className="mr-2 h-3.5 w-3.5" />
-                  Edit details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAction(onManageAccess)}>
-                  <UserCog className="mr-2 h-3.5 w-3.5" />
-                  Manage access
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAction(onSendMessage)}>
-                  <Mail className="mr-2 h-3.5 w-3.5" />
-                  Send message
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                  <DropdownMenuItem
+                    onClick={handleAction(onView)}
+                    className="gap-2 rounded-lg"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleAction(onEdit)}
+                    className="gap-2 rounded-lg"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit details
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem
+                    onClick={handleAction(onManageAccess)}
+                    className="gap-2 rounded-lg"
+                  >
+                    <UserCog className="h-3.5 w-3.5" />
+                    Manage access
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleAction(onSendMessage)}
+                    className="gap-2 rounded-lg"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    Send message
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center rounded-full bg-slate-900/70 px-1.5 py-0.5 text-[10px] text-slate-200">
-              {statusLabel}
-            </span>
-            {teacher.employeeId && (
-              <span className="inline-flex items-center rounded-full bg-slate-900/60 px-1.5 py-0.5 text-[10px] text-slate-300">
-                ID: {teacher.employeeId}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Middle row: badges */}
-      <div className="flex flex-wrap items-center gap-2">
-        {teacher.homeroom && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/20 border border-blue-400/30 px-2 py-0.5 text-[10px] text-blue-100">
-            <Home className="h-3 w-3" />
-            {teacher.homeroom.name}
-          </span>
-        )}
-        {teacher.department && (
-          <span className="inline-flex items-center rounded-full bg-purple-500/20 border border-purple-400/30 px-2 py-0.5 text-[10px] text-purple-100">
-            {teacher.department}
-          </span>
-        )}
-      </div>
-
-      {/* Subjects */}
-      {teacher.subjects.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <BookOpen className="h-3 w-3 text-white/60" />
-          <div className="flex flex-wrap gap-1">
-            {teacher.subjects.slice(0, 3).map((s) => (
+            {/* Status + ID badges */}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <span
-                key={s.id}
-                className="inline-flex items-center rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white/80"
+                className={cn(
+                  "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium",
+                  config.badge
+                )}
               >
-                {s.name}
+                {statusLabel}
               </span>
-            ))}
-            {teacher.subjects.length > 3 && (
-              <span className="inline-flex items-center rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white/80">
-                +{teacher.subjects.length - 3}
-              </span>
-            )}
+              {teacher.employeeId && (
+                <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60">
+                  {teacher.employeeId}
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      ) : (
-        <p className="text-[11px] text-white/60">No subjects assigned</p>
-      )}
 
-      {/* Bottom row: meta */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-200/80">
-        <span>{hireDateLabel}</span>
-        {teacher.subjects.length > 0 && (
-          <span className="rounded-full bg-slate-900/70 px-2 py-0.5 text-[10px] text-slate-100">
-            {teacher.subjects.length} subject{teacher.subjects.length === 1 ? "" : "s"}
+        {/* Info badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          {teacher.homeroom && (
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/15 px-2.5 py-1 text-[10px] font-medium text-purple-200">
+              <Home className="h-3 w-3" />
+              {teacher.homeroom.name}
+            </span>
+          )}
+          {teacher.department && (
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/15 px-2.5 py-1 text-[10px] font-medium text-indigo-200">
+              <Briefcase className="h-3 w-3" />
+              {teacher.department}
+            </span>
+          )}
+        </div>
+
+        {/* Subjects */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40">
+            <BookOpen className="h-3 w-3" />
+            <span>Subjects</span>
+          </div>
+          {teacher.subjects.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {teacher.subjects.slice(0, 4).map((s) => (
+                <span
+                  key={s.id}
+                  className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-white/70"
+                >
+                  {s.name}
+                </span>
+              ))}
+              {teacher.subjects.length > 4 && (
+                <span className="inline-flex items-center rounded-md border border-white/10 bg-white/10 px-2 py-1 text-[10px] font-medium text-white/80">
+                  +{teacher.subjects.length - 4} more
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-[11px] italic text-white/40">
+              No subjects assigned
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="relative z-10 flex items-center justify-between border-t border-white/5 bg-white/[0.02] px-5 py-3">
+        <div className="flex items-center gap-1.5 text-[10px] text-white/40">
+          <Calendar className="h-3 w-3" />
+          <span>{hireDateLabel ? `Hired ${hireDateLabel}` : "Hire date unknown"}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[9px] font-bold text-white/70">
+            {teacher.subjects.length}
           </span>
-        )}
+          <span className="text-[10px] text-white/40">subjects</span>
+        </div>
       </div>
     </div>
   );

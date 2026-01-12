@@ -6,8 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Pencil, Trash2, StickyNote, Lock } from "lucide-react";
-import { toast } from "sonner";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  StickyNote,
+  Lock,
+  MessageSquare,
+  User,
+  Calendar,
+  Tag,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   useTeacherNotes,
   useDeleteNote,
@@ -47,31 +57,56 @@ function getCategoryLabel(category: TeacherNoteCategory | null): string {
   return labels[category || "general"] || "General";
 }
 
-function getCategoryBadgeClass(category: TeacherNoteCategory | null): string {
-  switch (category) {
-    case "performance":
-      return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
-    case "behavior":
-      return "border-amber-400/30 bg-amber-500/10 text-amber-200";
-    case "disciplinary":
-      return "border-red-400/30 bg-red-500/10 text-red-200";
-    case "professional_development":
-      return "border-blue-400/30 bg-blue-500/10 text-blue-200";
-    default:
-      return "border-white/10 bg-white/5 text-white/80";
-  }
-}
+const categoryConfig: Record<
+  string,
+  { bg: string; border: string; text: string }
+> = {
+  performance: {
+    bg: "bg-emerald-500/10",
+    border: "border-emerald-500/30",
+    text: "text-emerald-200",
+  },
+  behavior: {
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+    text: "text-amber-200",
+  },
+  disciplinary: {
+    bg: "bg-red-500/10",
+    border: "border-red-500/30",
+    text: "text-red-200",
+  },
+  professional_development: {
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/30",
+    text: "text-blue-200",
+  },
+  general: {
+    bg: "bg-slate-500/10",
+    border: "border-slate-500/30",
+    text: "text-slate-200",
+  },
+  other: {
+    bg: "bg-purple-500/10",
+    border: "border-purple-500/30",
+    text: "text-purple-200",
+  },
+};
 
 export function TeacherNotesTab({ teacher }: Props) {
   const [addModalOpen, setAddModalOpen] = React.useState(false);
   const [editModalOpen, setEditModalOpen] = React.useState(false);
-  const [editingNote, setEditingNote] = React.useState<TeacherNoteDTO | null>(null);
-  const [categoryFilter, setCategoryFilter] = React.useState<TeacherNoteCategory | null>(null);
+  const [editingNote, setEditingNote] = React.useState<TeacherNoteDTO | null>(
+    null
+  );
+  const [categoryFilter, setCategoryFilter] =
+    React.useState<TeacherNoteCategory | null>(null);
 
   const { data: notesData, isLoading } = useTeacherNotes(teacher.id, {
     category: categoryFilter || undefined,
   });
-  const notes = notesData?.data ?? [];
+
+  const notes = React.useMemo(() => notesData?.data ?? [], [notesData?.data]);
 
   const deleteNoteMutation = useDeleteNote();
   const busy = useBusyToast();
@@ -82,7 +117,11 @@ export function TeacherNotesTab({ teacher }: Props) {
   };
 
   const handleDelete = async (note: TeacherNoteDTO) => {
-    if (!confirm(`Are you sure you want to delete "${note.title}"?\n\nThis action cannot be undone.`))
+    if (
+      !confirm(
+        `Are you sure you want to delete "${note.title}"?\n\nThis action cannot be undone.`
+      )
+    )
       return;
 
     try {
@@ -94,7 +133,7 @@ export function TeacherNotesTab({ teacher }: Props) {
         {
           loading: "Deleting note...",
           success: `"${note.title}" deleted successfully`,
-          error: (e: Error) => e.message || "Failed to delete note",
+          error: "Failed to delete note",
         }
       );
     } catch {
@@ -118,14 +157,35 @@ export function TeacherNotesTab({ teacher }: Props) {
   const categories = Object.keys(notesByCategory) as TeacherNoteCategory[];
 
   return (
-    <div className="space-y-4">
-      {/* Header with add button */}
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle>Notes</CardTitle>
+    <div className="space-y-6">
+      {/* Header Card */}
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <div
+          className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-rose-500/15 via-pink-500/10 to-transparent blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          aria-hidden="true"
+        />
+
+        <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-rose-500/20 to-pink-500/20 shadow-inner shadow-white/5">
+              <StickyNote className="h-5 w-5 text-rose-300" />
+            </div>
+            <div className="space-y-0.5">
+              <CardTitle className="text-lg font-semibold tracking-tight text-white">
+                Notes
+              </CardTitle>
+              <p className="text-xs text-white/50">
+                {notes.length} note{notes.length !== 1 ? "s" : ""} recorded
+              </p>
+            </div>
+          </div>
           <Button
             variant="outline"
-            className="gap-2"
+            className="gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
             onClick={() => setAddModalOpen(true)}
           >
             <Plus className="h-4 w-4" />
@@ -141,57 +201,83 @@ export function TeacherNotesTab({ teacher }: Props) {
             variant={categoryFilter === null ? "default" : "outline"}
             size="sm"
             onClick={() => setCategoryFilter(null)}
+            className={cn(
+              "rounded-xl",
+              categoryFilter === null
+                ? "bg-white/10 text-white"
+                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+            )}
           >
             All ({notes.length})
           </Button>
-          {categories.map((cat) => (
-            <Button
-              key={cat}
-              variant={categoryFilter === cat ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCategoryFilter(cat)}
-            >
-              {getCategoryLabel(cat)} ({notesByCategory[cat].length})
-            </Button>
-          ))}
+          {categories.map((cat) => {
+            const config = categoryConfig[cat] || categoryConfig.general;
+            return (
+              <Button
+                key={cat}
+                variant="outline"
+                size="sm"
+                onClick={() => setCategoryFilter(cat)}
+                className={cn(
+                  "rounded-xl",
+                  categoryFilter === cat
+                    ? cn(config.bg, config.border, config.text)
+                    : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                {getCategoryLabel(cat)} ({notesByCategory[cat].length})
+              </Button>
+            );
+          })}
         </div>
       )}
 
       {/* Notes list */}
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-        <CardContent className="p-6">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-rose-500/5 via-transparent to-transparent"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+          aria-hidden="true"
+        />
+
+        <CardContent className="relative z-10 p-6">
           {isLoading ? (
-            <div className="flex items-center gap-3 py-10">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white/40" />
-              <p className="text-sm text-muted-foreground">Loading notes...</p>
+            <div className="flex items-center justify-center gap-3 py-16">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-rose-400" />
+              <p className="text-sm text-white/60">Loading notes...</p>
             </div>
           ) : notes.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
-              <div className="flex items-start justify-center gap-4">
-                <div className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5">
-                  <StickyNote className="h-5 w-5 text-white/80" />
+            <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-rose-500/20 to-pink-500/20">
+                  <MessageSquare className="h-7 w-7 text-rose-300" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-semibold">No notes yet</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base font-semibold text-white">
+                    No notes yet
+                  </p>
+                  <p className="text-sm text-white/50">
                     {categoryFilter
-                      ? `No notes in the "${getCategoryLabel(categoryFilter)}" category`
+                      ? `No notes in the "${getCategoryLabel(
+                          categoryFilter
+                        )}" category`
                       : "Add the first note to get started"}
                   </p>
                 </div>
-              </div>
-              {!categoryFilter && (
-                <div className="mt-4">
+                {!categoryFilter && (
                   <Button
                     variant="outline"
-                    className="gap-2"
+                    className="mt-2 gap-2 rounded-xl border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
                     onClick={() => setAddModalOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
                     Add First Note
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -213,12 +299,15 @@ export function TeacherNotesTab({ teacher }: Props) {
                 categories.map((category) => (
                   <div key={category} className="space-y-3">
                     {categories.length > 1 && (
-                      <div className="flex items-center gap-2 pt-2">
-                        <h3 className="text-sm font-semibold text-muted-foreground">
+                      <div className="flex items-center gap-3 pt-2">
+                        <h3 className="text-sm font-semibold text-white/60">
                           {getCategoryLabel(category)}
                         </h3>
-                        <Separator className="flex-1" />
-                        <Badge variant="outline" className="text-xs">
+                        <Separator className="flex-1 bg-white/10" />
+                        <Badge
+                          variant="outline"
+                          className="rounded-lg border-white/10 bg-white/5 text-xs text-white/50"
+                        >
                           {notesByCategory[category].length}
                         </Badge>
                       </div>
@@ -278,28 +367,43 @@ function NoteCard({
   onDelete: (note: TeacherNoteDTO) => void;
   isDeleting: boolean;
 }) {
+  const config =
+    categoryConfig[note.category || "general"] || categoryConfig.general;
+
   return (
-    <div className="group rounded-lg border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0 space-y-2">
+    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-5 transition-all duration-200 hover:border-rose-500/30 hover:bg-white/5">
+      {/* Accent bar */}
+      <div
+        className="absolute inset-y-0 left-0 w-1 bg-linear-to-b from-rose-500 to-pink-500"
+        aria-hidden="true"
+      />
+
+      <div className="flex items-start justify-between gap-4 pl-3">
+        <div className="flex-1 min-w-0 space-y-3">
+          {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold">{note.title}</p>
+                <p className="text-sm font-semibold text-white">{note.title}</p>
                 {note.isConfidential && (
                   <Badge
                     variant="outline"
-                    className="border-amber-400/30 bg-amber-500/10 text-amber-200 gap-1 text-xs"
+                    className="gap-1 rounded-lg border-amber-500/30 bg-amber-500/10 text-xs text-amber-200"
                   >
                     <Lock className="h-3 w-3" />
                     Confidential
                   </Badge>
                 )}
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <Badge
                   variant="outline"
-                  className={getCategoryBadgeClass(note.category)}
+                  className={cn(
+                    "rounded-lg text-xs",
+                    config.bg,
+                    config.border,
+                    config.text
+                  )}
                 >
                   {getCategoryLabel(note.category)}
                 </Badge>
@@ -308,8 +412,9 @@ function NoteCard({
                     <Badge
                       key={idx}
                       variant="outline"
-                      className="border-white/5 bg-white/5 text-xs text-white/60"
+                      className="gap-1 rounded-lg border-white/5 bg-white/5 text-[10px] text-white/50"
                     >
+                      <Tag className="h-2.5 w-2.5" />
                       {tag}
                     </Badge>
                   ))}
@@ -317,21 +422,34 @@ function NoteCard({
             </div>
           </div>
 
-          <p className="text-sm text-white/80 whitespace-pre-wrap">{note.content}</p>
+          {/* Content */}
+          <div className="rounded-lg border border-white/10 bg-white/2 p-3">
+            <p className="whitespace-pre-wrap text-sm text-white/80">
+              {note.content}
+            </p>
+          </div>
 
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>Created {formatDate(note.createdAt)}</span>
+          {/* Footer */}
+          <div className="flex flex-wrap items-center gap-4 text-xs text-white/50">
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {formatDate(note.createdAt)}
+            </span>
             {note.createdBy && (
-              <span>by {note.createdBy.name}</span>
+              <span className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                by {note.createdBy.name}
+              </span>
             )}
           </div>
         </div>
 
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Actions */}
+        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10"
+            className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
             onClick={() => onEdit(note)}
             title="Edit note"
           >
@@ -340,7 +458,7 @@ function NoteCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-white/60 hover:text-red-300 hover:bg-red-500/10"
+            className="h-8 w-8 rounded-lg text-white/60 hover:bg-red-500/10 hover:text-red-300"
             onClick={() => onDelete(note)}
             disabled={isDeleting}
             title="Delete note"

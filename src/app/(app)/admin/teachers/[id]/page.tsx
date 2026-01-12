@@ -6,7 +6,13 @@ import { Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ChevronRight,
+  Users,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   useTeacher,
   useUpdateTeacher,
@@ -137,17 +143,21 @@ function TeacherDetailContent() {
   if (!teacherId) {
     return (
       <div className="space-y-6">
-        <Card className="relative overflow-hidden border border-red-500/40 bg-linear-to-br from-red-950/40 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-950/40 via-slate-950/60 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
           <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-red-500/20 via-red-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent"
             aria-hidden="true"
           />
-          <CardContent className="relative z-10 flex items-center justify-between gap-3 py-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
+          <CardContent className="relative z-10 flex items-center justify-between gap-4 p-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10">
+                <AlertTriangle className="h-6 w-6 text-red-400" />
+              </div>
               <div>
-                <div className="font-semibold">Missing teacher identifier</div>
-                <p className="text-xs text-red-100/80">
+                <div className="font-semibold text-white">
+                  Missing teacher identifier
+                </div>
+                <p className="text-sm text-red-200/70">
                   The teacher ID was not provided in the URL.
                 </p>
               </div>
@@ -157,9 +167,9 @@ function TeacherDetailContent() {
               variant="outline"
               size="sm"
               onClick={() => router.push("/admin/teachers")}
-              className="cursor-pointer border border-red-300/60 bg-transparent text-xs text-red-50 transition-all duration-200 hover:scale-105 hover:border-red-300/80 hover:bg-red-900/40 hover:shadow-md hover:shadow-red-500/20 active:scale-95"
+              className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-red-200 hover:border-red-500/50 hover:bg-red-500/20"
             >
-              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              <ArrowLeft className="h-4 w-4" />
               Back to Teachers
             </Button>
           </CardContent>
@@ -170,49 +180,54 @@ function TeacherDetailContent() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        {/* Header skeleton */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <div className="space-y-8">
+        {/* Premium header skeleton */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
           <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
+            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
             aria-hidden="true"
           />
-          <CardContent className="relative z-10 flex animate-pulse items-center justify-between gap-6 p-6">
-            <div className="flex flex-1 items-center gap-4">
-              <div className="size-16 rounded-full bg-white/10" />
-              <div className="space-y-2">
-                <div className="h-4 w-40 rounded bg-white/15" />
-                <div className="flex gap-2">
-                  <div className="h-3 w-24 rounded-full bg-white/10" />
-                  <div className="h-3 w-20 rounded-full bg-white/10" />
-                </div>
-              </div>
+          <div className="flex animate-pulse items-center gap-4">
+            <div className="h-9 w-9 rounded-xl bg-white/10" />
+            <div className="space-y-2">
+              <div className="h-8 w-48 rounded bg-white/10" />
+              <div className="h-4 w-64 rounded bg-white/5" />
             </div>
-            <div className="hidden w-64 space-y-2 md:block">
-              <div className="h-3 w-full rounded bg-white/10" />
+          </div>
+        </div>
+
+        {/* Header card skeleton */}
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <CardContent className="flex animate-pulse items-center gap-6 p-8">
+            <div className="h-24 w-24 rounded-2xl bg-white/10" />
+            <div className="flex-1 space-y-3">
+              <div className="h-6 w-48 rounded bg-white/10" />
               <div className="flex gap-2">
-                <div className="h-8 flex-1 rounded bg-white/10" />
-                <div className="h-8 flex-1 rounded bg-white/10" />
+                <div className="h-5 w-20 rounded-full bg-white/10" />
+                <div className="h-5 w-24 rounded-full bg-white/5" />
               </div>
+              <div className="h-4 w-64 rounded bg-white/5" />
             </div>
           </CardContent>
         </Card>
 
         {/* Tabs skeleton */}
-        <div className="flex gap-2 border-b border-white/10 pb-2">
-          <div className="h-7 w-20 rounded-full bg-white/10" />
-          <div className="h-7 w-24 rounded-full bg-white/5" />
-          <div className="h-7 w-32 rounded-full bg-white/5" />
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div
+              key={i}
+              className={cn(
+                "h-10 rounded-xl",
+                i === 1 ? "w-28 bg-indigo-500/20" : "w-24 bg-white/5"
+              )}
+            />
+          ))}
         </div>
 
         {/* Content skeleton */}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
-          <div className="space-y-4">
-            <Card className="relative overflow-hidden h-40 animate-pulse border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur" />
-          </div>
-          <div className="space-y-4">
-            <Card className="relative overflow-hidden h-40 animate-pulse border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur" />
-          </div>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <Card className="h-64 animate-pulse rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-black shadow-xl" />
+          <Card className="h-64 animate-pulse rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-black shadow-xl" />
         </div>
       </div>
     );
@@ -221,31 +236,32 @@ function TeacherDetailContent() {
   if (isError || !teacher) {
     return (
       <div className="space-y-6">
-        <Card className="relative overflow-hidden border border-red-500/40 bg-linear-to-br from-red-950/40 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-950/40 via-slate-950/60 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
           <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-red-500/20 via-red-500/5 to-transparent"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent"
             aria-hidden="true"
           />
-          <CardContent className="relative z-10 flex items-center justify-between gap-3 py-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              <div>
-                <div className="font-semibold">
-                  Unable to load teacher details
-                </div>
-                <p className="text-xs text-red-100/80">
-                  The teacher might not exist or you might not have access.
-                </p>
-              </div>
+          <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 py-12 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10">
+              <AlertTriangle className="h-8 w-8 text-red-400" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold text-white">
+                Unable to load teacher details
+              </h2>
+              <p className="max-w-md text-sm text-red-200/70">
+                The teacher might not exist or you might not have permission to
+                view their profile.
+              </p>
             </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => router.push("/admin/teachers")}
-              className="cursor-pointer border border-red-300/60 bg-transparent text-xs text-red-50 transition-all duration-200 hover:scale-105 hover:border-red-300/80 hover:bg-red-900/40 hover:shadow-md hover:shadow-red-500/20 active:scale-95"
+              className="mt-2 gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-red-200 hover:border-red-500/50 hover:bg-red-500/20"
             >
-              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              <ArrowLeft className="h-4 w-4" />
               Back to Teachers
             </Button>
           </CardContent>
@@ -255,34 +271,76 @@ function TeacherDetailContent() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/admin/teachers")}
-            className="h-9 w-9 cursor-pointer border border-white/10 bg-white/5 transition-all duration-200 hover:scale-105 hover:border-white/20 hover:bg-white/10 hover:shadow-md hover:shadow-black/20 active:scale-95"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="mb-2 text-3xl font-bold">Teacher Profile</h1>
-            <p className="text-muted">
-              View and manage teacher information, assignments, performance, and
-              more
-            </p>
+    <div className="space-y-8">
+      {/* Premium Page Header */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+        {/* Background decorations */}
+        <div
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-gradient-to-tr from-violet-500/10 via-fuchsia-500/5 to-transparent blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          aria-hidden="true"
+        />
+
+        <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push("/admin/teachers")}
+              className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-white/20 hover:bg-white/10"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
+                <Users className="h-6 w-6 text-indigo-300" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+                  Teacher Profile
+                </h1>
+                <p className="text-sm text-white/50">
+                  View and manage teacher details
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-xs text-white/50">
+            <button
+              type="button"
+              onClick={() => router.push("/admin/teachers")}
+              className="hover:text-white/80 transition-colors"
+            >
+              Teachers
+            </button>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-white/80">{teacher.fullName}</span>
           </div>
         </div>
       </div>
 
+      {/* Teacher Header Card */}
       <TeacherDetailHeader teacher={teacher} />
 
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      {/* Tabs Navigation */}
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-muted/10 via-muted/5 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
           aria-hidden="true"
         />
         <CardContent className="relative z-10 p-0">
@@ -290,6 +348,7 @@ function TeacherDetailContent() {
         </CardContent>
       </Card>
 
+      {/* Tab Content */}
       <div>
         {activeTab === "overview" ? (
           <TeacherOverviewTab
@@ -377,12 +436,33 @@ export default function TeacherDetailPage() {
   return (
     <Suspense
       fallback={
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 animate-pulse rounded border border-white/10 bg-white/5" />
-            <div className="space-y-2">
-              <div className="h-8 w-64 animate-pulse rounded bg-white/10" />
-              <div className="h-4 w-96 animate-pulse rounded bg-white/5" />
+        <div className="space-y-8">
+          {/* Premium header skeleton */}
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+            <div
+              className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
+              aria-hidden="true"
+            />
+            <div className="flex animate-pulse items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-white/10" />
+              <div className="space-y-2">
+                <div className="h-8 w-48 rounded bg-white/10" />
+                <div className="h-4 w-64 rounded bg-white/5" />
+              </div>
+            </div>
+          </div>
+
+          {/* Header card skeleton */}
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black p-8 shadow-2xl shadow-black/40">
+            <div className="flex animate-pulse items-center gap-6">
+              <div className="h-24 w-24 rounded-2xl bg-white/10" />
+              <div className="flex-1 space-y-3">
+                <div className="h-6 w-48 rounded bg-white/10" />
+                <div className="flex gap-2">
+                  <div className="h-5 w-20 rounded-full bg-white/10" />
+                  <div className="h-5 w-24 rounded-full bg-white/5" />
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Loader2, AlertCircle, Users } from "lucide-react";
+import { Plus, Upload, Loader2, AlertCircle, Users, X } from "lucide-react";
 
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
@@ -33,7 +33,6 @@ import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
 import { ImportTeachersCSVModal } from "@/components/modals/ImportTeachersCSVModal";
 import { TeachersAdvancedFiltersDialog } from "@/components/admin/teachers/TeachersAdvancedFiltersDialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   useCreateTeacher,
   useUpdateTeacher,
@@ -51,6 +50,72 @@ function isTypingTarget(el: EventTarget | null) {
     tag === "input" ||
     tag === "textarea" ||
     (el as HTMLElement).isContentEditable
+  );
+}
+
+function TeacherModalShell({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  React.useEffect(() => {
+    if (!open) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      />
+      <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+        <div className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40">
+          <div className="px-6 pt-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h1 className="text-lg font-semibold">{title}</h1>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                onClick={onClose}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-5 h-px bg-white/10" />
+          </div>
+          <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -104,6 +169,20 @@ export default function TeachersPage() {
     activateTeacher.isPending ||
     deactivateTeacher.isPending ||
     deleteTeacher.isPending;
+
+  React.useEffect(() => {
+    const hasOverlayOpen =
+      createOpen ||
+      importOpen ||
+      !!editTeacherId ||
+      filtersOpen ||
+      commandOpen;
+
+    if (!hasOverlayOpen) {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+  }, [createOpen, importOpen, editTeacherId, filtersOpen, commandOpen]);
 
   const handleActivateTeacher = async (teacherId: string) => {
     const teacher = teachers.find((t) => t.id === teacherId);
@@ -279,17 +358,42 @@ export default function TeachersPage() {
       <TeachersQuickStatsSection />
 
       {/* Teacher directory shell */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-transparent"
           aria-hidden="true"
         />
-        <CardHeader className="relative z-10 pb-3">
-          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
-            Teacher Directory
-          </CardTitle>
+        <div
+          className="pointer-events-none absolute -top-24 right-0 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
+          aria-hidden="true"
+        />
+        <CardHeader className="relative z-10 pb-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+                <Users className="h-5 w-5 text-white/80" />
+              </div>
+              <div className="space-y-1">
+                <CardTitle className="text-base font-semibold text-white">
+                  Teacher Directory
+                </CardTitle>
+                <p className="text-xs text-white/60">
+                  Search, filter, and manage staff profiles in one place.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                Focus search: /
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                Command palette: Ctrl/Cmd+K
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 h-px bg-white/10" />
         </CardHeader>
-        <CardContent className="relative z-10 space-y-4">
+        <CardContent className="relative z-10 space-y-4 pb-6">
           <TeachersTabsNav value={tab} onChange={handleTabChange} />
           <TeachersToolbar
             search={search}
@@ -307,12 +411,37 @@ export default function TeachersPage() {
       </Card>
 
       {/* Data summary shell – cards/table + pagination */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-muted/10 via-muted/5 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-transparent"
           aria-hidden="true"
         />
-        <CardContent className="relative z-10 py-8">
+        <div
+          className="pointer-events-none absolute -bottom-24 left-0 h-56 w-56 rounded-full bg-muted/10 blur-3xl"
+          aria-hidden="true"
+        />
+        <CardHeader className="relative z-10 pb-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
+                Directory Results
+              </CardTitle>
+              <p className="text-xs text-white/60">
+                Live results based on your current filters and sorting.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                View: {viewMode === "cards" ? "Cards" : "Table"}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                Tab: {tab}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 h-px bg-white/10" />
+        </CardHeader>
+        <CardContent className="relative z-10 pt-2 pb-8">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
@@ -341,19 +470,19 @@ export default function TeachersPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <div className="text-muted-foreground">
+              <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70 md:flex-row md:items-center md:justify-between">
+                <div>
                   Showing{" "}
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-white">
                     {teachers.length} teacher{teachers.length === 1 ? "" : "s"}
                   </span>{" "}
                   on page{" "}
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-white">
                     {pagination.page}
                   </span>{" "}
                   of {pagination.totalPages}
                 </div>
-                <div className="hidden items-center gap-2 text-xs text-muted-foreground/80 md:flex">
+                <div className="flex items-center gap-2 text-xs text-white/60">
                   <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
                     View:{" "}
                     <span className="font-medium">
@@ -474,65 +603,71 @@ export default function TeachersPage() {
       <ImportTeachersCSVModal open={importOpen} onOpenChange={setImportOpen} />
 
       {/* Create Teacher */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <CreateTeacherModal
-            onClose={() => {
-              setCreateOpen(false);
-              clearSelection();
-            }}
-            onSubmit={async (payload) => {
-              await createTeacher.mutateAsync(payload);
-            }}
-            isLoading={createTeacher.isPending}
-          />
-        </DialogContent>
-      </Dialog>
+      <TeacherModalShell
+        open={createOpen}
+        title="Create Teacher"
+        onClose={() => setCreateOpen(false)}
+      >
+        <CreateTeacherModal
+          onClose={() => {
+            setCreateOpen(false);
+            clearSelection();
+          }}
+          onSubmit={async (payload) => {
+            await createTeacher.mutateAsync(payload);
+          }}
+          isLoading={createTeacher.isPending}
+        />
+      </TeacherModalShell>
 
       {/* Edit Teacher */}
-      <Dialog
-        open={!!editTeacherId}
-        onOpenChange={(open) => {
-          if (!open) setEditTeacherId(null);
-        }}
-      >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {editTeacherLoading ? (
+      {editTeacherId ? (
+        editTeacherLoading ? (
+          <TeacherModalShell
+            open
+            title="Edit Teacher"
+            onClose={() => setEditTeacherId(null)}
+          >
             <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
-              <p className="text-sm text-muted-foreground">
-                Loading teacher...
-              </p>
+              <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+              <p className="text-sm text-white/60">Loading teacher...</p>
             </div>
-          ) : editTeacher ? (
-            <EditTeacherModal
-              teacher={editTeacher}
-              onClose={() => {
-                setEditTeacherId(null);
-              }}
-              onSubmit={async (payload) => {
-                await busy.promise(
-                  updateTeacher.mutateAsync({
-                    teacherId: editTeacherId!,
-                    payload,
-                  }),
-                  {
-                    loading: "Updating teacher...",
-                    success: "Teacher updated successfully",
-                    error: "Failed to update teacher",
-                  }
-                );
-              }}
-              isLoading={updateTeacher.isPending}
-            />
-          ) : (
+          </TeacherModalShell>
+        ) : editTeacher ? (
+          <EditTeacherModal
+            open={!!editTeacherId}
+            onOpenChange={(open) => {
+              if (!open) setEditTeacherId(null);
+            }}
+            teacher={editTeacher}
+            onSubmit={async (payload) => {
+              await busy.promise(
+                updateTeacher.mutateAsync({
+                  teacherId: editTeacherId!,
+                  payload,
+                }),
+                {
+                  loading: "Updating teacher...",
+                  success: "Teacher updated successfully",
+                  error: "Failed to update teacher",
+                }
+              );
+            }}
+            isLoading={updateTeacher.isPending}
+          />
+        ) : (
+          <TeacherModalShell
+            open
+            title="Edit Teacher"
+            onClose={() => setEditTeacherId(null)}
+          >
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <AlertCircle className="h-8 w-8 text-red-400/60" />
               <p className="text-sm text-red-300/80">Teacher not found</p>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </TeacherModalShell>
+        )
+      ) : null}
 
       {/* Filters */}
       <TeachersAdvancedFiltersDialog

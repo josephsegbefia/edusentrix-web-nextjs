@@ -6,7 +6,6 @@ import { Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AlertTriangle, ArrowLeft, Loader2 } from "lucide-react";
 import {
   useTeacher,
@@ -349,30 +348,27 @@ function TeacherDetailContent() {
       </div>
 
       {/* Edit Teacher Modal */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {teacher && (
-            <EditTeacherModal
-              teacher={teacher}
-              onClose={() => setEditOpen(false)}
-              onSubmit={async (payload) => {
-                await busy.promise(
-                  updateTeacher.mutateAsync({
-                    teacherId: teacher.id,
-                    payload,
-                  }),
-                  {
-                    loading: "Updating teacher...",
-                    success: "Teacher updated successfully",
-                    error: "Failed to update teacher",
-                  }
-                );
-              }}
-              isLoading={updateTeacher.isPending}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {teacher && (
+        <EditTeacherModal
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          teacher={teacher}
+          onSubmit={async (payload) => {
+            await busy.promise(
+              updateTeacher.mutateAsync({
+                teacherId: teacher.id,
+                payload,
+              }),
+              {
+                loading: "Updating teacher...",
+                success: "Teacher updated successfully",
+                error: "Failed to update teacher",
+              }
+            );
+          }}
+          isLoading={updateTeacher.isPending}
+        />
+      )}
     </div>
   );
 }

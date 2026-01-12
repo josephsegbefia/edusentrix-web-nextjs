@@ -76,6 +76,13 @@ export default function StudentsPage() {
   const { exportStudents, isExporting } = useExportStudents();
 
   React.useEffect(() => {
+    if (!commandOpen) {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+  }, [commandOpen]);
+
+  React.useEffect(() => {
     const params = new URLSearchParams();
     params.set("tab", tab);
     params.set("view", viewMode);
@@ -303,17 +310,42 @@ export default function StudentsPage() {
       <StudentsQuickStatsSection />
 
       {/* Student directory shell */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-transparent"
           aria-hidden="true"
         />
-        <CardHeader className="relative z-10 pb-3">
-          <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
-            Student Directory
-          </CardTitle>
+        <div
+          className="pointer-events-none absolute -top-24 right-0 h-56 w-56 rounded-full bg-primary/10 blur-3xl"
+          aria-hidden="true"
+        />
+        <CardHeader className="relative z-10 pb-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+                <GraduationCap className="h-5 w-5 text-white/80" />
+              </div>
+              <div className="space-y-1">
+                <CardTitle className="text-base font-semibold text-white">
+                  Student Directory
+                </CardTitle>
+                <p className="text-xs text-white/60">
+                  Search, filter, and manage student records in one place.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                Focus search: /
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                Command palette: Ctrl/Cmd+K
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 h-px bg-white/10" />
         </CardHeader>
-        <CardContent className="relative z-10 space-y-4">
+        <CardContent className="relative z-10 space-y-4 pb-6">
           <StudentsTabsNav value={tab} onChange={handleTabChange} />
           <StudentsToolbar
             search={search}
@@ -331,12 +363,37 @@ export default function StudentsPage() {
       </Card>
 
       {/* Data summary shell – cards/table + pagination will go below in next phases */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-muted/10 via-muted/5 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-transparent"
           aria-hidden="true"
         />
-        <CardContent className="relative z-10 py-8">
+        <div
+          className="pointer-events-none absolute -bottom-24 left-0 h-56 w-56 rounded-full bg-muted/10 blur-3xl"
+          aria-hidden="true"
+        />
+        <CardHeader className="relative z-10 pb-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
+                Directory Results
+              </CardTitle>
+              <p className="text-xs text-white/60">
+                Live results based on your current filters and sorting.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                View: {viewMode === "cards" ? "Cards" : "Table"}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                Tab: {tab}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 h-px bg-white/10" />
+        </CardHeader>
+        <CardContent className="relative z-10 pt-2 pb-8">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
@@ -365,19 +422,19 @@ export default function StudentsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <div className="text-muted-foreground">
+              <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70 md:flex-row md:items-center md:justify-between">
+                <div>
                   Showing{" "}
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-white">
                     {students.length} student{students.length === 1 ? "" : "s"}
                   </span>{" "}
                   on page{" "}
-                  <span className="font-semibold text-foreground">
+                  <span className="font-semibold text-white">
                     {pagination.page}
                   </span>{" "}
                   of {pagination.totalPages}
                 </div>
-                <div className="hidden items-center gap-2 text-xs text-muted-foreground/80 md:flex">
+                <div className="flex items-center gap-2 text-xs text-white/60">
                   <span className="rounded-md border border-white/10 bg-white/5 px-2 py-1">
                     View:{" "}
                     <span className="font-medium">

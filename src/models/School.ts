@@ -4,6 +4,7 @@ export type SchoolType = "Basic" | "SHS";
 export interface ISchool {
   _id: Types.ObjectId;
   name: string;
+  logo?: string;
   type: SchoolType;
   address?: string;
   email?: string;
@@ -36,6 +37,7 @@ export interface ISchool {
 const schoolSchema = new Schema<ISchool>(
   {
     name: { type: String, required: true, trim: true },
+    logo: { type: String, default: null },
     type: { type: String, enum: ["Basic", "SHS"], required: true },
     address: String,
     email: String,

@@ -300,7 +300,7 @@ export default function StudentsPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-teal-500/20 to-cyan-500/20 shadow-lg shadow-teal-500/10">
                 <GraduationCap className="h-6 w-6 text-teal-300" />
               </div>
-              <div>
+        <div>
                 <h1 className="text-3xl font-bold tracking-tight text-white">
                   Students
                 </h1>
@@ -312,30 +312,30 @@ export default function StudentsPage() {
             <p className="max-w-lg text-sm leading-relaxed text-white/50">
               Manage enrollment, class assignments, and academic records. Track
               performance, fees, and student progress across your school.
-            </p>
-          </div>
+          </p>
+        </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
               className="group gap-2 border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10 hover:text-white"
-              onClick={handleImportStudents}
-            >
+            onClick={handleImportStudents}
+          >
               <Upload className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
               <span>Import CSV</span>
-            </Button>
-            <Button
-              type="button"
-              size="sm"
+          </Button>
+          <Button
+            type="button"
+            size="sm"
               className="group gap-2 bg-gradient-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700 hover:shadow-teal-500/40"
-              onClick={handleCreateStudent}
-            >
+            onClick={handleCreateStudent}
+          >
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-              <span>Add Student</span>
+            <span>Add Student</span>
               <ArrowRight className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5" />
-            </Button>
+          </Button>
           </div>
         </div>
 
@@ -470,8 +470,8 @@ export default function StudentsPage() {
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-white/80">
-                  Loading students...
-                </p>
+                Loading students...
+              </p>
                 <p className="text-xs text-white/50">
                   Fetching your student directory
                 </p>
@@ -511,10 +511,10 @@ export default function StudentsPage() {
               </div>
               <div className="text-center">
                 <p className="text-base font-medium text-white/80">
-                  No students found
-                </p>
+                No students found
+              </p>
                 <p className="mt-1 max-w-xs text-sm text-white/50">
-                  {search
+                {search
                     ? "Try adjusting your search or filters to find what you're looking for"
                     : "Get started by adding your first student to the directory"}
                 </p>
@@ -541,8 +541,8 @@ export default function StudentsPage() {
                   <span>
                     student{students.length === 1 ? "" : "s"} on page{" "}
                     <span className="font-medium text-white">
-                      {pagination.page}
-                    </span>{" "}
+                    {pagination.page}
+                  </span>{" "}
                     of{" "}
                     <span className="font-medium text-white">
                       {pagination.totalPages}

@@ -411,15 +411,15 @@ export function TeacherOverviewTab({
                   <Plus className="h-3.5 w-3.5" />
                   Assign Subject
                 </Button>
-                <Button
-                  variant="outline"
+          <Button
+            variant="outline"
                   size="sm"
                   className="gap-2 rounded-xl border-purple-500/30 bg-purple-500/10 text-xs text-purple-300 hover:bg-purple-500/20"
                   onClick={() => setAssignHomeroomOpen(true)}
-                >
+          >
                   <Home className="h-3.5 w-3.5" />
                   {homeroom ? "Change Homeroom" : "Assign Homeroom"}
-                </Button>
+          </Button>
               </div>
             </div>
           </CardHeader>
@@ -500,10 +500,10 @@ export function TeacherOverviewTab({
                   </p>
                 </div>
               </div>
-            </CardHeader>
+        </CardHeader>
 
             <CardContent className="relative z-10 space-y-4 p-6">
-              {/* Subjects */}
+          {/* Subjects */}
               <div className="rounded-xl border border-white/10 bg-white/2 p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <p className="flex items-center gap-2 text-xs font-medium text-white/60">
@@ -525,12 +525,12 @@ export function TeacherOverviewTab({
                 <div className="flex flex-wrap gap-2">
                   {subjects.length > 0 ? (
                     subjects.map((s) => (
-                      <Badge
-                        key={s.id}
-                        variant="outline"
+                  <Badge
+                    key={s.id}
+                    variant="outline"
                         className="group gap-1.5 rounded-lg border-indigo-500/30 bg-indigo-500/10 pr-1.5 text-indigo-200"
-                      >
-                        {s.name}
+                  >
+                    {s.name}
                         <button
                           type="button"
                           onClick={() => handleRemoveSubject(s.id, s.name)}
@@ -540,15 +540,15 @@ export function TeacherOverviewTab({
                         >
                           <X className="h-3 w-3" />
                         </button>
-                      </Badge>
-                    ))
-                  ) : (
+                  </Badge>
+                ))
+              ) : (
                     <p className="text-sm text-white/40">
-                      No subjects assigned yet.
-                    </p>
-                  )}
-                </div>
-              </div>
+                  No subjects assigned yet.
+                </p>
+              )}
+            </div>
+          </div>
 
               {/* Homeroom */}
               <div className="rounded-xl border border-white/10 bg-white/2 p-4">
@@ -620,32 +620,32 @@ export function TeacherOverviewTab({
                 <div className="rounded-xl border border-white/10 bg-white/2 p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Briefcase className="h-3 w-3" />
-                    Employee ID
-                  </p>
+                Employee ID
+              </p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {teacher.employeeId ?? "—"}
                   </p>
-                </div>
+            </div>
 
                 <div className="rounded-xl border border-white/10 bg-white/2 p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Users className="h-3 w-3" />
-                    Department
-                  </p>
+                Department
+              </p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {teacher.department ?? "—"}
                   </p>
-                </div>
+            </div>
 
                 <div className="rounded-xl border border-white/10 bg-white/2 p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Calendar className="h-3 w-3" />
-                    Hire Date
-                  </p>
+                Hire Date
+              </p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {formatDate(teacher.hireDate)}
                   </p>
-                </div>
+            </div>
 
                 <div className="rounded-xl border border-white/10 bg-white/2 p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
@@ -653,10 +653,10 @@ export function TeacherOverviewTab({
                     Termination
                   </p>
                   <p className="mt-2 text-sm font-medium text-white">
-                    {formatDate(teacher.terminationDate)}
-                  </p>
-                </div>
-              </div>
+                {formatDate(teacher.terminationDate)}
+              </p>
+            </div>
+          </div>
             </CardContent>
           </Card>
         </div>
@@ -928,24 +928,24 @@ export function TeacherOverviewTab({
                 <div className="rounded-xl border border-white/10 bg-white/2 p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Calendar className="h-3 w-3" />
-                    Created
-                  </p>
+                Created
+              </p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {formatDate(teacher.createdAt)}
                   </p>
-                </div>
+            </div>
                 <div className="rounded-xl border border-white/10 bg-white/2 p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Calendar className="h-3 w-3" />
-                    Updated
-                  </p>
+                Updated
+              </p>
                   <p className="mt-2 text-sm font-medium text-white">
-                    {formatDate(teacher.updatedAt)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                {formatDate(teacher.updatedAt)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
         )}
       </div>
 
@@ -971,7 +971,7 @@ export function TeacherOverviewTab({
                 Shortcuts for common tasks
               </p>
             </div>
-          </CardHeader>
+        </CardHeader>
 
           <CardContent className="relative z-10 space-y-4 p-6">
             {/* Primary Actions */}
@@ -1042,8 +1042,8 @@ export function TeacherOverviewTab({
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
       </div>
 
       {/* Modals */}

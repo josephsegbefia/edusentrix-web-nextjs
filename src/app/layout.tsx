@@ -11,6 +11,10 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 export const metadata = {
   title: "EduSentrix",
   description: "Modern school management & payments",
+  icons: {
+    icon: "/logo/edusentrix-logo.png",
+    apple: "/logo/edusentrix-logo.png",
+  },
 };
 
 export default function RootLayout({

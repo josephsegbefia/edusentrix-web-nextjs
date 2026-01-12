@@ -480,8 +480,8 @@ export function CreateTeacherAssignmentModal({
         values.includeSchedule &&
         values.schedules &&
         values.schedules.length > 0
-          ? values.schedules
-          : undefined,
+        ? values.schedules
+        : undefined,
       status: "active" as const,
     };
 
@@ -547,11 +547,11 @@ export function CreateTeacherAssignmentModal({
                 <div className="space-y-1">
                   <h1 className="text-lg font-semibold">Create Assignment</h1>
                   <p className="text-sm text-white/60">
-                    Assign a subject and class group to{" "}
+            Assign a subject and class group to{" "}
                     <span className="font-medium text-white/85">
-                      {teacher.fullName}
-                    </span>
-                    .
+              {teacher.fullName}
+            </span>
+            .
                   </p>
                 </div>
 
@@ -574,98 +574,98 @@ export function CreateTeacherAssignmentModal({
             <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
               <div className="space-y-6">
                 {/* banners */}
-                {atCapacity ? (
-                  <Callout tone="warning" title="Capacity warning">
+            {atCapacity ? (
+          <Callout tone="warning" title="Capacity warning">
                     This teacher already has{" "}
                     <b>{currentActiveAssignmentsCount}</b> active assignments
-                    {typeof maxClasses === "number" ? (
-                      <>
-                        {" "}
-                        (limit: <b>{maxClasses}</b>)
-                      </>
-                    ) : null}
-                    . You can still proceed, but consider rebalancing workloads.
-                  </Callout>
-                ) : null}
+            {typeof maxClasses === "number" ? (
+              <>
+                {" "}
+                (limit: <b>{maxClasses}</b>)
+              </>
+            ) : null}
+            . You can still proceed, but consider rebalancing workloads.
+          </Callout>
+        ) : null}
 
-                {conflict ? (
-                  <Callout tone="warning" title="Schedule conflict detected">
-                    <div className="space-y-1">
-                      <p className="text-white/80">
-                        Overlaps with:{" "}
-                        <b>
-                          {conflict.subject?.name ?? "Subject"} •{" "}
-                          {conflict.classGroup?.name ?? "Class"}
-                        </b>
-                      </p>
-                      {conflict.schedule?.dayOfWeek != null &&
-                      conflict.schedule?.startTime &&
-                      conflict.schedule?.endTime ? (
-                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
-                          <Clock className="h-3.5 w-3.5" />
-                          {DOW[Number(conflict.schedule.dayOfWeek)]?.label ??
-                            `Day ${conflict.schedule.dayOfWeek}`}{" "}
+            {conflict ? (
+          <Callout tone="warning" title="Schedule conflict detected">
+            <div className="space-y-1">
+              <p className="text-white/80">
+                Overlaps with:{" "}
+                <b>
+                  {conflict.subject?.name ?? "Subject"} •{" "}
+                  {conflict.classGroup?.name ?? "Class"}
+                </b>
+              </p>
+              {conflict.schedule?.dayOfWeek != null &&
+              conflict.schedule?.startTime &&
+              conflict.schedule?.endTime ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+                  <Clock className="h-3.5 w-3.5" />
+                  {DOW[Number(conflict.schedule.dayOfWeek)]?.label ??
+                    `Day ${conflict.schedule.dayOfWeek}`}{" "}
                           • {conflict.schedule.startTime}-
                           {conflict.schedule.endTime}
-                        </div>
-                      ) : null}
-                      <p className="text-white/70">
+                </div>
+              ) : null}
+              <p className="text-white/70">
                         Adjust the day/time or remove schedule from this
                         assignment.
-                      </p>
-                    </div>
-                  </Callout>
-                ) : null}
+              </p>
+            </div>
+          </Callout>
+        ) : null}
 
-                {result ? (
-                  <div className="space-y-4">
-                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-emerald-100">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
-                          <Check className="h-5 w-5" />
-                        </div>
-                        <div className="space-y-1">
+            {result ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-emerald-100">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
+                  <Check className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
                           <p className="text-sm font-semibold">
                             Assignment created
                           </p>
-                          <p className="text-sm text-white/80">
-                            {periodLabel(form.getValues("academicPeriodId"))} •{" "}
+                  <p className="text-sm text-white/80">
+                    {periodLabel(form.getValues("academicPeriodId"))} •{" "}
                             {selectedSubjectLabel ?? "—"} •{" "}
                             {selectedClassLabel ?? "—"}
-                          </p>
-                          {warnings.length ? (
-                            <div className="mt-2 space-y-1">
-                              <p className="text-xs font-semibold text-white/80">
-                                Warnings
-                              </p>
-                              <ul className="list-disc space-y-1 pl-5 text-sm text-white/75">
-                                {warnings.map((w, idx) => (
-                                  <li key={idx}>{w}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
+                  </p>
+                  {warnings.length ? (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs font-semibold text-white/80">
+                        Warnings
+                      </p>
+                      <ul className="list-disc space-y-1 pl-5 text-sm text-white/75">
+                        {warnings.map((w, idx) => (
+                          <li key={idx}>{w}</li>
+                        ))}
+                      </ul>
                     </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
 
                     <div className="flex items-center justify-end pt-2">
-                      <Button
-                        variant="outline"
+                <Button
+                  variant="outline"
                         className="border-white/10 bg-white/5 text-white hover:bg-white/10"
-                        onClick={() => {
-                          form.reset();
+                  onClick={() => {
+                    form.reset();
                           setSelectedSubjectLabel(null);
                           setSelectedClassLabel(null);
                           setResult(null);
-                          onOpenChange(false);
-                        }}
-                      >
-                        Close
-                      </Button>
+                    onOpenChange(false);
+                  }}
+                >
+                  Close
+                </Button>
                     </div>
-                  </div>
-                ) : (
+            </div>
+          ) : (
                   <form
                     onSubmit={form.handleSubmit(onSubmit)}
                     className="space-y-8"
@@ -705,135 +705,135 @@ export function CreateTeacherAssignmentModal({
                               Assignment Details
                             </h2>
 
-                            <div className="grid gap-4 md:grid-cols-2">
-                              <div className="space-y-2">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
                                 <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                                   Academic Period *
                                 </Label>
-                                <Select
-                                  value={form.watch("academicPeriodId")}
-                                  onValueChange={(v) =>
-                                    form.setValue("academicPeriodId", v, {
-                                      shouldValidate: true,
-                                    })
-                                  }
-                                >
+                <Select
+                  value={form.watch("academicPeriodId")}
+                  onValueChange={(v) =>
+                    form.setValue("academicPeriodId", v, {
+                      shouldValidate: true,
+                    })
+                  }
+                >
                                   <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                                    <SelectValue
-                                      placeholder={
+                    <SelectValue
+                      placeholder={
                                         periodsLoading
                                           ? "Loading…"
                                           : "Select academic period"
-                                      }
-                                    />
-                                  </SelectTrigger>
+                      }
+                    />
+                  </SelectTrigger>
                                   <SelectContent
                                     className={premiumSelectContent}
                                   >
-                                    {periods.map((p) => (
-                                      <SelectItem
-                                        key={p._id}
-                                        value={p._id}
-                                        className={premiumMenuItem}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <span>{p.yearLabel}</span>
+                    {periods.map((p) => (
+                      <SelectItem
+                        key={p._id}
+                        value={p._id}
+                        className={premiumMenuItem}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{p.yearLabel}</span>
                                           <span className="text-neutral-500">
                                             •
                                           </span>
-                                          <span>{p.term}</span>
-                                          {p.isCurrent ? (
-                                            <Badge
-                                              variant="outline"
-                                              className="ml-2 border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                                            >
-                                              Current
-                                            </Badge>
-                                          ) : null}
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                {form.formState.errors.academicPeriodId ? (
+                          <span>{p.term}</span>
+                          {p.isCurrent ? (
+                            <Badge
+                              variant="outline"
+                              className="ml-2 border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                            >
+                              Current
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.academicPeriodId ? (
                                   <p className="text-xs text-rose-300">
                                     {
                                       form.formState.errors.academicPeriodId
                                         .message
                                     }
-                                  </p>
-                                ) : null}
-                              </div>
+                  </p>
+                ) : null}
+              </div>
 
-                              <div className="space-y-2">
+              <div className="space-y-2">
                                 <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                                   Workload (hours/week)
                                 </Label>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  max={80}
-                                  step={1}
+                <Input
+                  type="number"
+                  min={0}
+                  max={80}
+                  step={1}
                                   className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
-                                  {...form.register("workloadHours")}
-                                />
-                              </div>
-                            </div>
+                  {...form.register("workloadHours")}
+                />
+              </div>
+            </div>
 
-                            <Separator className="bg-white/10" />
+            <Separator className="bg-white/10" />
 
-                            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
                               <div className="space-y-2">
-                                <Combobox
+              <Combobox
                                   label="Subject *"
-                                  placeholder="Select subject"
-                                  valueLabel={selectedSubjectLabel}
-                                  open={subjectOpen}
-                                  onOpenChange={setSubjectOpen}
-                                  query={subjectQuery}
-                                  setQuery={setSubjectQuery}
-                                  items={subjectItems}
-                                  isLoading={subjectsQ.isLoading}
-                                  emptyText="No subjects found."
-                                  onSelect={(id, label) => {
+                placeholder="Select subject"
+                valueLabel={selectedSubjectLabel}
+                open={subjectOpen}
+                onOpenChange={setSubjectOpen}
+                query={subjectQuery}
+                setQuery={setSubjectQuery}
+                items={subjectItems}
+                isLoading={subjectsQ.isLoading}
+                emptyText="No subjects found."
+                onSelect={(id, label) => {
                                     form.setValue("subjectId", id, {
                                       shouldValidate: true,
                                     });
-                                    setSelectedSubjectLabel(label);
-                                  }}
-                                />
-                                {form.formState.errors.subjectId ? (
+                  setSelectedSubjectLabel(label);
+                }}
+              />
+              {form.formState.errors.subjectId ? (
                                   <p className="text-xs text-rose-300">
-                                    {form.formState.errors.subjectId.message}
-                                  </p>
-                                ) : null}
+                  {form.formState.errors.subjectId.message}
+                </p>
+              ) : null}
                               </div>
 
                               <div className="space-y-2">
-                                <Combobox
+              <Combobox
                                   label="Class Group *"
-                                  placeholder="Select class group"
-                                  valueLabel={selectedClassLabel}
-                                  open={classOpen}
-                                  onOpenChange={setClassOpen}
-                                  query={classQuery}
-                                  setQuery={setClassQuery}
-                                  items={classItems}
-                                  isLoading={classGroupsQ.isLoading}
-                                  emptyText="No class groups found."
-                                  onSelect={(id, label) => {
+                placeholder="Select class group"
+                valueLabel={selectedClassLabel}
+                open={classOpen}
+                onOpenChange={setClassOpen}
+                query={classQuery}
+                setQuery={setClassQuery}
+                items={classItems}
+                isLoading={classGroupsQ.isLoading}
+                emptyText="No class groups found."
+                onSelect={(id, label) => {
                                     form.setValue("classGroupId", id, {
                                       shouldValidate: true,
                                     });
-                                    setSelectedClassLabel(label);
-                                  }}
-                                />
-                                {form.formState.errors.classGroupId ? (
+                  setSelectedClassLabel(label);
+                }}
+              />
+              {form.formState.errors.classGroupId ? (
                                   <p className="text-xs text-rose-300">
-                                    {form.formState.errors.classGroupId.message}
-                                  </p>
-                                ) : null}
-                              </div>
+                  {form.formState.errors.classGroupId.message}
+                </p>
+              ) : null}
+            </div>
                             </div>
                           </section>
                         )}
@@ -844,45 +844,45 @@ export function CreateTeacherAssignmentModal({
                               Schedules
                             </h2>
 
-                            <Accordion
-                              type="single"
-                              collapsible
+            <Accordion
+              type="single"
+              collapsible
                               value={includeSchedule ? "schedule" : ""}
-                              className="rounded-2xl border border-white/10 bg-white/5"
-                              onValueChange={(v) =>
+              className="rounded-2xl border border-white/10 bg-white/5"
+              onValueChange={(v) =>
                                 form.setValue(
                                   "includeSchedule",
                                   v === "schedule"
                                 )
-                              }
-                            >
+              }
+            >
                               <AccordionItem
                                 value="schedule"
                                 className="border-none"
                               >
-                                <AccordionTrigger className="px-4 py-3 text-sm">
-                                  Optional schedules (recommended)
-                                </AccordionTrigger>
-                                <AccordionContent className="px-4 pb-4">
-                                  <div className="space-y-4">
+                              <AccordionTrigger className="px-4 py-3 text-sm">
+                  Optional schedules (recommended)
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-4">
                                     {(!schedules || schedules.length === 0) && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
+                      <Button
+                        type="button"
+                        variant="outline"
                                         className="w-full border-dashed border-white/20 bg-transparent hover:bg-white/5 hover:border-white/30"
-                                        onClick={() => {
-                                          form.setValue(
-                                            "schedules",
-                                            [
-                                              {
-                                                dayOfWeek: 1,
-                                                startTime: "",
-                                                endTime: "",
-                                                location: undefined,
-                                              },
-                                            ],
-                                            { shouldValidate: false }
-                                          );
+                        onClick={() => {
+                          form.setValue(
+                            "schedules",
+                            [
+                              {
+                                dayOfWeek: 1,
+                                startTime: "",
+                                endTime: "",
+                                location: undefined,
+                              },
+                            ],
+                            { shouldValidate: false }
+                          );
                                           if (
                                             !form.getValues("includeSchedule")
                                           ) {
@@ -890,77 +890,77 @@ export function CreateTeacherAssignmentModal({
                                               "includeSchedule",
                                               true
                                             );
-                                          }
-                                        }}
-                                      >
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Add First Schedule
-                                      </Button>
-                                    )}
+                          }
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Schedule
+                      </Button>
+                    )}
 
                                     {(schedules || []).map((schedule, idx) => {
                                       const selectedLocationId =
                                         schedule.location;
-                                      const selectedLocationLabel =
+                      const selectedLocationLabel =
                                         (selectedLocationId &&
                                           locationItems.find(
                                             (i) => i.id === selectedLocationId
                                           )?.label) ||
                                         null;
 
-                                      return (
-                                        <div
-                                          key={idx}
-                                          className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
-                                        >
-                                          <div className="flex items-center justify-between">
+                      return (
+                        <div
+                          key={idx}
+                          className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4"
+                        >
+                          <div className="flex items-center justify-between">
                                             <Label className="text-sm font-medium text-white/90">
-                                              Schedule {idx + 1}
-                                            </Label>
+                              Schedule {idx + 1}
+                            </Label>
 
                                             {(schedules || []).length > 1 && (
-                                              <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
                                                 className="h-8 w-8 text-rose-300 hover:text-rose-200 hover:bg-rose-500/10"
-                                                onClick={() => {
+                                onClick={() => {
                                                   const current =
                                                     form.getValues(
                                                       "schedules"
                                                     ) || [];
-                                                  form.setValue(
-                                                    "schedules",
+                                  form.setValue(
+                                    "schedules",
                                                     current.filter(
                                                       (_, i) => i !== idx
                                                     ),
-                                                    { shouldValidate: true }
-                                                  );
-                                                }}
-                                              >
-                                                <X className="h-4 w-4" />
-                                              </Button>
-                                            )}
-                                          </div>
+                                    { shouldValidate: true }
+                                  );
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
 
-                                          <div className="grid gap-4 md:grid-cols-2">
-                                            <div className="space-y-2">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
                                               <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                                                 Day
                                               </Label>
-                                              <Select
+                              <Select
                                                 value={String(
                                                   schedule.dayOfWeek ?? 1
                                                 )}
-                                                onValueChange={(v) => {
+                                onValueChange={(v) => {
                                                   const current =
                                                     form.getValues(
                                                       "schedules"
                                                     ) || [];
-                                                  current[idx] = {
-                                                    ...current[idx],
-                                                    dayOfWeek: Number(v),
-                                                  };
+                                  current[idx] = {
+                                    ...current[idx],
+                                    dayOfWeek: Number(v),
+                                  };
                                                   form.setValue(
                                                     "schedules",
                                                     current,
@@ -972,70 +972,70 @@ export function CreateTeacherAssignmentModal({
                                                 }}
                                               >
                                                 <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
-                                                  <SelectValue placeholder="Select day" />
-                                                </SelectTrigger>
+                                  <SelectValue placeholder="Select day" />
+                                </SelectTrigger>
                                                 <SelectContent
                                                   className={
                                                     premiumSelectContent
                                                   }
                                                 >
-                                                  {DOW.map((d) => (
-                                                    <SelectItem
-                                                      key={d.value}
-                                                      value={d.value}
+                                  {DOW.map((d) => (
+                                    <SelectItem
+                                      key={d.value}
+                                      value={d.value}
                                                       className={
                                                         premiumMenuItem
                                                       }
-                                                    >
-                                                      {d.label}
-                                                    </SelectItem>
-                                                  ))}
-                                                </SelectContent>
-                                              </Select>
+                                    >
+                                      {d.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                                               {form.formState.errors
                                                 ?.schedules?.[idx]
                                                 ?.dayOfWeek ? (
                                                 <p className="text-xs text-rose-300">
-                                                  {String(
+                                  {String(
                                                     form.formState.errors
                                                       .schedules[idx]?.dayOfWeek
                                                       ?.message
-                                                  )}
-                                                </p>
-                                              ) : null}
-                                            </div>
+                                  )}
+                                </p>
+                              ) : null}
+                            </div>
 
-                                            <div className="space-y-2">
+                            <div className="space-y-2">
                                               <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                                                 Location (Class Group)
                                               </Label>
-                                              <Combobox
-                                                placeholder="Select class group for location"
+                              <Combobox
+                                placeholder="Select class group for location"
                                                 valueLabel={
                                                   selectedLocationLabel
                                                 }
-                                                open={locationOpenIndex === idx}
-                                                onOpenChange={(v) =>
+                                open={locationOpenIndex === idx}
+                                onOpenChange={(v) =>
                                                   setLocationOpenIndex(
                                                     v ? idx : null
                                                   )
-                                                }
-                                                query={locationQuery}
-                                                setQuery={setLocationQuery}
-                                                items={locationItems}
+                                }
+                                query={locationQuery}
+                                setQuery={setLocationQuery}
+                                items={locationItems}
                                                 isLoading={
                                                   locationGroupsQ.isLoading
                                                 }
-                                                emptyText="No class groups found."
-                                                onSelect={(id) => {
+                                emptyText="No class groups found."
+                                onSelect={(id) => {
                                                   const current =
                                                     form.getValues(
                                                       "schedules"
                                                     ) || [];
-                                                  current[idx] = {
-                                                    ...current[idx],
-                                                    location: id,
-                                                  };
+                                  current[idx] = {
+                                    ...current[idx],
+                                    location: id,
+                                  };
                                                   form.setValue(
                                                     "schedules",
                                                     current,
@@ -1044,28 +1044,28 @@ export function CreateTeacherAssignmentModal({
                                                         includeSchedule,
                                                     }
                                                   );
-                                                  setLocationOpenIndex(null);
-                                                }}
-                                              />
-                                            </div>
+                                  setLocationOpenIndex(null);
+                                }}
+                              />
+                            </div>
 
-                                            <div className="space-y-2">
+                            <div className="space-y-2">
                                               <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                                                 Start time
                                               </Label>
-                                              <Input
-                                                type="time"
+                              <Input
+                                type="time"
                                                 className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
-                                                value={schedule.startTime || ""}
-                                                onChange={(e) => {
+                                value={schedule.startTime || ""}
+                                onChange={(e) => {
                                                   const current =
                                                     form.getValues(
                                                       "schedules"
                                                     ) || [];
-                                                  current[idx] = {
-                                                    ...current[idx],
-                                                    startTime: e.target.value,
-                                                  };
+                                  current[idx] = {
+                                    ...current[idx],
+                                    startTime: e.target.value,
+                                  };
                                                   form.setValue(
                                                     "schedules",
                                                     current,
@@ -1076,25 +1076,25 @@ export function CreateTeacherAssignmentModal({
                                                   );
                                                 }}
                                               />
-                                            </div>
+                            </div>
 
-                                            <div className="space-y-2">
+                            <div className="space-y-2">
                                               <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                                                 End time
                                               </Label>
-                                              <Input
-                                                type="time"
+                              <Input
+                                type="time"
                                                 className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
-                                                value={schedule.endTime || ""}
-                                                onChange={(e) => {
+                                value={schedule.endTime || ""}
+                                onChange={(e) => {
                                                   const current =
                                                     form.getValues(
                                                       "schedules"
                                                     ) || [];
-                                                  current[idx] = {
-                                                    ...current[idx],
-                                                    endTime: e.target.value,
-                                                  };
+                                  current[idx] = {
+                                    ...current[idx],
+                                    endTime: e.target.value,
+                                  };
                                                   form.setValue(
                                                     "schedules",
                                                     current,
@@ -1108,39 +1108,39 @@ export function CreateTeacherAssignmentModal({
                                               {form.formState.errors
                                                 ?.schedules?.[idx]?.endTime ? (
                                                 <p className="text-xs text-rose-300">
-                                                  {String(
+                                  {String(
                                                     form.formState.errors
                                                       .schedules[idx]?.endTime
                                                       ?.message
-                                                  )}
-                                                </p>
-                                              ) : null}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
+                                  )}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
 
-                                    <Button
-                                      type="button"
-                                      variant="outline"
+                    <Button
+                      type="button"
+                      variant="outline"
                                       className="w-full border-dashed border-white/20 bg-transparent hover:bg-white/5 hover:border-white/30"
-                                      onClick={() => {
+                      onClick={() => {
                                         const current =
                                           form.getValues("schedules") || [];
-                                        form.setValue(
-                                          "schedules",
-                                          [
-                                            ...current,
-                                            {
-                                              dayOfWeek: 1,
-                                              startTime: "",
-                                              endTime: "",
-                                              location: undefined,
-                                            },
-                                          ],
-                                          { shouldValidate: false }
-                                        );
+                        form.setValue(
+                          "schedules",
+                          [
+                            ...current,
+                            {
+                              dayOfWeek: 1,
+                              startTime: "",
+                              endTime: "",
+                              location: undefined,
+                            },
+                          ],
+                          { shouldValidate: false }
+                        );
                                         if (
                                           !form.getValues("includeSchedule")
                                         ) {
@@ -1148,13 +1148,13 @@ export function CreateTeacherAssignmentModal({
                                             "includeSchedule",
                                             true
                                           );
-                                        }
-                                      }}
-                                    >
-                                      <Plus className="h-4 w-4 mr-2" />
-                                      Add Another Schedule
-                                    </Button>
-                                  </div>
+                        }
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Another Schedule
+                    </Button>
+                  </div>
                                 </AccordionContent>
                               </AccordionItem>
                             </Accordion>
@@ -1200,8 +1200,8 @@ export function CreateTeacherAssignmentModal({
                                   <p className="text-sm text-white/85">
                                     {form.getValues("workloadHours") ?? 0}{" "}
                                     hrs/week
-                                  </p>
-                                </div>
+                      </p>
+                    </div>
                                 <div className="space-y-1">
                                   <p className="text-xs text-white/50">
                                     Subject
@@ -1209,7 +1209,7 @@ export function CreateTeacherAssignmentModal({
                                   <p className="text-sm text-white/85">
                                     {selectedSubjectLabel ?? "—"}
                                   </p>
-                                </div>
+                  </div>
                                 <div className="space-y-1">
                                   <p className="text-xs text-white/50">
                                     Class group
@@ -1232,37 +1232,37 @@ export function CreateTeacherAssignmentModal({
                                   </p>
                                 </div>
                               </div>
-                            </div>
+            </div>
 
-                            {warnings.length ? (
-                              <Callout tone="info" title="Warnings">
-                                <ul className="list-disc space-y-1 pl-5">
-                                  {warnings.map((w, idx) => (
-                                    <li key={idx}>{w}</li>
-                                  ))}
-                                </ul>
-                              </Callout>
-                            ) : null}
+            {warnings.length ? (
+              <Callout tone="info" title="Warnings">
+                <ul className="list-disc space-y-1 pl-5">
+                  {warnings.map((w, idx) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </Callout>
+            ) : null}
                           </section>
-                        )}
+          )}
                       </motion.div>
                     </AnimatePresence>
 
                     {/* Footer nav (like CreateStudentModal) */}
                     <div className="flex items-center justify-between pt-6 border-t border-white/10">
-                      <Button
-                        type="button"
-                        variant="outline"
+            <Button
+              type="button"
+              variant="outline"
                         onClick={() => {
                           if (isFirstStep) onOpenChange(false);
                           else handlePrevious();
                         }}
-                        disabled={isPending}
+              disabled={isPending}
                         className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
-                      >
+            >
                         <ChevronLeft className="h-4 w-4" />
                         {isFirstStep ? "Cancel" : "Previous"}
-                      </Button>
+            </Button>
 
                       <div className="flex gap-2">
                         {!isLastStep ? (
@@ -1276,10 +1276,10 @@ export function CreateTeacherAssignmentModal({
                             <ChevronRight className="h-4 w-4" />
                           </Button>
                         ) : (
-                          <Button
-                            type="button"
-                            onClick={form.handleSubmit(onSubmit)}
-                            disabled={isPending}
+            <Button
+              type="button"
+              onClick={form.handleSubmit(onSubmit)}
+              disabled={isPending}
                             className="gap-2 bg-brand text-black hover:opacity-90"
                           >
                             {isPending ? (
@@ -1290,7 +1290,7 @@ export function CreateTeacherAssignmentModal({
                                 Create Assignment
                               </>
                             )}
-                          </Button>
+            </Button>
                         )}
                       </div>
                     </div>

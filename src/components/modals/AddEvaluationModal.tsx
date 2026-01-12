@@ -5,16 +5,8 @@ import * as React from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -167,245 +159,361 @@ export function AddEvaluationModal({
     }
   };
 
-  const isPending = createEvaluationMutation.isPending;
+  const isPending = createEvaluationMutation.isPending || isSubmitting;
+
+  React.useEffect(() => {
+    if (!open) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) onOpenChange(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, isPending, onOpenChange]);
+
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Record Performance Evaluation</DialogTitle>
-          <DialogDescription className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-            Record a performance evaluation for {teacherName}
-          </DialogDescription>
-        </DialogHeader>
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        aria-modal="true"
+        role="dialog"
+      >
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !isPending) onOpenChange(false);
+          }}
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="academicPeriodId" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                Academic Period *
-              </Label>
-              <Select
-                value={watch("academicPeriodId")}
-                onValueChange={(value) => setValue("academicPeriodId", value)}
-              >
-                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
-                  <SelectValue placeholder="Select academic period" />
-                </SelectTrigger>
-                <SelectContent className={premiumSelectContent}>
-                  {periods.map((period) => (
-                    <SelectItem
-                      key={period._id}
-                      value={period._id}
-                      className={premiumMenuItem}
-                    >
-                      {period.yearLabel} - {period.term}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.academicPeriodId && (
-                <p className="text-xs text-red-300/80">
-                  {errors.academicPeriodId.message}
-                </p>
-              )}
-            </div>
+        <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+          >
+            <div className="px-6 pt-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <h1 className="text-lg font-semibold">
+                    Record Performance Evaluation
+                  </h1>
+                  <p className="text-sm text-white/60">
+                    Record a performance evaluation for{" "}
+                    <span className="font-medium text-white/85">
+                      {teacherName}
+                    </span>
+                    .
+                  </p>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="overallRating" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                Overall Rating *
-              </Label>
-              <Select
-                value={String(watch("overallRating"))}
-                onValueChange={(value) => setValue("overallRating", Number(value))}
-              >
-                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
-                  <SelectValue placeholder="Select rating" />
-                </SelectTrigger>
-                <SelectContent className={premiumSelectContent}>
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <SelectItem
-                      key={rating}
-                      value={String(rating)}
-                      className={premiumMenuItem}
-                    >
-                      {rating} {rating === 1 ? "star" : "stars"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.overallRating && (
-                <p className="text-xs text-red-300/80">
-                  {errors.overallRating.message}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="strengthInput" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Strengths (optional)
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="strengthInput"
-                value={strengthInput}
-                onChange={(e) => setStrengthInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddStrength();
-                  }
-                }}
-                placeholder="Type a strength and press Enter"
-                className="border-white/10 bg-white/5"
-              />
-              <Button type="button" variant="outline" onClick={handleAddStrength} disabled={!strengthInput.trim()}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            {strengths.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {strengths.map((strength) => (
-                  <Badge
-                    key={strength}
-                    variant="outline"
-                    className="border-white/10 bg-white/5 gap-1 pr-1"
-                  >
-                    {strength}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveStrength(strength)}
-                      className="ml-1 rounded-full hover:bg-white/10 p-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPending}
+                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-            )}
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="areaInput" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Areas for Improvement (optional)
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="areaInput"
-                value={areaInput}
-                onChange={(e) => setAreaInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddArea();
-                  }
-                }}
-                placeholder="Type an area and press Enter"
-                className="border-white/10 bg-white/5"
-              />
-              <Button type="button" variant="outline" onClick={handleAddArea} disabled={!areaInput.trim()}>
-                <Plus className="h-4 w-4" />
-              </Button>
+              <div className="mt-5 h-px bg-white/10" />
             </div>
-            {areasForImprovement.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {areasForImprovement.map((area) => (
-                  <Badge
-                    key={area}
-                    variant="outline"
-                    className="border-white/10 bg-white/5 gap-1 pr-1"
-                  >
-                    {area}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveArea(area)}
-                      className="ml-1 rounded-full hover:bg-white/10 p-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="goalInput" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Goals (optional)
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="goalInput"
-                value={goalInput}
-                onChange={(e) => setGoalInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddGoal();
-                  }
-                }}
-                placeholder="Type a goal and press Enter"
-                className="border-white/10 bg-white/5"
-              />
-              <Button type="button" variant="outline" onClick={handleAddGoal} disabled={!goalInput.trim()}>
-                <Plus className="h-4 w-4" />
-              </Button>
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
+              <div className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="academicPeriodId"
+                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                      >
+                        Academic Period *
+                      </Label>
+                      <Select
+                        value={watch("academicPeriodId")}
+                        onValueChange={(value) =>
+                          setValue("academicPeriodId", value)
+                        }
+                      >
+                        <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                          <SelectValue placeholder="Select academic period" />
+                        </SelectTrigger>
+                        <SelectContent className={premiumSelectContent}>
+                          {periods.map((period) => (
+                            <SelectItem
+                              key={period._id}
+                              value={period._id}
+                              className={premiumMenuItem}
+                            >
+                              {period.yearLabel} - {period.term}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.academicPeriodId && (
+                        <p className="text-xs text-red-300/80">
+                          {errors.academicPeriodId.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="overallRating"
+                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                      >
+                        Overall Rating *
+                      </Label>
+                      <Select
+                        value={String(watch("overallRating"))}
+                        onValueChange={(value) =>
+                          setValue("overallRating", Number(value))
+                        }
+                      >
+                        <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                          <SelectValue placeholder="Select rating" />
+                        </SelectTrigger>
+                        <SelectContent className={premiumSelectContent}>
+                          {[1, 2, 3, 4, 5].map((rating) => (
+                            <SelectItem
+                              key={rating}
+                              value={String(rating)}
+                              className={premiumMenuItem}
+                            >
+                              {rating} {rating === 1 ? "star" : "stars"}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.overallRating && (
+                        <p className="text-xs text-red-300/80">
+                          {errors.overallRating.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="strengthInput"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      Strengths (optional)
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="strengthInput"
+                        value={strengthInput}
+                        onChange={(e) => setStrengthInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddStrength();
+                          }
+                        }}
+                        placeholder="Type a strength and press Enter"
+                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddStrength}
+                        disabled={!strengthInput.trim()}
+                        className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {strengths.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {strengths.map((strength) => (
+                          <Badge
+                            key={strength}
+                            variant="outline"
+                            className="border-white/10 bg-white/5 gap-1 pr-1"
+                          >
+                            {strength}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveStrength(strength)}
+                              className="ml-1 rounded-full hover:bg-white/10 p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="areaInput"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      Areas for Improvement (optional)
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="areaInput"
+                        value={areaInput}
+                        onChange={(e) => setAreaInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddArea();
+                          }
+                        }}
+                        placeholder="Type an area and press Enter"
+                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddArea}
+                        disabled={!areaInput.trim()}
+                        className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {areasForImprovement.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {areasForImprovement.map((area) => (
+                          <Badge
+                            key={area}
+                            variant="outline"
+                            className="border-white/10 bg-white/5 gap-1 pr-1"
+                          >
+                            {area}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveArea(area)}
+                              className="ml-1 rounded-full hover:bg-white/10 p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="goalInput"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      Goals (optional)
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="goalInput"
+                        value={goalInput}
+                        onChange={(e) => setGoalInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddGoal();
+                          }
+                        }}
+                        placeholder="Type a goal and press Enter"
+                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddGoal}
+                        disabled={!goalInput.trim()}
+                        className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {goals.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {goals.map((goal) => (
+                          <Badge
+                            key={goal}
+                            variant="outline"
+                            className="border-white/10 bg-white/5 gap-1 pr-1"
+                          >
+                            {goal}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveGoal(goal)}
+                              className="ml-1 rounded-full hover:bg-white/10 p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="comments"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      Comments (optional)
+                    </Label>
+                    <Textarea
+                      id="comments"
+                      {...register("comments")}
+                      placeholder="Enter evaluation comments..."
+                      className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      maxLength={2000}
+                    />
+                    {errors.comments && (
+                      <p className="text-xs text-red-300/80">
+                        {errors.comments.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      disabled={isPending}
+                      className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isPending}
+                      className="gap-2 bg-brand text-black hover:opacity-90"
+                    >
+                      {isPending ? "Recording…" : "Record Evaluation"}
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </div>
-            {goals.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {goals.map((goal) => (
-                  <Badge
-                    key={goal}
-                    variant="outline"
-                    className="border-white/10 bg-white/5 gap-1 pr-1"
-                  >
-                    {goal}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveGoal(goal)}
-                      className="ml-1 rounded-full hover:bg-white/10 p-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="comments" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Comments (optional)
-            </Label>
-            <Textarea
-              id="comments"
-              {...register("comments")}
-              placeholder="Enter evaluation comments..."
-              className="min-h-[100px] border-white/10 bg-white/5"
-              maxLength={2000}
-            />
-            {errors.comments && (
-              <p className="text-xs text-red-300/80">{errors.comments.message}</p>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2 border-t border-white/10 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting || isPending}
-              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || isPending} className="gap-2 bg-brand text-black hover:opacity-90">
-              {isSubmitting || isPending ? "Recording…" : "Record Evaluation"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </motion.div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

@@ -2,17 +2,18 @@
 "use client";
 
 import * as React from "react";
-import { Upload, Download, FileText, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Upload,
+  Download,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 
 type ImportResult = {
@@ -150,181 +151,248 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
   const successfulCount = results?.filter((r) => r.success).length || 0;
   const failedCount = results?.filter((r) => !r.success).length || 0;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Import Teachers from CSV</DialogTitle>
-          <DialogDescription className="text-sm">
-            Upload a CSV file to bulk import teachers. Download the template to see the required format.
-          </DialogDescription>
-        </DialogHeader>
+  const isPending = isUploading;
 
-        <div className="space-y-4 py-4">
-          {/* Template download */}
-          <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-4">
-            <div className="flex items-start gap-3">
-              <FileText className="h-5 w-5 text-blue-300 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-blue-100 mb-1">
-                  CSV Template Required
-                </p>
-                <p className="text-xs text-blue-200/80 mb-3">
-                  Download the template to ensure your CSV file has the correct format and column headers.
-                </p>
+  React.useEffect(() => {
+    if (!open) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) onOpenChange(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, isPending, onOpenChange]);
+
+  if (!open) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        aria-modal="true"
+        role="dialog"
+      >
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !isPending) onOpenChange(false);
+          }}
+        />
+
+        <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+          >
+            <div className="px-6 pt-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <h1 className="text-lg font-semibold">
+                    Import Teachers from CSV
+                  </h1>
+                  <p className="text-sm text-white/60">
+                    Upload a CSV file to bulk import teachers. Download the
+                    template to see the required format.
+                  </p>
+                </div>
+
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadTemplate}
-                  className="gap-2 border-blue-400/30 bg-blue-500/10 hover:bg-blue-500/20"
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPending}
+                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => onOpenChange(false)}
                 >
-                  <Download className="h-4 w-4" />
-                  Download Template
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          </div>
 
-          {/* File upload */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Select CSV File</label>
-            <div className="flex items-center gap-3">
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                disabled={isUploading}
-                className="hidden"
-                id="csv-file-input"
-              />
-              <label
-                htmlFor="csv-file-input"
-                className="flex-1 cursor-pointer"
-              >
-                <div className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 p-4 hover:bg-white/8 transition-colors">
-                  <Upload className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {file ? file.name : "Click to select CSV file"}
-                  </span>
+              <div className="mt-5 h-px bg-white/10" />
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
+              <div className="space-y-4">
+                <div className="rounded-lg border border-blue-400/20 bg-blue-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <FileText className="h-5 w-5 text-blue-300 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-100 mb-1">
+                        CSV Template Required
+                      </p>
+                      <p className="text-xs text-blue-200/80 mb-3">
+                        Download the template to ensure your CSV file has the
+                        correct format and column headers.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDownloadTemplate}
+                        className="gap-2 border-blue-400/30 bg-blue-500/10 hover:bg-blue-500/20"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download Template
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </label>
-            </div>
-            {file && (
-              <p className="text-xs text-muted-foreground">
-                Selected: {file.name} ({(file.size / 1024).toFixed(2)} KB)
-              </p>
-            )}
-          </div>
 
-          {/* Results */}
-          {results && results.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">Import Results</h4>
-                <div className="flex items-center gap-4 text-xs">
-                  <span className="text-green-400">
-                    <CheckCircle2 className="h-4 w-4 inline mr-1" />
-                    {successfulCount} successful
-                  </span>
-                  {failedCount > 0 && (
-                    <span className="text-red-400">
-                      <XCircle className="h-4 w-4 inline mr-1" />
-                      {failedCount} failed
-                    </span>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Select CSV File</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileChange}
+                      disabled={isUploading}
+                      className="hidden"
+                      id="csv-file-input"
+                    />
+                    <label htmlFor="csv-file-input" className="flex-1 cursor-pointer">
+                      <div className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {file ? file.name : "Click to select CSV file"}
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                  {file && (
+                    <p className="text-xs text-muted-foreground">
+                      Selected: {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                    </p>
                   )}
                 </div>
-              </div>
 
-              <div className="max-h-[300px] overflow-y-auto rounded-lg border border-white/10 bg-white/5">
-                <div className="divide-y divide-white/5">
-                  {results.map((result, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-3 text-sm ${
-                        result.success
-                          ? "bg-green-500/10 border-l-2 border-green-500"
-                          : "bg-red-500/10 border-l-2 border-red-500"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            {result.success ? (
-                              <CheckCircle2 className="h-4 w-4 text-green-400" />
-                            ) : (
-                              <XCircle className="h-4 w-4 text-red-400" />
-                            )}
-                            <span className="font-medium">
-                              Row {result.row}
-                              {result.email && ` - ${result.email}`}
-                            </span>
-                          </div>
-                          {result.success ? (
-                            <p className="text-xs text-green-200/80">
-                              Teacher created successfully
-                            </p>
-                          ) : (
-                            <p className="text-xs text-red-200/80">
-                              {result.error || "Unknown error"}
-                            </p>
-                          )}
-                        </div>
+                {results && results.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium">Import Results</h4>
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="text-green-400">
+                          <CheckCircle2 className="h-4 w-4 inline mr-1" />
+                          {successfulCount} successful
+                        </span>
+                        {failedCount > 0 && (
+                          <span className="text-red-400">
+                            <XCircle className="h-4 w-4 inline mr-1" />
+                            {failedCount} failed
+                          </span>
+                        )}
                       </div>
                     </div>
-                  ))}
+
+                    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-white/10 bg-white/5">
+                      <div className="divide-y divide-white/5">
+                        {results.map((result, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-3 text-sm ${
+                              result.success
+                                ? "bg-green-500/10 border-l-2 border-green-500"
+                                : "bg-red-500/10 border-l-2 border-red-500"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  {result.success ? (
+                                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4 text-red-400" />
+                                  )}
+                                  <span className="font-medium">
+                                    Row {result.row}
+                                    {result.email && ` - ${result.email}`}
+                                  </span>
+                                </div>
+                                {result.success ? (
+                                  <p className="text-xs text-green-200/80">
+                                    Teacher created successfully
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-red-200/80">
+                                    {result.error || "Unknown error"}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-300 mt-0.5" />
+                    <div className="text-xs text-amber-200/80">
+                      <p className="font-medium mb-1">Required Columns:</p>
+                      <ul className="list-disc list-inside space-y-0.5">
+                        <li>firstName, lastName, email (required)</li>
+                        <li>phone, employeeId, department (optional)</li>
+                        <li>
+                          status: active, inactive, on_leave, terminated
+                          (default: active)
+                        </li>
+                        <li>subjectIds: comma-separated subject IDs (optional)</li>
+                        <li>
+                          homeroomClassGroupId: single class group ID (optional)
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isPending}
+                    className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    {results ? "Close" : "Cancel"}
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleImport}
+                    disabled={!file || isPending}
+                    className="gap-2 bg-brand text-black hover:opacity-90"
+                  >
+                    {isPending ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Import Teachers
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Info box */}
-          <div className="rounded-lg border border-amber-400/20 bg-amber-500/10 p-3">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-amber-300 mt-0.5" />
-              <div className="text-xs text-amber-200/80">
-                <p className="font-medium mb-1">Required Columns:</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  <li>firstName, lastName, email (required)</li>
-                  <li>phone, employeeId, department (optional)</li>
-                  <li>status: active, inactive, on_leave, terminated (default: active)</li>
-                  <li>subjectIds: comma-separated subject IDs (optional)</li>
-                  <li>homeroomClassGroupId: single class group ID (optional)</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          </motion.div>
         </div>
-
-        <DialogFooter className="gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isUploading}
-          >
-            {results ? "Close" : "Cancel"}
-          </Button>
-          <Button
-            type="button"
-            onClick={handleImport}
-            disabled={!file || isUploading}
-            className="gap-2"
-          >
-            {isUploading ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                Importing...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4" />
-                Import Teachers
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </motion.div>
+    </AnimatePresence>
   );
 }

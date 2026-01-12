@@ -6,15 +6,9 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { AnimatePresence, motion } from "framer-motion";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -166,192 +160,348 @@ export function UploadDocumentModal({
     }
   };
 
+  const isPending = uploadDocumentMutation.isPending || isSubmitting;
+
+  React.useEffect(() => {
+    if (!open) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) onOpenChange(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, isPending, onOpenChange]);
+
+  if (!open) return null;
+
   if (!me?.schoolId) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <p className="text-sm text-white/60">School ID not available</p>
-        </DialogContent>
-      </Dialog>
+      <AnimatePresence>
+        <motion.div
+          className="fixed inset-0 z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          aria-modal="true"
+          role="dialog"
+        >
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) onOpenChange(false);
+            }}
+          />
+
+          <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+            >
+              <div className="px-6 pt-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <h1 className="text-lg font-semibold">Upload Document</h1>
+                    <p className="text-sm text-white/60">
+                      School ID not available.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="mt-5 h-px bg-white/10" />
+              </div>
+
+              <div className="px-6 py-6">
+                <p className="text-sm text-white/70">
+                  Please refresh and try again once your school profile is
+                  available.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] border border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Upload Document</DialogTitle>
-          <DialogDescription className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-            Upload a document for <span className="font-medium text-white/90">{teacherName}</span>
-          </DialogDescription>
-        </DialogHeader>
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        aria-modal="true"
+        role="dialog"
+      >
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget && !isPending) onOpenChange(false);
+          }}
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* File Upload */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Document File *</Label>
-            <DocumentUploader
-              schoolId={me.schoolId}
-              category="teachers"
-              maxSizeMB={15}
-              onUploaded={handleFileUploaded}
-              onError={(msg) => toast.error(msg)}
-              label={uploadedFile ? "File uploaded successfully" : "Upload document"}
-            />
-            {uploadedFile && (
-              <p className="text-xs text-muted-foreground">
-                File size: {(uploadedFile.bytes / 1024 / 1024).toFixed(2)} MB
-              </p>
-            )}
-            {!uploadedFile && (
-              <p className="text-xs text-muted-foreground">
-                Please upload a document file to continue
-              </p>
-            )}
-          </div>
+        <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 18, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+            className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+          >
+            <div className="px-6 pt-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <h1 className="text-lg font-semibold">Upload Document</h1>
+                  <p className="text-sm text-white/60">
+                    Upload a document for{" "}
+                    <span className="font-medium text-white/85">
+                      {teacherName}
+                    </span>
+                    .
+                  </p>
+                </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                Document Name *
-              </Label>
-              <Input
-                id="name"
-                {...register("name")}
-                placeholder="e.g., Teaching License"
-                className="border-white/10 bg-white/5"
-              />
-              {errors.name && (
-                <p className="text-xs text-red-300/80">{errors.name.message}</p>
-              )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={isPending}
+                  className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="mt-5 h-px bg-white/10" />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="type" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                Document Type *
-              </Label>
-              <Select
-                value={type}
-                onValueChange={(value) => setValue("type", value as TeacherDocumentType)}
-              >
-                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/8">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent className={premiumSelectContent}>
-                  <SelectItem value="contract" className={premiumMenuItem}>
-                    Contract
-                  </SelectItem>
-                  <SelectItem value="certificate" className={premiumMenuItem}>
-                    Certificate
-                  </SelectItem>
-                  <SelectItem value="license" className={premiumMenuItem}>
-                    License
-                  </SelectItem>
-                  <SelectItem value="id" className={premiumMenuItem}>
-                    ID
-                  </SelectItem>
-                  <SelectItem value="resume" className={premiumMenuItem}>
-                    Resume
-                  </SelectItem>
-                  <SelectItem value="other" className={premiumMenuItem}>
-                    Other
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.type && (
-                <p className="text-xs text-red-300/80">{errors.type.message}</p>
-              )}
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
+              <div className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                      Document File *
+                    </Label>
+                    <DocumentUploader
+                      schoolId={me.schoolId}
+                      category="teachers"
+                      maxSizeMB={15}
+                      onUploaded={handleFileUploaded}
+                      onError={(msg) => toast.error(msg)}
+                      label={
+                        uploadedFile ? "File uploaded successfully" : "Upload document"
+                      }
+                    />
+                    {uploadedFile && (
+                      <p className="text-xs text-muted-foreground">
+                        File size: {(uploadedFile.bytes / 1024 / 1024).toFixed(2)}{" "}
+                        MB
+                      </p>
+                    )}
+                    {!uploadedFile && (
+                      <p className="text-xs text-muted-foreground">
+                        Please upload a document file to continue
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="name"
+                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                      >
+                        Document Name *
+                      </Label>
+                      <Input
+                        id="name"
+                        {...register("name")}
+                        placeholder="e.g., Teaching License"
+                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      />
+                      {errors.name && (
+                        <p className="text-xs text-red-300/80">
+                          {errors.name.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="type"
+                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                      >
+                        Document Type *
+                      </Label>
+                      <Select
+                        value={type}
+                        onValueChange={(value) =>
+                          setValue("type", value as TeacherDocumentType)
+                        }
+                      >
+                        <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent className={premiumSelectContent}>
+                          <SelectItem value="contract" className={premiumMenuItem}>
+                            Contract
+                          </SelectItem>
+                          <SelectItem
+                            value="certificate"
+                            className={premiumMenuItem}
+                          >
+                            Certificate
+                          </SelectItem>
+                          <SelectItem value="license" className={premiumMenuItem}>
+                            License
+                          </SelectItem>
+                          <SelectItem value="id" className={premiumMenuItem}>
+                            ID
+                          </SelectItem>
+                          <SelectItem value="resume" className={premiumMenuItem}>
+                            Resume
+                          </SelectItem>
+                          <SelectItem value="other" className={premiumMenuItem}>
+                            Other
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {errors.type && (
+                        <p className="text-xs text-red-300/80">
+                          {errors.type.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="category"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      Category (optional)
+                    </Label>
+                    <Input
+                      id="category"
+                      {...register("category")}
+                      placeholder="e.g., Professional, Personal"
+                      className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="issueDate"
+                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                      >
+                        Issue Date (optional)
+                      </Label>
+                      <Input
+                        id="issueDate"
+                        type="date"
+                        {...register("issueDate")}
+                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="expiryDate"
+                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                      >
+                        Expiry Date (optional)
+                      </Label>
+                      <Input
+                        id="expiryDate"
+                        type="date"
+                        {...register("expiryDate")}
+                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      />
+                      {errors.expiryDate && (
+                        <p className="text-xs text-red-300/80">
+                          {errors.expiryDate.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="tags"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      Tags (optional, comma-separated)
+                    </Label>
+                    <Input
+                      id="tags"
+                      {...register("tags")}
+                      placeholder="e.g., important, renewal, annual"
+                      className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="notes"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      Notes (optional)
+                    </Label>
+                    <Textarea
+                      id="notes"
+                      {...register("notes")}
+                      placeholder="Additional notes about this document..."
+                      className="min-h-[80px] border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      maxLength={1000}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      disabled={isPending}
+                      className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isPending || !uploadedFile}
+                      className="gap-2 bg-brand text-black hover:opacity-90"
+                    >
+                      {isPending ? "Uploading…" : "Upload Document"}
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="category" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Category (optional)
-            </Label>
-            <Input
-              id="category"
-              {...register("category")}
-              placeholder="e.g., Professional, Personal"
-              className="border-white/10 bg-white/5"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="issueDate" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                Issue Date (optional)
-              </Label>
-              <Input
-                id="issueDate"
-                type="date"
-                {...register("issueDate")}
-                className="border-white/10 bg-white/5"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="expiryDate" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                Expiry Date (optional)
-              </Label>
-              <Input
-                id="expiryDate"
-                type="date"
-                {...register("expiryDate")}
-                className="border-white/10 bg-white/5"
-              />
-              {errors.expiryDate && (
-                <p className="text-xs text-red-300/80">{errors.expiryDate.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="tags" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Tags (optional, comma-separated)
-            </Label>
-            <Input
-              id="tags"
-              {...register("tags")}
-              placeholder="e.g., important, renewal, annual"
-              className="border-white/10 bg-white/5"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Notes (optional)
-            </Label>
-            <Textarea
-              id="notes"
-              {...register("notes")}
-              placeholder="Additional notes about this document..."
-              className="min-h-[80px] border-white/10 bg-white/5"
-              maxLength={1000}
-            />
-          </div>
-
-          <DialogFooter className="gap-2 border-t border-white/10 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting || uploadDocumentMutation.isPending}
-              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || uploadDocumentMutation.isPending || !uploadedFile}
-              className="gap-2 bg-brand text-black hover:opacity-90"
-            >
-              {isSubmitting || uploadDocumentMutation.isPending
-                ? "Uploading…"
-                : "Upload Document"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </motion.div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

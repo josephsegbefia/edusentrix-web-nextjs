@@ -11,7 +11,7 @@ import mongoose from "mongoose";
 
 /**
  * GET /api/admin/classes
- * Get all classes with metadata
+ * Get all classes with metadata, filters, and sorting
  */
 export async function GET(req: NextRequest) {
   try {
@@ -26,7 +26,10 @@ export async function GET(req: NextRequest) {
 
     const search = searchParams.get("search") || "";
     const gradeId = searchParams.get("gradeId");
+    const teacherId = searchParams.get("teacherId");
     const isActive = searchParams.get("isActive");
+    const sortBy = searchParams.get("sortBy") || "name";
+    const sortOrder = searchParams.get("sortOrder") || "asc";
 
     const query: Record<string, unknown> = { schoolId: schoolIdObj };
 
@@ -42,11 +45,54 @@ export async function GET(req: NextRequest) {
       query.isActive = isActive === "true";
     }
 
+    // If filtering by teacher, we need to find classes where the teacher teaches
+    let classIdsWithTeacher: mongoose.Types.ObjectId[] | null = null;
+    if (teacherId) {
+      const teacherIdObj = new mongoose.Types.ObjectId(teacherId);
+
+      // Find classes where this teacher is homeroom OR teaches a subject
+      const [homeroomClasses, assignmentClasses] = await Promise.all([
+        ClassGroup.find({
+          schoolId: schoolIdObj,
+          homeroomTeacherId: teacherIdObj,
+        })
+          .select("_id")
+          .lean(),
+        TeacherAssignment.find({
+          schoolId: schoolIdObj,
+          teacherId: teacherIdObj,
+          status: "active",
+        })
+          .select("classGroupId")
+          .lean(),
+      ]);
+
+      const classIdSet = new Set<string>();
+      homeroomClasses.forEach((c) => classIdSet.add(String(c._id)));
+      assignmentClasses.forEach((a: any) =>
+        classIdSet.add(String(a.classGroupId))
+      );
+
+      classIdsWithTeacher = Array.from(classIdSet).map(
+        (id) => new mongoose.Types.ObjectId(id)
+      );
+
+      if (classIdsWithTeacher.length === 0) {
+        // No classes for this teacher
+        return NextResponse.json({
+          success: true,
+          data: [],
+          total: 0,
+        });
+      }
+
+      query._id = { $in: classIdsWithTeacher };
+    }
+
     // Fetch classes with basic population first
     const classes = await ClassGroup.find(query)
       .populate("gradeId", "name code stage order")
       .populate("subjectIds", "name code")
-      .sort({ name: 1 })
       .lean();
 
     // Get homeroom teacher IDs that exist
@@ -55,7 +101,7 @@ export async function GET(req: NextRequest) {
       .filter((id: any) => id !== null && id !== undefined);
 
     // Populate homeroom teachers separately if any exist
-    let homeroomTeachersMap = new Map();
+    const homeroomTeachersMap = new Map();
     if (homeroomTeacherIds.length > 0) {
       const { Teacher } = await import("@/models/Teacher");
       const teachers = await Teacher.find({
@@ -101,13 +147,14 @@ export async function GET(req: NextRequest) {
       studentCounts.map((s) => [String(s._id), s.count])
     );
 
-    // Get teacher counts (subject teachers) for each class
+    // Get current academic period
     const currentPeriod = await mongoose
       .model("AcademicPeriod")
-      .findOne({ schoolId: schoolIdObj, status: "active" })
+      .findOne({ schoolId: schoolIdObj, isCurrent: true })
       .select("_id")
       .lean();
 
+    // Get teacher counts (subject teachers) for each class
     let teacherCountMap = new Map<string, number>();
     if (currentPeriod) {
       const teacherCounts = await TeacherAssignment.aggregate([
@@ -138,7 +185,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const data = classes.map((cls: any) => {
+    let data = classes.map((cls: any) => {
       const grade = cls.gradeId;
       const homeroomTeacherId = cls.homeroomTeacherId;
       const homeroomTeacher = homeroomTeacherId
@@ -180,9 +227,39 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // Apply sorting
+    const sortMultiplier = sortOrder === "desc" ? -1 : 1;
+    data.sort((a, b) => {
+      switch (sortBy) {
+        case "grade":
+          // Sort by grade order, then by name
+          const gradeOrderDiff = (a.grade.order - b.grade.order) * sortMultiplier;
+          if (gradeOrderDiff !== 0) return gradeOrderDiff;
+          return a.name.localeCompare(b.name) * sortMultiplier;
+        case "students":
+          return (a.studentCount - b.studentCount) * sortMultiplier;
+        case "subjects":
+          return (a.subjectCount - b.subjectCount) * sortMultiplier;
+        case "teachers":
+          return (a.teacherCount - b.teacherCount) * sortMultiplier;
+        case "createdAt":
+          return (
+            (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) *
+            sortMultiplier
+          );
+        case "name":
+        default:
+          // Sort by grade order first, then by class name
+          const orderDiff = a.grade.order - b.grade.order;
+          if (orderDiff !== 0) return orderDiff * sortMultiplier;
+          return a.name.localeCompare(b.name) * sortMultiplier;
+      }
+    });
+
     return NextResponse.json({
       success: true,
       data,
+      total: data.length,
     });
   } catch (e: unknown) {
     console.error("Error fetching classes:", e);

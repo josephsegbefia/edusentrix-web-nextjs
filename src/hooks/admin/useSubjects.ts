@@ -1,6 +1,57 @@
 // src/hooks/admin/useSubjects.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+export type SubjectDetailDTO = {
+  id: string;
+  name: string;
+  code: string | null;
+  isActive: boolean;
+  classCount: number;
+  teacherCount: number;
+  classes: Array<{
+    id: string;
+    name: string;
+    fullLabel: string;
+    grade: { id: string; name: string } | null;
+  }>;
+  teachers: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    email: string | null;
+    photoUrl: string | null;
+    classId: string;
+    className: string;
+  }>;
+  currentPeriod: {
+    id: string;
+    yearLabel: string;
+    term: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Hook to fetch a single subject detail
+ */
+export function useSubjectDetail(subjectId: string | undefined) {
+  return useQuery<{ success: boolean; data: SubjectDetailDTO }>({
+    queryKey: ["subject", subjectId],
+    queryFn: async () => {
+      if (!subjectId) throw new Error("Subject ID is required");
+      const res = await fetch(`/api/admin/subjects/${subjectId}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch subject details");
+      return res.json();
+    },
+    enabled: !!subjectId,
+    staleTime: 30_000,
+  });
+}
+
 export type SubjectDTO = {
   id: string;
   name: string;

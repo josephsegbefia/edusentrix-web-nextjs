@@ -24,13 +24,14 @@ function toObjectIdOrNull(id: string) {
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
 
-    const classId = toObjectIdOrNull(params.id);
+    const { id } = await params;
+    const classId = toObjectIdOrNull(id);
     if (!classId) {
       return NextResponse.json(
         { success: false, error: "Invalid class ID" },

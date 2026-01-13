@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { ClassGroup } from "@/models/ClassGroup";
+import { Student } from "@/models/Student";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { Grade } from "@/models/Grade";
+import { Subject } from "@/models/Subject";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string) {
@@ -14,18 +18,176 @@ function toObjectIdOrNull(id: string) {
 }
 
 /**
+ * GET /api/admin/classes/[id]
+ * Get a single class with full details
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    // Ensure models used by populate are registered
+    void Grade;
+    void Subject;
+
+    const { id } = await params;
+    const classId = toObjectIdOrNull(id);
+    if (!classId) {
+      return NextResponse.json(
+        { success: false, error: "Invalid class ID" },
+        { status: 400 }
+      );
+    }
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+
+    // Fetch the class with populated fields
+    const cls = await ClassGroup.findOne({
+      _id: classId,
+      schoolId: schoolIdObj,
+    })
+      .populate("gradeId", "name code stage order")
+      .populate("subjectIds", "name code")
+      .lean();
+
+    if (!cls) {
+      return NextResponse.json(
+        { success: false, error: "Class not found" },
+        { status: 404 }
+      );
+    }
+
+    // Get homeroom teacher details if assigned
+    let homeroomTeacher = null;
+    if ((cls as any).homeroomTeacherId) {
+      const { Teacher } = await import("@/models/Teacher");
+      const teacher = await Teacher.findById((cls as any).homeroomTeacherId)
+        .populate("userId", "firstName lastName email avatarUrl")
+        .lean();
+
+      if (teacher) {
+        const user = (teacher as any).userId;
+        homeroomTeacher = {
+          id: String(teacher._id),
+          firstName: user?.firstName || "",
+          lastName: user?.lastName || "",
+          fullName: user
+            ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+            : "",
+          email: user?.email || null,
+          photoUrl: user?.avatarUrl || null,
+        };
+      }
+    }
+
+    // Get student count
+    const studentCount = await Student.countDocuments({
+      schoolId: schoolIdObj,
+      classGroupId: classId,
+      status: { $in: ["active", "enrolled"] },
+    });
+
+    // Get current academic period
+    const currentPeriod = await mongoose
+      .model("AcademicPeriod")
+      .findOne({ schoolId: schoolIdObj, isCurrent: true })
+      .select("_id")
+      .lean();
+
+    // Get teacher count (subject teachers)
+    let teacherCount = 0;
+    if (currentPeriod) {
+      const result = await TeacherAssignment.aggregate([
+        {
+          $match: {
+            schoolId: schoolIdObj,
+            classGroupId: classId,
+            academicPeriodId: currentPeriod._id,
+            status: "active",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            uniqueTeachers: { $addToSet: "$teacherId" },
+          },
+        },
+        {
+          $project: {
+            count: { $size: "$uniqueTeachers" },
+          },
+        },
+      ]);
+      teacherCount = result[0]?.count || 0;
+    }
+
+    const grade = (cls as any).gradeId;
+
+    const data = {
+      id: String((cls as any)._id),
+      name: (cls as any).name,
+      fullLabel: grade ? `${grade.name} ${(cls as any).name}` : (cls as any).name,
+      grade: grade
+        ? {
+            id: String(grade._id),
+            name: grade.name,
+            code: grade.code || null,
+            stage: grade.stage || null,
+            order: grade.order || 0,
+          }
+        : {
+            id: "",
+            name: "Unknown",
+            code: null,
+            stage: null,
+            order: 0,
+          },
+      homeroomTeacher,
+      subjects: ((cls as any).subjectIds || []).map((s: any) => ({
+        id: String(s._id),
+        name: s.name,
+        code: s.code || null,
+      })),
+      studentCount,
+      teacherCount,
+      subjectCount: (cls as any).subjectIds?.length || 0,
+      capacity: (cls as any).capacity || null,
+      isActive: (cls as any).isActive,
+      createdAt: new Date((cls as any).createdAt).toISOString(),
+      updatedAt: new Date((cls as any).updatedAt).toISOString(),
+    };
+
+    return NextResponse.json({
+      success: true,
+      data,
+    });
+  } catch (e: unknown) {
+    console.error("Error fetching class:", e);
+    const message = e instanceof Error ? e.message : "Failed to fetch class";
+    return NextResponse.json(
+      { success: false, error: message },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * PATCH /api/admin/classes/[id]
  * Update a class (e.g., assign homeroom teacher)
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId, userId: adminUserId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
 
-    const classId = toObjectIdOrNull(params.id);
+    const { id } = await params;
+    const classId = toObjectIdOrNull(id);
     if (!classId) {
       return NextResponse.json(
         { success: false, error: "Invalid class ID" },

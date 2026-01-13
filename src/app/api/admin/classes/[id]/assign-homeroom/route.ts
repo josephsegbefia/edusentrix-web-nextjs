@@ -24,13 +24,14 @@ function toObjectIdOrNull(id: string) {
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
 
-    const classId = toObjectIdOrNull(params.id);
+    const { id } = await params;
+    const classId = toObjectIdOrNull(id);
     if (!classId) {
       return NextResponse.json(
         { success: false, error: "Invalid class ID" },
@@ -71,23 +72,25 @@ export async function POST(
       );
     }
 
+    const updatedDoc = Array.isArray(updated) ? updated[0] : updated;
+
     return NextResponse.json({
       success: true,
       message: teacherId
         ? "Homeroom teacher assigned"
         : "Homeroom teacher removed",
       data: {
-        id: String(updated._id),
-        name: updated.name,
-        homeroomTeacher: updated.homeroomTeacherId
+        id: String(updatedDoc._id),
+        name: updatedDoc.name,
+        homeroomTeacher: updatedDoc.homeroomTeacherId
           ? {
-              id: String(updated.homeroomTeacherId._id),
+              id: String((updatedDoc.homeroomTeacherId as any)._id),
               firstName:
-                (updated.homeroomTeacherId as any).userId?.firstName || "",
+                (updatedDoc.homeroomTeacherId as any).userId?.firstName || "",
               lastName:
-                (updated.homeroomTeacherId as any).userId?.lastName || "",
-              fullName: (updated.homeroomTeacherId as any).userId
-                ? `${(updated.homeroomTeacherId as any).userId.firstName || ""} ${(updated.homeroomTeacherId as any).userId.lastName || ""}`.trim()
+                (updatedDoc.homeroomTeacherId as any).userId?.lastName || "",
+              fullName: (updatedDoc.homeroomTeacherId as any).userId
+                ? `${(updatedDoc.homeroomTeacherId as any).userId.firstName || ""} ${(updatedDoc.homeroomTeacherId as any).userId.lastName || ""}`.trim()
                 : "",
             }
           : null,

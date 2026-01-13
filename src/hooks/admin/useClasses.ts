@@ -1,5 +1,6 @@
 // src/hooks/admin/useClasses.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ClassesSortBy, ClassesSortOrder } from "@/constants/classes";
 
 export type ClassGroupDTO = {
   id: string;
@@ -37,6 +38,7 @@ export type ClassGroupDTO = {
 export type ClassesResponse = {
   success: boolean;
   data: ClassGroupDTO[];
+  total?: number;
   error?: string;
 };
 
@@ -69,17 +71,31 @@ export type AssignSubjectsResponse = {
   };
 };
 
+export type ClassesFilters = {
+  search?: string;
+  gradeId?: string;
+  teacherId?: string;
+  isActive?: boolean;
+  sortBy?: ClassesSortBy;
+  sortOrder?: ClassesSortOrder;
+};
+
 /**
- * Hook to fetch all classes
+ * Hook to fetch all classes with filters and sorting
  */
-export function useClasses(search?: string, gradeId?: string, isActive?: boolean) {
+export function useClasses(filters: ClassesFilters = {}) {
+  const { search, gradeId, teacherId, isActive, sortBy, sortOrder } = filters;
+
   return useQuery<ClassesResponse>({
-    queryKey: ["classes", search, gradeId, isActive],
+    queryKey: ["classes", search, gradeId, teacherId, isActive, sortBy, sortOrder],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
       if (gradeId) params.set("gradeId", gradeId);
+      if (teacherId) params.set("teacherId", teacherId);
       if (isActive !== undefined) params.set("isActive", String(isActive));
+      if (sortBy) params.set("sortBy", sortBy);
+      if (sortOrder) params.set("sortOrder", sortOrder);
 
       const res = await fetch(`/api/admin/classes?${params.toString()}`, {
         cache: "no-store",
@@ -88,6 +104,51 @@ export function useClasses(search?: string, gradeId?: string, isActive?: boolean
       return res.json();
     },
     staleTime: 30_000,
+  });
+}
+
+/**
+ * Hook to fetch a single class detail
+ */
+export function useClassDetail(classId: string | undefined) {
+  return useQuery({
+    queryKey: ["class", classId],
+    queryFn: async () => {
+      if (!classId) throw new Error("Class ID is required");
+      const res = await fetch(`/api/admin/classes/${classId}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch class details");
+      return res.json();
+    },
+    enabled: !!classId,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Hook to fetch teachers list for filter dropdown
+ */
+export function useTeachersForFilter() {
+  return useQuery<{
+    success: boolean;
+    data: Array<{ id: string; fullName: string }>;
+  }>({
+    queryKey: ["teachers-filter"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/teachers?limit=200&sortBy=name&sortOrder=asc", {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch teachers");
+      const json = await res.json();
+      // Map to simple format for filter dropdown
+      const data = (json.data || []).map((t: { id: string; fullName: string }) => ({
+        id: t.id,
+        fullName: t.fullName,
+      }));
+      return { success: true, data };
+    },
+    staleTime: 60_000,
   });
 }
 
@@ -111,13 +172,16 @@ export function useAssignHomeroomTeacher() {
         body: JSON.stringify({ teacherId }),
       });
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to assign homeroom teacher" }));
+        const error = await res
+          .json()
+          .catch(() => ({ error: "Failed to assign homeroom teacher" }));
         throw new Error(error.error || "Failed to assign homeroom teacher");
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class"] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
     },
   });
@@ -143,14 +207,52 @@ export function useAssignSubjectsToClass() {
         body: JSON.stringify({ subjectIds }),
       });
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to assign subjects" }));
+        const error = await res
+          .json()
+          .catch(() => ({ error: "Failed to assign subjects" }));
         throw new Error(error.error || "Failed to assign subjects");
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class"] });
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
+    },
+  });
+}
+
+/**
+ * Hook to add a student to a class
+ */
+export function useAddStudentToClass() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      classId,
+      studentId,
+    }: {
+      classId: string;
+      studentId: string;
+    }) => {
+      const res = await fetch(`/api/admin/classes/${classId}/students`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId }),
+      });
+      if (!res.ok) {
+        const error = await res
+          .json()
+          .catch(() => ({ error: "Failed to add student to class" }));
+        throw new Error(error.error || "Failed to add student to class");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class"] });
+      queryClient.invalidateQueries({ queryKey: ["students"] });
     },
   });
 }

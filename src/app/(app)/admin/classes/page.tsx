@@ -10,72 +10,85 @@ import {
   Loader2,
   AlertCircle,
   School,
-  Sparkles,
-  ArrowRight,
+  BookOpen,
 } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { useClasses } from "@/hooks/admin/useClasses";
+import { useClasses, useTeachersForFilter, type ClassGroupDTO } from "@/hooks/admin/useClasses";
+import { useGrades } from "@/hooks/admin/useGrades";
 import { ClassesQuickStatsSection } from "@/components/admin/classes/ClassesQuickStatsSection";
-import { ClassesToolbar, type ClassesViewMode } from "@/components/admin/classes/ClassesToolbar";
-import { ClassesCardGrid } from "@/components/admin/classes/ClassesCardGrid";
+import { ClassesToolbar } from "@/components/admin/classes/ClassesToolbar";
 import { ClassesTable } from "@/components/admin/classes/ClassesTable";
-import { useAssignHomeroomTeacher, type ClassGroupDTO } from "@/hooks/admin/useClasses";
-import { useBusyToast } from "@/hooks/useBusyToast";
-import { cn } from "@/lib/utils";
 import { AssignHomeroomModal } from "@/components/modals/AssignHomeroomModal";
 import { AssignSubjectsToClassModal } from "@/components/modals/AssignSubjectsToClassModal";
-
-function getInitialView(sp: URLSearchParams): ClassesViewMode {
-  const v = sp.get("view");
-  return v === "table" ? "table" : "cards";
-}
+import { BulkGradeSubjectAssignmentModal } from "@/components/modals/BulkGradeSubjectAssignmentModal";
+import { cn } from "@/lib/utils";
+import type { ClassesSortBy, ClassesSortOrder } from "@/constants/classes";
 
 export default function ClassesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [viewMode, setViewMode] = React.useState<ClassesViewMode>(() =>
-    getInitialView(searchParams)
-  );
+  // Filters and search
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
   const [gradeFilter, setGradeFilter] = React.useState<string | undefined>(
     searchParams.get("gradeId") || undefined
   );
-  const [activeFilter, setActiveFilter] = React.useState<boolean | undefined>(
-    searchParams.get("isActive") === "true"
-      ? true
-      : searchParams.get("isActive") === "false"
-      ? false
-      : undefined
+  const [teacherFilter, setTeacherFilter] = React.useState<string | undefined>(
+    searchParams.get("teacherId") || undefined
+  );
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">(
+    searchParams.get("status") === "active"
+      ? "active"
+      : searchParams.get("status") === "inactive"
+      ? "inactive"
+      : "all"
   );
 
+  // Sorting
+  const [sortBy, setSortBy] = React.useState<ClassesSortBy>("name");
+  const [sortOrder, setSortOrder] = React.useState<ClassesSortOrder>("asc");
+
+  // Selection
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
+  // Modals
   const [assignHomeroomModalOpen, setAssignHomeroomModalOpen] = React.useState(false);
   const [assignSubjectsModalOpen, setAssignSubjectsModalOpen] = React.useState(false);
+  const [bulkAssignModalOpen, setBulkAssignModalOpen] = React.useState(false);
   const [selectedClass, setSelectedClass] = React.useState<ClassGroupDTO | null>(null);
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
-  const busy = useBusyToast();
-  const assignHomeroom = useAssignHomeroomTeacher();
 
-  const { data, isLoading, isError } = useClasses(
-    debouncedSearch,
-    gradeFilter,
-    activeFilter
-  );
+  // Fetch data
+  const { data: gradesData } = useGrades(true);
+  const { data: teachersData } = useTeachersForFilter();
+
+  const grades = gradesData?.data || [];
+  const teachers = teachersData?.data || [];
+
+  const { data, isLoading, isError } = useClasses({
+    search: debouncedSearch || undefined,
+    gradeId: gradeFilter,
+    teacherId: teacherFilter,
+    isActive: statusFilter === "all" ? undefined : statusFilter === "active",
+    sortBy,
+    sortOrder,
+  });
 
   const classes = data?.data || [];
+  const totalCount = data?.total ?? classes.length;
 
   // URL sync
   React.useEffect(() => {
     const params = new URLSearchParams();
-    params.set("view", viewMode);
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (gradeFilter) params.set("gradeId", gradeFilter);
-    if (activeFilter !== undefined) params.set("isActive", String(activeFilter));
+    if (teacherFilter) params.set("teacherId", teacherFilter);
+    if (statusFilter !== "all") params.set("status", statusFilter);
 
     router.replace(`/admin/classes?${params.toString()}`);
-  }, [viewMode, debouncedSearch, gradeFilter, activeFilter, router]);
+  }, [debouncedSearch, gradeFilter, teacherFilter, statusFilter, router]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -96,6 +109,31 @@ export default function ClassesPage() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // Handlers
+  const handleSortChange = (column: ClassesSortBy) => {
+    if (sortBy === column) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortOrder("asc");
+    }
+  };
+
+  const handleToggleRow = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleAllVisible = (visibleIds: string[]) => {
+    const allSelected = visibleIds.every((id) => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => [...new Set([...prev, ...visibleIds])]);
+    }
+  };
 
   const handleAssignHomeroom = (classId: string) => {
     const classGroup = classes.find((c) => c.id === classId);
@@ -122,14 +160,14 @@ export default function ClassesPage() {
     console.log("Edit class:", classId);
   };
 
+  const handleAddStudent = (classId: string) => {
+    // Navigate to class detail with students tab
+    router.push(`/admin/classes/${classId}?tab=students`);
+  };
+
   const handleExport = () => {
     // TODO: Implement export
     console.log("Export classes");
-  };
-
-  const handleOpenFilters = () => {
-    // TODO: Open filters dialog
-    console.log("Open filters");
   };
 
   return (
@@ -158,7 +196,7 @@ export default function ClassesPage() {
                   <School className="h-6 w-6 text-emerald-300" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-gradient-to-r from-emerald-300 to-green-400">
+                  <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl bg-gradient-to-r from-emerald-300 to-green-400 bg-clip-text text-transparent">
                     Classes
                   </h1>
                   <p className="mt-1 text-sm text-white/70">
@@ -170,6 +208,14 @@ export default function ClassesPage() {
 
             {/* Action buttons */}
             <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setBulkAssignModalOpen(true)}
+                className="gap-2 border-white/20 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">Bulk Assign Subjects</span>
+              </Button>
               <Button
                 onClick={() => {
                   // TODO: Open create class modal
@@ -190,7 +236,7 @@ export default function ClassesPage() {
 
       {/* Main Content Card */}
       <Card className="overflow-hidden border border-white/10 bg-neutral-950/60 shadow-2xl shadow-black/30 backdrop-blur">
-        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-emerald-500/50 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
 
         <CardHeader className="border-b border-white/10 pb-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -209,11 +255,18 @@ export default function ClassesPage() {
             <ClassesToolbar
               search={search}
               onSearchChange={setSearch}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-              onOpenFilters={handleOpenFilters}
+              gradeFilter={gradeFilter}
+              onGradeFilterChange={setGradeFilter}
+              grades={grades}
+              teacherFilter={teacherFilter}
+              onTeacherFilterChange={setTeacherFilter}
+              teachers={teachers}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
               onExportAll={handleExport}
               searchInputRef={searchInputRef}
+              totalCount={totalCount}
+              filteredCount={classes.length}
             />
           </div>
 
@@ -233,21 +286,20 @@ export default function ClassesPage() {
                 Please try refreshing the page
               </p>
             </div>
-          ) : viewMode === "cards" ? (
-            <ClassesCardGrid
-              classes={classes}
-              onView={handleView}
-              onEdit={handleEdit}
-              onAssignHomeroom={handleAssignHomeroom}
-              onAssignSubjects={handleAssignSubjects}
-            />
           ) : (
             <ClassesTable
               classes={classes}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={handleSortChange}
+              selectedIds={selectedIds}
+              onToggleRow={handleToggleRow}
+              onToggleAllVisible={handleToggleAllVisible}
               onView={handleView}
               onEdit={handleEdit}
               onAssignHomeroom={handleAssignHomeroom}
               onAssignSubjects={handleAssignSubjects}
+              onAddStudent={handleAddStudent}
             />
           )}
         </CardContent>
@@ -274,6 +326,12 @@ export default function ClassesPage() {
           />
         </>
       )}
+
+      {/* Bulk Assignment Modal */}
+      <BulkGradeSubjectAssignmentModal
+        open={bulkAssignModalOpen}
+        onOpenChange={setBulkAssignModalOpen}
+      />
     </div>
   );
 }

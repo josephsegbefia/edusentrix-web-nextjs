@@ -12,7 +12,7 @@ export async function GET(_req: NextRequest) {
     await connectToDatabase();
 
     const url = new URL(_req.url);
-    const activeOnly = url.searchParams.get("active") === "1";
+    const activeOnly = url.searchParams.get("active") === "1" || url.searchParams.get("isActive") === "true";
 
     const query: any = { schoolId };
     if (activeOnly) {
@@ -23,7 +23,16 @@ export async function GET(_req: NextRequest) {
       .sort({ order: 1, name: 1 })
       .lean();
 
-    return Response.json({ success: true, data: grades }, { status: 200 });
+    const data = grades.map((g: any) => ({
+      id: String(g._id),
+      name: g.name,
+      code: g.code || null,
+      stage: g.stage || "Basic",
+      order: g.order ?? 0,
+      isActive: g.isActive ?? true,
+    }));
+
+    return Response.json({ success: true, data }, { status: 200 });
   } catch (error: unknown) {
     console.error(error);
     const message = error instanceof Error ? error.message : "Failed to fetch grades";

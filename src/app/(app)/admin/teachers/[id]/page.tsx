@@ -6,12 +6,7 @@ import { Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ChevronRight,
-  Users,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, ChevronRight, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useTeacher,
@@ -189,12 +184,12 @@ function TeacherDetailContent() {
           />
           <div className="flex animate-pulse items-center gap-4">
             <div className="h-9 w-9 rounded-xl bg-white/10" />
-              <div className="space-y-2">
+            <div className="space-y-2">
               <div className="h-8 w-48 rounded bg-white/10" />
               <div className="h-4 w-64 rounded bg-white/5" />
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
 
         {/* Header card skeleton */}
         <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -247,7 +242,7 @@ function TeacherDetailContent() {
             </div>
             <div className="space-y-2">
               <h2 className="text-xl font-semibold text-white">
-                  Unable to load teacher details
+                Unable to load teacher details
               </h2>
               <p className="max-w-md text-sm text-red-200/70">
                 The teacher might not exist or you might not have permission to
@@ -290,21 +285,21 @@ function TeacherDetailContent() {
 
         <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/admin/teachers")}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => router.push("/admin/teachers")}
               className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-white/20 hover:bg-white/10"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
 
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
                 <Users className="h-6 w-6 text-indigo-300" />
               </div>
-          <div>
+              <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
                   Teacher Profile
                 </h1>
@@ -445,7 +440,7 @@ export default function TeacherDetailPage() {
             />
             <div className="flex animate-pulse items-center gap-4">
               <div className="h-10 w-10 rounded-xl bg-white/10" />
-            <div className="space-y-2">
+              <div className="space-y-2">
                 <div className="h-8 w-48 rounded bg-white/10" />
                 <div className="h-4 w-64 rounded bg-white/5" />
               </div>

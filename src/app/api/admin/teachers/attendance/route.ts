@@ -86,8 +86,8 @@ export async function GET(req: NextRequest) {
     }
 
     const teachersRaw = await Teacher.find(teacherQuery)
-      .select("_id userId department photoUrl status")
-      .populate("userId", "firstName lastName email photoUrl")
+      .select("_id userId department status")
+      .populate("userId", "firstName lastName email avatarUrl")
       .lean();
 
     // Sort teachers by last name, then first name
@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
         fullName: fullName,
         email: user.email || null,
         department: teacher.department || null,
-        photoUrl: user.photoUrl || teacher.photoUrl || null,
+        photoUrl: user.avatarUrl || null,
         teacherStatus: teacher.status,
         attendance: attendance
           ? {

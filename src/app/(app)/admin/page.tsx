@@ -40,6 +40,7 @@ import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 
 import CreateStudentModal from "@/components/modals/CreateStudentModal";
 import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
+import CreateAcademicPeriodModal from "@/components/modals/CreateAcademicPeriodModal";
 import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
 import { format } from "date-fns/format";
 import type { CreateStudentInput } from "@/schemas/student";
@@ -573,10 +574,6 @@ export default function SchoolAdminOverviewPage() {
   /* Academic period modal state */
   const [showCreatePeriod, setShowCreatePeriod] = useState(false);
   const [showPeriodExpiryModal, setShowPeriodExpiryModal] = useState(false);
-  const [yearLabelInput, setYearLabelInput] = useState("");
-  const [termInput, setTermInput] = useState("");
-  const [startDateInput, setStartDateInput] = useState("");
-  const [endDateInput, setEndDateInput] = useState("");
   const [creatingPeriod, setCreatingPeriod] = useState(false);
 
   /* Period status for warnings */
@@ -626,10 +623,15 @@ export default function SchoolAdminOverviewPage() {
   ];
   const overdueTotal = donutSegments.reduce((s, x) => s + x.value, 0);
 
-  async function handleCreatePeriod() {
-    if (!yearLabelInput || !termInput || !startDateInput || !endDateInput) {
+  async function handleCreatePeriod(payload: {
+    yearLabel: string;
+    term: string;
+    startDate: string;
+    endDate: string;
+  }) {
+    if (!payload.yearLabel || !payload.term || !payload.startDate || !payload.endDate) {
       busy.error("Please fill all fields");
-      return;
+      throw new Error("Missing academic period fields");
     }
     setCreatingPeriod(true);
     try {
@@ -637,10 +639,10 @@ export default function SchoolAdminOverviewPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          yearLabel: yearLabelInput.trim(),
-          term: termInput.trim(),
-          startDate: startDateInput,
-          endDate: endDateInput,
+          yearLabel: payload.yearLabel.trim(),
+          term: payload.term.trim(),
+          startDate: payload.startDate,
+          endDate: payload.endDate,
         }),
       }).then(async (res) => {
         if (!res.ok) {
@@ -654,13 +656,7 @@ export default function SchoolAdminOverviewPage() {
         success: "Academic period created",
         error: "Could not create period",
       });
-      setShowCreatePeriod(false);
-      setYearLabelInput("");
-      setTermInput("");
-      setStartDateInput("");
-      setEndDateInput("");
       // SSE will push period.updated
-    } catch {
     } finally {
       setCreatingPeriod(false);
     }
@@ -1691,82 +1687,13 @@ export default function SchoolAdminOverviewPage() {
         </div>
       )}
 
-      {/* Create Academic Period (guided) */}
-      {showCreatePeriod && (
-        <div
-          className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setShowCreatePeriod(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-card/95 p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-semibold mb-1">
-              Create Academic Period
-            </h3>
-            <p className="text-sm text-white/60 mb-4">
-              A quick guided setup to start tracking term dates and progress.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-white/60 mb-1">Academic Year</div>
-                <input
-                  placeholder="2024/2025"
-                  value={yearLabelInput}
-                  onChange={(e) => setYearLabelInput(e.target.value)}
-                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                />
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-white/60 mb-1">Term</div>
-                <input
-                  placeholder="1st Term"
-                  value={termInput}
-                  onChange={(e) => setTermInput(e.target.value)}
-                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                />
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-white/60 mb-1">Start Date</div>
-                <input
-                  type="date"
-                  value={startDateInput}
-                  onChange={(e) => setStartDateInput(e.target.value)}
-                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                />
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-white/60 mb-1">End Date</div>
-                <input
-                  type="date"
-                  value={endDateInput}
-                  onChange={(e) => setEndDateInput(e.target.value)}
-                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10"
-                onClick={() => setShowCreatePeriod(false)}
-                disabled={creatingPeriod}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-black hover:opacity-90 disabled:opacity-60"
-                onClick={handleCreatePeriod}
-                disabled={creatingPeriod}
-              >
-                {creatingPeriod ? "Creating…" : "Continue"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Academic Period */}
+      <CreateAcademicPeriodModal
+        open={showCreatePeriod}
+        onOpenChange={setShowCreatePeriod}
+        onSubmit={handleCreatePeriod}
+        isLoading={creatingPeriod}
+      />
 
       {/* Quick Action Modals */}
       <ResponsiveModal

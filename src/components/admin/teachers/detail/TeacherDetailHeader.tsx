@@ -118,13 +118,11 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
             <div className="relative shrink-0">
               <div className="relative">
                 <Avatar className="h-24 w-24 rounded-2xl border-2 border-white/20 shadow-2xl shadow-black/50 ring-4 ring-indigo-500/20">
-                  {photoUrl ? (
-                    <AvatarImage
-                      src={photoUrl}
-                      alt={fullName}
-                      className="object-cover"
-                    />
-                  ) : null}
+                  <AvatarImage
+                    src={photoUrl || ""}
+                    alt={fullName}
+                    className="object-cover"
+                  />
                   <AvatarFallback className="rounded-2xl bg-gradient-to-br from-indigo-500/40 to-purple-600/40 text-2xl font-bold text-white">
                     {initialsFromName(firstName, lastName)}
                   </AvatarFallback>

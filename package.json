@@ -53,6 +53,7 @@
     "nodemailer": "^7.0.10",
     "openai": "^6.10.0",
     "react": "19.2.0",
+    "react-countup": "^6.5.3",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.67.0",
     "react-markdown": "^10.1.0",

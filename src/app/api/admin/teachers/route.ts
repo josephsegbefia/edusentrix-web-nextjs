@@ -189,7 +189,7 @@ export async function GET(req: NextRequest) {
 
         email: u.email ? String(u.email) : null,
         phone: u.phone ? String(u.phone) : null,
-        photoUrl: u.photoUrl ? String(u.photoUrl) : null,
+        photoUrl: u.avatarUrl ? String(u.avatarUrl) : null,
 
         status: (t.status || "active") as any,
 

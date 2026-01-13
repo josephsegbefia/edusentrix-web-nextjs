@@ -124,12 +124,12 @@ TeacherAssignmentSchema.index(
 );
 
 /**
- * ✅ Critical: prevent two ACTIVE teachers for same subject/class in same period
- * (turn off later if you want co-teaching)
+ * ⚠️ Note: Multiple teachers can teach the same subject/class/period (co-teaching)
+ * Conflict detection is handled in application logic with warnings
+ * This index is non-unique to allow multiple active assignments
  */
 TeacherAssignmentSchema.index(
-  { schoolId: 1, academicPeriodId: 1, subjectId: 1, classGroupId: 1 },
-  { unique: true, partialFilterExpression: { status: "active" } }
+  { schoolId: 1, academicPeriodId: 1, subjectId: 1, classGroupId: 1, status: 1 }
 );
 
 // Performance indexes

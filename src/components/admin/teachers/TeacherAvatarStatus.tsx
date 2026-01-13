@@ -51,13 +51,10 @@ export function TeacherAvatarStatus({
           "border border-white/20 bg-slate-800/80 text-xs font-semibold text-slate-100 shadow-md shadow-black/40"
         )}
       >
-        {photoUrl ? (
-          <AvatarImage src={photoUrl} alt={fullName} />
-        ) : (
-          <AvatarFallback className="bg-linear-to-br from-slate-700 to-slate-900 text-[11px]">
-            {initials}
-          </AvatarFallback>
-        )}
+        <AvatarImage src={photoUrl || ""} alt={fullName} />
+        <AvatarFallback className="bg-linear-to-br from-slate-700 to-slate-900 text-[11px]">
+          {initials}
+        </AvatarFallback>
       </Avatar>
       <span
         className={cn(

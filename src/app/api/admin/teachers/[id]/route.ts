@@ -49,7 +49,7 @@ export async function GET(
       _id: teacherObjId,
       schoolId: schoolIdObj,
     })
-      .populate("userId", "firstName lastName email phone photoUrl")
+      .populate("userId", "firstName lastName email phone avatarUrl")
       .populate({ path: "subjectIds", select: "name", model: Subject })
       .populate({
         path: "homeroomClassGroupId",
@@ -100,7 +100,7 @@ export async function GET(
 
         email: u.email ? String(u.email) : null,
         phone: u.phone ? String(u.phone) : null,
-        photoUrl: u.photoUrl ? String(u.photoUrl) : null,
+        photoUrl: u.avatarUrl ? String(u.avatarUrl) : null,
 
         status: (t.status || "active") as any,
 
@@ -390,7 +390,7 @@ export async function PATCH(
     // 4. Fetch and return updated teacher
     // ─────────────────────────────────────────────────────────────────────────
     const updatedTeacher = await Teacher.findById(teacherObjId)
-      .populate("userId", "firstName lastName email phone photoUrl")
+      .populate("userId", "firstName lastName email phone avatarUrl")
       .populate({ path: "subjectIds", select: "name", model: Subject })
       .populate({
         path: "homeroomClassGroupId",
@@ -432,7 +432,7 @@ export async function PATCH(
         )}`.trim(),
         email: u.email ? String(u.email) : null,
         phone: u.phone ? String(u.phone) : null,
-        photoUrl: u.photoUrl ? String(u.photoUrl) : null,
+        photoUrl: u.avatarUrl ? String(u.avatarUrl) : null,
         status: t.status || "active",
         employeeId: t.employeeId ? String(t.employeeId) : null,
         department: t.department ? String(t.department) : null,

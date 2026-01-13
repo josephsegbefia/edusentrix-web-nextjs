@@ -48,9 +48,16 @@ export async function GET(req: NextRequest) {
     // Get total count
     const total = await TeacherAttendance.countDocuments(query);
 
-    // Get records with teacher info
+    // Get records with teacher info (nested populate for User data)
     const records = await TeacherAttendance.find(query)
-      .populate("teacherId", "firstName lastName email department photoUrl")
+      .populate({
+        path: "teacherId",
+        select: "userId department",
+        populate: {
+          path: "userId",
+          select: "firstName lastName email avatarUrl",
+        },
+      })
       .populate("recordedBy", "firstName lastName email")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -68,19 +75,23 @@ export async function GET(req: NextRequest) {
           : "pending";
       const actualNotes = notes.replace(/^(APPROVED|REJECTED):\s*/, "");
 
+      // Extract user data from nested populate
+      const teacher = r.teacherId;
+      const user = teacher?.userId;
+
       return {
         id: String(r._id),
-        teacherId: String(r.teacherId?._id || r.teacherId),
-        teacher: r.teacherId
+        teacherId: String(teacher?._id || r.teacherId),
+        teacher: teacher
           ? {
-              id: String(r.teacherId._id),
-              firstName: r.teacherId.firstName || "",
-              lastName: r.teacherId.lastName || "",
+              id: String(teacher._id),
+              firstName: user?.firstName || "",
+              lastName: user?.lastName || "",
               fullName:
-                `${r.teacherId.firstName || ""} ${r.teacherId.lastName || ""}`.trim(),
-              email: r.teacherId.email || null,
-              department: r.teacherId.department || null,
-              photoUrl: r.teacherId.photoUrl || null,
+                `${user?.firstName || ""} ${user?.lastName || ""}`.trim(),
+              email: user?.email || null,
+              department: teacher.department || null,
+              photoUrl: user?.avatarUrl || null,
             }
           : null,
         date: new Date(r.date).toISOString(),

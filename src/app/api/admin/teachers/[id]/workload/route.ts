@@ -66,12 +66,10 @@ export async function GET(
       // Get current active period
       const currentPeriod = await AcademicPeriod.findOne({
         schoolId: schoolIdObj,
-        isActive: true,
-        startDate: { $lte: new Date() },
-        endDate: { $gte: new Date() },
+        isCurrent: true,
       })
         .sort({ startDate: -1 })
-        .lean();
+        .lean() as { _id: any } | null;
 
       if (currentPeriod) {
         academicPeriodId = currentPeriod._id instanceof mongoose.Types.ObjectId
@@ -106,12 +104,13 @@ export async function GET(
       .lean();
 
     // Calculate current workload
-    const uniqueClasses = new Set(
-      assignments.map((a: any) => String(a.classGroupId?._id || ""))
-    ).size;
+    const uniqueClassIdStrings = new Set(
+      assignments.map((a: any) => String(a.classGroupId?._id || "")).filter((id) => id !== "")
+    );
+    const uniqueClassCount = uniqueClassIdStrings.size;
 
     // Get class capacities to estimate students
-    const classIds = Array.from(uniqueClasses)
+    const classIds = Array.from(uniqueClassIdStrings)
       .map((id) => toObjectIdOrNull(id))
       .filter((id): id is mongoose.Types.ObjectId => id !== null);
 
@@ -139,7 +138,7 @@ export async function GET(
     const maxStudents = (teacher as any).maxStudents || null;
 
     // Calculate utilization
-    const classUtilization = maxClasses ? (uniqueClasses / maxClasses) * 100 : null;
+    const classUtilization = maxClasses ? (uniqueClassCount / maxClasses) * 100 : null;
     const studentUtilization = maxStudents ? (totalStudents / maxStudents) * 100 : null;
 
     // Calculate school averages for comparison
@@ -184,15 +183,15 @@ export async function GET(
       : 0;
 
     // Check if over capacity or significantly above average
-    const isOverCapacity = (maxClasses && uniqueClasses > maxClasses) || (maxStudents && totalStudents > maxStudents);
-    const isAboveAverage = uniqueClasses > avgClasses * 1.2; // 20% above average
+    const isOverCapacity = (maxClasses && uniqueClassCount > maxClasses) || (maxStudents && totalStudents > maxStudents);
+    const isAboveAverage = uniqueClassCount > avgClasses * 1.2; // 20% above average
 
     return Response.json({
       success: true,
       data: {
         periodId: academicPeriodId ? String(academicPeriodId) : null,
         current: {
-          classes: uniqueClasses,
+          classes: uniqueClassCount,
           students: totalStudents,
           workloadHours: totalWorkloadHours,
           assignments: assignments.length,
@@ -206,7 +205,7 @@ export async function GET(
         comparison: {
           schoolAvgClasses: Math.round(avgClasses * 100) / 100,
           isAboveAverage,
-          differenceFromAverage: Math.round((uniqueClasses - avgClasses) * 100) / 100,
+          differenceFromAverage: Math.round((uniqueClassCount - avgClasses) * 100) / 100,
         },
         warnings: {
           isOverCapacity,

@@ -23,8 +23,12 @@ export interface ITeacherAssignment {
     startTime: string; // "HH:MM"
     endTime: string; // "HH:MM"
     location?: string;
+    roomId?: Types.ObjectId; // Optional room override
   }>;
 
+  // Contact hours per week for this subject in this class
+  contactHoursPerWeek?: number;
+  // Total workload hours (can be calculated from schedules)
   workloadHours?: number;
   status: AssignmentStatus;
 
@@ -53,6 +57,7 @@ const ScheduleItemSchema = new Schema(
     startTime: { type: String, required: true, trim: true },
     endTime: { type: String, required: true, trim: true },
     location: { type: String, trim: true },
+    roomId: { type: Schema.Types.ObjectId, ref: "Room" }, // Optional room override
   },
   { _id: false }
 );
@@ -93,6 +98,7 @@ const TeacherAssignmentSchema = new Schema<ITeacherAssignment>(
     schedule: { type: ScheduleSchema, default: undefined }, // Legacy single schedule
     schedules: { type: [ScheduleItemSchema], default: undefined }, // New multiple schedules array
 
+    contactHoursPerWeek: { type: Number, min: 0, max: 40 }, // Contact hours per week
     workloadHours: { type: Number, default: 0 },
     status: {
       type: String,

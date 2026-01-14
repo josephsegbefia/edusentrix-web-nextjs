@@ -125,7 +125,7 @@ export async function PATCH(
     await logTeacherActivity({
       teacherId: String(teacherObjId),
       schoolId: schoolIdObj,
-      type: "note_updated",
+      type: "note.updated",
       title: "Note updated",
       description: `Updated note: ${input.title || note.title} (${changes.join(", ")})`,
       metadata: {
@@ -189,7 +189,7 @@ export async function DELETE(
   await logTeacherActivity({
     teacherId: String(teacherObjId),
     schoolId: schoolIdObj,
-    type: "note_deleted",
+    type: "note.deleted",
     title: "Note deleted",
     description: `Deleted note: ${noteTitle}`,
     metadata: {

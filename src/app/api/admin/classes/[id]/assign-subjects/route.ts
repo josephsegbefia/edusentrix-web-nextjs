@@ -74,9 +74,9 @@ export async function POST(
       success: true,
       message: `Assigned ${subjectIds.length} subject(s) to class`,
       data: {
-        id: String(updated._id),
-        name: updated.name,
-        subjects: (updated.subjectIds || []).map((s: any) => ({
+        id: String((updated as any)._id),
+        name: (updated as any).name,
+        subjects: ((updated as any).subjectIds || []).map((s: any) => ({
           id: String(s._id),
           name: s.name,
           code: s.code || null,

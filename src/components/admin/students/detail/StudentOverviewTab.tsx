@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
+import { StudentRolesSection } from "./StudentRolesSection";
 
 type StudentOverviewTabProps = {
   student: StudentDetailDTO;
@@ -417,6 +418,9 @@ export function StudentOverviewTab({ student }: StudentOverviewTabProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Student Roles */}
+      <StudentRolesSection studentId={student.id} />
 
       {/* Recent Activity */}
       <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">

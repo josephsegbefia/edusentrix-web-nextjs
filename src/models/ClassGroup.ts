@@ -11,6 +11,8 @@ export interface IClassGroup {
   subjectIds: Types.ObjectId[]; // assigned subjects for the whole class group
   homeroomTeacherId?: Types.ObjectId | null;
   capacity?: number | null;
+  defaultRoomId?: Types.ObjectId | null; // Home classroom where most lessons happen
+  defaultRoomName?: string | null; // Friendly name like "Room 12", "Block A Room 3"
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -39,6 +41,16 @@ const classGroupSchema = new Schema<IClassGroup>(
       default: null,
     },
     capacity: { type: Number, default: null },
+    defaultRoomId: {
+      type: Schema.Types.ObjectId,
+      ref: "Room", // Future Room model, nullable for now
+      default: null,
+    },
+    defaultRoomName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

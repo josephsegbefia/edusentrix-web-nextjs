@@ -81,16 +81,17 @@ export async function GET(
   }
 
   if (startDateStr || endDateStr) {
-    query.date = {};
+    const dateQuery: { $gte?: Date; $lte?: Date } = {};
     if (startDateStr) {
       const startDate = startOfDay(new Date(startDateStr));
-      query.date.$gte = startDate;
+      dateQuery.$gte = startDate;
     }
     if (endDateStr) {
       const endDate = startOfDay(new Date(endDateStr));
       endDate.setHours(23, 59, 59, 999);
-      query.date.$lte = endDate;
+      dateQuery.$lte = endDate;
     }
+    query.date = dateQuery;
   }
 
   // Get total count
@@ -214,7 +215,7 @@ export async function POST(
   await logTeacherActivity({
     teacherId: String(teacherObjId),
     schoolId: schoolIdObj,
-    type: "attendance_recorded",
+    type: "attendance.marked",
     title: "Attendance recorded",
     description: `Recorded ${input.status} for ${attendanceDate.toLocaleDateString()}`,
     metadata: {

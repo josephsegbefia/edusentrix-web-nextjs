@@ -170,7 +170,7 @@ export async function POST(
   await logTeacherActivity({
     teacherId: String(teacherObjId),
     schoolId: schoolIdObj,
-    type: "note_created",
+    type: "note.added",
     title: "Note created",
     description: `Created note: ${input.title}`,
     metadata: {

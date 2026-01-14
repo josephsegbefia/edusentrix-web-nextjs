@@ -149,7 +149,7 @@ export async function PATCH(
     await logTeacherActivity({
       teacherId: String(attendance.teacherId),
       schoolId: schoolIdObj,
-      type: "attendance_updated",
+      type: "attendance.marked",
       title: "Attendance updated",
       description: `Updated attendance record for ${new Date(attendance.date).toLocaleDateString()}: ${changes.join(", ")}`,
       metadata: {

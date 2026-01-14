@@ -56,12 +56,10 @@ export async function GET(req: NextRequest) {
       // Get current active period
       const currentPeriod = await AcademicPeriod.findOne({
         schoolId: schoolIdObj,
-        isActive: true,
-        startDate: { $lte: new Date() },
-        endDate: { $gte: new Date() },
+        isCurrent: true,
       })
         .sort({ startDate: -1 })
-        .lean();
+        .lean() as { _id: any } | null;
 
       if (currentPeriod) {
         academicPeriodId = currentPeriod._id instanceof mongoose.Types.ObjectId

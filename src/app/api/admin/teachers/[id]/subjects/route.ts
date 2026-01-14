@@ -155,7 +155,7 @@ export async function POST(
   await logTeacherActivity({
     teacherId: String(teacher._id),
     schoolId: schoolIdObj,
-    type: "subjects_assigned",
+    type: "assignment.created",
     title: "Subjects assigned",
     description: `Added subjects: ${addedSubjectNames.join(", ")}`,
     metadata: {

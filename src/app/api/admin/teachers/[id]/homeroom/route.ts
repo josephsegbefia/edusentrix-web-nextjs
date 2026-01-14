@@ -181,7 +181,7 @@ export async function POST(
   await logTeacherActivity({
     teacherId: String(teacher._id),
     schoolId: schoolIdObj,
-    type: "homeroom_assigned",
+    type: "teacher.homeroom_changed",
     title: "Homeroom assigned",
     description: `Assigned as homeroom teacher for ${className}${gradeName ? ` (${gradeName})` : ""}`,
     metadata: {
@@ -263,7 +263,7 @@ export async function DELETE(
   await logTeacherActivity({
     teacherId: String(teacher._id),
     schoolId: schoolIdObj,
-    type: "homeroom_removed",
+    type: "teacher.homeroom_changed",
     title: "Homeroom removed",
     description: `Removed as homeroom teacher for ${className}`,
     metadata: {

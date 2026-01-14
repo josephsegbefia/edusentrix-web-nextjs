@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
         await logTeacherActivity({
           teacherId: record.teacherId,
           schoolId: schoolIdObj,
-          type: "attendance_recorded",
+          type: "attendance.marked",
           title: "Attendance recorded",
           description: `Recorded ${record.status} for ${attendanceDate.toLocaleDateString()}`,
           metadata: {

@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Subject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string) {
@@ -76,9 +77,10 @@ export async function GET(
     });
 
     // Get current academic period
-    const currentPeriod = await mongoose
-      .model("AcademicPeriod")
-      .findOne({ schoolId: schoolIdObj, isCurrent: true })
+    const currentPeriod = await AcademicPeriod.findOne({
+      schoolId: schoolIdObj,
+      isCurrent: true,
+    })
       .select("_id yearLabel term")
       .lean();
 
@@ -218,7 +220,7 @@ export async function PATCH(
       { _id: subjectId, schoolId: schoolIdObj },
       { $set: updateData },
       { new: true }
-    ).lean();
+    ).lean() as { _id: any; name: string; code?: string } | null;
 
     if (!updated) {
       return NextResponse.json(

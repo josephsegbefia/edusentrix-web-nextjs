@@ -211,7 +211,7 @@ export async function POST(
   await logTeacherActivity({
     teacherId: String(teacherObjId),
     schoolId: schoolIdObj,
-    type: "document_uploaded",
+    type: "document.added",
     title: "Document uploaded",
     description: `Uploaded document: ${name} (${type})`,
     metadata: {

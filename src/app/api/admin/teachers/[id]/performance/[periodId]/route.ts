@@ -45,7 +45,7 @@ export async function GET(
   const academicPeriod = await AcademicPeriod.findOne({
     _id: periodObjId,
     schoolId: schoolIdObj,
-  }).lean();
+  }).lean() as { _id: any; startDate: Date; endDate: Date; yearLabel: string; term: string } | null;
 
   if (!academicPeriod) {
     return Response.json({ error: "Academic period not found" }, { status: 404 });
@@ -56,7 +56,7 @@ export async function GET(
     teacherId: teacherObjId,
     schoolId: schoolIdObj,
     academicPeriodId: periodObjId,
-  }).lean();
+  }).lean() as Record<string, any> | null;
 
   // Calculate metrics
   const subjectGrades = await SubjectGrade.find({

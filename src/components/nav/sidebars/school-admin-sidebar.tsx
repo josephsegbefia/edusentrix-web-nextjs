@@ -10,6 +10,7 @@ import {
   GraduationCap,
   BookOpen,
   Calendar,
+  CalendarDays,
   DollarSign,
   FileText,
   BarChart3,
@@ -21,6 +22,7 @@ import {
   ClipboardCheck,
   Menu,
   X,
+  Crown,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -73,6 +75,11 @@ const navSections: NavSection[] = [
         icon: UserCog,
       },
       {
+        label: "Roles & Duties",
+        href: "/admin/roles-duties",
+        icon: Crown,
+      },
+      {
         label: "Staff Attendance",
         href: "/admin/staff-attendance",
         icon: ClipboardCheck,
@@ -96,6 +103,11 @@ const navSections: NavSection[] = [
         label: "Subjects",
         href: "/admin/subjects",
         icon: BookOpen,
+      },
+      {
+        label: "Master Timetable",
+        href: "/admin/timetable",
+        icon: CalendarDays,
       },
       {
         label: "Academic Periods",

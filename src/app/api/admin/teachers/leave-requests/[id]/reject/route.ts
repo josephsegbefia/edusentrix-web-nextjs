@@ -105,7 +105,7 @@ export async function PATCH(
   await logTeacherActivity({
     teacherId: String(attendance.teacherId),
     schoolId: schoolIdObj,
-    type: "leave_request_rejected",
+    type: "leave.rejected",
     title: "Leave request rejected",
     description: `Rejected leave request for ${new Date(attendance.date).toLocaleDateString()}${rejectionReason ? `: ${rejectionReason}` : ""}`,
     metadata: {

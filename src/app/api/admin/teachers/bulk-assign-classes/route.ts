@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
     await logTeacherActivity({
       teacherId: String(teacher._id),
       schoolId: schoolIdObj,
-      type: "homeroom_assigned",
+      type: "teacher.homeroom_changed",
       title: "Homeroom assigned (bulk)",
       description: `Assigned as homeroom teacher for ${className}${gradeName ? ` (${gradeName})` : ""}`,
       metadata: {

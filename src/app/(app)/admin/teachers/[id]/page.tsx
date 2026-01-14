@@ -28,6 +28,7 @@ import { TeacherDocumentsTab } from "@/components/admin/teachers/detail/TeacherD
 import { TeacherNotesTab } from "@/components/admin/teachers/detail/TeacherNotesTab";
 import { TeacherPerformanceTab } from "@/components/admin/teachers/detail/TeacherPerformanceTab";
 import { TeacherActivityTab } from "@/components/admin/teachers/detail/TeacherActivityTab";
+import { TeacherDutiesTab } from "@/components/admin/teachers/detail/TeacherDutiesTab";
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (!sp) return "overview";
@@ -35,6 +36,7 @@ function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (
     raw === "overview" ||
     raw === "assignments" ||
+    raw === "duties" ||
     raw === "performance" ||
     raw === "attendance" ||
     raw === "documents" ||
@@ -221,8 +223,8 @@ function TeacherDetailContent() {
 
         {/* Content skeleton */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <Card className="h-64 animate-pulse rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-black shadow-xl" />
-          <Card className="h-64 animate-pulse rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 to-black shadow-xl" />
+          <Card className="h-64 animate-pulse rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black shadow-xl" />
+          <Card className="h-64 animate-pulse rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black shadow-xl" />
         </div>
       </div>
     );
@@ -361,6 +363,13 @@ function TeacherDetailContent() {
               id: teacher.id,
               fullName: teacher.fullName,
               maxClasses: teacher.maxClasses ?? null,
+            }}
+          />
+        ) : activeTab === "duties" ? (
+          <TeacherDutiesTab
+            teacher={{
+              id: teacher.id,
+              fullName: teacher.fullName,
             }}
           />
         ) : activeTab === "attendance" ? (

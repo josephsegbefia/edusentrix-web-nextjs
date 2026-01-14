@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
   // Update all teachers
   const results = [];
   for (const teacher of teachers) {
-    const currentSubjectIds = (teacher.subjectIds || []).map((id) => String(id));
+    const currentSubjectIds = (teacher.subjectIds || []).map((id: unknown) => String(id));
     const newSubjectIds = Array.from(
       new Set([...currentSubjectIds, ...subjectIds.map((id) => String(id))])
     );

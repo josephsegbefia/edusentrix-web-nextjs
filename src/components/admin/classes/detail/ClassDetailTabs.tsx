@@ -11,12 +11,16 @@ import {
   BarChart3,
   Receipt,
   Settings,
+  Crown,
+  Calendar,
 } from "lucide-react";
 
 export type ClassDetailTabId =
   | "overview"
   | "students"
   | "subjects"
+  | "schedule"
+  | "roles"
   | "attendance"
   | "performance"
   | "fees"
@@ -47,6 +51,18 @@ const tabs: TabConfig[] = [
     label: "Subjects & Teachers",
     icon: BookOpen,
     description: "Subject assignments and teachers",
+  },
+  {
+    id: "schedule",
+    label: "Schedule",
+    icon: Calendar,
+    description: "Weekly timetable and subject schedules",
+  },
+  {
+    id: "roles",
+    label: "Roles",
+    icon: Crown,
+    description: "Student leadership and service roles",
   },
   {
     id: "attendance",
@@ -129,6 +145,8 @@ export function getValidClassTab(param: string | null): ClassDetailTabId {
     "overview",
     "students",
     "subjects",
+    "schedule",
+    "roles",
     "attendance",
     "performance",
     "fees",

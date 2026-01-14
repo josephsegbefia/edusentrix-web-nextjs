@@ -80,7 +80,7 @@ export async function PATCH(
   await logTeacherActivity({
     teacherId: String(attendance.teacherId),
     schoolId: schoolIdObj,
-    type: "leave_request_approved",
+    type: "leave.approved",
     title: "Leave request approved",
     description: `Approved leave request for ${new Date(attendance.date).toLocaleDateString()}`,
     metadata: {

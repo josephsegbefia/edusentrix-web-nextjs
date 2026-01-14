@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +19,9 @@ import {
   AlertCircle,
   BookPlus,
   ArrowRight,
-  X,
   AlertTriangle,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,7 +30,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { QuickAssignTeacherModal } from "@/components/modals/QuickAssignTeacherModal";
+import { AssignSubjectScheduleModal } from "@/components/modals/AssignSubjectScheduleModal";
 
 type ClassSubjectsTeachersTabProps = {
   classId: string;
@@ -54,6 +57,15 @@ type SubjectTeacherAssignment = {
   }>;
 };
 
+type SubjectScheduleInfo = {
+  assignmentId: string;
+  teacherId: string;
+  teacherName: string;
+  teacherPhotoUrl: string | null;
+  contactHoursPerWeek: number;
+  schedulesCount: number;
+};
+
 export function ClassSubjectsTeachersTab({
   classId,
   className,
@@ -62,7 +74,25 @@ export function ClassSubjectsTeachersTab({
   onOpenAssignmentWizard,
 }: ClassSubjectsTeachersTabProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
+
+  // State for quick assign modal
+  const [quickAssignModalOpen, setQuickAssignModalOpen] = React.useState(false);
+  const [selectedSubjectForAssign, setSelectedSubjectForAssign] = React.useState<{
+    id: string;
+    name: string;
+    code: string | null;
+    currentTeacherId?: string | null;
+  } | null>(null);
+
+  // State for schedule assignment modal
+  const [scheduleModalOpen, setScheduleModalOpen] = React.useState(false);
+  const [selectedScheduleAssignment, setSelectedScheduleAssignment] = React.useState<{
+    assignmentId: string;
+    subjectId: string;
+    subjectName: string;
+    teacherId: string;
+    teacherName: string;
+  } | null>(null);
 
   // Fetch subject-teacher assignments for this class
   const { data, isLoading, isError } = useQuery<{
@@ -80,7 +110,31 @@ export function ClassSubjectsTeachersTab({
     staleTime: 30_000,
   });
 
+  // Fetch schedule information
+  const { data: schedulesData } = useQuery<{
+    success: boolean;
+    data: SubjectScheduleInfo[];
+  }>({
+    queryKey: ["class-schedules", classId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/classes/${classId}/schedules`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return { success: true, data: [] };
+      return res.json();
+    },
+    staleTime: 30_000,
+  });
+
   const assignments = data?.data || [];
+  const schedules = schedulesData?.data || [];
+
+  // Create a map of schedules by assignment ID
+  const scheduleMap = React.useMemo(() => {
+    const map = new Map<string, SubjectScheduleInfo>();
+    schedules.forEach((s) => map.set(s.assignmentId, s));
+    return map;
+  }, [schedules]);
 
   // Create a map of subject assignments
   const assignmentMap = React.useMemo(() => {
@@ -89,16 +143,36 @@ export function ClassSubjectsTeachersTab({
     return map;
   }, [assignments]);
 
-  // Combine subjects with their assignments
+  // Combine subjects with their assignments and schedules
   const subjectAssignments = React.useMemo(() => {
     return subjects.map((subject) => {
       const assignment = assignmentMap.get(subject.id);
+      const teachers = assignment?.teachers || [];
+
+      // Get schedule info for each teacher assignment
+      const teachersWithSchedules = teachers.map((teacher) => {
+        const scheduleInfo = scheduleMap.get(teacher.assignmentId);
+        return {
+          ...teacher,
+          scheduleInfo: scheduleInfo || null,
+        };
+      });
+
       return {
         ...subject,
-        teachers: assignment?.teachers || [],
+        teachers: teachersWithSchedules as Array<{
+          id: string;
+          assignmentId: string;
+          firstName: string;
+          lastName: string;
+          fullName: string;
+          email: string | null;
+          photoUrl: string | null;
+          scheduleInfo: SubjectScheduleInfo | null;
+        }>,
       };
     });
-  }, [subjects, assignmentMap]);
+  }, [subjects, assignmentMap, scheduleMap]);
 
   // Count stats
   const assignedSubjectsCount = subjectAssignments.filter(
@@ -110,6 +184,11 @@ export function ClassSubjectsTeachersTab({
   const totalTeachersCount = new Set(
     subjectAssignments.flatMap((s) => s.teachers.map((t) => t.id))
   ).size;
+  const subjectsWithoutSchedules = subjectAssignments.filter(
+    (s) =>
+      s.teachers.length > 0 &&
+      s.teachers.every((t) => !t.scheduleInfo || t.scheduleInfo.schedulesCount === 0)
+  ).length;
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase() || "?";
@@ -117,6 +196,43 @@ export function ClassSubjectsTeachersTab({
 
   const handleViewTeacher = (teacherId: string) => {
     router.push(`/admin/teachers/${teacherId}`);
+  };
+
+  const handleOpenQuickAssign = (subject: {
+    id: string;
+    name: string;
+    code: string | null;
+    teachers: Array<{ id: string }>;
+  }) => {
+    setSelectedSubjectForAssign({
+      id: subject.id,
+      name: subject.name,
+      code: subject.code,
+      currentTeacherId: subject.teachers[0]?.id || null,
+    });
+    setQuickAssignModalOpen(true);
+  };
+
+  const handleOpenScheduleModal = (
+    assignmentId: string,
+    subjectId: string,
+    subjectName: string,
+    teacherId: string,
+    teacherName: string
+  ) => {
+    setSelectedScheduleAssignment({
+      assignmentId,
+      subjectId,
+      subjectName,
+      teacherId,
+      teacherName,
+    });
+    setScheduleModalOpen(true);
+  };
+
+  const handleCloseScheduleModal = () => {
+    setScheduleModalOpen(false);
+    setSelectedScheduleAssignment(null);
   };
 
   return (
@@ -142,19 +258,19 @@ export function ClassSubjectsTeachersTab({
           </Button>
           <Button
             onClick={onOpenAssignmentWizard}
-            className="gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20 hover:from-blue-600 hover:to-indigo-700"
+            className="gap-2 bg-brand text-black hover:opacity-90"
           >
             <UserPlus className="h-4 w-4" />
-            Assign Teachers
+            Bulk Assign Teachers
           </Button>
         </div>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-blue-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/20 text-brand">
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
@@ -170,7 +286,20 @@ export function ClassSubjectsTeachersTab({
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{assignedSubjectsCount}</p>
-              <p className="text-xs text-white/50">Assigned</p>
+              <p className="text-xs text-white/50">With Teachers</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-blue-300">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">
+                {assignedSubjectsCount - subjectsWithoutSchedules}
+              </p>
+              <p className="text-xs text-white/50">Scheduled</p>
             </div>
           </CardContent>
         </Card>
@@ -214,10 +343,38 @@ export function ClassSubjectsTeachersTab({
         </Card>
       )}
 
+      {/* Missing Schedules Warning */}
+      {subjectsWithoutSchedules > 0 && unassignedSubjectsCount === 0 && (
+        <Card className="border border-blue-500/30 bg-blue-500/10 backdrop-blur">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20">
+              <Calendar className="h-5 w-5 text-blue-300" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-blue-200">
+                {subjectsWithoutSchedules} subject{subjectsWithoutSchedules !== 1 ? "s" : ""} without schedules
+              </p>
+              <p className="text-xs text-blue-200/70">
+                Assign weekly schedules to build the class timetable
+              </p>
+            </div>
+            <Button
+              onClick={() => router.push(`/admin/classes/${classId}?tab=schedule`)}
+              size="sm"
+              className="gap-2 bg-blue-500/20 text-blue-200 hover:bg-blue-500/30"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              View Schedule Tab
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Subject-Teacher List */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
           <p className="mt-3 text-sm text-white/50">Loading assignments...</p>
         </div>
       ) : isError ? (
@@ -241,7 +398,7 @@ export function ClassSubjectsTeachersTab({
             </p>
             <Button
               onClick={onManageSubjects}
-              className="mt-4 gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+              className="mt-4 gap-2 bg-brand text-black"
             >
               <BookPlus className="h-4 w-4" />
               Add Subjects
@@ -268,7 +425,7 @@ export function ClassSubjectsTeachersTab({
                       className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-xl",
                         subject.teachers.length > 0
-                          ? "bg-blue-500/20 text-blue-300"
+                          ? "bg-brand/20 text-brand"
                           : "bg-white/5 text-white/30"
                       )}
                     >
@@ -282,96 +439,169 @@ export function ClassSubjectsTeachersTab({
                     </div>
                   </div>
 
-                  {/* Teachers */}
-                  <div className="flex items-center gap-2">
+                  {/* Teachers & Schedules */}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                     {subject.teachers.length > 0 ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         {/* Stacked avatars for multiple teachers */}
-                        <div className="flex -space-x-2">
-                          {subject.teachers.slice(0, 3).map((teacher, idx) => (
-                            <Avatar
-                              key={teacher.id}
-                              className="h-8 w-8 border-2 border-slate-900 ring-0"
-                              style={{ zIndex: 10 - idx }}
-                            >
-                              <AvatarImage
-                                src={teacher.photoUrl || ""}
-                                alt={teacher.fullName}
-                              />
-                              <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-700 text-[10px] font-semibold text-white">
-                                {getInitials(teacher.firstName, teacher.lastName)}
-                              </AvatarFallback>
-                            </Avatar>
-                          ))}
-                          {subject.teachers.length > 3 && (
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-white/10 text-[10px] font-medium text-white">
-                              +{subject.teachers.length - 3}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Teacher names */}
-                        <div className="hidden sm:block">
-                          <p className="text-sm text-white">
-                            {subject.teachers
-                              .slice(0, 2)
-                              .map((t) => t.fullName)
-                              .join(", ")}
-                            {subject.teachers.length > 2 &&
-                              ` +${subject.teachers.length - 2}`}
-                          </p>
-                          {subject.teachers.length > 1 && (
-                            <Badge
-                              variant="outline"
-                              className="mt-1 rounded-full border-purple-500/30 bg-purple-500/10 text-[10px] text-purple-300"
-                            >
-                              Co-teaching
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Actions */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="ml-2 h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
-                          >
-                            {subject.teachers.map((teacher) => (
-                              <DropdownMenuItem
+                        <div className="flex items-center gap-2">
+                          <div className="flex -space-x-2">
+                            {subject.teachers.slice(0, 3).map((teacher, idx) => (
+                              <Avatar
                                 key={teacher.id}
-                                onClick={() => handleViewTeacher(teacher.id)}
+                                className="h-8 w-8 border-2 border-slate-900 ring-0"
+                                style={{ zIndex: 10 - idx }}
+                              >
+                                <AvatarImage
+                                  src={teacher.photoUrl || ""}
+                                  alt={teacher.fullName}
+                                />
+                                <AvatarFallback className="bg-linear-to-br from-brand/60 to-brand/40 text-[10px] font-semibold text-white">
+                                  {getInitials(teacher.firstName, teacher.lastName)}
+                                </AvatarFallback>
+                              </Avatar>
+                            ))}
+                            {subject.teachers.length > 3 && (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-white/10 text-[10px] font-medium text-white">
+                                +{subject.teachers.length - 3}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Teacher names */}
+                          <div className="hidden sm:block">
+                            <p className="text-sm text-white">
+                              {subject.teachers
+                                .slice(0, 2)
+                                .map((t) => t.fullName)
+                                .join(", ")}
+                              {subject.teachers.length > 2 &&
+                                ` +${subject.teachers.length - 2}`}
+                            </p>
+                            {subject.teachers.length > 1 && (
+                              <Badge
+                                variant="outline"
+                                className="mt-1 rounded-full border-purple-500/30 bg-purple-500/10 text-[10px] text-purple-300"
+                              >
+                                Co-teaching
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Schedule indicators and actions */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {subject.teachers.map((teacher) => {
+                            const scheduleInfo = teacher.scheduleInfo;
+                            const hasSchedule = scheduleInfo && scheduleInfo.schedulesCount > 0;
+
+                            return (
+                              <div
+                                key={teacher.id}
+                                className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5"
+                              >
+                                {hasSchedule ? (
+                                  <>
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-[10px] text-emerald-300"
+                                    >
+                                      <Calendar className="h-3 w-3" />
+                                      {scheduleInfo.schedulesCount} slot{scheduleInfo.schedulesCount !== 1 ? "s" : ""}
+                                    </Badge>
+                                    {scheduleInfo.contactHoursPerWeek > 0 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="gap-1 border-blue-500/30 bg-blue-500/10 text-[10px] text-blue-300"
+                                      >
+                                        <Clock className="h-3 w-3" />
+                                        {scheduleInfo.contactHoursPerWeek}h/week
+                                      </Badge>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() =>
+                                        handleOpenScheduleModal(
+                                          teacher.assignmentId,
+                                          subject.id,
+                                          subject.name,
+                                          teacher.id,
+                                          teacher.fullName
+                                        )
+                                      }
+                                      className="h-6 gap-1 px-2 text-[10px] text-white/60 hover:text-emerald-300"
+                                    >
+                                      <Calendar className="h-3 w-3" />
+                                      Edit
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleOpenScheduleModal(
+                                        teacher.assignmentId,
+                                        subject.id,
+                                        subject.name,
+                                        teacher.id,
+                                        teacher.fullName
+                                      )
+                                    }
+                                    className="h-6 gap-1 border-dashed border-white/20 bg-transparent px-2 text-[10px] text-white/50 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
+                                  >
+                                    <Calendar className="h-3 w-3" />
+                                    Assign Schedule
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+
+                          {/* Actions dropdown */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
+                            >
+                              {subject.teachers.map((teacher) => (
+                                <DropdownMenuItem
+                                  key={teacher.id}
+                                  onClick={() => handleViewTeacher(teacher.id)}
+                                  className="cursor-pointer gap-2"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                  View {teacher.fullName}
+                                </DropdownMenuItem>
+                              ))}
+                              <DropdownMenuSeparator className="bg-white/10" />
+                              <DropdownMenuItem
+                                onClick={() => handleOpenQuickAssign(subject)}
                                 className="cursor-pointer gap-2"
                               >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                                View {teacher.fullName}
+                                <UserPlus className="h-3.5 w-3.5" />
+                                Change Teacher
                               </DropdownMenuItem>
-                            ))}
-                            <DropdownMenuSeparator className="bg-white/10" />
-                            <DropdownMenuItem
-                              onClick={onOpenAssignmentWizard}
-                              className="cursor-pointer gap-2"
-                            >
-                              <UserPlus className="h-3.5 w-3.5" />
-                              Change Teacher
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     ) : (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={onOpenAssignmentWizard}
-                        className="gap-2 border-dashed border-white/20 bg-transparent text-xs text-white/50 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-300"
+                        onClick={() => handleOpenQuickAssign(subject)}
+                        className="gap-2 border-dashed border-white/20 bg-transparent text-xs text-white/50 hover:border-brand/50 hover:bg-brand/10 hover:text-brand"
                       >
                         <UserPlus className="h-3.5 w-3.5" />
                         Assign Teacher
@@ -383,6 +613,33 @@ export function ClassSubjectsTeachersTab({
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Quick Assign Teacher Modal */}
+      {selectedSubjectForAssign && (
+        <QuickAssignTeacherModal
+          open={quickAssignModalOpen}
+          onOpenChange={setQuickAssignModalOpen}
+          classId={classId}
+          className={className}
+          subject={selectedSubjectForAssign}
+          currentTeacherId={selectedSubjectForAssign.currentTeacherId}
+        />
+      )}
+
+      {/* Assign Schedule Modal */}
+      {selectedScheduleAssignment && (
+        <AssignSubjectScheduleModal
+          open={scheduleModalOpen}
+          onOpenChange={handleCloseScheduleModal}
+          assignmentId={selectedScheduleAssignment.assignmentId}
+          subjectId={selectedScheduleAssignment.subjectId}
+          subjectName={selectedScheduleAssignment.subjectName}
+          teacherId={selectedScheduleAssignment.teacherId}
+          teacherName={selectedScheduleAssignment.teacherName}
+          classId={classId}
+          className={className}
+        />
       )}
     </div>
   );

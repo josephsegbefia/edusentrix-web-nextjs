@@ -24,10 +24,13 @@ import {
 import { ClassOverviewTab } from "@/components/admin/classes/detail/ClassOverviewTab";
 import { ClassStudentsTab } from "@/components/admin/classes/detail/ClassStudentsTab";
 import { ClassSubjectsTeachersTab } from "@/components/admin/classes/detail/ClassSubjectsTeachersTab";
+import { ClassScheduleTab } from "@/components/admin/classes/detail/ClassScheduleTab";
+import { ClassRolesTab } from "@/components/admin/classes/detail/ClassRolesTab";
 import { AssignHomeroomModal } from "@/components/modals/AssignHomeroomModal";
 import { AssignSubjectsToClassModal } from "@/components/modals/AssignSubjectsToClassModal";
 import { SubjectTeacherAssignmentWizard } from "@/components/modals/SubjectTeacherAssignmentWizard";
 import { AddStudentToClassModal } from "@/components/modals/AddStudentToClassModal";
+import { AssignClassRoleModal } from "@/components/modals/AssignClassRoleModal";
 
 function ClassDetailContent() {
   const params = useParams<{ classId: string }>();
@@ -44,6 +47,7 @@ function ClassDetailContent() {
   const [assignSubjectsOpen, setAssignSubjectsOpen] = React.useState(false);
   const [assignmentWizardOpen, setAssignmentWizardOpen] = React.useState(false);
   const [addStudentOpen, setAddStudentOpen] = React.useState(false);
+  const [assignRoleOpen, setAssignRoleOpen] = React.useState(false);
 
   const { data, isLoading, isError } = useClassDetail(classId);
   const classData = data?.data;
@@ -314,6 +318,17 @@ function ClassDetailContent() {
             onManageSubjects={() => setAssignSubjectsOpen(true)}
             onOpenAssignmentWizard={() => setAssignmentWizardOpen(true)}
           />
+        ) : activeTab === "schedule" ? (
+          <ClassScheduleTab
+            classId={classData.id}
+            className={classData.fullLabel}
+          />
+        ) : activeTab === "roles" ? (
+          <ClassRolesTab
+            classId={classData.id}
+            className={classData.fullLabel}
+            onAssignRole={() => setAssignRoleOpen(true)}
+          />
         ) : activeTab === "attendance" ? (
           <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-white/50">
             <p>Attendance tab coming soon...</p>
@@ -354,6 +369,12 @@ function ClassDetailContent() {
       <AddStudentToClassModal
         open={addStudentOpen}
         onOpenChange={setAddStudentOpen}
+        classId={classData.id}
+        className={classData.fullLabel}
+      />
+      <AssignClassRoleModal
+        open={assignRoleOpen}
+        onOpenChange={setAssignRoleOpen}
         classId={classData.id}
         className={classData.fullLabel}
       />

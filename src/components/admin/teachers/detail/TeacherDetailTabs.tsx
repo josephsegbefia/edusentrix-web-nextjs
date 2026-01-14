@@ -10,11 +10,13 @@ import {
   FileText,
   StickyNote,
   Activity,
+  ClipboardList,
 } from "lucide-react";
 
 type TeacherDetailTabId =
   | "overview"
   | "assignments"
+  | "duties"
   | "performance"
   | "attendance"
   | "documents"
@@ -48,6 +50,15 @@ const TABS: {
     color: {
       active: "border-purple-500/40 bg-purple-500/15 text-purple-200 shadow-purple-500/20",
       icon: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    },
+  },
+  {
+    id: "duties",
+    label: "Duties",
+    icon: ClipboardList,
+    color: {
+      active: "border-orange-500/40 bg-orange-500/15 text-orange-200 shadow-orange-500/20",
+      icon: "bg-orange-500/20 text-orange-300 border-orange-500/30",
     },
   },
   {
@@ -142,7 +153,7 @@ export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
       {/* Helper text */}
       <div className="hidden items-center gap-2 text-[10px] text-white/40 lg:flex">
         <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-          7 sections
+          8 sections
         </span>
       </div>
     </div>

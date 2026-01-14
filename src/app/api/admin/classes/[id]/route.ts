@@ -7,6 +7,7 @@ import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string) {
@@ -66,10 +67,10 @@ export async function GET(
       const { Teacher } = await import("@/models/Teacher");
       const teacher = await Teacher.findById((cls as any).homeroomTeacherId)
         .populate("userId", "firstName lastName email avatarUrl")
-        .lean();
+        .lean() as { _id: any; userId: any } | null;
 
       if (teacher) {
-        const user = (teacher as any).userId;
+        const user = teacher.userId;
         homeroomTeacher = {
           id: String(teacher._id),
           firstName: user?.firstName || "",
@@ -91,11 +92,12 @@ export async function GET(
     });
 
     // Get current academic period
-    const currentPeriod = await mongoose
-      .model("AcademicPeriod")
-      .findOne({ schoolId: schoolIdObj, isCurrent: true })
+    const currentPeriod = await AcademicPeriod.findOne({
+      schoolId: schoolIdObj,
+      isCurrent: true,
+    })
       .select("_id")
-      .lean();
+      .lean() as { _id: any } | null;
 
     // Get teacher count (subject teachers)
     let teacherCount = 0;
@@ -238,7 +240,7 @@ export async function PATCH(
       .populate("gradeId", "name code")
       .populate("homeroomTeacherId", "userId")
       .populate("homeroomTeacherId.userId", "firstName lastName email avatarUrl")
-      .lean();
+      .lean() as { _id: any; name: string; homeroomTeacherId?: { _id: any } } | null;
 
     if (!updated) {
       return NextResponse.json(

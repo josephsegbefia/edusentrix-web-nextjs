@@ -7,6 +7,7 @@ import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
 
 /**
@@ -148,11 +149,12 @@ export async function GET(req: NextRequest) {
     );
 
     // Get current academic period
-    const currentPeriod = await mongoose
-      .model("AcademicPeriod")
-      .findOne({ schoolId: schoolIdObj, isCurrent: true })
+    const currentPeriod = await AcademicPeriod.findOne({
+      schoolId: schoolIdObj,
+      isCurrent: true,
+    })
       .select("_id")
-      .lean();
+      .lean() as { _id: any } | null;
 
     // Get teacher counts (subject teachers) for each class
     let teacherCountMap = new Map<string, number>();

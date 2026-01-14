@@ -73,7 +73,7 @@ export async function DELETE(
   await logTeacherActivity({
     teacherId: String(teacher._id),
     schoolId: schoolIdObj,
-    type: "subject_removed",
+    type: "assignment.deleted",
     title: "Subject removed",
     description: `Removed subject: ${subjectName}`,
     metadata: {

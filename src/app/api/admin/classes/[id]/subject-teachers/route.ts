@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Subject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
 
 /**
@@ -49,11 +50,12 @@ export async function GET(
     }
 
     // Get current academic period
-    const currentPeriod = await mongoose
-      .model("AcademicPeriod")
-      .findOne({ schoolId: schoolIdObj, isCurrent: true })
+    const currentPeriod = await AcademicPeriod.findOne({
+      schoolId: schoolIdObj,
+      isCurrent: true,
+    })
       .select("_id")
-      .lean();
+      .lean() as { _id: any } | null;
 
     if (!currentPeriod) {
       // No current period - return empty assignments

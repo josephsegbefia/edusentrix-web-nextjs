@@ -222,7 +222,7 @@ export async function POST(
   await logTeacherActivity({
     teacherId: String(teacherObjId),
     schoolId: schoolIdObj,
-    type: "leave_request_submitted",
+    type: "leave.submitted",
     title: "Leave request submitted",
     description: `Leave request for ${dates.length} day(s): ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`,
     metadata: {

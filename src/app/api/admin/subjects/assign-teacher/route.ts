@@ -78,17 +78,17 @@ export async function POST(req: NextRequest) {
         );
       }
     } else {
-      // Use active period
+      // Use current period (isCurrent: true)
       const activePeriod = await AcademicPeriod.findOne({
         schoolId: schoolIdObj,
-        status: "active",
+        isCurrent: true,
       })
         .select("_id")
-        .lean();
+        .lean() as { _id: any } | null;
 
       if (!activePeriod) {
         return NextResponse.json(
-          { success: false, error: "No active academic period found" },
+          { success: false, error: "No active academic period found. Please set a current academic period first." },
           { status: 404 }
         );
       }
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       subjectId: subjectObjId,
       classGroupId: classGroupObjId,
       status: "active",
-    }).lean();
+    }).lean() as { _id: any; teacherId: any } | null;
 
     // Check if another teacher is already assigned
     const otherTeacherAssignment = await TeacherAssignment.findOne({

@@ -11,6 +11,7 @@ import {
   useCanCreateAssignments,
   useIsPeriodExpired,
   useIsInGracePeriod,
+  type PeriodStatusData,
 } from "@/hooks/admin/usePeriodStatus";
 import { AlertCircle, Calendar, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,7 @@ const operationMessages: Record<
     title: string;
     blockedMessage: string;
     graceMessage: string;
-    useHook: () => boolean;
+    canPerform: (periodStatus: PeriodStatusData | undefined) => boolean;
   }
 > = {
   invoices: {
@@ -44,7 +45,7 @@ const operationMessages: Record<
       "You cannot create new invoices without an active academic period. Please create a new period to continue.",
     graceMessage:
       "You're in a grace period. Invoices can still be created, but please set up a new academic period soon.",
-    useHook: useCanCreateInvoices,
+    canPerform: (periodStatus) => periodStatus?.canCreateInvoices ?? false,
   },
   assessments: {
     title: "Assessment Recording",
@@ -52,7 +53,7 @@ const operationMessages: Record<
       "You cannot record assessments or grades without an active academic period. Please create a new period to continue.",
     graceMessage:
       "Assessment recording requires an active academic period. Please create a new period.",
-    useHook: useCanRecordAssessments,
+    canPerform: (periodStatus) => periodStatus?.canRecordAssessments ?? false,
   },
   assignments: {
     title: "Teacher Assignments",
@@ -60,18 +61,18 @@ const operationMessages: Record<
       "You cannot create teacher assignments without an active academic period. Please create a new period to continue.",
     graceMessage:
       "You're in a grace period. Assignments can still be created, but please set up a new academic period soon.",
-    useHook: useCanCreateAssignments,
+    canPerform: (periodStatus) => periodStatus?.canCreateAssignments ?? false,
   },
 };
 
 export function PeriodBlockedAlert({ operation, className }: BlockedAlertProps) {
   const { data: periodStatus, isLoading } = usePeriodStatus();
+  const config = operationMessages[operation];
 
   if (isLoading || !periodStatus) return null;
 
   const { status, warningLevel } = periodStatus;
-  const config = operationMessages[operation];
-  const canPerform = config.useHook();
+  const canPerform = config.canPerform(periodStatus);
   const isGrace = status === "grace_period";
 
   // Don't show anything if operation is allowed and not in grace period
@@ -193,4 +194,3 @@ export function useOperationBlocked(
 
   return { isBlocked, isGrace: isGrace && canPerform, message };
 }
-

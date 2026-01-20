@@ -63,6 +63,11 @@ const DOC_CATEGORIES: DocCategory[] = [
         slug: "managing-teachers",
         path: "teachers/managing-teachers.md",
       },
+      {
+        title: "Teacher Assignments",
+        slug: "teacher-assignments",
+        path: "teachers/teacher-assignments.md",
+      },
     ],
   },
   {

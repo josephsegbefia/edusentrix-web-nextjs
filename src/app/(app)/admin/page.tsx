@@ -4,6 +4,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
@@ -39,6 +40,7 @@ import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 
 import CreateStudentModal from "@/components/modals/CreateStudentModal";
 import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
+import CreateAcademicPeriodModal from "@/components/modals/CreateAcademicPeriodModal";
 import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
 import { format } from "date-fns/format";
 import type { CreateStudentInput } from "@/schemas/student";
@@ -48,6 +50,9 @@ import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
 import { ShimmerHighlight } from "@/components/onboarding/ShimmerHighlight";
 import { OnboardingProgressIndicator } from "@/components/onboarding/OnboardingProgressIndicator";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { PeriodWarningBanner } from "@/components/dashboard/PeriodWarningBanner";
+import { PeriodExpiryModal } from "@/components/dashboard/PeriodExpiryModal";
+import { usePeriodStatus } from "@/hooks/admin/usePeriodStatus";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -568,11 +573,27 @@ export default function SchoolAdminOverviewPage() {
 
   /* Academic period modal state */
   const [showCreatePeriod, setShowCreatePeriod] = useState(false);
-  const [yearLabelInput, setYearLabelInput] = useState("");
-  const [termInput, setTermInput] = useState("");
-  const [startDateInput, setStartDateInput] = useState("");
-  const [endDateInput, setEndDateInput] = useState("");
+  const [showPeriodExpiryModal, setShowPeriodExpiryModal] = useState(false);
   const [creatingPeriod, setCreatingPeriod] = useState(false);
+
+  /* Period status for warnings */
+  const { data: periodStatus } = usePeriodStatus();
+
+  /* Auto-show period expiry modal for critical statuses */
+  React.useEffect(() => {
+    if (
+      periodStatus &&
+      (periodStatus.status === "no_period" ||
+        periodStatus.status === "expired" ||
+        periodStatus.status === "expiring_critical")
+    ) {
+      // Small delay to let the page load first
+      const timer = setTimeout(() => {
+        setShowPeriodExpiryModal(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [periodStatus?.status]);
 
   /* Student create busy state */
   const [creatingStudent, setCreatingStudent] = useState(false);
@@ -602,10 +623,15 @@ export default function SchoolAdminOverviewPage() {
   ];
   const overdueTotal = donutSegments.reduce((s, x) => s + x.value, 0);
 
-  async function handleCreatePeriod() {
-    if (!yearLabelInput || !termInput || !startDateInput || !endDateInput) {
+  async function handleCreatePeriod(payload: {
+    yearLabel: string;
+    term: string;
+    startDate: string;
+    endDate: string;
+  }) {
+    if (!payload.yearLabel || !payload.term || !payload.startDate || !payload.endDate) {
       busy.error("Please fill all fields");
-      return;
+      throw new Error("Missing academic period fields");
     }
     setCreatingPeriod(true);
     try {
@@ -613,10 +639,10 @@ export default function SchoolAdminOverviewPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          yearLabel: yearLabelInput.trim(),
-          term: termInput.trim(),
-          startDate: startDateInput,
-          endDate: endDateInput,
+          yearLabel: payload.yearLabel.trim(),
+          term: payload.term.trim(),
+          startDate: payload.startDate,
+          endDate: payload.endDate,
         }),
       }).then(async (res) => {
         if (!res.ok) {
@@ -630,13 +656,7 @@ export default function SchoolAdminOverviewPage() {
         success: "Academic period created",
         error: "Could not create period",
       });
-      setShowCreatePeriod(false);
-      setYearLabelInput("");
-      setTermInput("");
-      setStartDateInput("");
-      setEndDateInput("");
       // SSE will push period.updated
-    } catch {
     } finally {
       setCreatingPeriod(false);
     }
@@ -805,6 +825,11 @@ export default function SchoolAdminOverviewPage() {
           <ReconPill count={reconUnmatched} />
         </div>
       </div>
+
+      {/* Period Warning Banner */}
+      <PeriodWarningBanner
+        onCreatePeriod={() => setShowCreatePeriod(true)}
+      />
 
       {/* Onboarding Progress Indicator */}
       {!onboarding.isLoading && onboarding.step !== "complete" && (
@@ -1387,7 +1412,7 @@ export default function SchoolAdminOverviewPage() {
 
       {/* Activity Feed + Admin Assistant + Suggestions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ActivityFeed limit={8} />
+        <ActivityFeed limit={5} />
 
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
@@ -1476,9 +1501,82 @@ export default function SchoolAdminOverviewPage() {
         </Card>
       </div>
 
-      {/* Recent Activity + Notices */}
+      {/* Quick Actions + Notices */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ActivityFeed limit={8} />
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                <PlusCircle className="h-4 w-4 text-emerald-300" />
+              </div>
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCreateStudent(true)}
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
+              >
+                <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
+                  <GraduationCap className="h-4 w-4 text-blue-300" />
+                </div>
+                <span className="text-xs font-medium text-white/90">
+                  Add Student
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateTeacher(true)}
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
+              >
+                <div className="p-2 rounded-lg bg-purple-500/20 border border-purple-500/30">
+                  <Users className="h-4 w-4 text-purple-300" />
+                </div>
+                <span className="text-xs font-medium text-white/90">
+                  Add Teacher
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateClass(true)}
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
+              >
+                <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                  <School className="h-4 w-4 text-emerald-300" />
+                </div>
+                <span className="text-xs font-medium text-white/90">
+                  Create Class
+                </span>
+              </button>
+              <Link
+                href="/admin/fees/invoices"
+                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
+              >
+                <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                  <DollarSign className="h-4 w-4 text-amber-300" />
+                </div>
+                <span className="text-xs font-medium text-white/90">
+                  Create Invoice
+                </span>
+              </Link>
+            </div>
+            <div className="pt-2 border-t border-white/10">
+              <Link
+                href="/admin/students"
+                className="flex items-center justify-between text-sm text-white/70 hover:text-white/90 transition-colors"
+              >
+                <span>View all students</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
@@ -1589,82 +1687,13 @@ export default function SchoolAdminOverviewPage() {
         </div>
       )}
 
-      {/* Create Academic Period (guided) */}
-      {showCreatePeriod && (
-        <div
-          className="fixed inset-0 z-60 grid place-items-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setShowCreatePeriod(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-card/95 p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-semibold mb-1">
-              Create Academic Period
-            </h3>
-            <p className="text-sm text-white/60 mb-4">
-              A quick guided setup to start tracking term dates and progress.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-white/60 mb-1">Academic Year</div>
-                <input
-                  placeholder="2024/2025"
-                  value={yearLabelInput}
-                  onChange={(e) => setYearLabelInput(e.target.value)}
-                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                />
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-white/60 mb-1">Term</div>
-                <input
-                  placeholder="1st Term"
-                  value={termInput}
-                  onChange={(e) => setTermInput(e.target.value)}
-                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                />
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-white/60 mb-1">Start Date</div>
-                <input
-                  type="date"
-                  value={startDateInput}
-                  onChange={(e) => setStartDateInput(e.target.value)}
-                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                />
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-white/60 mb-1">End Date</div>
-                <input
-                  type="date"
-                  value={endDateInput}
-                  onChange={(e) => setEndDateInput(e.target.value)}
-                  className="w-full rounded bg-transparent text-white placeholder:text-white/40 focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 hover:bg-white/10"
-                onClick={() => setShowCreatePeriod(false)}
-                disabled={creatingPeriod}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-black hover:opacity-90 disabled:opacity-60"
-                onClick={handleCreatePeriod}
-                disabled={creatingPeriod}
-              >
-                {creatingPeriod ? "Creating…" : "Continue"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Academic Period */}
+      <CreateAcademicPeriodModal
+        open={showCreatePeriod}
+        onOpenChange={setShowCreatePeriod}
+        onSubmit={handleCreatePeriod}
+        isLoading={creatingPeriod}
+      />
 
       {/* Quick Action Modals */}
       <ResponsiveModal
@@ -1710,6 +1739,16 @@ export default function SchoolAdminOverviewPage() {
           isLoading={creatingTeacher}
         />
       </ResponsiveModal>
+
+      {/* Period Expiry Modal (auto-shows for critical statuses) */}
+      <PeriodExpiryModal
+        open={showPeriodExpiryModal}
+        onOpenChange={setShowPeriodExpiryModal}
+        onCreatePeriod={() => {
+          setShowPeriodExpiryModal(false);
+          setShowCreatePeriod(true);
+        }}
+      />
     </div>
   );
 }

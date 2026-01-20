@@ -13,11 +13,16 @@ export function useAcademicPeriods() {
   return useQuery<{ periods: AcademicPeriodDTO[] }>({
     queryKey: ["academicPeriods"],
     queryFn: async () => {
-      const res = await fetch("/api/periods/get-current", {
+      const res = await fetch("/api/admin/periods", {
         cache: "no-store",
       });
       if (!res.ok) throw new Error("Failed to fetch academic periods");
-      return res.json();
+      const json = await res.json();
+      // Normalize response - ensure it always has a periods array
+      if (Array.isArray(json.periods)) {
+        return { periods: json.periods };
+      }
+      return { periods: [] };
     },
     refetchOnWindowFocus: false,
     refetchOnMount: false,

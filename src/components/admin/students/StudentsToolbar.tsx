@@ -2,10 +2,15 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { StudentsViewToggle } from "./StudentsViewToggle";
-import { Filter, Download, Search } from "lucide-react";
+import {
+  SlidersHorizontal,
+  Download,
+  Search,
+  X,
+  LayoutGrid,
+  Table2,
+} from "lucide-react";
 import type { StudentsViewMode } from "./StudentsViewToggle";
 
 type StudentsToolbarProps = {
@@ -29,60 +34,110 @@ export function StudentsToolbar({
   exportingAll,
   searchInputRef,
 }: StudentsToolbarProps) {
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onSearchChange(e.target.value);
-  };
+  const [isFocused, setIsFocused] = React.useState(false);
 
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      {/* Left: search */}
-      <div className="w-full md:max-w-sm">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-          <Input
+    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      {/* Search input */}
+      <div className="relative w-full md:max-w-md">
+        <div
+          className={cn(
+            "group relative flex items-center overflow-hidden rounded-xl border transition-all duration-200",
+            isFocused
+              ? "border-teal-500/50 bg-teal-500/5 shadow-lg shadow-teal-500/10"
+              : "border-white/10 bg-white/5 hover:border-white/15 hover:bg-white/8"
+          )}
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+            <Search
+              className={cn(
+                "h-4 w-4 transition-colors",
+                isFocused ? "text-teal-400" : "text-white/40"
+              )}
+            />
+          </div>
+          <input
             ref={searchInputRef ?? undefined}
+            type="text"
             value={search}
-            onChange={handleSearchChange}
-            placeholder="Search by name, ID, admission number, parent..."
-            className={cn(
-              "pl-8 pr-3 text-xs md:text-sm",
-              "border-white/15 bg-black/40 text-foreground shadow-sm shadow-black/30",
-              "placeholder:text-muted-foreground/70",
-              "focus:border-primary/40 focus:ring-1 focus:ring-primary/60"
-            )}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="Search students by name, ID, or class..."
+            className="h-10 flex-1 bg-transparent pr-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => onSearchChange("")}
+              className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-white/60 transition-colors hover:bg-white/15 hover:text-white"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+          <div className="mr-3 hidden items-center gap-1 text-[10px] text-white/30 md:flex">
+            <kbd className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono">
+              /
+            </kbd>
+          </div>
         </div>
-        <p className="mt-1 text-[11px] text-muted-foreground/70">
-          Tip: Press <span className="rounded bg-white/10 px-1 py-0.5">/</span>{" "}
-          to focus search
-        </p>
       </div>
 
-      {/* Right: filters, view toggle, export */}
+      {/* Controls */}
       <div className="flex flex-wrap items-center gap-2 md:justify-end">
+        {/* Filters button */}
         <Button
-          type="button"
           variant="outline"
           size="sm"
-          className="border-white/15 bg-black/40 text-xs text-muted-foreground hover:bg-white/10 hover:text-foreground"
           onClick={onOpenFilters}
+          className="group gap-2 rounded-xl border-white/10 bg-white/5 px-4 text-xs text-white/70 hover:border-white/15 hover:bg-white/10 hover:text-white"
         >
-          <Filter className="mr-1.5 h-3.5 w-3.5" />
-          Filters
+          <SlidersHorizontal className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
+          <span>Filters</span>
         </Button>
 
-        <StudentsViewToggle value={viewMode} onChange={onViewModeChange} />
+        {/* View mode toggle */}
+        <div className="flex items-center rounded-xl border border-white/10 bg-white/5 p-1">
+          <button
+            type="button"
+            onClick={() => onViewModeChange("cards")}
+            className={cn(
+              "relative inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200",
+              viewMode === "cards"
+                ? "bg-white/10 text-white shadow-sm"
+                : "text-white/50 hover:text-white/80"
+            )}
+            aria-pressed={viewMode === "cards"}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Cards</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onViewModeChange("table")}
+            className={cn(
+              "relative inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200",
+              viewMode === "table"
+                ? "bg-white/10 text-white shadow-sm"
+                : "text-white/50 hover:text-white/80"
+            )}
+            aria-pressed={viewMode === "table"}
+          >
+            <Table2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Table</span>
+          </button>
+        </div>
 
+        {/* Export button */}
         <Button
-          type="button"
           variant="outline"
           size="sm"
-          disabled={exportingAll}
-          className="border-white/20 bg-white/5 text-xs text-slate-50 hover:bg-white/10"
           onClick={() => onExportAll?.()}
+          disabled={exportingAll}
+          className="group gap-2 rounded-xl border-white/10 bg-white/5 px-4 text-xs text-white/70 hover:border-white/15 hover:bg-white/10 hover:text-white"
         >
-          <Download className="mr-1.5 h-3.5 w-3.5" />
-          {exportingAll ? "Exporting..." : "Export list"}
+          <Download className="h-3.5 w-3.5 transition-transform group-hover:translate-y-0.5" />
+          <span>{exportingAll ? "Exporting..." : "Export"}</span>
         </Button>
       </div>
     </div>

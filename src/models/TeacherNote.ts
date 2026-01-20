@@ -2,14 +2,24 @@
 import mongoose, { Schema, model, models, Types } from "mongoose";
 
 export type TeacherNoteVisibility = "internal" | "private";
+export type TeacherNoteCategory =
+  | "general"
+  | "performance"
+  | "behavior"
+  | "professional_development"
+  | "disciplinary"
+  | "other";
 
 export interface ITeacherNote {
   _id: Types.ObjectId;
   teacherId: Types.ObjectId;
   schoolId: Types.ObjectId;
 
+  title: string;
   content: string;
+  category?: TeacherNoteCategory;
   visibility: TeacherNoteVisibility;
+  isConfidential?: boolean; // Alias for visibility === "private", for compatibility
 
   tags?: string[];
 
@@ -33,13 +43,20 @@ const TeacherNoteSchema = new Schema<ITeacherNote>(
       index: true,
     },
 
+    title: { type: String, required: true, trim: true },
     content: { type: String, required: true },
+    category: {
+      type: String,
+      enum: ["general", "performance", "behavior", "professional_development", "disciplinary", "other"],
+      index: true,
+    },
     visibility: {
       type: String,
       enum: ["internal", "private"],
       default: "internal",
       index: true,
     },
+    isConfidential: { type: Boolean, default: false, index: true }, // For compatibility
 
     tags: { type: [String], default: [] },
 

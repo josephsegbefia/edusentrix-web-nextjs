@@ -2,8 +2,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sseManager, type SSEConnectionState } from "@/lib/network/sse-manager";
 
 export type NetworkQuality = "offline" | "poor" | "degraded" | "good";
+export type { SSEConnectionState };
 
 type ProbeResult = {
   ok: boolean;
@@ -166,6 +168,19 @@ export function useNetworkHealth(intervalMs = 20000) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // SSE status tracking
+  const [sseState, setSseState] = useState<SSEConnectionState>("disconnected");
+
+  useEffect(() => {
+    if (!sseManager) return;
+
+    const unsubscribe = sseManager.subscribe((status) => {
+      setSseState(status.state);
+    });
+
+    return unsubscribe;
+  }, []);
+
   const detail = useMemo(
     () => ({
       quality,
@@ -174,8 +189,10 @@ export function useNetworkHealth(intervalMs = 20000) {
       downlink: metrics.downlink,
       rtt: metrics.rtt,
       probeRtt: metrics.probeRtt,
+      sseState,
+      isSSEConnected: sseState === "connected",
     }),
-    [quality, online, metrics]
+    [quality, online, metrics, sseState]
   );
 
   return detail;

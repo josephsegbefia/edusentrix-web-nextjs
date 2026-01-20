@@ -1,24 +1,36 @@
 "use client";
 
 import { useBusy } from "@/providers/busy-provider";
-import { i } from "framer-motion/client";
 import { useToast } from "./useToast";
 
-type Labels = { loading: string; success: string; error: string };
+type Labels = {
+  loading: string;
+  success: string;
+  error: string | ((e: Error) => string);
+};
 
 export function useBusyToast() {
-  const { promise: toastPromise, toast, success, error, info, dismiss } = useToast();
+  const { toast, success, error, info, warning, dismiss } = useToast();
   const { beginBusy, endBusy } = useBusy();
 
   /** Just like toast.promise, but disables the page while pending */
-  const busyPromise = async <T>(p: Promise<T>, labels: Labels) => {
+  const busyPromise = async <T>(p: Promise<T>, labels: Labels): Promise<T> => {
     beginBusy();
     try {
-      return await toastPromise(p, labels);
+      const result = await p;
+      success(labels.success);
+      return result;
+    } catch (err) {
+      const errorMsg =
+        typeof labels.error === "function"
+          ? labels.error(err instanceof Error ? err : new Error(String(err)))
+          : labels.error;
+      error(errorMsg);
+      throw err;
     } finally {
       endBusy();
     }
   };
 
-  return { promise: busyPromise, toast, success, error, info, dismiss };
+  return { promise: busyPromise, toast, success, error, info, warning, dismiss };
 }

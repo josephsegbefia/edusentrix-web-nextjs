@@ -6,7 +6,7 @@ Welcome to EduSentrix, your comprehensive school management platform designed sp
 
 EduSentrix is a unified solution for:
 - **Student Management**: Track student records, enrollment, and academic progress with a premium, industry-standard interface
-- **Teacher Management**: Manage staff, assign subjects, and homeroom classes
+- **Teacher Management**: Premium teacher management interface with card/table views, assignments tracking, and comprehensive teacher profiles
 - **Fee Collection**: Comprehensive invoice-based fee system with flexible payment allocation, installments, and student credit management
 - **Academic Tracking**: Monitor academic periods, terms, and progress
 - **Parent Communication**: Keep parents informed via email and SMS
@@ -30,6 +30,24 @@ EduSentrix is a unified solution for:
 - **Color-Coded Cards**: Visual indicators for fee status and student status
 - **Academic Badges**: Track top performers with performance badges
 - **Export Functionality**: Export student data to CSV for reporting
+
+### Teacher Management
+- **Premium Card & Table Views**: Industry-standard interface matching students page design
+- **Card View (Default)**: Color-coded cards based on teacher status (Active, On Leave, Terminated, Inactive)
+- **Advanced Search**: Search by name, email, or employee ID
+- **Smart Filtering**: Filter by subject, class group, department, and status
+- **Teacher Detail Pages**: Comprehensive profiles with multiple tabs:
+  - Overview: Personal info, professional details, subject assignments
+  - Assignments: View and manage class and subject assignments
+  - Performance: Teaching performance metrics (coming soon)
+  - Attendance: Attendance records and leave management (coming soon)
+  - Documents: Certification and document storage (coming soon)
+  - Notes: Internal notes and observations (coming soon)
+  - Activity: Complete audit log of teacher-related actions (coming soon)
+- **Command Palette**: Quick actions via keyboard shortcuts (`⌘K` / `Ctrl+K`)
+- **Bulk Operations**: Select multiple teachers for batch actions
+- **Assignment Management**: Create and manage teacher assignments to classes and subjects
+- **Status Management**: Track teacher status (Active, Inactive, On Leave, Terminated)
 
 ### Fees & Payments
 - **Fees Dashboard**: Comprehensive financial overview with revenue tracking, invoice status, and collection metrics
@@ -91,10 +109,10 @@ The main dashboard provides quick access to:
 
 Speed up your workflow with keyboard shortcuts:
 
-- **`/`**: Focus search input (on students page)
+- **`/`**: Focus search input (on students or teachers page)
 - **`⌘K` / `Ctrl+K`**: Open command palette for quick actions
-- **`N`**: Add new student (from command palette)
-- **`I`**: Import students (from command palette)
+- **`N`**: Add new student/teacher (from command palette)
+- **`I`**: Import students/teachers (from command palette)
 
 ## Tips for Success
 
@@ -136,6 +154,18 @@ Speed up your workflow with keyboard shortcuts:
 - Export functionality
 - Command palette integration
 - Pagination and sorting
+
+### Teachers Management (New!)
+- Premium card and table view modes matching students page
+- Card view as default with status-based color coding
+- Advanced search and filtering (subject, class group, department)
+- Teacher detail pages with comprehensive tabs
+- Assignment management system for classes and subjects
+- Command palette with teacher-specific actions
+- Quick stats dashboard
+- Bulk selection and operations
+- Professional information tracking (Employee ID, Department, Hire Date)
+- Status management (Active, Inactive, On Leave, Terminated)
 
 ### Dashboard Enhancements
 - Activity feed with real-time updates

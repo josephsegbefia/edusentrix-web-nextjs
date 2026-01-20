@@ -16,7 +16,11 @@ export type TeacherActivityType =
   | "note.added"
   | "note.updated"
   | "note.deleted"
-  | "performance.evaluated";
+  | "performance.evaluated"
+  | "leave.submitted"
+  | "leave.approved"
+  | "leave.rejected"
+  | "leave.cancelled";
 
 export interface ITeacherActivity {
   _id: Types.ObjectId;

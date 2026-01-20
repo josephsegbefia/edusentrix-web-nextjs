@@ -34,6 +34,10 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import type { CreateInvoiceInput } from "@/schemas/invoice";
 import type { CreatePaymentInput } from "@/schemas/payment";
 import type { BulkCreateInvoiceInput } from "@/schemas/bulk-invoice";
+import {
+  PeriodBlockedAlert,
+  useOperationBlocked,
+} from "@/components/dashboard/PeriodBlockedAlert";
 
 function MetricCard({
   label,
@@ -210,6 +214,10 @@ export default function FeesPage() {
   const [showRecordPaymentModal, setShowRecordPaymentModal] =
     React.useState(false);
 
+  // Check if invoice creation is blocked due to period status
+  const { isBlocked: isInvoiceCreationBlocked, message: blockedMessage } =
+    useOperationBlocked("invoices");
+
   const handleCreateInvoice = async (payload: CreateInvoiceInput) => {
     // Fix CreateInvoiceInput so it does not contain any nulls for optional fields that expect undefined
     const fixedPayload = {
@@ -328,16 +336,38 @@ export default function FeesPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button
-            onClick={() => setShowCreateInvoiceModal(true)}
-            className="bg-brand hover:bg-brand/90 text-white shadow-lg shadow-brand/20 hover:shadow-brand/30 transition-all"
+            onClick={() => {
+              if (isInvoiceCreationBlocked) {
+                busy.error(
+                  blockedMessage ||
+                    "Cannot create invoices without an active academic period"
+                );
+                return;
+              }
+              setShowCreateInvoiceModal(true);
+            }}
+            className={`bg-brand hover:bg-brand/90 text-white shadow-lg shadow-brand/20 hover:shadow-brand/30 transition-all ${
+              isInvoiceCreationBlocked ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             <PlusCircle className="h-4 w-4 mr-2" />
             Create Invoice
           </Button>
           <button
             type="button"
-            onClick={() => setShowBulkCreateInvoiceModal(true)}
-            className="group relative flex items-center gap-2 px-4 py-2 rounded-lg border border-white/20 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent backdrop-blur-sm text-white font-medium transition-all duration-200 hover:from-purple-500/30 hover:via-purple-500/20 hover:to-transparent hover:border-white/30 hover:shadow-lg hover:shadow-purple-500/20"
+            onClick={() => {
+              if (isInvoiceCreationBlocked) {
+                busy.error(
+                  blockedMessage ||
+                    "Cannot create invoices without an active academic period"
+                );
+                return;
+              }
+              setShowBulkCreateInvoiceModal(true);
+            }}
+            className={`group relative flex items-center gap-2 px-4 py-2 rounded-lg border border-white/20 bg-gradient-to-br from-purple-500/20 via-purple-500/10 to-transparent backdrop-blur-sm text-white font-medium transition-all duration-200 hover:from-purple-500/30 hover:via-purple-500/20 hover:to-transparent hover:border-white/30 hover:shadow-lg hover:shadow-purple-500/20 ${
+              isInvoiceCreationBlocked ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             <PlusCircle className="h-4 w-4 transition-transform group-hover:scale-110" />
             <span>Bulk Create Invoice</span>
@@ -352,6 +382,9 @@ export default function FeesPage() {
           </button>
         </div>
       </div>
+
+      {/* Period Warning Alert */}
+      <PeriodBlockedAlert operation="invoices" />
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

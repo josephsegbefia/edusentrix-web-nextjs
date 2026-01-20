@@ -52,27 +52,68 @@ Class groups organize students into manageable classes. You can create multiple 
 
 ## Step 3: Add Teachers
 
-Teachers are essential for managing classes and subjects.
+Teachers are essential for managing classes and subjects. The Teachers Management page provides a premium interface for managing your teaching staff.
 
 ### How to Add a Teacher
 
-1. Click **"Add Teacher"** in Quick Actions
-2. Fill in **Basic Information**:
-   - First Name
-   - Last Name
-   - Email (required)
+**Option 1: From Dashboard**
+1. Click **"Add Teacher"** in Quick Actions on the dashboard
+2. Fill in the teacher information form
+
+**Option 2: From Teachers Page**
+1. Navigate to **Teachers** (`/admin/teachers`)
+2. Click **"Add Teacher"** button in the header
+3. Or use the command palette (`Ctrl+K` / `⌘K`) and select "Add a new teacher"
+
+**Teacher Information Form:**
+1. **Basic Information**:
+   - First Name (required)
+   - Last Name (required)
+   - Email (required) - Used for account access
    - Phone (optional)
+2. **Professional Details** (optional):
+   - Employee ID
+   - Department
+   - Hire Date
 3. Upload a **Photo** (optional but recommended)
-4. Set **Status**: Active or Inactive
-5. **Assign Subjects**: Select which subjects this teacher teaches
-6. **Assign Homeroom** (optional): Make this teacher a homeroom teacher for a specific class
+4. Set **Status**:
+   - Active: Currently teaching
+   - Inactive: Temporarily unavailable
+   - On Leave: Currently on leave
+   - Terminated: No longer employed
+5. **Assign Subjects**: Select which subjects this teacher teaches (can select multiple)
+6. **Assign Homeroom** (optional): Make this teacher a homeroom teacher for a specific class group
 7. Click **"Create Teacher"**
+
+### Managing Teachers
+
+After creating teachers, you can manage them from the **Teachers** page (`/admin/teachers`):
+
+- **View Modes**: Switch between card view (default) and table view
+- **Search**: Use the search bar to find teachers by name, email, or employee ID
+- **Filters**: Filter by subject, class group, department, or status
+- **Sort**: Sort by name, hire date, or status
+- **Bulk Actions**: Select multiple teachers for batch operations
+- **Command Palette**: Press `Ctrl+K` / `⌘K` for quick actions
 
 ### Teacher Assignments
 
 - **Subject Assignment**: Teachers can teach multiple subjects
 - **Homeroom Teacher**: One teacher per class group who manages that class
-- Teachers can be assigned to multiple classes but only one homeroom class
+- **Class Assignments**: Teachers can be assigned to teach specific subjects in specific classes
+- **Assignment Management**: View and manage all assignments from the teacher's detail page
+
+### Teacher Detail Page
+
+Click on any teacher card or row to view their detailed profile:
+
+- **Overview Tab**: Personal info, professional details, subject assignments, and quick actions
+- **Assignments Tab**: View and manage all class and subject assignments
+- **Performance Tab**: Teaching performance metrics (coming soon)
+- **Attendance Tab**: Attendance records and leave management (coming soon)
+- **Documents Tab**: Upload and manage certifications and documents (coming soon)
+- **Notes Tab**: Internal notes and observations (coming soon)
+- **Activity Tab**: Complete audit log of all teacher-related actions (coming soon)
 
 ## Step 4: Add Students
 

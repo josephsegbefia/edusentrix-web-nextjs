@@ -233,17 +233,17 @@ export function StudentFeesTab({ student }: Props) {
         <ArrowDownLeft className="h-4 w-4 text-emerald-300/80" />
       )
     ) : isCreditApplied ? (
-      <ArrowDownLeft className="h-4 w-4 text-sky-300/80" />
+      <ArrowDownLeft className="h-4 w-4 text-cyan-300/80" />
     ) : isCreditAdded ? (
-      <ArrowUpRight className="h-4 w-4 text-sky-300/80" />
+      <ArrowUpRight className="h-4 w-4 text-cyan-300/80" />
     ) : (
-      <ArrowUpRight className="h-4 w-4 text-sky-300/80" />
+      <ArrowUpRight className="h-4 w-4 text-cyan-300/80" />
     );
 
     const badge = isPendingApproval ? (
       <Badge
         variant="outline"
-        className="border-amber-400/25 bg-amber-500/10 text-amber-100"
+        className="border-amber-400/30 bg-amber-500/10 text-amber-100"
       >
         Pending approval
       </Badge>
@@ -257,28 +257,28 @@ export function StudentFeesTab({ student }: Props) {
     ) : clickable ? (
       <Badge
         variant="outline"
-        className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+        className="border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
       >
         Payment
       </Badge>
     ) : isCreditApplied ? (
       <Badge
         variant="outline"
-        className="border-sky-400/20 bg-sky-500/10 text-sky-200"
+        className="border-cyan-400/30 bg-cyan-500/10 text-cyan-200"
       >
         Credit Applied
       </Badge>
     ) : isCreditAdded ? (
       <Badge
         variant="outline"
-        className="border-sky-400/20 bg-sky-500/10 text-sky-200"
+        className="border-cyan-400/30 bg-cyan-500/10 text-cyan-200"
       >
         Credit Added
       </Badge>
     ) : (
       <Badge
         variant="outline"
-        className="border-sky-400/20 bg-sky-500/10 text-sky-200"
+        className="border-cyan-400/30 bg-cyan-500/10 text-cyan-200"
       >
         Credit
       </Badge>
@@ -302,7 +302,7 @@ export function StudentFeesTab({ student }: Props) {
         ? isPendingApproval
           ? "text-amber-100"
           : "text-emerald-200"
-        : "text-sky-200"
+        : "text-cyan-200"
     );
 
     const subtitle = row.subtitle ?? null;
@@ -330,65 +330,91 @@ export function StudentFeesTab({ student }: Props) {
   const upcomingInstallments = summary?.upcomingInstallments;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Enhanced Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Billed */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-teal-500/15 via-cyan-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
                   Total Billed
                 </div>
-                <div className="mt-1 text-lg font-semibold text-white/90">
+                <div className="mt-1 text-xl font-bold text-white/90">
                   {summaryLoading ? (
-                    <Clock className="h-4 w-4 animate-spin" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
                   ) : (
                     formatMoney(allTimeSummary?.totalBilled ?? 0)
                   )}
                 </div>
               </div>
-              <div className="rounded-lg bg-white/5 p-2">
-                <FileText className="h-5 w-5 text-white/60" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-inner shadow-white/5">
+                <FileText className="h-5 w-5 text-teal-300" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Total Paid */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-emerald-500/15 via-emerald-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground">Total Paid</div>
-                <div className="mt-1 text-lg font-semibold text-emerald-200">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                  Total Paid
+                </div>
+                <div className="mt-1 text-xl font-bold text-emerald-200">
                   {summaryLoading ? (
-                    <Clock className="h-4 w-4 animate-spin" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-emerald-400" />
                   ) : (
                     formatMoney(allTimeSummary?.totalPaid ?? 0)
                   )}
                 </div>
               </div>
-              <div className="rounded-lg bg-emerald-500/10 p-2">
-                <Receipt className="h-5 w-5 text-emerald-300/80" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-500/30 bg-linear-to-br from-emerald-500/20 to-emerald-600/20 shadow-inner shadow-white/5">
+                <Receipt className="h-5 w-5 text-emerald-300" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Collection Rate */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-cyan-500/15 via-cyan-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
                   Collection Rate
                 </div>
                 <div className="mt-1 flex items-center gap-2">
-                  <span className="text-lg font-semibold text-white/90">
+                  <span className="text-xl font-bold text-white/90">
                     {summaryLoading ? (
-                      <Clock className="h-4 w-4 animate-spin" />
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400" />
                     ) : (
                       `${currentPeriodSummary?.collectionRate ?? 0}%`
                     )}
@@ -402,31 +428,39 @@ export function StudentFeesTab({ student }: Props) {
                   )}
                 </div>
               </div>
-              <div className="rounded-lg bg-blue-500/10 p-2">
-                <TrendingUp className="h-5 w-5 text-blue-300/80" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/30 bg-linear-to-br from-cyan-500/20 to-cyan-600/20 shadow-inner shadow-white/5">
+                <TrendingUp className="h-5 w-5 text-cyan-300" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Average Payment Time */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-violet-500/15 via-violet-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
                   Avg Payment Time
                 </div>
-                <div className="mt-1 text-lg font-semibold text-white/90">
+                <div className="mt-1 text-xl font-bold text-white/90">
                   {summaryLoading ? (
-                    <Clock className="h-4 w-4 animate-spin" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />
                   ) : (
                     `${summary?.trends?.averagePaymentTime ?? 0} days`
                   )}
                 </div>
               </div>
-              <div className="rounded-lg bg-purple-500/10 p-2">
-                <Clock className="h-5 w-5 text-purple-300/80" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-linear-to-br from-violet-500/20 to-violet-600/20 shadow-inner shadow-white/5">
+                <Clock className="h-5 w-5 text-violet-300" />
               </div>
             </div>
           </CardContent>
@@ -436,60 +470,86 @@ export function StudentFeesTab({ student }: Props) {
       {/* Additional Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Outstanding */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-amber-500/15 via-amber-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground">Outstanding</div>
-                <div className="mt-1 text-lg font-semibold text-amber-200">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                  Outstanding
+                </div>
+                <div className="mt-1 text-xl font-bold text-amber-200">
                   {summaryLoading ? (
-                    <Clock className="h-4 w-4 animate-spin" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-amber-400" />
                   ) : (
                     formatMoney(allTimeSummary?.totalOutstanding ?? 0)
                   )}
                 </div>
               </div>
-              <div className="rounded-lg bg-amber-500/10 p-2">
-                <AlertCircle className="h-5 w-5 text-amber-300/80" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-linear-to-br from-amber-500/20 to-amber-600/20 shadow-inner shadow-white/5">
+                <AlertCircle className="h-5 w-5 text-amber-300" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Credit Balance */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-cyan-500/15 via-teal-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
                   Credit Balance
                 </div>
-                <div className="mt-1 text-lg font-semibold text-sky-200">
+                <div className="mt-1 text-xl font-bold text-cyan-200">
                   {summaryLoading ? (
-                    <Clock className="h-4 w-4 animate-spin" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400" />
                   ) : (
                     formatMoney(summary?.creditBalance ?? 0)
                   )}
                 </div>
               </div>
-              <div className="rounded-lg bg-sky-500/10 p-2">
-                <Wallet className="h-5 w-5 text-sky-300/80" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/30 bg-linear-to-br from-cyan-500/20 to-teal-500/20 shadow-inner shadow-white/5">
+                <Wallet className="h-5 w-5 text-cyan-300" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Upcoming Installments */}
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardContent className="p-4">
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div
+            className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-linear-to-br from-teal-500/15 via-teal-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
                   Upcoming Installments
                 </div>
-                <div className="mt-1 text-lg font-semibold text-white/90">
+                <div className="mt-1 text-xl font-bold text-white/90">
                   {summaryLoading ? (
-                    <Clock className="h-4 w-4 animate-spin" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
                   ) : (
                     <>
                       {upcomingInstallments?.count ?? 0} due •{" "}
@@ -498,13 +558,13 @@ export function StudentFeesTab({ student }: Props) {
                   )}
                 </div>
                 {upcomingInstallments?.nextDueDate && (
-                  <div className="mt-1 text-xs text-muted-foreground">
+                  <div className="mt-1 text-[10px] text-white/50">
                     Next: {fmtDate(upcomingInstallments.nextDueDate)}
                   </div>
                 )}
               </div>
-              <div className="rounded-lg bg-indigo-500/10 p-2">
-                <Layers className="h-5 w-5 text-indigo-300/80" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-teal-500/30 bg-linear-to-br from-teal-500/20 to-teal-600/20 shadow-inner shadow-white/5">
+                <Layers className="h-5 w-5 text-teal-300" />
               </div>
             </div>
           </CardContent>
@@ -514,23 +574,30 @@ export function StudentFeesTab({ student }: Props) {
       {/* Charts */}
       <FeesCharts studentId={student.id} />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
         {/* Left: Ledger / Statement */}
-        <div className="space-y-4">
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <div className="space-y-6">
+          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
             <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
+              className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-teal-500/15 via-cyan-500/10 to-transparent blur-3xl"
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
               aria-hidden="true"
             />
 
-            <CardHeader className="relative z-10 pb-3">
-              <div className="mb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
-                  Fees Ledger
-                </CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {ledgerHeaderLabel} (invoices, payments, credits)
-                </p>
+            <CardHeader className="relative z-10 pb-4">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20 shadow-inner shadow-white/5">
+                  <Receipt className="h-5 w-5 text-teal-300" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold tracking-tight text-white">
+                    Fees Ledger
+                  </CardTitle>
+                  <p className="text-xs text-white/50">{ledgerHeaderLabel}</p>
+                </div>
               </div>
 
               {/* All controls on one line */}
@@ -541,9 +608,9 @@ export function StudentFeesTab({ student }: Props) {
                   variant="outline"
                   size="sm"
                   onClick={() => setRecordPaymentModalOpen(true)}
-                  className="border-emerald-400/30 bg-emerald-500/10 text-xs text-emerald-100 hover:border-emerald-400/50 hover:bg-emerald-500/20"
+                  className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
                 >
-                  <Receipt className="mr-1.5 h-4 w-4" />
+                  <Receipt className="h-4 w-4" />
                   Record Payment
                 </Button>
 
@@ -553,26 +620,26 @@ export function StudentFeesTab({ student }: Props) {
                   variant="outline"
                   size="sm"
                   onClick={() => setApplyCreditModalOpen(true)}
-                  className="border-sky-400/30 bg-sky-500/10 text-xs text-sky-100 hover:border-sky-400/50 hover:bg-sky-500/20"
+                  className="gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
                 >
-                  <Wallet className="mr-1.5 h-4 w-4" />
+                  <Wallet className="h-4 w-4" />
                   Apply Credit
                 </Button>
 
                 <div className="h-6 w-px bg-white/10" />
 
                 {/* Term vs All-time toggle */}
-                <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 p-1">
+                <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
                   <Button
                     type="button"
                     size="sm"
                     variant="ghost"
                     onClick={() => setLedgerScope("term")}
                     className={cn(
-                      "h-7 px-2 text-xs",
+                      "h-7 rounded-lg px-3 text-xs",
                       ledgerScope === "term"
-                        ? "bg-white/10 text-white"
-                        : "text-white/60"
+                        ? "bg-white/10 text-white shadow-sm shadow-black/30"
+                        : "text-white/60 hover:text-white"
                     )}
                   >
                     Term
@@ -583,10 +650,10 @@ export function StudentFeesTab({ student }: Props) {
                     variant="ghost"
                     onClick={() => setLedgerScope("all")}
                     className={cn(
-                      "h-7 px-2 text-xs",
+                      "h-7 rounded-lg px-3 text-xs",
                       ledgerScope === "all"
-                        ? "bg-white/10 text-white"
-                        : "text-white/60"
+                        ? "bg-white/10 text-white shadow-sm shadow-black/30"
+                        : "text-white/60 hover:text-white"
                     )}
                   >
                     All time
@@ -600,13 +667,13 @@ export function StudentFeesTab({ student }: Props) {
                   variant="outline"
                   onClick={() => setIncludePending((v) => !v)}
                   className={cn(
-                    "h-7 border-white/10 bg-white/5 text-xs",
+                    "h-8 gap-2 rounded-xl border-white/10 bg-white/5 text-xs",
                     includePending
-                      ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
-                      : "text-white/70"
+                      ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                      : "text-white/70 hover:bg-white/10"
                   )}
                 >
-                  <Clock className="mr-1.5 h-3.5 w-3.5" />
+                  <Clock className="h-3.5 w-3.5" />
                   {includePending ? "Pending On" : "Pending Off"}
                 </Button>
 
@@ -616,8 +683,8 @@ export function StudentFeesTab({ student }: Props) {
                   onValueChange={(v) => setAcademicPeriodId(v || null)}
                   disabled={periodsLoading || periods.length === 0}
                 >
-                  <SelectTrigger className="h-7 border-white/10 bg-white/5 text-xs text-white/80 w-[180px]">
-                    <Calendar className="h-3.5 w-3.5 text-white/60 mr-2" />
+                  <SelectTrigger className="h-8 w-[180px] rounded-xl border-white/10 bg-white/5 text-xs text-white/80">
+                    <Calendar className="mr-2 h-3.5 w-3.5 text-white/60" />
                     <SelectValue placeholder="Select Term" />
                   </SelectTrigger>
                   <SelectContent className={premiumSelectContent}>
@@ -642,21 +709,21 @@ export function StudentFeesTab({ student }: Props) {
               </div>
             </CardHeader>
 
-            <CardContent className="relative z-10 space-y-3">
+            <CardContent className="relative z-10 space-y-4">
               {/* Search */}
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
                 <Search className="h-4 w-4 text-white/50" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search receipts, notes, methods…"
-                  className="w-full bg-transparent text-xs text-white/80 outline-none placeholder:text-white/35"
+                  className="w-full bg-transparent text-sm text-white/80 outline-none placeholder:text-white/35"
                 />
                 {query ? (
                   <button
                     type="button"
                     onClick={() => setQuery("")}
-                    className="grid size-7 place-items-center rounded-md border border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                    className="grid size-7 place-items-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -665,29 +732,33 @@ export function StudentFeesTab({ student }: Props) {
 
               {/* Ledger states */}
               {termNotReady ? (
-                <div className="flex items-center justify-center gap-3 py-10 text-sm text-muted-foreground">
-                  <Clock className="h-5 w-5 animate-spin" />
-                  Loading term…
+                <div className="flex items-center justify-center gap-3 py-16">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
+                  <p className="text-sm text-white/60">Loading term…</p>
                 </div>
               ) : ledgerLoading ? (
-                <div className="flex items-center justify-center gap-3 py-10 text-sm text-muted-foreground">
-                  <Clock className="h-5 w-5 animate-spin" />
-                  Loading ledger…
+                <div className="flex items-center justify-center gap-3 py-16">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
+                  <p className="text-sm text-white/60">Loading ledger…</p>
                 </div>
               ) : filteredRows.length === 0 ? (
-                <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <AlertCircle className="mt-0.5 h-5 w-5 text-amber-300/80" />
-                  <div className="flex-1">
-                    <div className="text-sm font-semibold">
-                      No entries found
+                <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20">
+                      <Receipt className="h-7 w-7 text-teal-300" />
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Try a different search or enable pending proofs.
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-base font-semibold text-white">
+                        No entries found
+                      </p>
+                      <p className="text-sm text-white/50">
+                        Try a different search or enable pending proofs.
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {filteredRows.map((row: any) => {
                     const ui = getRowUI(row);
 
@@ -712,25 +783,40 @@ export function StudentFeesTab({ student }: Props) {
                           }
                         }}
                         className={cn(
-                          "group rounded-xl border border-white/10 bg-white/5 px-4 py-3 transition-all duration-200 hover:border-white/15 hover:bg-white/7",
+                          "group relative overflow-hidden rounded-xl border border-white/10 bg-white/2 p-4 transition-all duration-200 hover:border-teal-500/30 hover:bg-white/5",
                           ui.clickable && "cursor-pointer"
                         )}
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        {/* Accent bar */}
+                        <div
+                          className={cn(
+                            "absolute inset-y-0 left-0 w-1 bg-linear-to-b",
+                            ui.kind === "invoice_issued"
+                              ? "from-white/40 to-white/20"
+                              : ui.clickable
+                              ? ui.isPendingApproval
+                                ? "from-amber-500 to-amber-600"
+                                : "from-emerald-500 to-emerald-600"
+                              : "from-cyan-500 to-teal-500"
+                          )}
+                          aria-hidden="true"
+                        />
+
+                        <div className="flex items-start justify-between gap-4 pl-3">
                           <div className="flex items-start gap-3">
-                            <div className="mt-0.5 grid size-8 place-items-center rounded-lg border border-white/10 bg-white/5">
+                            <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
                               {ui.icon}
                             </div>
 
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="truncate text-sm font-semibold">
+                                <div className="truncate text-sm font-semibold text-white">
                                   {safeStr(row.title)}
                                 </div>
                                 {ui.badge}
                               </div>
 
-                              <div className="mt-1 text-xs text-muted-foreground">
+                              <div className="mt-1 text-xs text-white/50">
                                 {fmtDate(safeStr(row.date))}
                                 {ui.subtitle ? (
                                   <span className="text-white/30"> • </span>
@@ -748,14 +834,12 @@ export function StudentFeesTab({ student }: Props) {
                           </div>
 
                           <div className="text-right">
-                            <div className={ui.amountClass}>
-                              {ui.amountText}
-                            </div>
+                            <div className={ui.amountClass}>{ui.amountText}</div>
 
                             {/* If API provides these later, we show it nicely; otherwise it stays hidden */}
                             {ui.kind === "payment" &&
                             (allocatedMinor > 0 || unallocatedMinor > 0) ? (
-                              <div className="mt-1 text-xs text-muted-foreground">
+                              <div className="mt-1 text-xs text-white/50">
                                 Allocated:{" "}
                                 <span className="text-white/70">
                                   {formatMoney(allocatedMinor)}
@@ -764,7 +848,7 @@ export function StudentFeesTab({ student }: Props) {
                                   <>
                                     <span className="text-white/30"> • </span>
                                     Credit:{" "}
-                                    <span className="text-sky-200">
+                                    <span className="text-cyan-200">
                                       {formatMoney(unallocatedMinor)}
                                     </span>
                                   </>
@@ -783,15 +867,24 @@ export function StudentFeesTab({ student }: Props) {
 
           {/* Installments preview (term-only, based on selected term invoice) */}
           {ledgerScope === "term" && showInstallments && invoiceDetail ? (
-            <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
               <div
-                className="pointer-events-none absolute inset-0 bg-linear-to-br from-muted/10 via-muted/5 to-transparent"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-teal-500/5 via-transparent to-transparent"
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
                 aria-hidden="true"
               />
               <CardHeader className="relative z-10 pb-3">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
-                  Installments
-                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20">
+                    <Layers className="h-4 w-4 text-teal-300" />
+                  </div>
+                  <CardTitle className="text-base font-semibold text-white">
+                    Installments
+                  </CardTitle>
+                </div>
               </CardHeader>
               <CardContent className="relative z-10 space-y-3">
                 {invoiceDetail.lineItems
@@ -804,16 +897,16 @@ export function StudentFeesTab({ student }: Props) {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <Layers className="h-4 w-4 text-white/60" />
-                            <div className="text-sm font-semibold">
+                            <Layers className="h-4 w-4 text-teal-300" />
+                            <div className="text-sm font-semibold text-white">
                               {li.name}
                             </div>
                           </div>
-                          <div className="mt-1 text-xs text-muted-foreground">
+                          <div className="mt-1 text-xs text-white/50">
                             {li.installments?.length} installments
                           </div>
                         </div>
-                        <div className="text-right text-xs text-muted-foreground">
+                        <div className="text-right text-xs text-white/50">
                           Outstanding:{" "}
                           <span className="font-semibold text-white/80">
                             {formatMoney(li.amountOutstandingMinor)}
@@ -825,7 +918,7 @@ export function StudentFeesTab({ student }: Props) {
                         {li.installments?.map((inst: any) => (
                           <div
                             key={inst._id}
-                            className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs"
+                            className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs"
                           >
                             <div className="text-white/70">
                               #{inst.installmentNumber} • Due{" "}
@@ -834,7 +927,7 @@ export function StudentFeesTab({ student }: Props) {
                             <div className="font-medium text-white/80">
                               {formatMoney(inst.amountMinor)}{" "}
                               <span className="text-white/30">•</span>{" "}
-                              <span className="text-muted-foreground">
+                              <span className="text-white/50">
                                 {safeStr(inst.status).replaceAll("_", " ")}
                               </span>
                             </div>
@@ -864,7 +957,7 @@ export function StudentFeesTab({ student }: Props) {
         </div>
 
         {/* Right: Pending approvals + Summary + Credit */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Pending approvals for bursar/admin review */}
           <PendingApprovalsCard
             studentId={student.id}
@@ -874,24 +967,35 @@ export function StudentFeesTab({ student }: Props) {
           />
 
           {/* Term Summary (always for selected term; even if ledger is All-time) */}
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
             <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-muted/10 via-muted/5 to-transparent"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-teal-500/5 via-transparent to-transparent"
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
               aria-hidden="true"
             />
             <CardHeader className="relative z-10 pb-3">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
-                Term Summary
-              </CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-teal-500/20 to-cyan-500/20">
+                  <FileText className="h-4 w-4 text-teal-300" />
+                </div>
+                <CardTitle className="text-base font-semibold text-white">
+                  Term Summary
+                </CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="relative z-10 space-y-3">
               {!academicPeriodId ? (
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 h-5 w-5 text-amber-300/80" />
+                    <AlertCircle className="mt-0.5 h-5 w-5 text-amber-300" />
                     <div>
-                      <div className="text-sm font-semibold">Pick a term</div>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <div className="text-sm font-semibold text-white">
+                        Pick a term
+                      </div>
+                      <p className="mt-1 text-xs text-white/50">
                         Select a term to load the invoice summary and
                         installments.
                       </p>
@@ -899,19 +1003,19 @@ export function StudentFeesTab({ student }: Props) {
                   </div>
                 </div>
               ) : invoiceLoading ? (
-                <div className="flex items-center justify-center gap-3 py-10 text-sm text-muted-foreground">
-                  <Clock className="h-5 w-5 animate-spin" />
-                  Loading invoice…
+                <div className="flex items-center justify-center gap-3 py-10">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
+                  <p className="text-sm text-white/60">Loading invoice…</p>
                 </div>
               ) : invoiceDetail ? (
                 <div className="space-y-3">
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-sm font-semibold">
+                        <div className="text-sm font-semibold text-white">
                           {invoiceDetail.invoiceNumber}
                         </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
+                        <div className="mt-1 text-xs text-white/50">
                           {termLabel}
                         </div>
                       </div>
@@ -927,27 +1031,25 @@ export function StudentFeesTab({ student }: Props) {
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <div className="text-muted-foreground">
-                          Total billed
-                        </div>
+                        <div className="text-white/50">Total billed</div>
                         <div className="mt-1 font-semibold text-white/85">
                           {formatMoney(invoiceDetail.totalAmountMinor)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Total paid</div>
+                        <div className="text-white/50">Total paid</div>
                         <div className="mt-1 font-semibold text-emerald-200">
                           {formatMoney(invoiceDetail.totalPaidMinor)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Outstanding</div>
+                        <div className="text-white/50">Outstanding</div>
                         <div className="mt-1 font-semibold text-white/85">
                           {formatMoney(invoiceDetail.totalOutstandingMinor)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Due date</div>
+                        <div className="text-white/50">Due date</div>
                         <div className="mt-1 font-semibold text-white/75">
                           {fmtDate(invoiceDetail.dueDate)}
                         </div>
@@ -960,20 +1062,20 @@ export function StudentFeesTab({ student }: Props) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="flex-1 border-white/20 bg-white/5 text-xs text-white/80 transition-all duration-200 hover:border-emerald-400/50 hover:bg-emerald-500/20 hover:text-emerald-100 hover:shadow-md hover:shadow-emerald-500/20"
+                      className="flex-1 gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
                       onClick={() => setRecordPaymentModalOpen(true)}
                     >
-                      <Receipt className="mr-1.5 h-4 w-4" />
+                      <Receipt className="h-4 w-4" />
                       Record Payment
                     </Button>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="flex-1 border-white/20 bg-white/5 text-xs text-white/80 transition-all duration-200 hover:border-sky-400/50 hover:bg-sky-500/20 hover:text-sky-100 hover:shadow-md hover:shadow-sky-500/20"
+                      className="flex-1 gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
                       onClick={() => setApplyCreditModalOpen(true)}
                     >
-                      <Wallet className="mr-1.5 h-4 w-4" />
+                      <Wallet className="h-4 w-4" />
                       Apply Credit
                     </Button>
                   </div>
@@ -981,12 +1083,12 @@ export function StudentFeesTab({ student }: Props) {
               ) : (
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 h-5 w-5 text-amber-300/80" />
+                    <AlertCircle className="mt-0.5 h-5 w-5 text-amber-300" />
                     <div>
-                      <div className="text-sm font-semibold">
+                      <div className="text-sm font-semibold text-white">
                         No invoice found for {termLabel}
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="mt-1 text-xs text-white/50">
                         Create/issue an invoice for this term to enable
                         installment tracking.
                       </p>
@@ -998,25 +1100,34 @@ export function StudentFeesTab({ student }: Props) {
           </Card>
 
           {/* Credit Wallet */}
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
             <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-primary/5 via-primary/2 to-transparent"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent"
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
               aria-hidden="true"
             />
             <CardHeader className="relative z-10 pb-3">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
-                Credit Wallet
-              </CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/30 bg-linear-to-br from-cyan-500/20 to-teal-500/20">
+                  <Wallet className="h-4 w-4 text-cyan-300" />
+                </div>
+                <CardTitle className="text-base font-semibold text-white">
+                  Credit Wallet
+                </CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="relative z-10 space-y-3">
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs text-muted-foreground">Balance</div>
-                  <div className="text-sm font-semibold text-sky-200">
+                  <div className="text-xs text-white/50">Balance</div>
+                  <div className="text-lg font-bold text-cyan-200">
                     {formatMoney(creditBalance?.balanceMinor ?? 0)}
                   </div>
                 </div>
-                <div className="mt-2 text-xs text-muted-foreground">
+                <div className="mt-2 text-xs text-white/50">
                   Credit comes from overpayments and can be applied to invoices.
                 </div>
               </div>
@@ -1051,7 +1162,7 @@ export function StudentFeesTab({ student }: Props) {
                                 ? "Credit added"
                                 : "Credit applied"}
                             </div>
-                            <div className="mt-1 text-muted-foreground">
+                            <div className="mt-1 text-white/50">
                               {fmtDate(e.createdAt)}
                               {e.reason ? (
                                 <span className="text-white/30"> • </span>
@@ -1059,7 +1170,7 @@ export function StudentFeesTab({ student }: Props) {
                               {e.reason ?? ""}
                             </div>
                           </div>
-                          <div className="font-semibold text-sky-200">
+                          <div className="font-semibold text-cyan-200">
                             {e.type === "credit"
                               ? fmtSigned(e.amountMinor)
                               : fmtSigned(-e.amountMinor)}
@@ -1069,7 +1180,7 @@ export function StudentFeesTab({ student }: Props) {
                     })}
                 </div>
               ) : (
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-xs text-muted-foreground">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-xs text-white/50">
                   No credit activity yet.
                 </div>
               )}

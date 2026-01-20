@@ -1,4 +1,5 @@
 // src/lib/auth/get-current-user.ts
+// test after moving to organization github
 import "server-only";
 import { redirect } from "next/navigation";
 import { auth, clerkClient } from "@clerk/nextjs/server";

@@ -20,7 +20,7 @@ const CreateExportSchema = z.object({
   periodId: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  filters: z.record(z.unknown()).optional(),
+  filters: z.record(z.string(), z.unknown()).optional(),
   label: z.string().optional(),
   limit: z.number().int().min(1).max(10000).optional(),
 });

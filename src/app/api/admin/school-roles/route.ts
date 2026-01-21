@@ -363,9 +363,98 @@ export async function POST(req: NextRequest) {
   }
 }
 
+const UpdateRoleDefinitionSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional().nullable(),
+  maxPerSchool: z.number().min(1).max(100).optional().nullable(),
+  eligibleGrades: z.array(z.string()).optional(),
+  badgeColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  icon: z.string().optional(),
+  isActive: z.boolean().optional(),
+});
+
+/**
+ * PUT /api/admin/school-roles
+ * Update a role definition
+ */
+export async function PUT(req: NextRequest) {
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const url = new URL(req.url);
+    const definitionId = url.searchParams.get("definitionId");
+
+    if (!definitionId) {
+      return NextResponse.json(
+        { success: false, error: "Definition ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const body = await req.json();
+    const parsed = UpdateRoleDefinitionSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", issues: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+    if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
+    if (parsed.data.maxPerSchool !== undefined) updateData.maxPerSchool = parsed.data.maxPerSchool;
+    if (parsed.data.eligibleGrades !== undefined) {
+      updateData.eligibleGrades = parsed.data.eligibleGrades.map(
+        (g) => new mongoose.Types.ObjectId(g)
+      );
+    }
+    if (parsed.data.badgeColor !== undefined) updateData.badgeColor = parsed.data.badgeColor;
+    if (parsed.data.icon !== undefined) updateData.icon = parsed.data.icon;
+    if (parsed.data.isActive !== undefined) updateData.isActive = parsed.data.isActive;
+
+    const role = await SchoolRoleDefinition.findOneAndUpdate(
+      {
+        _id: new mongoose.Types.ObjectId(definitionId),
+        schoolId: schoolIdObj,
+      },
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!role) {
+      return NextResponse.json(
+        { success: false, error: "Role definition not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Role definition updated successfully",
+      data: {
+        id: String(role._id),
+        name: role.name,
+        code: role.code,
+        category: role.category,
+        isActive: role.isActive,
+      },
+    });
+  } catch (e: unknown) {
+    console.error("Error updating school role definition:", e);
+    const message = e instanceof Error ? e.message : "Failed to update role definition";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
 /**
  * DELETE /api/admin/school-roles
- * Remove a role assignment (not the definition)
+ * Remove a role assignment OR deactivate a role definition
+ * Use ?assignmentId=xxx to remove an assignment
+ * Use ?definitionId=xxx to deactivate a definition
  */
 export async function DELETE(req: NextRequest) {
   try {
@@ -375,17 +464,60 @@ export async function DELETE(req: NextRequest) {
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
     const url = new URL(req.url);
     const assignmentId = url.searchParams.get("assignmentId");
+    const definitionId = url.searchParams.get("definitionId");
 
-    if (!assignmentId) {
+    if (!assignmentId && !definitionId) {
       return NextResponse.json(
-        { success: false, error: "Assignment ID is required" },
+        { success: false, error: "Either assignmentId or definitionId is required" },
         { status: 400 }
       );
     }
 
+    // Delete/deactivate a role definition
+    if (definitionId) {
+      // Check if there are active assignments using this role
+      const activeAssignments = await SchoolStudentRole.countDocuments({
+        schoolId: schoolIdObj,
+        roleDefinitionId: new mongoose.Types.ObjectId(definitionId),
+        isActive: true,
+      });
+
+      if (activeAssignments > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Cannot delete role: ${activeAssignments} student(s) currently have this role assigned. Remove all assignments first.`,
+          },
+          { status: 409 }
+        );
+      }
+
+      const role = await SchoolRoleDefinition.findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(definitionId),
+          schoolId: schoolIdObj,
+        },
+        { $set: { isActive: false } },
+        { new: true }
+      );
+
+      if (!role) {
+        return NextResponse.json(
+          { success: false, error: "Role definition not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Role definition deactivated successfully",
+      });
+    }
+
+    // Remove an assignment
     const assignment = await SchoolStudentRole.findOneAndUpdate(
       {
-        _id: new mongoose.Types.ObjectId(assignmentId),
+        _id: new mongoose.Types.ObjectId(assignmentId!),
         schoolId: schoolIdObj,
       },
       { $set: { isActive: false, endDate: new Date() } },
@@ -404,8 +536,8 @@ export async function DELETE(req: NextRequest) {
       message: "Role assignment removed successfully",
     });
   } catch (e: unknown) {
-    console.error("Error removing school role assignment:", e);
-    const message = e instanceof Error ? e.message : "Failed to remove role assignment";
+    console.error("Error removing school role:", e);
+    const message = e instanceof Error ? e.message : "Failed to remove role";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

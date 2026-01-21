@@ -171,6 +171,62 @@ export function useCreateDutyDefinition() {
   });
 }
 
+export function useUpdateDutyDefinition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      definitionId,
+      data,
+    }: {
+      definitionId: string;
+      data: {
+        name?: string;
+        description?: string | null;
+        frequency?: "daily" | "weekly" | "rotational" | "one_time";
+        defaultDays?: number[];
+        defaultStartTime?: string | null;
+        defaultEndTime?: string | null;
+        location?: string | null;
+        minTeachersRequired?: number;
+        maxTeachersAllowed?: number | null;
+        color?: string;
+        isActive?: boolean;
+      };
+    }) => {
+      const res = await fetch(`/api/admin/teacher-duties?definitionId=${definitionId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to update duty definition");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-duties"] });
+    },
+  });
+}
+
+export function useDeleteDutyDefinition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (definitionId: string) => {
+      const res = await fetch(`/api/admin/teacher-duties?definitionId=${definitionId}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to delete duty definition");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-duties"] });
+    },
+  });
+}
+
 // Helper to format days
 export const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const FULL_DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

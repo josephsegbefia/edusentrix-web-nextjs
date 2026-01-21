@@ -389,9 +389,102 @@ export async function POST(req: NextRequest) {
   }
 }
 
+const UpdateDutyDefinitionSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional().nullable(),
+  frequency: z.enum(["daily", "weekly", "rotational", "one_time"]).optional(),
+  defaultDays: z.array(z.number().min(0).max(6)).optional(),
+  defaultStartTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional().nullable(),
+  defaultEndTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional().nullable(),
+  location: z.string().max(100).optional().nullable(),
+  minTeachersRequired: z.number().min(1).max(20).optional(),
+  maxTeachersAllowed: z.number().min(1).max(50).optional().nullable(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  isActive: z.boolean().optional(),
+});
+
+/**
+ * PUT /api/admin/teacher-duties
+ * Update a duty definition
+ */
+export async function PUT(req: NextRequest) {
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const url = new URL(req.url);
+    const definitionId = url.searchParams.get("definitionId");
+
+    if (!definitionId) {
+      return NextResponse.json(
+        { success: false, error: "Definition ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const body = await req.json();
+    const parsed = UpdateDutyDefinitionSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", issues: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
+    if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
+    if (parsed.data.frequency !== undefined) updateData.frequency = parsed.data.frequency;
+    if (parsed.data.defaultDays !== undefined) updateData.defaultDays = parsed.data.defaultDays;
+    if (parsed.data.defaultStartTime !== undefined) updateData.defaultStartTime = parsed.data.defaultStartTime;
+    if (parsed.data.defaultEndTime !== undefined) updateData.defaultEndTime = parsed.data.defaultEndTime;
+    if (parsed.data.location !== undefined) updateData.location = parsed.data.location;
+    if (parsed.data.minTeachersRequired !== undefined) updateData.minTeachersRequired = parsed.data.minTeachersRequired;
+    if (parsed.data.maxTeachersAllowed !== undefined) updateData.maxTeachersAllowed = parsed.data.maxTeachersAllowed;
+    if (parsed.data.color !== undefined) updateData.color = parsed.data.color;
+    if (parsed.data.isActive !== undefined) updateData.isActive = parsed.data.isActive;
+
+    const duty = await DutyDefinition.findOneAndUpdate(
+      {
+        _id: new mongoose.Types.ObjectId(definitionId),
+        schoolId: schoolIdObj,
+      },
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!duty) {
+      return NextResponse.json(
+        { success: false, error: "Duty definition not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Duty definition updated successfully",
+      data: {
+        id: String(duty._id),
+        name: duty.name,
+        code: duty.code,
+        category: duty.category,
+        isActive: duty.isActive,
+      },
+    });
+  } catch (e: unknown) {
+    console.error("Error updating duty definition:", e);
+    const message = e instanceof Error ? e.message : "Failed to update duty definition";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
 /**
  * DELETE /api/admin/teacher-duties
- * Remove a duty assignment (not the definition)
+ * Remove a duty assignment OR deactivate a duty definition
+ * Use ?assignmentId=xxx to remove an assignment
+ * Use ?definitionId=xxx to deactivate a definition
  */
 export async function DELETE(req: NextRequest) {
   try {
@@ -401,17 +494,60 @@ export async function DELETE(req: NextRequest) {
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
     const url = new URL(req.url);
     const assignmentId = url.searchParams.get("assignmentId");
+    const definitionId = url.searchParams.get("definitionId");
 
-    if (!assignmentId) {
+    if (!assignmentId && !definitionId) {
       return NextResponse.json(
-        { success: false, error: "Assignment ID is required" },
+        { success: false, error: "Either assignmentId or definitionId is required" },
         { status: 400 }
       );
     }
 
+    // Delete/deactivate a duty definition
+    if (definitionId) {
+      // Check if there are active assignments using this duty
+      const activeAssignments = await TeacherDutyAssignment.countDocuments({
+        schoolId: schoolIdObj,
+        dutyDefinitionId: new mongoose.Types.ObjectId(definitionId),
+        isActive: true,
+      });
+
+      if (activeAssignments > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Cannot delete duty: ${activeAssignments} teacher(s) currently have this duty assigned. Remove all assignments first.`,
+          },
+          { status: 409 }
+        );
+      }
+
+      const duty = await DutyDefinition.findOneAndUpdate(
+        {
+          _id: new mongoose.Types.ObjectId(definitionId),
+          schoolId: schoolIdObj,
+        },
+        { $set: { isActive: false } },
+        { new: true }
+      );
+
+      if (!duty) {
+        return NextResponse.json(
+          { success: false, error: "Duty definition not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Duty definition deactivated successfully",
+      });
+    }
+
+    // Remove an assignment
     const assignment = await TeacherDutyAssignment.findOneAndUpdate(
       {
-        _id: new mongoose.Types.ObjectId(assignmentId),
+        _id: new mongoose.Types.ObjectId(assignmentId!),
         schoolId: schoolIdObj,
       },
       { $set: { isActive: false, endDate: new Date() } },
@@ -430,8 +566,8 @@ export async function DELETE(req: NextRequest) {
       message: "Duty assignment removed successfully",
     });
   } catch (e: unknown) {
-    console.error("Error removing duty assignment:", e);
-    const message = e instanceof Error ? e.message : "Failed to remove duty assignment";
+    console.error("Error removing duty:", e);
+    const message = e instanceof Error ? e.message : "Failed to remove duty";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

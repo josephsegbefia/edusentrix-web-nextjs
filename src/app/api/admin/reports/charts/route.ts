@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { AcademicPeriod, type IAcademicPeriod } from "@/models/AcademicPeriod";
 import { Activity } from "@/models/Activity";
 import { Grade } from "@/models/Grade";
 import { Invitation } from "@/models/Invitation";
@@ -178,12 +178,12 @@ async function resolveDateRange(
     if (!mongoose.Types.ObjectId.isValid(periodIdParam)) {
       return { error: "Invalid periodId" } as const;
     }
-    const period = await AcademicPeriod.findOne({
+    const period = (await AcademicPeriod.findOne({
       _id: periodIdParam,
       schoolId,
     })
       .select("yearLabel term startDate endDate")
-      .lean();
+      .lean()) as unknown as IAcademicPeriod | null;
     if (!period) {
       return { error: "Academic period not found" } as const;
     }
@@ -221,12 +221,12 @@ async function resolveDateRange(
     } as const;
   }
 
-  const currentPeriod = await AcademicPeriod.findOne({
+  const currentPeriod = (await AcademicPeriod.findOne({
     schoolId,
     isCurrent: true,
   })
     .select("yearLabel term startDate endDate")
-    .lean();
+    .lean()) as unknown as IAcademicPeriod | null;
 
   if (currentPeriod) {
     return {

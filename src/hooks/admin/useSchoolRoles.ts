@@ -155,3 +155,55 @@ export function useCreateSchoolRoleDefinition() {
     },
   });
 }
+
+export function useUpdateSchoolRoleDefinition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      definitionId,
+      data,
+    }: {
+      definitionId: string;
+      data: {
+        name?: string;
+        description?: string | null;
+        maxPerSchool?: number | null;
+        eligibleGrades?: string[];
+        badgeColor?: string;
+        icon?: string;
+        isActive?: boolean;
+      };
+    }) => {
+      const res = await fetch(`/api/admin/school-roles?definitionId=${definitionId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to update role definition");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-roles"] });
+    },
+  });
+}
+
+export function useDeleteSchoolRoleDefinition() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (definitionId: string) => {
+      const res = await fetch(`/api/admin/school-roles?definitionId=${definitionId}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to delete role definition");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-roles"] });
+    },
+  });
+}

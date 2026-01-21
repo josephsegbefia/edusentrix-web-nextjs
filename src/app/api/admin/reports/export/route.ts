@@ -232,7 +232,7 @@ async function buildFeesPayments(ctx: ReportBuilderContext): Promise<ReportBuild
     .limit(ctx.limit)
     .populate("studentId", "firstName lastName admissionNo")
     .populate("invoiceId", "invoiceNumber")
-    .lean()) as Array<{
+    .lean()) as unknown as Array<{
     paymentDate?: Date;
     amountMinor?: number;
     paymentMethod?: string;
@@ -295,7 +295,7 @@ async function buildStudentsRoster(ctx: ReportBuilderContext): Promise<ReportBui
     .limit(ctx.limit)
     .populate("gradeId", "name")
     .populate("classGroupId", "name")
-    .lean()) as Array<{
+    .lean()) as unknown as Array<{
     firstName: string;
     lastName: string;
     middleName?: string | null;
@@ -615,7 +615,7 @@ async function buildInvitationsLog(ctx: ReportBuilderContext): Promise<ReportBui
     .sort({ sentAt: -1 })
     .limit(ctx.limit)
     .populate("invitedBy", "firstName lastName email")
-    .lean()) as Array<{
+    .lean()) as unknown as Array<{
     email?: string;
     role?: string;
     status?: string;
@@ -711,7 +711,7 @@ async function buildActivityLog(ctx: ReportBuilderContext): Promise<ReportBuilde
     .sort({ createdAt: -1 })
     .limit(ctx.limit)
     .populate("userId", "firstName lastName email")
-    .lean()) as Array<{
+    .lean()) as unknown as Array<{
     type?: string;
     description?: string;
     createdAt?: Date;

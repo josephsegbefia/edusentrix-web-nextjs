@@ -96,9 +96,11 @@ type TooltipEntry = {
 
 type TooltipRenderProps = {
   active?: boolean;
-  payload?: TooltipEntry[];
-  label?: string;
+  payload?: readonly TooltipEntry[];
+  label?: string | number;
 };
+
+type ChartInterval = "day" | "week" | "month";
 
 const compactNumberFormatter = new Intl.NumberFormat("en", {
   notation: "compact",
@@ -305,8 +307,8 @@ function formatCount(value?: number | null) {
 
 function humanizeLabel(value: string) {
   return value
-    .replace(/[_.-]/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replaceAll(/[_.-]/g, " ")
+    .replaceAll(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function formatRangeModeLabel(mode: ReportRangeMode) {
@@ -315,7 +317,7 @@ function formatRangeModeLabel(mode: ReportRangeMode) {
   return "Date range";
 }
 
-function formatIntervalLabel(interval?: "day" | "week" | "month") {
+function formatIntervalLabel(interval?: ChartInterval) {
   if (interval === "day") return "Daily";
   if (interval === "week") return "Weekly";
   if (interval === "month") return "Monthly";
@@ -330,7 +332,7 @@ function parseChartDate(label: string, interval: "day" | "week" | "month") {
   return date;
 }
 
-function formatAxisLabel(label: string, interval: "day" | "week" | "month") {
+function formatAxisLabel(label: string, interval: ChartInterval) {
   const date = parseChartDate(label, interval);
   if (!date) return label;
   if (interval === "month") return format(date, "MMM yyyy");
@@ -366,7 +368,7 @@ function buildTooltip(
     labelFormatter,
     valueFormatter,
   }: {
-    labelFormatter?: (label: string | undefined, payload: TooltipEntry[]) => string;
+    labelFormatter?: (label: string | number | undefined, payload: readonly TooltipEntry[]) => string;
     valueFormatter?: (value: number, entry: TooltipEntry) => string;
   } = {}
 ) {
@@ -413,6 +415,312 @@ function buildTooltip(
   return TooltipContent;
 }
 
+function buildAttendanceTooltip(formatDateTick: (label: string | number) => string) {
+  const AttendanceTooltip = ({ active, payload, label }: TooltipRenderProps) => {
+    if (!active || !payload?.length) return null;
+    const entry = payload[0];
+    const data = entry.payload;
+    const presentRate =
+      typeof entry.value === "number" && Number.isFinite(entry.value)
+        ? entry.value
+        : 0;
+    const present = getPayloadNumber(data, "present") ?? 0;
+    const absent = getPayloadNumber(data, "absent") ?? 0;
+    const total = getPayloadNumber(data, "total") ?? 0;
+
+    return (
+      <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
+        <p className="text-[11px] font-semibold text-white/60">
+          {label ? formatDateTick(label) : "Attendance"}
+        </p>
+        <div className="mt-1 space-y-1 text-xs text-white/80">
+          <p>Present rate: {presentRate.toFixed(1)}%</p>
+          <p>Present: {formatCount(present)}</p>
+          <p>Absent: {formatCount(absent)}</p>
+          <p>Total: {formatCount(total)}</p>
+        </div>
+      </div>
+    );
+  };
+  AttendanceTooltip.displayName = "AttendanceTooltip";
+  return AttendanceTooltip;
+}
+
+function buildAcademicsTooltip() {
+  const AcademicsTooltip = ({ active, payload, label }: TooltipRenderProps) => {
+    if (!active || !payload?.length) return null;
+    const entry = payload[0];
+    const data = entry.payload;
+    const displayLabel =
+      getPayloadString(data, "label") ||
+      entry.name ||
+      (typeof label === "string" ? label : null) ||
+      "Subject";
+    const average =
+      typeof entry.value === "number" && Number.isFinite(entry.value)
+        ? entry.value
+        : 0;
+    const passRate = getPayloadNumber(data, "passRate") ?? 0;
+    const count = getPayloadNumber(data, "count") ?? 0;
+
+    return (
+      <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
+        <p className="text-[11px] font-semibold text-white/60">
+          {humanizeLabel(displayLabel)}
+        </p>
+        <div className="mt-1 space-y-1 text-xs text-white/80">
+          <p>Average score: {average.toFixed(1)}</p>
+          <p>Pass rate: {passRate.toFixed(1)}%</p>
+          <p>Records: {formatCount(count)}</p>
+        </div>
+      </div>
+    );
+  };
+  AcademicsTooltip.displayName = "AcademicsTooltip";
+  return AcademicsTooltip;
+}
+
+function getSelectedTone(selectedReport: ReportDefinition | null): ChartTone {
+  if (!selectedReport) return "slate";
+  return CATEGORY_META.find((category) => category.key === selectedReport.category)?.tone ?? "slate";
+}
+
+function getRangeLabel(
+  range: { period?: { label?: string } | null; startDate?: string; endDate?: string } | undefined,
+  fallbackRangeLabel: string
+): string {
+  if (range?.period?.label) return range.period.label;
+  if (range) return `${formatDateLabel(range.startDate)} - ${formatDateLabel(range.endDate)}`;
+  return fallbackRangeLabel;
+}
+
+function getFallbackRangeLabel(
+  scope: ReportScope,
+  currentPeriod: { term: string; yearLabel: string } | null,
+  startDate: Date | null,
+  endDate: Date | null
+): string {
+  if (scope === "period" && currentPeriod) {
+    return `${currentPeriod.term} ${currentPeriod.yearLabel}`;
+  }
+  if (startDate && endDate) {
+    return `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`;
+  }
+  return "Custom Range";
+}
+
+function getModalRangeHint(
+  selectedReport: ReportDefinition | null,
+  periodReady: boolean,
+  canUseRange: boolean
+): string | null {
+  if (!selectedReport) return null;
+  if (selectedReport.rangeMode === "period" && !periodReady) {
+    return "Switch to Academic Period to enable this report.";
+  }
+  if (selectedReport.rangeMode === "range" && !canUseRange) {
+    return "Select a start and end date to continue.";
+  }
+  return null;
+}
+
+function getModalRangeLabel(
+  selectedReport: ReportDefinition | null,
+  range: { period?: { label?: string } | null } | undefined,
+  currentPeriod: { term: string; yearLabel: string } | null,
+  rangeLabel: string
+): string {
+  if (!selectedReport) return "";
+  if (selectedReport.rangeMode === "all_time") return "All time";
+  if (selectedReport.rangeMode === "period") {
+    return (
+      range?.period?.label ||
+      (currentPeriod
+        ? `${currentPeriod.term} ${currentPeriod.yearLabel}`
+        : "Select academic period")
+    );
+  }
+  return rangeLabel;
+}
+
+function getReportDisabledMessage(
+  isPeriodLocked: boolean,
+  isRangeLocked: boolean
+): string | null {
+  if (isPeriodLocked) return "Period required";
+  if (isRangeLocked) return "Select dates";
+  return null;
+}
+
+function getReportRangeHint(
+  rangeMode: ReportRangeMode,
+  isPeriodLocked: boolean,
+  rangeLabel: string
+): string {
+  if (rangeMode === "all_time") return "All time export across the entire school.";
+  if (isPeriodLocked) return "Switch to Academic Period to enable.";
+  return `Uses ${rangeLabel}`;
+}
+
+function renderExportItemStatus(
+  status: string,
+  onDownload: () => void
+): React.ReactNode {
+  if (status === "completed") {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+        onClick={onDownload}
+      >
+        <DownloadCloud className="h-4 w-4" />
+        Download
+      </Button>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <Badge className="border border-rose-500/30 bg-rose-500/10 text-xs text-rose-200">
+        Failed
+      </Badge>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 text-xs text-white/60">
+      <RefreshCw className="h-3 w-3 animate-spin" />
+      Preparing
+    </div>
+  );
+}
+
+function RecentExportsCard({
+  exportsQuery,
+  onDownload,
+}: {
+  exportsQuery: {
+    isLoading: boolean;
+    isError: boolean;
+    data?: { data: ReportExportItem[] };
+  };
+  onDownload: (item: ReportExportItem) => void;
+}) {
+  const renderExportsContent = () => {
+    if (exportsQuery.isLoading) {
+      return (
+        <div className="space-y-3">
+          {[0, 1, 2].map((index) => (
+            <div
+              key={index}
+              className="rounded-xl border border-white/10 bg-white/5 p-4"
+            >
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="mt-2 h-3 w-24" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (exportsQuery.isError) {
+      return (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-100">
+          We could not load recent exports. Please try refreshing.
+        </div>
+      );
+    }
+    if ((exportsQuery.data?.data.length ?? 0) === 0) {
+      return (
+        <div className="rounded-xl border border-dashed border-white/15 bg-black/30 p-6 text-center">
+          <p className="text-xs text-white/60">
+            No exports generated yet. Start with the report library.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        {(exportsQuery.data?.data ?? []).map((item) => {
+          const rangeText = formatExportRangeLabel(item);
+          const timestamp = item.completedAt ?? item.createdAt;
+          const timeLabel = item.completedAt ? "Completed" : "Requested";
+          const timeAgo = formatDistanceToNow(new Date(timestamp), {
+            addSuffix: true,
+          });
+          const requester = item.requestedBy
+            ? [item.requestedBy.firstName, item.requestedBy.lastName]
+                .filter(Boolean)
+                .join(" ") || item.requestedBy.email || "User"
+            : "System";
+
+          return (
+            <div
+              key={item.id}
+              className="rounded-xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-black/20"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-white">
+                      {item.reportLabel}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
+                    >
+                      {item.format.toUpperCase()}
+                    </Badge>
+                    <StatusBadge status={item.status} />
+                  </div>
+                  <p className="text-xs text-white/50">
+                    {rangeText} - {timeLabel} {timeAgo}
+                  </p>
+                  <p className="text-[11px] text-white/40">
+                    Requested by {requester}
+                    {item.rowCount !== null && item.rowCount !== undefined
+                      ? ` - ${formatCount(item.rowCount)} rows`
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  {renderExportItemStatus(item.status, () => onDownload(item))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <div
+        className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
+        aria-hidden="true"
+      />
+      <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-3">
+        <div className="space-y-1">
+          <CardTitle className="text-lg font-semibold">Recent Exports</CardTitle>
+          <p className="text-xs text-white/50">
+            Keep track of the latest report downloads.
+          </p>
+        </div>
+        <Badge
+          variant="secondary"
+          className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
+        >
+          {exportsQuery.isLoading
+            ? "Loading"
+            : `${exportsQuery.data?.data.length ?? 0} exports`}
+        </Badge>
+      </CardHeader>
+      <CardContent className="relative z-10 space-y-3">
+        {renderExportsContent()}
+      </CardContent>
+    </Card>
+  );
+}
+
 function groupReportDefinitions(definitions: ReportDefinition[]) {
   const groups: Record<ReportCategory, ReportDefinition[]> = {
     fees: [],
@@ -438,12 +746,12 @@ function groupReportDefinitions(definitions: ReportDefinition[]) {
 function StatCard({
   label,
   value,
-  sublabel,
+  subtitle,
   loading,
 }: {
   label: string;
   value: string;
-  sublabel?: string;
+  subtitle?: string;
   loading?: boolean;
 }) {
   return (
@@ -456,8 +764,8 @@ function StatCard({
       ) : (
         <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
       )}
-      {sublabel ? (
-        <p className="mt-1 text-xs text-white/50">{sublabel}</p>
+      {subtitle ? (
+        <p className="mt-1 text-xs text-white/50">{subtitle}</p>
       ) : null}
     </div>
   );
@@ -534,6 +842,27 @@ function ChartCard({
 }) {
   const style = TONE_STYLES[tone];
 
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-[180px] w-full" />
+        </div>
+      );
+    }
+    if (empty) {
+      return (
+        <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
+          <p className="text-xs text-white/60">
+            {emptyLabel ?? "No data available yet."}
+          </p>
+        </div>
+      );
+    }
+    return children;
+  };
+
   return (
     <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <div
@@ -567,22 +896,7 @@ function ChartCard({
           {meta ? <div className="shrink-0">{meta}</div> : null}
         </div>
       </CardHeader>
-      <CardContent className="relative z-10">
-        {loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-[180px] w-full" />
-          </div>
-        ) : empty ? (
-          <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
-            <p className="text-xs text-white/60">
-              {emptyLabel ?? "No data available yet."}
-            </p>
-          </div>
-        ) : (
-          children
-        )}
-      </CardContent>
+      <CardContent className="relative z-10">{renderContent()}</CardContent>
     </Card>
   );
 }
@@ -620,7 +934,7 @@ function DistributionLegend({
             </div>
             <div className="flex items-center gap-2 text-xs text-white/60">
               <span>{percent}%</span>
-              <span className="min-w-[2.5rem] text-right text-xs font-semibold text-white/80">
+              <span className="min-w-10 text-right text-xs font-semibold text-white/80">
                 {valueFormatter ? valueFormatter(item.value) : formatCount(item.value)}
               </span>
             </div>
@@ -733,6 +1047,139 @@ function ReportTemplateCard({
   );
 }
 
+function buildExportPayload(
+  definition: ReportDefinition,
+  context: {
+    periodReady: boolean;
+    activePeriodId: string | null;
+    rangeStart: string | null;
+    rangeEnd: string | null;
+  }
+): CreateReportExportInput | null {
+  const { periodReady, activePeriodId, rangeStart, rangeEnd } = context;
+  const payload: CreateReportExportInput = {
+    reportKey: definition.key,
+    format: definition.formats[0] ?? "csv",
+    label: definition.label,
+  };
+
+  if (definition.rangeMode === "period") {
+    if (!periodReady || !activePeriodId) return null;
+    payload.periodId = activePeriodId;
+    return payload;
+  }
+
+  if (definition.rangeMode === "range") {
+    if (!rangeStart || !rangeEnd) return null;
+    payload.startDate = rangeStart;
+    payload.endDate = rangeEnd;
+    return payload;
+  }
+
+  if (rangeStart && rangeEnd) {
+    payload.startDate = rangeStart;
+    payload.endDate = rangeEnd;
+  }
+
+  return payload;
+}
+
+function ExportDialog({
+  selectedReport,
+  selectedTone,
+  modalRangeLabel,
+  modalRangeHint,
+  isPending,
+  onClose,
+  onGenerate,
+}: {
+  selectedReport: ReportDefinition | null;
+  selectedTone: ChartTone;
+  modalRangeLabel: string;
+  modalRangeHint: string | null;
+  isPending: boolean;
+  onClose: () => void;
+  onGenerate: (report: ReportDefinition) => void;
+}) {
+  return (
+    <Dialog open={Boolean(selectedReport)} onOpenChange={(open) => { if (!open) onClose(); }}>
+      {selectedReport ? (
+        <DialogContent className="max-w-2xl border border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 text-white shadow-2xl">
+          <div className="border-b border-white/10 p-6 pb-4">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                Export {selectedReport.label}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-white/60">
+                {selectedReport.description ??
+                  "Prepare a downloadable export for this report."}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="space-y-4 p-6">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                  Scope
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {formatRangeModeLabel(selectedReport.rangeMode)}
+                </p>
+                <p className="text-xs text-white/50">{modalRangeLabel}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                  Format
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {selectedReport.formats.map((format) => format.toUpperCase()).join(", ")}
+                </p>
+                <p className="text-xs text-white/50">
+                  CSV downloads are available immediately.
+                </p>
+              </div>
+            </div>
+
+            {modalRangeHint ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                {modalRangeHint}
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className="gap-2 border-t border-white/10 p-4">
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="text-white/70 hover:text-white"
+            >
+              Close
+            </Button>
+            <Button
+              variant="outline"
+              className={cn(
+                "gap-2 border",
+                TONE_STYLES[selectedTone].button,
+                "hover:bg-white/10"
+              )}
+              disabled={Boolean(modalRangeHint) || isPending}
+              onClick={() => onGenerate(selectedReport)}
+            >
+              {isPending ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <DownloadCloud className="h-4 w-4" />
+              )}
+              Generate Export
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      ) : null}
+    </Dialog>
+  );
+}
+
 export default function ReportsPage() {
   const busy = useBusyToast();
   const [scope, setScope] = React.useState<ReportScope>("range");
@@ -780,18 +1227,9 @@ export default function ReportsPage() {
   const canUseRange = Boolean(rangeStart && rangeEnd);
   const periodReady = scope === "period" && Boolean(activePeriodId);
 
-  const fallbackRangeLabel =
-    scope === "period" && currentPeriod
-      ? `${currentPeriod.term} ${currentPeriod.yearLabel}`
-      : startDate && endDate
-      ? `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`
-      : "Custom Range";
+  const fallbackRangeLabel = getFallbackRangeLabel(scope, currentPeriod, startDate, endDate);
 
-  const rangeLabel =
-    range?.period?.label ||
-    (range
-      ? `${formatDateLabel(range.startDate)} - ${formatDateLabel(range.endDate)}`
-      : fallbackRangeLabel);
+  const rangeLabel = getRangeLabel(range, fallbackRangeLabel);
 
   const reportGroups = groupReportDefinitions(REPORT_DEFINITION_LIST);
 
@@ -800,10 +1238,7 @@ export default function ReportsPage() {
       (definition) => definition.key === selectedReportKey
     ) ?? null;
 
-  const selectedTone = selectedReport
-    ? CATEGORY_META.find((category) => category.key === selectedReport.category)
-        ?.tone ?? "slate"
-    : "slate";
+  const selectedTone = getSelectedTone(selectedReport);
 
   const revenueTrend = (charts?.fees.revenueTrend.points ?? []).map((point) => ({
     ...point,
@@ -838,49 +1273,26 @@ export default function ReportsPage() {
     if (!res.ok) throw new Error("Failed to generate export");
 
     const blob = await res.blob();
-    const objectUrl = window.URL.createObjectURL(blob);
+    const objectUrl = globalThis.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = objectUrl;
     link.download = fileName || "report.csv";
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.URL.revokeObjectURL(objectUrl);
+    globalThis.URL.revokeObjectURL(objectUrl);
     await exportsQuery.refetch();
   };
 
-  const buildExportPayload = (
-    definition: ReportDefinition
-  ): CreateReportExportInput | null => {
-    const payload: CreateReportExportInput = {
-      reportKey: definition.key,
-      format: definition.formats[0] ?? "csv",
-      label: definition.label,
-    };
-
-    if (definition.rangeMode === "period") {
-      if (!periodReady || !activePeriodId) return null;
-      payload.periodId = activePeriodId;
-      return payload;
-    }
-
-    if (definition.rangeMode === "range") {
-      if (!rangeStart || !rangeEnd) return null;
-      payload.startDate = rangeStart;
-      payload.endDate = rangeEnd;
-      return payload;
-    }
-
-    if (rangeStart && rangeEnd) {
-      payload.startDate = rangeStart;
-      payload.endDate = rangeEnd;
-    }
-
-    return payload;
+  const exportContext = {
+    periodReady,
+    activePeriodId,
+    rangeStart,
+    rangeEnd,
   };
 
   const handleGenerateReport = async (definition: ReportDefinition) => {
-    const payload = buildExportPayload(definition);
+    const payload = buildExportPayload(definition, exportContext);
     if (!payload) {
       if (definition.rangeMode === "period") {
         busy.warning("Select an academic period to export this report.");
@@ -930,82 +1342,11 @@ export default function ReportsPage() {
   const isRefreshing =
     summaryQuery.isFetching || chartsQuery.isFetching || exportsQuery.isFetching;
 
-  const attendanceTooltip = ({
-    active,
-    payload,
-    label,
-  }: TooltipRenderProps) => {
-    if (!active || !payload?.length) return null;
-    const entry = payload[0];
-    const data = entry.payload;
-    const presentRate =
-      typeof entry.value === "number" && Number.isFinite(entry.value)
-        ? entry.value
-        : 0;
-    const present = getPayloadNumber(data, "present") ?? 0;
-    const absent = getPayloadNumber(data, "absent") ?? 0;
-    const total = getPayloadNumber(data, "total") ?? 0;
+  const attendanceTooltip = buildAttendanceTooltip(formatDateTick);
+  const academicsTooltip = buildAcademicsTooltip();
 
-    return (
-      <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
-        <p className="text-[11px] font-semibold text-white/60">
-          {label ? formatDateTick(label) : "Attendance"}
-        </p>
-        <div className="mt-1 space-y-1 text-xs text-white/80">
-          <p>Present rate: {presentRate.toFixed(1)}%</p>
-          <p>Present: {formatCount(present)}</p>
-          <p>Absent: {formatCount(absent)}</p>
-          <p>Total: {formatCount(total)}</p>
-        </div>
-      </div>
-    );
-  };
-
-  const academicsTooltip = ({ active, payload }: TooltipRenderProps) => {
-    if (!active || !payload?.length) return null;
-    const entry = payload[0];
-    const data = entry.payload;
-    const label =
-      getPayloadString(data, "label") || entry.name || "Subject";
-    const average =
-      typeof entry.value === "number" && Number.isFinite(entry.value)
-        ? entry.value
-        : 0;
-    const passRate = getPayloadNumber(data, "passRate") ?? 0;
-    const count = getPayloadNumber(data, "count") ?? 0;
-
-    return (
-      <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
-        <p className="text-[11px] font-semibold text-white/60">
-          {humanizeLabel(label)}
-        </p>
-        <div className="mt-1 space-y-1 text-xs text-white/80">
-          <p>Average score: {average.toFixed(1)}</p>
-          <p>Pass rate: {passRate.toFixed(1)}%</p>
-          <p>Records: {formatCount(count)}</p>
-        </div>
-      </div>
-    );
-  };
-
-  const modalRangeHint = selectedReport
-    ? selectedReport.rangeMode === "period" && !periodReady
-      ? "Switch to Academic Period to enable this report."
-      : selectedReport.rangeMode === "range" && !canUseRange
-      ? "Select a start and end date to continue."
-      : null
-    : null;
-
-  const modalRangeLabel = selectedReport
-    ? selectedReport.rangeMode === "all_time"
-      ? "All time"
-      : selectedReport.rangeMode === "period"
-      ? range?.period?.label ||
-        (currentPeriod
-          ? `${currentPeriod.term} ${currentPeriod.yearLabel}`
-          : "Select academic period")
-      : rangeLabel
-    : "";
+  const modalRangeHint = getModalRangeHint(selectedReport, periodReady, canUseRange);
+  const modalRangeLabel = getModalRangeLabel(selectedReport, range, currentPeriod, rangeLabel);
 
   return (
     <div className="space-y-6">
@@ -1137,49 +1478,49 @@ export default function ReportsPage() {
             <StatCard
               label="Revenue"
               value={formatMoney(summary?.fees.revenueInRangeMinor ?? 0)}
-              sublabel={`${summary?.fees.paymentsCount ?? 0} payments`}
+              subtitle={`${summary?.fees.paymentsCount ?? 0} payments`}
               loading={summaryQuery.isLoading}
             />
             <StatCard
               label="Collection Rate"
               value={`${summary?.fees.collectionRate?.toFixed(1) ?? "0.0"}%`}
-              sublabel={`${summary?.fees.overdueCount ?? 0} overdue`}
+              subtitle={`${summary?.fees.overdueCount ?? 0} overdue`}
               loading={summaryQuery.isLoading}
             />
             <StatCard
               label="Outstanding"
               value={formatMoney(summary?.fees.outstandingMinor ?? 0)}
-              sublabel={`${summary?.fees.invoicesInRange ?? 0} invoices`}
+              subtitle={`${summary?.fees.invoicesInRange ?? 0} invoices`}
               loading={summaryQuery.isLoading}
             />
             <StatCard
               label="Students"
               value={`${summary?.students.total ?? 0}`}
-              sublabel={`${summary?.students.newInRange ?? 0} new`}
+              subtitle={`${summary?.students.newInRange ?? 0} new`}
               loading={summaryQuery.isLoading}
             />
             <StatCard
               label="Teachers"
               value={`${summary?.teachers.total ?? 0}`}
-              sublabel={`${summary?.teachers.homeroomCount ?? 0} homerooms`}
+              subtitle={`${summary?.teachers.homeroomCount ?? 0} homerooms`}
               loading={summaryQuery.isLoading}
             />
             <StatCard
               label="Attendance Rate"
               value={`${summary?.attendance.presentRate?.toFixed(1) ?? "0.0"}%`}
-              sublabel={`${summary?.attendance.totalRecords ?? 0} entries`}
+              subtitle={`${summary?.attendance.totalRecords ?? 0} entries`}
               loading={summaryQuery.isLoading}
             />
             <StatCard
               label="Invitations"
               value={`${summary?.invitations.total ?? 0}`}
-              sublabel={`${summary?.invitations.status.pending ?? 0} pending`}
+              subtitle={`${summary?.invitations.status.pending ?? 0} pending`}
               loading={summaryQuery.isLoading}
             />
             <StatCard
               label="Academics"
               value={`${summary?.academics.averageScore?.toFixed(1) ?? "0.0"} avg`}
-              sublabel={`${summary?.academics.passRate?.toFixed(1) ?? "0.0"}% pass`}
+              subtitle={`${summary?.academics.passRate?.toFixed(1) ?? "0.0"}% pass`}
               loading={summaryQuery.isLoading}
             />
           </div>
@@ -2148,17 +2489,8 @@ export default function ReportsPage() {
                         definition.rangeMode === "range" && !canUseRange;
                       const disabled =
                         createExport.isPending || isPeriodLocked || isRangeLocked;
-                      const disabledMessage = isPeriodLocked
-                        ? "Period required"
-                        : isRangeLocked
-                        ? "Select dates"
-                        : null;
-                      const rangeHint =
-                        definition.rangeMode === "all_time"
-                          ? "All time export across the entire school."
-                          : isPeriodLocked
-                          ? "Switch to Academic Period to enable."
-                          : `Uses ${rangeLabel}`;
+                      const disabledMessage = getReportDisabledMessage(isPeriodLocked, isRangeLocked);
+                      const rangeHint = getReportRangeHint(definition.rangeMode, isPeriodLocked, rangeLabel);
 
                       return (
                         <ReportTemplateCard
@@ -2180,207 +2512,22 @@ export default function ReportsPage() {
         </div>
 
         <div className="space-y-4">
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-3">
-              <div className="space-y-1">
-                <CardTitle className="text-lg font-semibold">Recent Exports</CardTitle>
-                <p className="text-xs text-white/50">
-                  Keep track of the latest report downloads.
-                </p>
-              </div>
-              <Badge
-                variant="secondary"
-                className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
-              >
-                {exportsQuery.isLoading
-                  ? "Loading"
-                  : `${exportsQuery.data?.data.length ?? 0} exports`}
-              </Badge>
-            </CardHeader>
-            <CardContent className="relative z-10 space-y-3">
-              {exportsQuery.isLoading ? (
-                <div className="space-y-3">
-                  {[0, 1, 2].map((index) => (
-                    <div
-                      key={index}
-                      className="rounded-xl border border-white/10 bg-white/5 p-4"
-                    >
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="mt-2 h-3 w-24" />
-                    </div>
-                  ))}
-                </div>
-              ) : exportsQuery.isError ? (
-                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-100">
-                  We could not load recent exports. Please try refreshing.
-                </div>
-              ) : (exportsQuery.data?.data.length ?? 0) === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/15 bg-black/30 p-6 text-center">
-                  <p className="text-xs text-white/60">
-                    No exports generated yet. Start with the report library.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {(exportsQuery.data?.data ?? []).map((item) => {
-                    const rangeText = formatExportRangeLabel(item);
-                    const timestamp = item.completedAt ?? item.createdAt;
-                    const timeLabel = item.completedAt ? "Completed" : "Requested";
-                    const timeAgo = formatDistanceToNow(new Date(timestamp), {
-                      addSuffix: true,
-                    });
-                    const requester = item.requestedBy
-                      ? [item.requestedBy.firstName, item.requestedBy.lastName]
-                          .filter(Boolean)
-                          .join(" ") || item.requestedBy.email || "User"
-                      : "System";
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="rounded-xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-black/20"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-semibold text-white">
-                                {item.reportLabel}
-                              </p>
-                              <Badge
-                                variant="secondary"
-                                className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70"
-                              >
-                                {item.format.toUpperCase()}
-                              </Badge>
-                              <StatusBadge status={item.status} />
-                            </div>
-                            <p className="text-xs text-white/50">
-                              {rangeText} - {timeLabel} {timeAgo}
-                            </p>
-                            <p className="text-[11px] text-white/40">
-                              Requested by {requester}
-                              {item.rowCount !== null && item.rowCount !== undefined
-                                ? ` - ${formatCount(item.rowCount)} rows`
-                                : ""}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                            {item.status === "completed" ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
-                                onClick={() => handleDownloadExport(item)}
-                              >
-                                <DownloadCloud className="h-4 w-4" />
-                                Download
-                              </Button>
-                            ) : item.status === "failed" ? (
-                              <Badge className="border border-rose-500/30 bg-rose-500/10 text-xs text-rose-200">
-                                Failed
-                              </Badge>
-                            ) : (
-                              <div className="flex items-center gap-2 text-xs text-white/60">
-                                <RefreshCw className="h-3 w-3 animate-spin" />
-                                Preparing
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <RecentExportsCard
+            exportsQuery={exportsQuery}
+            onDownload={handleDownloadExport}
+          />
         </div>
       </section>
 
-      <Dialog
-        open={Boolean(selectedReport)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedReportKey(null);
-        }}
-      >
-        {selectedReport ? (
-          <DialogContent className="max-w-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-black p-0 text-white shadow-2xl">
-            <div className="border-b border-white/10 p-6 pb-4">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-semibold">
-                  Export {selectedReport.label}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-white/60">
-                  {selectedReport.description ??
-                    "Prepare a downloadable export for this report."}
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="space-y-4 p-6">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
-                    Scope
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-white">
-                    {formatRangeModeLabel(selectedReport.rangeMode)}
-                  </p>
-                  <p className="text-xs text-white/50">{modalRangeLabel}</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
-                    Format
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-white">
-                    {selectedReport.formats.map((format) => format.toUpperCase()).join(", ")}
-                  </p>
-                  <p className="text-xs text-white/50">
-                    CSV downloads are available immediately.
-                  </p>
-                </div>
-              </div>
-
-              {modalRangeHint ? (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
-                  {modalRangeHint}
-                </div>
-              ) : null}
-            </div>
-
-            <DialogFooter className="gap-2 border-t border-white/10 p-4">
-              <Button
-                variant="ghost"
-                onClick={() => setSelectedReportKey(null)}
-                className="text-white/70 hover:text-white"
-              >
-                Close
-              </Button>
-              <Button
-                variant="outline"
-                className={cn(
-                  "gap-2 border",
-                  TONE_STYLES[selectedTone].button,
-                  "hover:bg-white/10"
-                )}
-                disabled={Boolean(modalRangeHint) || createExport.isPending}
-                onClick={() => handleGenerateReport(selectedReport)}
-              >
-                {createExport.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <DownloadCloud className="h-4 w-4" />
-                )}
-                Generate Export
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        ) : null}
-      </Dialog>
+      <ExportDialog
+        selectedReport={selectedReport}
+        selectedTone={selectedTone}
+        modalRangeLabel={modalRangeLabel}
+        modalRangeHint={modalRangeHint}
+        isPending={createExport.isPending}
+        onClose={() => setSelectedReportKey(null)}
+        onGenerate={handleGenerateReport}
+      />
     </div>
   );
 }

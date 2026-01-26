@@ -229,10 +229,12 @@ export const DEFAULT_SCHOOL_ROLES: Array<{
   },
 ];
 
+// Register SchoolRoleDefinition FIRST since SchoolStudentRole references it
 export const SchoolRoleDefinition =
-  models.SchoolRoleDefinition ||
-  model<ISchoolRoleDefinition>("SchoolRoleDefinition", SchoolRoleDefinitionSchema);
+  (mongoose.models.SchoolRoleDefinition as mongoose.Model<ISchoolRoleDefinition>) ||
+  mongoose.model<ISchoolRoleDefinition>("SchoolRoleDefinition", SchoolRoleDefinitionSchema);
 
+// Register SchoolStudentRole AFTER its dependency
 export const SchoolStudentRole =
-  models.SchoolStudentRole ||
-  model<ISchoolStudentRole>("SchoolStudentRole", SchoolStudentRoleSchema);
+  (mongoose.models.SchoolStudentRole as mongoose.Model<ISchoolStudentRole>) ||
+  mongoose.model<ISchoolStudentRole>("SchoolStudentRole", SchoolStudentRoleSchema);

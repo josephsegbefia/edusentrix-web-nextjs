@@ -257,10 +257,12 @@ export const DEFAULT_DUTY_DEFINITIONS: Array<{
   },
 ];
 
+// Register DutyDefinition FIRST since TeacherDutyAssignment references it
 export const DutyDefinition =
-  models.DutyDefinition ||
-  model<IDutyDefinition>("DutyDefinition", DutyDefinitionSchema);
+  (mongoose.models.DutyDefinition as mongoose.Model<IDutyDefinition>) ||
+  mongoose.model<IDutyDefinition>("DutyDefinition", DutyDefinitionSchema);
 
+// Register TeacherDutyAssignment AFTER its dependency
 export const TeacherDutyAssignment =
-  models.TeacherDutyAssignment ||
-  model<ITeacherDutyAssignment>("TeacherDutyAssignment", TeacherDutyAssignmentSchema);
+  (mongoose.models.TeacherDutyAssignment as mongoose.Model<ITeacherDutyAssignment>) ||
+  mongoose.model<ITeacherDutyAssignment>("TeacherDutyAssignment", TeacherDutyAssignmentSchema);

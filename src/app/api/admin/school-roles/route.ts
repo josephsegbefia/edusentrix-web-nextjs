@@ -8,6 +8,10 @@ import {
   DEFAULT_SCHOOL_ROLES,
 } from "@/models/SchoolStudentRole";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { Student } from "@/models/Student";
+import { ClassGroup } from "@/models/ClassGroup";
+import { Grade } from "@/models/Grade";
+import { User } from "@/models/User";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -39,6 +43,15 @@ export async function GET(req: NextRequest) {
   try {
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
+
+    // Ensure models are registered before any populate calls
+    // This prevents "MissingSchemaError" in development with HMR
+    void SchoolRoleDefinition.modelName;
+    void SchoolStudentRole.modelName;
+    void Student.modelName;
+    void ClassGroup.modelName;
+    void Grade.modelName;
+    void User.modelName;
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
     const url = new URL(req.url);
@@ -129,14 +142,12 @@ export async function GET(req: NextRequest) {
             },
           })
           .populate("roleDefinitionId", "name code category badgeColor")
-          .populate("houseId", "name color")
           .populate("assignedBy", "firstName lastName")
           .lean();
 
         assignments = assignmentDocs.map((a: any) => {
           const student = a.studentId;
           const role = a.roleDefinitionId;
-          const house = a.houseId;
           const classGroup = student?.classGroupId;
           const grade = classGroup?.gradeId;
 
@@ -166,13 +177,8 @@ export async function GET(req: NextRequest) {
                   badgeColor: role.badgeColor || null,
                 }
               : null,
-            house: house
-              ? {
-                  id: String(house._id),
-                  name: house.name,
-                  color: house.color || null,
-                }
-              : null,
+            // House model not implemented yet - houseId stored but not populated
+            house: a.houseId ? { id: String(a.houseId) } : null,
             assignedAt: new Date(a.assignedAt).toISOString(),
             startDate: new Date(a.startDate).toISOString(),
             endDate: a.endDate ? new Date(a.endDate).toISOString() : null,

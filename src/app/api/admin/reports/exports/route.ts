@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
     .sort({ createdAt: -1 })
     .limit(limit)
     .populate("requestedBy", "firstName lastName email")
-    .lean()) as Array<{
+    .lean()) as unknown as Array<{
     _id: mongoose.Types.ObjectId;
     reportKey: ReportKey;
     reportLabel?: string | null;

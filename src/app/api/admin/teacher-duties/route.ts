@@ -8,6 +8,8 @@ import {
   DEFAULT_DUTY_DEFINITIONS,
 } from "@/models/TeacherDutyAssignment";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { Teacher } from "@/models/Teacher";
+import { User } from "@/models/User";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -47,6 +49,13 @@ export async function GET(req: NextRequest) {
   try {
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
+
+    // Ensure models are registered before any populate calls
+    // This prevents "MissingSchemaError" in development with HMR
+    void DutyDefinition.modelName;
+    void TeacherDutyAssignment.modelName;
+    void Teacher.modelName;
+    void User.modelName;
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
     const url = new URL(req.url);

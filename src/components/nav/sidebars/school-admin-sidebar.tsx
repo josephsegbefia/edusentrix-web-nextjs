@@ -23,6 +23,8 @@ import {
   Menu,
   X,
   Crown,
+  Vote,
+  Heart,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -113,6 +115,21 @@ const navSections: NavSection[] = [
         label: "Academic Periods",
         href: "/admin/periods",
         icon: Calendar,
+      },
+    ],
+  },
+  {
+    title: "Community",
+    items: [
+      {
+        label: "Polls",
+        href: "/admin/community/polls",
+        icon: Vote,
+      },
+      {
+        label: "Fundraising",
+        href: "/admin/community/fundraising",
+        icon: Heart,
       },
     ],
   },

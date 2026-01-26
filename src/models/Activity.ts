@@ -23,7 +23,22 @@ export type ActivityType =
   | "guardian.created"
   | "guardian.updated"
   | "guardian.removed"
-  | "guardian.set_primary";
+  | "guardian.set_primary"
+  // Community Hub - Polls
+  | "poll.created"
+  | "poll.published"
+  | "poll.closed"
+  | "poll.approved"
+  | "poll.rejected"
+  // Community Hub - Fundraising
+  | "campaign.created"
+  | "campaign.published"
+  | "campaign.closed"
+  | "campaign.approved"
+  | "campaign.rejected"
+  | "donation.received"
+  | "donation.refunded"
+  | "payout.approved";
 
 export interface IActivity {
   _id: Types.ObjectId;

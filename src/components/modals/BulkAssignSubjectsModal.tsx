@@ -34,7 +34,7 @@ export function BulkAssignSubjectsModal({
   const [subjectSearch, setSubjectSearch] = React.useState("");
   const bulkAssignSubjectsMutation = useBulkAssignSubjects();
   const { data: subjectsData } = useSubjectSearch(subjectSearch);
-  const subjects = subjectsData?.subjects || [];
+  const subjects = subjectsData?.data || [];
 
   React.useEffect(() => {
     if (!open) {

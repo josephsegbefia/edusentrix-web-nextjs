@@ -130,11 +130,12 @@ export type UpdateTeacherAssignmentInput = z.infer<typeof UpdateTeacherAssignmen
 
 export const CreateEvaluationSchema = z.object({
   academicPeriodId: z.string().min(1, "Academic period is required"),
-  overallRating: z.coerce.number().min(1, "Rating must be at least 1").max(5, "Rating must be at most 5"),
-  strengths: z.array(z.string().trim().min(1)).optional().default([]),
-  areasForImprovement: z.array(z.string().trim().min(1)).optional().default([]),
-  goals: z.array(z.string().trim().min(1)).optional().default([]),
+  overallRating: z.number().min(1, "Rating must be at least 1").max(5, "Rating must be at most 5"),
+  strengths: z.array(z.string().trim().min(1)).default([]),
+  areasForImprovement: z.array(z.string().trim().min(1)).default([]),
+  goals: z.array(z.string().trim().min(1)).default([]),
   comments: z.string().trim().max(2000).optional(),
 });
 
-export type CreateEvaluationInput = z.infer<typeof CreateEvaluationSchema>;
+export type CreateEvaluationInput = z.output<typeof CreateEvaluationSchema>;
+export type CreateEvaluationFormInput = z.input<typeof CreateEvaluationSchema>;

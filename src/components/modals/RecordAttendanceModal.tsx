@@ -32,7 +32,7 @@ const RecordAttendanceSchema = z.object({
   status: z.enum(["present", "absent", "late", "on_leave", "sick", "other"]),
   checkInTime: z.string().optional().nullable(),
   checkOutTime: z.string().optional().nullable(),
-  minutesLate: z.coerce.number().min(0).optional().nullable(),
+  minutesLate: z.number().min(0).optional().nullable(),
   leaveType: z.enum(["sick", "vacation", "personal", "professional", "other"]).optional().nullable(),
   reason: z.string().max(500).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
@@ -46,6 +46,8 @@ const RecordAttendanceSchema = z.object({
   message: "Leave type is required for leave or sick status",
   path: ["leaveType"],
 });
+
+type AttendanceFormValues = z.infer<typeof RecordAttendanceSchema>;
 
 type Props = {
   open: boolean;
@@ -71,17 +73,17 @@ export function RecordAttendanceModal({
     setValue,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<RecordAttendanceInput & { date: string; minutesLate?: string }>({
+  } = useForm<AttendanceFormValues>({
     resolver: zodResolver(RecordAttendanceSchema),
     defaultValues: {
       date: defaultDate || new Date().toISOString().split("T")[0],
       status: "present",
-      checkInTime: null,
-      checkOutTime: null,
-      minutesLate: null,
-      leaveType: null,
-      reason: null,
-      notes: null,
+      checkInTime: undefined,
+      checkOutTime: undefined,
+      minutesLate: undefined,
+      leaveType: undefined,
+      reason: undefined,
+      notes: undefined,
     },
   });
 
@@ -95,25 +97,25 @@ export function RecordAttendanceModal({
       reset({
         date: defaultDate || new Date().toISOString().split("T")[0],
         status: "present",
-        checkInTime: null,
-        checkOutTime: null,
-        minutesLate: null,
-        leaveType: null,
-        reason: null,
-        notes: null,
+        checkInTime: undefined,
+        checkOutTime: undefined,
+        minutesLate: undefined,
+        leaveType: undefined,
+        reason: undefined,
+        notes: undefined,
       });
     }
   }, [open, defaultDate, reset]);
 
-  const onSubmit = async (data: RecordAttendanceInput & { date: string; minutesLate?: string }) => {
+  const onSubmit = async (data: AttendanceFormValues) => {
     try {
       const payload: RecordAttendanceInput = {
         date: data.date,
-        status: data.status,
+        status: data.status as TeacherAttendanceStatus,
         checkInTime: data.checkInTime || null,
         checkOutTime: data.checkOutTime || null,
-        minutesLate: data.minutesLate ? parseInt(data.minutesLate, 10) : null,
-        leaveType: isLeaveOrSick ? (data.leaveType || null) : null,
+        minutesLate: data.minutesLate ?? null,
+        leaveType: isLeaveOrSick ? (data.leaveType as LeaveType || null) : null,
         reason: data.reason || null,
         notes: data.notes || null,
       };

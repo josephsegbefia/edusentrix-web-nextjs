@@ -248,7 +248,7 @@ export async function PATCH(
     }
 
     // If poll was rejected and is being edited, reset to pending_approval
-    if (poll.status === "rejected") {
+    if (poll.approvalStatus === "rejected") {
       poll.status = "pending_approval";
       poll.approvalStatus = "pending";
       poll.approvalNotes = undefined;

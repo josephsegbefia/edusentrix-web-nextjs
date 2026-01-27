@@ -157,7 +157,6 @@ export function SubjectsTable({
                     "h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-rose-600"
                   )}
                   aria-label="Select all visible subjects"
-                  // @ts-expect-error - indeterminate is not in types but works
                   indeterminate={someVisibleSelected}
                 />
               </th>

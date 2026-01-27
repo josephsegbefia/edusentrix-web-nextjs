@@ -15,12 +15,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import type { StudentSubjectPerformanceRow } from "@/types/admin/student-academics";
 
 type Props = {
@@ -166,42 +166,42 @@ export function SubjectPerformanceOverTime({
             </CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <Select
+            <PremiumSelect
               value={selectedSubjectId ?? ""}
               onValueChange={(value) => setSelectedSubjectId(value)}
             >
-              <SelectTrigger className="h-8 min-w-[180px] rounded-full border-white/10 bg-white/5 text-xs text-slate-100 hover:bg-white/10">
-                <SelectValue placeholder="Select subject" />
-              </SelectTrigger>
-              <SelectContent className="text-xs">
+              <PremiumSelectTrigger className="h-8 min-w-45 rounded-full text-xs">
+                <PremiumSelectValue placeholder="Select subject" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
                 {subjects
                   .filter((s) => subjectHistory[s.subjectId]?.length > 0)
                   .map((s) => (
-                    <SelectItem key={s.subjectId} value={s.subjectId}>
+                    <PremiumSelectItem key={s.subjectId} value={s.subjectId}>
                       {s.subjectName}
-                    </SelectItem>
+                    </PremiumSelectItem>
                   ))}
-              </SelectContent>
-            </Select>
+              </PremiumSelectContent>
+            </PremiumSelect>
             {academicYears.length > 1 && (
-              <Select
+              <PremiumSelect
                 value={selectedYear ?? "all"}
                 onValueChange={(value) =>
                   setSelectedYear(value === "all" ? null : value)
                 }
               >
-                <SelectTrigger className="h-8 w-[140px] rounded-full border-white/10 bg-white/5 text-xs text-slate-100 hover:bg-white/10">
-                  <SelectValue placeholder="All Years" />
-                </SelectTrigger>
-                <SelectContent className="text-xs">
-                  <SelectItem value="all">All Years</SelectItem>
+                <PremiumSelectTrigger className="h-8 w-36 rounded-full text-xs">
+                  <PremiumSelectValue placeholder="All Years" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="all">All Years</PremiumSelectItem>
                   {academicYears.map((year) => (
-                    <SelectItem key={year} value={year}>
+                    <PremiumSelectItem key={year} value={year}>
                       {year}
-                    </SelectItem>
+                    </PremiumSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </PremiumSelectContent>
+              </PremiumSelect>
             )}
           </div>
         </div>

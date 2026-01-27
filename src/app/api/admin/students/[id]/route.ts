@@ -165,6 +165,7 @@ export async function GET(
 
       attendanceSummary: null as {
         presentPercent?: number;
+        presentDays?: number;
         absentDays?: number;
         lateDays?: number;
       } | null,

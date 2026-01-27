@@ -145,7 +145,6 @@ export function ClassesTable({
                   "h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-emerald-600"
                 )}
                 aria-label="Select all visible classes"
-                // @ts-expect-error - indeterminate is not in types but works
                 indeterminate={someVisibleSelected}
               />
             </th>

@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import type { StudentTermOverview } from "@/types/admin/student-academics";
 
 type Props = {
@@ -21,24 +21,24 @@ export function TermSelector({ terms, currentTermId, onChange }: Props) {
 
   return (
     <div className="flex items-center justify-end">
-      <Select
+      <PremiumSelect
         value={currentTermId ?? undefined}
         onValueChange={(value) => onChange(value)}
       >
-        <SelectTrigger className="h-8 w-[220px] rounded-full border-white/10 bg-white/5 text-xs text-slate-100 hover:bg-white/10">
-          <SelectValue placeholder="Select term" />
-        </SelectTrigger>
-        <SelectContent className="text-xs">
+        <PremiumSelectTrigger className="h-8 w-56 rounded-full text-xs">
+          <PremiumSelectValue placeholder="Select term" />
+        </PremiumSelectTrigger>
+        <PremiumSelectContent>
           {terms.map((t) => (
-            <SelectItem key={t.termId} value={t.termId}>
+            <PremiumSelectItem key={t.termId} value={t.termId}>
               {t.label}
               {typeof t.averageScore === "number"
                 ? ` • ${t.averageScore.toFixed(1)}%`
                 : ""}
-            </SelectItem>
+            </PremiumSelectItem>
           ))}
-        </SelectContent>
-      </Select>
+        </PremiumSelectContent>
+      </PremiumSelect>
     </div>
   );
 }

@@ -98,12 +98,13 @@ export async function GET(req: NextRequest) {
       );
 
       // Count unique classes
-      const uniqueClasses = new Set(
-        teacherAssignments.map((a: any) => String(a.classGroupId?._id || ""))
-      ).size;
+      const uniqueClassIdsSet = new Set(
+        teacherAssignments.map((a: any) => String(a.classGroupId?._id || "")).filter((id: string) => id !== "")
+      );
+      const uniqueClassCount = uniqueClassIdsSet.size;
 
       // Count total students (sum of class capacities)
-      const classIds = Array.from(uniqueClasses).map((id) => toObjectIdOrNull(id as string)).filter((id): id is mongoose.Types.ObjectId => id !== null);
+      const classIds = Array.from(uniqueClassIdsSet).map((id) => toObjectIdOrNull(id as string)).filter((id): id is mongoose.Types.ObjectId => id !== null);
       const classes = classIds.length > 0
         ? (teacherAssignments
             .map((a: any) => a.classGroupId)
@@ -131,7 +132,7 @@ export async function GET(req: NextRequest) {
       const maxStudents = teacher.maxStudents || null;
 
       // Calculate utilization
-      const classUtilization = maxClasses ? (uniqueClasses / maxClasses) * 100 : null;
+      const classUtilization = maxClasses ? (uniqueClassCount / maxClasses) * 100 : null;
       const studentUtilization = maxStudents ? (totalStudents / maxStudents) * 100 : null;
 
       const user = teacher.userId || {};
@@ -140,7 +141,7 @@ export async function GET(req: NextRequest) {
         name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Unknown",
         email: user.email || null,
         department: teacher.department || null,
-        currentClasses: uniqueClasses,
+        currentClasses: uniqueClassCount,
         currentStudents: totalStudents,
         totalWorkloadHours,
         maxClasses,
@@ -148,7 +149,7 @@ export async function GET(req: NextRequest) {
         classUtilization: classUtilization !== null ? Math.round(classUtilization * 100) / 100 : null,
         studentUtilization: studentUtilization !== null ? Math.round(studentUtilization * 100) / 100 : null,
         assignmentsCount: teacherAssignments.length,
-        isOverCapacity: (maxClasses && uniqueClasses > maxClasses) || (maxStudents && totalStudents > maxStudents),
+        isOverCapacity: (maxClasses && uniqueClassCount > maxClasses) || (maxStudents && totalStudents > maxStudents),
       };
     });
 

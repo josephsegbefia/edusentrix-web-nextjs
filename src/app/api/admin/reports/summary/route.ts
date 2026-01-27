@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { AcademicPeriod, IAcademicPeriod } from "@/models/AcademicPeriod";
 import { Activity } from "@/models/Activity";
 import { Invitation } from "@/models/Invitation";
 import { Invoice } from "@/models/Invoice";
@@ -52,7 +52,7 @@ async function resolveDateRange(
       schoolId,
     })
       .select("yearLabel term startDate endDate")
-      .lean();
+      .lean<Pick<IAcademicPeriod, "_id" | "yearLabel" | "term" | "startDate" | "endDate">>();
     if (!period) {
       return { error: "Academic period not found" } as const;
     }
@@ -95,7 +95,7 @@ async function resolveDateRange(
     isCurrent: true,
   })
     .select("yearLabel term startDate endDate")
-    .lean();
+    .lean<Pick<IAcademicPeriod, "_id" | "yearLabel" | "term" | "startDate" | "endDate">>();
 
   if (currentPeriod) {
     return {

@@ -53,7 +53,7 @@ const schema = z.object({
   subjectId: z.string().min(1, "Select a subject"),
   classGroupId: z.string().min(1, "Select a class group"),
   academicPeriodId: z.string().optional(),
-  allowMultiple: z.boolean().default(false),
+  allowMultiple: z.boolean(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -109,7 +109,7 @@ export function AssignTeacherToSubjectModal({
       teacherId: "",
       subjectId: subject?.id || "",
       classGroupId: initialClassGroupId || "",
-      academicPeriodId: currentPeriod?.id || "",
+      academicPeriodId: currentPeriod?._id || "",
       allowMultiple: false,
     },
   });
@@ -138,14 +138,14 @@ export function AssignTeacherToSubjectModal({
         teacherId: "",
         subjectId: subject?.id || "",
         classGroupId: initialClassGroupId || "",
-        academicPeriodId: currentPeriod?.id || "",
+        academicPeriodId: currentPeriod?._id || "",
         allowMultiple: false,
       });
       setTeacherQuery("");
       setSubjectQuery("");
       setClassQuery("");
     }
-  }, [open, subject?.id, initialClassGroupId, currentPeriod?.id, reset]);
+  }, [open, subject?.id, initialClassGroupId, currentPeriod?._id, reset]);
 
   const [conflictError, setConflictError] = React.useState<string | null>(null);
 

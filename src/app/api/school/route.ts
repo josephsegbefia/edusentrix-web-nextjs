@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { School } from "@/models/School";
-import { User } from "@/models/User";
+import { School, ISchool } from "@/models/School";
+import { User, IUser } from "@/models/User";
 import mongoose from "mongoose";
 
 /**
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     await connectToDatabase();
 
-    const user = await User.findOne({ clerkUserId }).select("schoolId").lean();
+    const user = await User.findOne({ clerkUserId }).select("schoolId").lean<Pick<IUser, "_id" | "schoolId">>();
     if (!user) {
       return NextResponse.json(
         { success: false, error: "User not found" },
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const schoolIdObj = new mongoose.Types.ObjectId(String(user.schoolId));
     const school = await School.findById(schoolIdObj)
       .select("_id name logo type status")
-      .lean();
+      .lean<Pick<ISchool, "_id" | "name" | "logo" | "type" | "status">>();
 
     if (!school) {
       return NextResponse.json(

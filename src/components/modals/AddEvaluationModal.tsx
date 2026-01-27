@@ -19,13 +19,10 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus } from "lucide-react";
-import {
-  useCreateEvaluation,
-  type CreateEvaluationInput,
-} from "@/hooks/admin/useTeacherPerformance";
+import { useCreateEvaluation } from "@/hooks/admin/useTeacherPerformance";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
-import { CreateEvaluationSchema } from "@/schemas/teacher";
+import { CreateEvaluationSchema, type CreateEvaluationInput, type CreateEvaluationFormInput } from "@/schemas/teacher";
 
 type Props = {
   open: boolean;
@@ -58,7 +55,7 @@ export function AddEvaluationModal({
     setValue,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<CreateEvaluationInput>({
+  } = useForm<CreateEvaluationFormInput, unknown, CreateEvaluationInput>({
     resolver: zodResolver(CreateEvaluationSchema),
     defaultValues: {
       academicPeriodId: "",

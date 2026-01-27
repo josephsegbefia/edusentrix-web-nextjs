@@ -62,6 +62,7 @@ export type StudentDetailDTO = {
   } | null;
   attendanceSummary: {
     presentPercent?: number;
+    presentDays?: number;
     absentDays?: number;
     lateDays?: number;
   } | null;

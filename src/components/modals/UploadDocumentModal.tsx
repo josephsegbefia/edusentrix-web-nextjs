@@ -47,6 +47,8 @@ const UploadDocumentSchema = z.object({
   path: ["expiryDate"],
 });
 
+type DocumentFormValues = z.infer<typeof UploadDocumentSchema>;
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -77,16 +79,16 @@ export function UploadDocumentModal({
     setValue,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<UploadDocumentInput & { tags?: string }>({
+  } = useForm<DocumentFormValues>({
     resolver: zodResolver(UploadDocumentSchema),
     defaultValues: {
       name: "",
       type: "other",
-      category: null,
+      category: undefined,
       tags: "",
-      notes: null,
-      issueDate: null,
-      expiryDate: null,
+      notes: undefined,
+      issueDate: undefined,
+      expiryDate: undefined,
     },
   });
 
@@ -98,11 +100,11 @@ export function UploadDocumentModal({
       reset({
         name: "",
         type: "other",
-        category: null,
+        category: undefined,
         tags: "",
-        notes: null,
-        issueDate: null,
-        expiryDate: null,
+        notes: undefined,
+        issueDate: undefined,
+        expiryDate: undefined,
       });
       setUploadedFile(null);
     }
@@ -125,7 +127,7 @@ export function UploadDocumentModal({
     }
   };
 
-  const onSubmit = async (data: UploadDocumentInput & { tags?: string }) => {
+  const onSubmit = async (data: DocumentFormValues) => {
     if (!uploadedFile) {
       toast.error("Please upload a document first");
       return;
@@ -134,7 +136,7 @@ export function UploadDocumentModal({
     try {
       const payload: UploadDocumentInput = {
         name: data.name,
-        type: data.type,
+        type: data.type as TeacherDocumentType,
         category: data.category || null,
         fileUrl: uploadedFile.url,
         fileMime: uploadedFile.format ? `application/${uploadedFile.format}` : null,

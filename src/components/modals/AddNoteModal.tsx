@@ -39,6 +39,8 @@ const NoteSchema = z.object({
   tags: z.string().optional(), // Comma-separated tags
 });
 
+type NoteFormValues = z.infer<typeof NoteSchema>;
+
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -69,7 +71,7 @@ export function AddNoteModal({
     setValue,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<CreateNoteInput & { tags?: string }>({
+  } = useForm<NoteFormValues>({
     resolver: zodResolver(NoteSchema),
     defaultValues: {
       title: "",
@@ -124,13 +126,13 @@ export function AddNoteModal({
     setValue("tags", newTags.join(", "));
   };
 
-  const onSubmit = async (data: CreateNoteInput & { tags?: string }) => {
+  const onSubmit = async (data: NoteFormValues) => {
     try {
       const payload: CreateNoteInput | UpdateNoteInput = {
         title: data.title,
         content: data.content,
-        category: data.category,
-        visibility: data.visibility,
+        category: data.category as TeacherNoteCategory,
+        visibility: data.visibility as TeacherNoteVisibility,
         tags: tags,
       };
 

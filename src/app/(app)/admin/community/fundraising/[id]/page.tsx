@@ -11,11 +11,11 @@ import {
   ArrowRight,
   Calendar,
   CheckCircle2,
-  Clock,
+
   DollarSign,
   Edit,
   Heart,
-  Loader2,
+ 
   MoreHorizontal,
   Pause,
   Play,
@@ -135,7 +135,7 @@ export default function CampaignDetailPage() {
   if (campaignLoading) {
     return (
       <div className="space-y-8">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl">
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl">
           <Skeleton className="h-10 w-64 bg-white/10" />
           <Skeleton className="mt-2 h-4 w-48 bg-white/5" />
           <div className="mt-8 grid grid-cols-3 gap-4">
@@ -177,11 +177,11 @@ export default function CampaignDetailPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           Premium Hero Header
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
         {/* Background decorations */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-gradient-to-tr from-teal-500/10 via-teal-500/5 to-transparent blur-3xl" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-emerald-500/20 via-emerald-500/10 to-transparent blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-linear-to-tr from-teal-500/10 via-teal-500/5 to-transparent blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent" />
 
         <div className="relative z-10">
           {/* Top row */}
@@ -198,7 +198,7 @@ export default function CampaignDetailPage() {
               </Link>
               <div>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 shadow-lg shadow-emerald-500/10">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-emerald-500/20 to-teal-500/20 shadow-lg shadow-emerald-500/10">
                     <Heart className="h-6 w-6 text-emerald-300" />
                   </div>
                   <div>
@@ -259,7 +259,7 @@ export default function CampaignDetailPage() {
           </div>
 
           {/* Progress Section */}
-          <div className="mt-8 rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-6">
+          <div className="mt-8 rounded-2xl border border-white/10 bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Amount Raised</p>
@@ -277,7 +277,7 @@ export default function CampaignDetailPage() {
             </div>
             <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all"
+                className="h-full rounded-full bg-linear-to-r from-emerald-500 to-teal-400 transition-all"
                 style={{ width: `${Math.min(campaign.progressPercent, 100)}%` }}
               />
             </div>
@@ -285,8 +285,8 @@ export default function CampaignDetailPage() {
 
           {/* Stats Grid */}
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-emerald-500/20">
                   <Users className="h-6 w-6 text-emerald-400" />
@@ -297,8 +297,8 @@ export default function CampaignDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-violet-500/20">
                   <TrendingUp className="h-6 w-6 text-violet-400" />
@@ -313,8 +313,8 @@ export default function CampaignDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent" />
               <div className="relative z-10 flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-amber-500/20">
                   <Calendar className="h-6 w-6 text-amber-400" />
@@ -337,13 +337,13 @@ export default function CampaignDetailPage() {
           Milestones
       ══════════════════════════════════════════════════════════════════════ */}
       {campaign.milestones && campaign.milestones.length > 0 && (
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
           
           <CardHeader className="relative z-10 border-b border-white/5 pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-violet-500/20 to-purple-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-violet-500/20 to-purple-500/20">
                 <Target className="h-5 w-5 text-violet-400" />
               </div>
               <CardTitle className="text-lg text-white">Milestones</CardTitle>
@@ -353,12 +353,12 @@ export default function CampaignDetailPage() {
             {campaign.milestones.map((milestone) => {
               const reached = campaign.raisedAmountMinor >= milestone.amountMinor;
               return (
-                <div key={milestone.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]">
+                <div key={milestone.id} className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/2 p-4 transition-colors hover:bg-white/4">
                   <div
                     className={cn(
                       "flex h-10 w-10 items-center justify-center rounded-full transition-colors",
                       reached
-                        ? "bg-gradient-to-br from-emerald-500/30 to-emerald-500/20 text-emerald-400"
+                        ? "bg-linear-to-br from-emerald-500/30 to-emerald-500/20 text-emerald-400"
                         : "bg-white/10 text-white/40"
                     )}
                   >
@@ -386,13 +386,13 @@ export default function CampaignDetailPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           Recent Donations
       ══════════════════════════════════════════════════════════════════════ */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-500/5 via-transparent to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-rose-500/5 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
         
         <CardHeader className="relative z-10 flex flex-row items-center justify-between border-b border-white/5 pb-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-rose-500/20 to-pink-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-rose-500/20 to-pink-500/20">
               <Heart className="h-5 w-5 text-rose-400" />
             </div>
             <CardTitle className="text-lg text-white">Recent Donations</CardTitle>
@@ -430,9 +430,9 @@ export default function CampaignDetailPage() {
               {donations.map((donation) => (
                 <div
                   key={donation.id}
-                  className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]"
+                  className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/2 p-4 transition-colors hover:bg-white/4"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-linear-to-br from-emerald-500/20 to-teal-500/20">
                     <Heart className="h-5 w-5 text-emerald-400" />
                   </div>
                   <div className="flex-1 min-w-0">

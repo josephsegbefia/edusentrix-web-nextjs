@@ -26,12 +26,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import {
   useCommunityPoll,
   usePollResults,
@@ -270,8 +270,8 @@ export default function PollDetailPage() {
               </div>
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <PremiumDropdownMenu>
+              <PremiumDropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
@@ -279,29 +279,35 @@ export default function PollDetailPage() {
                 >
                   <MoreHorizontal className="h-5 w-5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              </PremiumDropdownMenuTrigger>
+              <PremiumDropdownMenuContent align="end">
                 {(poll.status === "draft" || poll.status === "approved") && (
-                  <DropdownMenuItem onClick={handlePublish} className="text-emerald-400">
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                  <PremiumDropdownMenuItem 
+                    onClick={handlePublish} 
+                    variant="success"
+                    icon={<CheckCircle2 className="h-4 w-4" />}
+                  >
                     Publish Poll
-                  </DropdownMenuItem>
+                  </PremiumDropdownMenuItem>
                 )}
                 {poll.status === "live" && (
-                  <DropdownMenuItem onClick={handleClose} className="text-amber-400">
-                    <XCircle className="mr-2 h-4 w-4" />
+                  <PremiumDropdownMenuItem 
+                    onClick={handleClose} 
+                    variant="warning"
+                    icon={<XCircle className="h-4 w-4" />}
+                  >
                     Close Poll
-                  </DropdownMenuItem>
+                  </PremiumDropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href={`/admin/community/polls/${pollId}/edit`}>
-                    <Edit className="mr-2 h-4 w-4" />
+                <PremiumDropdownMenuSeparator />
+                <PremiumDropdownMenuItem asChild>
+                  <Link href={`/admin/community/polls/${pollId}/edit`} className="flex items-center gap-2.5">
+                    <Edit className="h-4 w-4" />
                     Edit Poll
                   </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </PremiumDropdownMenuItem>
+              </PremiumDropdownMenuContent>
+            </PremiumDropdownMenu>
           </div>
 
           {/* Stats Grid */}

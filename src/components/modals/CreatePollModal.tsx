@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { Switch } from "@/components/ui/switch";
 import { useCreatePoll, QuestionType, AudienceScope, RevealResults } from "@/hooks/admin/useCommunityPolls";
 import { useBusyToast } from "@/hooks/useBusyToast";
@@ -165,21 +165,21 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove }: Ques
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label className="text-white/70">Question Type</Label>
-            <Select
+            <PremiumSelect
               value={question.type}
               onValueChange={(v) => onChange({ ...question, type: v as QuestionType })}
             >
-              <SelectTrigger className="mt-1 border-white/10 bg-white/5 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
+              <PremiumSelectTrigger className="mt-1">
+                <PremiumSelectValue />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
                 {QUESTION_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
+                  <PremiumSelectItem key={t.value} value={t.value}>
                     {t.label}
-                  </SelectItem>
+                  </PremiumSelectItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </PremiumSelectContent>
+            </PremiumSelect>
           </div>
 
           <div className="flex items-end gap-6">
@@ -491,31 +491,31 @@ export default function CreatePollModal({ open, onOpenChange, onSuccess, templat
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label className="text-white/70">Audience</Label>
-                <Select value={audienceScope} onValueChange={(v) => setAudienceScope(v as AudienceScope)}>
-                  <SelectTrigger className="mt-1 border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                <PremiumSelect value={audienceScope} onValueChange={(v) => setAudienceScope(v as AudienceScope)}>
+                  <PremiumSelectTrigger className="mt-1">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {AUDIENCE_SCOPES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
+                      <PremiumSelectItem key={s.value} value={s.value}>
                         {s.label}
-                      </SelectItem>
+                      </PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
               <div>
                 <Label className="text-white/70">Show Results</Label>
-                <Select value={revealResults} onValueChange={(v) => setRevealResults(v as RevealResults)}>
-                  <SelectTrigger className="mt-1 border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="live">Live (During Voting)</SelectItem>
-                    <SelectItem value="after_close">After Poll Closes</SelectItem>
-                    <SelectItem value="admin_only">Admin Only</SelectItem>
-                  </SelectContent>
-                </Select>
+                <PremiumSelect value={revealResults} onValueChange={(v) => setRevealResults(v as RevealResults)}>
+                  <PremiumSelectTrigger className="mt-1">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
+                    <PremiumSelectItem value="live">Live (During Voting)</PremiumSelectItem>
+                    <PremiumSelectItem value="after_close">After Poll Closes</PremiumSelectItem>
+                    <PremiumSelectItem value="admin_only">Admin Only</PremiumSelectItem>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
             </div>
 

@@ -27,19 +27,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import {
   useCommunityPolls,
   usePublishPoll,
@@ -139,42 +139,57 @@ function PollRow({ poll, onPublish, onClose, onDelete }: PollRowProps) {
       </div>
 
       {/* Actions */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <PremiumDropdownMenu>
+        <PremiumDropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-white/40 hover:bg-white/10 hover:text-white">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuItem asChild>
-            <Link href={`/admin/community/polls/${poll.id}`}>View Details</Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={`/admin/community/polls/${poll.id}/results`}>View Results</Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
+        </PremiumDropdownMenuTrigger>
+        <PremiumDropdownMenuContent align="end">
+          <PremiumDropdownMenuItem asChild>
+            <Link href={`/admin/community/polls/${poll.id}`} className="flex items-center gap-2.5">
+              <Vote className="h-4 w-4" />
+              View Details
+            </Link>
+          </PremiumDropdownMenuItem>
+          <PremiumDropdownMenuItem asChild>
+            <Link href={`/admin/community/polls/${poll.id}/results`} className="flex items-center gap-2.5">
+              <BarChart3 className="h-4 w-4" />
+              View Results
+            </Link>
+          </PremiumDropdownMenuItem>
+          <PremiumDropdownMenuSeparator />
           {(poll.status === "draft" || poll.status === "approved") && (
-            <DropdownMenuItem onClick={onPublish} className="text-emerald-400">
-              <CheckCircle2 className="mr-2 h-4 w-4" />
+            <PremiumDropdownMenuItem 
+              onClick={onPublish} 
+              variant="success"
+              icon={<CheckCircle2 className="h-4 w-4" />}
+            >
               Publish
-            </DropdownMenuItem>
+            </PremiumDropdownMenuItem>
           )}
           {poll.status === "live" && (
-            <DropdownMenuItem onClick={onClose} className="text-amber-400">
-              <XCircle className="mr-2 h-4 w-4" />
+            <PremiumDropdownMenuItem 
+              onClick={onClose} 
+              variant="warning"
+              icon={<XCircle className="h-4 w-4" />}
+            >
               Close Poll
-            </DropdownMenuItem>
+            </PremiumDropdownMenuItem>
           )}
           {(poll.status === "draft" || poll.status === "pending_approval") && (
             <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onDelete} className="text-rose-400">
+              <PremiumDropdownMenuSeparator />
+              <PremiumDropdownMenuItem 
+                onClick={onDelete} 
+                variant="destructive"
+              >
                 Delete
-              </DropdownMenuItem>
+              </PremiumDropdownMenuItem>
             </>
           )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </PremiumDropdownMenuContent>
+      </PremiumDropdownMenu>
     </div>
   );
 }
@@ -375,21 +390,20 @@ export default function PollsListPage() {
             className="pl-10 rounded-xl border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:border-violet-500/50 focus:ring-violet-500/20"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as PollStatus | "all")}>
-          <SelectTrigger className="w-40 rounded-xl border-white/10 bg-white/5 text-white">
-            <Filter className="mr-2 h-4 w-4 text-white/40" />
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="pending_approval">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="live">Live</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
-          </SelectContent>
-        </Select>
+        <PremiumSelect value={statusFilter} onValueChange={(v) => setStatusFilter(v as PollStatus | "all")}>
+          <PremiumSelectTrigger className="w-44" icon={<Filter className="h-4 w-4" />}>
+            <PremiumSelectValue placeholder="Status" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            <PremiumSelectItem value="all">All Status</PremiumSelectItem>
+            <PremiumSelectItem value="draft">Draft</PremiumSelectItem>
+            <PremiumSelectItem value="pending_approval">Pending Approval</PremiumSelectItem>
+            <PremiumSelectItem value="approved">Approved</PremiumSelectItem>
+            <PremiumSelectItem value="live">Live</PremiumSelectItem>
+            <PremiumSelectItem value="closed">Closed</PremiumSelectItem>
+            <PremiumSelectItem value="archived">Archived</PremiumSelectItem>
+          </PremiumSelectContent>
+        </PremiumSelect>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

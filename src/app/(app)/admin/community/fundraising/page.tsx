@@ -9,18 +9,17 @@ import {
   ArrowLeft,
   ArrowRight,
   Clock,
-  DollarSign,
+  
   Filter,
   Heart,
-  Loader2,
+ 
   MoreHorizontal,
   Pause,
   Play,
   Plus,
   Search,
   Target,
-  TrendingUp,
-  Users,
+ 
   XCircle,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -102,7 +101,7 @@ interface CampaignRowProps {
 
 function CampaignRow({ campaign, onPublish, onPause, onClose, onDelete }: CampaignRowProps) {
   return (
-    <div className="group flex items-center gap-4 border-b border-white/5 px-5 py-4 transition-all hover:bg-white/[0.03]">
+    <div className="group flex items-center gap-4 border-b border-white/5 px-5 py-4 transition-all hover:bg-white/3">
       {/* Title & Status */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -132,7 +131,7 @@ function CampaignRow({ campaign, onPublish, onPause, onClose, onDelete }: Campai
         </div>
         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all"
+            className="h-full rounded-full bg-linear-to-r from-emerald-500 to-emerald-400 transition-all"
             style={{ width: `${Math.min(campaign.progressPercent, 100)}%` }}
           />
         </div>

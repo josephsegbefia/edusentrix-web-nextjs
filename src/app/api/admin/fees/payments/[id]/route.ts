@@ -1,0 +1,371 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/app/api/admin/fees/payments/[id]/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { connectToDatabase } from "@/db/connectToDatabase";
+import { Payment } from "@/models/Payment";
+import { PaymentAllocation } from "@/models/PaymentAllocation";
+import { Invoice } from "@/models/Invoice";
+import { InvoiceLineItem } from "@/models/InvoiceLineItem";
+import { InvoiceEvent } from "@/models/InvoiceEvent";
+import { StudentCreditBalance } from "@/models/StudentCreditBalance";
+import {
+  calculateInvoiceTotals,
+  calculateInvoiceStatus,
+} from "@/lib/fees/invoice-utils";
+import { applyPaymentAllocations } from "@/lib/fees/applyPaymentAllocation";
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { schoolId } = await requireFinanceStaff();
+  await connectToDatabase();
+
+  const { id } = await params;
+
+  const payment = await Payment.findOne({ _id: id, schoolId })
+    .populate("studentId", "firstName lastName admissionNo")
+    .populate("invoiceId", "invoiceNumber academicPeriodId")
+    .populate("receivedBy", "name email")
+    .lean();
+
+  if (!payment)
+    return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+
+  const allocations = await PaymentAllocation.find({
+    paymentId: new mongoose.Types.ObjectId(id),
+  })
+    .populate("invoiceLineItemId", "name amountMinor")
+    .lean();
+
+  return NextResponse.json({ payment: { ...payment, allocations } });
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { schoolId, userId } = await requireFinanceStaff();
+  await connectToDatabase();
+
+  const { id } = await params;
+  const body = await req.json();
+  const { action, reviewNotes } = body as {
+    action: "approve_proof" | "reject_proof" | "reverse";
+    reviewNotes?: string;
+  };
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const payment = await Payment.findOne({ _id: id, schoolId }).session(
+      session
+    );
+    if (!payment) {
+      await session.abortTransaction();
+      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+    }
+
+    const invoice = await Invoice.findOne({
+      _id: payment.invoiceId,
+      schoolId,
+    }).session(session);
+    if (!invoice) {
+      await session.abortTransaction();
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    if (action === "approve_proof") {
+      if (
+        payment.status !== "pending" ||
+        payment.approvalStatus !== "pending"
+      ) {
+        await session.abortTransaction();
+        return NextResponse.json(
+          { error: "Payment is not pending approval" },
+          { status: 400 }
+        );
+      }
+
+      // Post allocations from requestedAllocations
+      const requested = (payment.requestedAllocations || []).map((a: any) => ({
+        invoiceLineItemId: String(a.invoiceLineItemId),
+        amountMinor: a.amountMinor,
+        installmentScheduleId: a.installmentScheduleId
+          ? String(a.installmentScheduleId)
+          : null,
+        installmentNumber: a.installmentNumber ?? null,
+        notes: a.notes ?? null,
+      }));
+
+      if (!requested.length) {
+        await session.abortTransaction();
+        return NextResponse.json(
+          { error: "No requested allocations to approve" },
+          { status: 400 }
+        );
+      }
+
+      const { overpaymentMinor } = await applyPaymentAllocations({
+        session,
+        paymentId: payment._id,
+        invoiceId: invoice._id,
+        allocations: requested,
+      });
+
+      // credit overpayment
+      if (overpaymentMinor > 0) {
+        let credit = await StudentCreditBalance.findOne({
+          schoolId,
+          studentId: invoice.studentId,
+        }).session(session);
+
+        if (!credit) {
+          [credit] = await StudentCreditBalance.create(
+            [
+              {
+                schoolId,
+                studentId: invoice.studentId,
+                balanceMinor: 0,
+                entries: [],
+              },
+            ],
+            { session }
+          );
+        }
+
+        credit.balanceMinor += overpaymentMinor;
+        credit.entries.push({
+          type: "credit",
+          amountMinor: overpaymentMinor,
+          sourcePaymentId: payment._id,
+          reason: `Overpayment from payment ${payment.receiptNumber}`,
+          createdAt: new Date(),
+        });
+        await credit.save({ session });
+      }
+
+      // recalc invoice totals
+      const lineItems = await InvoiceLineItem.find({
+        invoiceId: invoice._id,
+      }).session(session);
+      const totals = calculateInvoiceTotals(
+        lineItems.map((li) => ({
+          amountMinor: li.amountMinor,
+          amountPaidMinor: li.amountPaidMinor,
+        }))
+      );
+
+      invoice.totalPaidMinor = totals.totalPaidMinor;
+      invoice.totalOutstandingMinor = totals.totalOutstandingMinor;
+      invoice.status = calculateInvoiceStatus(
+        invoice.totalPaidMinor,
+        invoice.totalAmountMinor,
+        lineItems,
+        invoice.issueDate
+      );
+      if (invoice.status === "paid") invoice.paidDate = new Date();
+      if (invoice.status !== "paid") invoice.paidDate = null;
+
+      await invoice.save({ session });
+
+      payment.status = "completed";
+      payment.approvalStatus = "approved";
+      payment.reviewedBy = userId || null;
+      payment.reviewedAt = new Date();
+      payment.reviewNotes = reviewNotes || null;
+      payment.receivedBy = userId || null;
+      await payment.save({ session });
+
+      await InvoiceEvent.create(
+        [
+          {
+            invoiceId: invoice._id,
+            schoolId,
+            studentId: invoice.studentId,
+            eventType: "payment_recorded",
+            description: `Payment proof approved • ${payment.receiptNumber}`,
+            performedBy: userId || null,
+            relatedPaymentId: payment._id,
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "reject_proof") {
+      if (
+        payment.status !== "pending" ||
+        payment.approvalStatus !== "pending"
+      ) {
+        await session.abortTransaction();
+        return NextResponse.json(
+          { error: "Payment is not pending approval" },
+          { status: 400 }
+        );
+      }
+
+      payment.approvalStatus = "rejected";
+      payment.reviewedBy = userId || null;
+      payment.reviewedAt = new Date();
+      payment.reviewNotes = reviewNotes || null;
+      payment.status = "failed";
+      await payment.save({ session });
+
+      await InvoiceEvent.create(
+        [
+          {
+            invoiceId: invoice._id,
+            schoolId,
+            studentId: invoice.studentId,
+            eventType: "payment_recorded",
+            description: `Payment proof rejected • ${payment.receiptNumber}`,
+            performedBy: userId || null,
+            relatedPaymentId: payment._id,
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "reverse") {
+      if (payment.status !== "completed") {
+        await session.abortTransaction();
+        return NextResponse.json(
+          { error: "Only completed payments can be reversed" },
+          { status: 400 }
+        );
+      }
+
+      // Safety: if this payment created credit, don’t reverse yet (until you track credit source usage)
+      const credit = await StudentCreditBalance.findOne({
+        schoolId,
+        studentId: invoice.studentId,
+      }).session(session);
+      const creditFromPayment =
+        credit?.entries?.filter(
+          (e: any) =>
+            e.type === "credit" &&
+            String(e.sourcePaymentId) === String(payment._id)
+        ) || [];
+      if (creditFromPayment.length) {
+        await session.abortTransaction();
+        return NextResponse.json(
+          {
+            error:
+              "This payment created credit. Reverse credit usage first (safe-guard).",
+          },
+          { status: 400 }
+        );
+      }
+
+      const allocations = await PaymentAllocation.find({
+        paymentId: payment._id,
+      }).session(session);
+
+      // Reverse line item + schedules
+      for (const a of allocations) {
+        const li = await InvoiceLineItem.findById(a.invoiceLineItemId).session(
+          session
+        );
+        if (!li) continue;
+
+        li.amountPaidMinor = Math.max(0, li.amountPaidMinor - a.amountMinor);
+        li.amountOutstandingMinor = li.amountMinor - li.amountPaidMinor;
+        li.isFullyPaid = li.amountOutstandingMinor <= 0;
+        li.status = li.isFullyPaid
+          ? "paid"
+          : li.amountPaidMinor > 0
+          ? "partially_paid"
+          : "pending";
+        await li.save({ session });
+
+        if (a.installmentScheduleId) {
+          const sch = await (
+            await import("@/models/InstallmentSchedule")
+          ).InstallmentSchedule.findById(a.installmentScheduleId).session(
+            session
+          );
+
+          if (sch) {
+            sch.amountPaidMinor = Math.max(
+              0,
+              sch.amountPaidMinor - a.amountMinor
+            );
+            sch.amountOutstandingMinor = sch.amountMinor - sch.amountPaidMinor;
+            sch.status =
+              sch.amountPaidMinor >= sch.amountMinor
+                ? "paid"
+                : sch.amountPaidMinor > 0
+                ? "partially_paid"
+                : "pending";
+            await sch.save({ session });
+          }
+        }
+      }
+
+      // Recalc invoice
+      const lineItems = await InvoiceLineItem.find({
+        invoiceId: invoice._id,
+      }).session(session);
+      const totals = calculateInvoiceTotals(
+        lineItems.map((li) => ({
+          amountMinor: li.amountMinor,
+          amountPaidMinor: li.amountPaidMinor,
+        }))
+      );
+
+      invoice.totalPaidMinor = totals.totalPaidMinor;
+      invoice.totalOutstandingMinor = totals.totalOutstandingMinor;
+      invoice.status = calculateInvoiceStatus(
+        invoice.totalPaidMinor,
+        invoice.totalAmountMinor,
+        lineItems,
+        invoice.issueDate
+      );
+      if (invoice.status !== "paid") invoice.paidDate = null;
+      await invoice.save({ session });
+
+      payment.status = "reversed";
+      payment.notes = payment.notes
+        ? `${payment.notes}\nReversed: ${reviewNotes || ""}`
+        : `Reversed: ${reviewNotes || ""}`;
+      await payment.save({ session });
+
+      await InvoiceEvent.create(
+        [
+          {
+            invoiceId: invoice._id,
+            schoolId,
+            studentId: invoice.studentId,
+            eventType: "refunded",
+            description: `Payment reversed • ${payment.receiptNumber}`,
+            performedBy: userId || null,
+            relatedPaymentId: payment._id,
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+      return NextResponse.json({ success: true });
+    }
+
+    await session.abortTransaction();
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  } catch (e: any) {
+    await session.abortTransaction();
+    return NextResponse.json({ error: e.message || "Failed" }, { status: 500 });
+  } finally {
+    await session.endSession();
+  }
+}

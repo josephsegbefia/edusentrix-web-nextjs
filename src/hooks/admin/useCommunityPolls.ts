@@ -371,3 +371,34 @@ export function useRejectPoll() {
     },
   });
 }
+
+export function useExportPollResults() {
+  return useMutation({
+    mutationFn: async (pollId: string) => {
+      const res = await fetch(`/api/admin/community/polls/${pollId}/export`, {
+        method: "GET",
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Export failed" }));
+        throw new Error(error.error || "Failed to export poll results");
+      }
+      // Trigger download
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const contentDisposition = res.headers.get("Content-Disposition");
+      const fileName = contentDisposition
+        ? contentDisposition.split("filename=")[1]?.replace(/"/g, "") || "poll-results.csv"
+        : "poll-results.csv";
+      
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true };
+    },
+  });
+}

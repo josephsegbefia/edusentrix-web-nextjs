@@ -9,13 +9,14 @@ import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import {
   ArrowLeft,
   ArrowRight,
+  Banknote,
   Calendar,
   CheckCircle2,
-
   DollarSign,
+  Download,
   Edit,
   Heart,
- 
+  Lock,
   MoreHorizontal,
   Pause,
   Play,
@@ -29,23 +30,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import {
   useFundraisingCampaign,
   useCampaignDonations,
-  usePublishCampaign,
-  usePauseCampaign,
-  useCloseCampaign,
+  useExportCampaignDonations,
 } from "@/hooks/admin/useFundraisingCampaigns";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+// Import modals
+import EditCampaignModal from "@/components/modals/EditCampaignModal";
+import ApproveCampaignModal from "@/components/modals/ApproveCampaignModal";
+import RejectCampaignModal from "@/components/modals/RejectCampaignModal";
+import CloseCampaignModal from "@/components/modals/CloseCampaignModal";
+import RecordOfflineDonationModal from "@/components/modals/RecordOfflineDonationModal";
 
 // ============================================================================
 // Styles
@@ -88,48 +94,34 @@ export default function CampaignDetailPage() {
   const params = useParams();
   const campaignId = params.id as string;
 
-  const { data: campaign, isLoading: campaignLoading, isError: campaignError } = useFundraisingCampaign(campaignId);
-  const { data: donationsData, isLoading: donationsLoading } = useCampaignDonations(campaignId, { limit: 10 });
+  const { data: campaign, isLoading: campaignLoading, isError: campaignError, refetch } = useFundraisingCampaign(campaignId);
+  const { data: donationsData, isLoading: donationsLoading, refetch: refetchDonations } = useCampaignDonations(campaignId, { limit: 10 });
 
-  const publishMutation = usePublishCampaign();
-  const pauseMutation = usePauseCampaign();
-  const closeMutation = useCloseCampaign();
+  const exportMutation = useExportCampaignDonations();
   const busyToast = useBusyToast();
 
-  const handlePublish = async () => {
-    busyToast.show("Publishing campaign...");
+  // Modal states
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [approveModalOpen, setApproveModalOpen] = React.useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = React.useState(false);
+  const [closeModalOpen, setCloseModalOpen] = React.useState(false);
+  const [recordDonationModalOpen, setRecordDonationModalOpen] = React.useState(false);
+
+  const handleExport = async () => {
+    busyToast.show("Exporting donations...");
     try {
-      await publishMutation.mutateAsync(campaignId);
-      toast.success("Campaign published successfully");
+      await exportMutation.mutateAsync(campaignId);
+      toast.success("Donations exported successfully");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to publish campaign");
+      toast.error(e instanceof Error ? e.message : "Failed to export donations");
     } finally {
       busyToast.hide();
     }
   };
 
-  const handlePause = async () => {
-    busyToast.show("Pausing campaign...");
-    try {
-      await pauseMutation.mutateAsync(campaignId);
-      toast.success("Campaign paused");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to pause campaign");
-    } finally {
-      busyToast.hide();
-    }
-  };
-
-  const handleClose = async () => {
-    busyToast.show("Closing campaign...");
-    try {
-      await closeMutation.mutateAsync(campaignId);
-      toast.success("Campaign closed");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to close campaign");
-    } finally {
-      busyToast.hide();
-    }
+  const handleModalSuccess = () => {
+    refetch();
+    refetchDonations();
   };
 
   if (campaignLoading) {
@@ -218,8 +210,8 @@ export default function CampaignDetailPage() {
               </div>
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <PremiumDropdownMenu>
+              <PremiumDropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
@@ -227,35 +219,73 @@ export default function CampaignDetailPage() {
                 >
                   <MoreHorizontal className="h-5 w-5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {(campaign.status === "draft" || campaign.status === "approved" || campaign.status === "paused") && (
-                  <DropdownMenuItem onClick={handlePublish} className="text-emerald-400">
-                    <Play className="mr-2 h-4 w-4" />
-                    {campaign.status === "paused" ? "Resume" : "Publish"}
-                  </DropdownMenuItem>
+              </PremiumDropdownMenuTrigger>
+              <PremiumDropdownMenuContent align="end">
+                {/* Edit Campaign */}
+                <PremiumDropdownMenuItem 
+                  onClick={() => setEditModalOpen(true)}
+                  icon={<Edit className="h-4 w-4" />}
+                >
+                  Edit Campaign
+                </PremiumDropdownMenuItem>
+
+                {/* Record Offline Donation */}
+                {(campaign.status === "live" || campaign.status === "approved") && (
+                  <PremiumDropdownMenuItem 
+                    onClick={() => setRecordDonationModalOpen(true)}
+                    icon={<Banknote className="h-4 w-4" />}
+                  >
+                    Record Offline Donation
+                  </PremiumDropdownMenuItem>
                 )}
-                {campaign.status === "live" && (
+
+                <PremiumDropdownMenuSeparator />
+
+                {/* Approve/Reject (for pending_approval) */}
+                {campaign.approvalStatus === "pending" && (
                   <>
-                    <DropdownMenuItem onClick={handlePause} className="text-orange-400">
-                      <Pause className="mr-2 h-4 w-4" />
-                      Pause
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleClose} className="text-amber-400">
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Close Campaign
-                    </DropdownMenuItem>
+                    <PremiumDropdownMenuItem 
+                      onClick={() => setApproveModalOpen(true)} 
+                      variant="success"
+                      icon={<CheckCircle2 className="h-4 w-4" />}
+                    >
+                      Approve Campaign
+                    </PremiumDropdownMenuItem>
+                    <PremiumDropdownMenuItem 
+                      onClick={() => setRejectModalOpen(true)} 
+                      variant="destructive"
+                      icon={<XCircle className="h-4 w-4" />}
+                    >
+                      Reject Campaign
+                    </PremiumDropdownMenuItem>
                   </>
                 )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href={`/admin/community/fundraising/${campaignId}/edit`}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Campaign
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+                {/* Close (for live) */}
+                {campaign.status === "live" && (
+                  <PremiumDropdownMenuItem 
+                    onClick={() => setCloseModalOpen(true)} 
+                    variant="warning"
+                    icon={<Lock className="h-4 w-4" />}
+                  >
+                    Close Campaign
+                  </PremiumDropdownMenuItem>
+                )}
+
+                {/* Export Donations */}
+                {campaign.donorCount > 0 && (
+                  <>
+                    <PremiumDropdownMenuSeparator />
+                    <PremiumDropdownMenuItem 
+                      onClick={handleExport}
+                      icon={<Download className="h-4 w-4" />}
+                    >
+                      Export Donations
+                    </PremiumDropdownMenuItem>
+                  </>
+                )}
+              </PremiumDropdownMenuContent>
+            </PremiumDropdownMenu>
           </div>
 
           {/* Progress Section */}
@@ -467,6 +497,47 @@ export default function CampaignDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          Modals
+      ══════════════════════════════════════════════════════════════════════ */}
+      {campaign && (
+        <>
+          <EditCampaignModal
+            open={editModalOpen}
+            onOpenChange={setEditModalOpen}
+            campaign={campaign}
+            onSuccess={handleModalSuccess}
+          />
+          <ApproveCampaignModal
+            open={approveModalOpen}
+            onOpenChange={setApproveModalOpen}
+            campaign={campaign}
+            onSuccess={handleModalSuccess}
+          />
+          <RejectCampaignModal
+            open={rejectModalOpen}
+            onOpenChange={setRejectModalOpen}
+            campaignId={campaign.id}
+            campaignTitle={campaign.title}
+            onSuccess={handleModalSuccess}
+          />
+          <CloseCampaignModal
+            open={closeModalOpen}
+            onOpenChange={setCloseModalOpen}
+            campaign={campaign}
+            onSuccess={handleModalSuccess}
+          />
+          <RecordOfflineDonationModal
+            open={recordDonationModalOpen}
+            onOpenChange={setRecordDonationModalOpen}
+            campaignId={campaign.id}
+            campaignTitle={campaign.title}
+            currency={campaign.currency}
+            onSuccess={handleModalSuccess}
+          />
+        </>
+      )}
     </div>
   );
 }

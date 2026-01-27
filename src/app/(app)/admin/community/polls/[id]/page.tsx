@@ -7,16 +7,16 @@ import { useParams } from "next/navigation";
 import { format } from "date-fns/format";
 import {
   ArrowLeft,
-  ArrowRight,
   BarChart3,
   Calendar,
   CheckCircle2,
-  Clock,
+  Download,
   Edit,
   Eye,
-  Loader2,
+  Lock,
   MessageSquare,
   MoreHorizontal,
+  Send,
   Users,
   Vote,
   XCircle,
@@ -35,12 +35,18 @@ import {
 import {
   useCommunityPoll,
   usePollResults,
-  usePublishPoll,
-  useClosePoll,
+  useExportPollResults,
 } from "@/hooks/admin/useCommunityPolls";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+// Import modals
+import EditPollModal from "@/components/modals/EditPollModal";
+import PublishPollModal from "@/components/modals/PublishPollModal";
+import ClosePollModal from "@/components/modals/ClosePollModal";
+import ApprovePollModal from "@/components/modals/ApprovePollModal";
+import RejectPollModal from "@/components/modals/RejectPollModal";
 
 // ============================================================================
 // Styles
@@ -156,35 +162,33 @@ export default function PollDetailPage() {
   const params = useParams();
   const pollId = params.id as string;
 
-  const { data: poll, isLoading: pollLoading, isError: pollError } = useCommunityPoll(pollId);
+  const { data: poll, isLoading: pollLoading, isError: pollError, refetch } = useCommunityPoll(pollId);
   const { data: results, isLoading: resultsLoading } = usePollResults(pollId);
 
-  const publishMutation = usePublishPoll();
-  const closeMutation = useClosePoll();
+  const exportMutation = useExportPollResults();
   const busyToast = useBusyToast();
 
-  const handlePublish = async () => {
-    busyToast.show("Publishing poll...");
+  // Modal states
+  const [editModalOpen, setEditModalOpen] = React.useState(false);
+  const [publishModalOpen, setPublishModalOpen] = React.useState(false);
+  const [closeModalOpen, setCloseModalOpen] = React.useState(false);
+  const [approveModalOpen, setApproveModalOpen] = React.useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = React.useState(false);
+
+  const handleExport = async () => {
+    busyToast.show("Exporting poll results...");
     try {
-      await publishMutation.mutateAsync(pollId);
-      toast.success("Poll published successfully");
+      await exportMutation.mutateAsync(pollId);
+      toast.success("Poll results exported successfully");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to publish poll");
+      toast.error(e instanceof Error ? e.message : "Failed to export poll");
     } finally {
       busyToast.hide();
     }
   };
 
-  const handleClose = async () => {
-    busyToast.show("Closing poll...");
-    try {
-      await closeMutation.mutateAsync(pollId);
-      toast.success("Poll closed successfully");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to close poll");
-    } finally {
-      busyToast.hide();
-    }
+  const handleModalSuccess = () => {
+    refetch();
   };
 
   if (pollLoading) {
@@ -281,31 +285,70 @@ export default function PollDetailPage() {
                 </Button>
               </PremiumDropdownMenuTrigger>
               <PremiumDropdownMenuContent align="end">
+                {/* Edit Poll */}
+                <PremiumDropdownMenuItem 
+                  onClick={() => setEditModalOpen(true)}
+                  icon={<Edit className="h-4 w-4" />}
+                >
+                  Edit Poll
+                </PremiumDropdownMenuItem>
+
+                <PremiumDropdownMenuSeparator />
+
+                {/* Publish (for draft/approved) */}
                 {(poll.status === "draft" || poll.status === "approved") && (
                   <PremiumDropdownMenuItem 
-                    onClick={handlePublish} 
+                    onClick={() => setPublishModalOpen(true)} 
                     variant="success"
-                    icon={<CheckCircle2 className="h-4 w-4" />}
+                    icon={<Send className="h-4 w-4" />}
                   >
                     Publish Poll
                   </PremiumDropdownMenuItem>
                 )}
+
+                {/* Approve/Reject (for pending_approval) */}
+                {poll.approvalStatus === "pending" && (
+                  <>
+                    <PremiumDropdownMenuItem 
+                      onClick={() => setApproveModalOpen(true)} 
+                      variant="success"
+                      icon={<CheckCircle2 className="h-4 w-4" />}
+                    >
+                      Approve Poll
+                    </PremiumDropdownMenuItem>
+                    <PremiumDropdownMenuItem 
+                      onClick={() => setRejectModalOpen(true)} 
+                      variant="destructive"
+                      icon={<XCircle className="h-4 w-4" />}
+                    >
+                      Reject Poll
+                    </PremiumDropdownMenuItem>
+                  </>
+                )}
+
+                {/* Close (for live) */}
                 {poll.status === "live" && (
                   <PremiumDropdownMenuItem 
-                    onClick={handleClose} 
+                    onClick={() => setCloseModalOpen(true)} 
                     variant="warning"
-                    icon={<XCircle className="h-4 w-4" />}
+                    icon={<Lock className="h-4 w-4" />}
                   >
                     Close Poll
                   </PremiumDropdownMenuItem>
                 )}
-                <PremiumDropdownMenuSeparator />
-                <PremiumDropdownMenuItem asChild>
-                  <Link href={`/admin/community/polls/${pollId}/edit`} className="flex items-center gap-2.5">
-                    <Edit className="h-4 w-4" />
-                    Edit Poll
-                  </Link>
-                </PremiumDropdownMenuItem>
+
+                {/* Export Results */}
+                {(poll.status === "live" || poll.status === "closed") && (
+                  <>
+                    <PremiumDropdownMenuSeparator />
+                    <PremiumDropdownMenuItem 
+                      onClick={handleExport}
+                      icon={<Download className="h-4 w-4" />}
+                    >
+                      Export Results
+                    </PremiumDropdownMenuItem>
+                  </>
+                )}
               </PremiumDropdownMenuContent>
             </PremiumDropdownMenu>
           </div>
@@ -452,6 +495,46 @@ export default function PollDetailPage() {
           </div>
         )}
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          Modals
+      ══════════════════════════════════════════════════════════════════════ */}
+      {poll && (
+        <>
+          <EditPollModal
+            open={editModalOpen}
+            onOpenChange={setEditModalOpen}
+            poll={poll}
+            onSuccess={handleModalSuccess}
+          />
+          <PublishPollModal
+            open={publishModalOpen}
+            onOpenChange={setPublishModalOpen}
+            poll={poll}
+            onSuccess={handleModalSuccess}
+          />
+          <ClosePollModal
+            open={closeModalOpen}
+            onOpenChange={setCloseModalOpen}
+            poll={poll}
+            onSuccess={handleModalSuccess}
+          />
+          <ApprovePollModal
+            open={approveModalOpen}
+            onOpenChange={setApproveModalOpen}
+            pollId={poll.id}
+            pollTitle={poll.title}
+            onSuccess={handleModalSuccess}
+          />
+          <RejectPollModal
+            open={rejectModalOpen}
+            onOpenChange={setRejectModalOpen}
+            pollId={poll.id}
+            pollTitle={poll.title}
+            onSuccess={handleModalSuccess}
+          />
+        </>
+      )}
     </div>
   );
 }

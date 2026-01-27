@@ -38,6 +38,9 @@ export type ActivityType =
   | "campaign.rejected"
   | "donation.received"
   | "donation.refunded"
+  // Community Hub - Exports
+  | "poll.exported"
+  | "campaign.exported"
   | "payout.approved";
 
 export interface IActivity {

@@ -419,3 +419,73 @@ export function useRejectCampaign() {
     },
   });
 }
+
+export function useRecordOfflineDonation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      campaignId,
+      data,
+    }: {
+      campaignId: string;
+      data: {
+        amountMinor: number;
+        currency?: string;
+        donorName?: string;
+        donorEmail?: string;
+        donorPhone?: string;
+        message?: string;
+        paymentMethod: PaymentMethod;
+        isAnonymous?: boolean;
+      };
+    }) => {
+      const res = await fetch(`/api/admin/community/fundraising/${campaignId}/donations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to record donation");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { campaignId }) => {
+      queryClient.invalidateQueries({ queryKey: ["fundraising-campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["fundraising-campaign", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-donations", campaignId] });
+    },
+  });
+}
+
+export function useExportCampaignDonations() {
+  return useMutation({
+    mutationFn: async (campaignId: string) => {
+      const res = await fetch(`/api/admin/community/fundraising/${campaignId}/export`, {
+        method: "GET",
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Export failed" }));
+        throw new Error(error.error || "Failed to export campaign donations");
+      }
+      // Trigger download
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const contentDisposition = res.headers.get("Content-Disposition");
+      const fileName = contentDisposition
+        ? contentDisposition.split("filename=")[1]?.replace(/"/g, "") || "campaign-donations.csv"
+        : "campaign-donations.csv";
+      
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true };
+    },
+  });
+}

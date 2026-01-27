@@ -10,7 +10,15 @@ type Labels = {
   error: string | ((e: Error) => string);
 };
 
-export function useBusyToast() {
+type ToastApi = ReturnType<typeof useToast>;
+
+export type BusyToast = Omit<ToastApi, "promise"> & {
+  promise: <T>(p: Promise<T>, labels: Labels) => Promise<T>;
+  show: (message: string) => void;
+  hide: () => void;
+};
+
+export function useBusyToast(): BusyToast {
   const { toast, success, error, info, warning, dismiss } = useToast();
   const { beginBusy, endBusy } = useBusy();
   const toastIdRef = useRef<string | number | null>(null);

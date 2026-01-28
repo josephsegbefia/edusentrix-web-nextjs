@@ -36,6 +36,11 @@ export type ActivityType =
   | "campaign.closed"
   | "campaign.approved"
   | "campaign.rejected"
+  | "campaign.shared"
+  | "campaign.unshared"
+  | "campaign.update_posted"
+  | "campaign.update_edited"
+  | "campaign.update_deleted"
   | "donation.received"
   | "donation.refunded"
   // Community Hub - Exports

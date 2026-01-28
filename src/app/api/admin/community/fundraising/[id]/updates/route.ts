@@ -147,8 +147,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     await recordActivity({
       schoolId: String(adminContext.schoolId),
       userId: String(adminContext.userId),
-      type: "campaign_update_posted",
-      title: "Posted Campaign Update",
+      type: "campaign.update_posted",
       description: `Posted update "${data.title}" to campaign: ${campaign.title}`,
       metadata: {
         campaignId: id,

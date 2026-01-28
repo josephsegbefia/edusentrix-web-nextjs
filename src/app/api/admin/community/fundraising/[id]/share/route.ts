@@ -143,8 +143,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     await recordActivity({
       schoolId: String(adminContext.schoolId),
       userId: String(adminContext.userId),
-      type: "campaign_shared",
-      title: regenerate ? "Regenerated Share Link" : "Enabled Public Sharing",
+      type: "campaign.shared",
       description: `${regenerate ? "Regenerated" : "Enabled"} public donation link for campaign: ${campaign.title}`,
       metadata: {
         campaignId: id,
@@ -210,8 +209,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     await recordActivity({
       schoolId: String(adminContext.schoolId),
       userId: String(adminContext.userId),
-      type: "campaign_unshared",
-      title: "Disabled Public Sharing",
+      type: "campaign.unshared",
       description: `Disabled public donation link for campaign: ${campaign.title}`,
       metadata: {
         campaignId: id,

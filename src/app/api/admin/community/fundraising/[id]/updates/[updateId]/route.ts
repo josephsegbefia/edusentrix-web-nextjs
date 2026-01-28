@@ -93,8 +93,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     await recordActivity({
       schoolId: String(adminContext.schoolId),
       userId: String(adminContext.userId),
-      type: "campaign_update_edited",
-      title: "Edited Campaign Update",
+      type: "campaign.update_edited",
       description: `Edited update "${data.title || existingUpdate.title}" on campaign: ${campaign?.title || "Unknown"}`,
       metadata: {
         campaignId: id,
@@ -154,8 +153,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     await recordActivity({
       schoolId: String(adminContext.schoolId),
       userId: String(adminContext.userId),
-      type: "campaign_update_deleted",
-      title: "Deleted Campaign Update",
+      type: "campaign.update_deleted",
       description: `Deleted update "${existingUpdate.title}" from campaign: ${campaign?.title || "Unknown"}`,
       metadata: {
         campaignId: id,

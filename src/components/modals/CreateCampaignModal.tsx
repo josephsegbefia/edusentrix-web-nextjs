@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { Switch } from "@/components/ui/switch";
 import {
   useCreateCampaign,
@@ -247,33 +247,33 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label className="text-white/70">Category</Label>
-                <Select value={category} onValueChange={(v) => setCategory(v as CampaignCategory)}>
-                  <SelectTrigger className="mt-1 border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                <PremiumSelect value={category} onValueChange={(v) => setCategory(v as CampaignCategory)}>
+                  <PremiumSelectTrigger className="mt-1">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {CATEGORIES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>
+                      <PremiumSelectItem key={c.value} value={c.value}>
                         {c.label}
-                      </SelectItem>
+                      </PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
               <div>
                 <Label className="text-white/70">Audience</Label>
-                <Select value={audienceScope} onValueChange={(v) => setAudienceScope(v as CampaignAudienceScope)}>
-                  <SelectTrigger className="mt-1 border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                <PremiumSelect value={audienceScope} onValueChange={(v) => setAudienceScope(v as CampaignAudienceScope)}>
+                  <PremiumSelectTrigger className="mt-1">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {AUDIENCE_SCOPES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
+                      <PremiumSelectItem key={s.value} value={s.value}>
                         {s.label}
-                      </SelectItem>
+                      </PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
             </div>
 
@@ -293,34 +293,34 @@ export default function CreateCampaignModal({ open, onOpenChange, onSuccess }: C
               </div>
               <div>
                 <Label className="text-white/70">Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger className="mt-1 border-white/10 bg-white/5 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                <PremiumSelect value={currency} onValueChange={setCurrency}>
+                  <PremiumSelectTrigger className="mt-1">
+                    <PremiumSelectValue />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
                     {CURRENCIES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>
+                      <PremiumSelectItem key={c.value} value={c.value}>
                         {c.label}
-                      </SelectItem>
+                      </PremiumSelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </PremiumSelectContent>
+                </PremiumSelect>
               </div>
             </div>
 
             {/* Visibility Settings */}
             <div>
               <Label className="text-white/70">Donor Visibility</Label>
-              <Select value={donorVisibility} onValueChange={(v) => setDonorVisibility(v as DonorVisibility)}>
-                <SelectTrigger className="mt-1 border-white/10 bg-white/5 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public_anonymous">Show as anonymous to public</SelectItem>
-                  <SelectItem value="public_named">Show donor names publicly</SelectItem>
-                  <SelectItem value="admin_only">Admin only (hidden from public)</SelectItem>
-                </SelectContent>
-              </Select>
+              <PremiumSelect value={donorVisibility} onValueChange={(v) => setDonorVisibility(v as DonorVisibility)}>
+                <PremiumSelectTrigger className="mt-1">
+                  <PremiumSelectValue />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="public_anonymous">Show as anonymous to public</PremiumSelectItem>
+                  <PremiumSelectItem value="public_named">Show donor names publicly</PremiumSelectItem>
+                  <PremiumSelectItem value="admin_only">Admin only (hidden from public)</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
 
             <div className="flex flex-wrap gap-6">

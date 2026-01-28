@@ -489,3 +489,214 @@ export function useExportCampaignDonations() {
     },
   });
 }
+
+// ============================================================================
+// Share Hooks
+// ============================================================================
+
+export interface ShareSettingsDTO {
+  enabled: boolean;
+  token: string | null;
+  expiresAt: string | null;
+  shareUrl: string | null;
+}
+
+export function useCampaignShareSettings(campaignId: string | undefined) {
+  return useQuery<ShareSettingsDTO>({
+    queryKey: ["campaign-share", campaignId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/community/fundraising/${campaignId}/share`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch share settings");
+      return res.json();
+    },
+    enabled: !!campaignId,
+    staleTime: 30_000,
+  });
+}
+
+export function useEnableCampaignShare() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      campaignId,
+      regenerate = false,
+      expiresInDays,
+    }: {
+      campaignId: string;
+      regenerate?: boolean;
+      expiresInDays?: number;
+    }) => {
+      const res = await fetch(`/api/admin/community/fundraising/${campaignId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ regenerate, expiresInDays }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to enable sharing");
+      }
+      return res.json() as Promise<ShareSettingsDTO & { success: boolean; message: string }>;
+    },
+    onSuccess: (_, { campaignId }) => {
+      queryClient.invalidateQueries({ queryKey: ["campaign-share", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["fundraising-campaign", campaignId] });
+    },
+  });
+}
+
+export function useDisableCampaignShare() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (campaignId: string) => {
+      const res = await fetch(`/api/admin/community/fundraising/${campaignId}/share`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to disable sharing");
+      }
+      return res.json();
+    },
+    onSuccess: (_, campaignId) => {
+      queryClient.invalidateQueries({ queryKey: ["campaign-share", campaignId] });
+      queryClient.invalidateQueries({ queryKey: ["fundraising-campaign", campaignId] });
+    },
+  });
+}
+
+// ============================================================================
+// Campaign Updates Hooks
+// ============================================================================
+
+export interface CampaignUpdateDTO {
+  id: string;
+  title: string;
+  body: string;
+  attachments: string[];
+  isPublished: boolean;
+  publishedAt: string | null;
+  createdBy: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useCampaignUpdates(campaignId: string | undefined) {
+  return useQuery<{ data: CampaignUpdateDTO[] }>({
+    queryKey: ["campaign-updates", campaignId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/community/fundraising/${campaignId}/updates`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch updates");
+      return res.json();
+    },
+    enabled: !!campaignId,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateCampaignUpdate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      campaignId,
+      data,
+    }: {
+      campaignId: string;
+      data: {
+        title: string;
+        body: string;
+        attachments?: string[];
+        isPublished?: boolean;
+      };
+    }) => {
+      const res = await fetch(`/api/admin/community/fundraising/${campaignId}/updates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to create update");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { campaignId }) => {
+      queryClient.invalidateQueries({ queryKey: ["campaign-updates", campaignId] });
+    },
+  });
+}
+
+export function useUpdateCampaignUpdate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      campaignId,
+      updateId,
+      data,
+    }: {
+      campaignId: string;
+      updateId: string;
+      data: {
+        title?: string;
+        body?: string;
+        attachments?: string[];
+        isPublished?: boolean;
+      };
+    }) => {
+      const res = await fetch(
+        `/api/admin/community/fundraising/${campaignId}/updates/${updateId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        }
+      );
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { campaignId }) => {
+      queryClient.invalidateQueries({ queryKey: ["campaign-updates", campaignId] });
+    },
+  });
+}
+
+export function useDeleteCampaignUpdate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      campaignId,
+      updateId,
+    }: {
+      campaignId: string;
+      updateId: string;
+    }) => {
+      const res = await fetch(
+        `/api/admin/community/fundraising/${campaignId}/updates/${updateId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete update");
+      }
+      return res.json();
+    },
+    onSuccess: (_, { campaignId }) => {
+      queryClient.invalidateQueries({ queryKey: ["campaign-updates", campaignId] });
+    },
+  });
+}

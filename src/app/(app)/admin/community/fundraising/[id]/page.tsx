@@ -17,10 +17,15 @@ import {
   Edit,
   Heart,
   Lock,
+  Megaphone,
   MoreHorizontal,
   Pause,
+  Pencil,
   Play,
+  Plus,
+  Share2,
   Target,
+  Trash2,
   TrendingUp,
   Users,
   XCircle,
@@ -40,6 +45,9 @@ import {
   useFundraisingCampaign,
   useCampaignDonations,
   useExportCampaignDonations,
+  useCampaignUpdates,
+  useDeleteCampaignUpdate,
+  CampaignUpdateDTO,
 } from "@/hooks/admin/useFundraisingCampaigns";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { formatMoney } from "@/lib/fees/money";
@@ -52,6 +60,8 @@ import ApproveCampaignModal from "@/components/modals/ApproveCampaignModal";
 import RejectCampaignModal from "@/components/modals/RejectCampaignModal";
 import CloseCampaignModal from "@/components/modals/CloseCampaignModal";
 import RecordOfflineDonationModal from "@/components/modals/RecordOfflineDonationModal";
+import { ShareCampaignModal } from "@/components/modals/ShareCampaignModal";
+import { PostCampaignUpdateModal } from "@/components/modals/PostCampaignUpdateModal";
 
 // ============================================================================
 // Styles
@@ -96,8 +106,10 @@ export default function CampaignDetailPage() {
 
   const { data: campaign, isLoading: campaignLoading, isError: campaignError, refetch } = useFundraisingCampaign(campaignId);
   const { data: donationsData, isLoading: donationsLoading, refetch: refetchDonations } = useCampaignDonations(campaignId, { limit: 10 });
+  const { data: updatesData, isLoading: updatesLoading, refetch: refetchUpdates } = useCampaignUpdates(campaignId);
 
   const exportMutation = useExportCampaignDonations();
+  const deleteUpdateMutation = useDeleteCampaignUpdate();
   const busyToast = useBusyToast();
 
   // Modal states
@@ -106,6 +118,9 @@ export default function CampaignDetailPage() {
   const [rejectModalOpen, setRejectModalOpen] = React.useState(false);
   const [closeModalOpen, setCloseModalOpen] = React.useState(false);
   const [recordDonationModalOpen, setRecordDonationModalOpen] = React.useState(false);
+  const [shareModalOpen, setShareModalOpen] = React.useState(false);
+  const [postUpdateModalOpen, setPostUpdateModalOpen] = React.useState(false);
+  const [editingUpdate, setEditingUpdate] = React.useState<CampaignUpdateDTO | null>(null);
 
   const handleExport = async () => {
     busyToast.show("Exporting donations...");
@@ -122,6 +137,22 @@ export default function CampaignDetailPage() {
   const handleModalSuccess = () => {
     refetch();
     refetchDonations();
+    refetchUpdates();
+  };
+
+  const handleDeleteUpdate = async (updateId: string) => {
+    try {
+      await deleteUpdateMutation.mutateAsync({ campaignId, updateId });
+      toast.success("Update deleted");
+      refetchUpdates();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete update");
+    }
+  };
+
+  const handleEditUpdate = (update: CampaignUpdateDTO) => {
+    setEditingUpdate(update);
+    setPostUpdateModalOpen(true);
   };
 
   if (campaignLoading) {
@@ -236,6 +267,16 @@ export default function CampaignDetailPage() {
                     icon={<Banknote className="h-4 w-4" />}
                   >
                     Record Offline Donation
+                  </PremiumDropdownMenuItem>
+                )}
+
+                {/* Share Campaign */}
+                {campaign.status === "live" && (
+                  <PremiumDropdownMenuItem 
+                    onClick={() => setShareModalOpen(true)}
+                    icon={<Share2 className="h-4 w-4" />}
+                  >
+                    Share Campaign
                   </PremiumDropdownMenuItem>
                 )}
 
@@ -414,6 +455,112 @@ export default function CampaignDetailPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
+          Campaign Updates
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+
+        <CardHeader className="relative z-10 flex flex-row items-center justify-between border-b border-white/5 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-violet-500/20 to-purple-500/20">
+              <Megaphone className="h-5 w-5 text-violet-400" />
+            </div>
+            <CardTitle className="text-lg text-white">Updates</CardTitle>
+          </div>
+          <Button
+            onClick={() => {
+              setEditingUpdate(null);
+              setPostUpdateModalOpen(true);
+            }}
+            size="sm"
+            className="gap-1.5 bg-violet-600/80 text-white hover:bg-violet-600"
+          >
+            <Plus className="h-4 w-4" />
+            Post Update
+          </Button>
+        </CardHeader>
+        <CardContent className="relative z-10 p-6">
+          {updatesLoading ? (
+            <div className="flex flex-col items-center justify-center gap-4 py-8">
+              <div className="relative">
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-violet-500/20 border-t-violet-500" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Megaphone className="h-4 w-4 text-violet-400/60" />
+                </div>
+              </div>
+              <p className="text-sm text-white/60">Loading updates...</p>
+            </div>
+          ) : !updatesData?.data || updatesData.data.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-4 py-8">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                <Megaphone className="h-8 w-8 text-white/30" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-white/80">No updates yet</p>
+                <p className="mt-1 text-sm text-white/50">
+                  Keep donors informed by posting progress updates
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {updatesData.data.map((update) => (
+                <div
+                  key={update.id}
+                  className="group rounded-xl border border-white/5 bg-white/2 p-5 transition-colors hover:bg-white/4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-white">{update.title}</h4>
+                        {!update.isPublished && (
+                          <Badge className="rounded-full border-slate-500/30 bg-slate-500/10 text-xs text-slate-300">
+                            Draft
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-sm text-white/60">{update.body}</p>
+                      <div className="mt-3 flex items-center gap-3 text-xs text-white/40">
+                        <span>
+                          {format(new Date(update.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                        </span>
+                        {update.createdBy && (
+                          <>
+                            <span>·</span>
+                            <span>by {update.createdBy.name}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditUpdate(update)}
+                        className="h-8 w-8 text-white/40 hover:bg-white/10 hover:text-white"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteUpdate(update.id)}
+                        disabled={deleteUpdateMutation.isPending}
+                        className="h-8 w-8 text-white/40 hover:bg-rose-500/20 hover:text-rose-400"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ══════════════════════════════════════════════════════════════════════
           Recent Donations
       ══════════════════════════════════════════════════════════════════════ */}
       <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl">
@@ -534,6 +681,22 @@ export default function CampaignDetailPage() {
             campaignId={campaign.id}
             campaignTitle={campaign.title}
             currency={campaign.currency}
+            onSuccess={handleModalSuccess}
+          />
+          <ShareCampaignModal
+            open={shareModalOpen}
+            onOpenChange={setShareModalOpen}
+            campaign={campaign}
+          />
+          <PostCampaignUpdateModal
+            open={postUpdateModalOpen}
+            onOpenChange={(open) => {
+              setPostUpdateModalOpen(open);
+              if (!open) setEditingUpdate(null);
+            }}
+            campaignId={campaign.id}
+            campaignTitle={campaign.title}
+            existingUpdate={editingUpdate}
             onSuccess={handleModalSuccess}
           />
         </>

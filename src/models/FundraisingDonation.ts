@@ -62,6 +62,10 @@ export interface IFundraisingDonation {
   refundedAt?: Date | null;
   refundReason?: string | null;
 
+  // Public donation tracking
+  isPublicDonation?: boolean;
+  internalReference?: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -115,6 +119,10 @@ const FundraisingDonationSchema = new Schema<IFundraisingDonation>(
     // Refund
     refundedAt: { type: Date, default: null },
     refundReason: { type: String, maxlength: 500, default: null },
+
+    // Public donation tracking
+    isPublicDonation: { type: Boolean, default: false },
+    internalReference: { type: String, default: null },
   },
   { timestamps: true }
 );

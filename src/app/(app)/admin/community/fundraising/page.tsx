@@ -54,6 +54,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import CreateCampaignModal from "@/components/modals/CreateCampaignModal";
 
 // ============================================================================
 // Styles
@@ -205,8 +206,16 @@ export default function FundraisingListPage() {
   const [statusFilter, setStatusFilter] = React.useState<CampaignStatus | "all">("all");
   const [categoryFilter, setCategoryFilter] = React.useState<CampaignCategory | "all">("all");
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [createModalOpen, setCreateModalOpen] = React.useState(false);
 
-  const { data, isLoading, isError } = useFundraisingCampaigns({
+  // Open create modal if ?create=1 is in URL
+  React.useEffect(() => {
+    if (searchParams.get("create") === "1") {
+      setCreateModalOpen(true);
+    }
+  }, [searchParams]);
+
+  const { data, isLoading, isError, refetch } = useFundraisingCampaigns({
     status: statusFilter === "all" ? undefined : statusFilter,
     category: categoryFilter === "all" ? undefined : categoryFilter,
     limit: 50,
@@ -291,11 +300,11 @@ export default function FundraisingListPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           Premium Hero Header
       ══════════════════════════════════════════════════════════════════════ */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
         {/* Background decorations */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-gradient-to-tr from-teal-500/10 via-teal-500/5 to-transparent blur-3xl" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-emerald-500/20 via-emerald-500/10 to-transparent blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-linear-to-tr from-teal-500/10 via-teal-500/5 to-transparent blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent" />
 
         <div className="relative z-10">
           {/* Top row */}
@@ -311,7 +320,7 @@ export default function FundraisingListPage() {
                 </Button>
               </Link>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 shadow-lg shadow-emerald-500/10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-emerald-500/20 to-teal-500/20 shadow-lg shadow-emerald-500/10">
                   <Heart className="h-6 w-6 text-emerald-300" />
                 </div>
                 <div>
@@ -321,35 +330,36 @@ export default function FundraisingListPage() {
               </div>
             </div>
 
-            <Link href="/admin/community/fundraising?create=1">
-              <Button className="group gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-700 hover:shadow-emerald-500/40">
-                <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-                <span>Create Campaign</span>
-                <ArrowRight className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5" />
-              </Button>
-            </Link>
+            <Button
+              onClick={() => setCreateModalOpen(true)}
+              className="group gap-2 bg-linear-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-700 hover:shadow-emerald-500/40"
+            >
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
+              <span>Create Campaign</span>
+              <ArrowRight className="h-3.5 w-3.5 opacity-60 transition-transform group-hover:translate-x-0.5" />
+            </Button>
           </div>
 
           {/* Quick Stats */}
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/10 via-emerald-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Live Campaigns</div>
                 <div className="text-3xl font-semibold text-white drop-shadow-sm">{liveCount}</div>
                 <div className="h-[3px] w-12 rounded-full bg-emerald-500/50" />
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-teal-500/10 via-teal-500/5 to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-teal-500/10 via-teal-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Total Raised</div>
                 <div className="text-3xl font-semibold text-white drop-shadow-sm">{formatMoney(totalRaised, currency)}</div>
                 <div className="h-[3px] w-12 rounded-full bg-teal-500/50" />
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-5 shadow-lg shadow-black/20 backdrop-blur">
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/10 via-violet-500/5 to-transparent" />
               <div className="relative z-10 space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Total Donors</div>
                 <div className="text-3xl font-semibold text-white drop-shadow-sm">{totalDonors.toLocaleString()}</div>
@@ -408,10 +418,10 @@ export default function FundraisingListPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           Campaigns List
       ══════════════════════════════════════════════════════════════════════ */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
         {/* Decorative overlay */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
 
         <div className="relative z-10 divide-y divide-white/5">
           {isLoading ? (
@@ -440,7 +450,7 @@ export default function FundraisingListPage() {
           ) : campaigns.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16">
               <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-white/10 to-white/5">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-linear-to-br from-white/10 to-white/5">
                   <Heart className="h-10 w-10 text-white/30" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-emerald-500">
@@ -456,12 +466,13 @@ export default function FundraisingListPage() {
                 </p>
               </div>
               {!searchQuery && statusFilter === "all" && categoryFilter === "all" && (
-                <Link href="/admin/community/fundraising?create=1">
-                  <Button className="mt-2 gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-700">
-                    <Plus className="h-4 w-4" />
-                    Create Campaign
-                  </Button>
-                </Link>
+                <Button
+                  onClick={() => setCreateModalOpen(true)}
+                  className="mt-2 gap-2 bg-linear-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create Campaign
+                </Button>
               )}
             </div>
           ) : (
@@ -485,6 +496,16 @@ export default function FundraisingListPage() {
           </div>
         )}
       </Card>
+
+      {/* Create Campaign Modal */}
+      <CreateCampaignModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onSuccess={() => {
+          refetch();
+          setCreateModalOpen(false);
+        }}
+      />
     </div>
   );
 }

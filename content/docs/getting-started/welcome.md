@@ -8,10 +8,14 @@ EduSentrix is a unified solution for:
 - **Student Management**: Track student records, enrollment, and academic progress with a premium, industry-standard interface
 - **Teacher Management**: Premium teacher management interface with card/table views, assignments tracking, and comprehensive teacher profiles
 - **Fee Collection**: Comprehensive invoice-based fee system with flexible payment allocation, installments, and student credit management
-- **Academic Tracking**: Monitor academic periods, terms, and progress
-- **Parent Communication**: Keep parents informed via email and SMS
+- **Financial Center**: Unified view of all money movements - inflows, outflows, and net position tracking
+- **Expense Management**: Track and manage school operational expenses with approval workflows
+- **Community Hub**: Engage the school community with polls and fundraising campaigns
+- **Academic Tracking**: Monitor academic periods, terms, and progress with detailed gradebooks
+- **Master Timetable**: School-wide schedule management with conflict detection
+- **Reports & Analytics**: Comprehensive reporting across all modules with export capabilities
+- **Parent Communication**: Keep parents informed via email and invitations
 - **Activity & Audit Logging**: Comprehensive activity feed tracking all system actions
-- **Analytics & Reporting**: Real-time dashboard metrics and insights
 
 ## Key Features
 
@@ -60,6 +64,46 @@ EduSentrix is a unified solution for:
 - **Invoice Adjustments**: Add waivers, scholarships, and corrections to issued invoices
 - **Payment Methods**: Support for Cash, Mobile Money, Bank Transfer, and Card payments
 
+### Financial Center
+- **Unified View**: All money movements in one dashboard
+- **Inflow/Outflow Tracking**: Monitor income and expenses
+- **Net Position**: Track overall financial health
+- **Category Breakdowns**: Visual analysis by category
+- **Transaction Ledger**: Complete transaction history
+- **Manual Transactions**: Record transactions not auto-captured
+- **Budget Management**: Create and track budgets
+
+### Expense Management
+- **Expense Tracking**: Record all operational expenses
+- **Category Organization**: Organize by expense type
+- **Vendor Management**: Track payments to suppliers
+- **Approval Workflow**: Multi-step approval process
+- **Payment Processing**: Mark expenses as paid
+- **Attachment Support**: Upload receipts and invoices
+
+### Community Hub
+- **Polls & Surveys**: Create school-wide polls and surveys
+- **Fundraising Campaigns**: Launch and track fundraising initiatives
+- **Approval Workflow**: Review community content before publishing
+- **Progress Tracking**: Real-time donation and voting progress
+- **Public Sharing**: Shareable donation links
+- **Campaign Updates**: Post progress updates to donors
+
+### Master Timetable
+- **School-Wide View**: See all class schedules at a glance
+- **Conflict Detection**: Automatic identification of scheduling conflicts
+- **Day/Class Filtering**: Focus on specific days or classes
+- **Schedule Editing**: Modify schedules directly from timetable
+- **Session Tracking**: Monitor teaching sessions and coverage
+
+### Reports & Analytics
+- **Multi-Category Reports**: Fees, Students, Teachers, Attendance, Academics
+- **Interactive Charts**: Visual data representations
+- **Flexible Filtering**: Custom date ranges and academic periods
+- **Export Capabilities**: Download reports as CSV
+- **Report Library**: Pre-built reports for common needs
+- **Snapshot Preview**: Quick summary of key metrics
+
 ### Dashboard & Analytics
 - **Quick Stats**: Real-time metrics at a glance
 - **Activity Feed**: Track all system actions and changes
@@ -69,8 +113,9 @@ EduSentrix is a unified solution for:
 
 ### System Features
 - **Activity Logging**: Comprehensive audit trail of all actions
-- **Invitation Management**: Track and manage teacher and admin invitations
+- **Invitation Management**: Track and manage teacher, admin, and parent invitations
 - **Task Tracker**: Keep track of deferred tasks and project milestones
+- **Subject Management**: Create and manage curriculum subjects
 - **Custom Toast System**: User-friendly notifications and feedback
 - **Loading States**: Skeleton loaders and busy indicators for better UX
 - **Error Handling**: Graceful error boundaries and error messages
@@ -100,9 +145,17 @@ The main dashboard provides quick access to:
 - **Dashboard** (`/admin`): Overview of school operations and quick stats
 - **Students** (`/admin/students`): Comprehensive student management with card/table views
 - **Teachers** (`/admin/teachers`): Teacher management and assignments
+- **Classes** (`/admin/classes`): Class group management and student assignments
+- **Subjects** (`/admin/subjects`): Curriculum subject management
 - **Fees & Payments** (`/admin/fees`): Financial management, invoice creation, and payment tracking
-- **Invitations** (`/admin/invitations`): Track and manage teacher/admin invitations
+- **Expenses** (`/admin/expenses`): Track and manage operational expenses
+- **Financial Center** (`/admin/finance`): Unified view of all money movements
+- **Community Hub** (`/admin/community`): Polls and fundraising campaigns
+- **Timetable** (`/admin/timetable`): Master schedule management
+- **Reports** (`/admin/reports`): Analytics and report exports
+- **Invitations** (`/admin/invitations`): Track and manage invitations
 - **Tasks** (`/admin/tasks`): View deferred tasks and project milestones
+- **Settings** (`/admin/settings`): School configuration options
 - **Documentation** (`/docs`): Access help documentation and guides
 
 ## Keyboard Shortcuts
@@ -133,6 +186,62 @@ Speed up your workflow with keyboard shortcuts:
 
 ## Recent Updates
 
+### Community Hub (New!)
+- Create and manage school-wide polls
+- Launch fundraising campaigns with goal tracking
+- Approval workflow for community content
+- Real-time progress tracking for campaigns
+- Public donation pages with Paystack integration
+- Campaign updates and donor management
+- Export poll results and donor lists
+
+### Financial Center (New!)
+- Unified dashboard for all money movements
+- Track total inflows and outflows
+- Net position and financial health monitoring
+- Category-based income and spending breakdowns
+- Transaction ledger with full history
+- Budget creation and tracking
+- Manual transaction recording
+- Integration with Fees and Expenses modules
+
+### Expense Management (New!)
+- Record and categorize operational expenses
+- Multi-step approval workflow
+- Vendor management and tracking
+- Attachment support for receipts
+- Payment processing and tracking
+- Category-based organization
+- Integration with Financial Center
+
+### Reports & Analytics (New!)
+- Comprehensive report filters (date range and academic period)
+- Interactive charts across all categories:
+  - Fees: Revenue trends, payment methods, invoice status
+  - Students: Enrollment trends, grade distribution, status
+  - Teachers: Staff status, departments, assignments
+  - Attendance: Rate trends, status distribution
+  - Invitations: Sent trends, status, roles
+  - Academics: Subject averages, pass rates
+  - Activity: Volume trends, top activity types
+- Report library with export capabilities
+- Recent exports tracking and download
+
+### Master Timetable (New!)
+- School-wide schedule overview
+- Filter by day, grade, or class
+- Automatic conflict detection
+- Schedule editing from timetable view
+- Session and coverage tracking
+- Quick statistics dashboard
+
+### Subject Management (New!)
+- Create and manage curriculum subjects
+- Assign teachers to subjects
+- Link subjects to class groups
+- Department organization
+- Bulk subject creation
+
 ### Fees & Payments System
 - Comprehensive fees dashboard with real-time metrics
 - Single and bulk invoice creation with student search
@@ -150,22 +259,32 @@ Speed up your workflow with keyboard shortcuts:
 - Advanced search with keyboard shortcuts
 - Bulk operations for efficient management
 - Color-coded cards based on fee status
-- Academic performance badges
+- Academic performance badges with detailed gradebook
+- Overall performance trends with charts
+- Subject performance analysis over time
+- Guardian management with real-time updates
 - Export functionality
 - Command palette integration
-- Pagination and sorting
 
-### Teachers Management (New!)
-- Premium card and table view modes matching students page
-- Card view as default with status-based color coding
+### Teachers Management
+- Premium card and table view modes
+- Status-based color coding (Active, On Leave, Terminated, Inactive)
 - Advanced search and filtering (subject, class group, department)
 - Teacher detail pages with comprehensive tabs
 - Assignment management system for classes and subjects
+- Schedule management through assignments
 - Command palette with teacher-specific actions
 - Quick stats dashboard
 - Bulk selection and operations
-- Professional information tracking (Employee ID, Department, Hire Date)
-- Status management (Active, Inactive, On Leave, Terminated)
+- Professional information tracking
+
+### Invitation Management
+- Track all sent invitations
+- Status monitoring (Pending, Accepted, Expired, Revoked)
+- Resend and revoke capabilities
+- Role-based invitation tracking (Teacher, Admin, Parent)
+- Export invitation data
+- Integration with Clerk authentication
 
 ### Dashboard Enhancements
 - Activity feed with real-time updates
@@ -176,7 +295,6 @@ Speed up your workflow with keyboard shortcuts:
 
 ### System Improvements
 - Comprehensive activity logging
-- Invitation management system
 - Task tracker for deferred tasks
 - Custom toast notification system
 - Improved error handling

@@ -288,8 +288,8 @@ export async function POST(req: NextRequest) {
 
     // Record activity
     await recordActivity({
-      schoolId: schoolIdObj,
-      userId: new mongoose.Types.ObjectId(userId),
+      schoolId: String(schoolIdObj),
+      userId: String(userId),
       type: "teacher.created",
       entityType: "teacher",
       entityId: String(teacherRecord._id),
@@ -299,21 +299,7 @@ export async function POST(req: NextRequest) {
         email: normalizedBody.email,
         subjectIds: normalizedBody.subjectIds || [],
         homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
-      },
-    });
-
-    // Record activity
-    await recordActivity({
-      schoolId: schoolIdObj,
-      userId: new mongoose.Types.ObjectId(userId),
-      type: "teacher.created",
-      entityType: "Teacher",
-      entityId: teacherRecord._id,
-      description: `Created teacher: ${normalizedBody.firstName} ${normalizedBody.lastName} (${normalizedBody.email})`,
-      metadata: {
-        email: normalizedBody.email,
-        subjectIds: normalizedBody.subjectIds || [],
-        homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
+        invitationSent: invitationStatus === "pending",
       },
     });
 

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
+import { Invitation } from "@/models/Invitation";
 
 /** Role-based landing */
 function decideNextPath(u: {
@@ -87,6 +88,28 @@ export async function GET(req: NextRequest) {
   if (!appUser.role && role) {
     await User.updateOne({ _id: appUser._id }, { $set: { role } });
     appUser.role = role as IUser["role"];
+  }
+
+  // Mark any pending invitations for this email as accepted
+  // This handles teacher/staff invitations that were sent via the school admin
+  if (email) {
+    try {
+      await Invitation.updateMany(
+        {
+          email: email.toLowerCase(),
+          status: "pending",
+        },
+        {
+          $set: {
+            status: "accepted",
+            acceptedAt: new Date(),
+          },
+        }
+      );
+    } catch (invitationError) {
+      // Don't fail the callback if invitation update fails
+      console.error("Failed to update invitation status:", invitationError);
+    }
   }
 
   const dest =

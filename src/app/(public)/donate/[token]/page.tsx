@@ -592,7 +592,7 @@ export default function PublicDonatePage() {
         </AnimatePresence>
 
         {/* Recent Donors */}
-        {campaign.recentDonors.length > 0 && step !== "success" && (
+        {campaign.recentDonors.length > 0 && (
           <Card className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 shadow-lg">
             <CardHeader className="border-b border-white/5 pb-3">
               <CardTitle className="text-sm font-medium text-white/60">Recent Supporters</CardTitle>

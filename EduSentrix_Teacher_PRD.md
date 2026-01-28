@@ -169,9 +169,24 @@ Provide teachers with a **complete digital operating system** to manage classes,
 - "At-risk list" for students (low completion, low scores, poor attendance)
 - Future: recommendations, topic mastery gaps
 
+
 ### 5.8 Lesson Notes & Class Journal
 - Class Journal: period-wise lesson notes, homework, remarks
 - Lesson Notes: per topic/week, attach resources, copy across terms
+
+### 5.8.1 Access Decision Rule (RBAC + Settings + Scope)
+
+All teacher capabilities must pass **three gates**:
+
+1. **RBAC permission** (does the teacher have the atomic permission?)
+2. **SchoolSettings feature flag** (is the feature enabled for the school?)
+3. **Scope rule** (is the teacher allowed to act on this specific class/subject/student?)
+
+> Final decision = `hasPermission(permissionKey)` ✅ AND `SchoolSettings[feature] === enabled` ✅ AND `scopeAllows(context)` ✅
+
+Examples:
+- A teacher may have `attendance.notify.guardian` but notifications are blocked if `SchoolSettings.attendanceNotifications.enabled = false`.
+- A teacher may have `studio.assignment.publish` but cannot publish for a class/subject outside their assignment scope.
 
 ### 5.9 Offline Support Strategy
 
@@ -184,7 +199,8 @@ Provide teachers with a **complete digital operating system** to manage classes,
 
 **Sync Approach:**
 - Optimistic UI with background sync queue
-- Service Worker for caching static assets and API responses
+- **Web (Next.js):** ship as a **PWA** with a Service Worker to cache static assets and selected API responses (required for true offline)
+- **Mobile (RN / Expo):** local persistence + background sync queue (implementation later)
 - IndexedDB for structured data (rosters, drafts, attendance)
 - LocalStorage (5MB) for quick access items (current class, today's schedule)
 
@@ -257,40 +273,68 @@ Provide teachers with a **complete digital operating system** to manage classes,
 
 ## 7. RBAC / Permissions
 
+### 7.0 Permission Key Convention
+
+To avoid auth drift, all permission keys must follow:
+
+- **Format:** `domain.resource.action` (3 segments) or `domain.resource.subresource.action` (4 segments)
+- **Examples:**
+  - `studio.assignment.create`
+  - `attendance.homeroom.take`
+  - `gradebook.term.publish`
+  - `notice.class.create`
+
+> The system may keep legacy aliases temporarily during migration, but **new code must use the standardized keys**.
+
 ### 7.1 Permission Catalog
 
 | Category | Permission Key | Description |
 |----------|---------------|-------------|
-| **Scope** | `scope.own_classes` | Access only assigned classes |
-| | `scope.homeroom` | Access homeroom class fully |
-| | `scope.subject_wide` | Access all classes for assigned subjects |
-| | `scope.school_wide` | Access all classes (admin only) |
+| **Scope** | `scope.class.assigned.read` | Access only assigned classes (and their assigned subjects) |
+| | `scope.class.homeroom.read` | Access homeroom class fully |
+| | `scope.marks.grade_wide.read` | Read marks across a grade (no guardian data) *(optional)* |
+| | `scope.marks.school_wide.read` | Read marks across school (no guardian data) *(admin/system only)* |
+| | `scope.subject.department.read` | Access all classes for assigned subject(s) *(premium / later)* |
 | **Studio** | `studio.assignment.create` | Create assignments |
-| | `studio.assignment.edit` | Edit own assignments |
-| | `studio.assignment.delete` | Delete assignments |
+| | `studio.assignment.edit` | Edit own draft assignments |
+| | `studio.assignment.publish` | Publish assignment to students |
+| | `studio.assignment.close` | Close assignment for submissions |
+| | `studio.assignment.delete` | Delete draft assignment |
 | | `studio.quiz.create` | Create quizzes |
+| | `studio.quiz.publish` | Publish quizzes |
 | | `studio.resource.manage` | Manage resource library |
-| **Submissions** | `submission.view` | View student submissions |
-| | `submission.mark` | Mark/grade submissions |
-| | `submission.feedback` | Add feedback comments |
+| | `studio.rubric.manage` | Create/manage rubrics |
+| **Submissions** | `submission.read` | View student submissions |
+| | `submission.grade` | Mark/grade submissions |
+| | `submission.feedback.write` | Add feedback comments |
 | | `submission.return` | Return for redo |
-| **Gradebook** | `gradebook.view` | View gradebook |
+| | `submission.deadline.extend` | Extend deadline |
+| | `submission.grade.publish` | Publish grades + feedback |
+| | `submission.grade.edit_after_publish` | Edit after publish *(admin/HOD only; later)* |
+| **Gradebook** | `gradebook.read` | View gradebook |
 | | `gradebook.record` | Record marks |
 | | `gradebook.edit` | Edit existing marks |
-| | `gradebook.publish` | Publish grades |
-| | `gradebook.lock` | Lock gradebook |
+| | `gradebook.term.publish` | Publish term scores |
+| | `gradebook.term.lock` | Lock term scores *(admin by default; configurable)* |
 | | `gradebook.export` | Export to CSV/PDF |
-| **Attendance** | `attendance.take_homeroom` | Take homeroom attendance |
-| | `attendance.take_period` | Take period attendance |
+| | `gradebook.scheme.read` | View assessment scheme/weights |
+| | `gradebook.scheme.manage` | Manage assessment scheme/weights *(admin/HOD; later)* |
+| **Attendance** | `attendance.homeroom.take` | Take homeroom daily attendance |
+| | `attendance.period.take` | Take period attendance |
 | | `attendance.edit` | Edit past attendance |
-| | `attendance.notify` | Trigger parent notifications |
-| **Communication** | `notice.create_class` | Create class notices |
-| | `notice.create_subject` | Create subject-wide notices |
-| | `notice.create_school` | Create school-wide notices |
-| | `message.parent` | Message parents |
+| | `attendance.reason.set` | Set reasons/late codes |
+| | `attendance.notify.guardian` | Trigger parent notifications |
+| **Communication** | `notice.class.create` | Create class notices |
+| | `notice.subject.create` | Create subject-wide notices |
+| | `notice.school.create` | Create school-wide notices *(admin/trusted; optional)* |
+| | `notice.schedule` | Schedule notices |
+| | `message.parent.send` | Message parents |
+| | `message.student.send` | Message students |
+| | `message.admin.send` | Message admin |
+| | `broadcast.parents.send` | Broadcast to parents of a class/selection (not a group chat) |
 | | `escalation.create` | Create escalations |
-| | `escalation.resolve` | Resolve escalations (admin) |
-| **Reports** | `report.view` | View reports |
+| | `escalation.resolve` | Resolve escalations *(admin)* |
+| **Reports** | `report.read` | View reports |
 | | `report.export` | Export reports |
 | | `journal.write` | Write class journal |
 | | `remarks.write` | Write student remarks |
@@ -302,21 +346,31 @@ Provide teachers with a **complete digital operating system** to manage classes,
 {
   "name": "subject_teacher",
   "permissions": [
-    "scope.own_classes",
+    "scope.class.assigned.read",
     "studio.assignment.create",
     "studio.assignment.edit",
+    "studio.assignment.publish",
+    "studio.assignment.close",
     "studio.quiz.create",
+    "studio.quiz.publish",
     "studio.resource.manage",
-    "submission.view",
-    "submission.mark",
-    "submission.feedback",
-    "gradebook.view",
+    "studio.rubric.manage",
+    "submission.read",
+    "submission.grade",
+    "submission.feedback.write",
+    "submission.deadline.extend",
+    "submission.grade.publish",
+    "gradebook.read",
     "gradebook.record",
-    "attendance.take_period",
-    "notice.create_class",
-    "message.parent",
+    "gradebook.edit",
+    "gradebook.export",
+    "attendance.period.take",
+    "notice.class.create",
+    "notice.subject.create",
+    "message.parent.send",
+    "message.admin.send",
     "escalation.create",
-    "report.view",
+    "report.read",
     "journal.write"
   ]
 }
@@ -327,15 +381,17 @@ Provide teachers with a **complete digital operating system** to manage classes,
 {
   "name": "homeroom_teacher",
   "permissions": [
-    "scope.homeroom",
-    "attendance.take_homeroom",
+    "scope.class.homeroom.read",
+    "attendance.homeroom.take",
     "attendance.edit",
-    "attendance.notify",
-    "gradebook.view",
+    "attendance.reason.set",
+    "attendance.notify.guardian",
+    "gradebook.read",
     "remarks.write",
-    "message.parent",
+    "message.parent.send",
+    "broadcast.parents.send",
     "escalation.create",
-    "report.view",
+    "report.read",
     "report.export"
   ]
 }
@@ -346,20 +402,19 @@ Provide teachers with a **complete digital operating system** to manage classes,
 {
   "name": "exam_officer",
   "permissions": [
-    "scope.school_wide",
-    "gradebook.view",
+    "scope.marks.grade_wide.read",
+    "gradebook.read",
     "gradebook.edit",
-    "gradebook.publish",
-    "gradebook.lock",
+    "gradebook.term.publish",
     "gradebook.export",
-    "submission.view",
-    "report.view",
+    "submission.read",
+    "report.read",
     "report.export"
   ]
 }
 ```
 
-> Future: Department Lead, Class Coordinator, Club Patron templates
+> **Security note:** Exam/Assessment Officer does **not** get `scope.marks.school_wide.read` by default. If a school requires school-wide visibility, Admin may explicitly grant it, and the UI must clearly warn that this still excludes guardian contact access.
 
 ### 7.3 Permission Check Implementation
 
@@ -476,6 +531,22 @@ async function checkClassAccess(
 
 ---
 
+## 8.1 Feature Flags
+
+Feature flags (per school) must gate functionality even when RBAC allows it:
+
+- `SchoolSettings.teacherStudio.enabled`
+- `SchoolSettings.teacherMessaging.enabled`
+- `SchoolSettings.notices.enabled`
+- `SchoolSettings.attendance.enabled`
+- `SchoolSettings.attendanceNotifications.enabled`
+- `SchoolSettings.offlineMode.enabled` *(PWA required for web)*
+- `SchoolSettings.examOfficerRole.enabled`
+- `SchoolSettings.departmentLeadRole.enabled` *(later)*
+- `SchoolSettings.customRoles.enabled` *(premium / later)*
+
+---
+
 ## 9. MVP Build Order (Phased)
 
 ### Phase 1: Foundation (Week 1-2)
@@ -538,7 +609,7 @@ interface IStudentAttendance {
   studentId: ObjectId;
   classGroupId: ObjectId;
   academicPeriodId: ObjectId;
-  date: Date;                    // Normalized to start of day
+  date: Date;                    // Normalized to school timezone day (Africa/Accra) and stored in UTC
   type: "homeroom" | "period";
   periodNumber?: number;         // If period attendance
   subjectId?: ObjectId;          // If period attendance
@@ -560,6 +631,7 @@ interface IHomework {
   subjectId: ObjectId;
   classGroupIds: ObjectId[];     // Can target multiple classes
   targetStudentIds?: ObjectId[]; // Optional: specific students only
+  targetMode: "class" | "selected_students";
   
   title: string;
   instructions: string;
@@ -600,7 +672,7 @@ interface ISubmission {
     type: string;
   }>;
   
-  status: "draft" | "submitted" | "late" | "returned" | "graded";
+  status: "draft" | "submitted" | "late" | "returned" | "graded"; // "missing" is computed server-side from roster vs submissions
   submittedAt?: Date;
   
   // Grading
@@ -958,6 +1030,8 @@ npm run script:create-attendance-indexes
 - Rate limiting on message/notice creation
 - Parent data only visible to assigned teachers
 - GDPR-compliant data export/deletion
+- **Audit events required (minimum):** `ROLE_ASSIGNED`, `ROLE_REVOKED`, `GRADE_SET`, `GRADE_PUBLISHED`, `GRADE_EDIT_AFTER_PUBLISH`, `ATTENDANCE_TAKEN`, `ATTENDANCE_EDITED`, `PARENT_NOTIFIED`, `NOTICE_PUBLISHED`, `MESSAGE_SENT`, `ESCALATION_CREATED`, `ESCALATION_RESOLVED`
+- **Route-level scope validation:** every mutation endpoint (e.g., `/studio/.../grade`, `/attendance/...`, `/gradebook/...`) must validate teacher scope against the specific `classGroupId/subjectId/studentId` in the payload.
 
 ---
 
@@ -969,8 +1043,8 @@ npm run script:create-attendance-indexes
 2. **How to handle co-teaching (multiple teachers for same subject/class)?**
    - Current assumption: Both teachers have full access
 
-3. **Should messages support group chats (multiple parents)?**
-   - Current assumption: No, keep 1:1 or teacher:all-parents-of-class
+3. **Should we support teacher-to-many parent messaging?**
+   - Current assumption: Yes, as **broadcast messages** (not a group chat). RBAC key: `broadcast.parents.send`.
 
 4. **What's the retention policy for messages/notices?**
    - Suggestion: Archive after 1 year, delete after 3 years

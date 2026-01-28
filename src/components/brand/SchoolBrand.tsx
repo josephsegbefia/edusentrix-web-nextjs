@@ -53,17 +53,12 @@ export function SchoolBrand({
   href = null,
   className,
 }: SchoolBrandProps) {
-  const { data: schoolData, isLoading, error } = useSchool();
+  const { data: schoolData, isLoading, hasNoSchool } = useSchool();
   const school = schoolData?.data;
   const sizeConfig = sizeMap[size];
 
-  // Debug logging (remove in production)
-  if (error) {
-    console.error("SchoolBrand error:", error);
-  }
-  if (schoolData && !schoolData.success) {
-    console.warn("SchoolBrand API error:", schoolData.error);
-  }
+  // Determine if we have valid school data
+  const hasSchool = schoolData && schoolData.success && school;
 
   const brandContent = (
     <div
@@ -85,7 +80,7 @@ export function SchoolBrand({
             <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
           )}
         </div>
-      ) : schoolData && schoolData.success && school ? (
+      ) : hasSchool ? (
         <>
           {/* Logo or Initials */}
           <div
@@ -129,7 +124,7 @@ export function SchoolBrand({
           </div>
           {showName && (
             <span className={cn("text-white/60", sizeConfig.text)}>
-              No School
+              {hasNoSchool ? "No School" : "Loading..."}
             </span>
           )}
         </div>

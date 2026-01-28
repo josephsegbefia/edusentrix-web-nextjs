@@ -10,6 +10,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingDonation, IFundraisingDonation } from "@/models/FundraisingDonation";
 import { FundraisingCampaign } from "@/models/FundraisingCampaign";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { recordDonationInLedger } from "@/lib/finance/writeLedgerEntry";
 
 // ============================================================================
 // Types
@@ -204,6 +205,34 @@ async function handleChargeSuccess(event: PaystackEvent) {
         gatewayReference: reference,
       },
     });
+
+    // Write to Financial Center ledger
+    try {
+      // Get campaign title for description
+      const campaign = await FundraisingCampaign.findById(campaignId)
+        .select("title")
+        .lean() as { title: string } | null;
+
+      await recordDonationInLedger({
+        schoolId,
+        donationId,
+        campaignId: campaignId || "",
+        campaignTitle: campaign?.title || "Fundraising Campaign",
+        amountMinor: donation.amountMinor,
+        currency: donation.currency,
+        paymentMethod: "paystack",
+        gatewayReference: reference,
+        donorName: donation.donorName || "Anonymous",
+        donorEmail: donation.donorEmail || null,
+        donorPhone: donation.donorPhone || null,
+        isAnonymous: donation.isAnonymous,
+        receiptNumber: donation.receiptNumber || null,
+        occurredAt: new Date(),
+        createdBy: donation.donorUserId ? String(donation.donorUserId) : null,
+      });
+    } catch (ledgerError) {
+      console.error("Failed to write donation to ledger:", ledgerError);
+    }
   }
 
   console.log(`Paystack webhook: Successfully processed donation ${donationId}`);

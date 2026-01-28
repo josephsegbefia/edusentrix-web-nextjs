@@ -46,7 +46,20 @@ export type ActivityType =
   // Community Hub - Exports
   | "poll.exported"
   | "campaign.exported"
-  | "payout.approved";
+  | "payout.approved"
+  // Expenses
+  | "expense.created"
+  | "expense.updated"
+  | "expense.submitted"
+  | "expense.approved"
+  | "expense.rejected"
+  | "expense.paid"
+  | "expense.cancelled"
+  // Financial Center
+  | "transaction.created"
+  | "transaction.voided"
+  | "transaction.refunded"
+  | "transaction.adjusted";
 
 export interface IActivity {
   _id: Types.ObjectId;

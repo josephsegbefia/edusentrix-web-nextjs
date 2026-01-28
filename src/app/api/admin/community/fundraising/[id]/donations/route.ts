@@ -9,6 +9,7 @@ import { FundraisingCampaign, IFundraisingCampaign } from "@/models/FundraisingC
 import { FundraisingDonation, DonationStatus, PaymentMethod } from "@/models/FundraisingDonation";
 import { User } from "@/models/User";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { recordDonationInLedger } from "@/lib/finance/writeLedgerEntry";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -228,6 +229,34 @@ export async function POST(req: NextRequest, context: RouteContext) {
         isOffline: true,
       },
     });
+
+    // Write to Financial Center ledger
+    try {
+      // Get campaign title for ledger description
+      const campaignWithTitle = await FundraisingCampaign.findById(campaignIdObj)
+        .select("title")
+        .lean() as { title: string } | null;
+
+      await recordDonationInLedger({
+        schoolId: String(schoolId),
+        donationId: String(donation._id),
+        campaignId: String(campaignIdObj),
+        campaignTitle: campaignWithTitle?.title || "Fundraising Campaign",
+        amountMinor: data.amountMinor,
+        currency: data.currency || campaign.currency,
+        paymentMethod: data.paymentMethod,
+        gatewayReference: null,
+        donorName: data.isAnonymous ? "Anonymous" : (data.donorName || "Unknown"),
+        donorEmail: data.donorEmail || null,
+        donorPhone: data.donorPhone || null,
+        isAnonymous: data.isAnonymous,
+        receiptNumber,
+        occurredAt: new Date(),
+        createdBy: String(userId),
+      });
+    } catch (ledgerError) {
+      console.error("Failed to write offline donation to ledger:", ledgerError);
+    }
 
     return NextResponse.json({
       success: true,

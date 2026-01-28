@@ -25,6 +25,8 @@ import {
   Crown,
   Vote,
   Heart,
+  Landmark,
+  Receipt,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -137,9 +139,19 @@ const navSections: NavSection[] = [
     title: "Operations",
     items: [
       {
+        label: "Financial Center",
+        href: "/admin/finance",
+        icon: Landmark,
+      },
+      {
         label: "Fees & Payments",
         href: "/admin/fees",
         icon: DollarSign,
+      },
+      {
+        label: "Expenses",
+        href: "/admin/expenses",
+        icon: Receipt,
       },
       {
         label: "Reports",

@@ -15,6 +15,8 @@ import {
   calculateInvoiceStatus,
 } from "@/lib/fees/invoice-utils";
 import { applyPaymentAllocations } from "@/lib/fees/applyPaymentAllocation";
+import { recordFeePaymentInLedger } from "@/lib/finance/writeLedgerEntry";
+import { Student } from "@/models/Student";
 
 export async function GET(
   _req: NextRequest,
@@ -196,6 +198,47 @@ export async function POST(
       );
 
       await session.commitTransaction();
+
+      // Write to Financial Center ledger
+      try {
+        interface StudentLean {
+          _id: mongoose.Types.ObjectId;
+          firstName: string;
+          lastName: string;
+          guardians?: Array<{
+            name?: string;
+            email?: string;
+            phone?: string;
+          }>;
+        }
+        const student = await Student.findById(invoice.studentId)
+          .select("firstName lastName guardians")
+          .lean() as StudentLean | null;
+
+        const primaryGuardian = student?.guardians?.[0];
+
+        await recordFeePaymentInLedger({
+          schoolId: String(schoolId),
+          paymentId: String(payment._id),
+          amountMinor: payment.amountMinor,
+          currency: "GHS",
+          paymentMethod: payment.paymentMethod,
+          paymentReference: payment.paystackReference || payment.receiptNumber || null,
+          studentId: String(invoice.studentId),
+          studentName: student ? `${student.firstName} ${student.lastName}` : "Unknown Student",
+          guardianName: primaryGuardian?.name || null,
+          guardianEmail: primaryGuardian?.email || null,
+          guardianPhone: primaryGuardian?.phone || null,
+          invoiceNumber: invoice.invoiceNumber || null,
+          description: `Fee payment for ${invoice.invoiceNumber || "invoice"} (approved)`,
+          academicPeriodId: invoice.academicPeriodId ? String(invoice.academicPeriodId) : null,
+          occurredAt: payment.paymentDate,
+          createdBy: userId ? String(userId) : null,
+        });
+      } catch (ledgerError) {
+        console.error("Failed to write approved fee payment to ledger:", ledgerError);
+      }
+
       return NextResponse.json({ success: true });
     }
 

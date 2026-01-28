@@ -13,6 +13,8 @@ import { PaymentAllocation } from "@/models/PaymentAllocation";
 import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
 import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice";
 import { formatMoney } from "@/lib/fees/money";
+import { recordFeePaymentInLedger } from "@/lib/finance/writeLedgerEntry";
+import { Student } from "@/models/Student";
 
 const BodySchema = z.object({
   studentId: z.string().min(1),
@@ -322,6 +324,50 @@ export async function POST(req: NextRequest) {
   }
 
   await invoice.save();
+
+  // Write to Financial Center ledger for completed payments
+  if (body.status === "completed") {
+    try {
+      // Get student info for ledger entry
+      interface StudentLean {
+        _id: mongoose.Types.ObjectId;
+        firstName: string;
+        lastName: string;
+        guardians?: Array<{
+          name?: string;
+          email?: string;
+          phone?: string;
+        }>;
+      }
+      const student = await Student.findById(body.studentId)
+        .select("firstName lastName guardians")
+        .lean() as StudentLean | null;
+
+      const primaryGuardian = student?.guardians?.[0];
+
+      await recordFeePaymentInLedger({
+        schoolId: String(schoolId),
+        paymentId: String(paymentId),
+        amountMinor: body.amountMinor,
+        currency: "GHS",
+        paymentMethod: body.paymentMethod,
+        paymentReference: body.paystackReference || body.receiptNumber || null,
+        studentId: body.studentId,
+        studentName: student ? `${student.firstName} ${student.lastName}` : "Unknown Student",
+        guardianName: primaryGuardian?.name || null,
+        guardianEmail: primaryGuardian?.email || null,
+        guardianPhone: primaryGuardian?.phone || null,
+        invoiceNumber: invoice.invoiceNumber || null,
+        description: `Fee payment for ${invoice.invoiceNumber || "invoice"}`,
+        academicPeriodId: invoice.academicPeriodId ? String(invoice.academicPeriodId) : null,
+        occurredAt: new Date(body.paymentDate),
+        createdBy: userId ? String(userId) : null,
+      });
+    } catch (ledgerError) {
+      // Log but don't fail the payment
+      console.error("Failed to write fee payment to ledger:", ledgerError);
+    }
+  }
 
   return NextResponse.json({
     ok: true,

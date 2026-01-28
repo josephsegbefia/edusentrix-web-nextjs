@@ -17,6 +17,21 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+// Populated update type (after .populate('createdBy'))
+interface PopulatedUpdate {
+  _id: mongoose.Types.ObjectId;
+  campaignId: mongoose.Types.ObjectId;
+  schoolId: mongoose.Types.ObjectId;
+  createdBy: { _id: mongoose.Types.ObjectId; name: string; email: string } | null;
+  title: string;
+  body: string;
+  attachments?: string[];
+  isPublished: boolean;
+  publishedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // ============================================================================
 // GET - List updates
 // ============================================================================
@@ -55,9 +70,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       );
 
     const updates = updateDocs.map((u) => {
-      const update = u.toObject() as IFundraisingCampaignUpdate & {
-        createdBy: { _id: mongoose.Types.ObjectId; name: string; email: string } | null;
-      };
+      const update = u.toObject() as unknown as PopulatedUpdate;
       return {
         id: String(update._id),
         title: update.title,

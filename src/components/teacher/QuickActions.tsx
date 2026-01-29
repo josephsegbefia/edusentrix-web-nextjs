@@ -29,12 +29,13 @@ export function QuickActions({ onRefresh, refreshing }: QuickActionsProps) {
         Refresh
       </Button>
       <Button
-        type="button"
-        disabled
-        className="border border-white/10 bg-white/5 text-white/40"
+        asChild
+        className="border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
       >
-        <CalendarCheck2 className="mr-2 h-4 w-4" />
-        Take Attendance
+        <Link href="/teacher/attendance/homeroom">
+          <CalendarCheck2 className="mr-2 h-4 w-4" />
+          Take Attendance
+        </Link>
       </Button>
 
       <PremiumDropdownMenu>

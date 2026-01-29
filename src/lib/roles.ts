@@ -25,6 +25,7 @@ export type InvitationRole = "teacher" | "staff" | "school_admin";
 export type MembershipRole =
   | "school_admin"
   | "bursar"
+  | "staff"
   | "teacher"
   | "parent"
   | "student";
@@ -40,7 +41,7 @@ export function isInvitationRole(role: string): role is InvitationRole {
  * Check if a role is a membership role
  */
 export function isMembershipRole(role: string): role is MembershipRole {
-  return ["school_admin", "bursar", "teacher", "parent", "student"].includes(
+  return ["school_admin", "bursar", "staff", "teacher", "parent", "student"].includes(
     role
   );
 }

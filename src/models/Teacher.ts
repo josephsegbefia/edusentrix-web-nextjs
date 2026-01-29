@@ -68,6 +68,8 @@ const TeacherSchema = new Schema(
     emergencyContact: { type: EmergencyContactSchema, default: null },
     notes: { type: String, trim: true },
     tags: { type: [String], default: [], index: true },
+    // Permission bundles applied to this teacher (kept for backward compatibility)
+    subroles: { type: [String], default: [], index: true },
   },
   { timestamps: true }
 );

@@ -179,7 +179,7 @@ export async function PATCH(
       isCurrent: true,
     })
       .select("_id")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId } | null;
 
     if (!period) {
       return Response.json(

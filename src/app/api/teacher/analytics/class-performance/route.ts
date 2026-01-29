@@ -43,7 +43,7 @@ export async function GET(req: Request) {
       isCurrent: true,
     })
       .select("_id")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId } | null;
 
     if (!period) {
       return Response.json({
@@ -166,9 +166,9 @@ export async function GET(req: Request) {
 
     if (subjectObjId) gradeQuery.subjectId = subjectObjId;
 
-    const grades = await SubjectGrade.find(gradeQuery)
+    const grades = (await SubjectGrade.find(gradeQuery)
       .select("totalScore isPassed")
-      .lean();
+      .lean()) as unknown as Array<{ totalScore: number; isPassed: boolean }>;
 
     if (grades.length === 0) {
       return Response.json({
@@ -192,7 +192,7 @@ export async function GET(req: Request) {
     let totalScore = 0;
     let passCount = 0;
 
-    grades.forEach((record: { totalScore: number; isPassed: boolean }) => {
+    grades.forEach((record) => {
       const score = Math.max(0, Math.min(100, record.totalScore || 0));
       totalScore += score;
       if (record.isPassed) passCount += 1;

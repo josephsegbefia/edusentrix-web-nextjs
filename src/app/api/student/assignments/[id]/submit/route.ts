@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolMember } from "@/lib/auth/requireSchoolMember";
@@ -49,13 +48,14 @@ export async function POST(
       status: "active",
     })
       .select("_id classGroupId")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId; classGroupId: mongoose.Types.ObjectId } | null;
 
     if (!student) {
       return Response.json({ success: false, error: "Student not found" }, { status: 404 });
     }
 
-    const assignment = await Homework.findOne({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const assignment = (await Homework.findOne({
       _id: homeworkId,
       schoolId: context.schoolId,
       status: "published",
@@ -67,7 +67,7 @@ export async function POST(
       ],
     })
       .select("_id dueDate latePolicy")
-      .lean();
+      .lean()) as any;
 
     if (!assignment) {
       return Response.json({ success: false, error: "Assignment not found" }, { status: 404 });
@@ -91,12 +91,12 @@ export async function POST(
 
     const status = isLate ? "late" : "submitted";
 
-    const existing = await Submission.findOne({
+    const existing = (await Submission.findOne({
       homeworkId,
       studentId: student._id,
     })
       .select("_id attempts")
-      .lean();
+      .lean()) as { _id: mongoose.Types.ObjectId; attempts: number } | null;
 
     if (existing) {
       await Submission.updateOne(

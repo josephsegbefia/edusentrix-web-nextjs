@@ -61,7 +61,7 @@ export async function GET(req: Request) {
       isCurrent: true,
     })
       .select("_id")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId } | null;
 
     if (!period) {
       return Response.json({
@@ -176,7 +176,11 @@ export async function GET(req: Request) {
       )
     ).map((id) => new mongoose.Types.ObjectId(id));
 
-    const [studentCounts, classGroups, subjects] = await Promise.all([
+    type ClassGroupDoc = { _id: mongoose.Types.ObjectId; name: string; gradeId?: mongoose.Types.ObjectId };
+    type StudentCountEntry = { _id: mongoose.Types.ObjectId; count: number };
+    type SubjectDoc = { _id: mongoose.Types.ObjectId; name: string };
+
+    const [studentCounts, classGroupsRaw, subjectsRaw] = await Promise.all([
       classGroupIds.length
         ? Student.aggregate([
             {
@@ -199,8 +203,11 @@ export async function GET(req: Request) {
         : Promise.resolve([]),
     ]);
 
+    const classGroups = classGroupsRaw as unknown as ClassGroupDoc[];
+    const subjects = subjectsRaw as unknown as SubjectDoc[];
+
     const studentCountMap = new Map(
-      studentCounts.map((entry: { _id: mongoose.Types.ObjectId; count: number }) => [
+      (studentCounts as StudentCountEntry[]).map((entry) => [
         String(entry._id),
         entry.count,
       ])
@@ -209,18 +216,18 @@ export async function GET(req: Request) {
     const gradeIds = Array.from(
       new Set(
         classGroups
-          .map((group: { gradeId?: mongoose.Types.ObjectId }) => group.gradeId)
+          .map((group) => group.gradeId)
           .filter(Boolean)
           .map((id) => String(id))
       )
     ).map((id) => new mongoose.Types.ObjectId(id));
 
     const grades = gradeIds.length
-      ? await Grade.find({ _id: { $in: gradeIds } }).select("_id name").lean()
+      ? (await Grade.find({ _id: { $in: gradeIds } }).select("_id name").lean()) as unknown as Array<{ _id: mongoose.Types.ObjectId; name: string }>
       : [];
 
     const gradeMap = new Map(
-      grades.map((grade: { _id: mongoose.Types.ObjectId; name: string }) => [
+      grades.map((grade) => [
         String(grade._id),
         grade.name,
       ])
@@ -228,7 +235,7 @@ export async function GET(req: Request) {
 
     const classNameMap = new Map(
       classGroups.map(
-        (group: { _id: mongoose.Types.ObjectId; name: string; gradeId?: mongoose.Types.ObjectId }) => {
+        (group) => {
           const gradeName = group.gradeId ? gradeMap.get(String(group.gradeId)) : undefined;
           const label = `${gradeName ? gradeName + " " : ""}${group.name}`.trim();
           return [String(group._id), label || group.name];
@@ -270,7 +277,7 @@ export async function GET(req: Request) {
       if (targetIds.length > 0) {
         expected = targetIds.length;
       } else {
-        expected = (homework.classGroupIds || []).reduce((sum, classGroupId) => {
+        expected = (homework.classGroupIds || []).reduce((sum: number, classGroupId: unknown) => {
           return sum + (studentCountMap.get(String(classGroupId)) || 0);
         }, 0);
       }
@@ -286,7 +293,7 @@ export async function GET(req: Request) {
         title: homework.title,
         dueDate: homework.dueDate ? new Date(homework.dueDate).toISOString() : null,
         status: homework.status,
-        classGroups: (homework.classGroupIds || []).map((classId) => ({
+        classGroups: (homework.classGroupIds || []).map((classId: unknown) => ({
           id: String(classId),
           name: classNameMap.get(String(classId)) || "",
         })),

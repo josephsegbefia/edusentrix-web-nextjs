@@ -32,7 +32,7 @@ export async function GET(
       schoolId: context.schoolId,
     })
       .select("_id classGroupId")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId; classGroupId: mongoose.Types.ObjectId } | null;
 
     if (!student) {
       return Response.json({ success: false, error: "Student not found" }, { status: 404 });

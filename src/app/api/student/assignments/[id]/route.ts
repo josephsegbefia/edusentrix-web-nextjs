@@ -34,13 +34,14 @@ export async function GET(
       status: "active",
     })
       .select("_id classGroupId")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId; classGroupId: mongoose.Types.ObjectId } | null;
 
     if (!student) {
       return Response.json({ success: false, error: "Student not found" }, { status: 404 });
     }
 
-    const assignment = await Homework.findOne({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const assignment = (await Homework.findOne({
       _id: homeworkId,
       schoolId: context.schoolId,
       status: { $in: ["published", "closed"] },
@@ -53,7 +54,7 @@ export async function GET(
     })
       .populate("subjectId", "name")
       .populate("rubricId", "title criteria")
-      .lean();
+      .lean()) as any;
 
     if (!assignment) {
       return Response.json({ success: false, error: "Assignment not found" }, { status: 404 });

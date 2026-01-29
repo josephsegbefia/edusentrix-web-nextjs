@@ -54,7 +54,7 @@ export async function GET(req: Request) {
       isCurrent: true,
     })
       .select("_id startDate endDate")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId; startDate: Date; endDate: Date } | null;
 
     if (!period) {
       return Response.json({
@@ -168,25 +168,25 @@ export async function GET(req: Request) {
       },
     ]);
 
-    const classGroups = await ClassGroup.find({ _id: { $in: classGroupIds } })
+    const classGroups = (await ClassGroup.find({ _id: { $in: classGroupIds } })
       .select("_id name gradeId")
-      .lean();
+      .lean()) as unknown as Array<{ _id: mongoose.Types.ObjectId; name: string; gradeId?: mongoose.Types.ObjectId }>;
 
     const gradeIds = Array.from(
       new Set(
         classGroups
-          .map((group: { gradeId?: mongoose.Types.ObjectId }) => group.gradeId)
+          .map((group) => group.gradeId)
           .filter(Boolean)
           .map((id) => String(id))
       )
     ).map((id) => new mongoose.Types.ObjectId(id));
 
     const grades = gradeIds.length
-      ? await Grade.find({ _id: { $in: gradeIds } }).select("_id name").lean()
+      ? ((await Grade.find({ _id: { $in: gradeIds } }).select("_id name").lean()) as unknown as Array<{ _id: mongoose.Types.ObjectId; name: string }>)
       : [];
 
     const gradeMap = new Map(
-      grades.map((grade: { _id: mongoose.Types.ObjectId; name: string }) => [
+      grades.map((grade) => [
         String(grade._id),
         grade.name,
       ])

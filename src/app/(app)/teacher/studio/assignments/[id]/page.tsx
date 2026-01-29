@@ -7,7 +7,7 @@ import { CalendarDays, ClipboardCheck, Edit3, FolderKanban, Send, XCircle } from
 import { useTeacherAssignment } from "@/hooks/teacher/useTeacherAssignment";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { AssignmentBuilder, type AssignmentFormValues } from "@/components/teacher/studio/AssignmentBuilder";
+import { AssignmentBuilder, type AssignmentFormValues, type AssignmentAttachment } from "@/components/teacher/studio/AssignmentBuilder";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,7 +51,7 @@ export default function TeacherAssignmentDetailPage() {
       maxScore: assignment.maxScore,
       weight: assignment.weight ?? null,
       rubricId: assignment.rubric?.id || null,
-      attachments: assignment.attachments,
+      attachments: assignment.attachments as AssignmentAttachment[],
     };
   }, [assignment]);
 

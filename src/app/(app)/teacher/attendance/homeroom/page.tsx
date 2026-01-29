@@ -159,9 +159,9 @@ export default function HomeroomAttendancePage() {
           return res.json();
         })
         .then((payload) => {
-          const yesterdayRecords = payload?.data?.records || [];
-          const yesterdayMap = new Map(
-            yesterdayRecords.map((record: AttendanceRowData) => [record.studentId, record])
+          const yesterdayRecords: AttendanceRowData[] = payload?.data?.records || [];
+          const yesterdayMap = new Map<string, AttendanceRowData>(
+            yesterdayRecords.map((record) => [record.studentId, record])
           );
           setRecords((prev) =>
             prev.map((record) => {

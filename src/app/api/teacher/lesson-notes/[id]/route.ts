@@ -42,16 +42,17 @@ function normalizeWeekOf(date: Date) {
   return d;
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+    const { id } = await params;
 
     if (!can(context.permissions, PERMISSIONS.journalWrite)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const noteId = toObjectIdOrNull(params.id);
+    const noteId = toObjectIdOrNull(id);
     if (!noteId) {
       return Response.json({ success: false, error: "Invalid lesson note ID" }, { status: 400 });
     }
@@ -161,16 +162,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+    const { id } = await params;
 
     if (!can(context.permissions, PERMISSIONS.journalWrite)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const noteId = toObjectIdOrNull(params.id);
+    const noteId = toObjectIdOrNull(id);
     if (!noteId) {
       return Response.json({ success: false, error: "Invalid lesson note ID" }, { status: 400 });
     }

@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       isCurrent: true,
     })
       .select("_id")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId } | null;
 
     if (!period) {
       return Response.json({ success: true, data: { students: [], total: 0, thresholds: {} } });

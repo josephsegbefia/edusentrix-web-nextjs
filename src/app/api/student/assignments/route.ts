@@ -18,7 +18,7 @@ export async function GET() {
       status: "active",
     })
       .select("_id classGroupId")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId; classGroupId: mongoose.Types.ObjectId } | null;
 
     if (!student) {
       return Response.json({ success: false, error: "Student not found" }, { status: 404 });
@@ -29,7 +29,7 @@ export async function GET() {
       isCurrent: true,
     })
       .select("_id")
-      .lean();
+      .lean() as { _id: mongoose.Types.ObjectId } | null;
 
     const query: Record<string, unknown> = {
       schoolId: context.schoolId,

@@ -8,6 +8,10 @@ import { Student } from "@/models/Student";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { Submission } from "@/models/Submission";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { getTeacherStudioEnabledForSchool } from "@/lib/features/teacherStudio";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/rbac";
+import { calculateAtRiskStudents, calculateMissingMarks } from "@/lib/teacher/analytics";
 
 function toMinutes(time?: string | null) {
   if (!time) return Number.MAX_SAFE_INTEGER;
@@ -132,6 +136,40 @@ export async function GET() {
         })
       : 0;
 
+    const teacherStudioEnabled = await getTeacherStudioEnabledForSchool(
+      context.schoolId
+    );
+    const canViewAssignments = can(
+      context.permissions,
+      PERMISSIONS.assignmentsView
+    );
+    const canGradeAssignments = can(
+      context.permissions,
+      PERMISSIONS.assignmentsGrade
+    );
+    const canViewAtRisk = can(context.permissions, PERMISSIONS.analyticsAtRisk);
+    const showStudio = teacherStudioEnabled && canViewAssignments;
+
+    const missingMarks = showStudio
+      ? await calculateMissingMarks({
+          schoolId: context.schoolId,
+          teacherId: context.teacherId,
+          academicPeriodId: currentPeriod._id,
+          classGroupIds,
+        })
+      : 0;
+
+    const atRiskCount = canViewAtRisk
+      ? (
+          await calculateAtRiskStudents({
+            schoolId: context.schoolId,
+            teacherId: context.teacherId,
+            academicPeriodId: currentPeriod._id,
+            classGroupIds,
+          })
+        ).total
+      : 0;
+
     let todayAttendanceTaken = false;
     if (context.homeroomClassGroupId) {
       const start = new Date();
@@ -191,13 +229,24 @@ export async function GET() {
       : 0;
 
     const queues = [
-      {
-        id: "to-mark",
-        label: "To Mark",
-        count: pendingToMark,
-        href: "/teacher/studio/submissions",
-        tone: "amber",
-      },
+      ...(showStudio
+        ? [
+            {
+              id: "to-mark",
+              label: "To Mark",
+              count: canGradeAssignments ? pendingToMark : 0,
+              href: "/teacher/studio/submissions",
+              tone: "amber",
+            },
+            {
+              id: "missing-marks",
+              label: "Missing Marks",
+              count: missingMarks,
+              href: "/teacher/studio/submissions",
+              tone: "emerald",
+            },
+          ]
+        : []),
       {
         id: "attendance",
         label: "Attendance Follow-ups",
@@ -208,7 +257,7 @@ export async function GET() {
       {
         id: "at-risk",
         label: "Students At Risk",
-        count: 0,
+        count: atRiskCount,
         href: "/teacher/analytics/at-risk",
         tone: "rose",
       },
@@ -220,7 +269,7 @@ export async function GET() {
         stats: {
           totalClasses,
           totalStudents,
-          pendingToMark,
+          pendingToMark: showStudio && canGradeAssignments ? pendingToMark : 0,
           todayAttendanceTaken,
         },
         today: {

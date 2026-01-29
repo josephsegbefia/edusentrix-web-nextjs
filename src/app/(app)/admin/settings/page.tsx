@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   Settings,
@@ -23,6 +24,7 @@ import {
   Megaphone,
   CheckCircle2,
   Sparkles,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   useSchoolSettings,
@@ -34,12 +36,13 @@ import {
 } from "@/hooks/admin/useSchoolSettings";
 import { useBusyToast } from "@/hooks/useBusyToast";
 
-type SettingsTab = "schedule" | "attendance" | "academic";
+type SettingsTab = "schedule" | "attendance" | "academic" | "features";
 
 const TABS: Array<{ id: SettingsTab; label: string; icon: React.ElementType }> = [
   { id: "schedule", label: "Daily Schedule", icon: Clock },
   { id: "attendance", label: "Attendance", icon: Users },
   { id: "academic", label: "Academic Calendar", icon: Calendar },
+  { id: "features", label: "Features", icon: Sparkles },
 ];
 
 const DAYS_OF_WEEK = [
@@ -71,6 +74,9 @@ export default function SettingsPage() {
     defaultExamWeekDuration: number;
     defaultRevisionWeekDuration: number;
     workingDays: number[];
+    teacherStudio: {
+      enabled: boolean;
+    };
   } | null>(null);
 
   // Initialize form when data loads
@@ -88,6 +94,7 @@ export default function SettingsPage() {
         defaultExamWeekDuration: data.data.defaultExamWeekDuration,
         defaultRevisionWeekDuration: data.data.defaultRevisionWeekDuration,
         workingDays: data.data.workingDays || [1, 2, 3, 4, 5],
+        teacherStudio: data.data.teacherStudio || { enabled: true },
       });
     }
   }, [data, formData]);
@@ -644,6 +651,37 @@ export default function SettingsPage() {
                     periods. You can customize dates for each term individually in the Academic
                     Periods page.
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "features" && (
+            <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+              <CardContent className="p-6">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+                  <Sparkles className="h-5 w-5 text-indigo-400" />
+                  Feature Toggles
+                </h3>
+
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <Label className="flex items-center gap-2 text-white/80">
+                        <ClipboardCheck className="h-4 w-4 text-indigo-300" />
+                        Teacher Studio
+                      </Label>
+                      <p className="text-xs text-white/50">
+                        Enable assignments, submissions, and rubrics for teachers.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.teacherStudio.enabled}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, teacherStudio: { enabled: checked } })
+                      }
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

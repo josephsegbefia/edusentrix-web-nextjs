@@ -36,6 +36,9 @@ export type SchoolSettingsDTO = {
   defaultExamWeekDuration: number;
   defaultRevisionWeekDuration: number;
   workingDays: number[];
+  teacherStudio: {
+    enabled: boolean;
+  };
   updatedAt: string | null;
 };
 

@@ -65,6 +65,11 @@ export interface ISchoolSettings {
   // Operational
   workingDays: number[]; // 0-6, e.g., [1,2,3,4,5] for Mon-Fri
 
+  // Feature Flags
+  teacherStudio?: {
+    enabled: boolean;
+  };
+
   // Metadata
   updatedBy?: Types.ObjectId;
   createdAt: Date;
@@ -199,6 +204,11 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
           arr.every((d) => d >= 0 && d <= 6) && new Set(arr).size === arr.length,
         message: "Working days must be unique values between 0-6",
       },
+    },
+
+    // Feature Flags
+    teacherStudio: {
+      enabled: { type: Boolean, default: true },
     },
 
     // Metadata

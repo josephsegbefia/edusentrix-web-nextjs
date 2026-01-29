@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { ClassGroup } from "@/models/ClassGroup";
+import { Student } from "@/models/Student";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { queueAttendanceNotification } from "@/lib/notifications/attendance";
@@ -34,6 +35,158 @@ function toObjectIdOrNull(id: string) {
     return new mongoose.Types.ObjectId(String(id));
   } catch {
     return null;
+  }
+}
+
+export async function GET(req: Request) {
+  try {
+    const context = await requireTeacher();
+    await connectToDatabase();
+
+    const { searchParams } = new URL(req.url);
+    const classGroupId = searchParams.get("classGroupId");
+    const subjectId = searchParams.get("subjectId");
+    const date = searchParams.get("date");
+    const periodNumber = Number(searchParams.get("periodNumber"));
+
+    if (!classGroupId || !date || !periodNumber) {
+      return Response.json(
+        { success: false, error: "Missing required parameters" },
+        { status: 400 }
+      );
+    }
+
+    if (Number.isNaN(periodNumber) || periodNumber < 1 || periodNumber > 20) {
+      return Response.json(
+        { success: false, error: "Invalid period number" },
+        { status: 400 }
+      );
+    }
+
+    const classGroupObjId = toObjectIdOrNull(classGroupId);
+    if (!classGroupObjId) {
+      return Response.json(
+        { success: false, error: "Invalid class group ID" },
+        { status: 400 }
+      );
+    }
+
+    const subjectObjId = subjectId ? toObjectIdOrNull(subjectId) : null;
+    if (subjectId && !subjectObjId) {
+      return Response.json(
+        { success: false, error: "Invalid subject ID" },
+        { status: 400 }
+      );
+    }
+
+    const classGroup = await ClassGroup.findOne({
+      _id: classGroupObjId,
+      schoolId: context.schoolId,
+    })
+      .select("_id")
+      .lean();
+
+    if (!classGroup) {
+      return Response.json(
+        { success: false, error: "Class group not found" },
+        { status: 404 }
+      );
+    }
+
+    if (!context.isAdmin) {
+      const assignmentQuery: Record<string, unknown> = {
+        schoolId: context.schoolId,
+        teacherId: context.teacherId,
+        classGroupId: classGroupObjId,
+        status: "active",
+      };
+      if (subjectObjId) assignmentQuery.subjectId = subjectObjId;
+      const assignment = await TeacherAssignment.findOne(assignmentQuery)
+        .select("_id")
+        .lean();
+
+      if (!assignment) {
+        return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
+      }
+    }
+
+    const attendanceDate = startOfDay(new Date(date));
+    if (Number.isNaN(attendanceDate.getTime())) {
+      return Response.json({ success: false, error: "Invalid date" }, { status: 400 });
+    }
+
+    const students = await Student.find({
+      schoolId: context.schoolId,
+      classGroupId: classGroupObjId,
+      status: "active",
+    })
+      .select("_id firstName lastName middleName admissionNo photoUrl")
+      .sort({ lastName: 1, firstName: 1 })
+      .lean();
+
+    const attendanceQuery: Record<string, unknown> = {
+      schoolId: context.schoolId,
+      classGroupId: classGroupObjId,
+      date: attendanceDate,
+      type: "period",
+      periodNumber,
+    };
+    if (subjectObjId) attendanceQuery.subjectId = subjectObjId;
+
+    const attendanceRecords = await StudentAttendance.find(attendanceQuery)
+      .select("studentId status lateMinutes reason")
+      .lean();
+
+    const attendanceMap = new Map(
+      attendanceRecords.map((record) => [String(record.studentId), record])
+    );
+
+    let presentCount = 0;
+    let absentCount = 0;
+    let lateCount = 0;
+    let excusedCount = 0;
+
+    const records = students.map((student: any) => {
+      const attendance = attendanceMap.get(String(student._id));
+      const status = attendance?.status ?? "present";
+      if (status === "present") presentCount += 1;
+      if (status === "absent") absentCount += 1;
+      if (status === "late") lateCount += 1;
+      if (status === "excused") excusedCount += 1;
+      return {
+        studentId: String(student._id),
+        name: `${student.firstName} ${student.lastName}`.trim(),
+        admissionNo: student.admissionNo || undefined,
+        photoUrl: student.photoUrl || undefined,
+        status,
+        lateMinutes: attendance?.lateMinutes ?? null,
+        reason: attendance?.reason ?? null,
+      };
+    });
+
+    return Response.json({
+      success: true,
+      data: {
+        date: attendanceDate.toISOString(),
+        classGroupId: String(classGroupObjId),
+        subjectId: subjectObjId ? String(subjectObjId) : null,
+        periodNumber,
+        records,
+        summary: {
+          present: presentCount,
+          absent: absentCount,
+          late: lateCount,
+          excused: excusedCount,
+          total: records.length,
+        },
+      },
+    });
+  } catch (e: unknown) {
+    if (e instanceof Response) return e;
+    console.error("Failed to fetch period attendance:", e);
+    const message =
+      e instanceof Error ? e.message : "Failed to fetch attendance";
+    return Response.json({ success: false, error: message }, { status: 500 });
   }
 }
 

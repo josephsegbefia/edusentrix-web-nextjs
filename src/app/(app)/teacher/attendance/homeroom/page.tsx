@@ -1,21 +1,30 @@
 "use client";
 
 import * as React from "react";
-import { CalendarDays, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useHomeroomAttendance } from "@/hooks/teacher/useHomeroomAttendance";
 import { useRecordHomeroomAttendance } from "@/hooks/teacher/useRecordHomeroomAttendance";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AttendanceGrid } from "@/components/teacher/attendance/AttendanceGrid";
 import { AttendanceSummary } from "@/components/teacher/attendance/AttendanceSummary";
 import { BulkActions } from "@/components/teacher/attendance/BulkActions";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import type { AttendanceRowData } from "@/components/teacher/attendance/StudentAttendanceRow";
 
 function toDateInputValue(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function fromDateInputValue(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
 }
 
 function computeSummary(records: AttendanceRowData[]) {
@@ -51,11 +60,20 @@ export default function HomeroomAttendancePage() {
   const homeroomClassGroupId = contextData?.data.teacher.homeroomClassGroupId;
   const homeroomClassName = contextData?.data.teacher.homeroomClassName;
 
-  const [date, setDate] = React.useState(() => toDateInputValue(new Date()));
-  const { data: attendanceData, isLoading, refetch } = useHomeroomAttendance(date);
+  const [selectedDate, setSelectedDate] = React.useState<Date | null>(() => new Date());
+  const dateValue = selectedDate ? toDateInputValue(selectedDate) : "";
+  const { data: attendanceData, isLoading, refetch } = useHomeroomAttendance(dateValue);
   const recordMutation = useRecordHomeroomAttendance();
 
   const [records, setRecords] = React.useState<AttendanceRowData[]>([]);
+  const lastDateRef = React.useRef<string>("");
+
+  React.useEffect(() => {
+    if (dateValue && dateValue !== lastDateRef.current) {
+      lastDateRef.current = dateValue;
+      setRecords([]);
+    }
+  }, [dateValue]);
 
   React.useEffect(() => {
     if (attendanceData?.data.records) {
@@ -77,11 +95,15 @@ export default function HomeroomAttendancePage() {
 
   const handleSave = async () => {
     if (!homeroomClassGroupId) return;
+    if (!dateValue) {
+      busyToast.warning("Select a date first.");
+      return;
+    }
 
     await busyToast.promise(
       recordMutation.mutateAsync({
         classGroupId: homeroomClassGroupId,
-        date,
+        date: dateValue,
         records: records.map((record) => ({
           studentId: record.studentId,
           status: record.status,
@@ -109,7 +131,9 @@ export default function HomeroomAttendancePage() {
   };
 
   const handleCopyYesterday = async () => {
-    const current = new Date(date);
+    if (!dateValue) return;
+    const current = fromDateInputValue(dateValue);
+    if (!current) return;
     if (Number.isNaN(current.getTime())) return;
 
     const yesterday = new Date(current);
@@ -173,12 +197,11 @@ export default function HomeroomAttendancePage() {
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <CalendarDays className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-white/40" />
-            <Input
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              className="pl-9 border-white/10 bg-white/5 text-white/80"
+            <CustomDatePicker
+              value={selectedDate}
+              onChange={setSelectedDate}
+              placeholder="Select date"
+              className="w-full"
             />
           </div>
           <Button

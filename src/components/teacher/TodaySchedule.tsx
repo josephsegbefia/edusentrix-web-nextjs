@@ -1,13 +1,23 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Clock, CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const timeLabel = (start?: string | null, end?: string | null) => {
   if (!start && !end) return "Time TBA";
   if (start && end) return `${start} - ${end}`;
   return start || end || "Time TBA";
+};
+
+const todayParam = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 type ScheduleItem = {
@@ -78,7 +88,23 @@ export function TodaySchedule({ date, schedule = [], loading }: TodaySchedulePro
                     {timeLabel(item.startTime, item.endTime)}
                   </span>
                 </div>
-                <div className="text-xs text-white/50">{item.className}</div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/50">
+                  <span>{item.className}</span>
+                  {item.classGroupId && item.subjectId && (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                    >
+                      <Link
+                        href={`/teacher/attendance/period?classGroupId=${item.classGroupId}&subjectId=${item.subjectId}&date=${todayParam()}`}
+                      >
+                        Record Attendance
+                      </Link>
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

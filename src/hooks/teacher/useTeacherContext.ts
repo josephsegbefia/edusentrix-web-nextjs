@@ -30,6 +30,9 @@ export type TeacherContextResponse = {
       pendingToMark: number;
       todayAttendanceTaken: boolean;
     };
+    features: {
+      teacherStudioEnabled: boolean;
+    };
     permissions: string[];
   };
 };

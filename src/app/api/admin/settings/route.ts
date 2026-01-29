@@ -23,6 +23,10 @@ const AssemblyConfigSchema = z.object({
   location: z.string().max(200).optional(),
 });
 
+const TeacherStudioSchema = z.object({
+  enabled: z.boolean(),
+});
+
 const UpdateSettingsSchema = z.object({
   schoolStartTime: z.string().regex(TimeRegex).optional(),
   schoolEndTime: z.string().regex(TimeRegex).optional(),
@@ -35,6 +39,7 @@ const UpdateSettingsSchema = z.object({
   defaultExamWeekDuration: z.number().min(1).max(21).optional(),
   defaultRevisionWeekDuration: z.number().min(1).max(14).optional(),
   workingDays: z.array(z.number().min(0).max(6)).optional(),
+  teacherStudio: TeacherStudioSchema.optional(),
 });
 
 /**
@@ -73,6 +78,7 @@ export async function GET() {
         defaultExamWeekDuration: 5,
         defaultRevisionWeekDuration: 5,
         workingDays: [1, 2, 3, 4, 5],
+        teacherStudio: { enabled: true },
       });
       settings = newSettings.toObject();
     }
@@ -92,6 +98,9 @@ export async function GET() {
       defaultExamWeekDuration: s.defaultExamWeekDuration ?? 5,
       defaultRevisionWeekDuration: s.defaultRevisionWeekDuration ?? 5,
       workingDays: s.workingDays || [1, 2, 3, 4, 5],
+      teacherStudio: (s.teacherStudio as { enabled?: boolean } | undefined) || {
+        enabled: true,
+      },
       updatedAt: s.updatedAt ? new Date(s.updatedAt as string).toISOString() : null,
     };
 
@@ -149,6 +158,9 @@ export async function PATCH(req: NextRequest) {
       defaultExamWeekDuration: settings.defaultExamWeekDuration ?? 5,
       defaultRevisionWeekDuration: settings.defaultRevisionWeekDuration ?? 5,
       workingDays: settings.workingDays || [1, 2, 3, 4, 5],
+      teacherStudio: (settings.teacherStudio as { enabled?: boolean } | undefined) || {
+        enabled: true,
+      },
       updatedAt: settings.updatedAt ? new Date(settings.updatedAt as string).toISOString() : null,
     };
 

@@ -359,18 +359,18 @@ async function createIndexes() {
 
 ### Phase 0 Deliverables
 
-- [ ] `StudentAttendance` model with indexes
-- [ ] `Homework` model with indexes
-- [ ] `Submission` model with indexes
-- [ ] `Rubric` model
-- [ ] `Notice` model
-- [ ] `MessageThread` and `Message` models
-- [ ] `Escalation` model
-- [ ] `JournalEntry` model
-- [ ] `requireTeacher()` auth helper
-- [ ] `can()` permission helper
-- [ ] Teacher model updated with `subroles` field
-- [ ] Index creation script
+- [x] `StudentAttendance` model with indexes
+- [x] `Homework` model with indexes
+- [x] `Submission` model with indexes
+- [x] `Rubric` model
+- [x] `Notice` model
+- [x] `MessageThread` and `Message` models
+- [x] `Escalation` model
+- [x] `JournalEntry` model
+- [x] `requireTeacher()` auth helper
+- [x] `can()` permission helper
+- [x] Teacher model updated with `subroles` field
+- [x] Index creation script
 
 ---
 
@@ -518,16 +518,16 @@ src/components/teacher/
 
 ### Phase 1 Deliverables
 
-- [ ] `/api/teacher/me` route
-- [ ] `/api/teacher/classes` route
-- [ ] `/api/teacher/dashboard` route
-- [ ] Teacher layout with sidebar
-- [ ] Dashboard page with stats
-- [ ] `useTeacherContext` hook
-- [ ] `useTeacherClasses` hook
-- [ ] Teacher sidebar component
-- [ ] Today's schedule component
-- [ ] Quick stats component
+- [x] `/api/teacher/me` route
+- [x] `/api/teacher/classes` route
+- [x] `/api/teacher/dashboard` route
+- [x] Teacher layout with sidebar
+- [x] Dashboard page with stats
+- [x] `useTeacherContext` hook
+- [x] `useTeacherClasses` hook
+- [x] Teacher sidebar component
+- [x] Today's schedule component
+- [x] Quick stats component
 
 ---
 
@@ -635,15 +635,15 @@ export async function queueAttendanceNotification(
 
 ### Phase 2 Deliverables
 
-- [ ] `StudentAttendance` model integrated
-- [ ] Homeroom attendance API
-- [ ] Period attendance API
-- [ ] Attendance history API
-- [ ] Fast attendance UI
+- [x] `StudentAttendance` model integrated
+- [x] Homeroom attendance API
+- [x] Period attendance API
+- [x] Attendance history API
+- [x] Fast attendance UI
 - [ ] Swipe/tap gesture support
-- [ ] "Same as yesterday" feature
-- [ ] Attendance summary view
-- [ ] Notification queue stub
+- [x] "Same as yesterday" feature
+- [x] Attendance summary view
+- [x] Notification queue stub
 
 ---
 
@@ -739,23 +739,23 @@ src/app/api/student/assignments/
 ### Phase 3 Deliverables
 
 **Week 1:**
-- [ ] `Homework` model integrated
-- [ ] `Submission` model integrated
-- [ ] `Rubric` model integrated
-- [ ] Assignment CRUD APIs
-- [ ] Assignment builder UI
-- [ ] Assignment list with filters
-- [ ] Publish/close workflow
+- [x] `Homework` model integrated
+- [x] `Submission` model integrated
+- [x] `Rubric` model integrated
+- [x] Assignment CRUD APIs
+- [x] Assignment builder UI
+- [x] Assignment list with filters
+- [x] Publish/close workflow
 
 **Week 2:**
-- [ ] Submission viewing API
-- [ ] Grading API
-- [ ] Return for redo API
-- [ ] Marking interface
-- [ ] Rubric scoring UI
-- [ ] Feedback snippets
-- [ ] Bulk grading
-- [ ] Grade publishing
+- [x] Submission viewing API
+- [x] Grading API
+- [x] Return for redo API
+- [x] Marking interface
+- [x] Rubric scoring UI
+- [x] Feedback snippets
+- [x] Bulk grading
+- [x] Grade publishing
 
 ---
 
@@ -862,15 +862,15 @@ No changes to these models needed.
 
 ### Phase 4 Deliverables
 
-- [ ] Gradebook data API
-- [ ] Mark recording API
-- [ ] Grade publishing API
-- [ ] Export API (CSV/PDF)
-- [ ] Spreadsheet grid component
-- [ ] Inline editing
-- [ ] Auto-save
-- [ ] Grade calculations
-- [ ] Export functionality
+- [x] Gradebook data API
+- [x] Mark recording API
+- [x] Grade publishing API
+- [x] Export API (CSV/PDF)
+- [x] Spreadsheet grid component
+- [x] Inline editing
+- [x] Auto-save
+- [x] Grade calculations
+- [x] Export functionality
 
 ---
 
@@ -917,7 +917,7 @@ src/app/api/teacher/escalations/
 ### 5.4 Communication Pages
 
 ```
-src/app/(app)/teacher/
+src/app/(app)/teacher/communication/
 ├── notices/
 │   ├── page.tsx              # Notice list
 │   └── new/
@@ -970,13 +970,13 @@ export async function sendAttendanceNotification(
 
 ### Phase 5 Deliverables
 
-- [ ] Notice CRUD APIs
-- [ ] Notice UI
-- [ ] Message thread APIs
-- [ ] Message UI
-- [ ] Escalation APIs
-- [ ] Escalation UI
-- [ ] WhatsApp integration
+- [x] Notice CRUD APIs
+- [x] Notice UI
+- [x] Message thread APIs
+- [x] Message UI
+- [x] Escalation APIs
+- [x] Escalation UI
+- [x] WhatsApp integration
 - [ ] SMS fallback
 - [ ] Notification queue processing
 
@@ -1054,10 +1054,10 @@ src/app/(app)/teacher/journal/
 
 ### Phase 6 Deliverables
 
-- [ ] Analytics APIs
-- [ ] At-risk detection algorithm
-- [ ] Dashboard queues populated
-- [ ] Class journal UI
+- [x] Analytics APIs
+- [x] At-risk detection algorithm
+- [x] Dashboard queues populated
+- [x] Class journal UI
 - [ ] Offline support
 - [ ] Performance optimization
 - [ ] Mobile polish
@@ -1247,4 +1247,3 @@ src/
 **End of Implementation Plan**
 
 > This plan ensures safe, incremental development with clear milestones and zero disruption to existing features.
-

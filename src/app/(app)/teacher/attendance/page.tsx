@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export default function TeacherAttendancePage() {
@@ -95,7 +99,16 @@ export default function TeacherAttendancePage() {
         </CardHeader>
         <CardContent>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-            Period attendance is available via the API and will appear here once the schedule view is live.
+            Period attendance is ready for use. Pick a class, subject, and period to record.
+          </div>
+          <div className="mt-4">
+            <Button
+              asChild
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+            >
+              <Link href="/teacher/attendance/period">Record Period Attendance</Link>
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -12,6 +12,7 @@ import { Submission } from "@/models/Submission";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { User } from "@/models/User";
+import { getTeacherStudioEnabledForSchool } from "@/lib/features/teacherStudio";
 
 function parseTermNumber(term?: string | null) {
   if (!term) return null;
@@ -137,6 +138,10 @@ export async function GET() {
       .join(" ")
       .trim();
 
+    const teacherStudioEnabled = await getTeacherStudioEnabledForSchool(
+      context.schoolId
+    );
+
     return Response.json({
       success: true,
       data: {
@@ -170,6 +175,9 @@ export async function GET() {
           totalStudents,
           pendingToMark,
           todayAttendanceTaken,
+        },
+        features: {
+          teacherStudioEnabled,
         },
         permissions: context.permissions,
       },

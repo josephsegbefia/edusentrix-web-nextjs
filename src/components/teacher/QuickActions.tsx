@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { CalendarCheck2, RefreshCcw, Plus, Megaphone, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import {
   PremiumDropdownMenu,
   PremiumDropdownMenuContent,
@@ -17,6 +20,13 @@ type QuickActionsProps = {
 };
 
 export function QuickActions({ onRefresh, refreshing }: QuickActionsProps) {
+  const { data } = useTeacherContext();
+  const permissions = data?.data.permissions as Permission[] | undefined;
+  const studioEnabled = data?.data.features?.teacherStudioEnabled ?? true;
+  const canCreateAssignment = can(permissions, PERMISSIONS.assignmentsCreate);
+  const canPostNotice = can(permissions, PERMISSIONS.noticesPublish);
+  const showCreateAssignment = studioEnabled && canCreateAssignment;
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button
@@ -49,12 +59,20 @@ export function QuickActions({ onRefresh, refreshing }: QuickActionsProps) {
           </Button>
         </PremiumDropdownMenuTrigger>
         <PremiumDropdownMenuContent align="end">
-          <PremiumDropdownMenuItem disabled icon={<ClipboardCheck className="h-4 w-4" />}>
-            Create Assignment (soon)
-          </PremiumDropdownMenuItem>
-          <PremiumDropdownMenuItem disabled icon={<Megaphone className="h-4 w-4" />}>
-            Post Notice (soon)
-          </PremiumDropdownMenuItem>
+          {showCreateAssignment && (
+            <PremiumDropdownMenuItem asChild icon={<ClipboardCheck className="h-4 w-4" />}>
+              <Link href="/teacher/studio/assignments/new">Create Assignment</Link>
+            </PremiumDropdownMenuItem>
+          )}
+          {canPostNotice ? (
+            <PremiumDropdownMenuItem asChild icon={<Megaphone className="h-4 w-4" />}>
+              <Link href="/teacher/communication/notices/new">Post Notice</Link>
+            </PremiumDropdownMenuItem>
+          ) : (
+            <PremiumDropdownMenuItem disabled icon={<Megaphone className="h-4 w-4" />}>
+              Post Notice (locked)
+            </PremiumDropdownMenuItem>
+          )}
           <PremiumDropdownMenuSeparator />
           <PremiumDropdownMenuItem asChild>
             <Link href="/teacher">

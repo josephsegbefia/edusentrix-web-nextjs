@@ -16,7 +16,7 @@ export type AppRole =
  * Roles that can be invited via the invitation system
  * These are school-level roles that require invitations
  */
-export type InvitationRole = "teacher" | "staff" | "school_admin";
+export type InvitationRole = "teacher" | "staff" | "school_admin" | "parent";
 
 /**
  * Roles that can be assigned via UserMembership
@@ -34,7 +34,7 @@ export type MembershipRole =
  * Check if a role is an invitation role
  */
 export function isInvitationRole(role: string): role is InvitationRole {
-  return ["teacher", "staff", "school_admin"].includes(role);
+  return ["teacher", "staff", "school_admin", "parent"].includes(role);
 }
 
 /**

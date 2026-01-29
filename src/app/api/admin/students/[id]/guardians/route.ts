@@ -6,6 +6,7 @@ import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
+import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
 import { clerkClient } from "@clerk/nextjs/server";
 import { sendEmail } from "@/lib/email/brevo";
@@ -232,6 +233,26 @@ export async function POST(
         // Fetch school name for email
         const school = await School.findById(schoolIdObj).select("name").lean();
         const schoolName = school ? (school as any).name : "your school";
+        const studentName = `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim();
+
+        // Create Invitation record for tracking
+        await Invitation.create({
+          email: emailLower,
+          role: "parent",
+          schoolId: schoolIdObj,
+          status: "pending",
+          clerkInvitationId: clerkInvitation.id,
+          sentAt: new Date(),
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          invitedBy: new mongoose.Types.ObjectId(userId),
+          metadata: {
+            firstName: validated.firstName,
+            lastName: validated.lastName,
+            studentId: id,
+            studentName,
+            relationship: validated.relationship,
+          },
+        });
 
         // Send branded invitation email
         await sendEmail(emailLower, "USER_INVITE", {

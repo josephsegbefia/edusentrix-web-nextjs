@@ -71,10 +71,11 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
 }
 
 function RoleBadge({ role }: { role: InvitationRole }) {
-  const config = {
+  const config: Record<InvitationRole, string> = {
     teacher: "bg-purple-500/10 text-purple-300 border-purple-500/30",
     staff: "bg-blue-500/10 text-blue-300 border-blue-500/30",
     school_admin: "bg-brand/20 text-brand border-brand/30",
+    parent: "bg-green-500/10 text-green-300 border-green-500/30",
   };
 
   return (

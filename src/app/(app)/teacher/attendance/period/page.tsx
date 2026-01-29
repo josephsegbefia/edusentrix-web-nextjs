@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { usePeriodAttendance } from "@/hooks/teacher/usePeriodAttendance";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { fetchWithOfflineFallback } from "@/hooks/useOfflineQueue";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -171,8 +172,8 @@ export default function PeriodAttendancePage() {
       busyToast.warning("Select a date first.");
       return;
     }
-    await busyToast.promise(
-      fetch("/api/teacher/attendance/period", {
+    const result = await busyToast.promise(
+      fetchWithOfflineFallback("/api/teacher/attendance/period", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -187,17 +188,30 @@ export default function PeriodAttendancePage() {
             reason: record.reason,
           })),
         }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to record attendance");
-        return data;
-      }),
+        queueDescription: "Period attendance",
+      })
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error || "Failed to record attendance");
+          return data;
+        })
+        .catch((err: unknown) => {
+          if ((err as { isOfflineQueued?: boolean })?.isOfflineQueued) {
+            return { queued: true } as { queued: true };
+          }
+          throw err;
+        }),
       {
         loading: "Recording period attendance...",
         success: "Period attendance recorded",
         error: "Failed to record attendance",
       }
     );
+    if ((result as { queued?: boolean })?.queued) {
+      busyToast.info("Saved offline", {
+        description: "Period attendance will sync when you're back online.",
+      });
+    }
   };
 
   const handleMarkAll = (status: AttendanceRowData["status"]) => {

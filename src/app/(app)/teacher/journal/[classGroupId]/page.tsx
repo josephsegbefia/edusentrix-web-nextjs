@@ -108,7 +108,7 @@ export default function TeacherClassJournalPage() {
     if (!entryContent.trim()) return;
     if (!entryDate) return;
 
-    await busyToast.promise(
+    const result = await busyToast.promise(
       createMutation.mutateAsync({
         classGroupId,
         subjectId: entrySubjectId !== "all" ? entrySubjectId : null,
@@ -123,6 +123,11 @@ export default function TeacherClassJournalPage() {
         error: "Failed to save entry",
       }
     );
+    if ((result as { queued?: boolean })?.queued) {
+      busyToast.info("Saved offline", {
+        description: "Journal entry will sync when you're back online.",
+      });
+    }
 
     setEntryTitle("");
     setEntryContent("");

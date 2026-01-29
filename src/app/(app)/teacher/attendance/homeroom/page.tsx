@@ -100,7 +100,7 @@ export default function HomeroomAttendancePage() {
       return;
     }
 
-    await busyToast.promise(
+    const result = await busyToast.promise(
       recordMutation.mutateAsync({
         classGroupId: homeroomClassGroupId,
         date: dateValue,
@@ -117,6 +117,11 @@ export default function HomeroomAttendancePage() {
         error: "Failed to record attendance",
       }
     );
+    if ((result as { queued?: boolean })?.queued) {
+      busyToast.info("Saved offline", {
+        description: "Attendance will sync when you're back online.",
+      });
+    }
   };
 
   const handleMarkAll = (status: AttendanceRowData["status"]) => {

@@ -6,6 +6,7 @@ export interface IUserMembership {
   userId: Types.ObjectId;
   schoolId: Types.ObjectId;
   roles: MembershipRole[];
+  subroles?: string[];
   status: "active" | "invited" | "suspended";
   createdAt: Date;
   updatedAt: Date;
@@ -17,7 +18,12 @@ const membershipSchema = new Schema<IUserMembership>(
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true },
     roles: {
       type: [String],
-      enum: ["school_admin", "bursar", "teacher", "parent", "student"],
+      enum: ["school_admin", "bursar", "staff", "teacher", "parent", "student"],
+      default: [],
+      index: true,
+    },
+    subroles: {
+      type: [String],
       default: [],
       index: true,
     },

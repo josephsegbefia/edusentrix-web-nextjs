@@ -4,6 +4,9 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import ActiveLink from "../active/ActiveLink";
+import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import {
   LayoutDashboard,
   School,
@@ -181,10 +184,23 @@ const navSections: NavSection[] = [
 
 function NavContent({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname();
+  const { data } = useTeacherContext();
+  const permissions = data?.data.permissions as Permission[] | undefined;
+  const studioEnabled = data?.data.features?.teacherStudioEnabled ?? true;
+  const canViewStudio = can(permissions, PERMISSIONS.assignmentsView);
+  const showStudio = studioEnabled && canViewStudio;
+
+  const sections = React.useMemo(
+    () =>
+      navSections.filter((section) =>
+        section.title === "Teacher Studio" ? showStudio : true
+      ),
+    [showStudio]
+  );
 
   return (
     <nav className="space-y-6">
-      {navSections.map((section, sectionIdx) => (
+      {sections.map((section, sectionIdx) => (
         <div key={section.title}>
           <div className="mb-2.5 px-3">
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
@@ -217,7 +233,7 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
             })}
           </div>
 
-          {sectionIdx < navSections.length - 1 && (
+          {sectionIdx < sections.length - 1 && (
             <Separator className="mt-6 bg-white/5" />
           )}
         </div>

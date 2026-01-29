@@ -1,6 +1,7 @@
 import AppTopbar from "@/components/app/AppTopbar";
 import { requireUser } from "@/lib/auth/get-current-user";
 import { NetworkStatusBanner } from "@/components/system/NetworkStatusBanner";
+import ServiceWorkerRegister from "@/components/system/ServiceWorkerRegister";
 
 // add bg/text to ensure black base for all signed-in pages
 export default async function AppLayout({
@@ -14,6 +15,7 @@ export default async function AppLayout({
       <AppTopbar user={user} />
       {/* Network status banner - appears below topbar when offline/degraded */}
       <NetworkStatusBanner />
+      <ServiceWorkerRegister />
       <main className="flex-1 overflow-x-hidden pt-14">{children}</main>
     </div>
   );

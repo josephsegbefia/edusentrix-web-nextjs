@@ -36,6 +36,20 @@ export type SchoolSettingsDTO = {
   defaultExamWeekDuration: number;
   defaultRevisionWeekDuration: number;
   workingDays: number[];
+  teacherStudio: {
+    enabled: boolean;
+  };
+  attendanceNotifications: {
+    enabled: boolean;
+    channels: {
+      whatsapp: boolean;
+      sms: boolean;
+      email: boolean;
+    };
+  };
+  offlineMode: {
+    enabled: boolean;
+  };
   updatedAt: string | null;
 };
 

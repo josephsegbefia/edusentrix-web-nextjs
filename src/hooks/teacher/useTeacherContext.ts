@@ -32,6 +32,13 @@ export type TeacherContextResponse = {
     };
     features: {
       teacherStudioEnabled: boolean;
+      attendanceNotificationsEnabled?: boolean;
+      attendanceNotificationChannels?: {
+        whatsapp: boolean;
+        sms: boolean;
+        email: boolean;
+      };
+      offlineModeEnabled?: boolean;
     };
     permissions: string[];
   };

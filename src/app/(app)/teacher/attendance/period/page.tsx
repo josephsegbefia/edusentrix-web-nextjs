@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { ClipboardCheck, Save } from "lucide-react";
+import { ClipboardCheck, Save, Megaphone } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { usePeriodAttendance } from "@/hooks/teacher/usePeriodAttendance";
+import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { fetchWithOfflineFallback } from "@/hooks/useOfflineQueue";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,9 @@ type AssignmentOption = {
 
 export default function PeriodAttendancePage() {
   const busyToast = useBusyToast();
+  const { data: contextData } = useTeacherContext();
+  const notificationsEnabled =
+    contextData?.data.features?.attendanceNotificationsEnabled ?? true;
   const searchParams = useSearchParams();
   const { data: classesData, isLoading: classesLoading } = useTeacherClasses();
   const assignments = (classesData?.data.classes ?? []).map((item) => ({
@@ -248,6 +252,16 @@ export default function PeriodAttendancePage() {
           Save
         </Button>
       </div>
+
+      {!notificationsEnabled && (
+        <Card className="border border-amber-500/30 bg-amber-500/10">
+          <CardContent className="flex items-center gap-3 p-4 text-sm text-amber-100">
+            <Megaphone className="h-4 w-4" />
+            Guardian notifications are disabled in School Settings. Attendance will be recorded
+            without alerts.
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader>

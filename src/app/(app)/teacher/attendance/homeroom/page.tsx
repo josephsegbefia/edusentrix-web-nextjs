@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Save } from "lucide-react";
+import { Save, Megaphone } from "lucide-react";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useHomeroomAttendance } from "@/hooks/teacher/useHomeroomAttendance";
 import { useRecordHomeroomAttendance } from "@/hooks/teacher/useRecordHomeroomAttendance";
@@ -59,6 +59,8 @@ export default function HomeroomAttendancePage() {
   const { data: contextData, isLoading: contextLoading } = useTeacherContext();
   const homeroomClassGroupId = contextData?.data.teacher.homeroomClassGroupId;
   const homeroomClassName = contextData?.data.teacher.homeroomClassName;
+  const notificationsEnabled =
+    contextData?.data.features?.attendanceNotificationsEnabled ?? true;
 
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(() => new Date());
   const dateValue = selectedDate ? toDateInputValue(selectedDate) : "";
@@ -228,6 +230,16 @@ export default function HomeroomAttendancePage() {
           </Button>
         </div>
       </div>
+
+      {!notificationsEnabled && (
+        <Card className="border border-amber-500/30 bg-amber-500/10">
+          <CardContent className="flex items-center gap-3 p-4 text-sm text-amber-100">
+            <Megaphone className="h-4 w-4" />
+            Guardian notifications are disabled in School Settings. Attendance will be recorded
+            without alerts.
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader>

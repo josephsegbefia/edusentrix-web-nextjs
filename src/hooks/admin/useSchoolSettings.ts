@@ -39,6 +39,17 @@ export type SchoolSettingsDTO = {
   teacherStudio: {
     enabled: boolean;
   };
+  attendanceNotifications: {
+    enabled: boolean;
+    channels: {
+      whatsapp: boolean;
+      sms: boolean;
+      email: boolean;
+    };
+  };
+  offlineMode: {
+    enabled: boolean;
+  };
   updatedAt: string | null;
 };
 

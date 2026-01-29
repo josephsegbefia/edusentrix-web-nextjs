@@ -27,6 +27,21 @@ const TeacherStudioSchema = z.object({
   enabled: z.boolean(),
 });
 
+const AttendanceNotificationsSchema = z.object({
+  enabled: z.boolean(),
+  channels: z
+    .object({
+      whatsapp: z.boolean(),
+      sms: z.boolean(),
+      email: z.boolean(),
+    })
+    .optional(),
+});
+
+const OfflineModeSchema = z.object({
+  enabled: z.boolean(),
+});
+
 const UpdateSettingsSchema = z.object({
   schoolStartTime: z.string().regex(TimeRegex).optional(),
   schoolEndTime: z.string().regex(TimeRegex).optional(),
@@ -40,6 +55,8 @@ const UpdateSettingsSchema = z.object({
   defaultRevisionWeekDuration: z.number().min(1).max(14).optional(),
   workingDays: z.array(z.number().min(0).max(6)).optional(),
   teacherStudio: TeacherStudioSchema.optional(),
+  attendanceNotifications: AttendanceNotificationsSchema.optional(),
+  offlineMode: OfflineModeSchema.optional(),
 });
 
 /**
@@ -79,6 +96,11 @@ export async function GET() {
         defaultRevisionWeekDuration: 5,
         workingDays: [1, 2, 3, 4, 5],
         teacherStudio: { enabled: true },
+        attendanceNotifications: {
+          enabled: true,
+          channels: { whatsapp: true, sms: false, email: false },
+        },
+        offlineMode: { enabled: true },
       });
       settings = newSettings.toObject();
     }
@@ -99,6 +121,16 @@ export async function GET() {
       defaultRevisionWeekDuration: s.defaultRevisionWeekDuration ?? 5,
       workingDays: s.workingDays || [1, 2, 3, 4, 5],
       teacherStudio: (s.teacherStudio as { enabled?: boolean } | undefined) || {
+        enabled: true,
+      },
+      attendanceNotifications: (s.attendanceNotifications as {
+        enabled?: boolean;
+        channels?: { whatsapp?: boolean; sms?: boolean; email?: boolean };
+      } | undefined) || {
+        enabled: true,
+        channels: { whatsapp: true, sms: false, email: false },
+      },
+      offlineMode: (s.offlineMode as { enabled?: boolean } | undefined) || {
         enabled: true,
       },
       updatedAt: s.updatedAt ? new Date(s.updatedAt as string).toISOString() : null,
@@ -159,6 +191,16 @@ export async function PATCH(req: NextRequest) {
       defaultRevisionWeekDuration: settings.defaultRevisionWeekDuration ?? 5,
       workingDays: settings.workingDays || [1, 2, 3, 4, 5],
       teacherStudio: (settings.teacherStudio as { enabled?: boolean } | undefined) || {
+        enabled: true,
+      },
+      attendanceNotifications: (settings.attendanceNotifications as {
+        enabled?: boolean;
+        channels?: { whatsapp?: boolean; sms?: boolean; email?: boolean };
+      } | undefined) || {
+        enabled: true,
+        channels: { whatsapp: true, sms: false, email: false },
+      },
+      offlineMode: (settings.offlineMode as { enabled?: boolean } | undefined) || {
         enabled: true,
       },
       updatedAt: settings.updatedAt ? new Date(settings.updatedAt as string).toISOString() : null,

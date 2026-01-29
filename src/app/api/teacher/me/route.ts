@@ -12,7 +12,8 @@ import { Submission } from "@/models/Submission";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { User } from "@/models/User";
-import { getTeacherStudioEnabledForSchool } from "@/lib/features/teacherStudio";
+import { SchoolSettings } from "@/models/SchoolSettings";
+import { isTeacherStudioEnvEnabled } from "@/lib/features/teacherStudio";
 
 function parseTermNumber(term?: string | null) {
   if (!term) return null;
@@ -138,9 +139,31 @@ export async function GET() {
       .join(" ")
       .trim();
 
-    const teacherStudioEnabled = await getTeacherStudioEnabledForSchool(
-      context.schoolId
-    );
+    const settings = await SchoolSettings.findOne({ schoolId: context.schoolId })
+      .select("teacherStudio attendanceNotifications offlineMode")
+      .lean();
+
+    const teacherStudioEnabled = isTeacherStudioEnvEnabled()
+      ? (settings as { teacherStudio?: { enabled?: boolean } } | null)?.teacherStudio
+          ?.enabled ?? true
+      : false;
+
+    const attendanceNotificationsEnabled =
+      (settings as { attendanceNotifications?: { enabled?: boolean } } | null)
+        ?.attendanceNotifications?.enabled ?? true;
+
+    const attendanceNotificationChannels =
+      (settings as {
+        attendanceNotifications?: { channels?: { whatsapp?: boolean; sms?: boolean; email?: boolean } };
+      } | null)?.attendanceNotifications?.channels || {
+        whatsapp: true,
+        sms: false,
+        email: false,
+      };
+
+    const offlineModeEnabled =
+      (settings as { offlineMode?: { enabled?: boolean } } | null)?.offlineMode
+        ?.enabled ?? true;
 
     return Response.json({
       success: true,
@@ -178,6 +201,13 @@ export async function GET() {
         },
         features: {
           teacherStudioEnabled,
+          attendanceNotificationsEnabled,
+          attendanceNotificationChannels: {
+            whatsapp: attendanceNotificationChannels.whatsapp ?? true,
+            sms: attendanceNotificationChannels.sms ?? false,
+            email: attendanceNotificationChannels.email ?? false,
+          },
+          offlineModeEnabled,
         },
         permissions: context.permissions,
       },

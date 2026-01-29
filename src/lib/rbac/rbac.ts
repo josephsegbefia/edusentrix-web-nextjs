@@ -27,6 +27,7 @@ export const PERMISSIONS = {
   attendanceHomeroom: "teacher.attendance.homeroom",
   attendancePeriod: "teacher.attendance.period",
   attendanceReview: "teacher.attendance.review",
+  attendanceNotify: "teacher.attendance.notify",
   noticesView: "teacher.communication.notices.view",
   noticesPublish: "teacher.communication.notices.publish",
   messagesView: "teacher.communication.messages.view",
@@ -75,6 +76,7 @@ const SUBROLE_PERMISSIONS: Record<TeacherSubrole, Permission[]> = {
   homeroom_teacher: [
     PERMISSIONS.attendanceHomeroom,
     PERMISSIONS.attendanceReview,
+    PERMISSIONS.attendanceNotify,
     PERMISSIONS.analyticsAtRisk,
     PERMISSIONS.journalWrite,
     PERMISSIONS.messagesSend,

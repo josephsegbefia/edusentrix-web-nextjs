@@ -70,6 +70,19 @@ export interface ISchoolSettings {
     enabled: boolean;
   };
 
+  attendanceNotifications?: {
+    enabled: boolean;
+    channels?: {
+      whatsapp: boolean;
+      sms: boolean;
+      email: boolean;
+    };
+  };
+
+  offlineMode?: {
+    enabled: boolean;
+  };
+
   // Metadata
   updatedBy?: Types.ObjectId;
   createdAt: Date;
@@ -208,6 +221,19 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
 
     // Feature Flags
     teacherStudio: {
+      enabled: { type: Boolean, default: true },
+    },
+
+    attendanceNotifications: {
+      enabled: { type: Boolean, default: true },
+      channels: {
+        whatsapp: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false },
+        email: { type: Boolean, default: false },
+      },
+    },
+
+    offlineMode: {
       enabled: { type: Boolean, default: true },
     },
 

@@ -4,9 +4,12 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { ClassGroup } from "@/models/ClassGroup";
+import { SchoolSettings } from "@/models/SchoolSettings";
 import { Student } from "@/models/Student";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { queueAttendanceNotification } from "@/lib/notifications/attendance";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS } from "@/lib/rbac";
 
 const RecordSchema = z.object({
   studentId: z.string().min(1),
@@ -238,21 +241,43 @@ export async function PATCH(
 
     await StudentAttendance.bulkWrite(validOps, { ordered: false });
 
-    await Promise.all(
-      parsed.data.records.map((record) =>
-        queueAttendanceNotification({
-          studentId: record.studentId,
-          status: record.status,
-          date: attendanceDate,
-          type: "homeroom",
-        })
-      )
-    );
+    const canNotify = can(context.permissions, PERMISSIONS.attendanceNotify);
+    let notificationsEnabled = false;
+    if (canNotify) {
+      const settings = await SchoolSettings.findOne({ schoolId: context.schoolId })
+        .select("attendanceNotifications")
+        .lean();
+      const attendanceSettings = (settings as {
+        attendanceNotifications?: { enabled?: boolean; channels?: { whatsapp?: boolean; sms?: boolean; email?: boolean } };
+      } | null)?.attendanceNotifications;
+      const enabled = attendanceSettings?.enabled ?? true;
+      const channels = attendanceSettings?.channels;
+      const hasChannel = channels ? Object.values(channels).some(Boolean) : true;
+      notificationsEnabled = enabled && hasChannel;
+    }
+
+    let notificationsSent = 0;
+    if (canNotify && notificationsEnabled) {
+      const results = await Promise.all(
+        parsed.data.records.map((record) =>
+          queueAttendanceNotification({
+            schoolId: context.schoolId,
+            studentId: record.studentId,
+            status: record.status,
+            date: attendanceDate,
+            type: "homeroom",
+            notificationsEnabled,
+          })
+        )
+      );
+      notificationsSent = results.filter(Boolean).length;
+    }
 
     return Response.json({
       success: true,
       data: {
         recorded: validOps.length,
+        notificationsSent,
       },
     });
   } catch (e: unknown) {

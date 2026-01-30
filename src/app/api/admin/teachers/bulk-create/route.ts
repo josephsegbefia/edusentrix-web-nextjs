@@ -14,6 +14,7 @@ import { sendEmail } from "@/lib/email/brevo";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { parse } from "csv-parse/sync";
 import mongoose from "mongoose";
+import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
   if (!id || !id.trim()) return null;
@@ -130,8 +131,8 @@ export async function POST(req: NextRequest) {
       error?: string;
     }> = [];
 
-    const APP_URL = process.env.APP_URL || "http://localhost:3000";
-    const redirectUrl = `${APP_URL}/auth/callback`;
+    const APP_URL = getAppUrl();
+    const redirectUrl = getInvitationRedirectUrl();
 
     // Fetch school name for emails
     const school = await School.findById(schoolIdObj).select("name").lean();

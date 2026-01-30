@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/students/[id]/guardians/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
@@ -13,6 +14,7 @@ import { sendEmail } from "@/lib/email/brevo";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import mongoose from "mongoose";
 import { z } from "zod";
+import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 
 const CreateGuardianSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -215,8 +217,8 @@ export async function POST(
           : new mongoose.Types.ObjectId(String(newUser._id));
 
       // Create Clerk user and send invitation
-      const APP_URL = process.env.APP_URL || "http://localhost:3000";
-      const redirectUrl = `${APP_URL}/auth/callback`;
+      const APP_URL = getAppUrl();
+      const redirectUrl = getInvitationRedirectUrl();
 
       try {
         const clerk = await clerkClient();

@@ -14,6 +14,7 @@ import { Invitation } from "@/models/Invitation";
 import { sendEmail } from "@/lib/email/brevo";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import mongoose from "mongoose";
+import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 
 type Body = {
   firstName: string;
@@ -221,8 +222,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Send Clerk invitation email and create invitation record
-    const APP_URL = process.env.APP_URL || "http://localhost:3000";
-    const redirectUrl = `${APP_URL}/auth/callback`;
+    const APP_URL = getAppUrl();
+    const redirectUrl = getInvitationRedirectUrl();
     let clerkInvitationId: string | undefined;
     let invitationStatus: "pending" | "failed" = "pending";
 

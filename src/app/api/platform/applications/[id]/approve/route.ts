@@ -199,6 +199,7 @@ import { User } from "@/models/User";
 import { sendEmail } from "@/lib/email/brevo";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
 import { clerkClient } from "@clerk/nextjs/server";
+import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 
 const BodySchema = z.object({
   note: z.string().optional(),
@@ -325,8 +326,8 @@ export async function POST(
     });
 
     // 4) Send Clerk invitation (verify + set password)
-    const APP_URL = process.env.APP_URL!;
-    const redirectUrl = `${APP_URL}/auth/callback`;
+    const APP_URL = getAppUrl();
+    const redirectUrl = getInvitationRedirectUrl();
 
     try {
       const clerk = await clerkClient();

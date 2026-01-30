@@ -1,6 +1,7 @@
 // src/lib/auth/generateOnboardingMagicLink.ts
 import "server-only";
 import { clerkClient } from "@clerk/nextjs/server";
+import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 
 /**
  * Generate a magic link for onboarding a new user
@@ -8,8 +9,8 @@ import { clerkClient } from "@clerk/nextjs/server";
  * Returns the sign-in URL where the user can complete onboarding
  */
 export async function generateOnboardingMagicLink(email: string): Promise<string> {
-  const APP_URL = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const redirectUrl = `${APP_URL}/auth/callback`;
+  const APP_URL = getAppUrl();
+  const redirectUrl = getInvitationRedirectUrl();
 
   const clerk = await clerkClient();
 

@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/email/brevo";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { School } from "@/models/School";
 import mongoose from "mongoose";
+import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 
 export async function POST(
   req: NextRequest,
@@ -64,8 +65,8 @@ export async function POST(
     }
 
     // Resend via Clerk
-    const APP_URL = process.env.APP_URL || "http://localhost:3000";
-    const redirectUrl = `${APP_URL}/auth/callback`;
+    const APP_URL = getAppUrl();
+    const redirectUrl = getInvitationRedirectUrl();
 
     try {
       const clerk = await clerkClient();

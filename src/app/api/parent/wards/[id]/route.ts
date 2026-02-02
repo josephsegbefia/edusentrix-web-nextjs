@@ -1,3 +1,4 @@
+// src/app/api/parent/wards/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
@@ -5,7 +6,6 @@ import { requireParent, verifyGuardianAccess } from "@/lib/auth/requireParent";
 import { Student } from "@/models/Student";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
-import { Invoice } from "@/models/Invoice";
 import { Guardian } from "@/models/Guardian";
 
 export async function GET(
@@ -25,7 +25,7 @@ export async function GET(
     }
 
     // Verify guardian access
-    const guardianInfo = await verifyGuardianAccess(context.userId, id);
+    await verifyGuardianAccess(context.userId, id);
 
     // Fetch student
     const student = await Student.findOne({
@@ -35,7 +35,18 @@ export async function GET(
       .select(
         "_id firstName lastName middleName photoUrl status classGroupId admissionNo dateOfBirth gender createdAt"
       )
-      .lean();
+      .lean() as {
+        _id: mongoose.Types.ObjectId;
+        firstName: string;
+        lastName: string;
+        middleName?: string;
+        photoUrl?: string;
+        status: string;
+        classGroupId?: mongoose.Types.ObjectId;
+        admissionNo?: string;
+        dateOfBirth?: Date;
+        gender?: string;
+      } | null;
 
     if (!student) {
       return NextResponse.json(
@@ -50,92 +61,53 @@ export async function GET(
       studentId: new mongoose.Types.ObjectId(id),
     })
       .select("relationship isPrimary")
-      .lean();
+      .lean() as { relationship: string; isPrimary: boolean } | null;
 
     // Get class group and grade
-    let classGroupName = "";
-    let gradeName = "";
-    if ((student as any).classGroupId) {
-      const classGroup = await ClassGroup.findById((student as any).classGroupId)
-        .select("name gradeId")
-        .lean();
-      if (classGroup) {
-        classGroupName = (classGroup as any).name;
-        if ((classGroup as any).gradeId) {
-          const grade = await Grade.findById((classGroup as any).gradeId)
+    let classGroup: { id: string; name: string } | null = null;
+    let gradeName: string | null = null;
+    
+    if (student.classGroupId) {
+      const classGroupDoc = await ClassGroup.findById(student.classGroupId)
+        .select("_id name gradeId")
+        .lean() as { _id: mongoose.Types.ObjectId; name: string; gradeId?: mongoose.Types.ObjectId } | null;
+      
+      if (classGroupDoc) {
+        classGroup = {
+          id: String(classGroupDoc._id),
+          name: classGroupDoc.name,
+        };
+        
+        if (classGroupDoc.gradeId) {
+          const grade = await Grade.findById(classGroupDoc.gradeId)
             .select("name")
-            .lean();
+            .lean() as { name: string } | null;
           if (grade) {
-            gradeName = (grade as any).name;
+            gradeName = grade.name;
           }
         }
       }
     }
 
-    // Get fee summary
-    const invoiceSummary = await Invoice.aggregate([
-      {
-        $match: {
-          studentId: new mongoose.Types.ObjectId(id),
-          schoolId: context.schoolId,
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalBilled: { $sum: "$totalAmount" },
-          totalPaid: { $sum: "$amountPaid" },
-          outstanding: { $sum: "$balanceDue" },
-          pendingCount: {
-            $sum: { $cond: [{ $in: ["$status", ["pending", "partial"]] }, 1, 0] },
-          },
-        },
-      },
-    ]);
-
-    const feeSummary = invoiceSummary[0] || {
-      totalBilled: 0,
-      totalPaid: 0,
-      outstanding: 0,
-      pendingCount: 0,
-    };
-
-    const feeStatus: "clear" | "partial" | "owing" =
-      feeSummary.outstanding === 0
-        ? "clear"
-        : feeSummary.outstanding > 0
-        ? "owing"
-        : "partial";
+    const fullName = `${student.firstName || ""} ${student.middleName || ""} ${student.lastName || ""}`
+      .replace(/\s+/g, " ")
+      .trim();
 
     return NextResponse.json({
       success: true,
       data: {
-        student: {
-          id: String((student as any)._id),
-          firstName: (student as any).firstName,
-          lastName: (student as any).lastName,
-          middleName: (student as any).middleName || null,
-          name: `${(student as any).firstName || ""} ${(student as any).middleName || ""} ${(student as any).lastName || ""}`.replace(/\s+/g, " ").trim(),
-          photoUrl: (student as any).photoUrl || null,
-          status: (student as any).status,
-          classGroup: classGroupName,
-          classGroupId: String((student as any).classGroupId || ""),
-          grade: gradeName,
-          admissionNo: (student as any).admissionNo || null,
-          dateOfBirth: (student as any).dateOfBirth
-            ? (student as any).dateOfBirth.toISOString()
-            : null,
-          gender: (student as any).gender || null,
-          relationship: (guardian as any)?.relationship || "guardian",
-          isPrimary: (guardian as any)?.isPrimary || false,
-        },
-        fees: {
-          totalBilled: feeSummary.totalBilled,
-          totalPaid: feeSummary.totalPaid,
-          outstanding: feeSummary.outstanding,
-          pendingInvoices: feeSummary.pendingCount,
-          status: feeStatus,
-        },
+        id: String(student._id),
+        studentId: String(student._id),
+        name: fullName,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        photoUrl: student.photoUrl || null,
+        classGroup,
+        grade: gradeName,
+        admissionNo: student.admissionNo || null,
+        status: student.status,
+        relationship: guardian?.relationship || "guardian",
+        isPrimary: guardian?.isPrimary || false,
       },
     });
   } catch (error) {

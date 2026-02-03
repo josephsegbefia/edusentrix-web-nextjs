@@ -55,6 +55,7 @@ import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import CreateCampaignModal from "@/components/modals/CreateCampaignModal";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 // ============================================================================
 // Styles
@@ -226,6 +227,7 @@ export default function FundraisingListPage() {
   const closeMutation = useCloseCampaign();
   const deleteMutation = useDeleteCampaign();
   const busyToast = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const handlePublish = async (campaignId: string) => {
     busyToast.show("Publishing campaign...");
@@ -264,7 +266,14 @@ export default function FundraisingListPage() {
   };
 
   const handleDelete = async (campaignId: string) => {
-    if (!confirm("Are you sure you want to delete this campaign?")) return;
+    const decision = await confirm({
+      title: "Delete Campaign?",
+      description: "Are you sure you want to delete this campaign?",
+      confirmLabel: "Delete Campaign",
+      cancelLabel: "Keep Campaign",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     busyToast.show("Deleting campaign...");
     try {
       await deleteMutation.mutateAsync(campaignId);
@@ -506,6 +515,7 @@ export default function FundraisingListPage() {
           setCreateModalOpen(false);
         }}
       />
+      {confirmationDialog}
     </div>
   );
 }

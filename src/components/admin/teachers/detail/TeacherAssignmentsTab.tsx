@@ -29,12 +29,14 @@ import {
 } from "@/hooks/admin/useTeacherAssignments";
 import { CreateTeacherAssignmentModal } from "@/components/admin/teachers/detail/CreateTeacherAssignmentModal";
 import { EditTeacherAssignmentModal } from "@/components/admin/teachers/detail/EditTeacherAssignmentModal";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 export function TeacherAssignmentsTab({
   teacher,
 }: {
   teacher: { id: string; fullName: string; maxClasses: number | null };
 }) {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: periodsRes } = useAcademicPeriods();
   const periods = periodsRes?.periods ?? [];
   const currentPeriod =
@@ -74,13 +76,16 @@ export function TeacherAssignmentsTab({
   };
 
   const handleDeactivate = async (assignment: TeacherAssignmentDTO) => {
-    if (
-      !confirm(
-        `Are you sure you want to deactivate this assignment?\n\n${
-          assignment.subject?.name
-        } • ${assignment.classGroup?.label || assignment.classGroup?.name}`
-      )
-    ) {
+    const decision = await confirm({
+      title: "Deactivate Assignment?",
+      description: `${assignment.subject?.name} • ${
+        assignment.classGroup?.label || assignment.classGroup?.name
+      }`,
+      confirmLabel: "Deactivate",
+      cancelLabel: "Keep Active",
+      intent: "warning",
+    });
+    if (decision !== "confirm") {
       return;
     }
     try {
@@ -237,6 +242,7 @@ export function TeacherAssignmentsTab({
           assignment={editingAssignment}
         />
       )}
+      {confirmationDialog}
     </>
   );
 }

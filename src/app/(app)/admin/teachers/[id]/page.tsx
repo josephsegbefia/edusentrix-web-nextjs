@@ -30,6 +30,7 @@ import { TeacherPerformanceTab } from "@/components/admin/teachers/detail/Teache
 import { TeacherActivityTab } from "@/components/admin/teachers/detail/TeacherActivityTab";
 import { TeacherDutiesTab } from "@/components/admin/teachers/detail/TeacherDutiesTab";
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (!sp) return "overview";
   const raw = sp.get("tab");
@@ -53,6 +54,7 @@ function TeacherDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const teacherId = params?.id;
   const [activeTab, setActiveTab] = React.useState<TeacherDetailTabId>(() =>
@@ -87,8 +89,14 @@ function TeacherDetailContent() {
 
   const handleDeactivate = async () => {
     if (!teacher) return;
-    if (!confirm(`Are you sure you want to deactivate ${teacher.fullName}?`))
-      return;
+    const decision = await confirm({
+      title: "Deactivate Teacher?",
+      description: `Are you sure you want to deactivate ${teacher.fullName}?`,
+      confirmLabel: "Deactivate",
+      cancelLabel: "Keep Active",
+      intent: "warning",
+    });
+    if (decision !== "confirm") return;
     try {
       await busy.promise(deactivateTeacher.mutateAsync(teacher.id), {
         loading: "Deactivating teacher...",
@@ -102,12 +110,14 @@ function TeacherDetailContent() {
 
   const handleDelete = async () => {
     if (!teacher) return;
-    if (
-      !confirm(
-        `Are you sure you want to terminate ${teacher.fullName}?\n\nThis will:\n• Set their status to "Terminated"\n• Deactivate all their active assignments\n• Remove them as homeroom teacher (if applicable)\n\nThis action cannot be undone.`
-      )
-    )
-      return;
+    const decision = await confirm({
+      title: "Terminate Teacher?",
+      description: `Are you sure you want to terminate ${teacher.fullName}? This will set their status to "Terminated", deactivate active assignments, and remove homeroom assignments. This action cannot be undone.`,
+      confirmLabel: "Terminate",
+      cancelLabel: "Cancel",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     try {
       await busy.promise(deleteTeacher.mutateAsync(teacher.id), {
         loading: "Terminating teacher...",
@@ -432,6 +442,7 @@ function TeacherDetailContent() {
           isLoading={updateTeacher.isPending}
         />
       )}
+      {confirmationDialog}
     </div>
   );
 }

@@ -67,6 +67,7 @@ import {
 } from "@/hooks/admin/useTeacherAssignments";
 import { useTeacherWorkload } from "@/hooks/admin/useTeacherWorkload";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 const DOW = [
   { value: "0", label: "Sunday" },
@@ -263,6 +264,7 @@ export function EditTeacherAssignmentModal({
   teacher: { id: string; fullName: string };
   assignment: TeacherAssignmentDTO;
 }) {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: periodsRes, isLoading: periodsLoading } = useAcademicPeriods();
   const periods = periodsRes?.periods ?? [];
 
@@ -383,11 +385,14 @@ export function EditTeacherAssignmentModal({
       const wouldExceedStudents = workload.capacity.maxStudents && workload.current.students > workload.capacity.maxStudents;
 
       if (wouldExceedStudents) {
-        const shouldProceed = window.confirm(
-          `⚠️ Workload Warning\n\nThis change may affect the teacher's student capacity.\n\nCurrent students: ${workload.current.students}\nMax capacity: ${workload.capacity.maxStudents}\n\nDo you want to proceed anyway?`
-        );
-
-        if (!shouldProceed) {
+        const decision = await confirm({
+          title: "Workload Warning",
+          description: `This change may affect the teacher's student capacity. Current students: ${workload.current.students}. Max capacity: ${workload.capacity.maxStudents}. Do you want to proceed anyway?`,
+          confirmLabel: "Proceed",
+          cancelLabel: "Review Changes",
+          intent: "warning",
+        });
+        if (decision !== "confirm") {
           return;
         }
       }
@@ -480,36 +485,37 @@ export function EditTeacherAssignmentModal({
   if (!open) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        aria-modal="true"
-        role="dialog"
-      >
-        {/* Overlay */}
-        <div
-          className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
-          onMouseDown={(e) => {
-            // click outside to close
-            if (e.target === e.currentTarget && !isPending) onOpenChange(false);
-          }}
-        />
+    <>
+      <AnimatePresence>
+        <motion.div
+          className="fixed inset-0 z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          aria-modal="true"
+          role="dialog"
+        >
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+            onMouseDown={(e) => {
+              // click outside to close
+              if (e.target === e.currentTarget && !isPending) onOpenChange(false);
+            }}
+          />
 
-        {/* Panel */}
-        <div className="relative z-10 flex min-h-full items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, y: 18, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              // SOLID dark panel (like CreateStudentModal vibe)
-              "w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
-            )}
-          >
+          {/* Panel */}
+          <div className="relative z-10 flex min-h-full items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              className={cn(
+                // SOLID dark panel (like CreateStudentModal vibe)
+                "w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40"
+              )}
+            >
             {/* Header (clear + underlined) */}
             <div className="px-6 pt-6">
               <div className="flex items-start justify-between gap-4">
@@ -1048,9 +1054,11 @@ export function EditTeacherAssignmentModal({
             )}
               </div>
             </div>
-          </motion.div>
-        </div>
-      </motion.div>
-    </AnimatePresence>
+            </motion.div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+      {confirmationDialog}
+    </>
   );
 }

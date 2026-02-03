@@ -31,6 +31,7 @@ import { format } from "date-fns/format";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/useToast";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 function getActivityIcon(type: string) {
   if (type.includes("student")) return GraduationCap;
@@ -76,6 +77,7 @@ export function ActivityViewAllModal({
   const queryClient = useQueryClient();
   const toast = useToast();
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const { data, isLoading, isError } = useActivity({
     limit: 50,
@@ -130,11 +132,14 @@ export function ActivityViewAllModal({
       return;
     }
 
-    if (
-      !confirm(
-        "Are you sure you want to delete this activity? This action cannot be undone."
-      )
-    ) {
+    const decision = await confirm({
+      title: "Delete Activity?",
+      description: "This action cannot be undone.",
+      confirmLabel: "Delete Activity",
+      cancelLabel: "Keep Activity",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") {
       return;
     }
 
@@ -146,8 +151,9 @@ export function ActivityViewAllModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/10 bg-slate-950/95 text-slate-50 shadow-2xl shadow-black/50">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/10 bg-slate-950/95 text-slate-50 shadow-2xl shadow-black/50">
         <DialogHeader className="border-b border-white/10 pb-4">
           <DialogTitle className="text-lg font-semibold flex items-center gap-2">
             <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
@@ -289,7 +295,9 @@ export function ActivityViewAllModal({
               </div>
             </div>
           )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      {confirmationDialog}
+    </>
   );
 }

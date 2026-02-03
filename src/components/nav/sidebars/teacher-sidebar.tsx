@@ -14,9 +14,11 @@ import {
   Users,
   BookOpen,
   CalendarDays,
+  Calendar,
   ClipboardCheck,
   CheckSquare,
   FileText,
+  Bell,
   MessageSquare,
   Megaphone,
   AlertTriangle,
@@ -83,6 +85,11 @@ const navSections: NavSection[] = [
         href: "/teacher/attendance",
         icon: CalendarDays,
       },
+      {
+        label: "Calendar",
+        href: "/teacher/calendar",
+        icon: Calendar,
+      },
     ],
   },
   {
@@ -123,6 +130,11 @@ const navSections: NavSection[] = [
   {
     title: "Communication",
     items: [
+      {
+        label: "Notifications",
+        href: "/teacher/notifications",
+        icon: Bell,
+      },
       {
         label: "Notices",
         href: "/teacher/communication/notices",

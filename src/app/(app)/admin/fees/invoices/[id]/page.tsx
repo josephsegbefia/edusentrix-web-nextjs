@@ -20,6 +20,7 @@ import AddAdjustmentModal from "@/components/modals/AddAdjustmentModal";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import type { AddAdjustmentInput } from "@/schemas/adjustment";
 import { cn } from "@/lib/utils";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 function InvoiceStatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -81,6 +82,7 @@ export default function InvoiceDetailPage() {
   const cancelInvoice = useCancelInvoice();
   const addAdjustment = useAddAdjustment();
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   useFeesSSE(); // Enable real-time updates
 
   const [showAdjustmentModal, setShowAdjustmentModal] = React.useState(false);
@@ -117,7 +119,14 @@ export default function InvoiceDetailPage() {
   };
 
   const handleCancelInvoice = async () => {
-    if (!confirm("Are you sure you want to cancel this invoice? This action cannot be undone.")) {
+    const decision = await confirm({
+      title: "Cancel Invoice?",
+      description: "Are you sure you want to cancel this invoice? This action cannot be undone.",
+      confirmLabel: "Cancel Invoice",
+      cancelLabel: "Keep Invoice",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") {
       return;
     }
     await busy.promise(
@@ -416,6 +425,7 @@ export default function InvoiceDetailPage() {
           isLoading={addAdjustment.isPending}
         />
       </ResponsiveModal>
+      {confirmationDialog}
     </div>
   );
 }

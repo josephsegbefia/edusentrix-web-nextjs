@@ -9,6 +9,7 @@ import { BulkAssignSubjectsModal } from "@/components/modals/BulkAssignSubjectsM
 import { BulkAssignClassesModal } from "@/components/modals/BulkAssignClassesModal";
 import { useBulkExportTeachers } from "@/hooks/admin/useTeacherBulkOperations";
 import { toast } from "sonner";
+import { notifyComingSoon } from "@/lib/ui/feature-notices";
 
 export function TeachersBulkActionsBar({
   count,
@@ -61,7 +62,7 @@ export function TeachersBulkActionsBar({
               variant="outline"
               size="sm"
               className="gap-2"
-              onClick={() => alert("Bulk invite coming next")}
+              onClick={() => notifyComingSoon("Bulk invite")}
             >
               <Mail className="h-4 w-4" />
               Invite

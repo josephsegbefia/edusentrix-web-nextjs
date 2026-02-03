@@ -20,7 +20,6 @@ import { StudentsQuickStatsSection } from "@/components/admin/students/StudentsQ
 import {
   Plus,
   Upload,
-  Loader2,
   AlertCircle,
   GraduationCap,
   Sparkles,
@@ -34,6 +33,7 @@ import { StudentsBulkActionsBar } from "@/components/admin/students/StudentsBulk
 import { StudentsCommandPalette } from "@/components/admin/students/StudentsCommandPalette";
 import { useExportStudents } from "@/hooks/admin/useExportStudents";
 import { cn } from "@/lib/utils";
+import { notifyComingSoon } from "@/lib/ui/feature-notices";
 
 function getInitialTab(sp: URLSearchParams): StudentsTabId {
   const tab = sp.get("tab");
@@ -219,13 +219,13 @@ export default function StudentsPage() {
   }
 
   function handleBulkAssignClass() {
-    console.log("Bulk assign class for students: ", selectedIds);
-    // TODO: open bulk assign class modal
+    void selectedIds;
+    notifyComingSoon("Bulk assign class");
   }
 
   function handleBulkSendMessage() {
-    console.log("Bulk message parents for students: ", selectedIds);
-    // TODO: open bulk message dialog
+    void selectedIds;
+    notifyComingSoon("Bulk message parents");
   }
 
   function handleBulkExportSelected() {
@@ -241,13 +241,13 @@ export default function StudentsPage() {
   }
 
   function handleBulkChangeStatus() {
-    console.log("Bulk change status for students: ", selectedIds);
-    // TODO: open status change modal (active/inactive/withdrawn)
+    void selectedIds;
+    notifyComingSoon("Bulk status change");
   }
 
   function handleBulkMarkFeesCleared() {
-    console.log("Bulk mark fees cleared for students: ", selectedIds);
-    // TODO: integrate with fees system when available
+    void selectedIds;
+    notifyComingSoon("Bulk fee clearance");
   }
 
   // Phase 9: export current list with filters (all rows in current filter, not just current page)
@@ -267,13 +267,11 @@ export default function StudentsPage() {
   }
 
   function handleCreateStudent() {
-    // TODO Phase 10: open CreateStudent modal/wizard
-    console.log("Open create student flow");
+    notifyComingSoon("Create student flow");
   }
 
   function handleImportStudents() {
-    // TODO Phase 9: open import CSV dialog
-    console.log("Open import students dialog");
+    notifyComingSoon("Student import");
   }
 
   return (
@@ -568,20 +566,20 @@ export default function StudentsPage() {
                     router.push(`/admin/students/${id}`);
                   }}
                   onEdit={(id) => {
-                    // TODO: open edit student modal
-                    console.log("Edit student", id);
+                    void id;
+                    notifyComingSoon("Edit student");
                   }}
                   onAssignClass={(id) => {
-                    // TODO: open assign/change class flow
-                    console.log("Assign class for", id);
+                    void id;
+                    notifyComingSoon("Assign class");
                   }}
                   onRecordPayment={(id) => {
-                    // TODO: open record payment modal
-                    console.log("Record payment for", id);
+                    void id;
+                    notifyComingSoon("Record payment");
                   }}
                   onSendMessage={(id) => {
-                    // TODO: open message parent dialog
-                    console.log("Message parent for", id);
+                    void id;
+                    notifyComingSoon("Message parent");
                   }}
                 />
               ) : (
@@ -597,20 +595,20 @@ export default function StudentsPage() {
                     router.push(`/admin/students/${id}`);
                   }}
                   onEdit={(id) => {
-                    // TODO: open edit student modal
-                    console.log("Edit student", id);
+                    void id;
+                    notifyComingSoon("Edit student");
                   }}
                   onAssignClass={(id) => {
-                    // TODO: open assign/change class flow
-                    console.log("Assign class for", id);
+                    void id;
+                    notifyComingSoon("Assign class");
                   }}
                   onRecordPayment={(id) => {
-                    // TODO: open record payment modal
-                    console.log("Record payment for", id);
+                    void id;
+                    notifyComingSoon("Record payment");
                   }}
                   onSendMessage={(id) => {
-                    // TODO: open message parent dialog
-                    console.log("Message parent for", id);
+                    void id;
+                    notifyComingSoon("Message parent");
                   }}
                 />
               )}

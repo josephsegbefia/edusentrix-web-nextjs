@@ -22,6 +22,7 @@ import {
 } from "@/hooks/admin/useTeacherDuties";
 import { toast } from "sonner";
 import { AssignTeacherDutyModal } from "@/components/modals/AssignTeacherDutyModal";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 interface TeacherDutiesTabProps {
   teacher: {
@@ -32,6 +33,7 @@ interface TeacherDutiesTabProps {
 
 export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const { data, isLoading, isError } = useTeacherDuties(true, teacher.id);
   const removeMutation = useRemoveTeacherDuty();
@@ -40,7 +42,15 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
   const duties = data?.data || [];
 
   const handleRemove = async (assignmentId: string) => {
-    if (!confirm("Are you sure you want to remove this duty assignment?")) return;
+    const decision = await confirm({
+      title: "Remove Duty Assignment?",
+      description: "This will unassign the duty from this teacher.",
+      confirmLabel: "Remove Duty",
+      cancelLabel: "Keep Assignment",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
+
     try {
       await removeMutation.mutateAsync(assignmentId);
       toast.success("Duty removed successfully");
@@ -241,6 +251,7 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
         preselectedDuty={null}
         duties={duties}
       />
+      {confirmationDialog}
     </div>
   );
 }

@@ -25,6 +25,7 @@ import {
 } from "@/hooks/admin/useTeacherDocuments";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { UploadDocumentModal } from "@/components/modals/UploadDocumentModal";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type Props = {
   teacher: {
@@ -85,6 +86,7 @@ const expiryConfig = {
 } as const;
 
 export function TeacherDocumentsTab({ teacher }: Props) {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [uploadModalOpen, setUploadModalOpen] = React.useState(false);
 
   const { data: documentsData, isLoading } = useTeacherDocuments(teacher.id);
@@ -98,12 +100,14 @@ export function TeacherDocumentsTab({ teacher }: Props) {
   };
 
   const handleDelete = async (doc: TeacherDocumentDTO) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${doc.name}"?\n\nThis action cannot be undone.`
-      )
-    )
-      return;
+    const decision = await confirm({
+      title: "Delete Document?",
+      description: `Are you sure you want to delete "${doc.name}"? This action cannot be undone.`,
+      confirmLabel: "Delete Document",
+      cancelLabel: "Keep Document",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
 
     try {
       await busy.promise(
@@ -269,6 +273,7 @@ export function TeacherDocumentsTab({ teacher }: Props) {
         teacherId={teacher.id}
         teacherName={teacher.fullName}
       />
+      {confirmationDialog}
     </div>
   );
 }

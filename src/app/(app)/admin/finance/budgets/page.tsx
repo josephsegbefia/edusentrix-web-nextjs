@@ -48,6 +48,7 @@ import {
 import { ResponsiveModal } from "@/components/ui/responsive-modal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 // ========================
 // Helper Functions
@@ -351,6 +352,7 @@ export default function BudgetsPage() {
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [selectedBudgetId, setSelectedBudgetId] = React.useState<string | null>(null);
   const [detailModalOpen, setDetailModalOpen] = React.useState(false);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const { data, isLoading, refetch } = useBudgets({ status: statusFilter !== "all" ? statusFilter : undefined });
   const deleteBudget = useDeleteBudget();
@@ -373,7 +375,14 @@ export default function BudgetsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this budget?")) return;
+    const decision = await confirm({
+      title: "Delete Budget?",
+      description: "Are you sure you want to delete this budget?",
+      confirmLabel: "Delete Budget",
+      cancelLabel: "Keep Budget",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     try {
       await deleteBudget.mutateAsync(id);
       toast.success("Budget deleted successfully");
@@ -461,6 +470,7 @@ export default function BudgetsPage() {
         open={detailModalOpen}
         onOpenChange={setDetailModalOpen}
       />
+      {confirmationDialog}
     </div>
   );
 }

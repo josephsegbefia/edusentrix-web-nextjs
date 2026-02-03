@@ -53,6 +53,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 // Lazy load modals for better performance
 const PollTemplateSelector = dynamic(() => import("@/components/polls/PollTemplateSelector"), {
@@ -247,6 +248,7 @@ export default function PollsListPage() {
   const closeMutation = useClosePoll();
   const deleteMutation = useDeletePoll();
   const busyToast = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const handlePublish = async (pollId: string) => {
     busyToast.show("Publishing poll...");
@@ -273,7 +275,14 @@ export default function PollsListPage() {
   };
 
   const handleDelete = async (pollId: string) => {
-    if (!confirm("Are you sure you want to delete this poll?")) return;
+    const decision = await confirm({
+      title: "Delete Poll?",
+      description: "Are you sure you want to delete this poll?",
+      confirmLabel: "Delete Poll",
+      cancelLabel: "Keep Poll",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     busyToast.show("Deleting poll...");
     try {
       await deleteMutation.mutateAsync(pollId);
@@ -511,6 +520,7 @@ export default function PollsListPage() {
           defaults: templateDetail.defaults,
         } : null}
       />
+      {confirmationDialog}
     </div>
   );
 }

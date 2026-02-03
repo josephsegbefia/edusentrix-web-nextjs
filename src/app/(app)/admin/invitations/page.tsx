@@ -28,6 +28,7 @@ import {
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { format } from "date-fns/format";
 import { motion, AnimatePresence } from "framer-motion";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 function StatusBadge({ status }: { status: InvitationStatus }) {
   const config = {
@@ -89,6 +90,7 @@ function RoleBadge({ role }: { role: InvitationRole }) {
 
 export default function InvitationsPage() {
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [statusFilter, setStatusFilter] = useState<InvitationStatus | "all">("all");
   const [roleFilter, setRoleFilter] = useState<InvitationRole | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -123,7 +125,14 @@ export default function InvitationsPage() {
   };
 
   const handleRevoke = async (id: string) => {
-    if (!confirm("Are you sure you want to revoke this invitation?")) return;
+    const decision = await confirm({
+      title: "Revoke Invitation?",
+      description: "The invite link will no longer work for this user.",
+      confirmLabel: "Revoke",
+      cancelLabel: "Keep Active",
+      intent: "warning",
+    });
+    if (decision !== "confirm") return;
 
     try {
       await busy.promise(revokeMutation.mutateAsync(id), {
@@ -137,7 +146,14 @@ export default function InvitationsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this invitation?")) return;
+    const decision = await confirm({
+      title: "Delete Invitation?",
+      description: "This action cannot be undone.",
+      confirmLabel: "Delete",
+      cancelLabel: "Keep Invitation",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
 
     try {
       await busy.promise(deleteMutation.mutateAsync(id), {
@@ -541,6 +557,7 @@ export default function InvitationsPage() {
           )}
         </CardContent>
       </Card>
+      {confirmationDialog}
     </div>
   );
 }

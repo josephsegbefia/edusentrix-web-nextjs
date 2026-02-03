@@ -17,6 +17,7 @@ import {
 } from "@/hooks/admin/useGuardians";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { AnimatePresence, motion } from "framer-motion";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type Props = {
   studentId: string;
@@ -30,6 +31,7 @@ export function ManageGuardiansContent({
   onClose,
 }: Props) {
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [viewMode, setViewMode] = React.useState<ViewMode>("list");
   const [editingGuardian, setEditingGuardian] =
     React.useState<GuardianData | null>(null);
@@ -81,11 +83,16 @@ export function ManageGuardiansContent({
 
   const handleDelete = async (guardianId: string) => {
     const guardian = guardians.find((g) => g.id === guardianId);
-    if (
-      !confirm(
-        `Are you sure you want to remove ${guardian?.fullName || "this guardian"}?`
-      )
-    ) {
+    const decision = await confirm({
+      title: "Remove Guardian?",
+      description: `Are you sure you want to remove ${
+        guardian?.fullName || "this guardian"
+      }?`,
+      confirmLabel: "Remove Guardian",
+      cancelLabel: "Keep Guardian",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") {
       return;
     }
 
@@ -190,6 +197,7 @@ export function ManageGuardiansContent({
           </motion.div>
         )}
       </AnimatePresence>
+      {confirmationDialog}
     </div>
   );
 }

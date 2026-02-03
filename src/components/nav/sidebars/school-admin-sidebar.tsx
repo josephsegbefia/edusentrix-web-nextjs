@@ -11,6 +11,7 @@ import {
   BookOpen,
   Calendar,
   CalendarDays,
+  CalendarRange,
   DollarSign,
   FileText,
   BarChart3,
@@ -112,6 +113,11 @@ const navSections: NavSection[] = [
         label: "Master Timetable",
         href: "/admin/timetable",
         icon: CalendarDays,
+      },
+      {
+        label: "Academic Calendar",
+        href: "/admin/academic-calendar",
+        icon: CalendarRange,
       },
       {
         label: "Academic Periods",

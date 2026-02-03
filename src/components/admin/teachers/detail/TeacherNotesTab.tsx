@@ -26,6 +26,7 @@ import {
 } from "@/hooks/admin/useTeacherNotes";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { AddNoteModal } from "@/components/modals/AddNoteModal";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type Props = {
   teacher: {
@@ -110,6 +111,7 @@ export function TeacherNotesTab({ teacher }: Props) {
 
   const deleteNoteMutation = useDeleteNote();
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const handleEdit = (note: TeacherNoteDTO) => {
     setEditingNote(note);
@@ -117,12 +119,14 @@ export function TeacherNotesTab({ teacher }: Props) {
   };
 
   const handleDelete = async (note: TeacherNoteDTO) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${note.title}"?\n\nThis action cannot be undone.`
-      )
-    )
-      return;
+    const decision = await confirm({
+      title: `Delete "${note.title}"?`,
+      description: "This action cannot be undone.",
+      confirmLabel: "Delete Note",
+      cancelLabel: "Keep Note",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
 
     try {
       await busy.promise(
@@ -351,6 +355,7 @@ export function TeacherNotesTab({ teacher }: Props) {
           note={editingNote}
         />
       )}
+      {confirmationDialog}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/app/(app)/admin/teachers/page.tsx
 "use client";
 
@@ -53,6 +52,8 @@ import {
 } from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { notifyComingSoon } from "@/lib/ui/feature-notices";
 
 function isTypingTarget(el: EventTarget | null) {
   if (!el || !(el as HTMLElement).tagName) return false;
@@ -175,6 +176,7 @@ export default function TeachersPage() {
   const deactivateTeacher = useDeactivateTeacher();
   const deleteTeacher = useDeleteTeacher();
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const isChangingStatus =
     activateTeacher.isPending ||
@@ -210,14 +212,16 @@ export default function TeachersPage() {
 
   const handleDeactivateTeacher = async (teacherId: string) => {
     const teacher = teachers.find((t) => t.id === teacherId);
-    if (
-      !confirm(
-        `Are you sure you want to deactivate ${
-          teacher?.fullName || "this teacher"
-        }?`
-      )
-    )
-      return;
+    const decision = await confirm({
+      title: "Deactivate Teacher?",
+      description: `Are you sure you want to deactivate ${
+        teacher?.fullName || "this teacher"
+      }?`,
+      confirmLabel: "Deactivate",
+      cancelLabel: "Keep Active",
+      intent: "warning",
+    });
+    if (decision !== "confirm") return;
     try {
       await busy.promise(deactivateTeacher.mutateAsync(teacherId), {
         loading: "Deactivating teacher...",
@@ -231,14 +235,16 @@ export default function TeachersPage() {
 
   const handleDeleteTeacher = async (teacherId: string) => {
     const teacher = teachers.find((t) => t.id === teacherId);
-    if (
-      !confirm(
-        `Are you sure you want to terminate ${
-          teacher?.fullName || "this teacher"
-        }?\n\nThis will:\n• Set their status to "Terminated"\n• Deactivate all their active assignments\n• Remove them as homeroom teacher (if applicable)\n\nThis action cannot be undone.`
-      )
-    )
-      return;
+    const decision = await confirm({
+      title: "Terminate Teacher?",
+      description: `Are you sure you want to terminate ${
+        teacher?.fullName || "this teacher"
+      }? This will set their status to "Terminated", deactivate active assignments, and remove homeroom assignments. This action cannot be undone.`,
+      confirmLabel: "Terminate",
+      cancelLabel: "Cancel",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     try {
       await busy.promise(deleteTeacher.mutateAsync(teacherId), {
         loading: "Terminating teacher...",
@@ -467,7 +473,7 @@ export default function TeachersPage() {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             onOpenFilters={() => setFiltersOpen(true)}
-            onExportAll={() => alert("Export coming next")}
+            onExportAll={() => notifyComingSoon("Export all")}
             searchInputRef={searchInputRef}
           />
         </CardContent>
@@ -626,12 +632,12 @@ export default function TeachersPage() {
                     setEditTeacherId(id);
                   }}
                   onManageAccess={(id) => {
-                    // TODO: open manage access modal
-                    console.log("Manage access for", id);
+                    void id;
+                    notifyComingSoon("Manage access");
                   }}
                   onSendMessage={(id) => {
-                    // TODO: open send message dialog
-                    console.log("Send message to", id);
+                    void id;
+                    notifyComingSoon("Send message");
                   }}
                 />
               ) : (
@@ -679,12 +685,12 @@ export default function TeachersPage() {
                     setEditTeacherId(id);
                   }}
                   onManageAccess={(id) => {
-                    // TODO: open manage access modal
-                    console.log("Manage access for", id);
+                    void id;
+                    notifyComingSoon("Manage access");
                   }}
                   onSendMessage={(id) => {
-                    // TODO: open send message dialog
-                    console.log("Send message to", id);
+                    void id;
+                    notifyComingSoon("Send message");
                   }}
                   onActivate={handleActivateTeacher}
                   onDeactivate={handleDeactivateTeacher}
@@ -820,8 +826,9 @@ export default function TeachersPage() {
         }}
         onGoToTab={handleTabChange}
         onCreateTeacher={() => setCreateOpen(true)}
-        onImportTeachers={() => alert("CSV import coming next")}
+        onImportTeachers={() => notifyComingSoon("CSV import shortcut")}
       />
+      {confirmationDialog}
     </div>
   );
 }

@@ -10,8 +10,6 @@ import {
   Loader2,
   AlertCircle,
   BookOpen,
-  Sparkles,
-  ArrowRight,
 } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSubjects } from "@/hooks/admin/useSubjects";
@@ -19,10 +17,9 @@ import { SubjectsQuickStatsSection } from "@/components/admin/subjects/SubjectsQ
 import { SubjectsToolbar, type SubjectsViewMode } from "@/components/admin/subjects/SubjectsToolbar";
 import { SubjectsCardGrid } from "@/components/admin/subjects/SubjectsCardGrid";
 import { SubjectsTable } from "@/components/admin/subjects/SubjectsTable";
-import { useBusyToast } from "@/hooks/useBusyToast";
-import { cn } from "@/lib/utils";
 import { AssignTeacherToSubjectModal } from "@/components/modals/AssignTeacherToSubjectModal";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
+import { notifyComingSoon } from "@/lib/ui/feature-notices";
 
 function getInitialView(sp: URLSearchParams): SubjectsViewMode {
   const v = sp.get("view");
@@ -37,7 +34,7 @@ export default function SubjectsPage() {
     getInitialView(searchParams)
   );
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
-  const [activeFilter, setActiveFilter] = React.useState<boolean | undefined>(
+  const [activeFilter] = React.useState<boolean | undefined>(
     searchParams.get("isActive") === "true"
       ? true
       : searchParams.get("isActive") === "false"
@@ -51,7 +48,6 @@ export default function SubjectsPage() {
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
-  const busy = useBusyToast();
 
   const { data, isLoading, isError } = useSubjects(debouncedSearch, activeFilter);
 
@@ -88,8 +84,8 @@ export default function SubjectsPage() {
   }, []);
 
   const handleAssignToClasses = (subjectId: string) => {
-    // TODO: Create a separate modal for bulk assigning to classes
-    console.log("Assign subject to classes:", subjectId);
+    void subjectId;
+    notifyComingSoon("Assign subject to classes");
   };
 
   const handleAssignTeachers = (subjectId: string, classGroupId?: string) => {
@@ -106,18 +102,16 @@ export default function SubjectsPage() {
   };
 
   const handleEdit = (subjectId: string) => {
-    // TODO: Open edit modal
-    console.log("Edit subject:", subjectId);
+    void subjectId;
+    notifyComingSoon("Edit subject");
   };
 
   const handleExport = () => {
-    // TODO: Implement export
-    console.log("Export subjects");
+    notifyComingSoon("Export subjects");
   };
 
   const handleOpenFilters = () => {
-    // TODO: Open filters dialog
-    console.log("Open filters");
+    notifyComingSoon("Advanced filters");
   };
 
   return (
@@ -160,8 +154,7 @@ export default function SubjectsPage() {
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => {
-                  // TODO: Open create subject modal
-                  console.log("Create subject");
+                  notifyComingSoon("Create subject");
                 }}
                 className="group gap-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/25 hover:from-rose-600 hover:to-pink-700 hover:shadow-rose-500/40"
               >

@@ -27,6 +27,8 @@ import {
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { RecordAttendanceModal } from "@/components/modals/RecordAttendanceModal";
 import { SubmitLeaveRequestModal } from "@/components/modals/SubmitLeaveRequestModal";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { ComingSoonState } from "@/components/ui/coming-soon-state";
 
 type Props = {
   teacher: {
@@ -142,6 +144,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
   const approveLeaveMutation = useApproveLeave();
   const rejectLeaveMutation = useRejectLeave();
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const handleApproveLeave = async (leaveRequestId: string) => {
     try {
@@ -156,7 +159,15 @@ export function TeacherAttendanceTab({ teacher }: Props) {
   };
 
   const handleRejectLeave = async (leaveRequestId: string) => {
-    if (!confirm("Are you sure you want to reject this leave request?")) return;
+    const decision = await confirm({
+      title: "Reject Leave Request?",
+      description: "The leave request will be marked as rejected.",
+      confirmLabel: "Reject",
+      cancelLabel: "Cancel",
+      intent: "warning",
+    });
+    if (decision !== "confirm") return;
+
     try {
       await busy.promise(rejectLeaveMutation.mutateAsync({ leaveRequestId }), {
         loading: "Rejecting leave request...",
@@ -380,14 +391,11 @@ export function TeacherAttendanceTab({ teacher }: Props) {
                 })}
               </div>
             ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
-                <div className="flex flex-col items-center gap-4 text-center">
-                  <Calendar className="h-12 w-12 text-white/30" />
-                  <p className="text-sm text-white/50">
-                    Calendar view coming soon. Use list view for now.
-                  </p>
-                </div>
-              </div>
+              <ComingSoonState
+                feature="Calendar view"
+                description="Use list view for now."
+                className="rounded-2xl border-white/10 bg-white/2 text-white"
+              />
             )}
           </CardContent>
         </Card>
@@ -499,6 +507,7 @@ export function TeacherAttendanceTab({ teacher }: Props) {
         teacherId={teacher.id}
         teacherName={teacher.fullName}
       />
+      {confirmationDialog}
     </div>
   );
 }

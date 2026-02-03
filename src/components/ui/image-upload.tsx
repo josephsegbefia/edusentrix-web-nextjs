@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import Image from "next/image";
 
 interface ImageUploadProps {
   value?: string;
@@ -29,13 +31,13 @@ export function ImageUpload({
 
   const handleFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      toast.error("Please select an image file.");
       return;
     }
 
     const fileSizeMB = file.size / (1024 * 1024);
     if (fileSizeMB > maxSizeMB) {
-      alert(`Image size must be less than ${maxSizeMB}MB`);
+      toast.error(`Image size must be less than ${maxSizeMB}MB.`);
       return;
     }
 
@@ -122,10 +124,13 @@ export function ImageUpload({
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative w-full h-full rounded-lg overflow-hidden"
             >
-              <img
+              <Image
                 src={preview}
                 alt="Preview"
-                className="w-full h-full object-cover"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                unoptimized
+                className="object-cover"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-200 flex items-center justify-center">
                 <motion.button

@@ -31,6 +31,7 @@ import { AssignSubjectsToClassModal } from "@/components/modals/AssignSubjectsTo
 import { SubjectTeacherAssignmentWizard } from "@/components/modals/SubjectTeacherAssignmentWizard";
 import { AddStudentToClassModal } from "@/components/modals/AddStudentToClassModal";
 import { AssignClassRoleModal } from "@/components/modals/AssignClassRoleModal";
+import { ComingSoonState } from "@/components/ui/coming-soon-state";
 
 function ClassDetailContent() {
   const params = useParams<{ classId: string }>();
@@ -330,21 +331,13 @@ function ClassDetailContent() {
             onAssignRole={() => setAssignRoleOpen(true)}
           />
         ) : activeTab === "attendance" ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-white/50">
-            <p>Attendance tab coming soon...</p>
-          </div>
+          <ComingSoonState feature="Attendance tab" className="border-white/10 bg-white/5 text-white" />
         ) : activeTab === "performance" ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-white/50">
-            <p>Performance tab coming soon...</p>
-          </div>
+          <ComingSoonState feature="Performance tab" className="border-white/10 bg-white/5 text-white" />
         ) : activeTab === "fees" ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-white/50">
-            <p>Fees tab coming soon...</p>
-          </div>
+          <ComingSoonState feature="Fees tab" className="border-white/10 bg-white/5 text-white" />
         ) : activeTab === "settings" ? (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-white/50">
-            <p>Settings tab coming soon...</p>
-          </div>
+          <ComingSoonState feature="Settings tab" className="border-white/10 bg-white/5 text-white" />
         ) : null}
       </div>
 

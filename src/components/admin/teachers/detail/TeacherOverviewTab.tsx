@@ -39,6 +39,7 @@ import { AssignSubjectModal } from "@/components/modals/AssignSubjectModal";
 import { AssignHomeroomModal } from "@/components/modals/AssignHomeroomModal";
 import { useTeacherWorkload } from "@/hooks/admin/useTeacherWorkload";
 import type { TeacherDetailTabId } from "@/components/admin/teachers/detail/TeacherDetailTabs";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type TeacherOverviewTabProps = {
   teacher: {
@@ -310,12 +311,21 @@ export function TeacherOverviewTab({
   const removeSubjectMutation = useRemoveSubject();
   const removeHomeroomMutation = useRemoveHomeroom();
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const handleRemoveSubject = async (
     subjectId: string,
     subjectName: string
   ) => {
-    if (!confirm(`Remove "${subjectName}" from ${teacher.fullName}?`)) return;
+    const decision = await confirm({
+      title: "Remove Subject?",
+      description: `Remove "${subjectName}" from ${teacher.fullName}?`,
+      confirmLabel: "Remove Subject",
+      cancelLabel: "Keep Subject",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
+
     try {
       await busy.promise(
         removeSubjectMutation.mutateAsync({ teacherId: teacher.id, subjectId }),
@@ -332,12 +342,15 @@ export function TeacherOverviewTab({
 
   const handleRemoveHomeroom = async () => {
     if (!homeroom) return;
-    if (
-      !confirm(
-        `Remove ${teacher.fullName} as homeroom teacher for "${homeroom.name}"?`
-      )
-    )
-      return;
+    const decision = await confirm({
+      title: "Remove Homeroom Assignment?",
+      description: `Remove ${teacher.fullName} as homeroom teacher for "${homeroom.name}"?`,
+      confirmLabel: "Remove Assignment",
+      cancelLabel: "Keep Assignment",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
+
     try {
       await busy.promise(removeHomeroomMutation.mutateAsync(teacher.id), {
         loading: "Removing homeroom...",
@@ -1060,6 +1073,7 @@ export function TeacherOverviewTab({
         teacherId={teacher.id}
         teacherName={teacher.fullName}
       />
+      {confirmationDialog}
     </div>
   );
 }

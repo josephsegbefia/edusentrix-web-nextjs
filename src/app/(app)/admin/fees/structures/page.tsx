@@ -9,6 +9,7 @@ import {
   useFeeStructures,
   useCreateFeeStructure,
   useDeleteFeeStructure,
+  type FeeStructure,
 } from "@/hooks/admin/useFeeStructures";
 import { formatMoney } from "@/lib/fees/money";
 import { PlusCircle, Edit, Trash2, Layers, ShieldCheck, Zap } from "lucide-react";
@@ -18,6 +19,8 @@ import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import CreateFeeStructureModal from "@/components/modals/CreateFeeStructureModal";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import type { CreateFeeStructureInput } from "@/schemas/fee";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { notifyComingSoon } from "@/lib/ui/feature-notices";
 
 export default function FeeStructuresPage() {
   const toast = useToast();
@@ -25,16 +28,16 @@ export default function FeeStructuresPage() {
   const { data, isLoading } = useFeeStructures();
   const createStructure = useCreateFeeStructure();
   const deleteStructure = useDeleteFeeStructure();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   useFeesSSE();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const structures = data?.structures || [];
-  const activeCount = structures.filter((s: any) => s.isActive).length;
-  const installmentCount = structures.filter((s: any) => s.allowsInstallments).length;
+  const activeCount = structures.filter((s) => s.isActive).length;
+  const installmentCount = structures.filter((s) => s.allowsInstallments).length;
   const totalDefaultMinor = structures.reduce(
-    (sum: number, s: any) => sum + (s.defaultAmountMinor || 0),
+    (sum, s) => sum + (s.defaultAmountMinor || 0),
     0
   );
 
@@ -65,22 +68,33 @@ export default function FeeStructuresPage() {
     setShowCreateModal(false);
   };
 
-  const handleEdit = (structure: any) => {
-    setEditingId(structure._id);
-    // TODO: Open edit modal
+  const handleEdit = (structure: FeeStructure) => {
+    void structure;
+    notifyComingSoon("Edit fee structure");
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to deactivate this fee structure?")) return;
+    const decision = await confirm({
+      title: "Deactivate Fee Structure?",
+      description: "Are you sure you want to deactivate this fee structure?",
+      confirmLabel: "Deactivate",
+      cancelLabel: "Keep Active",
+      intent: "warning",
+    });
+    if (decision !== "confirm") return;
 
     try {
       await deleteStructure.mutateAsync(id);
       toast.success("Success", {
         description: "Fee structure deactivated",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete fee structure";
       toast.error("Error", {
-        description: error.message || "Failed to delete fee structure",
+        description: message,
       });
     }
   };
@@ -170,7 +184,7 @@ export default function FeeStructuresPage() {
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {structures.map((structure: any) => (
+              {structures.map((structure) => (
                 <div
                   key={structure._id}
                   className="relative rounded-xl border border-white/10 bg-white/[0.04] p-4 shadow-sm transition-all duration-150 hover:translate-y-[-2px] hover:shadow-lg hover:shadow-black/20"
@@ -202,7 +216,6 @@ export default function FeeStructuresPage() {
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => handleEdit(structure)}
-                        disabled={editingId !== null}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -261,6 +274,7 @@ export default function FeeStructuresPage() {
           isLoading={createStructure.isPending}
         />
       </ResponsiveModal>
+      {confirmationDialog}
     </div>
   );
 }

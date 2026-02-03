@@ -63,6 +63,7 @@ import {
 import { useCreateTeacherAssignment } from "@/hooks/admin/useTeacherAssignments";
 import { useTeacherWorkload } from "@/hooks/admin/useTeacherWorkload";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 const DOW = [
   { value: "0", label: "Sunday" },
@@ -279,6 +280,7 @@ export function CreateTeacherAssignmentModal({
   teacher: { id: string; fullName: string; maxClasses: number | null };
   currentActiveAssignmentsCount: number;
 }) {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: periodsRes, isLoading: periodsLoading } = useAcademicPeriods();
   const periods = React.useMemo(
     () => periodsRes?.periods ?? [],
@@ -460,13 +462,16 @@ export function CreateTeacherAssignmentModal({
           );
         }
 
-        const shouldProceed = window.confirm(
-          `⚠️ Workload Warning\n\n${warningMessages.join(
-            "\n\n"
-          )}\n\nDo you want to proceed anyway?`
-        );
-
-        if (!shouldProceed) return;
+        const decision = await confirm({
+          title: "Workload Warning",
+          description: `${warningMessages.join(
+            " "
+          )} Do you want to proceed anyway?`,
+          confirmLabel: "Proceed",
+          cancelLabel: "Review Assignment",
+          intent: "warning",
+        });
+        if (decision !== "confirm") return;
       }
     }
 
@@ -1300,6 +1305,7 @@ export function CreateTeacherAssignmentModal({
             </div>
           </motion.div>
         </div>
+        {confirmationDialog}
       </motion.div>
     </AnimatePresence>
   );

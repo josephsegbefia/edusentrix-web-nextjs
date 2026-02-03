@@ -21,8 +21,8 @@ import { ClassesTable } from "@/components/admin/classes/ClassesTable";
 import { AssignHomeroomModal } from "@/components/modals/AssignHomeroomModal";
 import { AssignSubjectsToClassModal } from "@/components/modals/AssignSubjectsToClassModal";
 import { BulkGradeSubjectAssignmentModal } from "@/components/modals/BulkGradeSubjectAssignmentModal";
-import { cn } from "@/lib/utils";
 import type { ClassesSortBy, ClassesSortOrder } from "@/constants/classes";
+import { notifyComingSoon } from "@/lib/ui/feature-notices";
 
 export default function ClassesPage() {
   const router = useRouter();
@@ -156,8 +156,8 @@ export default function ClassesPage() {
   };
 
   const handleEdit = (classId: string) => {
-    // TODO: Open edit modal
-    console.log("Edit class:", classId);
+    void classId;
+    notifyComingSoon("Edit class");
   };
 
   const handleAddStudent = (classId: string) => {
@@ -166,8 +166,7 @@ export default function ClassesPage() {
   };
 
   const handleExport = () => {
-    // TODO: Implement export
-    console.log("Export classes");
+    notifyComingSoon("Export classes");
   };
 
   return (
@@ -218,8 +217,7 @@ export default function ClassesPage() {
               </Button>
               <Button
                 onClick={() => {
-                  // TODO: Open create class modal
-                  console.log("Create class");
+                  notifyComingSoon("Create class");
                 }}
                 className="group gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700 hover:shadow-emerald-500/40"
               >

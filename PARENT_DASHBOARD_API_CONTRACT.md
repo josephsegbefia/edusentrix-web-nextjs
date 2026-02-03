@@ -481,6 +481,111 @@ POST /api/parent/notifications/mark-all-read
 
 ---
 
+### 6. Academic Progress (Aggregate View)
+
+Aggregated academic performance view across all wards - powers the `/parent/academics` page.
+
+```
+GET /api/parent/academics
+```
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `periodId` | string | Academic period (default: current) |
+| `termId` | string | Alias for periodId |
+
+**Response:**
+```typescript
+interface ParentAcademicsResponse {
+  // Period Context
+  currentPeriod: {
+    id: string;
+    name: string;
+    label: string;
+  } | null;
+  selectedPeriodId: string | null;
+  availablePeriods: {
+    id: string;
+    name: string;
+    label: string;
+  }[];
+  
+  // Ward Summaries
+  wards: WardAcademicSummary[];
+  
+  // Comparison Data (for charts)
+  comparison: AcademicComparisonData[];
+  
+  // Subject Analysis
+  topPerformingSubjects: SubjectPerformanceItem[];
+  needsImprovementSubjects: SubjectPerformanceItem[];
+  
+  // Overall Summary
+  overallSummary: {
+    averageAcrossWards: number | null;
+    highestPerformer: {
+      wardId: string;
+      wardName: string;
+      average: number | null;
+    } | null;
+    mostImproved: {
+      wardId: string;
+      wardName: string;
+      improvement: number;
+    } | null;
+    totalSubjects: number;
+  };
+}
+
+interface WardAcademicSummary {
+  wardId: string;
+  wardName: string;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  classGroup: string;
+  grade: string | null;
+  average: number | null;
+  previousAverage: number | null;
+  trend: 'up' | 'down' | 'stable';
+  classPosition: number | null;
+  totalStudents: number | null;
+  performanceTier: 'top' | 'above_average' | 'average' | 'at_risk' | null;
+  subjectCount: number;
+  passedCount: number;
+  failedCount: number;
+}
+
+interface AcademicComparisonData {
+  wardId: string;
+  wardName: string;
+  photoUrl: string | null;
+  average: number | null;
+  color: string;  // For chart coloring
+}
+
+interface SubjectPerformanceItem {
+  subjectId: string;
+  subjectName: string;
+  shortCode: string | null;
+  wardId: string;
+  wardName: string;
+  totalScore: number | null;
+  gradeLetter: string | null;
+  isPassed: boolean | null;
+}
+```
+
+**Usage Notes:**
+- This endpoint aggregates academic data across all wards for the selected period
+- The `comparison` array provides data formatted for bar/radar chart visualization
+- `topPerformingSubjects` shows the highest scoring subjects across all wards (top 5)
+- `needsImprovementSubjects` shows subjects scoring below 60% (bottom 5)
+- Clicking a ward navigates to `/parent/wards/:id?tab=academics` for detailed view
+
+---
+
 ## Data Models & TypeScript Interfaces
 
 ### Shared Types (for both platforms)

@@ -39,9 +39,20 @@ type NavSection = {
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
-    badge?: string; // For notifications count, etc.
+    badgeCount?: number; // For unread notifications/messages count
   }>;
 };
+
+const MOCK_PARENT_UNREAD_COUNTS = {
+  notifications: 14,
+  messages: 0,
+} as const;
+
+function formatBadgeCount(count?: number) {
+  if (!count || count <= 0) return null;
+  if (count >= 10) return "10+";
+  return String(count);
+}
 
 const navSections: NavSection[] = [
   {
@@ -97,11 +108,13 @@ const navSections: NavSection[] = [
         label: "Notifications",
         href: "/parent/notifications",
         icon: Bell,
+        badgeCount: MOCK_PARENT_UNREAD_COUNTS.notifications,
       },
       {
         label: "Messages",
         href: "/parent/messages",
         icon: MessageSquare,
+        badgeCount: MOCK_PARENT_UNREAD_COUNTS.messages,
       },
     ],
   },
@@ -139,11 +152,12 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
 
           {/* Section Items */}
           <div className="space-y-1">
-            {section.items.map(({ label, href, icon: Icon, exact, badge }) => {
+            {section.items.map(({ label, href, icon: Icon, exact, badgeCount }) => {
               const active =
                 exact
                   ? pathname === href
                   : pathname === href || pathname.startsWith(href + "/");
+              const badge = formatBadgeCount(badgeCount);
               return (
                 <ActiveLink
                   key={href}

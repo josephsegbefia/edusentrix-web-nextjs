@@ -82,19 +82,18 @@ export async function GET(req: NextRequest) {
       students.map((student) => (student.classGroupId ? String(student.classGroupId) : null))
     );
 
-    const calendarQuery: Record<string, unknown> = {
-      schoolId: context.schoolId,
-      isPublished: true,
-    };
-
+    let selectedCalendarId: mongoose.Types.ObjectId | null = null;
     if (calendarId) {
       if (!mongoose.Types.ObjectId.isValid(calendarId)) {
         return NextResponse.json({ error: "Invalid calendar ID" }, { status: 400 });
       }
-      calendarQuery._id = new mongoose.Types.ObjectId(calendarId);
+      selectedCalendarId = new mongoose.Types.ObjectId(calendarId);
     }
 
-    const calendars = await AcademicCalendar.find(calendarQuery)
+    const calendars = await AcademicCalendar.find({
+      schoolId: context.schoolId,
+      isPublished: true,
+    })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -102,13 +101,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: { calendars: [], events: [], occurrences: [], range } });
     }
 
+    const calendarSummaries = calendars.map((calendar) => ({
+      id: String(calendar._id),
+      name: calendar.name,
+      color: calendar.color || null,
+    }));
+
+    if (
+      selectedCalendarId &&
+      !calendars.some((calendar) => String(calendar._id) === String(selectedCalendarId))
+    ) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          calendars: calendarSummaries,
+          events: [],
+          occurrences: [],
+          range,
+        },
+      });
+    }
+
     const calendarIds = calendars.map((c) => c._id);
 
-    const events = await AcademicCalendarEvent.find({
-      calendarId: { $in: calendarIds },
+    const eventQuery: Record<string, unknown> = {
+      calendarId: selectedCalendarId || { $in: calendarIds },
       schoolId: context.schoolId,
       status: "published",
-    })
+    };
+
+    const events = await AcademicCalendarEvent.find(eventQuery)
       .sort({ startDate: 1 })
       .lean();
 
@@ -265,11 +287,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        calendars: calendars.map((c) => ({
-          id: String(c._id),
-          name: c.name,
-          color: c.color || null,
-        })),
+        calendars: calendarSummaries,
         events: filteredEvents.map((event) => ({
           id: String(event._id),
           calendarId: String(event.calendarId),

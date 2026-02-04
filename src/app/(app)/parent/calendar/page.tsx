@@ -22,12 +22,12 @@ import {
   type CalendarOccurrence,
 } from "@/components/academic-calendar/CalendarViews";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/responsive-modal";
 
@@ -42,6 +42,8 @@ function endOfMonth(date: Date) {
 function addMonths(date: Date, delta: number) {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1);
 }
+
+const UPCOMING_WINDOW_DAYS = 90;
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -136,32 +138,41 @@ export default function ParentCalendarPage() {
   const [calendars, setCalendars] = React.useState<CalendarSummary[]>([]);
   const [selectedCalendarId, setSelectedCalendarId] = React.useState<string>("all");
   const [occurrences, setOccurrences] = React.useState<CalendarOccurrence[]>([]);
-  const [events, setEvents] = React.useState<EventRecord[]>([]);
+  const [monthEvents, setMonthEvents] = React.useState<EventRecord[]>([]);
+  const [upcomingOccurrences, setUpcomingOccurrences] = React.useState<CalendarOccurrence[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = React.useState<EventRecord[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [upcomingLoading, setUpcomingLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [upcomingError, setUpcomingError] = React.useState<string | null>(null);
   const [selectedOccurrence, setSelectedOccurrence] = React.useState<CalendarOccurrence | null>(null);
   const [eventModalOpen, setEventModalOpen] = React.useState(false);
 
-  const eventById = React.useMemo(
-    () => new Map(events.map((event) => [event.id, event])),
-    [events]
-  );
+  const eventById = React.useMemo(() => {
+    const map = new Map<string, EventRecord>();
+    monthEvents.forEach((event) => map.set(event.id, event));
+    upcomingEvents.forEach((event) => map.set(event.id, event));
+    return map;
+  }, [monthEvents, upcomingEvents]);
 
   const selectedEvent = React.useMemo(
     () => (selectedOccurrence ? eventById.get(selectedOccurrence.eventId) || null : null),
     [eventById, selectedOccurrence]
   );
 
-  const upcomingOccurrences = React.useMemo(() => {
-    const now = Date.now();
-    return [...occurrences]
-      .filter((occurrence) => new Date(occurrence.endDate).getTime() >= now)
-      .sort(
-        (left, right) =>
-          new Date(left.startDate).getTime() - new Date(right.startDate).getTime()
-      )
-      .slice(0, 6);
-  }, [occurrences]);
+  const monthEmptyMessage = React.useMemo(() => {
+    if (occurrences.length > 0) return null;
+    if (upcomingLoading) {
+      return `No events in ${format(month, "MMMM yyyy")}. Checking upcoming events...`;
+    }
+    if (upcomingOccurrences.length > 0) {
+      return `No events in ${format(month, "MMMM yyyy")}. Check upcoming events below.`;
+    }
+    if (upcomingError) {
+      return `No events in ${format(month, "MMMM yyyy")}.`;
+    }
+    return "No published events available yet.";
+  }, [month, occurrences.length, upcomingError, upcomingLoading, upcomingOccurrences.length]);
 
   const openEventDetails = React.useCallback((occurrence: CalendarOccurrence) => {
     setSelectedOccurrence(occurrence);
@@ -201,7 +212,7 @@ export default function ParentCalendarPage() {
 
       if (signal?.aborted) return;
       setCalendars(json.data.calendars || []);
-      setEvents(json.data.events || []);
+      setMonthEvents(json.data.events || []);
       setOccurrences(json.data.occurrences || []);
     } catch (error) {
       if (signal?.aborted) return;
@@ -214,11 +225,77 @@ export default function ParentCalendarPage() {
     }
   }, [month, selectedCalendarId]);
 
+  const fetchUpcomingData = React.useCallback(async (signal?: AbortSignal) => {
+    const from = new Date();
+    const to = new Date(from);
+    to.setDate(to.getDate() + UPCOMING_WINDOW_DAYS);
+
+    setUpcomingLoading(true);
+    setUpcomingError(null);
+    try {
+      const params = new URLSearchParams({
+        from: from.toISOString(),
+        to: to.toISOString(),
+      });
+      if (selectedCalendarId !== "all") {
+        params.set("calendarId", selectedCalendarId);
+      }
+
+      const fetchRequest = () =>
+        fetch(`/api/parent/calendar?${params}`, {
+          cache: "no-store",
+          signal,
+        });
+
+      let res = await fetchRequest();
+      if (res.status === 401) {
+        await wait(200);
+        if (signal?.aborted) return;
+        res = await fetchRequest();
+      }
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to load upcoming events");
+      }
+      if (signal?.aborted) return;
+
+      const sortedUpcoming = (json.data.occurrences || [])
+        .filter((occurrence: CalendarOccurrence) =>
+          new Date(occurrence.endDate).getTime() >= from.getTime()
+        )
+        .sort(
+          (left: CalendarOccurrence, right: CalendarOccurrence) =>
+            new Date(left.startDate).getTime() - new Date(right.startDate).getTime()
+        )
+        .slice(0, 6);
+
+      setUpcomingEvents(json.data.events || []);
+      setUpcomingOccurrences(sortedUpcoming);
+    } catch (error) {
+      if (signal?.aborted) return;
+      console.error(error);
+      setUpcomingError(
+        error instanceof Error ? error.message : "Failed to load upcoming events"
+      );
+    } finally {
+      if (!signal?.aborted) {
+        setUpcomingLoading(false);
+      }
+    }
+  }, [selectedCalendarId]);
+
   React.useEffect(() => {
     const controller = new AbortController();
     fetchCalendarData(controller.signal);
     return () => controller.abort();
   }, [fetchCalendarData]);
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+    fetchUpcomingData(controller.signal);
+    return () => controller.abort();
+  }, [fetchUpcomingData]);
 
   return (
     <div className="space-y-6">
@@ -261,22 +338,22 @@ export default function ParentCalendarPage() {
             <p className="text-sm text-white/50">Choose a published calendar to filter events.</p>
           </div>
           <div className="min-w-[220px]">
-            <Select
+            <PremiumSelect
               value={selectedCalendarId}
               onValueChange={(value) => setSelectedCalendarId(value)}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="All calendars" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All calendars</SelectItem>
+              <PremiumSelectTrigger>
+                <PremiumSelectValue placeholder="All calendars" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                <PremiumSelectItem value="all">All calendars</PremiumSelectItem>
                 {calendars.map((calendar) => (
-                  <SelectItem key={calendar.id} value={calendar.id}>
+                  <PremiumSelectItem key={calendar.id} value={calendar.id}>
                     {calendar.name}
-                  </SelectItem>
+                  </PremiumSelectItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </PremiumSelectContent>
+            </PremiumSelect>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -306,9 +383,9 @@ export default function ParentCalendarPage() {
         </CardContent>
       </Card>
 
-      {!loading && occurrences.length === 0 && (
+      {!loading && monthEmptyMessage && (
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/50">
-          No published events available yet.
+          {monthEmptyMessage}
         </div>
       )}
 
@@ -318,13 +395,27 @@ export default function ParentCalendarPage() {
             <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
               Upcoming Events
             </CardTitle>
+            <p className="text-xs text-white/45">
+              Next {UPCOMING_WINDOW_DAYS} days
+            </p>
           </CardHeader>
           <CardContent>
-            {upcomingOccurrences.length === 0 ? (
+            {upcomingLoading && (
               <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
-                No upcoming events in this calendar range yet.
+                Loading upcoming events...
               </div>
-            ) : (
+            )}
+            {!upcomingLoading && upcomingError && (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+                {upcomingError}
+              </div>
+            )}
+            {!upcomingLoading && !upcomingError && upcomingOccurrences.length === 0 ? (
+              <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+                No upcoming events in the next {UPCOMING_WINDOW_DAYS} days.
+              </div>
+            ) : null}
+            {!upcomingLoading && !upcomingError && upcomingOccurrences.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {upcomingOccurrences.map((occurrence) => {
                   const event = eventById.get(occurrence.eventId);
@@ -385,7 +476,7 @@ export default function ParentCalendarPage() {
                   );
                 })}
               </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       )}

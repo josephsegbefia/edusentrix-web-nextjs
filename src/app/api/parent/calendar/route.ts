@@ -5,12 +5,16 @@ import { requireParent, getParentWardIds } from "@/lib/auth/requireParent";
 import { AcademicCalendar } from "@/models/AcademicCalendar";
 import { AcademicCalendarEvent } from "@/models/AcademicCalendarEvent";
 import { Student } from "@/models/Student";
+import { Grade } from "@/models/Grade";
+import { ClassGroup } from "@/models/ClassGroup";
+import { User } from "@/models/User";
 import {
   audienceIncludesRole,
   matchesAudienceScope,
   normalizeAudience,
 } from "@/lib/academic-calendar/audience";
 import { expandRecurringEvent, clampRange, getRangeDefaults } from "@/lib/academic-calendar/recurrence";
+import { DEFAULT_AUDIENCE_ROLES } from "@/lib/academic-calendar/types";
 
 function parseDateParam(value: string | null) {
   if (!value) return null;
@@ -18,6 +22,36 @@ function parseDateParam(value: string | null) {
   if (Number.isNaN(date.getTime())) return null;
   return date;
 }
+
+function uniqueStringIds(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(values.filter((value): value is string => Boolean(value && value !== "undefined" && value !== "null")))
+  );
+}
+
+type StudentAudienceDoc = {
+  gradeId?: mongoose.Types.ObjectId | null;
+  classGroupId?: mongoose.Types.ObjectId | null;
+};
+
+type ClassGroupAudienceDoc = {
+  _id: mongoose.Types.ObjectId;
+  name?: string | null;
+  gradeId?: mongoose.Types.ObjectId | null;
+};
+
+type GradeLookupDoc = {
+  _id: mongoose.Types.ObjectId;
+  name?: string | null;
+};
+
+type CreatorLookupDoc = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string | null;
+  lastName?: string | null;
+  name?: string | null;
+  email?: string | null;
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,15 +71,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: { calendars: [], events: [], occurrences: [], range } });
     }
 
-    const students = await Student.find({ _id: { $in: wardIds } })
+    const students = (await Student.find({ _id: { $in: wardIds } })
       .select("gradeId classGroupId")
-      .lean();
+      .lean()) as StudentAudienceDoc[];
 
-    const gradeIds = Array.from(
-      new Set(students.map((s) => String((s as any).gradeId)))
+    const gradeIds = uniqueStringIds(
+      students.map((student) => (student.gradeId ? String(student.gradeId) : null))
     );
-    const classGroupIds = Array.from(
-      new Set(students.map((s) => String((s as any).classGroupId)))
+    const classGroupIds = uniqueStringIds(
+      students.map((student) => (student.classGroupId ? String(student.classGroupId) : null))
     );
 
     const calendarQuery: Record<string, unknown> = {
@@ -94,6 +128,100 @@ export async function GET(req: NextRequest) {
         classGroupIds,
       });
     });
+
+    const calendarMap = new Map(
+      calendars.map((calendar) => [
+        String(calendar._id),
+        {
+          name: calendar.name,
+          color: calendar.color || null,
+        },
+      ])
+    );
+
+    const eventGradeIds = uniqueStringIds(
+      filteredEvents.flatMap((event) =>
+        (event.audience?.gradeIds || []).map((id) => String(id))
+      )
+    );
+    const eventClassGroupIds = uniqueStringIds(
+      filteredEvents.flatMap((event) =>
+        (event.audience?.classGroupIds || []).map((id) => String(id))
+      )
+    );
+    const creatorIds = uniqueStringIds(
+      filteredEvents.map((event) =>
+        event.createdBy ? String(event.createdBy) : null
+      )
+    );
+
+    const classGroups: ClassGroupAudienceDoc[] = eventClassGroupIds.length
+      ? await ClassGroup.find({
+          schoolId: context.schoolId,
+          _id: {
+            $in: eventClassGroupIds.map((id) => new mongoose.Types.ObjectId(id)),
+          },
+        })
+          .select("_id name gradeId")
+          .lean() as ClassGroupAudienceDoc[]
+      : [];
+
+    const classGroupGradeIds = uniqueStringIds(
+      classGroups.map((classGroup) =>
+        classGroup.gradeId ? String(classGroup.gradeId) : null
+      )
+    );
+    const lookupGradeIds = uniqueStringIds([
+      ...eventGradeIds,
+      ...classGroupGradeIds,
+    ]);
+
+    let grades: GradeLookupDoc[] = [];
+    if (lookupGradeIds.length > 0) {
+      grades = (await Grade.find({
+        schoolId: context.schoolId,
+        _id: { $in: lookupGradeIds.map((id) => new mongoose.Types.ObjectId(id)) },
+      })
+        .select("_id name")
+        .lean()) as GradeLookupDoc[];
+    }
+
+    let creators: CreatorLookupDoc[] = [];
+    if (creatorIds.length > 0) {
+      creators = (await User.find({
+        _id: {
+          $in: creatorIds.map((id) => new mongoose.Types.ObjectId(id)),
+        },
+      })
+        .select("_id firstName lastName name email")
+        .lean()) as CreatorLookupDoc[];
+    }
+
+    const gradeNameById = new Map(
+      grades.map((grade) => [String(grade._id), grade.name || ""])
+    );
+    const classGroupLabelById = new Map(
+      classGroups.map((classGroup) => {
+        const gradeName = gradeNameById.get(String(classGroup.gradeId || "")) || "";
+        const className = classGroup.name || "";
+        return [String(classGroup._id), `${gradeName} ${className}`.trim()];
+      })
+    );
+    const creatorById = new Map(
+      creators.map((creator) => {
+        const firstName = creator.firstName || "";
+        const lastName = creator.lastName || "";
+        const fullName = `${firstName} ${lastName}`.trim() || creator.name || creator.email || "School staff";
+        return [
+          String(creator._id),
+          {
+            id: String(creator._id),
+            name: fullName,
+            email: creator.email || null,
+          },
+        ];
+      })
+    );
 
     const occurrences = filteredEvents.flatMap((event) => {
       const expanded = expandRecurringEvent(
@@ -145,10 +273,12 @@ export async function GET(req: NextRequest) {
         events: filteredEvents.map((event) => ({
           id: String(event._id),
           calendarId: String(event.calendarId),
+          calendarName: calendarMap.get(String(event.calendarId))?.name || null,
+          calendarColor: calendarMap.get(String(event.calendarId))?.color || null,
           title: event.title,
           description: event.description || null,
-          startDate: event.startDate.toISOString(),
-          endDate: event.endDate.toISOString(),
+          startDate: new Date(event.startDate).toISOString(),
+          endDate: new Date(event.endDate).toISOString(),
           allDay: event.allDay,
           location: event.location || null,
           color: event.color || null,
@@ -156,6 +286,47 @@ export async function GET(req: NextRequest) {
           status: event.status,
           eventType: event.eventType,
           isNonTeachingDay: event.isNonTeachingDay,
+          audience: (() => {
+            const audience = normalizeAudience({
+              scope: event.audience?.scope || "school",
+              gradeIds: (event.audience?.gradeIds || []).map((id) => String(id)),
+              classGroupIds: (event.audience?.classGroupIds || []).map((id) => String(id)),
+              roles: event.audience?.roles || [],
+            });
+
+            return {
+              scope: audience.scope,
+              gradeIds: audience.gradeIds || [],
+              classGroupIds: audience.classGroupIds || [],
+              gradeNames: (audience.gradeIds || [])
+                .map((id) => gradeNameById.get(id))
+                .filter((name): name is string => Boolean(name)),
+              classGroupNames: (audience.classGroupIds || [])
+                .map((id) => classGroupLabelById.get(id))
+                .filter((name): name is string => Boolean(name)),
+              roles:
+                audience.roles && audience.roles.length > 0
+                  ? audience.roles
+                  : [...DEFAULT_AUDIENCE_ROLES],
+            };
+          })(),
+          recurrence: event.recurrence
+            ? {
+                ...event.recurrence,
+                until: event.recurrence.until
+                  ? new Date(event.recurrence.until).toISOString()
+                  : null,
+              }
+            : null,
+          createdBy: event.createdBy
+            ? creatorById.get(String(event.createdBy)) || {
+                id: String(event.createdBy),
+                name: "School staff",
+                email: null,
+              }
+            : null,
+          createdAt: event.createdAt ? new Date(event.createdAt).toISOString() : null,
+          updatedAt: event.updatedAt ? new Date(event.updatedAt).toISOString() : null,
         })),
         occurrences,
         range: {

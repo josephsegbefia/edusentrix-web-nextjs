@@ -1,6 +1,7 @@
 // src/hooks/admin/useGuardianSSE.ts
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { sseManager } from "@/lib/network/sse-manager";
 
 /**
  * Hook to listen for real-time guardian updates via SSE
@@ -13,6 +14,7 @@ export function useGuardianSSE(studentId: string | undefined) {
     if (!studentId) return;
 
     const es = new EventSource("/api/admin/metrics/stream");
+    const detachSSE = sseManager?.attachEventSource(es);
 
     es.addEventListener("guardians.updated", (e: MessageEvent) => {
       try {
@@ -33,6 +35,7 @@ export function useGuardianSSE(studentId: string | undefined) {
     };
 
     return () => {
+      detachSSE?.();
       es.close();
     };
   }, [studentId, qc]);

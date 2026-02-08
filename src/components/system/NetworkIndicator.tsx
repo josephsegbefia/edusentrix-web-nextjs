@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNetworkHealth, NetworkQuality } from "@/hooks/useNetworkHealth";
 import { useConnectionHistory } from "@/hooks/useConnectionHistory";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
@@ -13,7 +13,6 @@ import {
   RefreshCw,
   Radio,
   AlertCircle,
-  CheckCircle2,
 } from "lucide-react";
 import {
   Popover,
@@ -23,6 +22,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+
+const subscribeNoop = () => () => {};
+
+function useHydrated() {
+  return useSyncExternalStore(subscribeNoop, () => true, () => false);
+}
 
 function getIndicatorConfig(quality: NetworkQuality, online: boolean) {
   if (!online || quality === "offline") {
@@ -101,7 +106,7 @@ function getEventIcon(type: string) {
 }
 
 export function NetworkIndicator() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [open, setOpen] = useState(false);
   const {
     quality,
@@ -110,14 +115,11 @@ export function NetworkIndicator() {
     downlink,
     probeRtt,
     sseState,
+    sseLastConnectedAt,
     isSSEConnected,
   } = useNetworkHealth(20000);
   const { events, summary, clearHistory } = useConnectionHistory();
   const { pendingCount, processQueue, isProcessing } = useOfflineQueue();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const config = mounted
     ? getIndicatorConfig(quality, online)
@@ -132,6 +134,18 @@ export function NetworkIndicator() {
   const Icon = config.icon;
   const showPulse =
     mounted && (quality === "poor" || quality === "offline" || !online);
+  const sseNotActiveOnPage =
+    online && sseState === "disconnected" && sseLastConnectedAt === null;
+
+  const sseStatusLabel = sseState === "connected"
+    ? "Live updates active"
+    : sseState === "reconnecting"
+    ? "Reconnecting..."
+    : sseState === "connecting"
+    ? "Connecting..."
+    : sseNotActiveOnPage
+    ? "Live updates not active on this page"
+    : "Live updates paused";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -162,7 +176,7 @@ export function NetworkIndicator() {
           </div>
           {/* Pending queue badge */}
           {pendingCount > 0 && (
-            <span className="flex items-center justify-center h-4 min-w-[1rem] px-1 text-[10px] font-medium bg-amber-500 text-black rounded-full">
+            <span className="flex items-center justify-center h-4 min-w-4 px-1 text-[10px] font-medium bg-amber-500 text-black rounded-full">
               {pendingCount}
             </span>
           )}
@@ -236,18 +250,14 @@ export function NetworkIndicator() {
             <Radio
               className={cn(
                 "h-3.5 w-3.5",
-                isSSEConnected ? "text-green-400" : "text-amber-400"
+                isSSEConnected
+                  ? "text-green-400"
+                  : sseNotActiveOnPage
+                  ? "text-white/40"
+                  : "text-amber-400"
               )}
             />
-            <span className="text-xs text-white/60">
-              {sseState === "connected"
-                ? "Live updates active"
-                : sseState === "reconnecting"
-                ? "Reconnecting..."
-                : sseState === "connecting"
-                ? "Connecting..."
-                : "Live updates paused"}
-            </span>
+            <span className="text-xs text-white/60">{sseStatusLabel}</span>
           </div>
 
           {/* Pending queue */}

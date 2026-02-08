@@ -1,6 +1,7 @@
 // src/hooks/admin/useStudentFeesSSE.ts
 import { useEffect } from "react";
 import { Query, useQueryClient } from "@tanstack/react-query";
+import { sseManager } from "@/lib/network/sse-manager";
 
 function matchesStudentPayments(q: Query, studentId: string) {
   const key = q.queryKey;
@@ -27,6 +28,7 @@ export function useStudentFeesSSE(opts: {
     if (!studentId) return;
 
     const es = new EventSource("/api/admin/metrics/stream");
+    const detachSSE = sseManager?.attachEventSource(es);
 
     const invalidateFees = () => {
       qc.invalidateQueries({
@@ -48,6 +50,7 @@ export function useStudentFeesSSE(opts: {
     };
 
     return () => {
+      detachSSE?.();
       es.close();
     };
   }, [invoiceId, qc, studentId]);

@@ -28,10 +28,10 @@ export function NetworkAccessibilityAnnouncer() {
     // Offline/Online transitions (most important)
     if (!online && prevOnlineRef.current) {
       announcements.push(
-        "You are now offline. Some features are unavailable until you reconnect."
+        "You are offline now. Some features are unavailable until you reconnect."
       );
     } else if (online && !prevOnlineRef.current) {
-      announcements.push("You are back online. All features are now available.");
+      announcements.push("You are back online. Features are fully available again.");
     }
 
     // Quality changes (when online)
@@ -48,7 +48,7 @@ export function NetworkAccessibilityAnnouncer() {
         case "degraded":
           if (prevQualityRef.current === "good") {
             announcements.push(
-              "Connection quality degraded. Performance may be affected."
+              "Connection quality is degraded. Performance may be affected."
             );
           }
           break;
@@ -79,10 +79,16 @@ export function NetworkAccessibilityAnnouncer() {
 
     // Set announcement (will be read by screen reader)
     if (announcements.length > 0) {
-      setAnnouncement(announcements.join(" "));
+      const nextAnnouncement = announcements.join(" ");
+      const announceTimer = window.setTimeout(() => {
+        setAnnouncement(nextAnnouncement);
+      }, 0);
       // Clear after a delay to allow for new announcements
-      const timer = setTimeout(() => setAnnouncement(""), 5000);
-      return () => clearTimeout(timer);
+      const clearTimer = window.setTimeout(() => setAnnouncement(""), 5000);
+      return () => {
+        window.clearTimeout(announceTimer);
+        window.clearTimeout(clearTimer);
+      };
     }
   }, [quality, online, sseState]);
 

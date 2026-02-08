@@ -1,6 +1,7 @@
 // src/hooks/admin/useDocumentSSE.ts
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { sseManager } from "@/lib/network/sse-manager";
 
 /**
  * Hook to listen for real-time document updates via SSE
@@ -15,6 +16,7 @@ export function useDocumentSSE(studentId: string | undefined) {
     if (!studentId) return;
 
     const es = new EventSource("/api/admin/metrics/stream");
+    const detachSSE = sseManager?.attachEventSource(es);
 
     es.addEventListener("documents.updated", (e: MessageEvent) => {
       try {
@@ -33,6 +35,7 @@ export function useDocumentSSE(studentId: string | undefined) {
     };
 
     return () => {
+      detachSSE?.();
       es.close();
     };
   }, [studentId, qc]);

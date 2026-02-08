@@ -59,7 +59,7 @@ function getBannerConfig(
       borderColor: "border-gray-400/40",
       Icon: WifiOff,
       iconColor: "text-gray-300",
-      title: "You're Offline",
+      title: "You Are Offline",
       description: pendingCount > 0
         ? `${pendingCount} change${pendingCount !== 1 ? "s" : ""} will sync when you reconnect.`
         : "Some features won't work until you reconnect.",
@@ -235,7 +235,7 @@ export function NetworkStatusBanner() {
                   onClick={() => setShowDetails(!showDetails)}
                   className="text-white/70 hover:text-white hover:bg-white/10"
                 >
-                  {showDetails ? "Hide Details" : "What's Affected?"}
+                  {showDetails ? "Hide Details" : "Show Impact"}
                 </Button>
               )}
 
@@ -282,7 +282,7 @@ export function NetworkStatusBanner() {
                   {/* Affected features */}
                   <div>
                     <h4 className="text-xs font-medium text-white/60 uppercase tracking-wider mb-2">
-                      Won't Work Offline
+                      Unavailable Offline
                     </h4>
                     <ul className="space-y-1.5">
                       {affectedFeatures.map((feature) => (
@@ -321,7 +321,7 @@ export function NetworkStatusBanner() {
                     <p className="text-xs text-white/60">
                       <Clock className="inline h-3 w-3 mr-1" />
                       {pendingCount} pending change{pendingCount !== 1 ? "s" : ""} will
-                      automatically sync when you're back online.
+                      automatically sync when you are back online.
                     </p>
                   </div>
                 )}

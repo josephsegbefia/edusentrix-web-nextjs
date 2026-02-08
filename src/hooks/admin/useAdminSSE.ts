@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { sseManager } from "@/lib/network/sse-manager";
 
 export function useAdminSSE() {
   const qc = useQueryClient();
 
   useEffect(() => {
     const es = new EventSource("/api/admin/metrics/stream");
+    const detachSSE = sseManager?.attachEventSource(es);
     const patch = (key: any[], updater: (draft: any) => any) => {
       const cur = qc.getQueryData(key);
       if (cur) qc.setQueryData(key, updater(cur));
@@ -44,6 +46,9 @@ export function useAdminSSE() {
     es.onerror = () => {
       /* optional: exponential backoff + reconnect */
     };
-    return () => es.close();
+    return () => {
+      detachSSE?.();
+      es.close();
+    };
   }, [qc]);
 }

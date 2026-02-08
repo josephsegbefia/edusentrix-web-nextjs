@@ -27,6 +27,8 @@ class SSEManager {
   private reconnectAttempts = 0;
   private error?: string;
   private listeners: Set<Listener> = new Set();
+  private activeStreamCount = 0;
+  private connectedStreamCount = 0;
 
   getStatus(): SSEStatusEvent {
     return {
@@ -102,7 +104,75 @@ class SSEManager {
     this.lastDisconnectedAt = null;
     this.reconnectAttempts = 0;
     this.error = undefined;
+    this.activeStreamCount = 0;
+    this.connectedStreamCount = 0;
     this.notify();
+  }
+
+  attachEventSource(es: EventSource): () => void {
+    this.activeStreamCount += 1;
+    if (this.connectedStreamCount === 0) {
+      this.setConnecting();
+    }
+
+    let streamConnected = false;
+    let cleanedUp = false;
+
+    const onOpen = () => {
+      if (streamConnected) return;
+      streamConnected = true;
+      this.connectedStreamCount += 1;
+      this.setConnected();
+    };
+
+    const onError = () => {
+      if (streamConnected) {
+        streamConnected = false;
+        this.connectedStreamCount = Math.max(0, this.connectedStreamCount - 1);
+      }
+
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        this.setDisconnected();
+        return;
+      }
+
+      if (this.connectedStreamCount > 0) {
+        this.setConnected();
+        return;
+      }
+
+      this.setReconnecting();
+    };
+
+    es.addEventListener("open", onOpen);
+    es.addEventListener("error", onError);
+
+    return () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+
+      es.removeEventListener("open", onOpen);
+      es.removeEventListener("error", onError);
+
+      if (streamConnected) {
+        streamConnected = false;
+        this.connectedStreamCount = Math.max(0, this.connectedStreamCount - 1);
+      }
+
+      this.activeStreamCount = Math.max(0, this.activeStreamCount - 1);
+
+      if (this.activeStreamCount === 0) {
+        this.setDisconnected();
+        return;
+      }
+
+      if (this.connectedStreamCount > 0) {
+        this.setConnected();
+        return;
+      }
+
+      this.setConnecting();
+    };
   }
 }
 

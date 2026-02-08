@@ -49,7 +49,7 @@ export function formatSSEStatus(status: SSEStatusEvent): string {
     case "reconnecting":
       return `Reconnecting... (attempt ${status.reconnectAttempts})`;
     case "disconnected":
-      return "Live updates paused";
+      return "Live updates not active";
     case "error":
       return status.error || "Live update connection error";
     default:

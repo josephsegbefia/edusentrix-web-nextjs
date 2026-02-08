@@ -137,8 +137,8 @@ export async function GET(req: NextRequest) {
     const filteredEvents = events.filter((event) => {
       const audience = normalizeAudience({
         scope: event.audience?.scope || "school",
-        gradeIds: (event.audience?.gradeIds || []).map((id) => String(id)),
-        classGroupIds: (event.audience?.classGroupIds || []).map((id) => String(id)),
+        gradeIds: (event.audience?.gradeIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
+        classGroupIds: (event.audience?.classGroupIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
         roles: event.audience?.roles || [],
       });
 
@@ -163,12 +163,12 @@ export async function GET(req: NextRequest) {
 
     const eventGradeIds = uniqueStringIds(
       filteredEvents.flatMap((event) =>
-        (event.audience?.gradeIds || []).map((id) => String(id))
+        (event.audience?.gradeIds || []).map((id: mongoose.Types.ObjectId | string) => String(id))
       )
     );
     const eventClassGroupIds = uniqueStringIds(
       filteredEvents.flatMap((event) =>
-        (event.audience?.classGroupIds || []).map((id) => String(id))
+        (event.audience?.classGroupIds || []).map((id: mongoose.Types.ObjectId | string) => String(id))
       )
     );
     const creatorIds = uniqueStringIds(
@@ -307,8 +307,8 @@ export async function GET(req: NextRequest) {
           audience: (() => {
             const audience = normalizeAudience({
               scope: event.audience?.scope || "school",
-              gradeIds: (event.audience?.gradeIds || []).map((id) => String(id)),
-              classGroupIds: (event.audience?.classGroupIds || []).map((id) => String(id)),
+              gradeIds: (event.audience?.gradeIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
+              classGroupIds: (event.audience?.classGroupIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
               roles: event.audience?.roles || [],
             });
 

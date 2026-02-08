@@ -7,6 +7,21 @@ import { requireParent, verifyGuardianAccess } from "@/lib/auth/requireParent";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 
+type AcademicPeriodRow = {
+  _id: mongoose.Types.ObjectId;
+  startDate: Date;
+  endDate: Date;
+};
+
+type AttendanceStatus = "present" | "absent" | "late" | "excused";
+
+type AttendanceRecordRow = {
+  date: Date;
+  status: AttendanceStatus;
+  lateMinutes?: number;
+  reason?: string;
+};
+
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
@@ -16,25 +31,38 @@ export async function GET(
     await connectToDatabase();
 
     const { id: studentId } = await ctx.params;
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid student ID" },
+        { status: 400 }
+      );
+    }
+
     await verifyGuardianAccess(context.userId, studentId);
 
     const url = new URL(req.url);
     const periodId = url.searchParams.get("periodId");
+    if (periodId && !mongoose.Types.ObjectId.isValid(periodId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid period ID" },
+        { status: 400 }
+      );
+    }
 
     const studentObjectId = new mongoose.Types.ObjectId(studentId);
 
     // Get academic period
-    let period;
+    let period: AcademicPeriodRow | null;
     if (periodId) {
       period = await AcademicPeriod.findOne({
         _id: new mongoose.Types.ObjectId(periodId),
         schoolId: context.schoolId,
-      }).lean() as { _id: mongoose.Types.ObjectId; startDate: Date; endDate: Date } | null;
+      }).lean<AcademicPeriodRow | null>();
     } else {
       period = await AcademicPeriod.findOne({
         schoolId: context.schoolId,
         isCurrent: true,
-      }).lean() as { _id: mongoose.Types.ObjectId; startDate: Date; endDate: Date } | null;
+      }).lean<AcademicPeriodRow | null>();
     }
 
     const dateFilter: { $gte?: Date; $lte?: Date } = {};
@@ -51,12 +79,7 @@ export async function GET(
     })
       .sort({ date: -1 })
       .limit(50)
-      .lean() as Array<{
-        date: Date;
-        status: string;
-        lateMinutes?: number;
-        reason?: string;
-      }>;
+      .lean<AttendanceRecordRow[]>();
 
     // Calculate stats
     const stats = records.reduce(
@@ -72,6 +95,44 @@ export async function GET(
 
     const totalDays = records.length;
     const rate = totalDays > 0 ? (stats.present / totalDays) * 100 : 100;
+
+    // Compare against previous academic period to derive trend.
+    let previousRate: number | null = null;
+    if (period) {
+      const previousPeriod = await AcademicPeriod.findOne({
+        schoolId: context.schoolId,
+        endDate: { $lt: period.startDate },
+      })
+        .sort({ endDate: -1 })
+        .lean<AcademicPeriodRow | null>();
+
+      if (previousPeriod) {
+        const previousRecords = await StudentAttendance.find({
+          studentId: studentObjectId,
+          schoolId: context.schoolId,
+          date: {
+            $gte: previousPeriod.startDate,
+            $lte: previousPeriod.endDate,
+          },
+        })
+          .select("status")
+          .lean<Array<{ status: AttendanceStatus }>>();
+
+        if (previousRecords.length > 0) {
+          const previousPresent = previousRecords.reduce((count, record) => {
+            if (record.status === "present" || record.status === "late") return count + 1;
+            return count;
+          }, 0);
+          previousRate = (previousPresent / previousRecords.length) * 100;
+        }
+      }
+    }
+
+    let trend: "up" | "down" | "stable" = "stable";
+    if (previousRate !== null) {
+      if (rate > previousRate + 5) trend = "up";
+      else if (rate < previousRate - 5) trend = "down";
+    }
 
     // Group by month for breakdown
     const monthlyMap = new Map<string, { present: number; absent: number; late: number; total: number }>();
@@ -105,7 +166,8 @@ export async function GET(
         daysAbsent: stats.absent,
         daysLate: stats.late,
         totalDays,
-        trend: "stable" as const, // TODO: Calculate actual trend
+        trend,
+        previousRate: previousRate !== null ? Math.round(previousRate * 10) / 10 : null,
         recentRecords,
         monthlyBreakdown,
       },

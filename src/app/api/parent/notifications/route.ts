@@ -6,6 +6,28 @@ import { requireParent } from "@/lib/auth/requireParent";
 import { Notification } from "@/models/Notification";
 import { User } from "@/models/User";
 
+type UserLookupRow = {
+  _id: mongoose.Types.ObjectId;
+};
+
+type WardSummary = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+};
+
+type NotificationRow = {
+  _id: mongoose.Types.ObjectId;
+  type: string;
+  title: string;
+  body: string;
+  isRead: boolean;
+  createdAt: Date;
+  wardId?: WardSummary | mongoose.Types.ObjectId | null;
+  actionUrl?: string;
+  priority: string;
+};
+
 export async function GET(req: NextRequest) {
   try {
     const context = await requireParent();
@@ -19,7 +41,9 @@ export async function GET(req: NextRequest) {
     // Get the user document to find the internal user ID
     const user = await User.findOne({ 
       _id: context.userId 
-    }).select("_id").lean() as { _id: mongoose.Types.ObjectId } | null;
+    })
+      .select("_id")
+      .lean<UserLookupRow | null>();
 
     if (!user) {
       return NextResponse.json(
@@ -50,17 +74,7 @@ export async function GET(req: NextRequest) {
       .skip(offset)
       .limit(limit)
       .populate("wardId", "firstName lastName")
-      .lean() as Array<{
-        _id: mongoose.Types.ObjectId;
-        type: string;
-        title: string;
-        body: string;
-        isRead: boolean;
-        createdAt: Date;
-        wardId?: { _id: mongoose.Types.ObjectId; firstName: string; lastName: string } | null;
-        actionUrl?: string;
-        priority: string;
-      }>;
+      .lean<NotificationRow[]>();
 
     const hasMore = offset + limit < total;
 
@@ -69,14 +83,24 @@ export async function GET(req: NextRequest) {
       data: {
         unreadCount,
         notifications: notifications.map((n) => ({
+          ...(() => {
+            const ward =
+              n.wardId && typeof n.wardId === "object" && "firstName" in n.wardId
+                ? (n.wardId as WardSummary)
+                : null;
+            return {
+              wardId: ward ? String(ward._id) : undefined,
+              wardName: ward
+                ? `${ward.firstName || ""} ${ward.lastName || ""}`.trim() || undefined
+                : undefined,
+            };
+          })(),
           id: String(n._id),
           type: n.type,
           title: n.title,
           body: n.body,
           isRead: n.isRead,
           createdAt: n.createdAt.toISOString(),
-          wardId: n.wardId ? String(n.wardId._id) : undefined,
-          wardName: n.wardId ? `${n.wardId.firstName} ${n.wardId.lastName}`.trim() : undefined,
           actionUrl: n.actionUrl,
           priority: n.priority,
         })),

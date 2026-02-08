@@ -1,5 +1,5 @@
 // src/app/api/parent/fees/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent } from "@/lib/auth/requireParent";
@@ -8,6 +8,44 @@ import { Guardian } from "@/models/Guardian";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
+
+type GuardianLink = {
+  studentId: mongoose.Types.ObjectId;
+};
+
+type StudentRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  photoUrl?: string | null;
+  classGroupId?: mongoose.Types.ObjectId;
+  status?: string;
+};
+
+type ClassGroupRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+};
+
+type InvoiceRow = {
+  _id: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  title?: string;
+  totalAmount?: number;
+  amountPaid?: number;
+  balanceDue?: number;
+  dueDate?: Date | null;
+  status?: string;
+};
+
+type RecentPaymentRow = {
+  _id: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  amount?: number;
+  paymentDate?: Date;
+  paymentMethod?: string;
+  reference?: string;
+};
 
 interface WardFeeSummary {
   wardId: string;
@@ -37,7 +75,7 @@ interface PendingInvoice {
   isOverdue: boolean;
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const context = await requireParent();
     await connectToDatabase();
@@ -45,7 +83,7 @@ export async function GET(req: NextRequest) {
     // Get all wards for this parent
     const guardians = await Guardian.find({ userId: context.userId })
       .select("studentId")
-      .lean();
+      .lean<GuardianLink[]>();
 
     if (!guardians.length) {
       return NextResponse.json({
@@ -66,9 +104,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const studentIds = guardians.map(
-      (g) => (g as unknown as { studentId: mongoose.Types.ObjectId }).studentId
-    );
+    const studentIds = guardians.map((g) => g.studentId);
 
     // Fetch students
     const students = await Student.find({
@@ -76,15 +112,17 @@ export async function GET(req: NextRequest) {
       schoolId: context.schoolId,
     })
       .select("_id firstName lastName photoUrl classGroupId status")
-      .lean();
+      .lean<StudentRow[]>();
 
     // Get class groups
-    const classGroupIds = students.map((s: any) => s.classGroupId).filter(Boolean);
+    const classGroupIds = students
+      .map((s) => s.classGroupId)
+      .filter((classGroupId): classGroupId is mongoose.Types.ObjectId => Boolean(classGroupId));
     const classGroups = await ClassGroup.find({ _id: { $in: classGroupIds } })
       .select("_id name")
-      .lean();
+      .lean<ClassGroupRow[]>();
     const classGroupMap = new Map(
-      classGroups.map((cg: any) => [String(cg._id), cg.name])
+      classGroups.map((cg) => [String(cg._id), cg.name || ""])
     );
 
     // Fetch all invoices for wards
@@ -94,11 +132,11 @@ export async function GET(req: NextRequest) {
     })
       .select("studentId title totalAmount amountPaid balanceDue dueDate status")
       .sort({ dueDate: 1 })
-      .lean();
+      .lean<InvoiceRow[]>();
 
     // Group invoices by student
-    const invoicesByStudent = new Map<string, any[]>();
-    invoices.forEach((inv: any) => {
+    const invoicesByStudent = new Map<string, InvoiceRow[]>();
+    invoices.forEach((inv) => {
       const studentId = String(inv.studentId);
       if (!invoicesByStudent.has(studentId)) {
         invoicesByStudent.set(studentId, []);
@@ -115,7 +153,7 @@ export async function GET(req: NextRequest) {
       .select("studentId amount paymentDate paymentMethod reference")
       .sort({ paymentDate: -1 })
       .limit(10)
-      .lean();
+      .lean<RecentPaymentRow[]>();
 
     // Build ward summaries
     const now = new Date();
@@ -126,7 +164,7 @@ export async function GET(req: NextRequest) {
     let overallPendingCount = 0;
     let overallOverdueCount = 0;
 
-    students.forEach((student: any) => {
+    students.forEach((student) => {
       const studentId = String(student._id);
       const studentInvoices = invoicesByStudent.get(studentId) || [];
       const wardName = `${student.firstName || ""} ${student.lastName || ""}`.trim();
@@ -136,12 +174,14 @@ export async function GET(req: NextRequest) {
       let pendingCount = 0;
       let overdueCount = 0;
 
-      studentInvoices.forEach((inv: any) => {
+      studentInvoices.forEach((inv) => {
         totalFees += inv.totalAmount || 0;
         amountPaid += inv.amountPaid || 0;
 
-        if (inv.status !== "paid" && inv.status !== "cancelled") {
-          const isOverdue = new Date(inv.dueDate) < now;
+        const invoiceStatus = inv.status || "pending";
+        if (invoiceStatus !== "paid" && invoiceStatus !== "cancelled") {
+          const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
+          const isOverdue = dueDate ? dueDate < now : false;
           pendingCount++;
           if (isOverdue) overdueCount++;
 
@@ -153,7 +193,7 @@ export async function GET(req: NextRequest) {
             amount: inv.totalAmount || 0,
             balanceDue: inv.balanceDue || 0,
             dueDate: inv.dueDate?.toISOString() || "",
-            status: isOverdue ? "overdue" : inv.status === "partial" ? "partial" : "pending",
+            status: isOverdue ? "overdue" : invoiceStatus === "partial" ? "partial" : "pending",
             isOverdue,
           });
         }
@@ -194,13 +234,13 @@ export async function GET(req: NextRequest) {
     });
 
     // Format recent payments
-    const formattedPayments = recentPayments.map((p: any) => {
-      const student = students.find((s: any) => String(s._id) === String(p.studentId));
+    const formattedPayments = recentPayments.map((p) => {
+      const student = students.find((s) => String(s._id) === String(p.studentId));
       return {
         id: String(p._id),
         wardId: String(p.studentId),
         wardName: student
-          ? `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim()
+          ? `${student.firstName || ""} ${student.lastName || ""}`.trim()
           : "Unknown",
         amount: p.amount || 0,
         date: p.paymentDate?.toISOString() || "",

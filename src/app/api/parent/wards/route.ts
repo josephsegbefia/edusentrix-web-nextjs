@@ -8,6 +8,40 @@ import { Invoice } from "@/models/Invoice";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 
+type GuardianLink = {
+  studentId: mongoose.Types.ObjectId;
+  relationship?: string;
+  isPrimary?: boolean;
+};
+
+type StudentRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  photoUrl?: string | null;
+  status?: string;
+  classGroupId?: mongoose.Types.ObjectId;
+  admissionNo?: string | null;
+};
+
+type ClassGroupRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  gradeId?: mongoose.Types.ObjectId;
+};
+
+type GradeRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+};
+
+type InvoiceSummaryRow = {
+  _id: mongoose.Types.ObjectId;
+  totalPaid?: number;
+  outstanding?: number;
+};
+
 export async function GET() {
   try {
     const context = await requireParent();
@@ -16,7 +50,7 @@ export async function GET() {
     // Get all wards for this parent
     const guardians = await Guardian.find({ userId: context.userId })
       .select("studentId relationship isPrimary")
-      .lean();
+      .lean<GuardianLink[]>();
 
     if (!guardians.length) {
       return NextResponse.json({
@@ -27,9 +61,7 @@ export async function GET() {
       });
     }
 
-    const studentIds = guardians.map(
-      (g) => (g as unknown as { studentId: mongoose.Types.ObjectId }).studentId
-    );
+    const studentIds = guardians.map((g) => g.studentId);
 
     // Fetch students with more details
     const students = await Student.find({
@@ -37,66 +69,79 @@ export async function GET() {
       schoolId: context.schoolId,
     })
       .select("_id firstName lastName middleName photoUrl status classGroupId admissionNo")
-      .lean();
+      .lean<StudentRow[]>();
 
     // Get class group names and grade info
     const classGroupIds = students
-      .map((s: any) => s.classGroupId)
-      .filter(Boolean);
+      .map((s) => s.classGroupId)
+      .filter((classGroupId): classGroupId is mongoose.Types.ObjectId => Boolean(classGroupId));
     
     const classGroups = await ClassGroup.find({ _id: { $in: classGroupIds } })
       .select("_id name gradeId")
-      .lean();
+      .lean<ClassGroupRow[]>();
     
     const classGroupMap = new Map(
-      classGroups.map((cg: any) => [String(cg._id), { name: cg.name, gradeId: cg.gradeId }])
+      classGroups.map((cg) => [
+        String(cg._id),
+        { name: cg.name || "", gradeId: cg.gradeId || null },
+      ])
     );
 
     // Get grade names
     const gradeIds = classGroups
-      .map((cg: any) => cg.gradeId)
-      .filter(Boolean);
+      .map((cg) => cg.gradeId)
+      .filter((gradeId): gradeId is mongoose.Types.ObjectId => Boolean(gradeId));
     
     const grades = await Grade.find({ _id: { $in: gradeIds } })
       .select("_id name")
-      .lean();
+      .lean<GradeRow[]>();
     
     const gradeMap = new Map(
-      grades.map((g: any) => [String(g._id), g.name])
+      grades.map((g) => [String(g._id), g.name || ""])
     );
 
     // Get fee summaries for all wards
-    const invoiceSummary = await Invoice.aggregate([
+    const invoiceSummary = await Invoice.aggregate<InvoiceSummaryRow>([
       {
         $match: {
           studentId: { $in: studentIds },
           schoolId: context.schoolId,
-          status: { $in: ["pending", "partial"] },
+          status: { $ne: "cancelled" },
         },
       },
       {
         $group: {
           _id: "$studentId",
+          totalPaid: { $sum: "$amountPaid" },
           outstanding: { $sum: "$balanceDue" },
         },
       },
     ]);
 
-    const outstandingMap = new Map(
-      invoiceSummary.map((s: any) => [String(s._id), s.outstanding])
+    const invoiceMap = new Map(
+      invoiceSummary.map((s) => [
+        String(s._id),
+        {
+          totalPaid: s.totalPaid || 0,
+          outstanding: s.outstanding || 0,
+        },
+      ])
     );
 
     // Build guardian relationship map
     const guardianMap = new Map(
-      guardians.map((g: any) => [
+      guardians.map((g) => [
         String(g.studentId),
         { relationship: g.relationship, isPrimary: g.isPrimary },
       ])
     );
 
     // Build wards list
-    const wards = students.map((student: any) => {
-      const outstanding = outstandingMap.get(String(student._id)) || 0;
+    const wards = students.map((student) => {
+      const invoice = invoiceMap.get(String(student._id)) || {
+        totalPaid: 0,
+        outstanding: 0,
+      };
       const guardianInfo = guardianMap.get(String(student._id));
       const classGroupInfo = classGroupMap.get(String(student.classGroupId));
       const gradeName = classGroupInfo?.gradeId 
@@ -104,7 +149,11 @@ export async function GET() {
         : null;
 
       const feeStatus: "clear" | "partial" | "owing" =
-        outstanding === 0 ? "clear" : outstanding > 0 ? "owing" : "partial";
+        invoice.outstanding <= 0
+          ? "clear"
+          : invoice.totalPaid > 0
+          ? "partial"
+          : "owing";
 
       return {
         id: String(student._id),
@@ -120,7 +169,7 @@ export async function GET() {
         relationship: guardianInfo?.relationship || "guardian",
         isPrimary: guardianInfo?.isPrimary || false,
         feeStatus,
-        outstandingAmount: outstanding,
+        outstandingAmount: invoice.outstanding,
       };
     });
 

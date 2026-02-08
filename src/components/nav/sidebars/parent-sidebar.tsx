@@ -30,6 +30,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SchoolBrand } from "@/components/brand/SchoolBrand";
+import { useUnreadNotificationCount } from "@/hooks/parent/useParentNotifications";
+import { useUnreadMessageCount } from "@/hooks/parent/useParentMessages";
 
 // Navigation structure with sections
 type NavSection = {
@@ -43,101 +45,116 @@ type NavSection = {
   }>;
 };
 
-const MOCK_PARENT_UNREAD_COUNTS = {
-  notifications: 14,
-  messages: 0,
-} as const;
-
 function formatBadgeCount(count?: number) {
   if (!count || count <= 0) return null;
   if (count >= 10) return "10+";
   return String(count);
 }
 
-const navSections: NavSection[] = [
-  {
-    title: "Overview",
-    items: [
-      {
-        label: "Dashboard",
-        href: "/parent",
-        icon: LayoutDashboard,
-        exact: true,
-      },
-    ],
-  },
-  {
-    title: "My Children",
-    items: [
-      {
-        label: "All Wards",
-        href: "/parent/wards",
-        icon: Users,
-      },
-      {
-        label: "Academic Progress",
-        href: "/parent/academics",
-        icon: GraduationCap,
-      },
-      {
-        label: "Attendance",
-        href: "/parent/attendance",
-        icon: ClipboardCheck,
-      },
-    ],
-  },
-  {
-    title: "Finances",
-    items: [
-      {
-        label: "Fees & Payments",
-        href: "/parent/fees",
-        icon: DollarSign,
-      },
-      {
-        label: "Payment History",
-        href: "/parent/payments",
-        icon: FileText,
-      },
-    ],
-  },
-  {
-    title: "Communication",
-    items: [
-      {
-        label: "Notifications",
-        href: "/parent/notifications",
-        icon: Bell,
-        badgeCount: MOCK_PARENT_UNREAD_COUNTS.notifications,
-      },
-      {
-        label: "Messages",
-        href: "/parent/messages",
-        icon: MessageSquare,
-        badgeCount: MOCK_PARENT_UNREAD_COUNTS.messages,
-      },
-    ],
-  },
-  {
-    title: "School",
-    items: [
-      {
-        label: "Calendar",
-        href: "/parent/calendar",
-        icon: Calendar,
-      },
-      {
-        label: "Reports",
-        href: "/parent/reports",
-        icon: TrendingUp,
-      },
-    ],
-  },
-];
+function getNavSections(unreadNotifications: number, unreadMessages: number): NavSection[] {
+  return [
+    {
+      title: "Overview",
+      items: [
+        {
+          label: "Dashboard",
+          href: "/parent",
+          icon: LayoutDashboard,
+          exact: true,
+        },
+      ],
+    },
+    {
+      title: "My Children",
+      items: [
+        {
+          label: "All Wards",
+          href: "/parent/wards",
+          icon: Users,
+        },
+        {
+          label: "Academic Progress",
+          href: "/parent/academics",
+          icon: GraduationCap,
+        },
+        {
+          label: "Attendance",
+          href: "/parent/attendance",
+          icon: ClipboardCheck,
+        },
+      ],
+    },
+    {
+      title: "Finances",
+      items: [
+        {
+          label: "Fees & Payments",
+          href: "/parent/fees",
+          icon: DollarSign,
+        },
+        {
+          label: "Payment History",
+          href: "/parent/payments",
+          icon: FileText,
+        },
+      ],
+    },
+    {
+      title: "Communication",
+      items: [
+        {
+          label: "Notifications",
+          href: "/parent/notifications",
+          icon: Bell,
+          badgeCount: unreadNotifications,
+        },
+        {
+          label: "Messages",
+          href: "/parent/messages",
+          icon: MessageSquare,
+          badgeCount: unreadMessages,
+        },
+      ],
+    },
+    {
+      title: "School",
+      items: [
+        {
+          label: "Calendar",
+          href: "/parent/calendar",
+          icon: Calendar,
+        },
+        {
+          label: "Reports",
+          href: "/parent/reports",
+          icon: TrendingUp,
+        },
+      ],
+    },
+  ];
+}
 
 // Shared navigation content component
 function NavContent({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname();
+  const { data: unreadNotifications, isError: unreadNotificationsError } =
+    useUnreadNotificationCount();
+  const { data: unreadMessages, isError: unreadMessagesError } =
+    useUnreadMessageCount();
+
+  const navSections = React.useMemo(
+    () =>
+      getNavSections(
+        unreadNotificationsError ? 0 : unreadNotifications ?? 0,
+        unreadMessagesError ? 0 : unreadMessages ?? 0
+      ),
+    [
+      unreadMessages,
+      unreadMessagesError,
+      unreadNotifications,
+      unreadNotificationsError,
+    ]
+  );
 
   return (
     <nav className="space-y-6">

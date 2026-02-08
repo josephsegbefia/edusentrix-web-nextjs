@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -489,7 +488,12 @@ function AcademicsPageContent() {
     comparison = [],
     topPerformingSubjects = [],
     needsImprovementSubjects = [],
-    overallSummary,
+    overallSummary = {
+      averageAcrossWards: null,
+      highestPerformer: null,
+      mostImproved: null,
+      totalSubjects: 0,
+    },
   } = data || {};
 
   const hasData = wards.length > 0;

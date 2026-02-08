@@ -9,6 +9,37 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { TermResult } from "@/models/TermResult";
 import { ClassGroup } from "@/models/ClassGroup";
 
+type GuardianLink = {
+  studentId: mongoose.Types.ObjectId;
+};
+
+type StudentRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  classGroupId?: mongoose.Types.ObjectId;
+};
+
+type ClassGroupRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+};
+
+type AcademicPeriodRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  label?: string;
+  endDate?: Date;
+};
+
+type TermResultRow = {
+  studentId: mongoose.Types.ObjectId;
+  academicPeriodId: mongoose.Types.ObjectId;
+  averageScore?: number | null;
+  classPosition?: number | null;
+  calculatedAt?: Date;
+};
+
 interface AvailableReport {
   id: string;
   type: "term_report" | "progress_report" | "report_card";
@@ -35,7 +66,7 @@ export async function GET(req: NextRequest) {
     // Get all wards for this parent
     const guardians = await Guardian.find({ userId: context.userId })
       .select("studentId")
-      .lean();
+      .lean<GuardianLink[]>();
 
     if (!guardians.length) {
       return NextResponse.json({
@@ -48,9 +79,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    let studentIds = guardians.map(
-      (g) => (g as unknown as { studentId: mongoose.Types.ObjectId }).studentId
-    );
+    let studentIds = guardians.map((g) => g.studentId);
 
     // Filter by specific ward if provided
     if (wardId && mongoose.Types.ObjectId.isValid(wardId)) {
@@ -66,15 +95,17 @@ export async function GET(req: NextRequest) {
       schoolId: context.schoolId,
     })
       .select("_id firstName lastName classGroupId")
-      .lean();
+      .lean<StudentRow[]>();
 
     // Get class groups
-    const classGroupIds = students.map((s: any) => s.classGroupId).filter(Boolean);
+    const classGroupIds = students
+      .map((s) => s.classGroupId)
+      .filter((classGroupId): classGroupId is mongoose.Types.ObjectId => Boolean(classGroupId));
     const classGroups = await ClassGroup.find({ _id: { $in: classGroupIds } })
       .select("_id name")
-      .lean();
+      .lean<ClassGroupRow[]>();
     const classGroupMap = new Map(
-      classGroups.map((cg: any) => [String(cg._id), cg.name])
+      classGroups.map((cg) => [String(cg._id), cg.name || ""])
     );
 
     // Get available academic periods (last 2 years)
@@ -87,20 +118,20 @@ export async function GET(req: NextRequest) {
     })
       .select("_id name label endDate")
       .sort({ startDate: -1 })
-      .lean();
+      .lean<AcademicPeriodRow[]>();
 
     // Get term results for these students
     const termResults = await TermResult.find({
       studentId: { $in: studentIds },
       schoolId: context.schoolId,
-      academicPeriodId: { $in: periods.map((p: any) => p._id) },
+      academicPeriodId: { $in: periods.map((p) => p._id) },
     })
       .select("studentId academicPeriodId averageScore classPosition calculatedAt")
-      .lean();
+      .lean<TermResultRow[]>();
 
     // Build term result lookup
-    const termResultLookup = new Map<string, any>();
-    termResults.forEach((tr: any) => {
+    const termResultLookup = new Map<string, TermResultRow>();
+    termResults.forEach((tr) => {
       const key = `${String(tr.studentId)}_${String(tr.academicPeriodId)}`;
       termResultLookup.set(key, tr);
     });
@@ -108,12 +139,12 @@ export async function GET(req: NextRequest) {
     // Build available reports
     const reports: AvailableReport[] = [];
 
-    students.forEach((student: any) => {
+    students.forEach((student) => {
       const studentId = String(student._id);
       const wardName = `${student.firstName || ""} ${student.lastName || ""}`.trim();
       const classGroup = classGroupMap.get(String(student.classGroupId)) || "";
 
-      periods.forEach((period: any) => {
+      periods.forEach((period) => {
         const key = `${studentId}_${String(period._id)}`;
         const termResult = termResultLookup.get(key);
 
@@ -121,11 +152,11 @@ export async function GET(req: NextRequest) {
         reports.push({
           id: `report_${key}`,
           type: "term_report",
-          title: `Term Report - ${period.label || period.name}`,
+          title: `Term Report - ${period.label || period.name || "Academic Period"}`,
           wardId: studentId,
           wardName,
           periodId: String(period._id),
-          periodLabel: period.label || period.name,
+          periodLabel: period.label || period.name || "Academic Period",
           classGroup,
           status: termResult ? "available" : "not_available",
           generatedAt: termResult?.calculatedAt?.toISOString() || null,
@@ -148,12 +179,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        wards: students.map((s: any) => ({
+        wards: students.map((s) => ({
           id: String(s._id),
           name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
         })),
         reports: reports.slice(0, 50), // Limit to 50 most relevant
-        periods: periods.map((p: any) => ({
+        periods: periods.map((p) => ({
           id: String(p._id),
           label: p.label || p.name,
         })),

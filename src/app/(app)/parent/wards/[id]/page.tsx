@@ -17,7 +17,6 @@ import {
   DollarSign,
   ClipboardCheck,
   TrendingUp,
-  TrendingDown,
   AlertCircle,
   AlertTriangle,
   CheckCircle2,
@@ -122,14 +121,6 @@ function getInitialTab(sp: URLSearchParams | null): WardDetailTabId {
     return raw;
   }
   return "overview";
-}
-
-function getGradeColor(grade: string | null) {
-  if (!grade) return "text-white/60";
-  if (grade === "A" || grade === "A+" || grade === "A1") return "text-emerald-300";
-  if (grade === "B" || grade === "B+" || grade === "B2" || grade === "B3") return "text-blue-300";
-  if (grade === "C" || grade === "C+" || grade === "C4" || grade === "C5" || grade === "C6") return "text-amber-300";
-  return "text-rose-300";
 }
 
 /* --------------------------------------------------------------------------------

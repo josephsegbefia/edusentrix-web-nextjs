@@ -8,9 +8,49 @@ import { Message } from "@/models/Message";
 import { User } from "@/models/User";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
-import { Teacher } from "@/models/Teacher";
 
-export async function GET(req: NextRequest) {
+type ThreadParticipant = {
+  userId: mongoose.Types.ObjectId;
+  role: string;
+};
+
+type MessageThreadRow = {
+  _id: mongoose.Types.ObjectId;
+  subject?: string;
+  studentId?: mongoose.Types.ObjectId | null;
+  participants: ThreadParticipant[];
+  lastMessageAt?: Date;
+  lastMessagePreview?: string;
+  createdAt?: Date;
+};
+
+type UserRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  photoUrl?: string | null;
+};
+
+type StudentRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+};
+
+type UnreadCountRow = {
+  _id: mongoose.Types.ObjectId;
+  count: number;
+};
+
+type CreateMessageBody = {
+  recipientId?: string;
+  recipientRole?: string;
+  studentId?: string;
+  subject?: string;
+  message?: string;
+};
+
+export async function GET() {
   try {
     const context = await requireParent();
     await connectToDatabase();
@@ -22,36 +62,42 @@ export async function GET(req: NextRequest) {
     })
       .sort({ lastMessageAt: -1 })
       .limit(50)
-      .lean();
+      .lean<MessageThreadRow[]>();
 
     // Get participant user details
     const userIds = new Set<string>();
     const studentIds = new Set<string>();
 
-    threads.forEach((t: any) => {
-      t.participants.forEach((p: any) => userIds.add(String(p.userId)));
+    threads.forEach((t) => {
+      t.participants.forEach((p) => userIds.add(String(p.userId)));
       if (t.studentId) studentIds.add(String(t.studentId));
     });
 
     const users = await User.find({ _id: { $in: Array.from(userIds) } })
       .select("_id firstName lastName photoUrl")
-      .lean();
+      .lean<UserRow[]>();
     const userMap = new Map(
-      users.map((u: any) => [String(u._id), { name: `${u.firstName || ""} ${u.lastName || ""}`.trim(), photoUrl: u.photoUrl }])
+      users.map((u) => [
+        String(u._id),
+        {
+          name: `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+          photoUrl: u.photoUrl || null,
+        },
+      ])
     );
 
     const students = await Student.find({ _id: { $in: Array.from(studentIds) } })
       .select("_id firstName lastName")
-      .lean();
+      .lean<StudentRow[]>();
     const studentMap = new Map(
-      students.map((s: any) => [String(s._id), `${s.firstName || ""} ${s.lastName || ""}`.trim()])
+      students.map((s) => [String(s._id), `${s.firstName || ""} ${s.lastName || ""}`.trim()])
     );
 
     // Count unread messages per thread
-    const unreadCounts = await Message.aggregate([
+    const unreadCounts = await Message.aggregate<UnreadCountRow>([
       {
         $match: {
-          threadId: { $in: threads.map((t: any) => t._id) },
+          threadId: { $in: threads.map((t) => t._id) },
           "readBy.userId": { $ne: context.userId },
           senderId: { $ne: context.userId },
         },
@@ -66,10 +112,10 @@ export async function GET(req: NextRequest) {
     const unreadMap = new Map(unreadCounts.map((u) => [String(u._id), u.count]));
 
     // Format threads
-    const formattedThreads = threads.map((t: any) => {
+    const formattedThreads = threads.map((t) => {
       const otherParticipants = t.participants
-        .filter((p: any) => String(p.userId) !== String(context.userId))
-        .map((p: any) => ({
+        .filter((p) => String(p.userId) !== String(context.userId))
+        .map((p) => ({
           userId: String(p.userId),
           role: p.role,
           ...userMap.get(String(p.userId)),
@@ -90,7 +136,7 @@ export async function GET(req: NextRequest) {
 
     // Get total unread count
     const totalUnread = await Message.countDocuments({
-      threadId: { $in: threads.map((t: any) => t._id) },
+      threadId: { $in: threads.map((t) => t._id) },
       "readBy.userId": { $ne: context.userId },
       senderId: { $ne: context.userId },
     });
@@ -117,7 +163,7 @@ export async function POST(req: NextRequest) {
     const context = await requireParent();
     await connectToDatabase();
 
-    const body = await req.json();
+    const body = (await req.json()) as CreateMessageBody;
     const { recipientId, recipientRole, studentId, subject, message } = body;
 
     if (!recipientId || !message) {
@@ -127,12 +173,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!mongoose.Types.ObjectId.isValid(recipientId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid recipient ID" },
+        { status: 400 }
+      );
+    }
+
+    const recipientObjectId = new mongoose.Types.ObjectId(recipientId);
+
     // Verify the parent has access to the student if specified
     if (studentId) {
+      if (!mongoose.Types.ObjectId.isValid(studentId)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid student ID" },
+          { status: 400 }
+        );
+      }
+
       const guardian = await Guardian.findOne({
         userId: context.userId,
         studentId: new mongoose.Types.ObjectId(studentId),
-      }).lean();
+      })
+        .select("_id")
+        .lean<{ _id: mongoose.Types.ObjectId } | null>();
 
       if (!guardian) {
         return NextResponse.json(
@@ -143,11 +207,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for existing thread with same participants
-    let thread = await MessageThread.findOne({
+    const thread = await MessageThread.findOne({
       schoolId: context.schoolId,
-      "participants.userId": { $all: [context.userId, new mongoose.Types.ObjectId(recipientId)] },
+      "participants.userId": { $all: [context.userId, recipientObjectId] },
       studentId: studentId ? new mongoose.Types.ObjectId(studentId) : { $exists: false },
-    }).lean();
+    }).lean<MessageThreadRow | null>();
+
+    let threadId: mongoose.Types.ObjectId;
 
     if (!thread) {
       // Create new thread
@@ -157,18 +223,20 @@ export async function POST(req: NextRequest) {
         subject: subject || "New Conversation",
         participants: [
           { userId: context.userId, role: "parent" },
-          { userId: new mongoose.Types.ObjectId(recipientId), role: recipientRole || "teacher" },
+          { userId: recipientObjectId, role: recipientRole || "teacher" },
         ],
         createdBy: context.userId,
         lastMessageAt: new Date(),
         lastMessagePreview: message.substring(0, 100),
       });
-      thread = newThread.toObject();
+      threadId = newThread._id;
+    } else {
+      threadId = thread._id;
     }
 
     // Create message
     const newMessage = await Message.create({
-      threadId: (thread as any)._id,
+      threadId,
       schoolId: context.schoolId,
       senderId: context.userId,
       body: message,
@@ -176,7 +244,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Update thread
-    await MessageThread.findByIdAndUpdate((thread as any)._id, {
+    await MessageThread.findByIdAndUpdate(threadId, {
       lastMessageAt: new Date(),
       lastMessagePreview: message.substring(0, 100),
     });
@@ -184,7 +252,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        threadId: String((thread as any)._id),
+        threadId: String(threadId),
         messageId: String(newMessage._id),
       },
     });

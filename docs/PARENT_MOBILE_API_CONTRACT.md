@@ -1,6 +1,6 @@
 # Parent Mobile API Contract
 
-> **Version:** 1.0  
+> **Version:** 2.0  
 > **Last Updated:** February 2026  
 > **Target Platform:** Jedi Mobile App (Expo/React Native)
 
@@ -17,9 +17,15 @@ This document provides the mobile development team with all endpoints, request/r
 5. [Academic APIs](#academic-apis)
 6. [Fees APIs](#fees-apis)
 7. [Attendance APIs](#attendance-apis)
-8. [React Query Hooks Reference](#react-query-hooks-reference)
-9. [TypeScript Types](#typescript-types)
-10. [Error Handling](#error-handling)
+8. [Payment APIs](#payment-apis)
+9. [Messages APIs](#messages-apis)
+10. [Reports APIs](#reports-apis)
+11. [Calendar APIs](#calendar-apis)
+12. [Activity Feed API](#activity-feed-api)
+13. [Notifications API](#notifications-api)
+14. [React Query Hooks Reference](#react-query-hooks-reference)
+15. [TypeScript Types](#typescript-types)
+16. [Error Handling](#error-handling)
 
 ---
 
@@ -375,6 +381,496 @@ interface MonthlyAttendance {
 }
 ```
 
+### GET /api/parent/attendance
+
+Fetches aggregate attendance data across ALL wards.
+
+**Query Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `periodId` | string? | Academic period ID (default: current) |
+| `month` | string? | Filter by month (YYYY-MM format) |
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    currentPeriod: AcademicPeriodInfo | null,
+    selectedPeriodId: string | null,
+    availablePeriods: AcademicPeriodInfo[],
+    wards: WardAttendanceSummary[],
+    overallSummary: {
+      averageRate: number | null,
+      totalPresent: number,
+      totalAbsent: number,
+      totalLate: number,
+      totalExcused: number,
+      totalDays: number
+    },
+    recentRecords: DailyAttendanceRecord[],
+    monthlyBreakdown: MonthlyBreakdown[]
+  }
+}
+
+interface WardAttendanceSummary {
+  wardId: string;
+  wardName: string;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  classGroup: string;
+  rate: number;
+  daysPresent: number;
+  daysAbsent: number;
+  daysLate: number;
+  daysExcused: number;
+  totalDays: number;
+  trend: "up" | "down" | "stable";
+  previousRate: number | null;
+}
+
+interface DailyAttendanceRecord {
+  date: string;
+  wardId: string;
+  wardName: string;
+  status: "present" | "absent" | "late" | "excused";
+  notes?: string;
+}
+
+interface MonthlyBreakdown {
+  month: string;
+  label: string;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  total: number;
+  rate: number;
+}
+```
+
+---
+
+## Payment APIs
+
+### GET /api/parent/payments
+
+Fetches payment history across all wards with filtering.
+
+**Query Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `limit` | number | Max items (default: 50) |
+| `offset` | number | Pagination offset |
+| `wardId` | string? | Filter by specific ward |
+| `year` | string? | Filter by year (e.g., "2026") |
+| `month` | string? | Filter by month (1-12) |
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    payments: PaymentRecord[],
+    wards: WardOption[],
+    summary: {
+      totalPayments: number,
+      totalAmount: number,
+      thisMonthAmount: number,
+      thisYearAmount: number
+    },
+    pagination: {
+      total: number,
+      limit: number,
+      offset: number,
+      hasMore: boolean
+    }
+  }
+}
+
+interface PaymentRecord {
+  id: string;
+  wardId: string;
+  wardName: string;
+  amount: number;
+  date: string;                     // ISO date
+  method: string;                   // "cash" | "card" | "bank_transfer" | "mobile_money"
+  reference: string;
+  invoiceTitle: string;
+  notes: string;
+}
+
+interface WardOption {
+  id: string;
+  name: string;
+}
+```
+
+---
+
+## Messages APIs
+
+### GET /api/parent/messages
+
+Fetches all message threads for the parent.
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    threads: MessageThread[],
+    totalUnread: number
+  }
+}
+
+interface MessageThread {
+  id: string;
+  subject: string;
+  studentId: string | null;
+  studentName: string | null;
+  participants: ThreadParticipant[];
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  unreadCount: number;
+  createdAt: string;
+}
+
+interface ThreadParticipant {
+  userId: string;
+  role: "teacher" | "parent" | "student" | "school_admin" | "staff";
+  name?: string;
+  photoUrl?: string | null;
+}
+```
+
+### POST /api/parent/messages
+
+Creates a new conversation thread and sends initial message.
+
+**Request Body:**
+```typescript
+{
+  recipientId: string;              // User ID of recipient
+  recipientRole: string;            // "teacher" | "school_admin" | "staff"
+  studentId?: string;               // Optional: related student
+  subject?: string;                 // Optional: thread subject
+  message: string;                  // Initial message content
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    threadId: string,
+    messageId: string
+  }
+}
+```
+
+### GET /api/parent/messages/:threadId
+
+Fetches messages in a thread (also marks messages as read).
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    thread: {
+      id: string,
+      subject: string,
+      studentId: string | null,
+      studentName: string | null,
+      participants: ThreadParticipant[],
+      createdAt: string
+    },
+    messages: ThreadMessage[]
+  }
+}
+
+interface ThreadMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderPhotoUrl: string | null;
+  isOwn: boolean;                   // Sent by current user
+  body: string;
+  attachments: MessageAttachment[];
+  createdAt: string;
+}
+
+interface MessageAttachment {
+  name: string;
+  url: string;
+  type: string;
+}
+```
+
+### POST /api/parent/messages/:threadId
+
+Sends a message in an existing thread.
+
+**Request Body:**
+```typescript
+{
+  message: string;
+}
+```
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    id: string,
+    senderId: string,
+    body: string,
+    createdAt: string
+  }
+}
+```
+
+---
+
+## Reports APIs
+
+### GET /api/parent/reports
+
+Fetches available academic reports for download.
+
+**Query Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `wardId` | string? | Filter by specific ward |
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    wards: WardOption[],
+    reports: AvailableReport[],
+    periods: PeriodOption[]
+  }
+}
+
+interface AvailableReport {
+  id: string;
+  type: "term_report" | "progress_report" | "report_card";
+  title: string;
+  wardId: string;
+  wardName: string;
+  periodId: string;
+  periodLabel: string;
+  classGroup: string;
+  status: "available" | "pending" | "not_available";
+  generatedAt: string | null;
+  averageScore: number | null;
+  classPosition: number | null;
+}
+
+interface PeriodOption {
+  id: string;
+  label: string;
+}
+```
+
+---
+
+## Calendar APIs
+
+### GET /api/parent/calendar
+
+Fetches school calendar events.
+
+**Query Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `month` | number? | Month (1-12) |
+| `year` | number? | Year (e.g., 2026) |
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    events: CalendarEvent[],
+    currentPeriod: AcademicPeriodInfo | null
+  }
+}
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  allDay: boolean;
+  type: "holiday" | "exam" | "event" | "meeting" | "deadline";
+  color?: string;
+  location?: string;
+}
+
+interface AcademicPeriodInfo {
+  id: string;
+  name: string;
+  label: string;
+}
+```
+
+---
+
+## Academic APIs (Aggregate)
+
+### GET /api/parent/academics
+
+Fetches aggregate academic performance across ALL wards.
+
+**Query Parameters:**
+| Param | Type | Description |
+|-------|------|-------------|
+| `periodId` | string? | Academic period ID (default: current) |
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    currentPeriod: AcademicPeriodInfo | null,
+    selectedPeriodId: string | null,
+    selectedPeriodLabel: string,
+    availablePeriods: AcademicPeriodInfo[],
+    wards: WardAcademicSummary[],
+    comparison: WardComparisonData[],
+    topPerformingSubjects: SubjectPerformance[],
+    needsImprovementSubjects: SubjectPerformance[],
+    overallSummary: {
+      totalWards: number,
+      averageScore: number | null,
+      highestPerformer: {
+        wardId: string,
+        wardName: string,
+        average: number
+      } | null,
+      mostImproved: {
+        wardId: string,
+        wardName: string,
+        delta: number,
+        currentAverage: number,
+        previousAverage: number
+      } | null
+    }
+  }
+}
+
+interface WardAcademicSummary {
+  id: string;
+  studentId: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  relationship: string;
+  classGroup: {
+    id: string;
+    name: string;
+    grade: string;
+  } | null;
+  academic: {
+    average: number | null;
+    classPosition: number | null;
+    totalStudentsInClass: number | null;
+    performanceTier: string | null;
+    trend: "up" | "down" | "stable";
+    previousAverage: number | null;
+  };
+}
+
+interface WardComparisonData {
+  name: string;
+  average: number | null;
+  classAverage: number | null;
+}
+
+interface SubjectPerformance {
+  subjectId: string;
+  subjectName: string;
+  shortCode: string;
+  averageScore: number;
+  gradeLetter: string;
+}
+```
+
+---
+
+## Fees APIs (Aggregate)
+
+### GET /api/parent/fees
+
+Fetches aggregate fee data across ALL wards.
+
+**Response:**
+```typescript
+{
+  success: true,
+  data: {
+    wards: WardFeeSummary[],
+    pendingInvoices: PendingInvoice[],
+    overallSummary: {
+      totalFees: number,
+      totalPaid: number,
+      totalBalance: number,
+      paymentProgress: number,
+      pendingCount: number,
+      overdueCount: number
+    },
+    recentPayments: RecentPayment[]
+  }
+}
+
+interface WardFeeSummary {
+  wardId: string;
+  wardName: string;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  classGroup: string;
+  totalFees: number;
+  amountPaid: number;
+  balanceDue: number;
+  paymentProgress: number;
+  status: "clear" | "partial" | "owing";
+  pendingInvoices: number;
+  overdueInvoices: number;
+}
+
+interface PendingInvoice {
+  id: string;
+  wardId: string;
+  wardName: string;
+  title: string;
+  amount: number;
+  balanceDue: number;
+  dueDate: string;
+  status: "pending" | "partial" | "overdue";
+  isOverdue: boolean;
+}
+
+interface RecentPayment {
+  id: string;
+  wardId: string;
+  wardName: string;
+  amount: number;
+  date: string;
+  method: string;
+  reference: string;
+}
+```
+
 ---
 
 ## React Query Hooks Reference
@@ -382,31 +878,68 @@ interface MonthlyAttendance {
 ### Recommended Query Keys Structure
 
 ```typescript
-// Dashboard
+// Dashboard & Overview
 ['parent', 'dashboard']
+['parent', 'activity', limit?, offset?, wardId?, type?]
 
 // Ward list
-['parent', 'wards', periodId?]
+['parent', 'wards']
 
 // Ward detail
 ['parent', 'ward', wardId]
-
-// Ward academics
 ['parent', 'ward', wardId, 'academics', periodId?]
-
-// Ward fees
 ['parent', 'ward', wardId, 'fees']
-
-// Ward attendance
 ['parent', 'ward', wardId, 'attendance', periodId?]
+
+// Aggregate Views (All Wards)
+['parent', 'academics', periodId?]
+['parent', 'attendance', periodId?, month?]
+['parent', 'fees']
+['parent', 'payments', limit?, offset?, wardId?, year?, month?]
+
+// Messages
+['parent', 'messages']
+['parent', 'messages', threadId]
+['parent', 'messages', 'unreadCount']
+
+// Reports
+['parent', 'reports', wardId?]
+
+// Calendar
+['parent', 'calendar', month?, year?]
+
+// Notifications
+['parent', 'notifications', limit?, offset?, unreadOnly?]
 ```
 
-### Sample Hook Implementation
+### Sample Hook Implementations
+
+```typescript
+// hooks/api.ts - Base fetch helper
+import { useAuth } from '@clerk/clerk-expo';
+
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://edusentrix.vercel.app';
+
+export async function apiFetch(path: string, token: string, options?: RequestInit) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'API Error');
+  return json.data;
+}
+```
 
 ```typescript
 // hooks/useParentDashboard.ts
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-expo';
+import { apiFetch } from './api';
 
 export function useParentDashboard() {
   const { getToken } = useAuth();
@@ -415,14 +948,90 @@ export function useParentDashboard() {
     queryKey: ['parent', 'dashboard'],
     queryFn: async () => {
       const token = await getToken();
-      const res = await fetch(`${BASE_URL}/api/parent/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
-      return json.data;
+      return apiFetch('/api/parent/dashboard', token!);
     },
-    staleTime: 60_000, // 1 minute
+    staleTime: 60_000,
+  });
+}
+```
+
+```typescript
+// hooks/useParentAcademics.ts
+export function useParentAcademics(periodId?: string) {
+  const { getToken } = useAuth();
+  
+  return useQuery({
+    queryKey: ['parent', 'academics', periodId],
+    queryFn: async () => {
+      const token = await getToken();
+      const params = periodId ? `?periodId=${periodId}` : '';
+      return apiFetch(`/api/parent/academics${params}`, token!);
+    },
+    staleTime: 60_000,
+  });
+}
+```
+
+```typescript
+// hooks/useParentMessages.ts
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+export function useParentMessages() {
+  const { getToken } = useAuth();
+  
+  return useQuery({
+    queryKey: ['parent', 'messages'],
+    queryFn: async () => {
+      const token = await getToken();
+      return apiFetch('/api/parent/messages', token!);
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function useSendMessage() {
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ threadId, message }: { threadId: string; message: string }) => {
+      const token = await getToken();
+      return apiFetch(`/api/parent/messages/${threadId}`, token!, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      });
+    },
+    onSuccess: (_, { threadId }) => {
+      queryClient.invalidateQueries({ queryKey: ['parent', 'messages', threadId] });
+      queryClient.invalidateQueries({ queryKey: ['parent', 'messages'] });
+    },
+  });
+}
+```
+
+```typescript
+// hooks/useParentPayments.ts
+export function useParentPayments(options?: { 
+  wardId?: string; 
+  year?: string; 
+  limit?: number; 
+  offset?: number; 
+}) {
+  const { getToken } = useAuth();
+  const { wardId, year, limit = 50, offset = 0 } = options || {};
+  
+  return useQuery({
+    queryKey: ['parent', 'payments', limit, offset, wardId, year],
+    queryFn: async () => {
+      const token = await getToken();
+      const params = new URLSearchParams();
+      params.set('limit', String(limit));
+      params.set('offset', String(offset));
+      if (wardId) params.set('wardId', wardId);
+      if (year) params.set('year', year);
+      return apiFetch(`/api/parent/payments?${params}`, token!);
+    },
+    staleTime: 60_000,
   });
 }
 ```
@@ -550,6 +1159,107 @@ export interface AttendanceSummary {
     late: number;
     total: number;
   }>;
+}
+
+// Messages Types
+export interface MessageThread {
+  id: string;
+  subject: string;
+  studentId: string | null;
+  studentName: string | null;
+  participants: ThreadParticipant[];
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  unreadCount: number;
+  createdAt: string;
+}
+
+export interface ThreadParticipant {
+  userId: string;
+  role: 'teacher' | 'parent' | 'student' | 'school_admin' | 'staff';
+  name?: string;
+  photoUrl?: string | null;
+}
+
+export interface ThreadMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderPhotoUrl: string | null;
+  isOwn: boolean;
+  body: string;
+  attachments: MessageAttachment[];
+  createdAt: string;
+}
+
+export interface MessageAttachment {
+  name: string;
+  url: string;
+  type: string;
+}
+
+// Reports Types
+export type ReportType = 'term_report' | 'progress_report' | 'report_card';
+export type ReportStatus = 'available' | 'pending' | 'not_available';
+
+export interface AvailableReport {
+  id: string;
+  type: ReportType;
+  title: string;
+  wardId: string;
+  wardName: string;
+  periodId: string;
+  periodLabel: string;
+  classGroup: string;
+  status: ReportStatus;
+  generatedAt: string | null;
+  averageScore: number | null;
+  classPosition: number | null;
+}
+
+// Payment Types
+export interface PaymentRecord {
+  id: string;
+  wardId: string;
+  wardName: string;
+  amount: number;
+  date: string;
+  method: string;
+  reference: string;
+  invoiceTitle: string;
+  notes: string;
+}
+
+// Calendar Types
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  allDay: boolean;
+  type: 'holiday' | 'exam' | 'event' | 'meeting' | 'deadline';
+  color?: string;
+  location?: string;
+}
+
+// Common Types
+export interface AcademicPeriodInfo {
+  id: string;
+  name: string;
+  label: string;
+}
+
+export interface WardOption {
+  id: string;
+  name: string;
+}
+
+export interface PaginationInfo {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 }
 ```
 
@@ -817,16 +1527,71 @@ Marks all notifications as read.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| **Dashboard & Overview** |
 | GET | `/api/parent/dashboard` | Dashboard with wards summary |
-| GET | `/api/parent/wards` | List all wards |
-| GET | `/api/parent/wards/:id` | Single ward detail |
-| GET | `/api/parent/wards/:id/academics` | Academic performance |
-| GET | `/api/parent/wards/:id/fees/summary` | Fees and payments |
-| GET | `/api/parent/wards/:id/attendance` | Attendance records |
 | GET | `/api/parent/activity` | Activity feed |
+| **Wards** |
+| GET | `/api/parent/wards` | List all wards with summaries |
+| GET | `/api/parent/wards/:id` | Single ward detail |
+| GET | `/api/parent/wards/:id/academics` | Ward academic performance |
+| GET | `/api/parent/wards/:id/fees/summary` | Ward fees and payments |
+| GET | `/api/parent/wards/:id/attendance` | Ward attendance records |
+| **Academics (Aggregate)** |
+| GET | `/api/parent/academics` | Academic progress across all wards |
+| **Attendance (Aggregate)** |
+| GET | `/api/parent/attendance` | Attendance overview across all wards |
+| **Fees (Aggregate)** |
+| GET | `/api/parent/fees` | Fees overview across all wards |
+| **Payments** |
+| GET | `/api/parent/payments` | Payment history with filtering |
+| **Messages** |
+| GET | `/api/parent/messages` | List message threads |
+| POST | `/api/parent/messages` | Create new conversation |
+| GET | `/api/parent/messages/:threadId` | Get thread messages |
+| POST | `/api/parent/messages/:threadId` | Send message in thread |
+| **Reports** |
+| GET | `/api/parent/reports` | Available reports for download |
+| **Calendar** |
+| GET | `/api/parent/calendar` | School calendar events |
+| **Notifications** |
 | GET | `/api/parent/notifications` | Notifications list |
 | PATCH | `/api/parent/notifications/:id/read` | Mark notification read |
 | POST | `/api/parent/notifications/mark-all-read` | Mark all read |
+
+---
+
+## Mobile Navigation Structure (Recommended)
+
+```
+/(parent)/
+├── index.tsx                  → Dashboard
+├── academics/
+│   └── index.tsx              → Academic Progress (All Wards)
+├── attendance/
+│   └── index.tsx              → Attendance Overview (All Wards)
+├── wards/
+│   ├── index.tsx              → Ward List
+│   └── [id]/
+│       ├── index.tsx          → Ward Detail
+│       ├── academics.tsx      → Ward Academic Performance
+│       ├── fees.tsx           → Ward Fees & Payments
+│       └── attendance.tsx     → Ward Attendance Records
+├── fees/
+│   └── index.tsx              → Fees Overview (All Wards)
+├── payments/
+│   └── index.tsx              → Payment History
+├── messages/
+│   ├── index.tsx              → Message Threads List
+│   └── [threadId].tsx         → Conversation View
+├── reports/
+│   └── index.tsx              → Available Reports
+├── calendar/
+│   └── index.tsx              → School Calendar
+├── notifications/
+│   └── index.tsx              → Notifications List
+└── settings/
+    └── index.tsx              → Parent Settings
+```
 
 ---
 
@@ -836,6 +1601,7 @@ Marks all notifications as read.
 |---------|------|---------|
 | 1.0 | Feb 2026 | Initial release |
 | 1.1 | Feb 2026 | Added Activity Feed and Notifications APIs |
+| 2.0 | Feb 2026 | Added Aggregate APIs (Academics, Attendance, Fees), Payments, Messages, Reports, Calendar |
 
 ---
 

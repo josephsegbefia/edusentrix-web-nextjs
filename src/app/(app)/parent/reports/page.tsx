@@ -3,9 +3,8 @@
 
 import * as React from "react";
 import { Suspense } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,11 +29,11 @@ import {
   XCircle,
   Sparkles,
   GraduationCap,
-  ChevronRight,
 } from "lucide-react";
 import { useParentReports } from "@/hooks/parent/useParentReports";
 import type { AvailableReport, ReportStatus } from "@/hooks/parent/useParentReports";
 import { format, parseISO } from "date-fns";
+import { useToast } from "@/hooks/useToast";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -66,9 +65,11 @@ function getStatusConfig(status: ReportStatus) {
 function ReportCard({
   report,
   onView,
+  isDownloading = false,
 }: {
   report: AvailableReport;
   onView: () => void;
+  isDownloading?: boolean;
 }) {
   const statusConfig = getStatusConfig(report.status);
   const StatusIcon = statusConfig.icon;
@@ -145,17 +146,26 @@ function ReportCard({
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button
               onClick={onView}
+              disabled={isDownloading}
               size="sm"
               className="gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs"
             >
               <Download className="h-3.5 w-3.5" />
-              Download Report
+              {isDownloading ? "Downloading..." : "Download Report"}
             </Button>
           </div>
         )}
       </div>
     </div>
   );
+}
+
+function parseDownloadFileName(contentDisposition: string | null): string | null {
+  if (!contentDisposition) return null;
+  const encodedMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch?.[1]) return decodeURIComponent(encodedMatch[1]);
+  const plainMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return plainMatch?.[1] ?? null;
 }
 
 /* --------------------------------------------------------------------------------
@@ -212,16 +222,51 @@ function SummaryCard({
    Main Content
 -------------------------------------------------------------------------------- */
 function ReportsPageContent() {
-  const router = useRouter();
   const [selectedWard, setSelectedWard] = React.useState<string>("all");
+  const [downloadingReportId, setDownloadingReportId] = React.useState<string | null>(null);
+  const { error: toastError, success: toastSuccess } = useToast();
 
   const wardId = selectedWard !== "all" ? selectedWard : undefined;
   const { data, isLoading, error } = useParentReports({ wardId });
 
-  const handleDownloadReport = (report: AvailableReport) => {
-    // Navigate to ward's academics tab for now
-    // In a full implementation, this would trigger a PDF download
-    router.push(`/parent/wards/${report.wardId}?tab=academics&periodId=${report.periodId}`);
+  const handleDownloadReport = async (report: AvailableReport) => {
+    setDownloadingReportId(report.id);
+    try {
+      const params = new URLSearchParams({
+        wardId: report.wardId,
+        periodId: report.periodId,
+        type: report.type,
+      });
+
+      const res = await fetch(`/api/parent/reports/download?${params.toString()}`);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({ error: "Failed to download report" }));
+        throw new Error(json.error || "Failed to download report");
+      }
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download =
+        parseDownloadFileName(res.headers.get("Content-Disposition")) ||
+        `${report.wardName.replace(/\s+/g, "-").toLowerCase()}-${report.periodLabel.replace(/\s+/g, "-").toLowerCase()}-${report.type}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+
+      toastSuccess("Report downloaded");
+    } catch (downloadError) {
+      toastError("Download failed", {
+        description:
+          downloadError instanceof Error
+            ? downloadError.message
+            : "Failed to download report",
+      });
+    } finally {
+      setDownloadingReportId(null);
+    }
   };
 
   if (isLoading) {
@@ -257,7 +302,6 @@ function ReportsPageContent() {
   const { wards = [], reports = [], periods = [] } = data || {};
 
   const availableCount = reports.filter((r) => r.status === "available").length;
-  const pendingCount = reports.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-6">
@@ -350,6 +394,7 @@ function ReportsPageContent() {
                 key={report.id}
                 report={report}
                 onView={() => handleDownloadReport(report)}
+                isDownloading={downloadingReportId === report.id}
               />
             ))}
           </div>
@@ -386,7 +431,7 @@ function ReportsPageContent() {
             <h4 className="font-medium text-indigo-200">About Reports</h4>
             <p className="text-sm text-indigo-200/70 mt-1">
               Term reports are generated at the end of each academic term and include grades, 
-              teacher comments, attendance summary, and class rankings. Click on "Download Report" 
+              teacher comments, attendance summary, and class rankings. Click on &quot;Download Report&quot; 
               to view detailed academic information.
             </p>
           </div>

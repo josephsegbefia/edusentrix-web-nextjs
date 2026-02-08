@@ -1,6 +1,7 @@
 // src/hooks/parent/useWardDetail.ts
 import { useQuery } from "@tanstack/react-query";
 import type { FeeStatus, TrendDirection } from "./useParentDashboard";
+import type { RiskLevel, StudentTermPerformanceTier } from "@/types/admin/student-academics";
 
 export interface WardDetail {
   id: string;
@@ -40,7 +41,7 @@ export interface StudentTermOverview {
   averageScore: number | null;
   classPosition: number | null;
   totalSubjects: number | null;
-  performanceTier: string | null;
+  performanceTier: StudentTermPerformanceTier | null;
 }
 
 export interface WardAcademicsData {
@@ -51,7 +52,7 @@ export interface WardAcademicsData {
     overallAverage: number | null;
     classPosition: number | null;
     totalStudents: number | null;
-    performanceTier: string | null;
+    performanceTier: StudentTermPerformanceTier | null;
     trend: TrendDirection;
     trendDelta: number | null;
   };
@@ -67,7 +68,21 @@ export interface WardAcademicsData {
     isPublic: boolean;
     createdAt: string;
   }>;
-  riskLevel?: string;
+  multiTermHistory?: Array<{
+    termId: string;
+    label: string;
+    averageScore: number | null;
+    classAverage: number | null;
+  }>;
+  subjectHistory?: Record<
+    string,
+    Array<{
+      termId: string;
+      termLabel: string;
+      totalScore: number | null;
+    }>
+  >;
+  riskLevel?: RiskLevel;
   strongestSubject?: { subjectId: string; subjectName: string; score: number } | null;
   weakestSubject?: { subjectId: string; subjectName: string; score: number } | null;
 }

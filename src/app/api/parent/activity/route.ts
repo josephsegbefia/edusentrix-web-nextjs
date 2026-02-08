@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent, getParentWardIds } from "@/lib/auth/requireParent";
-import { Activity } from "@/models/Activity";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { Payment } from "@/models/Payment";
 import { SubjectGrade } from "@/models/SubjectGrade";
@@ -28,6 +27,37 @@ interface ParentActivity {
   metadata: Record<string, unknown>;
   actionUrl?: string;
 }
+
+type StudentNameRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+};
+
+type PaymentActivityRow = {
+  _id: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  amount: number;
+  paymentDate: Date;
+  receiptNumber?: string;
+};
+
+type AttendanceActivityRow = {
+  _id: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  date: Date;
+  status: "absent" | "late";
+  reason?: string;
+};
+
+type GradeActivityRow = {
+  _id: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  subjectId?: { _id: mongoose.Types.ObjectId; name?: string } | mongoose.Types.ObjectId | null;
+  totalScore: number;
+  gradeLetter: string;
+  createdAt: Date;
+};
 
 function getTimeAgo(date: Date): string {
   const now = new Date();
@@ -57,11 +87,28 @@ export async function GET(req: NextRequest) {
     const typeFilter = url.searchParams.get("type") as ActivityType | null;
 
     // Get all ward IDs for this parent
+    const allWardIds = await getParentWardIds(context.userId);
     let studentIds: mongoose.Types.ObjectId[];
     if (wardId) {
-      studentIds = [new mongoose.Types.ObjectId(wardId)];
+      if (!mongoose.Types.ObjectId.isValid(wardId)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid wardId" },
+          { status: 400 }
+        );
+      }
+
+      const requestedWardId = new mongoose.Types.ObjectId(wardId);
+      const hasAccess = allWardIds.some((id) => id.equals(requestedWardId));
+      if (!hasAccess) {
+        return NextResponse.json(
+          { success: false, error: "You do not have access to this ward" },
+          { status: 403 }
+        );
+      }
+
+      studentIds = [requestedWardId];
     } else {
-      studentIds = await getParentWardIds(context.userId);
+      studentIds = allWardIds;
     }
 
     if (studentIds.length === 0) {
@@ -75,9 +122,12 @@ export async function GET(req: NextRequest) {
     }
 
     // Get student names map
-    const students = await Student.find({ _id: { $in: studentIds } })
+    const students = await Student.find({
+      _id: { $in: studentIds },
+      schoolId: context.schoolId,
+    })
       .select("_id firstName lastName")
-      .lean() as Array<{ _id: mongoose.Types.ObjectId; firstName: string; lastName: string }>;
+      .lean<StudentNameRow[]>();
     
     const studentMap = new Map(
       students.map((s) => [
@@ -97,13 +147,7 @@ export async function GET(req: NextRequest) {
       })
         .sort({ paymentDate: -1 })
         .limit(20)
-        .lean() as Array<{
-          _id: mongoose.Types.ObjectId;
-          studentId: mongoose.Types.ObjectId;
-          amount: number;
-          paymentDate: Date;
-          receiptNumber?: string;
-        }>;
+        .lean<PaymentActivityRow[]>();
 
       payments.forEach((payment) => {
         const student = studentMap.get(String(payment.studentId));
@@ -138,13 +182,7 @@ export async function GET(req: NextRequest) {
       })
         .sort({ date: -1 })
         .limit(20)
-        .lean() as Array<{
-          _id: mongoose.Types.ObjectId;
-          studentId: mongoose.Types.ObjectId;
-          date: Date;
-          status: string;
-          reason?: string;
-        }>;
+        .lean<AttendanceActivityRow[]>();
 
       attendanceRecords.forEach((record) => {
         const student = studentMap.get(String(record.studentId));
@@ -179,18 +217,16 @@ export async function GET(req: NextRequest) {
         .populate("subjectId", "name")
         .sort({ createdAt: -1 })
         .limit(20)
-        .lean() as Array<{
-          _id: mongoose.Types.ObjectId;
-          studentId: mongoose.Types.ObjectId;
-          subjectId: { _id: mongoose.Types.ObjectId; name: string } | null;
-          totalScore: number;
-          gradeLetter: string;
-          createdAt: Date;
-        }>;
+        .lean<GradeActivityRow[]>();
 
       grades.forEach((grade) => {
         const student = studentMap.get(String(grade.studentId));
-        const subjectName = grade.subjectId?.name || "Subject";
+        const subjectName =
+          grade.subjectId &&
+          typeof grade.subjectId === "object" &&
+          "name" in grade.subjectId
+            ? grade.subjectId.name || "Subject"
+            : "Subject";
         activities.push({
           id: `grade-${grade._id}`,
           type: "grade",

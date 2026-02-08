@@ -1,11 +1,40 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireParent, getParentWardIds } from "@/lib/auth/requireParent";
+import { requireParent } from "@/lib/auth/requireParent";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { Invoice } from "@/models/Invoice";
 import { ClassGroup } from "@/models/ClassGroup";
+
+type GuardianLink = {
+  studentId: mongoose.Types.ObjectId;
+  relationship?: string;
+  isPrimary?: boolean;
+};
+
+type StudentRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  photoUrl?: string | null;
+  status?: string;
+  classGroupId?: mongoose.Types.ObjectId;
+  admissionNo?: string | null;
+};
+
+type ClassGroupRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+};
+
+type InvoiceSummaryRow = {
+  _id: mongoose.Types.ObjectId;
+  totalPaid?: number;
+  outstanding?: number;
+  pendingInvoices?: number;
+};
 
 export async function GET() {
   try {
@@ -15,7 +44,7 @@ export async function GET() {
     // Get all wards for this parent
     const guardians = await Guardian.find({ userId: context.userId })
       .select("studentId relationship isPrimary")
-      .lean();
+      .lean<GuardianLink[]>();
 
     if (!guardians.length) {
       return NextResponse.json({
@@ -31,9 +60,7 @@ export async function GET() {
       });
     }
 
-    const studentIds = guardians.map(
-      (g) => (g as unknown as { studentId: mongoose.Types.ObjectId }).studentId
-    );
+    const studentIds = guardians.map((g) => g.studentId);
 
     // Fetch students
     const students = await Student.find({
@@ -41,45 +68,62 @@ export async function GET() {
       schoolId: context.schoolId,
     })
       .select("_id firstName lastName middleName photoUrl status classGroupId admissionNo")
-      .lean();
+      .lean<StudentRow[]>();
 
     // Get class group names
     const classGroupIds = students
-      .map((s: any) => s.classGroupId)
-      .filter(Boolean);
+      .map((s) => s.classGroupId)
+      .filter((classGroupId): classGroupId is mongoose.Types.ObjectId => Boolean(classGroupId));
     
     const classGroups = await ClassGroup.find({ _id: { $in: classGroupIds } })
       .select("_id name")
-      .lean();
+      .lean<ClassGroupRow[]>();
     
     const classGroupMap = new Map(
-      classGroups.map((cg: any) => [String(cg._id), cg.name])
+      classGroups.map((cg) => [String(cg._id), cg.name || ""])
     );
 
     // Get fee summaries for all wards
-    const invoiceSummary = await Invoice.aggregate([
+    const invoiceSummary = await Invoice.aggregate<InvoiceSummaryRow>([
       {
         $match: {
           studentId: { $in: studentIds },
           schoolId: context.schoolId,
-          status: { $in: ["pending", "partial"] },
+          status: { $ne: "cancelled" },
         },
       },
       {
         $group: {
           _id: "$studentId",
+          totalPaid: { $sum: "$amountPaid" },
           outstanding: { $sum: "$balanceDue" },
+          pendingInvoices: {
+            $sum: {
+              $cond: [
+                { $in: ["$status", ["pending", "partial", "overdue"]] },
+                1,
+                0,
+              ],
+            },
+          },
         },
       },
     ]);
 
-    const outstandingMap = new Map(
-      invoiceSummary.map((s: any) => [String(s._id), s.outstanding])
+    const invoiceMap = new Map(
+      invoiceSummary.map((s) => [
+        String(s._id),
+        {
+          totalPaid: s.totalPaid || 0,
+          outstanding: s.outstanding || 0,
+          pendingInvoices: s.pendingInvoices || 0,
+        },
+      ])
     );
 
     // Build guardian relationship map
     const guardianMap = new Map(
-      guardians.map((g: any) => [
+      guardians.map((g) => [
         String(g.studentId),
         { relationship: g.relationship, isPrimary: g.isPrimary },
       ])
@@ -87,13 +131,23 @@ export async function GET() {
 
     // Calculate totals
     let totalOutstanding = 0;
-    const wards = students.map((student: any) => {
-      const outstanding = outstandingMap.get(String(student._id)) || 0;
-      totalOutstanding += outstanding;
+    let upcomingPayments = 0;
+    const wards = students.map((student) => {
+      const invoice = invoiceMap.get(String(student._id)) || {
+        totalPaid: 0,
+        outstanding: 0,
+        pendingInvoices: 0,
+      };
+      totalOutstanding += invoice.outstanding;
+      upcomingPayments += invoice.pendingInvoices;
 
       const guardianInfo = guardianMap.get(String(student._id));
       const feeStatus: "clear" | "partial" | "owing" =
-        outstanding === 0 ? "clear" : outstanding > 0 ? "owing" : "partial";
+        invoice.outstanding <= 0
+          ? "clear"
+          : invoice.totalPaid > 0
+          ? "partial"
+          : "owing";
 
       return {
         id: String(student._id),
@@ -108,7 +162,7 @@ export async function GET() {
         relationship: guardianInfo?.relationship || "guardian",
         isPrimary: guardianInfo?.isPrimary || false,
         feeStatus,
-        outstandingAmount: outstanding,
+        outstandingAmount: invoice.outstanding,
       };
     });
 
@@ -119,7 +173,7 @@ export async function GET() {
         summary: {
           totalWards: wards.length,
           totalOutstanding,
-          upcomingPayments: invoiceSummary.length,
+          upcomingPayments,
         },
       },
     });

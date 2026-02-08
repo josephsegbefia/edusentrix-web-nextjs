@@ -9,6 +9,54 @@ import { ClassGroup } from "@/models/ClassGroup";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 
+type GuardianLink = {
+  studentId: mongoose.Types.ObjectId;
+};
+
+type StudentRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  photoUrl?: string | null;
+  classGroupId?: mongoose.Types.ObjectId;
+};
+
+type ClassGroupRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+};
+
+type AcademicPeriodWithDates = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  label?: string;
+  startDate: Date;
+  endDate: Date;
+};
+
+type AttendanceStatus = "present" | "absent" | "late" | "excused";
+
+type AttendanceRecordRow = {
+  studentId: mongoose.Types.ObjectId;
+  date: Date;
+  status: AttendanceStatus;
+  notes?: string;
+};
+
+type PreviousAttendanceRecordRow = {
+  studentId: mongoose.Types.ObjectId;
+  status: AttendanceStatus;
+};
+
+type DateFilter = {
+  schoolId: mongoose.Types.ObjectId;
+  studentId: { $in: mongoose.Types.ObjectId[] };
+  date?: {
+    $gte: Date;
+    $lte: Date;
+  };
+};
+
 interface WardAttendanceSummary {
   wardId: string;
   wardName: string;
@@ -42,11 +90,23 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const periodId = searchParams.get("periodId") || searchParams.get("termId");
     const month = searchParams.get("month"); // YYYY-MM format
+    if (periodId && !mongoose.Types.ObjectId.isValid(periodId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid periodId" },
+        { status: 400 }
+      );
+    }
+    if (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid month format. Use YYYY-MM" },
+        { status: 400 }
+      );
+    }
 
     // Get all wards for this parent
     const guardians = await Guardian.find({ userId: context.userId })
       .select("studentId")
-      .lean();
+      .lean<GuardianLink[]>();
 
     if (!guardians.length) {
       return NextResponse.json({
@@ -68,9 +128,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const studentIds = guardians.map(
-      (g) => (g as unknown as { studentId: mongoose.Types.ObjectId }).studentId
-    );
+    const studentIds = guardians.map((g) => g.studentId);
 
     // Fetch students
     const students = await Student.find({
@@ -79,7 +137,7 @@ export async function GET(req: NextRequest) {
       status: "active",
     })
       .select("_id firstName lastName photoUrl classGroupId")
-      .lean();
+      .lean<StudentRow[]>();
 
     if (!students.length) {
       return NextResponse.json({
@@ -102,12 +160,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Get class groups
-    const classGroupIds = students.map((s: any) => s.classGroupId).filter(Boolean);
+    const classGroupIds = students
+      .map((s) => s.classGroupId)
+      .filter((classGroupId): classGroupId is mongoose.Types.ObjectId => Boolean(classGroupId));
     const classGroups = await ClassGroup.find({ _id: { $in: classGroupIds } })
       .select("_id name")
-      .lean();
+      .lean<ClassGroupRow[]>();
     const classGroupMap = new Map(
-      classGroups.map((cg: any) => [String(cg._id), cg.name])
+      classGroups.map((cg) => [String(cg._id), cg.name || ""])
     );
 
     // Get current and available academic periods
@@ -118,7 +178,7 @@ export async function GET(req: NextRequest) {
       endDate: { $gte: now },
     })
       .select("_id name label startDate endDate")
-      .lean();
+      .lean<AcademicPeriodWithDates | null>();
 
     if (!currentPeriod) {
       currentPeriod = await AcademicPeriod.findOne({
@@ -127,12 +187,26 @@ export async function GET(req: NextRequest) {
       })
         .sort({ endDate: -1 })
         .select("_id name label startDate endDate")
-        .lean();
+        .lean<AcademicPeriodWithDates | null>();
     }
 
-    const selectedPeriodId = periodId
-      ? new mongoose.Types.ObjectId(periodId)
-      : currentPeriod?._id;
+    let selectedPeriod: AcademicPeriodWithDates | null = currentPeriod;
+    if (periodId) {
+      selectedPeriod = await AcademicPeriod.findOne({
+        _id: new mongoose.Types.ObjectId(periodId),
+        schoolId: context.schoolId,
+      })
+        .select("_id name label startDate endDate")
+        .lean<AcademicPeriodWithDates | null>();
+
+      if (!selectedPeriod) {
+        return NextResponse.json(
+          { success: false, error: "Academic period not found" },
+          { status: 404 }
+        );
+      }
+    }
+    const selectedPeriodId = selectedPeriod?._id || null;
 
     // Get available periods
     const twoYearsAgo = new Date();
@@ -144,19 +218,19 @@ export async function GET(req: NextRequest) {
     })
       .select("_id name label startDate endDate")
       .sort({ startDate: -1 })
-      .lean();
+      .lean<AcademicPeriodWithDates[]>();
 
     // Build date filter
-    const dateFilter: any = { schoolId: context.schoolId, studentId: { $in: studentIds } };
+    const dateFilter: DateFilter = {
+      schoolId: context.schoolId,
+      studentId: { $in: studentIds },
+    };
     
-    if (selectedPeriodId) {
-      const period = availablePeriods.find((p: any) => String(p._id) === String(selectedPeriodId));
-      if (period) {
-        dateFilter.date = {
-          $gte: (period as any).startDate,
-          $lte: (period as any).endDate,
-        };
-      }
+    if (selectedPeriod) {
+      dateFilter.date = {
+        $gte: selectedPeriod.startDate,
+        $lte: selectedPeriod.endDate,
+      };
     }
 
     if (month) {
@@ -174,11 +248,11 @@ export async function GET(req: NextRequest) {
     const attendanceRecords = await StudentAttendance.find(dateFilter)
       .select("studentId date status notes")
       .sort({ date: -1 })
-      .lean();
+      .lean<AttendanceRecordRow[]>();
 
     // Group by student
-    const attendanceByStudent = new Map<string, any[]>();
-    attendanceRecords.forEach((record: any) => {
+    const attendanceByStudent = new Map<string, AttendanceRecordRow[]>();
+    attendanceRecords.forEach((record) => {
       const studentId = String(record.studentId);
       if (!attendanceByStudent.has(studentId)) {
         attendanceByStudent.set(studentId, []);
@@ -187,19 +261,19 @@ export async function GET(req: NextRequest) {
     });
 
     // Get previous period for trend
-    let previousPeriod: any = null;
-    if (currentPeriod) {
+    let previousPeriod: AcademicPeriodWithDates | null = null;
+    if (selectedPeriod) {
       previousPeriod = await AcademicPeriod.findOne({
         schoolId: context.schoolId,
-        endDate: { $lt: (currentPeriod as any).startDate },
+        endDate: { $lt: selectedPeriod.startDate },
       })
         .sort({ endDate: -1 })
         .select("_id startDate endDate")
-        .lean();
+        .lean<AcademicPeriodWithDates | null>();
     }
 
     // Fetch previous period attendance for trend
-    let previousAttendanceByStudent = new Map<string, { present: number; total: number }>();
+    const previousAttendanceByStudent = new Map<string, { present: number; total: number }>();
     if (previousPeriod) {
       const prevRecords = await StudentAttendance.find({
         schoolId: context.schoolId,
@@ -210,9 +284,9 @@ export async function GET(req: NextRequest) {
         },
       })
         .select("studentId status")
-        .lean();
+        .lean<PreviousAttendanceRecordRow[]>();
 
-      prevRecords.forEach((record: any) => {
+      prevRecords.forEach((record) => {
         const studentId = String(record.studentId);
         if (!previousAttendanceByStudent.has(studentId)) {
           previousAttendanceByStudent.set(studentId, { present: 0, total: 0 });
@@ -233,7 +307,7 @@ export async function GET(req: NextRequest) {
     let totalExcused = 0;
     let totalDays = 0;
 
-    students.forEach((student: any) => {
+    students.forEach((student) => {
       const studentId = String(student._id);
       const records = attendanceByStudent.get(studentId) || [];
       const wardName = `${student.firstName || ""} ${student.lastName || ""}`.trim();
@@ -243,7 +317,7 @@ export async function GET(req: NextRequest) {
       let late = 0;
       let excused = 0;
 
-      records.forEach((r: any) => {
+      records.forEach((r) => {
         if (r.status === "present") present++;
         else if (r.status === "absent") absent++;
         else if (r.status === "late") late++;
@@ -297,13 +371,13 @@ export async function GET(req: NextRequest) {
     // Get recent records (last 20)
     const recentRecords: DailyAttendanceRecord[] = attendanceRecords
       .slice(0, 20)
-      .map((r: any) => {
-        const student = students.find((s: any) => String(s._id) === String(r.studentId));
+      .map((r) => {
+        const student = students.find((s) => String(s._id) === String(r.studentId));
         return {
           date: r.date.toISOString(),
           wardId: String(r.studentId),
           wardName: student
-            ? `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim()
+            ? `${student.firstName || ""} ${student.lastName || ""}`.trim()
             : "Unknown",
           status: r.status,
           notes: r.notes,
@@ -312,7 +386,7 @@ export async function GET(req: NextRequest) {
 
     // Monthly breakdown
     const monthlyMap = new Map<string, { present: number; absent: number; late: number; excused: number; total: number }>();
-    attendanceRecords.forEach((r: any) => {
+    attendanceRecords.forEach((r) => {
       const monthKey = r.date.toISOString().slice(0, 7); // YYYY-MM
       if (!monthlyMap.has(monthKey)) {
         monthlyMap.set(monthKey, { present: 0, absent: 0, late: 0, excused: 0, total: 0 });
@@ -339,16 +413,19 @@ export async function GET(req: NextRequest) {
       data: {
         currentPeriod: currentPeriod
           ? {
-              id: String((currentPeriod as any)._id),
-              name: (currentPeriod as any).name,
-              label: (currentPeriod as any).label,
+              id: String(currentPeriod._id),
+              name: currentPeriod.name || "",
+              label: currentPeriod.label || currentPeriod.name || "",
             }
           : null,
         selectedPeriodId: selectedPeriodId ? String(selectedPeriodId) : null,
-        availablePeriods: availablePeriods.map((p: any) => ({
+        selectedPeriodLabel: selectedPeriod
+          ? selectedPeriod.label || selectedPeriod.name
+          : null,
+        availablePeriods: availablePeriods.map((p) => ({
           id: String(p._id),
-          name: p.name,
-          label: p.label || p.name,
+          name: p.name || "",
+          label: p.label || p.name || "",
         })),
         wards: wardSummaries,
         overallSummary: {

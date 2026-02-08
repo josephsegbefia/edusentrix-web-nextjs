@@ -33,7 +33,7 @@ export async function PATCH(
         readAt: new Date(),
       },
       { new: true }
-    ).lean();
+    ).lean<{ _id: mongoose.Types.ObjectId } | null>();
 
     if (!notification) {
       return NextResponse.json(
@@ -44,7 +44,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      data: { id: String((notification as any)._id), isRead: true },
+      data: { id: String(notification._id), isRead: true },
     });
   } catch (error) {
     if (error instanceof NextResponse) return error;

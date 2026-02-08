@@ -3,8 +3,7 @@
 
 import * as React from "react";
 import { Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,6 @@ import {
   AlertTriangle,
   ChevronLeft,
   Calendar,
-  Download,
-  Filter,
   CheckCircle2,
   Receipt,
   Users,
@@ -41,16 +38,13 @@ function formatCurrency(amount: number): string {
   return `GH₵ ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function getMethodIcon(method: string) {
-  const icons: Record<string, React.ElementType> = {
-    cash: Banknote,
-    card: CreditCard,
-    bank_transfer: Receipt,
-    mobile_money: CreditCard,
-    momo: CreditCard,
-  };
-  return icons[method.toLowerCase()] || CreditCard;
-}
+const METHOD_ICONS: Record<string, React.ElementType> = {
+  cash: Banknote,
+  card: CreditCard,
+  bank_transfer: Receipt,
+  mobile_money: CreditCard,
+  momo: CreditCard,
+};
 
 function getMethodLabel(method: string): string {
   const labels: Record<string, string> = {
@@ -141,7 +135,8 @@ function SummaryCard({
    Payment Row
 -------------------------------------------------------------------------------- */
 function PaymentRow({ payment }: { payment: PaymentRecord }) {
-  const MethodIcon = getMethodIcon(payment.method);
+  const methodKey = payment.method.toLowerCase();
+  const MethodIcon = METHOD_ICONS[methodKey] || CreditCard;
 
   return (
     <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 transition-all hover:bg-white/10">
@@ -185,15 +180,47 @@ function PaymentRow({ payment }: { payment: PaymentRecord }) {
 -------------------------------------------------------------------------------- */
 function PaymentsPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [selectedWard, setSelectedWard] = React.useState<string>("all");
   const [selectedYear, setSelectedYear] = React.useState<string>("all");
+  const [offset, setOffset] = React.useState(0);
+  const [loadedPayments, setLoadedPayments] = React.useState<PaymentRecord[]>([]);
 
   const wardId = selectedWard !== "all" ? selectedWard : undefined;
   const year = selectedYear !== "all" ? selectedYear : undefined;
+  const limit = 50;
 
-  const { data, isLoading, error } = useParentPayments({ wardId, year });
+  const { data, isLoading, error, isFetching } = useParentPayments({
+    wardId,
+    year,
+    limit,
+    offset,
+  });
+
+  React.useEffect(() => {
+    setOffset(0);
+    setLoadedPayments([]);
+  }, [wardId, year]);
+
+  React.useEffect(() => {
+    if (!data?.payments) return;
+    if (offset === 0) {
+      setLoadedPayments(data.payments);
+      return;
+    }
+
+    setLoadedPayments((previous) => {
+      const existingIds = new Set(previous.map((payment) => payment.id));
+      const merged = [...previous];
+      for (const payment of data.payments) {
+        if (!existingIds.has(payment.id)) {
+          merged.push(payment);
+          existingIds.add(payment.id);
+        }
+      }
+      return merged;
+    });
+  }, [data?.payments, offset]);
 
   // Generate year options (last 3 years)
   const currentYear = new Date().getFullYear();
@@ -237,7 +264,9 @@ function PaymentsPageContent() {
     );
   }
 
-  const { payments = [], wards = [], summary, pagination } = data || {};
+  const { wards = [], summary, pagination } = data || {};
+  const totalPayments = pagination?.total || 0;
+  const hasMore = loadedPayments.length < totalPayments;
 
   return (
     <div className="space-y-6">
@@ -352,14 +381,14 @@ function PaymentsPageContent() {
               <CreditCard className="h-4 w-4 text-purple-300" />
               Payment Records
               <Badge variant="outline" className="ml-2 bg-white/5 text-white/60">
-                {pagination?.total || 0} total
+                {totalPayments} total
               </Badge>
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent className="relative z-10 space-y-3">
-          {payments.length > 0 ? (
-            payments.map((payment) => (
+          {loadedPayments.length > 0 ? (
+            loadedPayments.map((payment) => (
               <PaymentRow key={payment.id} payment={payment} />
             ))
           ) : (
@@ -377,10 +406,15 @@ function PaymentsPageContent() {
       </Card>
 
       {/* Load More */}
-      {pagination?.hasMore && (
+      {hasMore && (
         <div className="flex justify-center">
-          <Button variant="outline" className="gap-2 rounded-xl">
-            Load More
+          <Button
+            variant="outline"
+            className="gap-2 rounded-xl"
+            onClick={() => setOffset((previous) => previous + limit)}
+            disabled={isFetching}
+          >
+            {isFetching ? "Loading..." : "Load More"}
           </Button>
         </div>
       )}

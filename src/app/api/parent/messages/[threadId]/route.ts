@@ -8,6 +8,39 @@ import { Message } from "@/models/Message";
 import { User } from "@/models/User";
 import { Student } from "@/models/Student";
 
+type ThreadParticipant = {
+  userId: mongoose.Types.ObjectId;
+  role: string;
+};
+
+type MessageThreadRow = {
+  _id: mongoose.Types.ObjectId;
+  subject?: string;
+  studentId?: mongoose.Types.ObjectId | null;
+  participants: ThreadParticipant[];
+  createdAt?: Date;
+};
+
+type MessageRow = {
+  _id: mongoose.Types.ObjectId;
+  senderId: mongoose.Types.ObjectId;
+  body: string;
+  attachments?: unknown[];
+  createdAt?: Date;
+};
+
+type UserRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  photoUrl?: string | null;
+};
+
+type StudentRow = {
+  firstName?: string;
+  lastName?: string;
+};
+
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ threadId: string }> }
@@ -30,7 +63,7 @@ export async function GET(
       _id: new mongoose.Types.ObjectId(threadId),
       schoolId: context.schoolId,
       "participants.userId": context.userId,
-    }).lean();
+    }).lean<MessageThreadRow | null>();
 
     if (!thread) {
       return NextResponse.json(
@@ -40,40 +73,43 @@ export async function GET(
     }
 
     // Get messages
-    const messages = await Message.find({ threadId: (thread as any)._id })
+    const messages = await Message.find({ threadId: thread._id })
       .sort({ createdAt: 1 })
-      .lean();
+      .lean<MessageRow[]>();
 
     // Get user details
     const userIds = new Set<string>();
-    messages.forEach((m: any) => userIds.add(String(m.senderId)));
-    (thread as any).participants.forEach((p: any) => userIds.add(String(p.userId)));
+    messages.forEach((m) => userIds.add(String(m.senderId)));
+    thread.participants.forEach((p) => userIds.add(String(p.userId)));
 
     const users = await User.find({ _id: { $in: Array.from(userIds) } })
       .select("_id firstName lastName photoUrl")
-      .lean();
+      .lean<UserRow[]>();
     const userMap = new Map(
-      users.map((u: any) => [
+      users.map((u) => [
         String(u._id),
-        { name: `${u.firstName || ""} ${u.lastName || ""}`.trim(), photoUrl: u.photoUrl },
+        {
+          name: `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+          photoUrl: u.photoUrl || null,
+        },
       ])
     );
 
     // Get student name if applicable
     let studentName = null;
-    if ((thread as any).studentId) {
-      const student = await Student.findById((thread as any).studentId)
+    if (thread.studentId) {
+      const student = await Student.findById(thread.studentId)
         .select("firstName lastName")
-        .lean();
+        .lean<StudentRow | null>();
       if (student) {
-        studentName = `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim();
+        studentName = `${student.firstName || ""} ${student.lastName || ""}`.trim();
       }
     }
 
     // Mark messages as read
     await Message.updateMany(
       {
-        threadId: (thread as any)._id,
+        threadId: thread._id,
         senderId: { $ne: context.userId },
         "readBy.userId": { $ne: context.userId },
       },
@@ -84,19 +120,19 @@ export async function GET(
 
     // Format response
     const formattedThread = {
-      id: String((thread as any)._id),
-      subject: (thread as any).subject || "No Subject",
-      studentId: (thread as any).studentId ? String((thread as any).studentId) : null,
+      id: String(thread._id),
+      subject: thread.subject || "No Subject",
+      studentId: thread.studentId ? String(thread.studentId) : null,
       studentName,
-      participants: (thread as any).participants.map((p: any) => ({
+      participants: thread.participants.map((p) => ({
         userId: String(p.userId),
         role: p.role,
         ...userMap.get(String(p.userId)),
       })),
-      createdAt: (thread as any).createdAt?.toISOString() || "",
+      createdAt: thread.createdAt?.toISOString() || "",
     };
 
-    const formattedMessages = messages.map((m: any) => ({
+    const formattedMessages = messages.map((m) => ({
       id: String(m._id),
       senderId: String(m.senderId),
       senderName: userMap.get(String(m.senderId))?.name || "Unknown",
@@ -155,7 +191,7 @@ export async function POST(
       _id: new mongoose.Types.ObjectId(threadId),
       schoolId: context.schoolId,
       "participants.userId": context.userId,
-    }).lean();
+    }).lean<MessageThreadRow | null>();
 
     if (!thread) {
       return NextResponse.json(
@@ -166,7 +202,7 @@ export async function POST(
 
     // Create message
     const newMessage = await Message.create({
-      threadId: (thread as any)._id,
+      threadId: thread._id,
       schoolId: context.schoolId,
       senderId: context.userId,
       body: message.trim(),
@@ -174,7 +210,7 @@ export async function POST(
     });
 
     // Update thread
-    await MessageThread.findByIdAndUpdate((thread as any)._id, {
+    await MessageThread.findByIdAndUpdate(thread._id, {
       lastMessageAt: new Date(),
       lastMessagePreview: message.substring(0, 100),
     });

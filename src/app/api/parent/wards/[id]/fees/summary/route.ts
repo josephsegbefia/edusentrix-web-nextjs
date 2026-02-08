@@ -7,6 +7,37 @@ import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 
+type AcademicPeriodRow = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+};
+
+type InvoiceSummaryRow = {
+  totalBilled?: number;
+  totalPaid?: number;
+  outstanding?: number;
+  nextDueDate?: Date | null;
+};
+
+type PendingInvoiceRow = {
+  _id: mongoose.Types.ObjectId;
+  invoiceNumber: string;
+  totalAmount: number;
+  amountPaid: number;
+  balanceDue: number;
+  dueDate: Date | null;
+  status: string;
+  description?: string;
+};
+
+type RecentPaymentRow = {
+  _id: mongoose.Types.ObjectId;
+  amount: number;
+  paymentMethod: string;
+  paymentDate: Date;
+  receiptNumber?: string;
+};
+
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
@@ -34,10 +65,10 @@ export async function GET(
       isCurrent: true,
     })
       .select("_id name")
-      .lean() as { _id: mongoose.Types.ObjectId; name: string } | null;
+      .lean<AcademicPeriodRow | null>();
 
     // Get overall summary
-    const overallSummary = await Invoice.aggregate([
+    const overallSummary = await Invoice.aggregate<InvoiceSummaryRow>([
       {
         $match: {
           studentId,
@@ -64,16 +95,7 @@ export async function GET(
       .select("_id invoiceNumber totalAmount amountPaid balanceDue dueDate status description")
       .sort({ dueDate: 1 })
       .limit(10)
-      .lean() as Array<{
-        _id: mongoose.Types.ObjectId;
-        invoiceNumber: string;
-        totalAmount: number;
-        amountPaid: number;
-        balanceDue: number;
-        dueDate: Date | null;
-        status: string;
-        description?: string;
-      }>;
+      .lean<PendingInvoiceRow[]>();
 
     // Get recent payments
     const recentPayments = await Payment.find({
@@ -84,19 +106,14 @@ export async function GET(
       .select("_id amount paymentMethod paymentDate receiptNumber")
       .sort({ paymentDate: -1 })
       .limit(10)
-      .lean() as Array<{
-        _id: mongoose.Types.ObjectId;
-        amount: number;
-        paymentMethod: string;
-        paymentDate: Date;
-        receiptNumber?: string;
-      }>;
+      .lean<RecentPaymentRow[]>();
 
-    const overall = overallSummary[0] || {
-      totalBilled: 0,
-      totalPaid: 0,
-      outstanding: 0,
-      nextDueDate: null,
+    const overallRow = overallSummary[0];
+    const overall = {
+      totalBilled: overallRow?.totalBilled ?? 0,
+      totalPaid: overallRow?.totalPaid ?? 0,
+      outstanding: overallRow?.outstanding ?? 0,
+      nextDueDate: overallRow?.nextDueDate ?? null,
     };
 
     const feeStatus: "clear" | "partial" | "owing" =

@@ -12,6 +12,79 @@ import { TermResult } from "@/models/TermResult";
 import { SubjectGrade } from "@/models/SubjectGrade";
 import { Subject } from "@/models/Subject";
 
+type TrendDirection = "up" | "down" | "stable";
+type PerformanceTier = "top" | "above_average" | "average" | "at_risk";
+
+type GuardianLink = {
+  studentId: mongoose.Types.ObjectId;
+};
+
+type StudentRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  middleName?: string;
+  photoUrl?: string | null;
+  classGroupId?: mongoose.Types.ObjectId;
+};
+
+type ClassGroupRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  gradeId?: mongoose.Types.ObjectId;
+};
+
+type GradeRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+};
+
+type AcademicPeriodWithDates = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  label?: string;
+  startDate: Date;
+  endDate: Date;
+};
+
+type AcademicPeriodOption = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  label?: string;
+};
+
+type PreviousPeriod = {
+  _id: mongoose.Types.ObjectId;
+};
+
+type TermResultRow = {
+  studentId: mongoose.Types.ObjectId;
+  averageScore?: number | null;
+  classPosition?: number | null;
+  totalStudents?: number | null;
+  performanceTier?: PerformanceTier | null;
+  totalSubjects?: number | null;
+};
+
+type PreviousResultRow = {
+  studentId: mongoose.Types.ObjectId;
+  averageScore?: number | null;
+};
+
+type SubjectGradeRow = {
+  studentId: mongoose.Types.ObjectId;
+  subjectId?: mongoose.Types.ObjectId;
+  totalScore?: number | null;
+  gradeLetter?: string | null;
+  isPassed?: boolean | null;
+};
+
+type SubjectRow = {
+  _id: mongoose.Types.ObjectId;
+  name?: string;
+  shortCode?: string | null;
+};
+
 interface WardAcademicSummary {
   wardId: string;
   wardName: string;
@@ -25,7 +98,7 @@ interface WardAcademicSummary {
   trend: "up" | "down" | "stable";
   classPosition: number | null;
   totalStudents: number | null;
-  performanceTier: string | null;
+  performanceTier: PerformanceTier | null;
   subjectCount: number;
   passedCount: number;
   failedCount: number;
@@ -57,11 +130,17 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const periodId = searchParams.get("periodId") || searchParams.get("termId");
+    if (periodId && !mongoose.Types.ObjectId.isValid(periodId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid periodId" },
+        { status: 400 }
+      );
+    }
 
     // Get all wards for this parent
     const guardians = await Guardian.find({ userId: context.userId })
       .select("studentId relationship isPrimary")
-      .lean();
+      .lean<GuardianLink[]>();
 
     if (!guardians.length) {
       return NextResponse.json({
@@ -83,9 +162,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const studentIds = guardians.map(
-      (g) => (g as unknown as { studentId: mongoose.Types.ObjectId }).studentId
-    );
+    const studentIds = guardians.map((g) => g.studentId);
 
     // Fetch students
     const students = await Student.find({
@@ -94,7 +171,7 @@ export async function GET(req: NextRequest) {
       status: "active",
     })
       .select("_id firstName lastName middleName photoUrl classGroupId")
-      .lean();
+      .lean<StudentRow[]>();
 
     if (!students.length) {
       return NextResponse.json({
@@ -117,17 +194,26 @@ export async function GET(req: NextRequest) {
     }
 
     // Get class groups and grades
-    const classGroupIds = students.map((s: any) => s.classGroupId).filter(Boolean);
+    const classGroupIds = students
+      .map((s) => s.classGroupId)
+      .filter((classGroupId): classGroupId is mongoose.Types.ObjectId => Boolean(classGroupId));
     const classGroups = await ClassGroup.find({ _id: { $in: classGroupIds } })
       .select("_id name gradeId")
-      .lean();
+      .lean<ClassGroupRow[]>();
     const classGroupMap = new Map(
-      classGroups.map((cg: any) => [String(cg._id), { name: cg.name, gradeId: cg.gradeId }])
+      classGroups.map((cg) => [
+        String(cg._id),
+        { name: cg.name || "", gradeId: cg.gradeId || null },
+      ])
     );
 
-    const gradeIds = classGroups.map((cg: any) => cg.gradeId).filter(Boolean);
-    const grades = await Grade.find({ _id: { $in: gradeIds } }).select("_id name").lean();
-    const gradeMap = new Map(grades.map((g: any) => [String(g._id), g.name]));
+    const gradeIds = classGroups
+      .map((cg) => cg.gradeId)
+      .filter((gradeId): gradeId is mongoose.Types.ObjectId => Boolean(gradeId));
+    const grades = await Grade.find({ _id: { $in: gradeIds } })
+      .select("_id name")
+      .lean<GradeRow[]>();
+    const gradeMap = new Map(grades.map((g) => [String(g._id), g.name || ""]));
 
     // Get current and available academic periods
     const now = new Date();
@@ -137,7 +223,7 @@ export async function GET(req: NextRequest) {
       endDate: { $gte: now },
     })
       .select("_id name label startDate endDate")
-      .lean();
+      .lean<AcademicPeriodWithDates | null>();
 
     // If no current period, get the most recent one
     if (!currentPeriod) {
@@ -147,12 +233,27 @@ export async function GET(req: NextRequest) {
       })
         .sort({ endDate: -1 })
         .select("_id name label startDate endDate")
-        .lean();
+        .lean<AcademicPeriodWithDates | null>();
     }
 
-    const selectedPeriodId = periodId
-      ? new mongoose.Types.ObjectId(periodId)
-      : currentPeriod?._id;
+    let requestedPeriod: AcademicPeriodWithDates | null = null;
+    if (periodId) {
+      requestedPeriod = await AcademicPeriod.findOne({
+        _id: new mongoose.Types.ObjectId(periodId),
+        schoolId: context.schoolId,
+      })
+        .select("_id name label startDate endDate")
+        .lean<AcademicPeriodWithDates | null>();
+
+      if (!requestedPeriod) {
+        return NextResponse.json(
+          { success: false, error: "Academic period not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    const selectedPeriodId = requestedPeriod?._id || currentPeriod?._id;
 
     // Get available periods (last 2 years worth)
     const twoYearsAgo = new Date();
@@ -164,18 +265,19 @@ export async function GET(req: NextRequest) {
     })
       .select("_id name label")
       .sort({ startDate: -1 })
-      .lean();
+      .lean<AcademicPeriodOption[]>();
 
     // Get previous period for trend comparison
-    let previousPeriod: any = null;
-    if (currentPeriod) {
+    let previousPeriod: PreviousPeriod | null = null;
+    const trendBaselinePeriod = requestedPeriod || currentPeriod;
+    if (trendBaselinePeriod) {
       previousPeriod = await AcademicPeriod.findOne({
         schoolId: context.schoolId,
-        endDate: { $lt: (currentPeriod as any).startDate },
+        endDate: { $lt: trendBaselinePeriod.startDate },
       })
         .sort({ endDate: -1 })
         .select("_id")
-        .lean();
+        .lean<PreviousPeriod | null>();
     }
 
     // Fetch term results for selected period
@@ -186,15 +288,15 @@ export async function GET(req: NextRequest) {
           academicPeriodId: selectedPeriodId,
         })
           .select("studentId averageScore classPosition totalStudents performanceTier totalSubjects")
-          .lean()
-      : [];
+          .lean<TermResultRow[]>()
+      : ([] as TermResultRow[]);
 
     const termResultMap = new Map(
-      termResults.map((tr: any) => [String(tr.studentId), tr])
+      termResults.map((tr) => [String(tr.studentId), tr])
     );
 
     // Fetch previous period results for trend
-    let previousResultMap = new Map();
+    let previousResultMap = new Map<string, number | null>();
     if (previousPeriod) {
       const previousResults = await TermResult.find({
         studentId: { $in: studentIds },
@@ -202,9 +304,9 @@ export async function GET(req: NextRequest) {
         academicPeriodId: previousPeriod._id,
       })
         .select("studentId averageScore")
-        .lean();
+        .lean<PreviousResultRow[]>();
       previousResultMap = new Map(
-        previousResults.map((pr: any) => [String(pr.studentId), pr.averageScore])
+        previousResults.map((pr) => [String(pr.studentId), pr.averageScore ?? null])
       );
     }
 
@@ -216,12 +318,12 @@ export async function GET(req: NextRequest) {
           academicPeriodId: selectedPeriodId,
         })
           .select("studentId subjectId totalScore gradeLetter isPassed")
-          .lean()
-      : [];
+          .lean<SubjectGradeRow[]>()
+      : ([] as SubjectGradeRow[]);
 
     // Get all subjects referenced
     const allSubjectIds = new Set<string>();
-    subjectGrades.forEach((sg: any) => {
+    subjectGrades.forEach((sg) => {
       if (sg.subjectId) allSubjectIds.add(String(sg.subjectId));
     });
 
@@ -230,15 +332,18 @@ export async function GET(req: NextRequest) {
           _id: { $in: Array.from(allSubjectIds) },
         })
           .select("_id name shortCode")
-          .lean()
-      : [];
+          .lean<SubjectRow[]>()
+      : ([] as SubjectRow[]);
     const subjectMap = new Map(
-      subjects.map((s: any) => [String(s._id), { name: s.name, shortCode: s.shortCode }])
+      subjects.map((s) => [
+        String(s._id),
+        { name: s.name || "Unknown Subject", shortCode: s.shortCode || null },
+      ])
     );
 
     // Group subject grades by student
-    const subjectGradesByStudent = new Map<string, any[]>();
-    subjectGrades.forEach((sg: any) => {
+    const subjectGradesByStudent = new Map<string, SubjectGradeRow[]>();
+    subjectGrades.forEach((sg) => {
       const studentId = String(sg.studentId);
       if (!subjectGradesByStudent.has(studentId)) {
         subjectGradesByStudent.set(studentId, []);
@@ -251,17 +356,17 @@ export async function GET(req: NextRequest) {
     const wardSummaries: WardAcademicSummary[] = [];
     const subjectPerformances: SubjectPerformance[] = [];
 
-    students.forEach((student: any, index: number) => {
+    students.forEach((student) => {
       const studentId = String(student._id);
       const termResult = termResultMap.get(studentId);
-      const previousAverage = previousResultMap.get(studentId) || null;
+      const previousAverage = previousResultMap.get(studentId) ?? null;
       const classGroupInfo = classGroupMap.get(String(student.classGroupId));
       const gradeName = classGroupInfo?.gradeId ? gradeMap.get(String(classGroupInfo.gradeId)) : null;
 
       const wardName = `${student.firstName || ""} ${student.lastName || ""}`.trim();
       const currentAverage = termResult?.averageScore ?? null;
 
-      let trend: "up" | "down" | "stable" = "stable";
+      let trend: TrendDirection = "stable";
       if (currentAverage !== null && previousAverage !== null) {
         if (currentAverage > previousAverage + 2) trend = "up";
         else if (currentAverage < previousAverage - 2) trend = "down";
@@ -272,7 +377,7 @@ export async function GET(req: NextRequest) {
       let passedCount = 0;
       let failedCount = 0;
 
-      studentSubjectGrades.forEach((sg: any) => {
+      studentSubjectGrades.forEach((sg) => {
         if (sg.isPassed === true) passedCount++;
         else if (sg.isPassed === false) failedCount++;
 
@@ -287,7 +392,7 @@ export async function GET(req: NextRequest) {
             wardName,
             totalScore: sg.totalScore ?? null,
             gradeLetter: sg.gradeLetter ?? null,
-            isPassed: sg.isPassed ?? null,
+            isPassed: typeof sg.isPassed === "boolean" ? sg.isPassed : null,
           });
         }
       });
@@ -358,16 +463,21 @@ export async function GET(req: NextRequest) {
       data: {
         currentPeriod: currentPeriod
           ? {
-              id: String((currentPeriod as any)._id),
-              name: (currentPeriod as any).name,
-              label: (currentPeriod as any).label,
+              id: String(currentPeriod._id),
+              name: currentPeriod.name || "",
+              label: currentPeriod.label || currentPeriod.name || "",
             }
           : null,
         selectedPeriodId: selectedPeriodId ? String(selectedPeriodId) : null,
-        availablePeriods: availablePeriods.map((p: any) => ({
+        selectedPeriodLabel: requestedPeriod
+          ? requestedPeriod.label || requestedPeriod.name
+          : currentPeriod
+          ? currentPeriod.label || currentPeriod.name
+          : null,
+        availablePeriods: availablePeriods.map((p) => ({
           id: String(p._id),
-          name: p.name,
-          label: p.label || p.name,
+          name: p.name || "",
+          label: p.label || p.name || "",
         })),
         wards: wardSummaries,
         comparison,

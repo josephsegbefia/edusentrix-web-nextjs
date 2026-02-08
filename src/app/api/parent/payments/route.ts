@@ -8,6 +8,47 @@ import { Guardian } from "@/models/Guardian";
 import { Payment } from "@/models/Payment";
 import { Invoice } from "@/models/Invoice";
 
+type GuardianLink = {
+  studentId: mongoose.Types.ObjectId;
+};
+
+type StudentRow = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+};
+
+type PaymentRow = {
+  _id: mongoose.Types.ObjectId;
+  studentId: mongoose.Types.ObjectId;
+  amount?: number;
+  paymentDate?: Date;
+  paymentMethod?: string;
+  reference?: string;
+  invoiceId?: mongoose.Types.ObjectId | null;
+  notes?: string;
+};
+
+type InvoiceTitleRow = {
+  _id: mongoose.Types.ObjectId;
+  title?: string;
+};
+
+type PaymentSummaryRow = {
+  amount?: number;
+  paymentDate?: Date;
+};
+
+type PaymentQuery = {
+  studentId: { $in: mongoose.Types.ObjectId[] };
+  schoolId: mongoose.Types.ObjectId;
+  status: "completed";
+  paymentDate?: {
+    $gte: Date;
+    $lte: Date;
+  };
+};
+
 export async function GET(req: NextRequest) {
   try {
     const context = await requireParent();
@@ -23,7 +64,7 @@ export async function GET(req: NextRequest) {
     // Get all wards for this parent
     const guardians = await Guardian.find({ userId: context.userId })
       .select("studentId")
-      .lean();
+      .lean<GuardianLink[]>();
 
     if (!guardians.length) {
       return NextResponse.json({
@@ -41,9 +82,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    let studentIds = guardians.map(
-      (g) => (g as unknown as { studentId: mongoose.Types.ObjectId }).studentId
-    );
+    let studentIds = guardians.map((g) => g.studentId);
 
     // Filter by specific ward if provided
     if (wardId && mongoose.Types.ObjectId.isValid(wardId)) {
@@ -59,17 +98,17 @@ export async function GET(req: NextRequest) {
       schoolId: context.schoolId,
     })
       .select("_id firstName lastName")
-      .lean();
+      .lean<StudentRow[]>();
 
     const studentMap = new Map(
-      students.map((s: any) => [
+      students.map((s) => [
         String(s._id),
         `${s.firstName || ""} ${s.lastName || ""}`.trim(),
       ])
     );
 
     // Build query filters
-    const filter: any = {
+    const filter: PaymentQuery = {
       studentId: { $in: studentIds },
       schoolId: context.schoolId,
       status: "completed",
@@ -95,19 +134,21 @@ export async function GET(req: NextRequest) {
       .sort({ paymentDate: -1 })
       .skip(offset)
       .limit(limit)
-      .lean();
+      .lean<PaymentRow[]>();
 
     // Get invoice titles
-    const invoiceIds = payments.map((p: any) => p.invoiceId).filter(Boolean);
+    const invoiceIds = payments
+      .map((p) => p.invoiceId)
+      .filter((invoiceId): invoiceId is mongoose.Types.ObjectId => Boolean(invoiceId));
     const invoices = await Invoice.find({ _id: { $in: invoiceIds } })
       .select("_id title")
-      .lean();
+      .lean<InvoiceTitleRow[]>();
     const invoiceMap = new Map(
-      invoices.map((inv: any) => [String(inv._id), inv.title])
+      invoices.map((inv) => [String(inv._id), inv.title || "School Fees"])
     );
 
     // Format payments
-    const formattedPayments = payments.map((p: any) => ({
+    const formattedPayments = payments.map((p) => ({
       id: String(p._id),
       wardId: String(p.studentId),
       wardName: studentMap.get(String(p.studentId)) || "Unknown",
@@ -130,16 +171,17 @@ export async function GET(req: NextRequest) {
       status: "completed",
     })
       .select("amount paymentDate")
-      .lean();
+      .lean<PaymentSummaryRow[]>();
 
     let totalAmount = 0;
     let thisMonthAmount = 0;
     let thisYearAmount = 0;
 
-    allPayments.forEach((p: any) => {
+    allPayments.forEach((p) => {
       const amount = p.amount || 0;
-      const date = new Date(p.paymentDate);
       totalAmount += amount;
+      if (!p.paymentDate) return;
+      const date = new Date(p.paymentDate);
       if (date >= thisYearStart) thisYearAmount += amount;
       if (date >= thisMonthStart) thisMonthAmount += amount;
     });
@@ -148,7 +190,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: {
         payments: formattedPayments,
-        wards: students.map((s: any) => ({
+        wards: students.map((s) => ({
           id: String(s._id),
           name: `${s.firstName || ""} ${s.lastName || ""}`.trim(),
         })),

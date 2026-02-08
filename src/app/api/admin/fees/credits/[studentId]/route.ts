@@ -1,6 +1,6 @@
 // src/app/api/admin/fees/credit/[studentId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { Student } from "@/models/Student";
@@ -13,7 +13,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ studentId: string }> }
 ) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireFinanceStaff();
   await connectToDatabase();
 
   try {
@@ -136,7 +136,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ studentId: string }> }
 ) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
 
   const session = await mongoose.startSession();

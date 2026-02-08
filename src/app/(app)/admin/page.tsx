@@ -1011,6 +1011,14 @@ export default function SchoolAdminOverviewPage() {
               disabled={!onboarding.isActionEnabled("other")}
             />
             <QuickAction
+              title="Invite Bursar"
+              description="Grant bursar access to finance and reconciliation workflows"
+              icon={Mail}
+              accent="bg-amber-500/20 border-amber-500/30"
+              href="/admin/invitations?role=bursar"
+              disabled={!onboarding.isActionEnabled("other")}
+            />
+            <QuickAction
               title="Generate Simple Report"
               description="Download a quick snapshot for management"
               icon={ClipboardList}

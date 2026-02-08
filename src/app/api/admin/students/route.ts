@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/students/route.ts
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import mongoose from "mongoose";
 import { Student } from "@/models/Student";
@@ -28,7 +28,7 @@ function computeIsNew(enrolledAt?: Date | null, createdAt?: Date): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireFinanceStaff();
   await connectToDatabase();
 
   // Ensure models are registered before using populate

@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FinancialTransaction } from "@/models/FinancialTransaction";
 import { recordActivity } from "@/lib/audit/recordActivity";
@@ -26,16 +26,25 @@ interface TransactionLean {
   grossAmountMinor: number;
   currency: string;
   description?: string | null;
+  createdBy?: mongoose.Types.ObjectId | null;
   approval?: {
     required: boolean;
     status: string;
     requestedBy?: mongoose.Types.ObjectId;
     requestedAt?: Date;
-    reviewedBy?: mongoose.Types.ObjectId;
-    reviewedAt?: Date;
-    reviewNotes?: string;
+    decidedBy?: mongoose.Types.ObjectId;
+    decidedAt?: Date;
+    reason?: string;
   } | null;
   meta?: Record<string, unknown>;
+}
+
+function objectIdEquals(
+  left?: mongoose.Types.ObjectId | null,
+  right?: mongoose.Types.ObjectId | null
+): boolean {
+  if (!left || !right) return false;
+  return String(left) === String(right);
 }
 
 // ========================
@@ -53,7 +62,7 @@ const ApprovalSchema = z.object({
 
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const { id } = await context.params;
@@ -114,12 +123,28 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
+    // Maker-checker: requester/creator cannot approve their own manual transaction.
+    const userIdObj = new mongoose.Types.ObjectId(String(userId));
+    if (
+      objectIdEquals(transaction.approval.requestedBy || null, userIdObj) ||
+      objectIdEquals(transaction.createdBy || null, userIdObj)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Dual-control policy violation: a different finance user must approve this transaction.",
+          code: "maker_checker_required",
+        },
+        { status: 409 }
+      );
+    }
+
     // Update transaction
     const updateData: Record<string, unknown> = {
       "approval.status": action === "approve" ? "approved" : "rejected",
-      "approval.reviewedBy": new mongoose.Types.ObjectId(String(userId)),
-      "approval.reviewedAt": new Date(),
-      "approval.reviewNotes": reviewNotes || null,
+      "approval.decidedBy": userIdObj,
+      "approval.decidedAt": new Date(),
+      "approval.reason": reviewNotes || null,
       updatedAt: new Date(),
     };
 

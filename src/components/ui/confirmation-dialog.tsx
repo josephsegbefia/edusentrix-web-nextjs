@@ -18,6 +18,7 @@ type ConfirmationDialogProps = {
   onConfirm: () => void;
   onCancel: () => void;
   className?: string;
+  zIndexClass?: string;
 };
 
 export function ConfirmationDialog({
@@ -31,6 +32,7 @@ export function ConfirmationDialog({
   onConfirm,
   onCancel,
   className,
+  zIndexClass = "z-50",
 }: ConfirmationDialogProps) {
   return (
     <Modal
@@ -39,6 +41,7 @@ export function ConfirmationDialog({
       title={title}
       description={description}
       className={cn("sm:max-w-md", className)}
+      zIndexClass={zIndexClass}
     >
       <div className="space-y-5">
         <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-4">
@@ -67,4 +70,3 @@ export function ConfirmationDialog({
     </Modal>
   );
 }
-

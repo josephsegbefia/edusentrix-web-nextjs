@@ -52,7 +52,16 @@ export type InvitationStats = {
     teacher: number;
     staff: number;
     school_admin: number;
+    parent: number;
+    bursar: number;
   };
+};
+
+export type CreateInvitationInput = {
+  email: string;
+  role: InvitationRole;
+  firstName?: string;
+  lastName?: string;
 };
 
 type FetchInvitationsParams = {
@@ -107,6 +116,28 @@ export function useInvitationStats() {
       return json.data;
     },
     staleTime: 60_000,
+  });
+}
+
+export function useCreateInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CreateInvitationInput) => {
+      const res = await fetch("/api/admin/invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || "Failed to create invitation");
+      }
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    },
   });
 }
 

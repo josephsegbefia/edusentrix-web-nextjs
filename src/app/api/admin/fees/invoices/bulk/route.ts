@@ -1,6 +1,6 @@
 // src/app/api/admin/fees/invoices/bulk/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
@@ -12,7 +12,7 @@ import { toMinorUnits } from "@/lib/fees/money";
 import mongoose from "mongoose";
 
 export async function POST(req: NextRequest) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
 
   const session = await mongoose.startSession();

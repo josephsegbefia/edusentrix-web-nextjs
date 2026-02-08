@@ -1,12 +1,12 @@
 // src/app/api/admin/fees/structures/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FeeStructure } from "@/models/FeeStructure";
 import { toMinorUnits } from "@/lib/fees/money";
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireFinanceStaff();
   await connectToDatabase();
 
   try {
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
 
   try {

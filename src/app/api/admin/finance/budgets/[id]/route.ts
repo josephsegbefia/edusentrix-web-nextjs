@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Budget, BudgetPeriodType } from "@/models/Budget";
 import { ExpenseCategory } from "@/models/ExpenseCategory";
@@ -49,7 +49,7 @@ interface BudgetLean {
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     void Budget.modelName;
@@ -225,7 +225,7 @@ const UpdateBudgetSchema = z.object({
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     void Budget.modelName;
@@ -337,7 +337,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     void Budget.modelName;

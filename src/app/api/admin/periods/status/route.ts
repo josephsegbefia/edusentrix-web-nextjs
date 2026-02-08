@@ -1,6 +1,6 @@
 // src/app/api/admin/periods/status/route.ts
 import { NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
@@ -121,7 +121,7 @@ function getMessage(
 
 export async function GET() {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const schoolIdObj =

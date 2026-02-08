@@ -4,6 +4,12 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import mongoose from "mongoose";
 
+type InvitationInvitedBy = {
+  firstName?: string;
+  lastName?: string;
+  email: string;
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { schoolId } = await requireSchoolAdmin();
@@ -34,6 +40,8 @@ export async function GET(req: NextRequest) {
       | "teacher"
       | "staff"
       | "school_admin"
+      | "parent"
+      | "bursar"
       | null;
 
     const filter: Record<string, unknown> = {
@@ -66,10 +74,10 @@ export async function GET(req: NextRequest) {
     ];
 
     const rows = invitations.map((inv) => {
+      const invitedByMeta = inv.invitedBy as InvitationInvitedBy | null;
       const invitedBy = inv.invitedBy
-        ? `${(inv.invitedBy as any).firstName || ""} ${
-            (inv.invitedBy as any).lastName || ""
-          }`.trim() || (inv.invitedBy as any).email
+        ? `${invitedByMeta?.firstName || ""} ${invitedByMeta?.lastName || ""}`.trim() ||
+          invitedByMeta?.email
         : "—";
 
       return [

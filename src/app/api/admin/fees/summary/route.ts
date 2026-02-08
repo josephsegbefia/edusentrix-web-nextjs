@@ -1,13 +1,13 @@
 // src/app/api/admin/fees/summary/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireFinanceStaff();
   await connectToDatabase();
 
   if (!schoolId) {

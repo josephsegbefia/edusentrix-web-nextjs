@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import ActiveLink from "../active/ActiveLink";
 import {
   LayoutDashboard,
-  Users,
   GraduationCap,
   BookOpen,
   Calendar,
@@ -28,6 +27,7 @@ import {
   Heart,
   Landmark,
   Receipt,
+  FileSearch,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -148,6 +148,11 @@ const navSections: NavSection[] = [
         label: "Financial Center",
         href: "/admin/finance",
         icon: Landmark,
+      },
+      {
+        label: "Reconciliation Queue",
+        href: "/admin/finance/reconciliation",
+        icon: FileSearch,
       },
       {
         label: "Fees & Payments",
@@ -288,6 +293,7 @@ function MobileSidebar({
       >
         {/* Header */}
         <SheetHeader className="border-b border-neutral-900 px-4 py-4">
+          <SheetTitle className="sr-only">School Admin Navigation Menu</SheetTitle>
           <div className="flex items-center justify-between">
             <SchoolBrand size="md" showName href="/admin" />
             <Button

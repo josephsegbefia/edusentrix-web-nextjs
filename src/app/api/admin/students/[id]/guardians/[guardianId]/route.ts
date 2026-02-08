@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/students/[id]/guardians/[guardianId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
@@ -13,6 +14,7 @@ import { z } from "zod";
 const UpdateGuardianSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional().nullable(),
   relationship: z
     .enum([
@@ -106,6 +108,29 @@ export async function PATCH(
       guardian.userId instanceof mongoose.Types.ObjectId
         ? guardian.userId
         : new mongoose.Types.ObjectId(String(guardian.userId));
+    const normalizedEmail = validated.email?.toLowerCase().trim();
+
+    if (normalizedEmail !== undefined) {
+      const existingUserRaw = await User.findOne({
+        email: normalizedEmail,
+        _id: { $ne: userIdObj },
+      })
+        .select("_id")
+        .lean();
+      const existingUser = Array.isArray(existingUserRaw)
+        ? existingUserRaw[0] || null
+        : existingUserRaw;
+
+      if (existingUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Email address is already used by another account",
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     // Handle primary guardian change
     if (validated.isPrimary === true) {
@@ -136,10 +161,18 @@ export async function PATCH(
       await Guardian.updateOne({ _id: guardianIdObj }, { $set: updateData });
     }
 
+    if (normalizedEmail !== undefined) {
+      await Guardian.updateMany(
+        { userId: userIdObj },
+        { $set: { email: normalizedEmail } }
+      );
+    }
+
     // Update user record if name/photo changed
     const userUpdateData: any = {};
     if (validated.firstName) userUpdateData.firstName = validated.firstName.trim();
     if (validated.lastName) userUpdateData.lastName = validated.lastName.trim();
+    if (normalizedEmail !== undefined) userUpdateData.email = normalizedEmail;
     if (validated.phone !== undefined)
       userUpdateData.phone = validated.phone?.trim() || undefined;
     if (validated.photoUrl !== undefined)

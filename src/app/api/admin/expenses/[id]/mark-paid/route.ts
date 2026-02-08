@@ -2,7 +2,7 @@
 // Mark approved expense as paid and write to ledger
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SchoolExpense, ExpensePaymentMethod } from "@/models/SchoolExpense";
 import { FinancialTransaction } from "@/models/FinancialTransaction";
@@ -16,7 +16,7 @@ interface RouteParams {
 // POST /api/admin/expenses/:id/mark-paid
 export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireFinanceStaff();
     const { id } = await params;
     await connectToDatabase();
 

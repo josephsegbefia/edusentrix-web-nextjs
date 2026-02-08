@@ -5,16 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns/format";
 import {
   Search,
-  Filter,
   ArrowUpRight,
   ArrowDownRight,
   DollarSign,
   RefreshCw,
-  ChevronDown,
   Eye,
   Download,
   MoreHorizontal,
-  Check,
   X,
   Clock,
   AlertCircle,
@@ -149,6 +146,50 @@ function getMethodLabel(method: string) {
   return labels[method] || method;
 }
 
+function getReconciliationBadge(
+  status?: "unmatched" | "matched" | "disputed" | "ignored" | string
+) {
+  const normalizedStatus = status || "unmatched";
+  if (normalizedStatus === "matched") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+      >
+        Matched
+      </Badge>
+    );
+  }
+  if (normalizedStatus === "disputed") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-red-500/30 bg-red-500/10 text-red-300"
+      >
+        Disputed
+      </Badge>
+    );
+  }
+  if (normalizedStatus === "ignored") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-slate-500/30 bg-slate-500/10 text-slate-300"
+      >
+        Ignored
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="border-amber-500/30 bg-amber-500/10 text-amber-200"
+    >
+      Unmatched
+    </Badge>
+  );
+}
+
 // ========================
 // Transaction Row Component
 // ========================
@@ -185,6 +226,7 @@ function TransactionRow({
           <p className="font-medium text-white truncate">
             {transaction.description || transaction.reference || getCategoryLabel(transaction.category)}
           </p>
+          {getReconciliationBadge(transaction.reconciliation?.status)}
         </div>
         <div className="mt-1 flex items-center gap-3 text-xs text-white/50">
           <span>{getCategoryLabel(transaction.category)}</span>
@@ -257,12 +299,17 @@ export default function TransactionsLedgerPage() {
   const initialStatus = searchParams.get("status") || "all";
   const initialDirection = searchParams.get("direction") || "all";
   const initialCategory = searchParams.get("category") || "all";
+  const initialReconciliationStatus =
+    searchParams.get("reconciliationStatus") || "all";
 
   // Filters state
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState(initialStatus);
   const [directionFilter, setDirectionFilter] = React.useState(initialDirection);
   const [categoryFilter, setCategoryFilter] = React.useState(initialCategory);
+  const [reconciliationFilter, setReconciliationFilter] = React.useState(
+    initialReconciliationStatus
+  );
   const [page, setPage] = React.useState(1);
 
   // Build filters
@@ -271,11 +318,13 @@ export default function TransactionsLedgerPage() {
     status: statusFilter !== "all" ? statusFilter : undefined,
     direction: directionFilter !== "all" ? directionFilter : undefined,
     category: categoryFilter !== "all" ? categoryFilter : undefined,
+    reconciliationStatus:
+      reconciliationFilter !== "all" ? reconciliationFilter : undefined,
     page,
     limit: 20,
     sortBy: "occurredAt",
     sortOrder: "desc" as const,
-  }), [search, statusFilter, directionFilter, categoryFilter, page]);
+  }), [search, statusFilter, directionFilter, categoryFilter, reconciliationFilter, page]);
 
   const { data, isLoading, refetch } = useFinancialTransactions(filters);
 
@@ -287,6 +336,9 @@ export default function TransactionsLedgerPage() {
     if (filters.status) params.set("status", filters.status);
     if (filters.direction) params.set("direction", filters.direction);
     if (filters.category) params.set("category", filters.category);
+    if (filters.reconciliationStatus) {
+      params.set("reconciliationStatus", filters.reconciliationStatus);
+    }
     params.set("format", "csv");
 
     // Trigger download
@@ -329,6 +381,14 @@ export default function TransactionsLedgerPage() {
     { value: "other_income", label: "Other Income" },
     { value: "refund", label: "Refunds" },
     { value: "adjustment", label: "Adjustments" },
+  ];
+
+  const reconciliationOptions = [
+    { value: "all", label: "All Reconciliation" },
+    { value: "unmatched", label: "Unmatched" },
+    { value: "matched", label: "Matched" },
+    { value: "disputed", label: "Disputed" },
+    { value: "ignored", label: "Ignored" },
   ];
 
   return (
@@ -438,6 +498,26 @@ export default function TransactionsLedgerPage() {
                 ))}
               </PremiumSelectContent>
             </PremiumSelect>
+
+            {/* Reconciliation Filter */}
+            <PremiumSelect
+              value={reconciliationFilter}
+              onValueChange={(v) => {
+                setReconciliationFilter(v);
+                setPage(1);
+              }}
+            >
+              <PremiumSelectTrigger className="w-[180px]">
+                <PremiumSelectValue placeholder="Reconciliation" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                {reconciliationOptions.map((opt) => (
+                  <PremiumSelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </PremiumSelectItem>
+                ))}
+              </PremiumSelectContent>
+            </PremiumSelect>
           </div>
         </CardContent>
       </Card>
@@ -474,6 +554,7 @@ export default function TransactionsLedgerPage() {
               <h3 className="text-lg font-medium text-white">No transactions found</h3>
               <p className="mt-1 text-sm text-white/50">
                 {search || statusFilter !== "all" || directionFilter !== "all" || categoryFilter !== "all"
+                  || reconciliationFilter !== "all"
                   ? "Try adjusting your filters"
                   : "Transactions will appear here as they occur"}
               </p>

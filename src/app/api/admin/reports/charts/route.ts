@@ -703,6 +703,8 @@ export async function GET(req: NextRequest) {
     teacher: 0,
     staff: 0,
     school_admin: 0,
+    parent: 0,
+    bursar: 0,
   };
   for (const row of invitationRoleAgg) {
     const key = String(row._id) as keyof typeof invitationRoleCounts;

@@ -26,6 +26,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -259,6 +260,7 @@ function MobileSidebar({
       >
         {/* Header */}
         <SheetHeader className="border-b border-neutral-900 px-4 py-4">
+          <SheetTitle className="sr-only">Parent Navigation Menu</SheetTitle>
           <div className="flex items-center justify-between">
             <SchoolBrand size="md" showName href="/parent" />
             <Button

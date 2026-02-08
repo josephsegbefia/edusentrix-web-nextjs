@@ -2,7 +2,7 @@
 // CRUD operations for expense categories
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import {
   ExpenseCategory,
@@ -13,7 +13,7 @@ import {
 // List all expense categories for the school
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const searchParams = req.nextUrl.searchParams;
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 // Create a new expense category
 export async function POST(req: NextRequest) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const body = await req.json();
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
 // PATCH /api/admin/expenses/categories (bulk seed default categories)
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const body = await req.json();

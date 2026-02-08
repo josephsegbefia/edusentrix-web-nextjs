@@ -2,13 +2,14 @@
 // Export financial transactions as CSV
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import {
   FinancialTransaction,
   TransactionStatus,
   TransactionCategory,
   TransactionSourceModule,
+  ReconciliationStatus,
 } from "@/models/FinancialTransaction";
 import mongoose from "mongoose";
 import { format } from "date-fns/format";
@@ -52,7 +53,7 @@ interface TransactionLean {
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const searchParams = req.nextUrl.searchParams;
@@ -62,6 +63,7 @@ export async function GET(req: NextRequest) {
     const direction = searchParams.get("direction");
     const category = searchParams.get("category");
     const sourceModule = searchParams.get("sourceModule");
+    const reconciliationStatus = searchParams.get("reconciliationStatus");
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
     const exportFormat = searchParams.get("format") || "csv";
@@ -88,6 +90,18 @@ export async function GET(req: NextRequest) {
     if (sourceModule) {
       const modules = sourceModule.split(",") as TransactionSourceModule[];
       query.sourceModule = { $in: modules };
+    }
+
+    if (reconciliationStatus) {
+      const statuses = reconciliationStatus
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean) as ReconciliationStatus[];
+      if (statuses.length === 1) {
+        query["reconciliation.status"] = statuses[0];
+      } else if (statuses.length > 1) {
+        query["reconciliation.status"] = { $in: statuses };
+      }
     }
 
     if (dateFrom || dateTo) {

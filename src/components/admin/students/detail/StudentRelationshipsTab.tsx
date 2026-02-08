@@ -498,10 +498,7 @@ export function StudentRelationshipsTab({ student }: Props) {
         title="Manage Guardians"
         widthClass="max-w-[60vw]"
       >
-        <ManageGuardiansContent
-          studentId={student.id}
-          onClose={() => setManageGuardiansOpen(false)}
-        />
+        <ManageGuardiansContent studentId={student.id} />
       </ResponsiveModal>
     </div>
   );

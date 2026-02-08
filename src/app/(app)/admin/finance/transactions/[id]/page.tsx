@@ -25,6 +25,7 @@ import {
   Hash,
   Layers,
   RefreshCw,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,10 +35,19 @@ import { Separator } from "@/components/ui/separator";
 import {
   useFinancialTransaction,
   useApproveTransaction,
-  TransactionDTO,
+  useReconcileTransaction,
+  ReconciliationProvider,
   TransactionStatus,
 } from "@/hooks/admin/useFinancialCenter";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { toast } from "sonner";
 
 // ========================
@@ -144,6 +154,58 @@ function getMethodLabel(method: string) {
   return labels[method] || method;
 }
 
+const RECONCILIATION_PROVIDER_OPTIONS: Array<{
+  value: ReconciliationProvider;
+  label: string;
+}> = [
+  { value: "paystack", label: "Paystack" },
+  { value: "hubtel", label: "Hubtel" },
+  { value: "mtn_momo", label: "MTN MoMo" },
+  { value: "bank", label: "Bank Statement" },
+  { value: "manual", label: "Manual Entry" },
+];
+
+function getReconciliationStatusBadge(status: string) {
+  if (status === "matched") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 capitalize"
+      >
+        Matched
+      </Badge>
+    );
+  }
+  if (status === "disputed") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-red-500/30 bg-red-500/10 text-red-300 capitalize"
+      >
+        Disputed
+      </Badge>
+    );
+  }
+  if (status === "ignored") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-slate-500/30 bg-slate-500/10 text-slate-300 capitalize"
+      >
+        Ignored
+      </Badge>
+    );
+  }
+  return (
+    <Badge
+      variant="outline"
+      className="border-amber-500/30 bg-amber-500/10 text-amber-200 capitalize"
+    >
+      Unmatched
+    </Badge>
+  );
+}
+
 function getSourceModuleLink(sourceModule: string, sourceId?: string | null) {
   if (!sourceId) return null;
   
@@ -155,6 +217,13 @@ function getSourceModuleLink(sourceModule: string, sourceId?: string | null) {
   };
   
   return links[sourceModule] || null;
+}
+
+function formatDualControlTrigger(trigger: string) {
+  if (trigger === "manual_entry") return "Manual entry";
+  if (trigger === "high_value") return "High value";
+  if (trigger === "sensitive_category") return "Sensitive category";
+  return trigger.replace("_", " ");
 }
 
 // ========================
@@ -195,11 +264,20 @@ export default function TransactionDetailPage() {
 
   const { data: transaction, isLoading, refetch } = useFinancialTransaction(id);
   const approveTransaction = useApproveTransaction();
+  const reconcileTransaction = useReconcileTransaction();
 
   // Approval state
   const [showApprovalForm, setShowApprovalForm] = React.useState(false);
   const [approvalAction, setApprovalAction] = React.useState<"approve" | "reject">("approve");
   const [reviewNotes, setReviewNotes] = React.useState("");
+  const [showReconciliationForm, setShowReconciliationForm] = React.useState(false);
+  const [reconciliationAction, setReconciliationAction] = React.useState<
+    "match" | "unmatch" | "dispute" | "ignore"
+  >("match");
+  const [provider, setProvider] = React.useState<ReconciliationProvider>("bank");
+  const [providerReference, setProviderReference] = React.useState("");
+  const [settlementBatchId, setSettlementBatchId] = React.useState("");
+  const [reconciliationReason, setReconciliationReason] = React.useState("");
 
   const handleApproval = async () => {
     try {
@@ -223,10 +301,88 @@ export default function TransactionDetailPage() {
     }
   };
 
+  const reconciliationStatus = transaction?.reconciliation?.status || "unmatched";
+  const canMarkMatched =
+    ["unmatched", "disputed", "ignored"].includes(reconciliationStatus) &&
+    ["success", "refunded", "reversed"].includes(transaction?.status || "");
+  const canDispute = ["unmatched", "matched"].includes(reconciliationStatus);
+  const canIgnore = ["unmatched", "disputed"].includes(reconciliationStatus);
+  const canUnmatch = reconciliationStatus !== "unmatched";
+
+  const openReconciliationForm = React.useCallback(
+    (action: "match" | "unmatch" | "dispute" | "ignore") => {
+      setReconciliationAction(action);
+      setShowReconciliationForm(true);
+      if (action === "match") {
+        if (transaction?.reconciliation?.provider) {
+          setProvider(transaction.reconciliation.provider);
+        }
+        setProviderReference(transaction?.reconciliation?.providerReference || "");
+        setSettlementBatchId(transaction?.reconciliation?.settlementBatchId || "");
+      }
+      setReconciliationReason("");
+    },
+    [transaction]
+  );
+
+  const handleReconciliation = async () => {
+    const requiresProviderFields = reconciliationAction === "match";
+    const requiresReason =
+      reconciliationAction === "dispute" || reconciliationAction === "ignore";
+
+    if (requiresProviderFields && !providerReference.trim()) {
+      toast.error("Provider reference is required to mark a transaction as matched");
+      return;
+    }
+
+    if (requiresReason && !reconciliationReason.trim()) {
+      toast.error("Reason is required for this reconciliation action");
+      return;
+    }
+
+    try {
+      await reconcileTransaction.mutateAsync({
+        transactionId: id,
+        action: reconciliationAction,
+        provider: requiresProviderFields ? provider : undefined,
+        providerReference: requiresProviderFields
+          ? providerReference.trim()
+          : undefined,
+        settlementBatchId: requiresProviderFields
+          ? settlementBatchId.trim() || undefined
+          : undefined,
+        reason: reconciliationReason.trim() || undefined,
+      });
+
+      const successText: Record<string, string> = {
+        match: "Transaction marked as matched",
+        unmatch: "Transaction returned to unmatched",
+        dispute: "Transaction marked as disputed",
+        ignore: "Transaction marked as ignored",
+      };
+      toast.success(successText[reconciliationAction]);
+      setShowReconciliationForm(false);
+      setReconciliationReason("");
+      refetch();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update reconciliation"
+      );
+    }
+  };
+
   // Check if transaction needs approval
   const needsApproval =
     transaction?.status === "pending" &&
     transaction?.sourceModule === "manual";
+
+  const dualControlPolicy = transaction?.policy?.dualControl;
+  const dualControlRequired = Boolean(dualControlPolicy?.required);
+  const dualControlActorConflict = Boolean(dualControlPolicy?.actorConflict);
+  const dualControlTriggers = dualControlPolicy?.triggers || [];
+  const dualControlHardBlock = dualControlRequired && dualControlActorConflict;
 
   if (isLoading) {
     return (
@@ -311,6 +467,34 @@ export default function TransactionDetailPage() {
                 <p className="text-sm text-white/60 mb-4">
                   This manual transaction requires review and approval before it becomes finalized.
                 </p>
+                {dualControlRequired && (
+                  <div
+                    className={`mb-4 rounded-xl border p-3 text-xs ${
+                      dualControlHardBlock
+                        ? "border-red-500/30 bg-red-500/10 text-red-100"
+                        : "border-amber-500/25 bg-amber-500/10 text-amber-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-medium">
+                      <ShieldAlert className="h-4 w-4" />
+                      Maker-checker pre-check
+                    </div>
+                    <p className="mt-1">
+                      Triggered by: {dualControlTriggers.map(formatDualControlTrigger).join(", ") || "policy"}
+                      {transaction
+                        ? ` • Threshold: ${formatCurrency(
+                            dualControlPolicy?.thresholdMinor || 0,
+                            transaction.currency
+                          )}`
+                        : ""}
+                    </p>
+                    {dualControlHardBlock && (
+                      <p className="mt-1">
+                        You appear to be the maker/requester for this transaction. A different finance user must approve it.
+                      </p>
+                    )}
+                  </div>
+                )}
                 {!showApprovalForm ? (
                   <div className="flex gap-3">
                     <Button
@@ -318,6 +502,7 @@ export default function TransactionDetailPage() {
                         setApprovalAction("approve");
                         setShowApprovalForm(true);
                       }}
+                      disabled={dualControlHardBlock}
                       className="bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -329,6 +514,7 @@ export default function TransactionDetailPage() {
                         setApprovalAction("reject");
                         setShowApprovalForm(true);
                       }}
+                      disabled={dualControlHardBlock}
                       className="border-red-500/30 text-red-400 hover:bg-red-500/10"
                     >
                       <XCircle className="mr-2 h-4 w-4" />
@@ -355,7 +541,7 @@ export default function TransactionDetailPage() {
                     <div className="flex gap-3">
                       <Button
                         onClick={handleApproval}
-                        disabled={approveTransaction.isPending}
+                        disabled={approveTransaction.isPending || dualControlHardBlock}
                         className={
                           approvalAction === "approve"
                             ? "bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -624,46 +810,222 @@ export default function TransactionDetailPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Reconciliation Card */}
-          {transaction.reconciliation && (
-            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-              <CardHeader className="border-b border-white/5">
-                <CardTitle className="text-lg text-white">Reconciliation</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/50">Status</span>
-                  <Badge
-                    variant="outline"
-                    className={`capitalize ${
-                      transaction.reconciliation.status === "matched"
-                        ? "border-emerald-500/30 text-emerald-400"
-                        : transaction.reconciliation.status === "disputed"
-                        ? "border-red-500/30 text-red-400"
-                        : "border-white/20 text-white/60"
-                    }`}
-                  >
-                    {transaction.reconciliation.status}
-                  </Badge>
+          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+            <CardHeader className="border-b border-white/5">
+              <CardTitle className="text-lg text-white">Reconciliation</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              {dualControlRequired && (
+                <div
+                  className={`rounded-xl border p-3 text-xs ${
+                    dualControlHardBlock
+                      ? "border-red-500/30 bg-red-500/10 text-red-100"
+                      : "border-amber-500/25 bg-amber-500/10 text-amber-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 font-medium">
+                    <ShieldAlert className="h-4 w-4" />
+                    Maker-checker pre-check
+                  </div>
+                  <p className="mt-1">
+                    Triggered by: {dualControlTriggers.map(formatDualControlTrigger).join(", ") || "policy"}
+                    {transaction
+                      ? ` • Threshold: ${formatCurrency(
+                          dualControlPolicy?.thresholdMinor || 0,
+                          transaction.currency
+                        )}`
+                      : ""}
+                  </p>
+                  {dualControlHardBlock && (
+                    <p className="mt-1">
+                      You appear to be the maker/requester for this transaction. A different finance user must reconcile it.
+                    </p>
+                  )}
                 </div>
-                {transaction.reconciliation.provider && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-white/50">Provider</span>
-                    <span className="text-sm text-white capitalize">
-                      {transaction.reconciliation.provider}
-                    </span>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-white/50">Status</span>
+                {getReconciliationStatusBadge(reconciliationStatus)}
+              </div>
+              {transaction.reconciliation?.provider && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-white/50">Provider</span>
+                  <span className="text-sm text-white capitalize">
+                    {transaction.reconciliation.provider.replace("_", " ")}
+                  </span>
+                </div>
+              )}
+              {transaction.reconciliation?.providerReference && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-white/50">Reference</span>
+                  <span className="max-w-[180px] truncate text-sm font-mono text-white">
+                    {transaction.reconciliation.providerReference}
+                  </span>
+                </div>
+              )}
+              {transaction.reconciliation?.settlementBatchId && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-white/50">Settlement Batch</span>
+                  <span className="max-w-[180px] truncate text-sm font-mono text-white">
+                    {transaction.reconciliation.settlementBatchId}
+                  </span>
+                </div>
+              )}
+
+              <Separator className="bg-white/5" />
+
+              {!showReconciliationForm ? (
+                <div className="flex flex-wrap gap-2">
+                  {canMarkMatched && (
+                    <Button
+                      size="sm"
+                      onClick={() => openReconciliationForm("match")}
+                      disabled={dualControlHardBlock}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      Mark Matched
+                    </Button>
+                  )}
+                  {canDispute && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openReconciliationForm("dispute")}
+                      disabled={dualControlHardBlock}
+                      className="border-red-500/30 text-red-300 hover:bg-red-500/10"
+                    >
+                      Mark Disputed
+                    </Button>
+                  )}
+                  {canIgnore && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openReconciliationForm("ignore")}
+                      disabled={dualControlHardBlock}
+                      className="border-slate-500/30 text-slate-200 hover:bg-slate-500/10"
+                    >
+                      Ignore
+                    </Button>
+                  )}
+                  {canUnmatch && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openReconciliationForm("unmatch")}
+                      disabled={dualControlHardBlock}
+                      className="border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+                    >
+                      Mark Unmatched
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reconciliationAction === "match" && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-xs text-white/50">Provider</label>
+                        <PremiumSelect
+                          value={provider}
+                          onValueChange={(value) =>
+                            setProvider(value as ReconciliationProvider)
+                          }
+                        >
+                          <PremiumSelectTrigger className="w-full">
+                            <PremiumSelectValue placeholder="Select provider" />
+                          </PremiumSelectTrigger>
+                          <PremiumSelectContent>
+                            {RECONCILIATION_PROVIDER_OPTIONS.map((option) => (
+                              <PremiumSelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </PremiumSelectItem>
+                            ))}
+                          </PremiumSelectContent>
+                        </PremiumSelect>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs text-white/50">
+                          Provider reference
+                        </label>
+                        <Input
+                          value={providerReference}
+                          onChange={(event) =>
+                            setProviderReference(event.target.value)
+                          }
+                          placeholder="Gateway or bank reference"
+                          className="border-white/10 bg-white/5 text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs text-white/50">
+                          Settlement batch ID (optional)
+                        </label>
+                        <Input
+                          value={settlementBatchId}
+                          onChange={(event) =>
+                            setSettlementBatchId(event.target.value)
+                          }
+                          placeholder="Batch or statement ID"
+                          className="border-white/10 bg-white/5 text-white"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {(reconciliationAction === "dispute" ||
+                    reconciliationAction === "ignore" ||
+                    reconciliationAction === "unmatch") && (
+                    <div className="space-y-2">
+                      <label className="text-xs text-white/50">
+                        Reason
+                        {(reconciliationAction === "dispute" ||
+                          reconciliationAction === "ignore") &&
+                          " (required)"}
+                      </label>
+                      <Textarea
+                        value={reconciliationReason}
+                        onChange={(event) =>
+                          setReconciliationReason(event.target.value)
+                        }
+                        placeholder="Add context for audit and review"
+                        className="min-h-[88px] border-white/10 bg-white/5 text-white"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleReconciliation}
+                      disabled={reconcileTransaction.isPending || dualControlHardBlock}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {reconcileTransaction.isPending ? (
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowReconciliationForm(false);
+                        setReconciliationReason("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
                   </div>
-                )}
-                {transaction.reconciliation.providerReference && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-white/50">Reference</span>
-                    <span className="text-sm text-white font-mono">
-                      {transaction.reconciliation.providerReference}
-                    </span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Audit Info Card */}
           <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">

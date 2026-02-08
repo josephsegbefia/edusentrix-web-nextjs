@@ -24,6 +24,8 @@ function decideNextPath(u: {
       return "/parent";
     case "student":
       return "/student";
+    case "bursar":
+      return "/bursar";
     default:
       return "/dashboard";
   }

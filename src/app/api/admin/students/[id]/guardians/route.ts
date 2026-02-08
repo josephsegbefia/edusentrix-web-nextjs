@@ -170,7 +170,79 @@ export async function POST(
       : parentUserRaw;
 
     let userIdObj: mongoose.Types.ObjectId;
-    let isNewUser = false;
+    const studentName = `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim();
+
+    const inviteParentIfNeeded = async () => {
+      const existingPendingInvite = await Invitation.findOne({
+        schoolId: schoolIdObj,
+        email: emailLower,
+        role: "parent",
+        status: "pending",
+        expiresAt: { $gt: new Date() },
+      })
+        .select("_id")
+        .lean<{ _id: mongoose.Types.ObjectId } | null>();
+
+      if (existingPendingInvite) {
+        return;
+      }
+
+      const APP_URL = getAppUrl();
+      const redirectUrl = getInvitationRedirectUrl();
+      let clerkInvitationId: string | undefined;
+      let invitationStatus: "pending" | "failed" = "pending";
+
+      try {
+        const clerk = await clerkClient();
+        const clerkInvitation = await clerk.invitations.createInvitation({
+          emailAddress: emailLower,
+          redirectUrl,
+          publicMetadata: {
+            role: "parent",
+            schoolId: String(schoolIdObj),
+          },
+          ignoreExisting: true,
+        });
+        clerkInvitationId = clerkInvitation.id;
+
+        // Fetch school name for email
+        const school = await School.findById(schoolIdObj).select("name").lean();
+        const schoolName = school ? (school as any).name : "your school";
+
+        // Send branded invitation email
+        await sendEmail(emailLower, "USER_INVITE", {
+          name: `${validated.firstName} ${validated.lastName}`,
+          role: "parent",
+          schoolName,
+          setupLink: `${APP_URL}/sign-in`,
+        });
+      } catch (clerkError) {
+        console.error("Clerk invitation error:", clerkError);
+        invitationStatus = "failed";
+      }
+
+      try {
+        await Invitation.create({
+          email: emailLower,
+          role: "parent",
+          schoolId: schoolIdObj,
+          status: invitationStatus,
+          clerkInvitationId,
+          sentAt: new Date(),
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          invitedBy: new mongoose.Types.ObjectId(userId),
+          metadata: {
+            firstName: validated.firstName,
+            lastName: validated.lastName,
+            studentId: id,
+            studentName,
+            relationship: validated.relationship,
+          },
+        });
+      } catch (inviteRecordError) {
+        console.error("Failed to create parent invitation record:", inviteRecordError);
+      }
+    };
 
     if (parentUser) {
       // User exists - verify they have parent role or update role
@@ -197,9 +269,13 @@ export async function POST(
       if (Object.keys(updateData).length > 0) {
         await User.updateOne({ _id: userIdObj }, { $set: updateData });
       }
+
+      // If this account has not been linked to Clerk yet, send an invite.
+      if (!parentUser.clerkUserId) {
+        await inviteParentIfNeeded();
+      }
     } else {
       // Create new user
-      isNewUser = true;
       const newUser = new User({
         email: emailLower,
         firstName: validated.firstName.trim(),
@@ -216,57 +292,7 @@ export async function POST(
           ? newUser._id
           : new mongoose.Types.ObjectId(String(newUser._id));
 
-      // Create Clerk user and send invitation
-      const APP_URL = getAppUrl();
-      const redirectUrl = getInvitationRedirectUrl();
-
-      try {
-        const clerk = await clerkClient();
-        const clerkInvitation = await clerk.invitations.createInvitation({
-          emailAddress: emailLower,
-          redirectUrl,
-          publicMetadata: {
-            role: "parent",
-            schoolId: String(schoolIdObj),
-          },
-          ignoreExisting: true,
-        });
-
-        // Fetch school name for email
-        const school = await School.findById(schoolIdObj).select("name").lean();
-        const schoolName = school ? (school as any).name : "your school";
-        const studentName = `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim();
-
-        // Create Invitation record for tracking
-        await Invitation.create({
-          email: emailLower,
-          role: "parent",
-          schoolId: schoolIdObj,
-          status: "pending",
-          clerkInvitationId: clerkInvitation.id,
-          sentAt: new Date(),
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-          invitedBy: new mongoose.Types.ObjectId(userId),
-          metadata: {
-            firstName: validated.firstName,
-            lastName: validated.lastName,
-            studentId: id,
-            studentName,
-            relationship: validated.relationship,
-          },
-        });
-
-        // Send branded invitation email
-        await sendEmail(emailLower, "USER_INVITE", {
-          name: `${validated.firstName} ${validated.lastName}`,
-          role: "parent",
-          schoolName,
-          setupLink: `${APP_URL}/sign-in`,
-        });
-      } catch (clerkError) {
-        console.error("Clerk invitation error:", clerkError);
-        // Don't fail the request - user is created, invitation can be resent later
-      }
+      await inviteParentIfNeeded();
     }
 
     // Ensure UserMembership exists

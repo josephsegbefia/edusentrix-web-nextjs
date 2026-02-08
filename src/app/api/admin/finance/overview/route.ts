@@ -2,7 +2,7 @@
 // Financial Center Overview API - KPIs and breakdowns
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FinancialTransaction } from "@/models/FinancialTransaction";
 import { startOfDay } from "date-fns/startOfDay";
@@ -59,7 +59,7 @@ function getPreviousRange(range: DateRange): DateRange {
 // GET /api/admin/finance/overview
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const searchParams = req.nextUrl.searchParams;

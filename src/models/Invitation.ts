@@ -36,7 +36,7 @@ const invitationSchema = new Schema<IInvitation>(
     },
     role: {
       type: String,
-      enum: ["teacher", "staff", "school_admin", "parent"],
+      enum: ["teacher", "staff", "school_admin", "parent", "bursar"],
       required: true,
       index: true,
     },

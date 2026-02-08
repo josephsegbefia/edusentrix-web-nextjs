@@ -1,13 +1,13 @@
 // src/app/api/admin/fees/invoices/bulk/export/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { formatMoney } from "@/lib/fees/money";
 
 export async function POST(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireFinanceStaff();
   await connectToDatabase();
 
   try {

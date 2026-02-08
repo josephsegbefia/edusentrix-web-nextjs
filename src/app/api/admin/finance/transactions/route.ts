@@ -2,7 +2,7 @@
 // Financial Transactions API - List with filters and pagination
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import {
   FinancialTransaction,
@@ -10,13 +10,14 @@ import {
   TransactionCategory,
   TransactionSourceModule,
   TransactionMethod,
+  ReconciliationStatus,
 } from "@/models/FinancialTransaction";
 import mongoose from "mongoose";
 
 // GET /api/admin/finance/transactions
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const searchParams = req.nextUrl.searchParams;
@@ -70,7 +71,15 @@ export async function GET(req: NextRequest) {
     }
 
     if (reconciliationStatus) {
-      query["reconciliation.status"] = reconciliationStatus;
+      const statuses = reconciliationStatus
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean) as ReconciliationStatus[];
+      if (statuses.length === 1) {
+        query["reconciliation.status"] = statuses[0];
+      } else if (statuses.length > 1) {
+        query["reconciliation.status"] = { $in: statuses };
+      }
     }
 
     if (dateFrom || dateTo) {

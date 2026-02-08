@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import {
   FinancialTransaction,
@@ -59,7 +59,7 @@ const ManualTransactionSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireFinanceStaff();
     await connectToDatabase();
 
     const body = await req.json();

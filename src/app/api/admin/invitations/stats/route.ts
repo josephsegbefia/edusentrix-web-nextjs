@@ -1,10 +1,9 @@
-import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import mongoose from "mongoose";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
@@ -39,6 +38,8 @@ export async function GET(_req: NextRequest) {
       teacher: 0,
       staff: 0,
       school_admin: 0,
+      parent: 0,
+      bursar: 0,
     };
 
     byRole.forEach((item) => {

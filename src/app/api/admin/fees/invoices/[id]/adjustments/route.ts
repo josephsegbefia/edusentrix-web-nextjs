@@ -1,6 +1,6 @@
 // src/app/api/admin/fees/invoices/[id]/adjustments/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
@@ -13,7 +13,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
 
   const session = await mongoose.startSession();

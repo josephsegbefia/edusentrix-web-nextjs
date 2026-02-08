@@ -272,16 +272,10 @@ export function GuardianForm({
                   type="email"
                   {...register("email")}
                   placeholder="john.doe@example.com"
-                  disabled={isEdit}
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />
                 {errors.email && (
                   <div className="text-xs text-rose-300">{errors.email.message}</div>
-                )}
-                {isEdit && (
-                  <p className="text-xs text-muted-foreground/70">
-                    Email cannot be changed after creation
-                  </p>
                 )}
               </div>
 

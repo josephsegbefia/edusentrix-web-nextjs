@@ -25,11 +25,10 @@ import {
   Wallet,
   Receipt,
   TrendingUp,
-  Calendar,
 } from "lucide-react";
 import { useParentFees } from "@/hooks/parent/useParentFees";
 import type { WardFeeSummary, PendingInvoice, RecentPayment, FeeStatus } from "@/hooks/parent/useParentFees";
-import { format, parseISO, isPast } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -55,15 +54,6 @@ function getStatusColor(status: FeeStatus): string {
     owing: "bg-red-500/20 text-red-300 border-red-500/30",
   };
   return colors[status];
-}
-
-function getStatusIcon(status: FeeStatus) {
-  const icons: Record<FeeStatus, React.ElementType> = {
-    clear: CheckCircle2,
-    partial: Clock,
-    owing: AlertCircle,
-  };
-  return icons[status];
 }
 
 /* --------------------------------------------------------------------------------
@@ -150,7 +140,7 @@ function SummaryCard({
           >
             <Icon className={cn("h-5 w-5", style.iconColor)} />
           </div>
-          <span className="text-xs font-medium uppercase tracking-[0.1em] text-white/50">
+          <span className="text-xs font-medium uppercase tracking-widest text-white/50">
             {label}
           </span>
         </div>
@@ -173,12 +163,10 @@ function WardFeeCard({
   ward: WardFeeSummary;
   onClick: () => void;
 }) {
-  const StatusIcon = getStatusIcon(ward.status);
-
   return (
     <button
       onClick={onClick}
-      className="group relative w-full overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-4 text-left transition-all duration-200 hover:border-white/20 hover:shadow-lg hover:scale-[1.01]"
+      className="group relative w-full overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-4 text-left transition-all duration-200 hover:border-white/20 hover:shadow-lg hover:scale-[1.01]"
     >
       <div className="flex items-center gap-4">
         {/* Avatar */}
@@ -186,7 +174,7 @@ function WardFeeCard({
           {ward.photoUrl ? (
             <AvatarImage src={ward.photoUrl} alt={ward.wardName} />
           ) : null}
-          <AvatarFallback className="bg-gradient-to-br from-emerald-600/40 to-teal-600/40 text-lg font-bold text-white">
+          <AvatarFallback className="bg-linear-to-br from-emerald-600/40 to-teal-600/40 text-lg font-bold text-white">
             {initialsFromName(ward.wardName)}
           </AvatarFallback>
         </Avatar>
@@ -202,7 +190,13 @@ function WardFeeCard({
           <p className="text-sm text-white/60">{ward.classGroup}</p>
           <div className="flex items-center gap-3 mt-2">
             <Badge variant="outline" className={getStatusColor(ward.status)}>
-              <StatusIcon className="h-3 w-3 mr-1" />
+              {ward.status === "clear" ? (
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+              ) : ward.status === "partial" ? (
+                <Clock className="h-3 w-3 mr-1" />
+              ) : (
+                <AlertCircle className="h-3 w-3 mr-1" />
+              )}
               {ward.status === "clear" ? "Paid" : ward.status === "partial" ? "Partial" : "Owing"}
             </Badge>
             {ward.overdueInvoices > 0 && (

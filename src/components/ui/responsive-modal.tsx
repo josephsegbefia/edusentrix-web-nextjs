@@ -16,6 +16,7 @@ interface ResponsiveModalProps {
   description?: string;
   children: React.ReactNode;
   className?: string;
+  zIndexClass?: string;
   showCloseButton?: boolean;
 }
 
@@ -34,6 +35,7 @@ export function ResponsiveModal({
   description,
   children,
   className,
+  zIndexClass = "z-50",
   showCloseButton = true,
 }: ResponsiveModalProps) {
   return (
@@ -42,7 +44,8 @@ export function ResponsiveModal({
         {/* Overlay */}
         <DialogPrimitive.Overlay
           className={cn(
-            "fixed inset-0 z-50 bg-black/60 backdrop-blur-sm",
+            "fixed inset-0 bg-black/60 backdrop-blur-sm",
+            zIndexClass,
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
           )}
@@ -52,7 +55,8 @@ export function ResponsiveModal({
         <DialogPrimitive.Content
           className={cn(
             // Base positioning
-            "fixed z-50",
+            "fixed",
+            zIndexClass,
             // Mobile: bottom sheet style
             "inset-x-4 bottom-4 top-auto max-h-[85vh]",
             // Desktop: centered modal

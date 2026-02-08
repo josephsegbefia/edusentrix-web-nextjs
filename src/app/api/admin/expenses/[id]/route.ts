@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SchoolExpense } from "@/models/SchoolExpense";
 
@@ -14,7 +14,7 @@ interface RouteParams {
 // GET /api/admin/expenses/:id
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     const { id } = await params;
     await connectToDatabase();
 
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 // Update expense (only allowed for draft or rejected status)
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     const { id } = await params;
     await connectToDatabase();
 

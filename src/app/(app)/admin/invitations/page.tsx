@@ -19,6 +19,7 @@ import {
 import {
   useInvitations,
   useInvitationStats,
+  useCreateInvitation,
   useResendInvitation,
   useRevokeInvitation,
   useDeleteInvitation,
@@ -77,6 +78,7 @@ function RoleBadge({ role }: { role: InvitationRole }) {
     staff: "bg-blue-500/10 text-blue-300 border-blue-500/30",
     school_admin: "bg-brand/20 text-brand border-brand/30",
     parent: "bg-green-500/10 text-green-300 border-green-500/30",
+    bursar: "bg-amber-500/10 text-amber-300 border-amber-500/30",
   };
 
   return (
@@ -95,6 +97,9 @@ export default function InvitationsPage() {
   const [roleFilter, setRoleFilter] = useState<InvitationRole | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteFirstName, setInviteFirstName] = useState("");
+  const [inviteLastName, setInviteLastName] = useState("");
 
   const { data: invitationsData, isLoading } = useInvitations({
     status: statusFilter !== "all" ? statusFilter : undefined,
@@ -105,12 +110,43 @@ export default function InvitationsPage() {
   });
 
   const { data: stats } = useInvitationStats();
+  const createMutation = useCreateInvitation();
   const resendMutation = useResendInvitation();
   const revokeMutation = useRevokeInvitation();
   const deleteMutation = useDeleteInvitation();
 
   const invitations = invitationsData?.data || [];
   const pagination = invitationsData?.pagination;
+
+  const handleInviteBursar = async () => {
+    if (!inviteEmail.trim()) {
+      busy.error("Please enter an email address");
+      return;
+    }
+
+    try {
+      await busy.promise(
+        createMutation.mutateAsync({
+          email: inviteEmail.trim(),
+          role: "bursar",
+          firstName: inviteFirstName.trim() || undefined,
+          lastName: inviteLastName.trim() || undefined,
+        }),
+        {
+          loading: "Sending bursar invitation...",
+          success: "Bursar invitation sent",
+          error: "Failed to send bursar invitation",
+        }
+      );
+      setInviteEmail("");
+      setInviteFirstName("");
+      setInviteLastName("");
+      setRoleFilter("all");
+      setPage(1);
+    } catch {
+      // Error handled by busy.promise
+    }
+  };
 
   const handleResend = async (id: string) => {
     try {
@@ -119,7 +155,7 @@ export default function InvitationsPage() {
         success: "Invitation resent successfully",
         error: "Failed to resend invitation",
       });
-    } catch (e) {
+    } catch {
       // Error handled by busy.promise
     }
   };
@@ -140,7 +176,7 @@ export default function InvitationsPage() {
         success: "Invitation revoked successfully",
         error: "Failed to revoke invitation",
       });
-    } catch (e) {
+    } catch {
       // Error handled by busy.promise
     }
   };
@@ -161,7 +197,7 @@ export default function InvitationsPage() {
         success: "Invitation deleted successfully",
         error: "Failed to delete invitation",
       });
-    } catch (e) {
+    } catch {
       // Error handled by busy.promise
     }
   };
@@ -205,17 +241,69 @@ export default function InvitationsPage() {
         <div>
           <h1 className="text-3xl font-bold mb-2">Invitations</h1>
           <p className="text-muted">
-            Manage and track invitations sent to teachers and staff
+            Manage and track invitations sent to school members
           </p>
         </div>
-        <Button
-          onClick={handleExport}
-          className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleExport}
+            className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
       </div>
+
+      {/* Invite Bursar */}
+      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <div
+          className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent"
+          aria-hidden="true"
+        />
+        <CardHeader className="relative z-10">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
+              <Send className="h-4 w-4 text-amber-300" />
+            </div>
+            Invite Bursar
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="relative z-10">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <input
+              type="text"
+              placeholder="First name (optional)"
+              value={inviteFirstName}
+              onChange={(e) => setInviteFirstName(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            />
+            <input
+              type="text"
+              placeholder="Last name (optional)"
+              value={inviteLastName}
+              onChange={(e) => setInviteLastName(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            />
+            <input
+              type="email"
+              placeholder="bursar@school.edu"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            />
+            <Button
+              type="button"
+              onClick={handleInviteBursar}
+              disabled={createMutation.isPending || !inviteEmail.trim()}
+              className="gap-2 border-white/10 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30"
+            >
+              <Send className="h-4 w-4" />
+              Send Invite
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats Cards */}
       {stats && (
@@ -358,6 +446,8 @@ export default function InvitationsPage() {
               <option value="teacher">Teacher</option>
               <option value="staff">Staff</option>
               <option value="school_admin">School Admin</option>
+              <option value="parent">Parent</option>
+              <option value="bursar">Bursar</option>
             </select>
           </div>
         </CardContent>

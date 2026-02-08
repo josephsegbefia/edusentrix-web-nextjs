@@ -40,6 +40,7 @@ export type CreateGuardianInput = {
 export type UpdateGuardianInput = {
   firstName?: string;
   lastName?: string;
+  email?: string;
   phone?: string | null;
   relationship?: GuardianRelationship;
   occupation?: string | null;

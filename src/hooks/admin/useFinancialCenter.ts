@@ -49,6 +49,19 @@ export type TransactionMethod =
   | "cheque"
   | "other";
 
+export type ReconciliationStatus =
+  | "unmatched"
+  | "matched"
+  | "disputed"
+  | "ignored";
+
+export type ReconciliationProvider =
+  | "paystack"
+  | "hubtel"
+  | "mtn_momo"
+  | "bank"
+  | "manual";
+
 export interface TransactionPartyDTO {
   type: "student" | "guardian" | "vendor" | "staff" | "donor" | "other";
   id?: string | null;
@@ -94,9 +107,20 @@ export interface TransactionDTO {
     yearLabel: string;
   } | null;
   reconciliation?: {
-    status: "unmatched" | "matched" | "disputed" | "ignored";
-    provider?: string | null;
+    status: ReconciliationStatus;
+    provider?: ReconciliationProvider | null;
     providerReference?: string | null;
+    settlementBatchId?: string | null;
+    matchedAt?: string | null;
+    matchedBy?: string | null;
+  } | null;
+  policy?: {
+    dualControl?: {
+      required: boolean;
+      triggers: string[];
+      thresholdMinor: number;
+      actorConflict: boolean;
+    };
   } | null;
   attachments?: TransactionAttachmentDTO[];
   createdBy?: { _id: string; name: string; email: string } | null;
@@ -344,6 +368,60 @@ export function useApproveTransaction() {
         const error = await res.json();
         throw new Error(error.error || "Failed to process approval");
       }
+      return res.json() as Promise<{
+        success: boolean;
+        action: string;
+        message: string;
+      }>;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["financial-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-overview"] });
+      queryClient.invalidateQueries({
+        queryKey: ["financial-transaction", variables.transactionId],
+      });
+    },
+  });
+}
+
+// ========================
+// Reconciliation Mutation
+// ========================
+
+export interface ReconcileTransactionInput {
+  transactionId: string;
+  action: "match" | "unmatch" | "dispute" | "ignore";
+  provider?: ReconciliationProvider;
+  providerReference?: string;
+  settlementBatchId?: string;
+  reason?: string;
+}
+
+export function useReconcileTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: ReconcileTransactionInput) => {
+      const res = await fetch(
+        `/api/admin/finance/transactions/${data.transactionId}/reconcile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: data.action,
+            provider: data.provider,
+            providerReference: data.providerReference,
+            settlementBatchId: data.settlementBatchId,
+            reason: data.reason,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to reconcile transaction");
+      }
+
       return res.json() as Promise<{
         success: boolean;
         action: string;

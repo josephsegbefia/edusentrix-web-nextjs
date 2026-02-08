@@ -2,7 +2,7 @@
 // Single transaction detail API
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FinancialTransaction } from "@/models/FinancialTransaction";
 import mongoose from "mongoose";
@@ -11,10 +11,35 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+const DUAL_CONTROL_THRESHOLD_MINOR = (() => {
+  const parsed = Number.parseInt(
+    process.env.RECONCILIATION_DUAL_CONTROL_THRESHOLD_MINOR || "",
+    10
+  );
+  if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  return 1_000_000; // GHS 10,000 default
+})();
+
+function normalizeObjectId(value: unknown): string | null {
+  if (!value) return null;
+  if (value instanceof mongoose.Types.ObjectId) return String(value);
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value !== null && "_id" in value) {
+    return normalizeObjectId((value as { _id?: unknown })._id);
+  }
+  return null;
+}
+
+function objectIdEquals(left: unknown, right: unknown) {
+  const leftId = normalizeObjectId(left);
+  const rightId = normalizeObjectId(right);
+  return Boolean(leftId && rightId && leftId === rightId);
+}
+
 // GET /api/admin/finance/transactions/:id
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireFinanceStaff();
     const { id } = await params;
     await connectToDatabase();
 
@@ -22,6 +47,13 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       _id: mongoose.Types.ObjectId;
       originalTransactionId?: mongoose.Types.ObjectId | null;
       correctedById?: mongoose.Types.ObjectId | null;
+      category?: string;
+      sourceModule?: string;
+      grossAmountMinor?: number;
+      createdBy?: unknown;
+      approval?: {
+        requestedBy?: unknown;
+      } | null;
       [key: string]: unknown;
     }
 
@@ -62,11 +94,41 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         .lean();
     }
 
+    const dualControlTriggers: string[] = [];
+    if (transaction.sourceModule === "manual") {
+      dualControlTriggers.push("manual_entry");
+    }
+    if (
+      typeof transaction.grossAmountMinor === "number" &&
+      transaction.grossAmountMinor >= DUAL_CONTROL_THRESHOLD_MINOR
+    ) {
+      dualControlTriggers.push("high_value");
+    }
+    if (
+      transaction.category === "refund" ||
+      transaction.category === "adjustment"
+    ) {
+      dualControlTriggers.push("sensitive_category");
+    }
+    const dualControlRequired = dualControlTriggers.length > 0;
+    const actorConflict =
+      dualControlRequired &&
+      (objectIdEquals(transaction.createdBy, userId) ||
+        objectIdEquals(transaction.approval?.requestedBy, userId));
+
     return NextResponse.json({
       data: {
         ...transaction,
         _original: originalTransaction,
         _correction: correctionTransaction,
+        policy: {
+          dualControl: {
+            required: dualControlRequired,
+            triggers: dualControlTriggers,
+            thresholdMinor: DUAL_CONTROL_THRESHOLD_MINOR,
+            actorConflict,
+          },
+        },
       },
     });
   } catch (error) {
@@ -83,7 +145,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 // Only allows adding notes or attachments to non-finalized transactions
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireFinanceStaff();
     const { id } = await params;
     await connectToDatabase();
 

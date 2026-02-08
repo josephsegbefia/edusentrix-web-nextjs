@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   Wallet,
   BarChart3,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -345,6 +346,15 @@ export default function FinancialCenterPage() {
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
+          <Link href="/admin/invitations?role=bursar">
+            <Button
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invite Bursar
+            </Button>
+          </Link>
           <Button
             onClick={() => setRecordModalOpen(true)}
             className="bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"

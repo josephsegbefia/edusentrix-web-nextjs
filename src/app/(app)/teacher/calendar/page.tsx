@@ -62,35 +62,47 @@ export default function TeacherCalendarPage() {
   const [events, setEvents] = React.useState<EventRecord[]>([]);
   const [loading, setLoading] = React.useState(false);
 
-  const rangeStart = startOfMonth(month);
-  const rangeEnd = endOfMonth(month);
+  const fetchCalendarData = React.useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      try {
+        const rangeStart = startOfMonth(month);
+        const rangeEnd = endOfMonth(month);
+        const params = new URLSearchParams({
+          from: rangeStart.toISOString(),
+          to: rangeEnd.toISOString(),
+        });
+        if (selectedCalendarId !== "all") {
+          params.set("calendarId", selectedCalendarId);
+        }
 
-  const fetchCalendarData = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        from: rangeStart.toISOString(),
-        to: rangeEnd.toISOString(),
-      });
-      if (selectedCalendarId !== "all") {
-        params.set("calendarId", selectedCalendarId);
+        const res = await fetch(`/api/teacher/calendar?${params}`, {
+          cache: "no-store",
+          signal,
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.error || "Failed to load calendar");
+
+        if (signal?.aborted) return;
+        setCalendars(json.data.calendars || []);
+        setEvents(json.data.events || []);
+        setOccurrences(json.data.occurrences || []);
+      } catch (error) {
+        if (signal?.aborted) return;
+        console.error(error);
+      } finally {
+        if (!signal?.aborted) {
+          setLoading(false);
+        }
       }
-
-      const res = await fetch(`/api/teacher/calendar?${params}`, { cache: "no-store" });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || "Failed to load calendar");
-      setCalendars(json.data.calendars || []);
-      setEvents(json.data.events || []);
-      setOccurrences(json.data.occurrences || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }, [rangeStart, rangeEnd, selectedCalendarId]);
+    },
+    [month, selectedCalendarId]
+  );
 
   React.useEffect(() => {
-    fetchCalendarData();
+    const controller = new AbortController();
+    fetchCalendarData(controller.signal);
+    return () => controller.abort();
   }, [fetchCalendarData]);
 
   return (

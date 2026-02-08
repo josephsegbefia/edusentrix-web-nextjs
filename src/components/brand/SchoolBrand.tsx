@@ -53,7 +53,7 @@ export function SchoolBrand({
   href = null,
   className,
 }: SchoolBrandProps) {
-  const { data: schoolData, isLoading, hasNoSchool } = useSchool();
+  const { data: schoolData, isLoading, hasNoSchool, isError } = useSchool();
   const school = schoolData?.data;
   const sizeConfig = sizeMap[size];
 
@@ -124,7 +124,7 @@ export function SchoolBrand({
           </div>
           {showName && (
             <span className={cn("text-white/60", sizeConfig.text)}>
-              {hasNoSchool ? "No School" : "Loading..."}
+              {hasNoSchool ? "No School" : isError ? "School unavailable" : "Loading..."}
             </span>
           )}
         </div>

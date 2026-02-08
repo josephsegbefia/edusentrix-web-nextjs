@@ -2,7 +2,7 @@
 // Individual vendor operations
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Vendor } from "@/models/Vendor";
 import { SchoolExpense } from "@/models/SchoolExpense";
@@ -14,7 +14,7 @@ interface RouteParams {
 // GET /api/admin/expenses/vendors/:id
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     const { id } = await params;
     await connectToDatabase();
 
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 // PATCH /api/admin/expenses/vendors/:id
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     const { id } = await params;
     await connectToDatabase();
 
@@ -159,7 +159,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 // Soft delete - marks as inactive
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireFinanceStaff();
     const { id } = await params;
     await connectToDatabase();
 

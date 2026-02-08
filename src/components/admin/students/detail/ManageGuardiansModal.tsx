@@ -21,14 +21,12 @@ import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type Props = {
   studentId: string;
-  onClose: () => void;
 };
 
 type ViewMode = "list" | "create" | "edit";
 
 export function ManageGuardiansContent({
   studentId,
-  onClose,
 }: Props) {
   const busy = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
@@ -60,6 +58,7 @@ export function ManageGuardiansContent({
     const updateInput: UpdateGuardianInput = {
       firstName: data.firstName,
       lastName: data.lastName,
+      email: data.email,
       phone: data.phone ?? null,
       relationship: data.relationship,
       occupation: data.occupation ?? null,
@@ -91,6 +90,7 @@ export function ManageGuardiansContent({
       confirmLabel: "Remove Guardian",
       cancelLabel: "Keep Guardian",
       intent: "destructive",
+      zIndexClass: "z-[90]",
     });
     if (decision !== "confirm") {
       return;

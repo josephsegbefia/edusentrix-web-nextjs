@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BookOpen, CalendarDays, RefreshCw, Users } from "lucide-react";
+import { BookOpen, CalendarDays, RefreshCw, Sparkles, Users } from "lucide-react";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
@@ -14,6 +14,92 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const toneStyles: Record<
+  string,
+  { border: string; bg: string; icon: string; glow: string; value: string }
+> = {
+  indigo: {
+    border: "border-indigo-500/30",
+    bg: "from-indigo-500/15 via-indigo-500/5 to-transparent",
+    icon: "text-indigo-300",
+    glow: "bg-indigo-500/20",
+    value: "text-indigo-100",
+  },
+  emerald: {
+    border: "border-emerald-500/30",
+    bg: "from-emerald-500/15 via-emerald-500/5 to-transparent",
+    icon: "text-emerald-300",
+    glow: "bg-emerald-500/20",
+    value: "text-emerald-100",
+  },
+  amber: {
+    border: "border-amber-500/30",
+    bg: "from-amber-500/15 via-amber-500/5 to-transparent",
+    icon: "text-amber-300",
+    glow: "bg-amber-500/20",
+    value: "text-amber-100",
+  },
+};
+
+function SummaryCard({
+  label,
+  value,
+  subtitle,
+  icon,
+  tone,
+  loading,
+}: {
+  label: string;
+  value: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  tone: keyof typeof toneStyles;
+  loading?: boolean;
+}) {
+  const config = toneStyles[tone];
+  return (
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 shadow-xl shadow-black/30 backdrop-blur",
+        config.border,
+        config.bg
+      )}
+    >
+      <div
+        className={cn(
+          "pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl transition-opacity duration-300",
+          config.glow,
+          "opacity-50"
+        )}
+        aria-hidden="true"
+      />
+      <div className="relative z-10 flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
+            {label}
+          </p>
+          <p className={cn("text-3xl font-bold tracking-tight", config.value)}>
+            {loading ? (
+              <span className="inline-block h-8 w-20 animate-pulse rounded bg-white/10" />
+            ) : (
+              value
+            )}
+          </p>
+          <p className="text-xs text-white/50">{subtitle}</p>
+        </div>
+        <div
+          className={cn(
+            "flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5",
+            config.icon
+          )}
+        >
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type ScheduleEntry = {
   dayOfWeek: number;
@@ -89,6 +175,7 @@ export default function TeacherClassesPage() {
   }, [data]);
 
   const totalStudents = classes.reduce((sum, entry) => sum + entry.studentCount, 0);
+  const weeklySlots = classes.reduce((sum, entry) => sum + entry.schedules.length, 0);
 
   const handleRefresh = React.useCallback(async () => {
     await busyToast.promise(refetch(), {
@@ -134,65 +221,62 @@ export default function TeacherClassesPage() {
           </p>
         </div>
         <Button
+          type="button"
           onClick={handleRefresh}
-          variant="outline"
-          className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+          className="h-11 rounded-xl border border-emerald-300/20 bg-linear-to-r from-emerald-500/30 via-cyan-500/25 to-indigo-500/25 px-5 font-medium text-emerald-50 shadow-lg shadow-emerald-950/35 transition-all hover:from-emerald-500/40 hover:via-cyan-500/35 hover:to-indigo-500/35 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/40 disabled:shadow-none"
           disabled={isFetching}
         >
-          <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+          <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/20 bg-black/20">
+            <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+          </span>
           Refresh
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-white/70">
-              <BookOpen className="h-4 w-4 text-indigo-200" />
-              Total Classes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold text-white">
-            {isLoading ? <span className="inline-block h-8 w-12 animate-pulse rounded bg-white/10" /> : classes.length}
-          </CardContent>
-        </Card>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-white/70">
-              <Users className="h-4 w-4 text-emerald-200" />
-              Total Students
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold text-white">
-            {isLoading ? <span className="inline-block h-8 w-16 animate-pulse rounded bg-white/10" /> : totalStudents}
-          </CardContent>
-        </Card>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-white/70">
-              <CalendarDays className="h-4 w-4 text-amber-200" />
-              Weekly Slots
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-3xl font-semibold text-white">
-            {isLoading ? (
-              <span className="inline-block h-8 w-16 animate-pulse rounded bg-white/10" />
-            ) : (
-              classes.reduce((sum, entry) => sum + entry.schedules.length, 0)
-            )}
-          </CardContent>
-        </Card>
+        <SummaryCard
+          label="Classes"
+          value={`${classes.length}`}
+          subtitle="Assigned class groups"
+          icon={<BookOpen className="h-5 w-5" />}
+          tone="indigo"
+          loading={isLoading}
+        />
+        <SummaryCard
+          label="Students"
+          value={`${totalStudents}`}
+          subtitle="Across your classes"
+          icon={<Users className="h-5 w-5" />}
+          tone="emerald"
+          loading={isLoading}
+        />
+        <SummaryCard
+          label="Weekly Slots"
+          value={`${weeklySlots}`}
+          subtitle="Scheduled teaching periods"
+          icon={<CalendarDays className="h-5 w-5" />}
+          tone="amber"
+          loading={isLoading}
+        />
       </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={idx} className="h-44 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+            <div
+              key={idx}
+              className="h-56 animate-pulse rounded-2xl border border-white/10 bg-linear-to-br from-white/10 via-white/5 to-transparent"
+            />
           ))}
         </div>
       ) : classes.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
-          No classes assigned yet. Once your assignments are added, they will appear here.
+        <div className="rounded-3xl border border-dashed border-white/15 bg-linear-to-br from-white/10 to-transparent p-10 text-center">
+          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/60">
+            <BookOpen className="h-5 w-5" />
+          </span>
+          <p className="text-white/75">
+            No classes assigned yet. Once your assignments are added, they will appear here.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -202,45 +286,88 @@ export default function TeacherClassesPage() {
             return (
               <Card
                 key={entry.id}
-                className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur"
+                className={cn(
+                  "relative overflow-hidden border shadow-xl shadow-black/30 backdrop-blur",
+                  entry.isHomeroom
+                    ? "border-emerald-500/25 bg-linear-to-br from-emerald-500/10 via-slate-900/55 to-slate-950/35"
+                    : "border-indigo-500/20 bg-linear-to-br from-indigo-500/10 via-slate-900/55 to-slate-950/35"
+                )}
               >
-                <CardHeader className="space-y-2">
+                <div
+                  className={cn(
+                    "pointer-events-none absolute inset-x-0 top-0 h-20",
+                    entry.isHomeroom
+                      ? "bg-linear-to-r from-emerald-500/15 via-cyan-500/10 to-transparent"
+                      : "bg-linear-to-r from-indigo-500/15 via-sky-500/10 to-transparent"
+                  )}
+                />
+                <CardHeader className="relative space-y-3">
                   <CardTitle className="flex items-start justify-between gap-3 text-lg">
-                    <div>
-                      <div className="text-white">{entry.name}</div>
-                      <div className="mt-1 text-xs text-white/50">
-                        {entry.subjects.length} subject{entry.subjects.length === 1 ? "" : "s"} · {entry.studentCount} students
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={cn(
+                          "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10",
+                          entry.isHomeroom
+                            ? "bg-emerald-500/20 text-emerald-100"
+                            : "bg-indigo-500/20 text-indigo-100"
+                        )}
+                      >
+                        {entry.isHomeroom ? (
+                          <Users className="h-4 w-4" />
+                        ) : (
+                          <BookOpen className="h-4 w-4" />
+                        )}
+                      </span>
+                      <div>
+                        <div className="text-white">{entry.name}</div>
+                        <div className="mt-1 text-xs text-white/55">
+                          {entry.subjects.length} subject{entry.subjects.length === 1 ? "" : "s"}{" "}
+                          · {entry.studentCount} students
+                        </div>
                       </div>
                     </div>
                     {entry.isHomeroom && (
-                      <Badge className="bg-emerald-500/20 text-emerald-200">Homeroom</Badge>
+                      <Badge className="flex items-center gap-1 border border-emerald-400/25 bg-emerald-500/25 text-emerald-100">
+                        <Sparkles className="h-3 w-3" />
+                        Homeroom
+                      </Badge>
                     )}
                   </CardTitle>
                   <div className="flex flex-wrap gap-2">
                     {entry.subjects.map((subject) => (
-                      <Badge key={subject.id} className="bg-indigo-500/20 text-indigo-100">
+                      <Badge
+                        key={subject.id}
+                        className="border border-white/10 bg-white/10 text-white/85"
+                      >
                         {subject.name}
                       </Badge>
                     ))}
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-xs text-white/60">
+                <CardContent className="relative space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-3 text-xs text-white/65">
                     {entry.schedules.length === 0 ? (
                       <span>No schedule slots assigned yet.</span>
                     ) : (
                       <div className="space-y-2">
                         {schedules.map((slot, idx) => (
-                          <div key={`${slot.dayOfWeek}-${slot.startTime}-${idx}`} className="flex items-center justify-between">
-                            <span>
+                          <div
+                            key={`${slot.dayOfWeek}-${slot.startTime}-${idx}`}
+                            className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2"
+                          >
+                            <span className="text-white/75">
                               {DAY_LABELS[slot.dayOfWeek] || "Day"} {slot.startTime || ""}
                               {slot.endTime ? `–${slot.endTime}` : ""}
                             </span>
-                            <span className="text-white/70">{slot.subjectName}</span>
+                            <span className="truncate text-right text-white/85">
+                              {slot.subjectName}
+                            </span>
                           </div>
                         ))}
                         {remainingCount > 0 && (
-                          <div className="text-[11px] text-white/40">+ {remainingCount} more slots</div>
+                          <div className="text-[11px] text-white/45">
+                            + {remainingCount} more slots
+                          </div>
                         )}
                       </div>
                     )}
@@ -249,13 +376,13 @@ export default function TeacherClassesPage() {
                     <Button
                       asChild
                       variant="outline"
-                      className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                      className="border-white/15 bg-white/10 text-white/85 hover:bg-white/15"
                     >
                       <Link href={`/teacher/journal/${entry.id}`}>Open Journal</Link>
                     </Button>
                     <Button
                       asChild
-                      className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
+                      className="border border-emerald-300/20 bg-linear-to-r from-emerald-500/30 via-cyan-500/25 to-indigo-500/25 text-emerald-50 hover:from-emerald-500/40 hover:via-cyan-500/35 hover:to-indigo-500/35"
                     >
                       <Link href={`/teacher/students?class=${entry.id}`}>View Students</Link>
                     </Button>

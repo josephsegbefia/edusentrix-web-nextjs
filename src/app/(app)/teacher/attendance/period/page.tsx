@@ -1,7 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { ClipboardCheck, Save, Megaphone } from "lucide-react";
+import {
+  BookOpenCheck,
+  CalendarDays,
+  ClipboardCheck,
+  Megaphone,
+  Save,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { usePeriodAttendance } from "@/hooks/teacher/usePeriodAttendance";
@@ -246,10 +254,12 @@ export default function PeriodAttendancePage() {
           type="button"
           onClick={handleSave}
           disabled={!classGroupId || !subjectId || records.length === 0}
-          className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
+          className="h-11 rounded-xl border border-emerald-300/20 bg-linear-to-r from-emerald-500/30 via-cyan-500/25 to-indigo-500/25 px-5 font-medium text-emerald-50 shadow-lg shadow-emerald-950/35 transition-all hover:from-emerald-500/40 hover:via-cyan-500/35 hover:to-indigo-500/35 disabled:border-white/10 disabled:bg-white/5 disabled:text-white/40 disabled:shadow-none"
         >
-          <Save className="h-4 w-4" />
-          Save
+          <span className="flex h-6 w-6 items-center justify-center rounded-md border border-white/20 bg-black/20">
+            <Save className="h-3.5 w-3.5" />
+          </span>
+          Save Attendance
         </Button>
       </div>
 
@@ -263,12 +273,21 @@ export default function PeriodAttendancePage() {
         </Card>
       )}
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-        <CardHeader>
-          <CardTitle className="text-lg">Session Details</CardTitle>
+      <Card className="relative overflow-hidden border border-white/15 bg-linear-to-br from-slate-900/80 via-slate-900/60 to-slate-950/35 shadow-xl shadow-black/35 backdrop-blur">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-linear-to-r from-indigo-500/15 via-sky-500/10 to-emerald-500/10" />
+        <CardHeader className="relative pb-2">
+          <CardTitle className="flex items-center gap-3 text-lg text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-indigo-500/20 text-indigo-100">
+              <BookOpenCheck className="h-4 w-4" />
+            </span>
+            Session Details
+          </CardTitle>
+          <p className="text-sm text-white/55">
+            Choose the class, date, and period before marking attendance.
+          </p>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="space-y-2">
+        <CardContent className="relative grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-3">
             <label className="text-xs uppercase tracking-[0.2em] text-white/40">
               Class + Subject
             </label>
@@ -291,7 +310,7 @@ export default function PeriodAttendancePage() {
             </PremiumSelect>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-3">
             <label className="text-xs uppercase tracking-[0.2em] text-white/40">
               Date
             </label>
@@ -305,7 +324,7 @@ export default function PeriodAttendancePage() {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-3">
             <label className="text-xs uppercase tracking-[0.2em] text-white/40">
               Period
             </label>
@@ -317,7 +336,7 @@ export default function PeriodAttendancePage() {
               onChange={(event) =>
                 setPeriodNumber(Math.max(1, Math.min(20, Number(event.target.value))))
               }
-              className="border-white/10 bg-white/5 text-white/80"
+              className="border-white/10 bg-white/5 text-white/80 focus-visible:ring-indigo-400/40"
             />
           </div>
         </CardContent>
@@ -338,13 +357,28 @@ export default function PeriodAttendancePage() {
         </CardContent>
       </Card>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-        <CardHeader>
-          <CardTitle className="text-lg">Student List</CardTitle>
+      <Card className="relative overflow-hidden border border-white/15 bg-linear-to-br from-slate-900/80 via-slate-900/60 to-slate-950/35 shadow-xl shadow-black/35 backdrop-blur">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-linear-to-r from-cyan-500/12 via-indigo-500/10 to-transparent" />
+        <CardHeader className="relative gap-3 pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-3 text-lg text-white">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-cyan-500/20 text-cyan-100">
+                <Users className="h-4 w-4" />
+              </span>
+              Student List
+            </CardTitle>
+            <p className="mt-2 text-sm text-white/55">
+              Review and update each student&apos;s attendance status for this session.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
+            {records.length} student{records.length === 1 ? "" : "s"}
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative">
           {attendanceLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-3 sm:p-4">
               {Array.from({ length: 6 }).map((_, idx) => (
                 <div
                   key={idx}
@@ -353,13 +387,20 @@ export default function PeriodAttendancePage() {
               ))}
             </div>
           ) : records.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/60">
-              {classGroupId && subjectId
-                ? "No students found for this class."
-                : "Select a class assignment to load students."}
+            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center">
+              <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/55">
+                <CalendarDays className="h-5 w-5" />
+              </span>
+              <p className="text-white/70">
+                {classGroupId && subjectId
+                  ? "No students found for this class."
+                  : "Select a class assignment to load students."}
+              </p>
             </div>
           ) : (
-            <AttendanceGrid records={records} onChange={setRecords} />
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-3 sm:p-4">
+              <AttendanceGrid records={records} onChange={setRecords} />
+            </div>
           )}
         </CardContent>
       </Card>

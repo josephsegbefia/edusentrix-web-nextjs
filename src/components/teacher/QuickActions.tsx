@@ -23,9 +23,13 @@ export function QuickActions({ onRefresh, refreshing }: QuickActionsProps) {
   const { data } = useTeacherContext();
   const permissions = data?.data.permissions as Permission[] | undefined;
   const studioEnabled = data?.data.features?.teacherStudioEnabled ?? true;
+  const hasHomeroom = Boolean(data?.data.teacher.homeroomClassGroupId);
   const canCreateAssignment = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPostNotice = can(permissions, PERMISSIONS.noticesPublish);
   const showCreateAssignment = studioEnabled && canCreateAssignment;
+  const attendanceHref = hasHomeroom
+    ? "/teacher/attendance"
+    : "/teacher/attendance/period";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -42,7 +46,7 @@ export function QuickActions({ onRefresh, refreshing }: QuickActionsProps) {
         asChild
         className="border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20"
       >
-        <Link href="/teacher/attendance/homeroom">
+        <Link href={attendanceHref}>
           <CalendarCheck2 className="mr-2 h-4 w-4" />
           Take Attendance
         </Link>

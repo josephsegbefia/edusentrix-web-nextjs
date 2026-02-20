@@ -10,12 +10,21 @@ export type StudioAssignment = {
   latePolicy: "accept" | "reject" | "penalize";
   latePenaltyPercent: number | null;
   maxScore: number;
+  quizTimeLimitMinutes: number | null;
   weight: number | null;
   subject: { id: string; name: string } | null;
   rubric: { id: string; title: string } | null;
   classGroups: Array<{ id: string; name: string; gradeName?: string }>;
   targetStudentIds: string[];
   attachments: Array<{ name: string; url: string; type: string; size?: number }>;
+  questions?: Array<{
+    id: string;
+    prompt: string;
+    points: number;
+    explanation?: string | null;
+    choices: Array<{ id: string; text: string; isCorrect: boolean }>;
+  }>;
+  questionCount?: number;
   stats: { total: number; graded: number; pending: number; returned: number };
   publishedAt: string | null;
   closedAt: string | null;

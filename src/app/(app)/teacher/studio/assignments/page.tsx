@@ -4,7 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useTeacherAssignments } from "@/hooks/teacher/useTeacherAssignments";
-import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
+import {
+  useTeacherClasses,
+  type TeacherClass,
+} from "@/hooks/teacher/useTeacherClasses";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { AssignmentCard } from "@/components/teacher/studio/AssignmentCard";
@@ -25,11 +28,14 @@ export default function TeacherAssignmentsPage() {
   const { data, isLoading, refetch, isFetching } = useTeacherAssignments(filters);
   const { data: classesData } = useTeacherClasses();
 
-  const assignments = data?.data.assignments || [];
+  const assignments = React.useMemo(
+    () => (data?.data.assignments || []).filter((assignment) => assignment.type !== "quiz"),
+    [data]
+  );
 
   const subjects = React.useMemo(() => {
     const map = new Map<string, string>();
-    (classesData?.data.classes || []).forEach((item: any) => {
+    (classesData?.data.classes || []).forEach((item: TeacherClass) => {
       if (item.subjectId && item.subjectName) {
         map.set(item.subjectId, item.subjectName);
       }
@@ -39,7 +45,7 @@ export default function TeacherAssignmentsPage() {
 
   const classGroups = React.useMemo(() => {
     const map = new Map<string, string>();
-    (classesData?.data.classes || []).forEach((item: any) => {
+    (classesData?.data.classes || []).forEach((item: TeacherClass) => {
       if (item._id && item.name) {
         map.set(item._id, item.name);
       }
@@ -124,6 +130,12 @@ export default function TeacherAssignmentsPage() {
       <AssignmentFilters
         subjects={subjects}
         classGroups={classGroups}
+        typeOptions={[
+          { value: "all", label: "All types" },
+          { value: "assignment", label: "Assignment" },
+          { value: "project", label: "Project" },
+          { value: "practice", label: "Practice" },
+        ]}
         value={filters}
         onChange={setFilters}
       />

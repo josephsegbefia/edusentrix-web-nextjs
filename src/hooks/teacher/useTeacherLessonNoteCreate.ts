@@ -1,17 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchWithOfflineFallback } from "@/hooks/useOfflineQueue";
+import type { CreateLessonNotePayload } from "@/types/lesson-notes";
 
-export type TeacherLessonNoteCreateInput = {
-  classGroupId: string;
-  subjectId?: string | null;
-  weekOf: string;
-  topic: string;
-  objectives?: string | null;
-  content: string;
-  status: "draft" | "published";
-  resources?: Array<{ title: string; url: string; type?: string | null }>;
-  tags?: string[];
-};
+export type TeacherLessonNoteCreateInput = CreateLessonNotePayload;
 
 export function useTeacherLessonNoteCreate() {
   const qc = useQueryClient();
@@ -27,7 +18,11 @@ export function useTeacherLessonNoteCreate() {
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          throw new Error(data?.error || "Failed to create lesson note");
+          // Safely extract error message
+          const errorMessage = 
+            (data && typeof data.error === "string" ? data.error : null) || 
+            "Failed to create lesson note";
+          throw new Error(errorMessage);
         }
         return data;
       } catch (err: unknown) {

@@ -23,6 +23,7 @@ export type AssignmentFiltersValue = {
 export type AssignmentFiltersProps = {
   subjects: Array<{ id: string; name: string }>;
   classGroups: Array<{ id: string; name: string }>;
+  typeOptions?: Array<{ value: string; label: string }>;
   value: AssignmentFiltersValue;
   onChange: (next: AssignmentFiltersValue) => void;
 };
@@ -30,6 +31,13 @@ export type AssignmentFiltersProps = {
 export function AssignmentFilters({
   subjects,
   classGroups,
+  typeOptions = [
+    { value: "all", label: "All types" },
+    { value: "assignment", label: "Assignment" },
+    { value: "quiz", label: "Quiz" },
+    { value: "project", label: "Project" },
+    { value: "practice", label: "Practice" },
+  ],
   value,
   onChange,
 }: AssignmentFiltersProps) {
@@ -72,11 +80,11 @@ export function AssignmentFilters({
             <PremiumSelectValue placeholder="Type" />
           </PremiumSelectTrigger>
           <PremiumSelectContent>
-            <PremiumSelectItem value="all">All types</PremiumSelectItem>
-            <PremiumSelectItem value="assignment">Assignment</PremiumSelectItem>
-            <PremiumSelectItem value="quiz">Quiz</PremiumSelectItem>
-            <PremiumSelectItem value="project">Project</PremiumSelectItem>
-            <PremiumSelectItem value="practice">Practice</PremiumSelectItem>
+            {typeOptions.map((option) => (
+              <PremiumSelectItem key={option.value} value={option.value}>
+                {option.label}
+              </PremiumSelectItem>
+            ))}
           </PremiumSelectContent>
         </PremiumSelect>
 

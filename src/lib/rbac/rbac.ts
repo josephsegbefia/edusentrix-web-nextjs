@@ -61,9 +61,11 @@ const BASE_ROLE_PERMISSIONS: Record<MembershipRole, Permission[]> = {
     PERMISSIONS.noticesPublish,
     PERMISSIONS.messagesView,
     PERMISSIONS.messagesSend,
+    PERMISSIONS.escalationsCreate,
     PERMISSIONS.analyticsView,
     PERMISSIONS.resourcesView,
     PERMISSIONS.journalView,
+    PERMISSIONS.journalWrite, // All teachers can create lesson notes
   ],
   school_admin: ALL_PERMISSIONS,
   bursar: [],

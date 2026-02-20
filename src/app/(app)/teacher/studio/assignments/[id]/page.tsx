@@ -3,7 +3,21 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, ClipboardCheck, Edit3, FolderKanban, Send, XCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpenText,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardCheck,
+  Edit3,
+  FileText,
+  FolderKanban,
+  Layers3,
+  Send,
+  Sparkles,
+  Trophy,
+  XCircle,
+} from "lucide-react";
 import { useTeacherAssignment } from "@/hooks/teacher/useTeacherAssignment";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
@@ -22,6 +36,21 @@ const statusStyles: Record<string, string> = {
   archived: "border border-rose-500/40 bg-rose-500/15 text-rose-200",
 };
 
+const statusLabel: Record<string, string> = {
+  draft: "Draft",
+  published: "Published",
+  closed: "Closed",
+  archived: "Archived",
+};
+
+function latePolicyLabel(policy: string, penaltyPercent: number | null | undefined) {
+  if (policy === "reject") return "Reject late work";
+  if (policy === "penalize") {
+    return `Late penalty ${penaltyPercent ?? 0}%`;
+  }
+  return "Accept late work";
+}
+
 export default function TeacherAssignmentDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -36,6 +65,11 @@ export default function TeacherAssignmentDetailPage() {
   const canCreate = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPublish = can(permissions, PERMISSIONS.assignmentsPublish);
   const assignment = data?.data.assignment;
+  const questionList = assignment?.questions || [];
+  const totalQuestionPoints = questionList.reduce(
+    (sum, question) => sum + (question.points || 0),
+    0
+  );
 
   const initialValues = React.useMemo<Partial<AssignmentFormValues> | undefined>(() => {
     if (!assignment) return undefined;
@@ -52,6 +86,7 @@ export default function TeacherAssignmentDetailPage() {
       weight: assignment.weight ?? null,
       rubricId: assignment.rubric?.id || null,
       attachments: assignment.attachments as AssignmentAttachment[],
+      questions: assignment.questions || [],
     };
   }, [assignment]);
 
@@ -117,6 +152,7 @@ export default function TeacherAssignmentDetailPage() {
       weight: values.weight ?? undefined,
       rubricId: values.rubricId ?? null,
       attachments: values.attachments,
+      questions: values.questions,
     };
 
     await busyToast.promise(
@@ -153,6 +189,21 @@ export default function TeacherAssignmentDetailPage() {
     );
   }
 
+  if (assignment.type === "quiz") {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white/70">
+        This item is a quiz and is now managed in the Quizzes section.
+        <div className="mt-4">
+          <Button asChild variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10">
+            <Link href={`/teacher/studio/quizzes/${assignmentId || ""}`}>
+              Open quiz page
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (editMode && !canCreate) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/70">
@@ -174,25 +225,34 @@ export default function TeacherAssignmentDetailPage() {
   if (editMode) {
     return (
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4">
+          <Button
+            asChild
+            variant="outline"
+            className="w-fit border-white/10 bg-white/5 text-white/70 shadow-lg shadow-black/20 hover:bg-white/10"
+          >
+            <Link href={`/teacher/studio/assignments/${assignmentId}`}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to assignment
+            </Link>
+          </Button>
           <div>
             <h1 className="text-2xl font-semibold text-white">Edit Assignment</h1>
-            <p className="text-sm text-white/60">Update details for {assignment.title}</p>
+            <p className="text-sm text-white/60">
+              Update details for {assignment.title} with the guided step workflow.
+            </p>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => router.push(`/teacher/studio/assignments/${assignmentId}`)}
-            className="text-white/60 hover:bg-white/10 hover:text-white"
-          >
-            Cancel edit
-          </Button>
         </div>
         <AssignmentBuilder
+          key={`edit-${assignmentId || "assignment"}-${
+            assignment.questionCount ?? assignment.questions?.length ?? 0
+          }`}
           mode="edit"
           initialValues={initialValues}
           onSubmit={handleUpdate}
           showPublish={assignment.status === "draft" && canPublish}
+          layout="wizard"
+          allowedTypes={["assignment", "project", "practice"]}
         />
       </div>
     );
@@ -200,109 +260,339 @@ export default function TeacherAssignmentDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-6 shadow-2xl shadow-black/30 backdrop-blur">
-        <div className="flex flex-wrap items-center gap-3">
-          <Badge className={cn(statusStyles[assignment.status] || statusStyles.draft)}>
-            {assignment.status}
-          </Badge>
-          <span className="text-xs uppercase tracking-[0.2em] text-white/40">
-            {assignment.subject?.name || "Subject"}
-          </span>
-        </div>
-        <h1 className="text-3xl font-semibold text-white">{assignment.title}</h1>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
-          <span className="inline-flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-white/40" />
-            {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "No due date"}
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <ClipboardCheck className="h-4 w-4 text-white/40" />
-            {assignment.stats.pending} pending
-          </span>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {canCreate && (
-            <Button asChild className="bg-white/10 text-white hover:bg-white/20">
-              <Link href={`/teacher/studio/assignments/${assignmentId}?edit=1`}>
-                <Edit3 className="h-4 w-4" />
-                Edit assignment
+      <Button
+        asChild
+        variant="outline"
+        className="border-white/10 bg-white/5 text-white/70 shadow-lg shadow-black/20 hover:bg-white/10"
+      >
+        <Link href="/teacher/studio/assignments">
+          <ArrowLeft className="h-4 w-4" />
+          Back to assignments
+        </Link>
+      </Button>
+
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/85 via-slate-950/85 to-black/80 p-6 shadow-2xl shadow-black/40 backdrop-blur">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-emerald-500/15 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge className={cn(statusStyles[assignment.status] || statusStyles.draft)}>
+                  {statusLabel[assignment.status] || "Draft"}
+                </Badge>
+                <span className="text-xs uppercase tracking-[0.2em] text-white/40">
+                  {assignment.subject?.name || "Subject"}
+                </span>
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                {assignment.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-white/65">
+                <span className="inline-flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-white/40" />
+                  {assignment.dueDate
+                    ? new Date(assignment.dueDate).toLocaleString()
+                    : "No due date"}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-white/40" />
+                  {assignment.type}
+                </span>
+              </div>
+            </div>
+
+            <div className="inline-flex items-center gap-2 self-start rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/65">
+              <Sparkles className="h-3.5 w-3.5 text-brand" />
+              Premium assignment overview
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-2xl border border-indigo-400/25 bg-indigo-500/10 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-indigo-100/70">
+                Pending
+              </p>
+              <p className="mt-2 text-2xl font-semibold text-white">
+                {assignment.stats.pending}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-emerald-100/70">
+                Graded
+              </p>
+              <p className="mt-2 text-2xl font-semibold text-white">
+                {assignment.stats.graded}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                Questions
+              </p>
+              <p className="mt-2 text-2xl font-semibold text-white">
+                {questionList.length}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                Max score
+              </p>
+              <p className="mt-2 text-2xl font-semibold text-white">
+                {assignment.maxScore}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            {canCreate && (
+              <Button asChild className="bg-white/10 text-white hover:bg-white/20">
+                <Link href={`/teacher/studio/assignments/${assignmentId}?edit=1`}>
+                  <Edit3 className="h-4 w-4" />
+                  Edit assignment
+                </Link>
+              </Button>
+            )}
+            <Button asChild className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
+              <Link href={`/teacher/studio/assignments/${assignmentId}/submissions`}>
+                <FolderKanban className="h-4 w-4" />
+                View submissions
               </Link>
             </Button>
-          )}
-          <Button asChild className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
-            <Link href={`/teacher/studio/assignments/${assignmentId}/submissions`}>
-              <FolderKanban className="h-4 w-4" />
-              View submissions
-            </Link>
-          </Button>
-          {assignment.status === "draft" && canPublish && (
-            <Button onClick={handlePublish} className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30">
-              <Send className="h-4 w-4" />
-              Publish
-            </Button>
-          )}
-          {assignment.status === "published" && canPublish && (
-            <Button onClick={handleClose} className="bg-amber-500/20 text-amber-100 hover:bg-amber-500/30">
-              <XCircle className="h-4 w-4" />
-              Close submissions
-            </Button>
-          )}
+            {assignment.status === "draft" && canPublish && (
+              <Button onClick={handlePublish} className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30">
+                <Send className="h-4 w-4" />
+                Publish
+              </Button>
+            )}
+            {assignment.status === "published" && canPublish && (
+              <Button onClick={handleClose} className="bg-amber-500/20 text-amber-100 hover:bg-amber-500/30">
+                <XCircle className="h-4 w-4" />
+                Close submissions
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="text-lg">Instructions</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-white/70 whitespace-pre-wrap">
-            {assignment.instructions}
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="inline-flex items-center gap-2 text-lg">
+                <BookOpenText className="h-5 w-5 text-white/60" />
+                Instructions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm leading-relaxed text-white/75 whitespace-pre-wrap">
+              {assignment.instructions}
+            </CardContent>
+          </Card>
 
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="text-lg">Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-white/70">
-            <div>
-              <div className="text-xs uppercase tracking-[0.2em] text-white/40">Classes</div>
-              <div className="mt-1">
-                {assignment.classGroups.map((group) => group.name).join(", ")}
+          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="inline-flex items-center gap-2 text-lg">
+                <ClipboardCheck className="h-5 w-5 text-white/60" />
+                Question Blueprint
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {questionList.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-5 text-sm text-white/55">
+                  No auto-graded questions added for this assignment.
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                        Total Questions
+                      </p>
+                      <p className="mt-1.5 text-lg font-semibold text-white">
+                        {questionList.length}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                        Question Points
+                      </p>
+                      <p className="mt-1.5 text-lg font-semibold text-white">
+                        {totalQuestionPoints}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                        Avg Choices
+                      </p>
+                      <p className="mt-1.5 text-lg font-semibold text-white">
+                        {Math.round(
+                          questionList.reduce(
+                            (sum, question) => sum + (question.choices?.length || 0),
+                            0
+                          ) / questionList.length
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {questionList.slice(0, 4).map((question, index) => (
+                      <div
+                        key={question.id || index}
+                        className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="line-clamp-1 text-sm text-white/80">
+                            {index + 1}. {question.prompt}
+                          </p>
+                          <span className="text-xs text-white/50">
+                            {question.points} pt
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {questionList.length > 4 && (
+                      <p className="text-xs text-white/45">
+                        +{questionList.length - 4} more questions
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="inline-flex items-center gap-2 text-lg">
+                <Trophy className="h-5 w-5 text-white/60" />
+                Performance Snapshot
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-indigo-100/70">
+                  Pending
+                </p>
+                <p className="mt-1.5 text-lg font-semibold text-white">
+                  {assignment.stats.pending}
+                </p>
               </div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-[0.2em] text-white/40">Max score</div>
-              <div className="mt-1">{assignment.maxScore}</div>
-            </div>
-            {assignment.rubric && (
-              <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-white/40">Rubric</div>
-                <div className="mt-1">{assignment.rubric.title}</div>
+              <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-emerald-100/70">
+                  Graded
+                </p>
+                <p className="mt-1.5 text-lg font-semibold text-white">
+                  {assignment.stats.graded}
+                </p>
               </div>
-            )}
-            <div>
-              <div className="text-xs uppercase tracking-[0.2em] text-white/40">Attachments</div>
-              <div className="mt-2 space-y-2">
-                {assignment.attachments.length === 0 ? (
-                  <div className="text-white/50">No attachments</div>
-                ) : (
-                  assignment.attachments.map((attachment, index) => (
-                    <a
-                      key={`${attachment.name}-${index}`}
-                      href={attachment.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70 hover:bg-white/10"
-                    >
-                      {attachment.name}
-                    </a>
-                  ))
-                )}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                  Total
+                </p>
+                <p className="mt-1.5 text-lg font-semibold text-white">
+                  {assignment.stats.total}
+                </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                  Returned
+                </p>
+                <p className="mt-1.5 text-lg font-semibold text-white">
+                  {assignment.stats.returned}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="inline-flex items-center gap-2 text-lg">
+                <Layers3 className="h-5 w-5 text-white/60" />
+                Assignment Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-white/75">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/40">
+                  Classes
+                </p>
+                <p className="mt-1.5">
+                  {assignment.classGroups.map((group) => group.name).join(", ")}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/40">
+                    Max Score
+                  </p>
+                  <p className="mt-1.5 font-semibold text-white">
+                    {assignment.maxScore}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/40">
+                    Weight
+                  </p>
+                  <p className="mt-1.5 font-semibold text-white">
+                    {assignment.weight ?? 0}%
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/40">
+                    Late Policy
+                  </p>
+                  <p className="mt-1.5 text-white/85">
+                    {latePolicyLabel(
+                      assignment.latePolicy,
+                      assignment.latePenaltyPercent
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-white/40">
+                    Rubric
+                  </p>
+                  <p className="mt-1.5 text-white/85">
+                    {assignment.rubric?.title || "No rubric linked"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="inline-flex items-center gap-2 text-lg">
+                <CheckCircle2 className="h-5 w-5 text-white/60" />
+                Resources & Attachments
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {assignment.attachments.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-4 text-sm text-white/55">
+                  No attachments for this assignment.
+                </div>
+              ) : (
+                assignment.attachments.map((attachment, index) => (
+                  <a
+                    key={`${attachment.name}-${index}`}
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/75 transition hover:bg-white/10 hover:text-white"
+                  >
+                    {attachment.name}
+                  </a>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

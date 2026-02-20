@@ -4,12 +4,16 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
-import { LessonNote } from "@/models/LessonNote";
+import { LessonNote, type ILessonNote } from "@/models/LessonNote";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+
+// ============================================================================
+// Zod Schemas
+// ============================================================================
 
 const ResourceSchema = z.object({
   title: z.string().min(1).max(200),
@@ -17,17 +21,147 @@ const ResourceSchema = z.object({
   type: z.string().max(40).optional().nullable(),
 });
 
+const CurriculumIndicatorSchema = z.object({
+  refNo: z.string().max(50),
+  text: z.string().max(500),
+});
+
+const CurriculumAlignmentSchema = z.object({
+  strand: z.string().max(200).optional(),
+  subStrand: z.string().max(200).optional(),
+  contentStandard: z.string().max(500).optional(),
+  indicators: z.array(CurriculumIndicatorSchema).optional(),
+  learningOutcomes: z.array(z.string().max(500)).optional(),
+});
+
+const NaCCAStarterSchema = z.object({
+  activities: z.string().max(4000).optional(),
+  rpkPrompt: z.string().max(2000).optional(),
+  engagementHook: z.string().max(2000).optional(),
+  timeMins: z.number().min(0).max(60).optional(),
+});
+
+const NaCCAMainSchema = z.object({
+  teacherActivities: z.string().max(4000).optional(),
+  learnerActivities: z.string().max(4000).optional(),
+  resourcesUsed: z.string().max(2000).optional(),
+  embeddedAssessment: z.string().max(2000).optional(),
+  differentiation: z.string().max(2000).optional(),
+  groupingStrategy: z.string().max(500).optional(),
+  timeMins: z.number().min(0).max(120).optional(),
+});
+
+const NaCCAPlenarySchema = z.object({
+  summaryPoints: z.string().max(2000).optional(),
+  learnerReflection: z.string().max(2000).optional(),
+  teacherReflection: z.string().max(2000).optional(),
+  exitTicket: z.string().max(1000).optional(),
+  homework: z.string().max(2000).optional(),
+  timeMins: z.number().min(0).max(30).optional(),
+});
+
+const NaCCA3PhaseBodySchema = z.object({
+  starter: NaCCAStarterSchema.optional(),
+  main: NaCCAMainSchema.optional(),
+  plenary: NaCCAPlenarySchema.optional(),
+}).passthrough();
+
+const ClassicObjectivesSchema = z.object({
+  general: z.string().max(500).optional(),
+  specific: z.array(z.string().max(300)).optional(),
+});
+
+const ClassicPresentationStepSchema = z.object({
+  stepTitle: z.string().max(100).optional(),
+  teacherActivity: z.string().max(2000).optional(),
+  learnerActivity: z.string().max(2000).optional(),
+  boardWork: z.string().max(1000).optional(),
+  keyQuestions: z.array(z.string().max(300)).optional(),
+  timeMins: z.number().min(0).max(60).optional(),
+});
+
+const ClassicEvaluationSchema = z.object({
+  questions: z.array(z.string().max(500)).optional(),
+  answers: z.array(z.string().max(500)).optional(),
+  markingNotes: z.string().max(1000).optional(),
+});
+
+const ClassicJHSBodySchema = z.object({
+  objectives: ClassicObjectivesSchema.optional(),
+  rpk: z.string().max(2000).optional(),
+  introduction: z.string().max(2000).optional(),
+  presentationSteps: z.array(ClassicPresentationStepSchema).optional(),
+  corePoints: z.array(z.string().max(300)).optional(),
+  evaluation: ClassicEvaluationSchema.optional(),
+  remarks: z.string().max(2000).optional(),
+});
+
+const SimpleBodySchema = z.object({
+  objectives: z.string().max(2000).optional(),
+  content: z.string().max(8000).optional(),
+});
+
+const AssessmentSchema = z.object({
+  inClassChecks: z.array(z.string().max(500)).optional(),
+  exitTicket: z.string().max(1000).optional(),
+  homework: z.string().max(2000).optional(),
+  rubricId: z.string().optional(),
+});
+
+const ReflectionsSchema = z.object({
+  learner: z.string().max(2000).optional(),
+  teacher: z.string().max(2000).optional(),
+  nextLessonLink: z.string().max(500).optional(),
+});
+
+// Main create schema (supports both legacy and new fields)
 const LessonNoteSchema = z.object({
   classGroupId: z.string().min(1),
   subjectId: z.string().optional().nullable(),
+
+  // Template type
+  templateType: z.enum(["NACCA_3_PHASE", "CLASSIC_JHS", "SIMPLE"]).optional(),
+
+  // Basic info
   weekOf: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
   topic: z.string().min(1).max(200),
-  objectives: z.string().max(2000).optional().nullable(),
-  content: z.string().min(1).max(8000),
-  status: z.enum(["draft", "published"]).default("draft"),
+  durationMinutes: z.number().min(5).max(180).optional().nullable(),
+  references: z.array(z.string().max(500)).optional(),
+
+  // Curriculum
+  curriculum: CurriculumAlignmentSchema.optional(),
+
+  // TLMs
+  tlms: z.array(z.string().max(100)).optional(),
+
+  // Body - stored as Mixed in MongoDB, accept any object structure
+  // The frontend handles validation by template type
+  body: z.record(z.string(), z.unknown()).optional().nullable(),
+
+  // Assessment
+  assessment: AssessmentSchema.optional(),
+
+  // Reflections
+  reflections: ReflectionsSchema.optional(),
+
+  // Resources
   resources: z.array(ResourceSchema).optional(),
+
+  // Tags
   tags: z.array(z.string().max(40)).optional(),
+
+  // Status
+  status: z.enum(["draft", "submitted", "approved", "rejected", "published"]).default("draft"),
+
+  // Legacy fields (for backwards compatibility)
+  objectives: z.string().max(2000).optional().nullable(),
+  content: z.string().max(8000).optional().nullable(),
 });
+
+// ============================================================================
+// Helpers
+// ============================================================================
 
 function toObjectIdOrNull(id: string) {
   try {
@@ -46,6 +180,74 @@ function normalizeWeekOf(date: Date) {
   return d;
 }
 
+function formatLessonNoteResponse(
+  entry: ILessonNote,
+  classNameMap: Map<string, string>,
+  subjectMap: Map<string, string>
+) {
+  return {
+    id: String(entry._id),
+    classGroupId: String(entry.classGroupId),
+    className: classNameMap.get(String(entry.classGroupId)) || "",
+    subjectId: entry.subjectId ? String(entry.subjectId) : null,
+    subjectName: entry.subjectId ? subjectMap.get(String(entry.subjectId)) || "" : null,
+    academicPeriodId: entry.academicPeriodId ? String(entry.academicPeriodId) : null,
+
+    // Template
+    templateType: entry.templateType || "SIMPLE",
+
+    // Basic info
+    weekOf: entry.weekOf ? new Date(entry.weekOf).toISOString() : null,
+    date: entry.date ? new Date(entry.date).toISOString() : null,
+    topic: entry.topic,
+    durationMinutes: entry.durationMinutes || null,
+    references: entry.references || [],
+
+    // Curriculum
+    curriculum: entry.curriculum || null,
+
+    // TLMs
+    tlms: entry.tlms || [],
+
+    // Body
+    body: entry.body || null,
+
+    // Assessment
+    assessment: entry.assessment || null,
+
+    // Reflections
+    reflections: entry.reflections || null,
+
+    // Resources
+    resources: entry.resources || [],
+
+    // Tags
+    tags: entry.tags || [],
+
+    // Status & workflow
+    status: entry.status,
+    submittedAt: entry.submittedAt ? new Date(entry.submittedAt).toISOString() : null,
+    approvedAt: entry.approvedAt ? new Date(entry.approvedAt).toISOString() : null,
+    approvedBy: entry.approvedBy ? String(entry.approvedBy) : null,
+    rejectionReason: entry.rejectionReason || null,
+
+    // Export
+    exportUrls: entry.exportUrls || null,
+
+    // Legacy fields
+    objectives: entry.objectives || null,
+    content: entry.content || null,
+
+    // Timestamps
+    createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
+    updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
+  };
+}
+
+// ============================================================================
+// GET - List lesson notes
+// ============================================================================
+
 export async function GET(req: Request) {
   try {
     const context = await requireTeacher();
@@ -58,6 +260,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const classGroupId = searchParams.get("classGroupId");
     const subjectId = searchParams.get("subjectId");
+    const templateType = searchParams.get("templateType");
     const status = searchParams.get("status");
     const weekOf = searchParams.get("weekOf");
     const academicPeriodId = searchParams.get("academicPeriodId");
@@ -123,6 +326,7 @@ export async function GET(req: Request) {
     if (classGroupObjId) query.classGroupId = classGroupObjId;
     if (subjectObjId) query.subjectId = subjectObjId;
     if (academicPeriodObjId) query.academicPeriodId = academicPeriodObjId;
+    if (templateType) query.templateType = templateType;
     if (status) query.status = status;
 
     if (weekOf) {
@@ -137,18 +341,20 @@ export async function GET(req: Request) {
       query.$or = [
         { topic: { $regex: search, $options: "i" } },
         { content: { $regex: search, $options: "i" } },
+        { tags: { $in: [new RegExp(search, "i")] } },
       ];
     }
 
     const entries = await LessonNote.find(query)
       .sort({ weekOf: -1, createdAt: -1 })
       .limit(limit)
-      .lean();
+      .lean() as ILessonNote[];
 
     if (entries.length === 0) {
       return Response.json({ success: true, data: { entries: [] } });
     }
 
+    // Fetch related data for display
     const classGroupIds = Array.from(
       new Set(entries.map((entry) => String(entry.classGroupId)))
     ).map((id) => new mongoose.Types.ObjectId(id));
@@ -208,23 +414,9 @@ export async function GET(req: Request) {
       ])
     );
 
-    const data = entries.map((entry) => ({
-      id: String(entry._id),
-      classGroupId: String(entry.classGroupId),
-      className: classNameMap.get(String(entry.classGroupId)) || "",
-      subjectId: entry.subjectId ? String(entry.subjectId) : null,
-      subjectName: entry.subjectId ? subjectMap.get(String(entry.subjectId)) || "" : null,
-      academicPeriodId: entry.academicPeriodId ? String(entry.academicPeriodId) : null,
-      weekOf: entry.weekOf ? new Date(entry.weekOf).toISOString() : null,
-      topic: entry.topic,
-      objectives: entry.objectives || null,
-      content: entry.content,
-      status: entry.status,
-      resources: entry.resources || [],
-      tags: entry.tags || [],
-      createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
-      updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
-    }));
+    const data = entries.map((entry) =>
+      formatLessonNoteResponse(entry, classNameMap, subjectMap)
+    );
 
     return Response.json({ success: true, data: { entries: data } });
   } catch (e: unknown) {
@@ -234,6 +426,10 @@ export async function GET(req: Request) {
     return Response.json({ success: false, error: message }, { status: 500 });
   }
 }
+
+// ============================================================================
+// POST - Create lesson note
+// ============================================================================
 
 export async function POST(req: Request) {
   try {
@@ -245,15 +441,54 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => null);
+    
+    // Debug logging - remove in production
+    console.log("[LessonNote POST] Received body:", JSON.stringify({
+      templateType: body?.templateType,
+      hasBody: !!body?.body,
+      bodyKeys: body?.body ? Object.keys(body.body) : null,
+      hasCurriculum: !!body?.curriculum,
+    }));
+    
     const parsed = LessonNoteSchema.safeParse(body);
     if (!parsed.success) {
+      // Safely extract error messages for Zod v4 compatibility
+      const errorMessages = parsed.error.issues?.map((issue) => issue.message).join(", ") || "Invalid data";
+      console.error("[LessonNote POST] Validation errors:", errorMessages);
       return Response.json(
-        { success: false, error: "Validation failed", issues: parsed.error.flatten() },
+        { success: false, error: `Validation failed: ${errorMessages}` },
         { status: 400 }
       );
     }
+    
+    // Debug logging - remove in production
+    console.log("[LessonNote POST] Parsed data:", JSON.stringify({
+      templateType: parsed.data.templateType,
+      hasBody: !!parsed.data.body,
+      bodyKeys: parsed.data.body ? Object.keys(parsed.data.body) : null,
+    }));
 
-    const { classGroupId, subjectId, weekOf, topic, objectives, content, status, resources, tags } = parsed.data;
+    const {
+      classGroupId,
+      subjectId,
+      templateType,
+      weekOf,
+      date,
+      topic,
+      durationMinutes,
+      references,
+      curriculum,
+      tlms,
+      body: noteBody,
+      assessment,
+      reflections,
+      resources,
+      tags,
+      status,
+      // Legacy fields
+      objectives,
+      content,
+    } = parsed.data;
 
     const classGroupObjId = toObjectIdOrNull(classGroupId);
     if (!classGroupObjId) {
@@ -291,6 +526,14 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "Invalid week value" }, { status: 400 });
     }
 
+    let lessonDate: Date | undefined;
+    if (date) {
+      lessonDate = new Date(date);
+      if (Number.isNaN(lessonDate.getTime())) {
+        return Response.json({ success: false, error: "Invalid date value" }, { status: 400 });
+      }
+    }
+
     const currentPeriod = await AcademicPeriod.findOne({
       schoolId: context.schoolId,
       isCurrent: true,
@@ -298,19 +541,89 @@ export async function POST(req: Request) {
       .select("_id")
       .lean();
 
+    // Determine template type
+    const finalTemplateType = templateType || "SIMPLE";
+
+    // Build body based on template type or use legacy fields
+    let finalBody = noteBody;
+    if (!finalBody && (content || objectives)) {
+      // Legacy mode: create simple body from content/objectives
+      finalBody = {
+        objectives: objectives || "",
+        content: content || "",
+      };
+    }
+
+    // For legacy compatibility, extract content from body if needed
+    let legacyContent = content || "";
+    let legacyObjectives = objectives || "";
+    
+    // If body exists and we don't have legacy content, extract from body
+    if (finalBody && !content) {
+      if ("content" in finalBody && finalBody.content) {
+        legacyContent = finalBody.content;
+      } else if ("starter" in finalBody && finalBody.starter?.activities) {
+        // For NaCCA template, use starter activities as content summary
+        legacyContent = "See structured lesson body";
+      } else if ("presentationSteps" in finalBody) {
+        // For Classic JHS, use first step as content summary
+        legacyContent = "See structured lesson body";
+      }
+    }
+    
+    if (finalBody && !objectives) {
+      if ("objectives" in finalBody && typeof finalBody.objectives === "string") {
+        legacyObjectives = finalBody.objectives;
+      } else if ("objectives" in finalBody && typeof finalBody.objectives === "object" && finalBody.objectives) {
+        const objsObj = finalBody.objectives as { general?: string; specific?: string[] };
+        legacyObjectives = objsObj.general || "";
+      }
+    }
+
     const created = await LessonNote.create({
       schoolId: context.schoolId,
       teacherId: context.teacherId,
       classGroupId: classGroupObjId,
       subjectId: subjectObjId || undefined,
       academicPeriodId: currentPeriod?._id || undefined,
+
+      // Template
+      templateType: finalTemplateType,
+
+      // Basic info
       weekOf: weekDate,
+      date: lessonDate,
       topic,
-      objectives: objectives || undefined,
-      content,
-      status,
+      durationMinutes: durationMinutes || undefined,
+      references: references || [],
+
+      // Curriculum
+      curriculum: curriculum || undefined,
+
+      // TLMs
+      tlms: tlms || [],
+
+      // Body
+      body: finalBody || undefined,
+
+      // Assessment
+      assessment: assessment || undefined,
+
+      // Reflections
+      reflections: reflections || undefined,
+
+      // Resources
       resources: resources || [],
+
+      // Tags
       tags: tags || [],
+
+      // Status
+      status: status || "draft",
+
+      // Legacy fields (for backwards compatibility) - always provide a value
+      objectives: legacyObjectives,
+      content: legacyContent || topic, // Use topic as fallback content
     });
 
     return Response.json({

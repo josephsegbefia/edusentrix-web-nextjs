@@ -1,8 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, Plus, RefreshCcw } from "lucide-react";
-import { useTeacherEscalations } from "@/hooks/teacher/useTeacherEscalations";
+import {
+  AlertTriangle,
+  BookOpen,
+  CheckCircle2,
+  CircleHelp,
+  Clock3,
+  HeartPulse,
+  MoreHorizontal,
+  Plus,
+  RefreshCcw,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
+import {
+  useTeacherEscalations,
+  type EscalationSummary,
+} from "@/hooks/teacher/useTeacherEscalations";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useClassRoster } from "@/hooks/teacher/useClassRoster";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
@@ -32,36 +49,185 @@ import {
   PremiumDropdownMenuItem,
   PremiumDropdownMenuTrigger,
 } from "@/components/ui/premium-dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 
-const statusOptions = [
+const NO_STUDENT_VALUE = "__no_student__";
+
+const statusFilterOptions = [
   { value: "all", label: "All statuses" },
   { value: "open", label: "Open" },
   { value: "in_review", label: "In review" },
   { value: "resolved", label: "Resolved" },
   { value: "closed", label: "Closed" },
-];
+] as const;
 
-const typeOptions = [
+const statusActionOptions = statusFilterOptions.filter(
+  (option) => option.value !== "all"
+) as Array<{ value: EscalationSummary["status"]; label: string }>;
+
+const typeFilterOptions = [
+  { value: "all", label: "All types" },
   { value: "discipline", label: "Discipline" },
   { value: "academic", label: "Academic" },
   { value: "welfare", label: "Welfare" },
   { value: "other", label: "Other" },
-];
+] as const;
 
-const statusTone: Record<string, string> = {
-  open: "bg-rose-500/20 text-rose-200",
-  in_review: "bg-amber-500/20 text-amber-200",
-  resolved: "bg-emerald-500/20 text-emerald-200",
-  closed: "bg-white/10 text-white/50",
+const typeOptions = typeFilterOptions.filter(
+  (option) => option.value !== "all"
+) as Array<{ value: EscalationSummary["type"]; label: string }>;
+
+const statusTone: Record<EscalationSummary["status"], string> = {
+  open: "bg-rose-500/20 text-rose-100",
+  in_review: "bg-amber-500/20 text-amber-100",
+  resolved: "bg-emerald-500/20 text-emerald-100",
+  closed: "bg-white/10 text-white/70",
+};
+
+const typeTone: Record<EscalationSummary["type"], string> = {
+  discipline: "bg-rose-500/20 text-rose-100",
+  academic: "bg-indigo-500/20 text-indigo-100",
+  welfare: "bg-cyan-500/20 text-cyan-100",
+  other: "bg-white/10 text-white/70",
+};
+
+const typeIcon: Record<EscalationSummary["type"], React.ComponentType<{ className?: string }>> = {
+  discipline: ShieldAlert,
+  academic: BookOpen,
+  welfare: HeartPulse,
+  other: CircleHelp,
 };
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function titleCase(input: string) {
+  return input.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function escalationMatchesSearch(escalation: EscalationSummary, query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+
+  const studentText = escalation.student
+    ? `${escalation.student.name} ${escalation.student.admissionNo ?? ""}`
+    : "";
+
+  return `${escalation.title} ${escalation.description} ${escalation.type} ${escalation.status} ${studentText}`
+    .toLowerCase()
+    .includes(normalized);
+}
+
+function EscalationCard({
+  escalation,
+  canEscalate,
+  onStatusUpdate,
+}: {
+  escalation: EscalationSummary;
+  canEscalate: boolean;
+  onStatusUpdate: (id: string, nextStatus: EscalationSummary["status"]) => Promise<void>;
+}) {
+  const TypeIcon = typeIcon[escalation.type];
+
+  return (
+    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition hover:border-white/20">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-lg text-white">{escalation.title}</CardTitle>
+            <Badge className={cn("rounded-full px-2.5 py-0.5", statusTone[escalation.status])}>
+              {titleCase(escalation.status)}
+            </Badge>
+            <Badge className={cn("rounded-full px-2.5 py-0.5", typeTone[escalation.type])}>
+              <TypeIcon className="h-3.5 w-3.5" />
+              {titleCase(escalation.type)}
+            </Badge>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 text-xs text-white/55">
+            <span className="inline-flex items-center gap-1.5">
+              <Clock3 className="h-3.5 w-3.5" />
+              Logged {formatDateTime(escalation.createdAt)}
+            </span>
+
+            {escalation.student ? (
+              <span className="inline-flex items-center gap-1.5">
+                <UserRound className="h-3.5 w-3.5" />
+                {escalation.student.name}
+                {escalation.student.admissionNo ? ` (${escalation.student.admissionNo})` : ""}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-white/45">
+                <UserRound className="h-3.5 w-3.5" />
+                General escalation
+              </span>
+            )}
+
+            {(escalation.status === "resolved" || escalation.status === "closed") &&
+            escalation.resolvedAt ? (
+              <span className="inline-flex items-center gap-1.5 text-emerald-200/80">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Closed {formatDate(escalation.resolvedAt)}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {canEscalate ? (
+          <PremiumDropdownMenu>
+            <PremiumDropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </PremiumDropdownMenuTrigger>
+            <PremiumDropdownMenuContent align="end">
+              {statusActionOptions.map((option) => (
+                <PremiumDropdownMenuItem
+                  key={option.value}
+                  disabled={option.value === escalation.status}
+                  onClick={() => void onStatusUpdate(escalation.id, option.value)}
+                >
+                  Mark {option.label}
+                </PremiumDropdownMenuItem>
+              ))}
+            </PremiumDropdownMenuContent>
+          </PremiumDropdownMenu>
+        ) : null}
+      </CardHeader>
+
+      <CardContent>
+        <p className="whitespace-pre-wrap text-sm text-white/70">{escalation.description}</p>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function TeacherEscalationsPage() {
@@ -70,26 +236,62 @@ export default function TeacherEscalationsPage() {
   const permissions = contextData?.data.permissions as Permission[] | undefined;
   const canEscalate = can(permissions, PERMISSIONS.escalationsCreate);
 
-  const [statusFilter, setStatusFilter] = React.useState("all");
-  const { data, isLoading, refetch } = useTeacherEscalations(
-    statusFilter === "all" ? undefined : statusFilter
-  );
+  const [statusFilter, setStatusFilter] =
+    React.useState<(typeof statusFilterOptions)[number]["value"]>("all");
+  const [typeFilter, setTypeFilter] =
+    React.useState<(typeof typeFilterOptions)[number]["value"]>("all");
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useTeacherEscalations();
+
+  const escalations = React.useMemo(() => data?.data.escalations ?? [], [data]);
+
+  const filteredEscalations = React.useMemo(() => {
+    return escalations.filter((escalation) => {
+      const statusMatches = statusFilter === "all" || escalation.status === statusFilter;
+      if (!statusMatches) return false;
+
+      const typeMatches = typeFilter === "all" || escalation.type === typeFilter;
+      if (!typeMatches) return false;
+
+      return escalationMatchesSearch(escalation, searchQuery);
+    });
+  }, [escalations, searchQuery, statusFilter, typeFilter]);
+
+  const stats = React.useMemo(() => {
+    return {
+      total: escalations.length,
+      open: escalations.filter((item) => item.status === "open").length,
+      inReview: escalations.filter((item) => item.status === "in_review").length,
+      resolved: escalations.filter((item) => item.status === "resolved").length,
+      closed: escalations.filter((item) => item.status === "closed").length,
+    };
+  }, [escalations]);
 
   const { data: classesData } = useTeacherClasses();
-  const classOptions = (classesData?.data.classes || []).map((cls) => ({
-    id: cls._id,
-    name: cls.name,
-  }));
+  const classOptions = React.useMemo(
+    () =>
+      (classesData?.data.classes || []).map((item) => ({
+        id: item._id,
+        name: item.name,
+      })),
+    [classesData]
+  );
 
   const [createOpen, setCreateOpen] = React.useState(false);
-  const [selectedClassId, setSelectedClassId] = React.useState(classOptions[0]?.id || "");
-  const [selectedStudentId, setSelectedStudentId] = React.useState("");
-  const [type, setType] = React.useState("academic");
+  const [selectedClassId, setSelectedClassId] = React.useState("");
+  const [selectedStudentId, setSelectedStudentId] = React.useState(NO_STUDENT_VALUE);
+  const [type, setType] = React.useState<EscalationSummary["type"]>("academic");
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
 
   const { data: rosterData } = useClassRoster(createOpen ? selectedClassId : undefined);
-  const roster = rosterData?.data.students || [];
+  const roster = React.useMemo(() => rosterData?.data.students ?? [], [rosterData]);
 
   React.useEffect(() => {
     if (!selectedClassId && classOptions.length > 0) {
@@ -99,15 +301,30 @@ export default function TeacherEscalationsPage() {
 
   React.useEffect(() => {
     if (roster.length === 0) {
-      setSelectedStudentId("");
+      setSelectedStudentId(NO_STUDENT_VALUE);
       return;
     }
+
+    if (selectedStudentId === NO_STUDENT_VALUE) {
+      return;
+    }
+
     if (!roster.some((student) => student._id === selectedStudentId)) {
-      setSelectedStudentId(roster[0]._id);
+      setSelectedStudentId(NO_STUDENT_VALUE);
     }
   }, [roster, selectedStudentId]);
 
-  const escalations = data?.data.escalations || [];
+  const resetCreateForm = React.useCallback(() => {
+    setSelectedStudentId(NO_STUDENT_VALUE);
+    setType("academic");
+    setTitle("");
+    setDescription("");
+  }, []);
+
+  const openCreateDialog = () => {
+    resetCreateForm();
+    setCreateOpen(true);
+  };
 
   const handleCreate = async () => {
     if (!title.trim() || !description.trim()) {
@@ -120,7 +337,7 @@ export default function TeacherEscalationsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          studentId: selectedStudentId || undefined,
+          studentId: selectedStudentId === NO_STUDENT_VALUE ? undefined : selectedStudentId,
           type,
           title: title.trim(),
           description: description.trim(),
@@ -140,12 +357,14 @@ export default function TeacherEscalationsPage() {
     );
 
     setCreateOpen(false);
-    setTitle("");
-    setDescription("");
+    resetCreateForm();
     await refetch();
   };
 
-  const handleStatusUpdate = async (id: string, nextStatus: string) => {
+  const handleStatusUpdate = async (
+    id: string,
+    nextStatus: EscalationSummary["status"]
+  ) => {
     await busyToast.promise(
       fetch(`/api/teacher/escalations/${id}`, {
         method: "PATCH",
@@ -169,113 +388,187 @@ export default function TeacherEscalationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Escalations</h1>
-          <p className="text-sm text-white/60">Log concerns that require admin or counselor follow-up.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => refetch()}
-            className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            Refresh
-          </Button>
-          {canEscalate && (
+      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-rose-500/15 via-white/5 to-amber-500/10 shadow-2xl shadow-black/35 backdrop-blur">
+        <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="space-y-3">
+            <Badge className="w-fit bg-white/10 text-white/80">
+              <Sparkles className="h-3.5 w-3.5" />
+              Student support workflow
+            </Badge>
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Escalations</h1>
+              <p className="text-sm text-white/65">
+                Escalations are formal incident records for issues that need counselor, pastoral,
+                or school leadership follow-up beyond normal classroom handling.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge className="bg-white/10 text-white/80">{stats.total} total</Badge>
+              <Badge className="bg-rose-500/20 text-rose-100">{stats.open} open</Badge>
+              <Badge className="bg-amber-500/20 text-amber-100">{stats.inReview} in review</Badge>
+              <Badge className="bg-emerald-500/20 text-emerald-100">{stats.resolved} resolved</Badge>
+              <Badge className="bg-white/10 text-white/70">{stats.closed} closed</Badge>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 lg:items-end">
             <Button
-              onClick={() => setCreateOpen(true)}
-              className="bg-rose-500/20 text-rose-100 hover:bg-rose-500/30"
+              variant="outline"
+              onClick={() => void refetch()}
+              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
             >
-              <Plus className="h-4 w-4" />
-              New escalation
+              <RefreshCcw className="h-4 w-4" />
+              Refresh
             </Button>
-          )}
-        </div>
-      </div>
+            {canEscalate ? (
+              <Button
+                onClick={openCreateDialog}
+                className="bg-rose-500/30 text-rose-50 hover:bg-rose-500/40"
+              >
+                <Plus className="h-4 w-4" />
+                New escalation
+              </Button>
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
+                You can view escalations, but creating and status updates are restricted.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-      {!canEscalate && (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-          Escalation reporting is disabled for your role.
-        </div>
-      )}
+      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-lg">What escalations are and how to use them</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 lg:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <h3 className="text-sm font-semibold text-white">What an escalation is</h3>
+            <p className="mt-2 text-sm text-white/65">
+              Use escalations to formally document incidents such as behavior concerns, academic
+              risk, safeguarding or welfare concerns, and any situation that requires additional
+              support from school leadership.
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <h3 className="text-sm font-semibold text-white">How to use this page</h3>
+            <ol className="mt-2 space-y-1.5 text-sm text-white/65">
+              <li>1. Click `New escalation` and choose a type.</li>
+              <li>2. Link a student when relevant, or keep it as a general issue.</li>
+              <li>3. Add a clear title and factual description of what happened.</li>
+              <li>4. Track progress with statuses: Open, In review, Resolved, Closed.</li>
+            </ol>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center">
-        <div className="min-w-[180px]">
-          <PremiumSelect value={statusFilter} onValueChange={setStatusFilter}>
-            <PremiumSelectTrigger>
-              <PremiumSelectValue placeholder="Filter status" />
-            </PremiumSelectTrigger>
-            <PremiumSelectContent>
-              {statusOptions.map((opt) => (
-                <PremiumSelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </PremiumSelectItem>
-              ))}
-            </PremiumSelectContent>
-          </PremiumSelect>
-        </div>
-      </div>
+      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-lg">Filter escalations</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <PremiumSelect
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as (typeof statusFilterOptions)[number]["value"])
+              }
+            >
+              <PremiumSelectTrigger>
+                <PremiumSelectValue placeholder="Filter status" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                {statusFilterOptions.map((option) => (
+                  <PremiumSelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </PremiumSelectItem>
+                ))}
+              </PremiumSelectContent>
+            </PremiumSelect>
+
+            <PremiumSelect
+              value={typeFilter}
+              onValueChange={(value) =>
+                setTypeFilter(value as (typeof typeFilterOptions)[number]["value"])
+              }
+            >
+              <PremiumSelectTrigger>
+                <PremiumSelectValue placeholder="Filter type" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                {typeFilterOptions.map((option) => (
+                  <PremiumSelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </PremiumSelectItem>
+                ))}
+              </PremiumSelectContent>
+            </PremiumSelect>
+
+            <div className="relative xl:col-span-2">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+              <Input
+                placeholder="Search title, student, description"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStatusFilter("all");
+                setTypeFilter("all");
+                setSearchQuery("");
+              }}
+              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+            >
+              Reset filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+            <div key={idx} className="rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            </div>
           ))}
         </div>
-      ) : escalations.length === 0 ? (
+      ) : error ? (
+        <Card className="border border-red-500/30 bg-linear-to-br from-red-950/40 to-transparent p-8 text-center">
+          <AlertTriangle className="mx-auto mb-3 h-10 w-10 text-red-300/70" />
+          <p className="text-sm text-red-100/80">Failed to load escalations. Please try again.</p>
+          <div className="mt-4">
+            <Button
+              onClick={() => void refetch()}
+              className="bg-red-500/20 text-red-100 hover:bg-red-500/30"
+            >
+              Retry
+            </Button>
+          </div>
+        </Card>
+      ) : filteredEscalations.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
-          No escalations logged yet.
+          No escalations match your current filters.
         </div>
       ) : (
         <div className="space-y-4">
-          {escalations.map((esc) => (
-            <Card
-              key={esc.id}
-              className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur"
-            >
-              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg text-white">{esc.title}</CardTitle>
-                  <div className="text-xs text-white/50">
-                    {esc.type.toUpperCase()} · Logged {formatDate(esc.createdAt)}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={statusTone[esc.status]}>{esc.status.replace("_", " ")}</Badge>
-                  {canEscalate && (
-                    <PremiumDropdownMenu>
-                      <PremiumDropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-white/60 hover:text-white">
-                          <AlertTriangle className="h-4 w-4" />
-                        </Button>
-                      </PremiumDropdownMenuTrigger>
-                      <PremiumDropdownMenuContent align="end">
-                        {statusOptions
-                          .filter((opt) => opt.value !== "all")
-                          .map((opt) => (
-                            <PremiumDropdownMenuItem
-                              key={opt.value}
-                              onClick={() => handleStatusUpdate(esc.id, opt.value)}
-                            >
-                              Mark {opt.label}
-                            </PremiumDropdownMenuItem>
-                          ))}
-                      </PremiumDropdownMenuContent>
-                    </PremiumDropdownMenu>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm text-white/60">
-                <p>{esc.description}</p>
-                {esc.student && (
-                  <div className="text-xs text-white/50">
-                    Student: {esc.student.name} {esc.student.admissionNo ? `(${esc.student.admissionNo})` : ""}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {filteredEscalations.map((escalation) => (
+            <EscalationCard
+              key={escalation.id}
+              escalation={escalation}
+              canEscalate={canEscalate}
+              onStatusUpdate={handleStatusUpdate}
+            />
           ))}
         </div>
       )}
@@ -285,30 +578,44 @@ export default function TeacherEscalationsPage() {
           <DialogHeader>
             <DialogTitle className="text-lg">Log escalation</DialogTitle>
           </DialogHeader>
+
           <div className="space-y-4">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/65">
+              Describe facts clearly: what happened, who was involved, and any action already
+              taken in class.
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Class group</label>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+                  Class group
+                </label>
                 <PremiumSelect value={selectedClassId} onValueChange={setSelectedClassId}>
                   <PremiumSelectTrigger>
                     <PremiumSelectValue placeholder="Select class" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
-                    {classOptions.map((cls) => (
-                      <PremiumSelectItem key={cls.id} value={cls.id}>
-                        {cls.name}
+                    {classOptions.map((classOption) => (
+                      <PremiumSelectItem key={classOption.id} value={classOption.id}>
+                        {classOption.name}
                       </PremiumSelectItem>
                     ))}
                   </PremiumSelectContent>
                 </PremiumSelect>
               </div>
+
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Student (optional)</label>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+                  Student (optional)
+                </label>
                 <PremiumSelect value={selectedStudentId} onValueChange={setSelectedStudentId}>
                   <PremiumSelectTrigger>
                     <PremiumSelectValue placeholder="Select student" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
+                    <PremiumSelectItem value={NO_STUDENT_VALUE}>
+                      No specific student
+                    </PremiumSelectItem>
                     {roster.map((student) => (
                       <PremiumSelectItem key={student._id} value={student._id}>
                         {student.firstName} {student.lastName}
@@ -318,48 +625,65 @@ export default function TeacherEscalationsPage() {
                 </PremiumSelect>
               </div>
             </div>
+
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Type</label>
-              <PremiumSelect value={type} onValueChange={setType}>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+                Type
+              </label>
+              <PremiumSelect
+                value={type}
+                onValueChange={(value) => setType(value as EscalationSummary["type"])}
+              >
                 <PremiumSelectTrigger>
                   <PremiumSelectValue placeholder="Select type" />
                 </PremiumSelectTrigger>
                 <PremiumSelectContent>
-                  {typeOptions.map((opt) => (
-                    <PremiumSelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {typeOptions.map((option) => (
+                    <PremiumSelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </PremiumSelectItem>
                   ))}
                 </PremiumSelectContent>
               </PremiumSelect>
             </div>
+
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Title</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+                Title
+              </label>
               <Input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Escalation summary"
+                placeholder="Short escalation summary"
                 className="border-white/10 bg-white/5 text-white"
               />
             </div>
+
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Description</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+                Description
+              </label>
               <Textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="Provide the full context and actions taken so far"
+                placeholder="Include timeline, observed impact, and interventions already attempted."
                 className="min-h-[120px] border-white/10 bg-white/5 text-white"
               />
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} className="border-white/10 text-white/60">
+            <Button
+              variant="outline"
+              onClick={() => setCreateOpen(false)}
+              className="border-white/10 text-white/60"
+            >
               Cancel
             </Button>
             <Button
-              onClick={handleCreate}
+              onClick={() => void handleCreate()}
               disabled={!canEscalate}
-              className="bg-rose-500/20 text-rose-100 hover:bg-rose-500/30"
+              className="bg-rose-500/30 text-rose-50 hover:bg-rose-500/40"
             >
               Log escalation
             </Button>

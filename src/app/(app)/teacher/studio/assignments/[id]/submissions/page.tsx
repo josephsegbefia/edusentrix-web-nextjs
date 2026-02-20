@@ -25,6 +25,21 @@ export default function AssignmentSubmissionsPage() {
   const submissions = data?.data.submissions || [];
   const assignment = data?.data.assignment;
 
+  if (!isLoading && assignment?.type === "quiz") {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white/70">
+          This item is a quiz and submissions are managed in the Quizzes section.
+        </div>
+        <Button asChild className="w-fit bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
+          <Link href={`/teacher/studio/quizzes/${assignmentId || ""}/submissions`}>
+            Open quiz submissions
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
   const filtered = statusFilter === "all"
     ? submissions
     : submissions.filter((submission) => submission.status === statusFilter);

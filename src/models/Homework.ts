@@ -1,8 +1,22 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type HomeworkType = "assignment" | "quiz" | "project" | "practice";
 export type HomeworkStatus = "draft" | "published" | "closed" | "archived";
 export type LatePolicy = "accept" | "reject" | "penalize";
+
+export interface IHomeworkQuestionChoice {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface IHomeworkQuestion {
+  id: string;
+  prompt: string;
+  points: number;
+  explanation?: string;
+  choices: IHomeworkQuestionChoice[];
+}
 
 export interface IHomework {
   _id: Types.ObjectId;
@@ -19,6 +33,7 @@ export interface IHomework {
   latePolicy: LatePolicy;
   latePenaltyPercent?: number;
   maxScore: number;
+  quizTimeLimitMinutes?: number | null;
   rubricId?: Types.ObjectId;
   weight?: number;
   attachments: Array<{
@@ -27,6 +42,7 @@ export interface IHomework {
     type: "pdf" | "image" | "video" | "audio" | "link";
     size?: number;
   }>;
+  questions: IHomeworkQuestion[];
   status: HomeworkStatus;
   publishedAt?: Date;
   closedAt?: Date;
@@ -46,6 +62,26 @@ const AttachmentSchema = new Schema(
       required: true,
     },
     size: { type: Number, min: 0 },
+  },
+  { _id: false }
+);
+
+const QuestionChoiceSchema = new Schema<IHomeworkQuestionChoice>(
+  {
+    id: { type: String, required: true, trim: true },
+    text: { type: String, required: true, trim: true },
+    isCorrect: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
+const QuestionSchema = new Schema<IHomeworkQuestion>(
+  {
+    id: { type: String, required: true, trim: true },
+    prompt: { type: String, required: true, trim: true },
+    points: { type: Number, required: true, min: 0, default: 1 },
+    explanation: { type: String, trim: true },
+    choices: { type: [QuestionChoiceSchema], default: [] },
   },
   { _id: false }
 );
@@ -101,9 +137,11 @@ const homeworkSchema = new Schema<IHomework>(
     },
     latePenaltyPercent: { type: Number, min: 0, max: 100 },
     maxScore: { type: Number, required: true, min: 0 },
+    quizTimeLimitMinutes: { type: Number, min: 1, max: 300, default: null },
     rubricId: { type: Schema.Types.ObjectId, ref: "Rubric" },
     weight: { type: Number, min: 0, max: 100 },
     attachments: { type: [AttachmentSchema], default: [] },
+    questions: { type: [QuestionSchema], default: [] },
     status: {
       type: String,
       enum: ["draft", "published", "closed", "archived"],
@@ -121,5 +159,15 @@ const homeworkSchema = new Schema<IHomework>(
 homeworkSchema.index({ schoolId: 1, teacherId: 1, status: 1, createdAt: -1 });
 homeworkSchema.index({ schoolId: 1, classGroupIds: 1, status: 1, dueDate: 1 });
 
+const existingHomeworkModel = models.Homework as Model<IHomework> | undefined;
+if (
+  existingHomeworkModel &&
+  (!existingHomeworkModel.schema.path("questions") ||
+    !existingHomeworkModel.schema.path("quizTimeLimitMinutes"))
+) {
+  delete models.Homework;
+}
+
 export const Homework =
-  models.Homework || model<IHomework>("Homework", homeworkSchema);
+  (models.Homework as Model<IHomework> | undefined) ||
+  model<IHomework>("Homework", homeworkSchema);

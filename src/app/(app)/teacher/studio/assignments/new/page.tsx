@@ -1,19 +1,28 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { AssignmentBuilder, type AssignmentFormValues } from "@/components/teacher/studio/AssignmentBuilder";
+import { Button } from "@/components/ui/button";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 
 export default function TeacherAssignmentCreatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const busyToast = useBusyToast();
   const { data: contextData } = useTeacherContext();
   const permissions = contextData?.data.permissions as Permission[] | undefined;
   const canCreate = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPublish = can(permissions, PERMISSIONS.assignmentsPublish);
+  const requestedType = searchParams.get("type");
+  const initialType: AssignmentFormValues["type"] =
+    requestedType === "project" || requestedType === "practice"
+      ? requestedType
+      : "assignment";
 
   if (!canCreate) {
     return (
@@ -46,6 +55,7 @@ export default function TeacherAssignmentCreatePage() {
       weight: values.weight ?? undefined,
       rubricId: values.rubricId ?? undefined,
       attachments: values.attachments,
+      questions: values.questions,
       status: options?.publish ? "published" : "draft",
     };
 
@@ -75,12 +85,28 @@ export default function TeacherAssignmentCreatePage() {
   return (
     <div className="space-y-6">
       <div>
+        <Button
+          asChild
+          variant="outline"
+          className="mb-3 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+        >
+          <Link href="/teacher/studio/assignments">
+            <ArrowLeft className="h-4 w-4" />
+            Back to assignments
+          </Link>
+        </Button>
         <h1 className="text-2xl font-semibold text-white">Create Assignment</h1>
         <p className="text-sm text-white/60">
           Build a new assignment and publish when you are ready.
         </p>
       </div>
-      <AssignmentBuilder onSubmit={handleSubmit} showPublish={canPublish} />
+      <AssignmentBuilder
+        initialValues={{ type: initialType }}
+        onSubmit={handleSubmit}
+        showPublish={canPublish}
+        layout="wizard"
+        allowedTypes={["assignment", "project", "practice"]}
+      />
     </div>
   );
 }

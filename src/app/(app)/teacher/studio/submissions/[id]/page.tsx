@@ -133,7 +133,12 @@ export default function SubmissionDetailPage() {
               <CardTitle className="text-lg">Submission</CardTitle>
             </CardHeader>
             <CardContent>
-              <SubmissionViewer content={submission.content} attachments={submission.attachments} />
+              <SubmissionViewer
+                content={submission.content}
+                attachments={submission.attachments}
+                questions={assignment.questions || []}
+                questionResponses={submission.questionResponses || []}
+              />
             </CardContent>
           </Card>
 

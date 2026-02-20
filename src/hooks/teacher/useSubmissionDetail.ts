@@ -8,6 +8,12 @@ export type SubmissionDetailResponse = {
       status: string;
       content: string;
       attachments: Array<{ name: string; url: string; type: string; size?: number }>;
+      questionResponses: Array<{
+        questionId: string;
+        selectedChoiceId: string | null;
+        isCorrect: boolean | null;
+        pointsAwarded: number | null;
+      }>;
       submittedAt: string | null;
       isLate: boolean;
       score: number | null;
@@ -42,6 +48,16 @@ export type SubmissionDetailResponse = {
           weight?: number;
         }>;
       } | null;
+      questions: Array<{
+        id: string;
+        prompt: string;
+        points: number;
+        choices: Array<{
+          id: string;
+          text: string;
+          isCorrect: boolean;
+        }>;
+      }>;
     };
   };
 };

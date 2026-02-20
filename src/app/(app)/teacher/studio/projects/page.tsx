@@ -82,7 +82,7 @@ export default function TeacherProjectsPage() {
         </div>
         {canCreate && (
           <Button asChild className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
-            <Link href="/teacher/studio/assignments/new">
+            <Link href="/teacher/studio/assignments/new?type=project">
               <Plus className="h-4 w-4" />
               New project
             </Link>
@@ -103,12 +103,13 @@ export default function TeacherProjectsPage() {
       ) : (
         <div className="space-y-4">
           {assignments.map((assignment) => (
-            <AssignmentCard
-              key={assignment.id}
-              assignment={assignment}
-              onPublish={canPublish ? handlePublish : undefined}
-              onClose={canPublish ? handleClose : undefined}
-              onArchive={canCreate ? handleArchive : undefined}
+              <AssignmentCard
+                key={assignment.id}
+                assignment={assignment}
+                itemLabel="Project"
+                onPublish={canPublish ? handlePublish : undefined}
+                onClose={canPublish ? handleClose : undefined}
+                onArchive={canCreate ? handleArchive : undefined}
             />
           ))}
         </div>

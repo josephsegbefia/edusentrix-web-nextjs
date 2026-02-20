@@ -4,6 +4,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherDocument } from "@/models/TeacherDocument";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string) {
@@ -65,7 +66,7 @@ export async function GET(
 
 /**
  * DELETE /api/admin/teachers/:id/documents/:docId
- * Delete a document (delete from Cloudinary and remove record)
+ * Delete a document (delete uploaded file and remove record)
  */
 export async function DELETE(
   req: NextRequest,
@@ -101,35 +102,12 @@ export async function DELETE(
   const documentName = document.name;
   const fileUrl = document.fileUrl;
 
-  // Extract public_id from Cloudinary URL if it's a Cloudinary URL
-  // Cloudinary raw URLs are: https://res.cloudinary.com/{cloud_name}/raw/upload/{public_id}
-  let publicId: string | null = null;
-  try {
-    const urlParts = fileUrl.split("/raw/upload/");
-    if (urlParts.length === 2) {
-      publicId = urlParts[1];
-    }
-  } catch {
-    // Not a Cloudinary URL or invalid format
-  }
-
-  // Delete from Cloudinary if we have a public_id
-  if (publicId) {
-    try {
-      const { v2: cloudinary } = await import("cloudinary");
-      cloudinary.config({
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-        api_key: process.env.CLOUDINARY_API_KEY,
-        api_secret: process.env.CLOUDINARY_API_SECRET,
-      });
-
-      await cloudinary.uploader.destroy(publicId, {
-        resource_type: "raw",
-      });
-    } catch (e) {
-      console.error("Failed to delete from Cloudinary:", e);
-      // Continue with deletion even if Cloudinary deletion fails
-      // The file might already be deleted or URL might not be Cloudinary
+  // Try to delete file from whichever provider hosts it.
+  // Continue even if provider deletion fails so the DB record can still be removed.
+  if (fileUrl) {
+    const deleted = await deleteUploadedFile(fileUrl);
+    if (!deleted) {
+      console.warn("Failed to delete document file from provider:", fileUrl);
     }
   }
 

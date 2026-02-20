@@ -82,7 +82,7 @@ export default function TeacherQuizzesPage() {
         </div>
         {canCreate && (
           <Button asChild className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
-            <Link href="/teacher/studio/assignments/new">
+            <Link href="/teacher/studio/quizzes/new">
               <Plus className="h-4 w-4" />
               New quiz
             </Link>
@@ -103,12 +103,14 @@ export default function TeacherQuizzesPage() {
       ) : (
         <div className="space-y-4">
           {assignments.map((assignment) => (
-            <AssignmentCard
-              key={assignment.id}
-              assignment={assignment}
-              onPublish={canPublish ? handlePublish : undefined}
-              onClose={canPublish ? handleClose : undefined}
-              onArchive={canCreate ? handleArchive : undefined}
+              <AssignmentCard
+                key={assignment.id}
+                assignment={assignment}
+                basePath="/teacher/studio/quizzes"
+                itemLabel="Quiz"
+                onPublish={canPublish ? handlePublish : undefined}
+                onClose={canPublish ? handleClose : undefined}
+                onArchive={canCreate ? handleArchive : undefined}
             />
           ))}
         </div>

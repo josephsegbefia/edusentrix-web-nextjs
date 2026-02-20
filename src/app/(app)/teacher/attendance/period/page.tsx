@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
+  ArrowLeft,
   BookOpenCheck,
   CalendarDays,
   ClipboardCheck,
@@ -245,6 +247,16 @@ export default function PeriodAttendancePage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
+          <Button
+            asChild
+            variant="outline"
+            className="mb-3 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+          >
+            <Link href="/teacher/attendance">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Attendance
+            </Link>
+          </Button>
           <h1 className="text-2xl font-semibold text-white">Period Attendance</h1>
           <p className="text-sm text-white/60">
             Mark attendance for a specific period and subject.

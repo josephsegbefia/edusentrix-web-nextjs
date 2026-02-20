@@ -7,6 +7,8 @@ export type TeacherResourceCreateInput = {
   url: string;
   type: "link" | "pdf" | "video" | "image" | "doc" | "slides" | "other";
   tags?: string[];
+  subjectId?: string | null;
+  classGroupIds?: string[];
 };
 
 export function useTeacherResourceCreate() {

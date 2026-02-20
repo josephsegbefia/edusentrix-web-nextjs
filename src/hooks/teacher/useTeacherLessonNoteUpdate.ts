@@ -1,18 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchWithOfflineFallback } from "@/hooks/useOfflineQueue";
+import type { UpdateLessonNotePayload } from "@/types/lesson-notes";
 
-export type TeacherLessonNoteUpdateInput = {
-  id: string;
-  classGroupId?: string;
-  subjectId?: string | null;
-  weekOf?: string;
-  topic?: string;
-  objectives?: string | null;
-  content?: string;
-  status?: "draft" | "published";
-  resources?: Array<{ title: string; url: string; type?: string | null }>;
-  tags?: string[];
-};
+export type TeacherLessonNoteUpdateInput = UpdateLessonNotePayload;
 
 export function useTeacherLessonNoteUpdate() {
   const qc = useQueryClient();
@@ -31,7 +21,11 @@ export function useTeacherLessonNoteUpdate() {
         );
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          throw new Error(data?.error || "Failed to update lesson note");
+          // Safely extract error message
+          const errorMessage = 
+            (data && typeof data.error === "string" ? data.error : null) || 
+            "Failed to update lesson note";
+          throw new Error(errorMessage);
         }
         return data;
       } catch (err: unknown) {

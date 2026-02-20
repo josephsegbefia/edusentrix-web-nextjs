@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { FileDropzone } from "./FileDropzone";
+import { useUploadThing } from "@/lib/uploadthing/react";
 
 type DocumentUploaderProps = {
   schoolId: string;
@@ -10,17 +10,51 @@ type DocumentUploaderProps = {
   maxSizeMB?: number; // default 15
   onUploaded: (payload: {
     publicId: string;
-    url: string; // direct raw URL
+    url: string;
     bytes: number;
     format?: string;
+    mimeType?: string;
   }) => void;
   onError?: (msg: string) => void;
   className?: string;
   label?: string;
 };
 
+type DocumentEndpoint =
+  | "teacherDocument"
+  | "expenseReceipt"
+  | "assignmentAttachment"
+  | "submissionAttachment"
+  | "noticeAttachment";
+
+function endpointForCategory(category: string): DocumentEndpoint {
+  const normalized = (category || "").toLowerCase().trim();
+
+  if (normalized.includes("teacher")) return "teacherDocument";
+  if (normalized.includes("expense") || normalized.includes("receipt")) {
+    return "expenseReceipt";
+  }
+  if (normalized.includes("assignment") || normalized.includes("submission")) {
+    return "submissionAttachment";
+  }
+  if (normalized.includes("notice")) return "noticeAttachment";
+
+  return "teacherDocument";
+}
+
+function inferFormat(name: string, type?: string): string | undefined {
+  const ext = name.split(".").pop()?.toLowerCase();
+  if (ext) {
+    return ext;
+  }
+  if (type && type.includes("/")) {
+    return type.split("/").pop();
+  }
+  return undefined;
+}
+
 export function DocumentUploader({
-  schoolId,
+  schoolId: _schoolId,
   category,
   maxSizeMB = 15,
   onUploaded,
@@ -29,56 +63,53 @@ export function DocumentUploader({
   label = "Upload document",
 }: DocumentUploaderProps) {
   const [busy, setBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const uploadErrorMessage = useRef<string | null>(null);
+  const endpoint = useMemo(() => endpointForCategory(category), [category]);
+
+  const { startUpload } = useUploadThing(endpoint, {
+    onUploadProgress: (progress) => {
+      setUploadProgress(Math.min(95, progress));
+    },
+    onUploadError: (error) => {
+      uploadErrorMessage.current = error.message || "Upload failed";
+    },
+  });
 
   async function handleUpload(file: File) {
     try {
       setBusy(true);
+      setUploadProgress(0);
+      uploadErrorMessage.current = null;
 
-      // 1) Sign
-      const signRes = await fetch("/api/uploads/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "document",
-          schoolId,
-          category,
-        }),
-      });
+      const result = await startUpload([file], { schoolId: _schoolId } as never);
+      const uploaded = result?.[0];
 
-      if (!signRes.ok) {
-        const j = await signRes.json().catch(() => ({}));
-        throw new Error(j?.error || "Signature failed");
+      if (!uploaded) {
+        throw new Error(uploadErrorMessage.current || "Upload did not return a file");
       }
-      const sign = await signRes.json();
 
-      // 2) Upload to Cloudinary (raw)
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("api_key", sign.apiKey);
-      fd.append("timestamp", sign.timestamp);
-      fd.append("signature", sign.signature);
-      fd.append("folder", sign.folder);
-      fd.append("unique_filename", "true");
-      fd.append("overwrite", "false");
+      const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
+      const publicId =
+        uploaded.serverData?.customId || uploaded.serverData?.key || uploaded.key;
+      const bytes = uploaded.size ?? file.size;
+      const format = inferFormat(uploaded.name || file.name, uploaded.type || file.type);
+      const mimeType = uploaded.type || file.type;
+      const normalizedFormat =
+        format && publicId.toLowerCase().endsWith(`.${format.toLowerCase()}`)
+          ? undefined
+          : format;
 
-      const upRes = await fetch(sign.uploadUrl, { method: "POST", body: fd });
-      if (!upRes.ok) {
-        const j = await upRes.json().catch(() => ({}));
-        throw new Error(j?.error?.message || "Upload failed");
-      }
-      const data = await upRes.json();
+      setUploadProgress(100);
+      setTimeout(() => {
+        setUploadProgress(null);
+      }, 500);
 
-      const publicId: string = data.public_id;
-      const bytes: number = data.bytes;
-      const format: string | undefined = data.format;
-
-      // Raw files are delivered via /raw/upload; accessible at /raw/upload/<public_id>
-      const url = `https://res.cloudinary.com/${sign.cloudName}/raw/upload/${publicId}`;
-
-      onUploaded({ publicId, url, bytes, format });
-    } catch (e: any) {
-      const msg = e?.message || "Upload error";
-      onError?.(msg);
+      onUploaded({ publicId, url, bytes, format: normalizedFormat, mimeType });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Upload error";
+      setUploadProgress(null);
+      onError?.(message);
     } finally {
       setBusy(false);
     }
@@ -90,9 +121,16 @@ export function DocumentUploader({
         label={label}
         accept={[
           "application/pdf",
+          "video/mp4",
+          "video/webm",
+          "video/quicktime",
           "text/csv",
           "application/vnd.ms-excel",
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "application/vnd.ms-powerpoint",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
           "image/jpeg",
           "image/png",
           "image/webp",
@@ -100,7 +138,9 @@ export function DocumentUploader({
         maxSizeMB={maxSizeMB}
         onFile={handleUpload}
         disabled={busy}
-        hint="PDF, CSV, XLS/XLSX, or images • Max 15MB"
+        hint="PDF, video, CSV, XLS/XLSX, PPT/PPTX, DOC/DOCX, or images"
+        uploadProgress={uploadProgress}
+        showProgress={busy && uploadProgress !== null}
       />
     </div>
   );

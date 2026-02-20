@@ -6,6 +6,9 @@ import { useParams } from "next/navigation";
 import { format } from "date-fns/format";
 import {
   ArrowLeft,
+  Clock3,
+  Eye,
+  EyeOff,
   FileText,
   RefreshCw,
   Upload,
@@ -22,7 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { DocumentUploader } from "@/components/upload/DocumentUploader";
 
-type LatePolicy = "allow" | "reject" | "penalty";
+type LatePolicy = "accept" | "reject" | "penalize";
 
 interface SubmissionAttachment {
   name: string;
@@ -41,7 +44,18 @@ interface AssignmentDetail {
   maxScore: number;
   latePolicy: LatePolicy;
   latePenaltyPercent: number | null;
+  quizTimeLimitMinutes: number | null;
   attachments: SubmissionAttachment[];
+  questions: Array<{
+    id: string;
+    prompt: string;
+    points: number;
+    explanation?: string | null;
+    choices: Array<{
+      id: string;
+      text: string;
+    }>;
+  }>;
   subject: { id: string; name: string } | null;
   rubric:
     | {
@@ -61,6 +75,10 @@ interface StudentSubmission {
   id: string;
   content: string;
   attachments: SubmissionAttachment[];
+  questionResponses: Array<{
+    questionId: string;
+    selectedChoiceId: string | null;
+  }>;
   status: string;
   submittedAt: string | null;
   isLate: boolean;
@@ -70,11 +88,25 @@ interface StudentSubmission {
   gradedAt: string | null;
   returnedAt: string | null;
   returnReason: string | null;
+  quizStartedAt: string | null;
+  quizExpiresAt: string | null;
+  autoSubmittedAt: string | null;
 }
+
+interface QuizTimerDetail {
+  enabled: boolean;
+  durationMinutes: number | null;
+  startedAt: string | null;
+  expiresAt: string | null;
+  serverNow: string;
+  expired: boolean;
+}
+
+const FINALIZED_SUBMISSION_STATUSES = new Set(["submitted", "late", "graded"]);
 
 function latePolicyLabel(policy: LatePolicy, penaltyPercent: number | null) {
   if (policy === "reject") return "Late submissions are not allowed";
-  if (policy === "penalty") {
+  if (policy === "penalize") {
     return `Late submissions allowed with ${
       penaltyPercent ?? 0
     }% penalty`;
@@ -85,6 +117,21 @@ function latePolicyLabel(policy: LatePolicy, penaltyPercent: number | null) {
 function buildUploadAttachmentName(publicId: string, format?: string) {
   const baseName = publicId.split("/").pop() || "attachment";
   return format ? `${baseName}.${format}` : baseName;
+}
+
+function formatTimerCountdown(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  }
+  return `${minutes.toString().padStart(2, "0")}:${seconds
+    .toString()
+    .padStart(2, "0")}`;
 }
 
 export default function StudentAssignmentDetailPage() {
@@ -105,6 +152,16 @@ export default function StudentAssignmentDetailPage() {
     SubmissionAttachment[]
   >([]);
   const [content, setContent] = React.useState("");
+  const [questionResponses, setQuestionResponses] = React.useState<
+    Array<{ questionId: string; selectedChoiceId: string | null }>
+  >([]);
+  const [quizTimer, setQuizTimer] = React.useState<QuizTimerDetail | null>(
+    null
+  );
+  const [timerHidden, setTimerHidden] = React.useState(false);
+  const [serverTimeOffsetMs, setServerTimeOffsetMs] = React.useState(0);
+  const [timerTickMs, setTimerTickMs] = React.useState(Date.now());
+  const autoSubmitTriggeredRef = React.useRef(false);
 
   const loadAssignment = React.useCallback(async () => {
     try {
@@ -124,6 +181,18 @@ export default function StudentAssignmentDetailPage() {
       setSubmission(payload.data?.submission || null);
       setContent(payload.data?.submission?.content || "");
       setSubmissionAttachments(payload.data?.submission?.attachments || []);
+      setQuestionResponses(payload.data?.submission?.questionResponses || []);
+      const nextTimer = payload.data?.quizTimer || null;
+      setQuizTimer(nextTimer);
+      const serverNowMs = nextTimer?.serverNow
+        ? new Date(nextTimer.serverNow).getTime()
+        : Date.now();
+      setServerTimeOffsetMs(serverNowMs - Date.now());
+      setTimerTickMs(Date.now());
+      autoSubmitTriggeredRef.current = Boolean(
+        payload.data?.submission?.submittedAt &&
+          FINALIZED_SUBMISSION_STATUSES.has(payload.data?.submission?.status || "")
+      );
     } catch (fetchError) {
       setError(
         fetchError instanceof Error
@@ -134,6 +203,10 @@ export default function StudentAssignmentDetailPage() {
       setAssignment(null);
       setSubmission(null);
       setSubmissionAttachments([]);
+      setQuestionResponses([]);
+      setQuizTimer(null);
+      setServerTimeOffsetMs(0);
+      autoSubmitTriggeredRef.current = false;
     } finally {
       setIsLoading(false);
     }
@@ -143,9 +216,70 @@ export default function StudentAssignmentDetailPage() {
     void loadAssignment();
   }, [loadAssignment]);
 
-  const handleSubmit = async () => {
+  React.useEffect(() => {
+    autoSubmitTriggeredRef.current = false;
+  }, [id]);
+
+  React.useEffect(() => {
+    if (!quizTimer?.enabled || !quizTimer.expiresAt) return;
+    setTimerTickMs(Date.now());
+    const interval = window.setInterval(() => {
+      setTimerTickMs(Date.now());
+    }, 1_000);
+    return () => window.clearInterval(interval);
+  }, [quizTimer?.enabled, quizTimer?.expiresAt]);
+
+  const timedQuizEnabled = Boolean(
+    assignment?.type === "quiz" && quizTimer?.enabled && quizTimer?.expiresAt
+  );
+  const remainingSeconds = React.useMemo(() => {
+    if (!timedQuizEnabled || !quizTimer?.expiresAt) return null;
+    const expiresAtMs = new Date(quizTimer.expiresAt).getTime();
+    if (Number.isNaN(expiresAtMs)) return 0;
+    const currentServerMs = timerTickMs + serverTimeOffsetMs;
+    return Math.max(0, Math.ceil((expiresAtMs - currentServerMs) / 1_000));
+  }, [quizTimer?.expiresAt, serverTimeOffsetMs, timedQuizEnabled, timerTickMs]);
+  const isTimerExpired = timedQuizEnabled && (remainingSeconds ?? 0) <= 0;
+  const hasFinalizedTimedSubmission = Boolean(
+    timedQuizEnabled &&
+      submission &&
+      FINALIZED_SUBMISSION_STATUSES.has(submission.status || "")
+  );
+  const lockedByTimer = timedQuizEnabled && (isTimerExpired || hasFinalizedTimedSubmission);
+  const isInteractionLocked = assignment
+    ? assignment.status !== "published" || isSubmitting || lockedByTimer
+    : true;
+
+  const handleSubmit = React.useCallback(async (options?: { autoSubmit?: boolean }) => {
+    const isAutoSubmit = Boolean(options?.autoSubmit);
     const trimmedContent = content.trim();
-    if (!trimmedContent && submissionAttachments.length === 0) {
+    if (!assignment) return;
+
+    if (timedQuizEnabled && isTimerExpired && !isAutoSubmit) {
+      toast.error("Quiz time is up. Your answers are locked.");
+      return;
+    }
+
+    if (assignment.questions.length > 0 && !isAutoSubmit) {
+      const unanswered = assignment.questions.filter(
+        (question) =>
+          !questionResponses.find(
+            (response) =>
+              response.questionId === question.id && response.selectedChoiceId
+          )
+      );
+      if (unanswered.length > 0) {
+        toast.error("Please answer all questions before submitting.");
+        return;
+      }
+    }
+
+    if (
+      assignment.questions.length === 0 &&
+      !trimmedContent &&
+      submissionAttachments.length === 0 &&
+      !isAutoSubmit
+    ) {
       toast.error(
         "Please enter your response or upload at least one attachment."
       );
@@ -160,6 +294,8 @@ export default function StudentAssignmentDetailPage() {
         body: JSON.stringify({
           content: trimmedContent || undefined,
           attachments: submissionAttachments,
+          questionResponses,
+          autoSubmit: isAutoSubmit || undefined,
         }),
       });
       const payload = await response.json();
@@ -168,7 +304,11 @@ export default function StudentAssignmentDetailPage() {
         throw new Error(payload.error || "Failed to submit assignment");
       }
 
-      toast.success("Submission received successfully.");
+      if (isAutoSubmit) {
+        toast.success("Time is up. Quiz auto-submitted.");
+      } else {
+        toast.success("Submission received successfully.");
+      }
       await loadAssignment();
     } catch (submitError) {
       toast.error(
@@ -179,12 +319,48 @@ export default function StudentAssignmentDetailPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [
+    assignment,
+    content,
+    id,
+    isTimerExpired,
+    loadAssignment,
+    questionResponses,
+    submissionAttachments,
+    timedQuizEnabled,
+  ]);
+
+  React.useEffect(() => {
+    if (!assignment || !timedQuizEnabled || !isTimerExpired) return;
+    if (assignment.status !== "published") return;
+    if (submission && FINALIZED_SUBMISSION_STATUSES.has(submission.status || "")) {
+      return;
+    }
+    if (autoSubmitTriggeredRef.current) return;
+
+    autoSubmitTriggeredRef.current = true;
+    void handleSubmit({ autoSubmit: true });
+  }, [assignment, handleSubmit, isTimerExpired, submission, timedQuizEnabled]);
 
   const removeAttachment = (targetUrl: string) => {
     setSubmissionAttachments((prev) =>
       prev.filter((attachment) => attachment.url !== targetUrl)
     );
+  };
+
+  const setQuestionChoice = (questionId: string, selectedChoiceId: string) => {
+    setQuestionResponses((prev) => {
+      const existingIndex = prev.findIndex(
+        (response) => response.questionId === questionId
+      );
+      if (existingIndex === -1) {
+        return [...prev, { questionId, selectedChoiceId }];
+      }
+
+      const next = [...prev];
+      next[existingIndex] = { questionId, selectedChoiceId };
+      return next;
+    });
   };
 
   return (
@@ -323,6 +499,107 @@ export default function StudentAssignmentDetailPage() {
               </CardContent>
             </Card>
 
+            {timedQuizEnabled && quizTimer && (
+              <Card className="rounded-2xl border border-cyan-400/30 bg-cyan-500/10">
+                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-[0.2em] text-cyan-100/70">
+                      Quiz Timer
+                    </p>
+                    {!timerHidden ? (
+                      <p className="text-2xl font-semibold text-cyan-50">
+                        {formatTimerCountdown(remainingSeconds ?? 0)}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-cyan-100/75">Timer hidden</p>
+                    )}
+                    {isTimerExpired && (
+                      <p className="text-xs text-rose-200">
+                        Time is up. This quiz is locked and auto-submitted.
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setTimerHidden((prev) => !prev)}
+                    className="border-cyan-200/30 bg-cyan-950/40 text-cyan-100 hover:bg-cyan-900/50"
+                  >
+                    {timerHidden ? (
+                      <>
+                        <Eye className="h-4 w-4" />
+                        Show timer
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="h-4 w-4" />
+                        Hide timer
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {assignment.questions.length > 0 && (
+              <Card className="rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+                <CardHeader>
+                  <CardTitle className="text-lg text-white">Questions</CardTitle>
+                  <p className="text-sm text-white/60">
+                    {lockedByTimer
+                      ? "Time is up. Responses are locked."
+                      : "Choose the best answer for each question."}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {assignment.questions.map((question, index) => {
+                    const selectedChoiceId =
+                      questionResponses.find(
+                        (response) => response.questionId === question.id
+                      )?.selectedChoiceId || null;
+
+                    return (
+                      <div
+                        key={question.id || index}
+                        className="rounded-xl border border-white/10 bg-white/5 p-4"
+                      >
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-white">
+                            {index + 1}. {question.prompt}
+                          </p>
+                          <Badge className="border-white/10 bg-white/10 text-xs text-white/70">
+                            {question.points} pt
+                            {question.points === 1 ? "" : "s"}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {question.choices.map((choice) => (
+                            <button
+                              key={choice.id}
+                              type="button"
+                              onClick={() =>
+                                !isInteractionLocked
+                                  ? setQuestionChoice(question.id, choice.id)
+                                  : undefined
+                              }
+                              className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
+                                selectedChoiceId === choice.id
+                                  ? "border-brand/50 bg-brand/15 text-white"
+                                  : "border-white/10 bg-black/20 text-white/75 hover:bg-white/10"
+                              }`}
+                              disabled={isInteractionLocked}
+                            >
+                              {choice.text}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
               <CardHeader>
                 <CardTitle className="text-lg text-white">Your Submission</CardTitle>
@@ -331,15 +608,19 @@ export default function StudentAssignmentDetailPage() {
                 <Textarea
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
-                  placeholder="Write your answer here..."
+                  placeholder={
+                    assignment.questions.length > 0
+                      ? "Optional: add notes for your teacher..."
+                      : "Write your answer here..."
+                  }
                   className="min-h-[180px] border-white/10 bg-white/5 text-white"
-                  disabled={assignment.status !== "published" || isSubmitting}
+                  disabled={isInteractionLocked}
                 />
                 <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs uppercase tracking-wide text-white/40">
                     Attachments
                   </p>
-                  {assignment.status === "published" && schoolId ? (
+                  {assignment.status === "published" && schoolId && !isInteractionLocked ? (
                     <DocumentUploader
                       schoolId={schoolId}
                       category="assignments"
@@ -364,9 +645,13 @@ export default function StudentAssignmentDetailPage() {
                       }}
                       onError={(message) => toast.error(message)}
                     />
-                  ) : assignment.status === "published" ? (
+                  ) : assignment.status === "published" && !schoolId ? (
                     <p className="text-xs text-white/55">
                       Loading upload settings...
+                    </p>
+                  ) : lockedByTimer ? (
+                    <p className="text-xs text-white/55">
+                      Attachments are locked because the quiz timer has ended.
                     </p>
                   ) : (
                     <p className="text-xs text-white/55">
@@ -389,7 +674,7 @@ export default function StudentAssignmentDetailPage() {
                           >
                             {attachment.name || `Attachment ${index + 1}`}
                           </a>
-                          {assignment.status === "published" && (
+                          {assignment.status === "published" && !isInteractionLocked && (
                             <Button
                               type="button"
                               size="icon"
@@ -407,7 +692,7 @@ export default function StudentAssignmentDetailPage() {
                 </div>
                 <Button
                   onClick={() => void handleSubmit()}
-                  disabled={assignment.status !== "published" || isSubmitting}
+                  disabled={isInteractionLocked}
                   className="bg-brand text-brand-foreground hover:bg-brand/90"
                 >
                   {isSubmitting ? (
@@ -415,9 +700,11 @@ export default function StudentAssignmentDetailPage() {
                   ) : (
                     <Upload className="mr-2 h-4 w-4" />
                   )}
-                  {assignment.status === "published"
-                    ? "Submit Assignment"
-                    : "Submission Closed"}
+                  {assignment.status !== "published"
+                    ? "Submission Closed"
+                    : lockedByTimer
+                      ? "Time Expired"
+                      : "Submit Assignment"}
                 </Button>
                 {submission && (
                   <div className="rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-white/60">
@@ -452,16 +739,54 @@ export default function StudentAssignmentDetailPage() {
                     : "No due date"}
                 </p>
               </div>
-              <Separator className="bg-white/5" />
-              <div>
-                <p className="text-xs text-white/40">Late Policy</p>
-                <p className="text-sm text-white/80">
-                  {latePolicyLabel(
-                    assignment.latePolicy,
-                    assignment.latePenaltyPercent
-                  )}
-                </p>
-              </div>
+              {assignment.type !== "quiz" && (
+                <>
+                  <Separator className="bg-white/5" />
+                  <div>
+                    <p className="text-xs text-white/40">Late Policy</p>
+                    <p className="text-sm text-white/80">
+                      {latePolicyLabel(
+                        assignment.latePolicy,
+                        assignment.latePenaltyPercent
+                      )}
+                    </p>
+                  </div>
+                </>
+              )}
+              {timedQuizEnabled && (
+                <>
+                  <Separator className="bg-white/5" />
+                  <div>
+                    <p className="inline-flex items-center gap-2 text-xs text-white/40">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      Quiz Timer
+                    </p>
+                    <p className="text-sm text-white/80">
+                      {quizTimer?.durationMinutes || assignment.quizTimeLimitMinutes || 0} minute
+                      {(quizTimer?.durationMinutes || assignment.quizTimeLimitMinutes || 0) === 1
+                        ? ""
+                        : "s"}
+                    </p>
+                    {quizTimer?.expiresAt && (
+                      <p className="mt-1 text-xs text-white/55">
+                        Ends at {format(new Date(quizTimer.expiresAt), "MMM d, yyyy h:mm a")}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+              {assignment.questions.length > 0 && (
+                <>
+                  <Separator className="bg-white/5" />
+                  <div>
+                    <p className="text-xs text-white/40">Auto-graded Questions</p>
+                    <p className="text-sm text-white/80">
+                      {assignment.questions.length} question
+                      {assignment.questions.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                </>
+              )}
               <Separator className="bg-white/5" />
               <div>
                 <p className="text-xs text-white/40">Assignment ID</p>

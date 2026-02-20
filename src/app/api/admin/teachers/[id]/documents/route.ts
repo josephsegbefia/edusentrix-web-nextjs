@@ -4,7 +4,38 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherDocument } from "@/models/TeacherDocument";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 import mongoose from "mongoose";
+
+type TeacherDocumentListItem = {
+  _id: unknown;
+  name?: string;
+  type:
+    | "contract"
+    | "certificate"
+    | "license"
+    | "id"
+    | "resume"
+    | "other";
+  category?: string | null;
+  fileUrl?: string;
+  fileMime?: string | null;
+  fileSize?: number | null;
+  tags?: string[];
+  notes?: string | null;
+  issueDate?: Date | string | null;
+  expiryDate?: Date | string | null;
+  createdBy?:
+    | {
+        _id?: unknown;
+        firstName?: string;
+        lastName?: string;
+        email?: string | null;
+      }
+    | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
 
 function toObjectIdOrNull(id: string) {
   try {
@@ -79,8 +110,9 @@ export async function GET(
   const thirtyDaysFromNow = new Date(now);
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-  const data = documents.map((doc: any) => {
-    const expiryDate = doc.expiryDate ? new Date(doc.expiryDate) : null;
+  const data = documents.map((doc) => {
+    const item = doc as TeacherDocumentListItem;
+    const expiryDate = item.expiryDate ? new Date(item.expiryDate) : null;
     let expiryStatus: "expired" | "expiring_soon" | "valid" | null = null;
     if (expiryDate) {
       if (expiryDate < now) {
@@ -94,26 +126,26 @@ export async function GET(
 
     return {
       id: String(doc._id),
-      name: String(doc.name),
-      type: doc.type,
-      category: doc.category || null,
-      fileUrl: String(doc.fileUrl),
-      fileMime: doc.fileMime || null,
-      fileSize: doc.fileSize || null,
-      tags: Array.isArray(doc.tags) ? doc.tags : [],
-      notes: doc.notes || null,
-      issueDate: doc.issueDate ? new Date(doc.issueDate).toISOString() : null,
+      name: String(item.name || ""),
+      type: item.type,
+      category: item.category || null,
+      fileUrl: String(item.fileUrl || ""),
+      fileMime: item.fileMime || null,
+      fileSize: item.fileSize || null,
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      notes: item.notes || null,
+      issueDate: item.issueDate ? new Date(item.issueDate).toISOString() : null,
       expiryDate: expiryDate ? expiryDate.toISOString() : null,
       expiryStatus,
-      createdBy: doc.createdBy
+      createdBy: item.createdBy
         ? {
-            id: String(doc.createdBy._id),
-            name: `${doc.createdBy.firstName || ""} ${doc.createdBy.lastName || ""}`.trim(),
-            email: doc.createdBy.email || null,
+            id: String(item.createdBy._id),
+            name: `${item.createdBy.firstName || ""} ${item.createdBy.lastName || ""}`.trim(),
+            email: item.createdBy.email || null,
           }
         : null,
-      createdAt: new Date(doc.createdAt).toISOString(),
-      updatedAt: new Date(doc.updatedAt).toISOString(),
+      createdAt: new Date(item.createdAt || now).toISOString(),
+      updatedAt: new Date(item.updatedAt || now).toISOString(),
     };
   });
 
@@ -190,38 +222,61 @@ export async function POST(
     );
   }
 
-  // Create document
-  const document = await TeacherDocument.create({
-    teacherId: teacherObjId,
-    schoolId: schoolIdObj,
-    name: String(name),
-    type,
-    category: category || undefined,
-    fileUrl: String(fileUrl),
-    fileMime: fileMime || undefined,
-    fileSize: fileSize ? Number(fileSize) : undefined,
-    tags: Array.isArray(tags) ? tags : [],
-    notes: notes || undefined,
-    issueDate: issueDate ? new Date(issueDate) : undefined,
-    expiryDate: expiryDate ? new Date(expiryDate) : undefined,
-    createdBy: adminUserId ? new mongoose.Types.ObjectId(String(adminUserId)) : undefined,
-  });
+  const normalizedFileUrl = String(fileUrl);
+  let document:
+    | {
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        type: string;
+      }
+    | undefined;
 
-  // Log activity
-  await logTeacherActivity({
-    teacherId: String(teacherObjId),
-    schoolId: schoolIdObj,
-    type: "document.added",
-    title: "Document uploaded",
-    description: `Uploaded document: ${name} (${type})`,
-    metadata: {
-      documentId: String(document._id),
-      name,
+  try {
+    document = await TeacherDocument.create({
+      teacherId: teacherObjId,
+      schoolId: schoolIdObj,
+      name: String(name),
       type,
-      uploadedBy: adminUserId,
-    },
-    createdBy: adminUserId,
-  });
+      category: category || undefined,
+      fileUrl: normalizedFileUrl,
+      fileMime: fileMime || undefined,
+      fileSize: fileSize ? Number(fileSize) : undefined,
+      tags: Array.isArray(tags) ? tags : [],
+      notes: notes || undefined,
+      issueDate: issueDate ? new Date(issueDate) : undefined,
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+      createdBy: adminUserId
+        ? new mongoose.Types.ObjectId(String(adminUserId))
+        : undefined,
+    });
+
+    await logTeacherActivity({
+      teacherId: String(teacherObjId),
+      schoolId: schoolIdObj,
+      type: "document.added",
+      title: "Document uploaded",
+      description: `Uploaded document: ${name} (${type})`,
+      metadata: {
+        documentId: String(document._id),
+        name,
+        type,
+        uploadedBy: adminUserId,
+      },
+      createdBy: adminUserId,
+    });
+  } catch (error) {
+    // Roll back uploaded file if DB/create path fails.
+    const deleted = await deleteUploadedFile(normalizedFileUrl);
+    if (!deleted) {
+      console.error("Rollback failed for uploaded document:", normalizedFileUrl);
+    }
+    console.error("Document creation failed:", error);
+    return Response.json({ error: "Failed to create document record" }, { status: 500 });
+  }
+
+  if (!document) {
+    return Response.json({ error: "Failed to create document record" }, { status: 500 });
+  }
 
   return Response.json({
     success: true,
@@ -229,7 +284,13 @@ export async function POST(
     data: {
       id: String(document._id),
       name: document.name,
-      type: document.type,
+      type: document.type as
+        | "contract"
+        | "certificate"
+        | "license"
+        | "id"
+        | "resume"
+        | "other",
     },
   });
 }

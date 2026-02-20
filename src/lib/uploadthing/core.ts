@@ -1,0 +1,313 @@
+import { auth } from "@clerk/nextjs/server";
+import { connectToDatabase } from "@/db/connectToDatabase";
+import { School } from "@/models/School";
+import { User } from "@/models/User";
+import { createUploadthing, type FileRouter, UTFiles } from "uploadthing/next";
+import { z } from "zod";
+
+const f = createUploadthing();
+const RouteInput = z
+  .object({
+    schoolId: z.string().trim().min(1).optional(),
+  })
+  .optional();
+
+type UploadMetadata = {
+  userId: string;
+  schoolId: string;
+  schoolSlug: string;
+  folder: string;
+};
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function sanitizeFileName(name: string): string {
+  const parts = name.split(".");
+  const ext = parts.length > 1 ? parts.pop() : "";
+  const base = parts.join(".") || "file";
+  const cleanBase = base
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  const cleanExt = (ext || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .slice(0, 12);
+
+  return cleanExt ? `${cleanBase || "file"}.${cleanExt}` : cleanBase || "file";
+}
+
+async function getUploaderContext(requestedSchoolId?: string) {
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) {
+    throw new Error("Unauthorized");
+  }
+
+  await connectToDatabase();
+
+  const user = await User.findOne({ clerkUserId })
+    .select("_id role schoolId")
+    .lean<{
+      _id: { toString(): string };
+      role?: string;
+      schoolId?: { toString(): string } | null;
+    }>();
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+  const userSchoolId = user.schoolId?.toString();
+  let effectiveSchoolId = userSchoolId;
+
+  if (requestedSchoolId && requestedSchoolId !== userSchoolId) {
+    if (user.role !== "platform_admin") {
+      throw new Error("Forbidden school upload target");
+    }
+    effectiveSchoolId = requestedSchoolId;
+  }
+
+  if (!effectiveSchoolId) {
+    throw new Error("No school associated with user");
+  }
+
+  const school = await School.findById(effectiveSchoolId)
+    .select("name")
+    .lean<{ name?: string }>();
+
+  const schoolSlug = slugify(school?.name || effectiveSchoolId || "school");
+
+  return {
+    userId: user._id.toString(),
+    schoolId: effectiveSchoolId,
+    schoolSlug,
+  };
+}
+
+async function buildMetadata(
+  folder: string,
+  files: Array<{ name: string }>,
+  requestedSchoolId?: string
+) {
+  const context = await getUploaderContext(requestedSchoolId);
+  const timestamp = Date.now();
+
+  const filesWithCustomIds = files.map((file, index) => ({
+    ...file,
+    customId: `${context.schoolSlug}/${folder}/${timestamp}-${index}-${sanitizeFileName(file.name)}`.slice(
+      0,
+      220
+    ),
+  }));
+
+  return {
+    ...context,
+    folder,
+    [UTFiles]: filesWithCustomIds,
+  };
+}
+
+function buildUploadResponse(metadata: UploadMetadata, file: {
+  key: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  ufsUrl?: string;
+  customId: string | null;
+}) {
+  return {
+    url: file.ufsUrl || file.url,
+    key: file.key,
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    customId: file.customId,
+    schoolSlug: metadata.schoolSlug,
+    folder: metadata.folder,
+  };
+}
+
+export const ourFileRouter = {
+  studentAvatar: f({
+    image: { maxFileSize: "5MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("students/avatars", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  teacherAvatar: f({
+    image: { maxFileSize: "5MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("teachers/avatars", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  parentAvatar: f({
+    image: { maxFileSize: "5MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("parents/avatars", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  schoolAdminAvatar: f({
+    image: { maxFileSize: "5MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("school-admins/avatars", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  staffAvatar: f({
+    image: { maxFileSize: "5MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("staff/avatars", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  bursarAvatar: f({
+    image: { maxFileSize: "5MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("bursars/avatars", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  teacherDocument: f({
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+    video: { maxFileSize: "64MB", maxFileCount: 1 },
+    "text/csv": { maxFileSize: "8MB", maxFileCount: 1 },
+    "application/vnd.ms-excel": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+      maxFileSize: "12MB",
+      maxFileCount: 1,
+    },
+    "application/vnd.ms-powerpoint": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": {
+      maxFileSize: "12MB",
+      maxFileCount: 1,
+    },
+    "application/msword": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      {
+        maxFileSize: "12MB",
+        maxFileCount: 1,
+      },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("documents/teachers", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  expenseReceipt: f({
+    pdf: { maxFileSize: "8MB", maxFileCount: 1 },
+    image: { maxFileSize: "5MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("documents/expenses", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  assignmentAttachment: f({
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+    "text/csv": { maxFileSize: "8MB", maxFileCount: 1 },
+    "application/vnd.ms-excel": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+      maxFileSize: "12MB",
+      maxFileCount: 1,
+    },
+    "application/msword": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      {
+        maxFileSize: "12MB",
+        maxFileCount: 1,
+      },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("assignments/attachments", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  submissionAttachment: f({
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+    "text/csv": { maxFileSize: "8MB", maxFileCount: 1 },
+    "application/vnd.ms-excel": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+      maxFileSize: "12MB",
+      maxFileCount: 1,
+    },
+    "application/msword": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      {
+        maxFileSize: "12MB",
+        maxFileCount: 1,
+      },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("submissions/attachments", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  noticeAttachment: f({
+    pdf: { maxFileSize: "8MB", maxFileCount: 1 },
+    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    "application/msword": { maxFileSize: "8MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      {
+        maxFileSize: "8MB",
+        maxFileCount: 1,
+      },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("notices", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+} satisfies FileRouter;
+
+export type OurFileRouter = typeof ourFileRouter;

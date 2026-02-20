@@ -68,6 +68,7 @@ export function UploadDocumentModal({
     publicId: string;
     bytes: number;
     format?: string;
+    mimeType?: string;
   } | null>(null);
 
   const uploadDocumentMutation = useUploadDocument();
@@ -115,6 +116,7 @@ export function UploadDocumentModal({
     url: string;
     bytes: number;
     format?: string;
+    mimeType?: string;
   }) => {
     setUploadedFile(payload);
     // Auto-populate name if empty and we have a filename from the upload
@@ -139,7 +141,7 @@ export function UploadDocumentModal({
         type: data.type as TeacherDocumentType,
         category: data.category || null,
         fileUrl: uploadedFile.url,
-        fileMime: uploadedFile.format ? `application/${uploadedFile.format}` : null,
+        fileMime: uploadedFile.mimeType || null,
         fileSize: uploadedFile.bytes,
         tags: data.tags
           ? data.tags.split(",").map((t) => t.trim()).filter(Boolean)

@@ -20,6 +20,28 @@ const AttachmentSchema = z.object({
   size: z.number().min(0).optional(),
 });
 
+const QuestionChoiceSchema = z.object({
+  id: z.string().min(1).max(80).optional(),
+  text: z.string().min(1).max(300),
+  isCorrect: z.boolean(),
+});
+
+const QuestionSchema = z
+  .object({
+    id: z.string().min(1).max(80).optional(),
+    prompt: z.string().min(1).max(1000),
+    points: z.number().min(0).max(1000).default(1),
+    explanation: z.string().max(1000).optional().nullable(),
+    choices: z.array(QuestionChoiceSchema).min(2),
+  })
+  .refine(
+    (question) => question.choices.filter((choice) => choice.isCorrect).length === 1,
+    {
+      message: "Each question must have exactly one correct answer",
+      path: ["choices"],
+    }
+  );
+
 const HomeworkCreateSchema = z.object({
   title: z.string().min(1).max(160),
   instructions: z.string().min(1),
@@ -31,9 +53,11 @@ const HomeworkCreateSchema = z.object({
   latePolicy: z.enum(["accept", "reject", "penalize"]).optional(),
   latePenaltyPercent: z.number().min(0).max(100).optional().nullable(),
   maxScore: z.number().min(0),
+  quizTimeLimitMinutes: z.number().int().min(1).max(300).optional().nullable(),
   weight: z.number().min(0).max(100).optional().nullable(),
   rubricId: z.string().optional().nullable(),
   attachments: z.array(AttachmentSchema).optional(),
+  questions: z.array(QuestionSchema).max(100).optional(),
   status: z.enum(["draft", "published"]).optional(),
 });
 
@@ -55,6 +79,28 @@ function parseDateInput(value: string): Date | null {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
+}
+
+function buildLocalId(prefix: string, value?: string) {
+  if (value && value.trim()) return value.trim();
+  return `${prefix}_${new mongoose.Types.ObjectId().toString()}`;
+}
+
+function normalizeQuestions(
+  questions: Array<z.infer<typeof QuestionSchema>> | undefined
+) {
+  if (!questions || questions.length === 0) return [];
+  return questions.map((question) => ({
+    id: buildLocalId("question", question.id),
+    prompt: question.prompt.trim(),
+    points: question.points,
+    explanation: question.explanation?.trim() || undefined,
+    choices: question.choices.map((choice) => ({
+      id: buildLocalId("choice", choice.id),
+      text: choice.text.trim(),
+      isCorrect: Boolean(choice.isCorrect),
+    })),
+  }));
 }
 
 async function ensureTeacherScope(params: {
@@ -83,17 +129,85 @@ async function ensureTeacherScope(params: {
   }
 }
 
-async function hydrateAssignments(list: any[]) {
+type ClassGroupLean = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  gradeId?: mongoose.Types.ObjectId;
+};
+
+type QuestionChoiceLean = {
+  id?: string;
+  text: string;
+  isCorrect?: boolean;
+};
+
+type QuestionLean = {
+  id?: string;
+  prompt: string;
+  points: number;
+  explanation?: string;
+  choices?: QuestionChoiceLean[];
+};
+
+type HomeworkLean = {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  instructions: string;
+  type: string;
+  status: string;
+  dueDate?: Date | null;
+  latePolicy: string;
+  latePenaltyPercent?: number | null;
+  maxScore: number;
+  quizTimeLimitMinutes?: number | null;
+  weight?: number | null;
+  subjectId?: { _id?: mongoose.Types.ObjectId; name: string } | mongoose.Types.ObjectId | null;
+  rubricId?: { _id?: mongoose.Types.ObjectId; title: string } | mongoose.Types.ObjectId | null;
+  classGroupIds?: ClassGroupLean[];
+  targetStudentIds?: Array<mongoose.Types.ObjectId | string>;
+  attachments?: Array<{ name: string; url: string; type: string; size?: number }>;
+  questions?: QuestionLean[];
+  submissionCount?: number;
+  gradedCount?: number;
+  publishedAt?: Date | null;
+  closedAt?: Date | null;
+  createdAt?: Date | null;
+};
+
+type SubmissionStatRow = {
+  _id: mongoose.Types.ObjectId;
+  total: number;
+  graded: number;
+  pending: number;
+  returned: number;
+};
+
+function isPopulatedSubject(
+  value: HomeworkLean["subjectId"]
+): value is { _id?: mongoose.Types.ObjectId; name: string } {
+  return Boolean(value && typeof value === "object" && "name" in value);
+}
+
+function isPopulatedRubric(
+  value: HomeworkLean["rubricId"]
+): value is { _id?: mongoose.Types.ObjectId; title: string } {
+  return Boolean(value && typeof value === "object" && "title" in value);
+}
+
+async function hydrateAssignments(list: HomeworkLean[]) {
   const classGroups = list.flatMap((item) => item.classGroupIds || []);
   const gradeIds = Array.from(
-    new Set(classGroups.map((group: any) => String(group.gradeId)))
+    new Set(classGroups.map((group) => String(group.gradeId)))
   ).filter(Boolean);
 
   const grades = gradeIds.length
     ? await Grade.find({ _id: { $in: gradeIds } }).select("name").lean()
     : [];
   const gradeMap = new Map(
-    grades.map((grade: any) => [String(grade._id), grade.name])
+    grades.map((grade: { _id: mongoose.Types.ObjectId; name: string }) => [
+      String(grade._id),
+      grade.name,
+    ])
   );
 
   const homeworkIds = list.map((item) => item._id);
@@ -128,10 +242,12 @@ async function hydrateAssignments(list: any[]) {
       ])
     : [];
 
-  const statMap = new Map(stats.map((row: any) => [String(row._id), row]));
+  const statMap = new Map(
+    (stats as SubmissionStatRow[]).map((row) => [String(row._id), row])
+  );
 
   return list.map((item) => {
-    const classLabels = (item.classGroupIds || []).map((group: any) => {
+    const classLabels = (item.classGroupIds || []).map((group) => {
       const gradeName = group.gradeId ? gradeMap.get(String(group.gradeId)) : null;
       const name = gradeName ? `${gradeName} ${group.name}` : group.name;
       return {
@@ -158,16 +274,29 @@ async function hydrateAssignments(list: any[]) {
       latePolicy: item.latePolicy,
       latePenaltyPercent: item.latePenaltyPercent ?? null,
       maxScore: item.maxScore,
+      quizTimeLimitMinutes: item.quizTimeLimitMinutes ?? null,
       weight: item.weight ?? null,
-      subject: item.subjectId
+      subject: isPopulatedSubject(item.subjectId)
         ? { id: String(item.subjectId._id || item.subjectId), name: item.subjectId.name }
         : null,
-      rubric: item.rubricId
+      rubric: isPopulatedRubric(item.rubricId)
         ? { id: String(item.rubricId._id || item.rubricId), title: item.rubricId.title }
         : null,
       classGroups: classLabels,
-      targetStudentIds: (item.targetStudentIds || []).map((id: any) => String(id)),
+      targetStudentIds: (item.targetStudentIds || []).map((id) => String(id)),
       attachments: item.attachments || [],
+      questionCount: (item.questions || []).length,
+      questions: (item.questions || []).map((question, questionIndex: number) => ({
+        id: question.id || `question_${questionIndex + 1}`,
+        prompt: question.prompt,
+        points: question.points,
+        explanation: question.explanation || null,
+        choices: (question.choices || []).map((choice, choiceIndex: number) => ({
+          id: choice.id || `choice_${choiceIndex + 1}`,
+          text: choice.text,
+          isCorrect: Boolean(choice.isCorrect),
+        })),
+      })),
       stats: {
         total: counts.total || 0,
         graded: counts.graded || 0,
@@ -326,6 +455,12 @@ export async function POST(req: Request) {
 
     const now = new Date();
     const status = data.status || "draft";
+    const questions = normalizeQuestions(data.questions);
+    const quizTimeLimitMinutes =
+      data.type === "quiz" ? data.quizTimeLimitMinutes ?? null : null;
+    const latePolicy = data.type === "quiz" ? "accept" : data.latePolicy || "accept";
+    const latePenaltyPercent =
+      data.type === "quiz" ? undefined : data.latePenaltyPercent ?? undefined;
 
     const homework = await Homework.create({
       schoolId: context.schoolId,
@@ -340,12 +475,14 @@ export async function POST(req: Request) {
       instructions: data.instructions,
       type: data.type,
       dueDate,
-      latePolicy: data.latePolicy || "accept",
-      latePenaltyPercent: data.latePenaltyPercent ?? undefined,
+      latePolicy,
+      latePenaltyPercent,
       maxScore: data.maxScore,
+      quizTimeLimitMinutes,
       rubricId: rubricId || undefined,
       weight: data.weight ?? undefined,
       attachments: data.attachments || [],
+      questions,
       status,
       publishedAt: status === "published" ? now : undefined,
       submissionCount: 0,

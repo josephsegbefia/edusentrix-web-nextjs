@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ClipboardCheck, FileText, FolderKanban, Layers, PenSquare } from "lucide-react";
+import {
+  ClipboardCheck,
+  FileText,
+  FolderKanban,
+  Layers,
+  ListChecks,
+  PenSquare,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
@@ -14,6 +21,12 @@ const quickLinks = [
     description: "Create and manage graded work.",
     href: "/teacher/studio/assignments",
     icon: ClipboardCheck,
+  },
+  {
+    title: "Quizzes",
+    description: "Build and run quiz-based assessments.",
+    href: "/teacher/studio/quizzes",
+    icon: ListChecks,
   },
   {
     title: "Submissions",
@@ -50,13 +63,18 @@ export default function TeacherStudioPage() {
         </div>
         <h1 className="text-3xl font-semibold text-white">Create, track, and grade with confidence.</h1>
         <p className="max-w-2xl text-sm text-white/60">
-          Build assignments, manage submissions, and publish results using the premium
-          teacher workflow.
+          Build assignments and quizzes, manage submissions, and publish results using
+          the premium teacher workflow.
         </p>
         {canCreate && (
-          <Button asChild className="w-full bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 sm:w-auto">
-            <Link href="/teacher/studio/assignments/new">Create assignment</Link>
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild className="w-full bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 sm:w-auto">
+              <Link href="/teacher/studio/assignments/new">Create assignment</Link>
+            </Button>
+            <Button asChild className="w-full border border-white/10 bg-white/10 text-white hover:bg-white/20 sm:w-auto">
+              <Link href="/teacher/studio/quizzes/new">Create quiz</Link>
+            </Button>
+          </div>
         )}
         {!canCreate && (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">

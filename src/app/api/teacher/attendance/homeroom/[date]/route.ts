@@ -242,7 +242,7 @@ export async function PATCH(
     await StudentAttendance.bulkWrite(validOps, { ordered: false });
 
     const canNotify = can(context.permissions, PERMISSIONS.attendanceNotify);
-    let notificationsEnabled = false;
+    let whatsappChannelEnabled = false;
     if (canNotify) {
       const settings = await SchoolSettings.findOne({ schoolId: context.schoolId })
         .select("attendanceNotifications")
@@ -251,22 +251,22 @@ export async function PATCH(
         attendanceNotifications?: { enabled?: boolean; channels?: { whatsapp?: boolean; sms?: boolean; email?: boolean } };
       } | null)?.attendanceNotifications;
       const enabled = attendanceSettings?.enabled ?? true;
-      const channels = attendanceSettings?.channels;
-      const hasChannel = channels ? Object.values(channels).some(Boolean) : true;
-      notificationsEnabled = enabled && hasChannel;
+      const whatsappEnabled = attendanceSettings?.channels?.whatsapp ?? true;
+      whatsappChannelEnabled = enabled && whatsappEnabled;
     }
 
     let notificationsSent = 0;
-    if (canNotify && notificationsEnabled) {
+    if (canNotify && whatsappChannelEnabled) {
       const results = await Promise.all(
         parsed.data.records.map((record) =>
           queueAttendanceNotification({
             schoolId: context.schoolId,
+            teacherId: context.teacherId,
             studentId: record.studentId,
             status: record.status,
             date: attendanceDate,
             type: "homeroom",
-            notificationsEnabled,
+            whatsappChannelEnabled,
           })
         )
       );

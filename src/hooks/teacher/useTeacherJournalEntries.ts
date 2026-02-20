@@ -10,7 +10,14 @@ export type TeacherJournalEntry = {
   title: string | null;
   content: string;
   status: "draft" | "published";
+  attachments: Array<{
+    name: string;
+    url: string;
+    type: string;
+    size?: number | null;
+  }>;
   createdAt: string | null;
+  updatedAt: string | null;
 };
 
 export type TeacherJournalEntriesResponse = {
@@ -26,6 +33,7 @@ export type TeacherJournalEntryFilters = {
   status?: string;
   startDate?: string;
   endDate?: string;
+  search?: string;
   limit?: number;
   enabled?: boolean;
 };
@@ -40,6 +48,7 @@ export function useTeacherJournalEntries(filters?: TeacherJournalEntryFilters) {
       if (filters?.status) params.set("status", filters.status);
       if (filters?.startDate) params.set("startDate", filters.startDate);
       if (filters?.endDate) params.set("endDate", filters.endDate);
+      if (filters?.search) params.set("search", filters.search);
       if (filters?.limit) params.set("limit", String(filters.limit));
       const res = await fetch(`/api/teacher/journal?${params.toString()}`, { cache: "no-store" });
       const data = await res.json().catch(() => null);

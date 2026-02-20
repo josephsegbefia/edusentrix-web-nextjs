@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { AlertTriangle, RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import { useTeacherAtRisk } from "@/hooks/teacher/useTeacherAtRisk";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
-import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,8 +18,6 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { cn } from "@/lib/utils";
-import { can } from "@/lib/auth/can";
-import { PERMISSIONS, type Permission } from "@/lib/rbac";
 
 function formatMetric(value?: number | null) {
   if (value === null || value === undefined) return "—";
@@ -29,9 +26,6 @@ function formatMetric(value?: number | null) {
 
 export default function TeacherAtRiskPage() {
   const busyToast = useBusyToast();
-  const { data: contextData } = useTeacherContext();
-  const permissions = contextData?.data.permissions as Permission[] | undefined;
-  const canView = can(permissions, PERMISSIONS.analyticsAtRisk);
 
   const { data: classesData } = useTeacherClasses();
   const [selectedClassId, setSelectedClassId] = React.useState("all");
@@ -62,32 +56,6 @@ export default function TeacherAtRiskPage() {
       error: "Failed to refresh at-risk list",
     });
   }, [busyToast, atRiskQuery]);
-
-  if (!canView) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Students At Risk</h1>
-          <p className="text-sm text-white/60">Access to at-risk insights is disabled.</p>
-        </div>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60">
-                <AlertTriangle className="h-4 w-4" />
-              </span>
-              At-risk access required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-              Ask an admin to enable at-risk analytics for your account.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   const students = (atRiskQuery.data?.data.students || []).filter((student) => {
     if (!search.trim()) return true;

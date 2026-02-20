@@ -149,7 +149,7 @@ export async function GET(req: Request) {
     let lateCount = 0;
     let excusedCount = 0;
 
-    const records = students.map((student: any) => {
+    const records = students.map((student) => {
       const attendance = attendanceMap.get(String(student._id));
       const status = attendance?.status ?? "present";
       if (status === "present") presentCount += 1;
@@ -328,7 +328,7 @@ export async function POST(req: Request) {
     const lateCount = records.filter((r) => r.status === "late").length;
 
     const canNotify = can(context.permissions, PERMISSIONS.attendanceNotify);
-    let notificationsEnabled = false;
+    let whatsappChannelEnabled = false;
     if (canNotify) {
       const settings = await SchoolSettings.findOne({ schoolId: context.schoolId })
         .select("attendanceNotifications")
@@ -337,22 +337,23 @@ export async function POST(req: Request) {
         attendanceNotifications?: { enabled?: boolean; channels?: { whatsapp?: boolean; sms?: boolean; email?: boolean } };
       } | null)?.attendanceNotifications;
       const enabled = attendanceSettings?.enabled ?? true;
-      const channels = attendanceSettings?.channels;
-      const hasChannel = channels ? Object.values(channels).some(Boolean) : true;
-      notificationsEnabled = enabled && hasChannel;
+      const whatsappEnabled = attendanceSettings?.channels?.whatsapp ?? true;
+      whatsappChannelEnabled = enabled && whatsappEnabled;
     }
 
     let notificationsSent = 0;
-    if (canNotify && notificationsEnabled) {
+    if (canNotify && whatsappChannelEnabled) {
       const results = await Promise.all(
         records.map((record) =>
           queueAttendanceNotification({
             schoolId: context.schoolId,
+            teacherId: context.teacherId,
             studentId: record.studentId,
             status: record.status,
             date: attendanceDate,
             type: "period",
-            notificationsEnabled,
+            periodNumber,
+            whatsappChannelEnabled,
           })
         )
       );

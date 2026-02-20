@@ -2,7 +2,24 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Search, BookOpen, ChevronRight, Home, DollarSign } from "lucide-react";
+import {
+  Search,
+  BookOpen,
+  ChevronRight,
+  Home,
+  DollarSign,
+  Users,
+  GraduationCap,
+  Calendar,
+  BarChart3,
+  Clock,
+  MessageSquare,
+  Wallet,
+  Receipt,
+  HeartHandshake,
+  UserCircle,
+  Backpack,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
@@ -35,7 +52,7 @@ const DOC_CATEGORIES: DocCategory[] = [
   },
   {
     title: "Students",
-    icon: <BookOpen className="h-4 w-4" />,
+    icon: <Users className="h-4 w-4" />,
     sections: [
       {
         title: "Managing Students",
@@ -56,7 +73,7 @@ const DOC_CATEGORIES: DocCategory[] = [
   },
   {
     title: "Teachers",
-    icon: <BookOpen className="h-4 w-4" />,
+    icon: <GraduationCap className="h-4 w-4" />,
     sections: [
       {
         title: "Managing Teachers",
@@ -71,8 +88,56 @@ const DOC_CATEGORIES: DocCategory[] = [
     ],
   },
   {
-    title: "Class Groups",
+    title: "Teacher Portal",
     icon: <BookOpen className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Lesson Notes Builder",
+        slug: "lesson-notes",
+        path: "teacher-portal/lesson-notes.md",
+      },
+      {
+        title: "Teacher Studio",
+        slug: "teacher-studio",
+        path: "teacher-portal/teacher-studio.md",
+      },
+      {
+        title: "Gradebook & Attendance",
+        slug: "teacher-gradebook-attendance",
+        path: "teacher-portal/gradebook-attendance.md",
+      },
+      {
+        title: "Communication",
+        slug: "teacher-communication",
+        path: "teacher-portal/communication.md",
+      },
+    ],
+  },
+  {
+    title: "Parent Portal",
+    icon: <UserCircle className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Parent Portal Overview",
+        slug: "parent-portal-overview",
+        path: "parent-portal/overview.md",
+      },
+    ],
+  },
+  {
+    title: "Student Portal",
+    icon: <Backpack className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Student Portal Overview",
+        slug: "student-portal-overview",
+        path: "student-portal/overview.md",
+      },
+    ],
+  },
+  {
+    title: "Class Groups",
+    icon: <Users className="h-4 w-4" />,
     sections: [
       {
         title: "Managing Class Groups",
@@ -82,8 +147,19 @@ const DOC_CATEGORIES: DocCategory[] = [
     ],
   },
   {
-    title: "Academic Periods",
+    title: "Subjects",
     icon: <BookOpen className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Managing Subjects",
+        slug: "managing-subjects",
+        path: "subjects/managing-subjects.md",
+      },
+    ],
+  },
+  {
+    title: "Academic Periods",
+    icon: <Calendar className="h-4 w-4" />,
     sections: [
       {
         title: "Managing Periods",
@@ -120,6 +196,72 @@ const DOC_CATEGORIES: DocCategory[] = [
         title: "Managing Student Credit",
         slug: "managing-student-credit",
         path: "fees/managing-student-credit.md",
+      },
+    ],
+  },
+  {
+    title: "Financial Center",
+    icon: <Wallet className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Financial Center",
+        slug: "financial-center",
+        path: "finance/financial-center.md",
+      },
+    ],
+  },
+  {
+    title: "Expenses",
+    icon: <Receipt className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Managing Expenses",
+        slug: "managing-expenses",
+        path: "expenses/managing-expenses.md",
+      },
+    ],
+  },
+  {
+    title: "Community Hub",
+    icon: <HeartHandshake className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Community Hub",
+        slug: "community-hub",
+        path: "community/community-hub.md",
+      },
+    ],
+  },
+  {
+    title: "Timetable",
+    icon: <Clock className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Master Timetable",
+        slug: "master-timetable",
+        path: "timetable/master-timetable.md",
+      },
+    ],
+  },
+  {
+    title: "Reports & Analytics",
+    icon: <BarChart3 className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Reports & Analytics",
+        slug: "reports-analytics",
+        path: "reports/reports-analytics.md",
+      },
+    ],
+  },
+  {
+    title: "Invitations",
+    icon: <MessageSquare className="h-4 w-4" />,
+    sections: [
+      {
+        title: "Managing Invitations",
+        slug: "managing-invitations",
+        path: "invitations/managing-invitations.md",
       },
     ],
   },

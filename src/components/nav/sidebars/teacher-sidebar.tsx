@@ -160,6 +160,7 @@ const navSections: NavSection[] = [
         label: "Analytics",
         href: "/teacher/analytics",
         icon: BarChart3,
+        exact: true,
       },
       {
         label: "At-Risk List",

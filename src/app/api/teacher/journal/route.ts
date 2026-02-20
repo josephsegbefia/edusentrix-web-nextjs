@@ -29,6 +29,40 @@ const JournalEntrySchema = z.object({
     .optional(),
 });
 
+type LeanJournalEntry = {
+  _id: mongoose.Types.ObjectId;
+  classGroupId: mongoose.Types.ObjectId;
+  subjectId?: mongoose.Types.ObjectId;
+  date?: Date;
+  title?: string;
+  content: string;
+  status: "draft" | "published";
+  attachments?: Array<{
+    name: string;
+    url: string;
+    type: string;
+    size?: number;
+  }>;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+type LeanClassGroup = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  gradeId?: mongoose.Types.ObjectId;
+};
+
+type LeanSubject = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+};
+
+type LeanGrade = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+};
+
 function toObjectIdOrNull(id: string) {
   try {
     return new mongoose.Types.ObjectId(String(id));
@@ -56,6 +90,10 @@ function toDateRange(startDate?: string | null, endDate?: string | null) {
   return Object.keys(range).length ? range : null;
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function GET(req: Request) {
   try {
     const context = await requireTeacher();
@@ -71,6 +109,7 @@ export async function GET(req: Request) {
     const status = searchParams.get("status");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const search = searchParams.get("search");
     const limitParam = searchParams.get("limit");
     const limit = limitParam ? Math.max(Number(limitParam), 1) : 50;
 
@@ -128,10 +167,16 @@ export async function GET(req: Request) {
     const dateRange = toDateRange(startDate, endDate);
     if (dateRange) query.date = dateRange;
 
-    const entries = await JournalEntry.find(query)
+    if (search?.trim()) {
+      const safeSearch = escapeRegex(search.trim());
+      const regex = new RegExp(safeSearch, "i");
+      query.$or = [{ title: regex }, { content: regex }];
+    }
+
+    const entries = (await JournalEntry.find(query)
       .sort({ date: -1, createdAt: -1 })
       .limit(limit)
-      .lean();
+      .lean()) as unknown as LeanJournalEntry[];
 
     if (entries.length === 0) {
       return Response.json({ success: true, data: { entries: [] } });
@@ -150,7 +195,7 @@ export async function GET(req: Request) {
       )
     ).map((id) => new mongoose.Types.ObjectId(id));
 
-    const [classGroups, subjects] = await Promise.all([
+    const [classGroupsRaw, subjectsRaw] = await Promise.all([
       ClassGroup.find({ _id: { $in: classGroupIds } })
         .select("_id name gradeId")
         .lean(),
@@ -158,39 +203,39 @@ export async function GET(req: Request) {
         ? Subject.find({ _id: { $in: subjectIds } }).select("_id name").lean()
         : Promise.resolve([]),
     ]);
+    const classGroups = classGroupsRaw as unknown as LeanClassGroup[];
+    const subjects = subjectsRaw as LeanSubject[];
 
     const gradeIds = Array.from(
       new Set(
         classGroups
-          .map((group: { gradeId?: mongoose.Types.ObjectId }) => group.gradeId)
+          .map((group) => group.gradeId)
           .filter(Boolean)
           .map((id) => String(id))
       )
     ).map((id) => new mongoose.Types.ObjectId(id));
 
     const grades = gradeIds.length
-      ? await Grade.find({ _id: { $in: gradeIds } }).select("_id name").lean()
+      ? ((await Grade.find({ _id: { $in: gradeIds } }).select("_id name").lean()) as unknown as LeanGrade[])
       : [];
 
     const gradeMap = new Map(
-      grades.map((grade: { _id: mongoose.Types.ObjectId; name: string }) => [
+      grades.map((grade) => [
         String(grade._id),
         grade.name,
       ])
     );
 
     const classNameMap = new Map(
-      classGroups.map(
-        (group: { _id: mongoose.Types.ObjectId; name: string; gradeId?: mongoose.Types.ObjectId }) => {
-          const gradeName = group.gradeId ? gradeMap.get(String(group.gradeId)) : undefined;
-          const label = `${gradeName ? gradeName + " " : ""}${group.name}`.trim();
-          return [String(group._id), label || group.name];
-        }
-      )
+      classGroups.map((group) => {
+        const gradeName = group.gradeId ? gradeMap.get(String(group.gradeId)) : undefined;
+        const label = `${gradeName ? gradeName + " " : ""}${group.name}`.trim();
+        return [String(group._id), label || group.name];
+      })
     );
 
     const subjectMap = new Map(
-      subjects.map((subject: { _id: mongoose.Types.ObjectId; name: string }) => [
+      subjects.map((subject) => [
         String(subject._id),
         subject.name,
       ])
@@ -206,7 +251,9 @@ export async function GET(req: Request) {
       title: entry.title || null,
       content: entry.content,
       status: entry.status,
+      attachments: entry.attachments || [],
       createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
+      updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
     }));
 
     return Response.json({ success: true, data: { entries: data } });

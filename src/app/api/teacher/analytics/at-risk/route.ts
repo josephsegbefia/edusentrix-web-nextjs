@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
-import { can } from "@/lib/auth/can";
-import { PERMISSIONS } from "@/lib/rbac";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { calculateAtRiskStudents } from "@/lib/teacher/analytics";
@@ -19,10 +17,6 @@ export async function GET(req: Request) {
   try {
     const context = await requireTeacher();
     await connectToDatabase();
-
-    if (!can(context.permissions, PERMISSIONS.analyticsAtRisk)) {
-      return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
 
     const { searchParams } = new URL(req.url);
     const classGroupId = searchParams.get("classGroupId");

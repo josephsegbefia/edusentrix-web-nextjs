@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { Guardian } from "@/models/Guardian";
 import { Notice } from "@/models/Notice";
 import { sendWhatsAppMessage } from "@/lib/notifications/whatsapp";
+import { evaluateTeacherWhatsAppPolicy } from "@/lib/notifications/teacher-whatsapp-policy";
 
 function toObjectIdOrNull(id: string) {
   try {
@@ -47,34 +48,61 @@ export async function POST(
       { $set: { status: "published", publishedAt: now, scheduledFor: null } }
     );
 
+    let whatsappSent = 0;
+    let whatsappSkippedReason: string | null = null;
+
     if (notice.audience === "custom" && notice.targetStudentIds?.length) {
-      const guardians = await Guardian.find({
-        studentId: { $in: notice.targetStudentIds },
-        phone: { $ne: null },
-      })
-        .select("phone")
-        .lean();
+      const policy = await evaluateTeacherWhatsAppPolicy({
+        schoolId: context.schoolId,
+        teacherId: context.teacherId,
+        feature: "noticeBroadcasts",
+      });
 
-      const phoneSet = new Set(
-        guardians.map((g: any) => (g.phone ? String(g.phone) : null)).filter(Boolean)
-      );
+      if (!policy.allowed) {
+        whatsappSkippedReason = policy.message;
+      }
 
-      await Promise.all(
-        Array.from(phoneSet).map((phone) =>
-          sendWhatsAppMessage(
-            phone,
-            "NOTICE_BROADCAST",
-            {
+      if (policy.allowed) {
+        const guardians = await Guardian.find({
+          studentId: { $in: notice.targetStudentIds },
+          phone: { $ne: null },
+        })
+          .select("phone")
+          .lean();
+
+        const phoneSet = new Set(
+          guardians
+            .map((guardian) => (guardian.phone ? String(guardian.phone) : null))
+            .filter((phone): phone is string => Boolean(phone))
+        );
+
+        if (phoneSet.size === 0) {
+          whatsappSkippedReason = "No guardian WhatsApp numbers available.";
+        }
+
+        const deliveryResults = await Promise.all(
+          Array.from(phoneSet).map((phone) =>
+            sendWhatsAppMessage(phone, "NOTICE_BROADCAST", {
               notice_title: notice.title,
               notice_body: notice.message,
               notice_id: String(notice._id),
-            }
-          ).catch(() => null)
-        )
-      );
+            }).catch(() => ({ success: false, mode: "stub" as const }))
+          )
+        );
+        whatsappSent = deliveryResults.filter((result) => result.success).length;
+        if (deliveryResults.length > 0 && whatsappSent === 0 && !whatsappSkippedReason) {
+          whatsappSkippedReason = "WhatsApp delivery failed for all recipients.";
+        }
+      }
     }
 
-    return Response.json({ success: true });
+    return Response.json({
+      success: true,
+      data: {
+        whatsappSent,
+        whatsappSkippedReason,
+      },
+    });
   } catch (e: unknown) {
     if (e instanceof Response) return e;
     console.error("Failed to publish notice:", e);

@@ -342,14 +342,12 @@ export default function TeacherAnalyticsPage() {
           value={startDate}
           onChange={setStartDate}
           placeholder="Start date"
-          label="Start"
         />
 
         <CustomDatePicker
           value={endDate}
           onChange={setEndDate}
           placeholder="End date"
-          label="End"
         />
       </div>
 

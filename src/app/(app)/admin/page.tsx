@@ -34,7 +34,10 @@ import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
 import { useAdminSSE } from "@/hooks/admin/useAdminSSE";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
-import { useInvitationStats } from "@/hooks/admin/useInvitations";
+import {
+  useCreateInvitation,
+  useInvitationStats,
+} from "@/hooks/admin/useInvitations";
 
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 
@@ -42,6 +45,11 @@ import CreateStudentModal from "@/components/modals/CreateStudentModal";
 import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
 import CreateAcademicPeriodModal from "@/components/modals/CreateAcademicPeriodModal";
 import { DraftReminderModal } from "@/components/modals/DraftReminderModal";
+import {
+  InviteBursarModal,
+  type InviteBursarInput,
+} from "@/components/modals/InviteBursarModal";
+import { GenerateSimpleReportModal } from "@/components/modals/GenerateSimpleReportModal";
 import { format } from "date-fns/format";
 import type { CreateStudentInput } from "@/schemas/student";
 import type { CreateTeacherInput } from "@/schemas/teacher";
@@ -236,7 +244,7 @@ function QuickAction({
     );
   }
 
-  if (href) return <Link href={href}>{Inner}</Link>;
+  if (href) return <Link href={href} className="block">{Inner}</Link>;
   return (
     <button type="button" onClick={onClick} className="w-full text-left">
       {Inner}
@@ -553,7 +561,11 @@ export default function SchoolAdminOverviewPage() {
       onRun: () => setShowReminder("email"),
     },
     { id: "create-event", label: "Create Event", onRun: () => {} },
-    { id: "reports", label: "Generate Simple Report", onRun: () => {} },
+    {
+      id: "reports",
+      label: "Generate Simple Report",
+      onRun: () => setShowSimpleReport(true),
+    },
   ];
   const palette = useCommandPalette(cmdItems);
 
@@ -562,6 +574,7 @@ export default function SchoolAdminOverviewPage() {
 
   /* Invitation stats */
   const { data: invitationStats } = useInvitationStats();
+  const createInvitation = useCreateInvitation();
 
   /* Quick action modal state */
   const [showReminder, setShowReminder] = useState<
@@ -572,6 +585,8 @@ export default function SchoolAdminOverviewPage() {
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showCreateStudent, setShowCreateStudent] = useState(false);
   const [showCreateTeacher, setShowCreateTeacher] = useState(false);
+  const [showInviteBursar, setShowInviteBursar] = useState(false);
+  const [showSimpleReport, setShowSimpleReport] = useState(false);
 
   /* Academic period modal state */
   const [showCreatePeriod, setShowCreatePeriod] = useState(false);
@@ -600,6 +615,7 @@ export default function SchoolAdminOverviewPage() {
   /* Student create busy state */
   const [creatingStudent, setCreatingStudent] = useState(false);
   const [creatingTeacher, setCreatingTeacher] = useState(false);
+  const [invitingBursar, setInvitingBursar] = useState(false);
 
   const donutSegments = [
     {
@@ -717,6 +733,33 @@ export default function SchoolAdminOverviewPage() {
       throw e;
     } finally {
       setCreatingTeacher(false);
+    }
+  }
+
+  async function handleInviteBursar(payload: InviteBursarInput) {
+    setInvitingBursar(true);
+    try {
+      const invitePromise = createInvitation.mutateAsync({
+        email: payload.email,
+        role: "bursar",
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        phone: payload.phone || undefined,
+        photoUrl: payload.photoUrl || undefined,
+      });
+
+      await busy.promise(invitePromise, {
+        loading: "Sending bursar invitation…",
+        success: "Bursar invitation sent",
+        error: (error: Error) =>
+          error.message || "Failed to send bursar invitation",
+      });
+
+      setShowInviteBursar(false);
+    } catch (e: unknown) {
+      throw e;
+    } finally {
+      setInvitingBursar(false);
     }
   }
 
@@ -1009,7 +1052,7 @@ export default function SchoolAdminOverviewPage() {
               description="Grant bursar access to finance and reconciliation workflows"
               icon={Mail}
               accent="bg-amber-500/20 border-amber-500/30"
-              href="/admin/invitations?role=bursar"
+              onClick={() => setShowInviteBursar(true)}
               disabled={!onboarding.isActionEnabled("other")}
             />
             <QuickAction
@@ -1017,7 +1060,7 @@ export default function SchoolAdminOverviewPage() {
               description="Download a quick snapshot for management"
               icon={ClipboardList}
               accent="bg-emerald-500/20 border-emerald-500/30"
-              onClick={() => {}}
+              onClick={() => setShowSimpleReport(true)}
               disabled={!onboarding.isActionEnabled("other")}
             />
             {/* preflight with seeding */}
@@ -1715,6 +1758,26 @@ export default function SchoolAdminOverviewPage() {
         title="Create Class Group"
       >
         <CreateClassGroupsModal onClose={() => setShowCreateClass(false)} />
+      </ResponsiveModal>
+
+      <ResponsiveModal
+        open={showInviteBursar}
+        onClose={() => setShowInviteBursar(false)}
+        title="Invite Bursar"
+      >
+        <InviteBursarModal
+          onClose={() => setShowInviteBursar(false)}
+          onSubmit={handleInviteBursar}
+          isLoading={invitingBursar}
+        />
+      </ResponsiveModal>
+
+      <ResponsiveModal
+        open={showSimpleReport}
+        onClose={() => setShowSimpleReport(false)}
+        title="Generate Simple Report"
+      >
+        <GenerateSimpleReportModal onClose={() => setShowSimpleReport(false)} />
       </ResponsiveModal>
 
       <ResponsiveModal

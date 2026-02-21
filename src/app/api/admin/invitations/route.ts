@@ -15,6 +15,8 @@ const createInvitationSchema = z.object({
   role: z.literal("bursar"),
   firstName: z.string().trim().max(80).optional(),
   lastName: z.string().trim().max(80).optional(),
+  phone: z.string().trim().max(30).optional(),
+  photoUrl: z.string().url().optional(),
 });
 
 type InvitationInvitedBy = {
@@ -238,6 +240,8 @@ export async function POST(req: NextRequest) {
       metadata: {
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
+        phone: parsed.data.phone,
+        photoUrl: parsed.data.photoUrl,
       },
     });
 

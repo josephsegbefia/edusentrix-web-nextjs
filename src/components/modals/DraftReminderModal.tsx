@@ -655,7 +655,10 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
           }
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-[calc(100%-1rem)] overflow-hidden border border-white/10 bg-slate-950/95 p-0 text-white sm:max-w-4xl">
+        <DialogContent
+          overlayClassName="z-[120] bg-black/70"
+          className="z-[121] max-h-[90vh] max-w-[calc(100%-1rem)] overflow-hidden border border-white/10 bg-slate-950/95 p-0 text-white sm:max-w-4xl"
+        >
           <DialogHeader className="border-b border-white/10 p-4 sm:p-6">
             <DialogTitle className="text-base sm:text-lg">
               Recipient Details ({detailsRun?.channel.toUpperCase() || "RUN"})

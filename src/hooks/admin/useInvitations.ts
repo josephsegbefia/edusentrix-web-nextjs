@@ -33,6 +33,8 @@ export type Invitation = {
   metadata?: {
     firstName?: string;
     lastName?: string;
+    phone?: string;
+    photoUrl?: string;
     subjectIds?: string[];
     homeroomClassGroupId?: string;
     [key: string]: unknown;
@@ -62,6 +64,8 @@ export type CreateInvitationInput = {
   role: InvitationRole;
   firstName?: string;
   lastName?: string;
+  phone?: string;
+  photoUrl?: string;
 };
 
 type FetchInvitationsParams = {

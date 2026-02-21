@@ -47,7 +47,7 @@ export function ManageGuardiansContent({
       {
         loading: "Creating guardian...",
         success: "Guardian created successfully",
-        error: "Failed to create guardian",
+        error: (error: Error) => error.message || "Failed to create guardian",
       }
     );
     setViewMode("list");
@@ -73,7 +73,7 @@ export function ManageGuardiansContent({
       {
         loading: "Updating guardian...",
         success: "Guardian updated successfully",
-        error: "Failed to update guardian",
+        error: (error: Error) => error.message || "Failed to update guardian",
       }
     );
     setViewMode("list");

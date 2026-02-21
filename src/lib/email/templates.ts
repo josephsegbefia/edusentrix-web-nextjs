@@ -9,6 +9,7 @@ export type TemplateKey =
   | "USER_INVITE"
   | "APPLICATION_RECEIVED"
   | "REMINDER"
+  | "FEE_REMINDER"
   | "PASSWORD_OTP";
 
 export type TemplatePayload = {
@@ -35,6 +36,21 @@ export type TemplatePayload = {
     description?: string;
     actionLink?: string;
   };
+  FEE_REMINDER: {
+    schoolName: string;
+    guardianName: string;
+    totalOutstandingMinor: number;
+    currency?: string;
+    wards: Array<{
+      studentName: string;
+      classGroupName?: string;
+      outstandingMinor: number;
+      overdueInvoiceCount?: number;
+    }>;
+    customMessage?: string;
+    actionLink?: string;
+    subjectOverride?: string;
+  };
   PASSWORD_OTP: {
     code: string;
   };
@@ -51,6 +67,14 @@ const stripHtml = (html: string) =>
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .trim();
+
+function formatMinorCurrency(minor: number, currency = "GHS") {
+  return new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+  }).format((minor || 0) / 100);
+}
 
 export const EmailTemplates: {
   [K in TemplateKey]: (data: TemplatePayload[K]) => Rendered;
@@ -215,6 +239,78 @@ export const EmailTemplates: {
     `;
     return {
       subject: `Reminder: ${data.title}`,
+      htmlContent,
+      textContent: stripHtml(htmlContent),
+    };
+  },
+
+  FEE_REMINDER: (data) => {
+    const currency = data.currency || "GHS";
+    const totalFormatted = formatMinorCurrency(data.totalOutstandingMinor, currency);
+    const rows = data.wards
+      .slice(0, 8)
+      .map((ward) => {
+        const amount = formatMinorCurrency(ward.outstandingMinor, currency);
+        const overdueText = ward.overdueInvoiceCount
+          ? ` • ${ward.overdueInvoiceCount} overdue`
+          : "";
+        return `
+          <tr>
+            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${ward.studentName}</td>
+            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">${ward.classGroupName || "—"}</td>
+            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; text-align: right;">${amount}${overdueText}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    const moreCount = Math.max(0, data.wards.length - 8);
+    const actionLink = data.actionLink || `${APP_URL}/parent/fees`;
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
+        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <h2 style="color: #4361ee;">Outstanding Fee Reminder</h2>
+        <p>Hello ${data.guardianName},</p>
+        <p>This is a reminder from <strong>${data.schoolName}</strong> about outstanding school fees.</p>
+        <div style="background: #f8fafc; padding: 14px; border-radius: 8px; margin: 14px 0;">
+          <p style="margin: 0 0 4px 0;"><strong>Total Outstanding:</strong> ${totalFormatted}</p>
+          <p style="margin: 0;"><strong>Wards:</strong> ${data.wards.length}</p>
+        </div>
+        ${
+          data.customMessage
+            ? `<p style="background:#fff7ed; border:1px solid #fed7aa; padding:10px; border-radius:8px;">${data.customMessage}</p>`
+            : ""
+        }
+        <table style="width:100%; border-collapse:collapse; margin-top: 12px;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:10px 8px; border-bottom: 1px solid #d1d5db;">Student</th>
+              <th style="text-align:left; padding:10px 8px; border-bottom: 1px solid #d1d5db;">Class</th>
+              <th style="text-align:right; padding:10px 8px; border-bottom: 1px solid #d1d5db;">Outstanding</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+        ${
+          moreCount > 0
+            ? `<p style="font-size: 12px; color: #6b7280; margin-top: 8px;">+${moreCount} more ward(s) not shown in this summary.</p>`
+            : ""
+        }
+        <a href="${actionLink}"
+           style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 18px 0 10px;">
+          View Fee Details
+        </a>
+        <p>If you have already made payment, please ignore this message.</p>
+        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
+      </div>
+    `;
+
+    return {
+      subject:
+        data.subjectOverride?.trim() ||
+        `Fee Reminder: Outstanding Balance - ${data.schoolName}`,
       htmlContent,
       textContent: stripHtml(htmlContent),
     };

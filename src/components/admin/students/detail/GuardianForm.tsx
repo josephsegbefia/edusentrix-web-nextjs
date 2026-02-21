@@ -11,7 +11,18 @@ import { ImageUploader } from "@/components/upload/ImageUploader";
 import { useAuth } from "@/providers/auth-provider";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Check, X, Mail, Phone, Briefcase, Star, StarOff } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  X,
+  Mail,
+  Phone,
+  Briefcase,
+  Star,
+  StarOff,
+} from "lucide-react";
 import type {
   GuardianRelationship,
   GuardianData,
@@ -97,11 +108,14 @@ export function GuardianForm({
   const { me } = useAuth();
   const isEdit = !!guardian;
   const [currentStep, setCurrentStep] = React.useState(1);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     control,
+    clearErrors,
+    setError,
     setValue,
     trigger,
     watch,
@@ -142,7 +156,20 @@ export function GuardianForm({
   const isFirstStep = currentStep === 1;
   const isLastStep = currentStep === STEPS.length;
 
+  const emailRegister = register("email", {
+    onChange: () => {
+      if (errors.email?.type === "manual") {
+        clearErrors("email");
+      }
+      if (submitError) {
+        setSubmitError(null);
+      }
+    },
+  });
+
   async function internalSubmit(values: GuardianFormInput) {
+    setSubmitError(null);
+    clearErrors("email");
     try {
       await onSubmit({
         firstName: values.firstName.trim(),
@@ -155,7 +182,21 @@ export function GuardianForm({
         isPrimary: values.isPrimary,
       });
     } catch (e: unknown) {
-      console.error("Guardian form submission error:", e);
+      const message =
+        e instanceof Error ? e.message : "Failed to save guardian details";
+      const normalized = message.toLowerCase();
+      const isEmailConflict =
+        normalized.includes("email") ||
+        normalized.includes("already used") ||
+        normalized.includes("already exists");
+
+      if (isEmailConflict) {
+        setCurrentStep(1);
+        setError("email", { type: "manual", message });
+        return;
+      }
+
+      setSubmitError(message);
     }
   }
 
@@ -201,6 +242,13 @@ export function GuardianForm({
           ))}
         </div>
       </div>
+
+      {submitError ? (
+        <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{submitError}</span>
+        </div>
+      ) : null}
 
       {/* Form Content */}
       <AnimatePresence mode="wait">
@@ -270,7 +318,7 @@ export function GuardianForm({
                 <Input
                   id="email"
                   type="email"
-                  {...register("email")}
+                  {...emailRegister}
                   placeholder="john.doe@example.com"
                   className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                 />

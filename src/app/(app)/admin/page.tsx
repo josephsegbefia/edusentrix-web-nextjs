@@ -441,8 +441,8 @@ export default function SchoolAdminOverviewPage() {
       id: 1,
       text: "You have ₵4,200 outstanding; send a reminder?",
       actions: [
-        { icon: Mail, label: "Send Email", onClick: () => {} },
-        { icon: MessageSquare, label: "Send SMS", onClick: () => {} },
+        { icon: Mail, label: "Send Reminder", onClick: () => {} },
+        { icon: MessageSquare, label: "SMS Channel", onClick: () => {} },
       ],
     },
     {
@@ -564,7 +564,9 @@ export default function SchoolAdminOverviewPage() {
   const { data: invitationStats } = useInvitationStats();
 
   /* Quick action modal state */
-  const [showReminder, setShowReminder] = useState<null | "email" | "sms">(
+  const [showReminder, setShowReminder] = useState<
+    null | "email" | "sms" | "whatsapp"
+  >(
     null
   );
   const [showCreateClass, setShowCreateClass] = useState(false);
@@ -995,19 +997,11 @@ export default function SchoolAdminOverviewPage() {
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             <QuickAction
-              title="Draft Fee Reminder (Email)"
-              description="Send a reminder to guardians with outstanding balances"
+              title="Send Fee Reminder"
+              description="Select channel and send reminders to guardians with outstanding balances"
               icon={Mail}
               accent="bg-blue-500/20 border-blue-500/30"
               onClick={() => setShowReminder("email")}
-              disabled={!onboarding.isActionEnabled("other")}
-            />
-            <QuickAction
-              title="Draft Fee Reminder (SMS)"
-              description="Send a quick SMS nudge to guardians"
-              icon={MessageSquare}
-              accent="bg-cyan-500/20 border-cyan-500/30"
-              onClick={() => setShowReminder("sms")}
               disabled={!onboarding.isActionEnabled("other")}
             />
             <QuickAction
@@ -1707,13 +1701,12 @@ export default function SchoolAdminOverviewPage() {
       <ResponsiveModal
         open={showReminder !== null}
         onClose={() => setShowReminder(null)}
-        title={
-          showReminder === "sms"
-            ? "Draft Fee Reminder (SMS)"
-            : "Draft Fee Reminder (Email)"
-        }
+        title="Send Fee Reminder"
       >
-        <DraftReminderModal onClose={() => setShowReminder(null)} />
+        <DraftReminderModal
+          onClose={() => setShowReminder(null)}
+          initialChannel={showReminder || "email"}
+        />
       </ResponsiveModal>
 
       <ResponsiveModal

@@ -17,6 +17,7 @@ export type ActivityType =
   | "academic_period.updated"
   | "fee.created"
   | "fee.updated"
+  | "fee.reminder_sent"
   | "payment.received"
   | "report.generated"
   | "settings.updated"

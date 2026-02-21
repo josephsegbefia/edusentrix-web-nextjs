@@ -300,7 +300,7 @@ export async function GET(
             id: String(classGroup._id),
             name: classGroup.name,
             label:
-              classGroup.fullLabel ||
+              (classGroup as { fullLabel?: string }).fullLabel ||
               [gradeName, classGroupName].filter(Boolean).join(" "),
           }
         : null,

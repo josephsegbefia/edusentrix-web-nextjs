@@ -14,6 +14,32 @@ function toObjectIdOrNull(id: string) {
   }
 }
 
+type SubmissionStudentLean = {
+  _id?: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  admissionNo?: string | null;
+  photoUrl?: string | null;
+};
+
+type AssignmentSubmissionLean = {
+  _id: mongoose.Types.ObjectId;
+  status: string;
+  submittedAt?: Date | null;
+  isLate?: boolean;
+  score?: number | null;
+  feedback?: string | null;
+  gradedAt?: Date | null;
+  publishedAt?: Date | null;
+  studentId?: SubmissionStudentLean | mongoose.Types.ObjectId | null;
+};
+
+function isPopulatedStudent(
+  value: AssignmentSubmissionLean["studentId"]
+): value is SubmissionStudentLean {
+  return Boolean(value && typeof value === "object" && "firstName" in value);
+}
+
 export async function GET(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -45,29 +71,34 @@ export async function GET(
     const submissions = await Submission.find({ homeworkId })
       .populate("studentId", "firstName lastName admissionNo photoUrl")
       .sort({ submittedAt: -1, createdAt: -1 })
-      .lean();
+      .lean<AssignmentSubmissionLean[]>();
 
-    const data = submissions.map((submission: any) => ({
-      id: String(submission._id),
-      status: submission.status,
-      submittedAt: submission.submittedAt ? submission.submittedAt.toISOString() : null,
-      isLate: submission.isLate || false,
-      score: submission.score ?? null,
-      feedback: submission.feedback ?? null,
-      gradedAt: submission.gradedAt ? submission.gradedAt.toISOString() : null,
-      publishedAt: submission.publishedAt ? submission.publishedAt.toISOString() : null,
-      student: submission.studentId
-        ? {
-            id: String(submission.studentId._id || submission.studentId),
-            name: `${submission.studentId.firstName || ""} ${submission.studentId.lastName || ""}`.trim(),
-            admissionNo: submission.studentId.admissionNo || undefined,
-            photoUrl: submission.studentId.photoUrl || undefined,
-          }
-        : null,
-    }));
+    const data = submissions.map((submission) => {
+      const student = isPopulatedStudent(submission.studentId)
+        ? submission.studentId
+        : null;
+      return {
+        id: String(submission._id),
+        status: submission.status,
+        submittedAt: submission.submittedAt ? submission.submittedAt.toISOString() : null,
+        isLate: submission.isLate || false,
+        score: submission.score ?? null,
+        feedback: submission.feedback ?? null,
+        gradedAt: submission.gradedAt ? submission.gradedAt.toISOString() : null,
+        publishedAt: submission.publishedAt ? submission.publishedAt.toISOString() : null,
+        student: student
+          ? {
+              id: String(student._id || submission.studentId),
+              name: `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+              admissionNo: student.admissionNo || undefined,
+              photoUrl: student.photoUrl || undefined,
+            }
+          : null,
+      };
+    });
 
     const statusCounts = submissions.reduce(
-      (acc: Record<string, number>, submission: any) => {
+      (acc: Record<string, number>, submission) => {
         acc[submission.status] = (acc[submission.status] || 0) + 1;
         return acc;
       },

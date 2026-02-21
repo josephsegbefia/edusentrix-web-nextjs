@@ -163,7 +163,7 @@ type HomeworkLean = {
   weight?: number | null;
   subjectId?: { _id?: mongoose.Types.ObjectId; name: string } | mongoose.Types.ObjectId | null;
   rubricId?: { _id?: mongoose.Types.ObjectId; title: string } | mongoose.Types.ObjectId | null;
-  classGroupIds?: ClassGroupLean[];
+  classGroupIds?: Array<ClassGroupLean | mongoose.Types.ObjectId>;
   targetStudentIds?: Array<mongoose.Types.ObjectId | string>;
   attachments?: Array<{ name: string; url: string; type: string; size?: number }>;
   questions?: QuestionLean[];
@@ -194,8 +194,16 @@ function isPopulatedRubric(
   return Boolean(value && typeof value === "object" && "title" in value);
 }
 
+function isPopulatedClassGroup(
+  value: ClassGroupLean | mongoose.Types.ObjectId
+): value is ClassGroupLean {
+  return typeof value === "object" && "name" in value;
+}
+
 async function hydrateAssignments(list: HomeworkLean[]) {
-  const classGroups = list.flatMap((item) => item.classGroupIds || []);
+  const classGroups = list.flatMap((item) =>
+    (item.classGroupIds || []).filter(isPopulatedClassGroup)
+  );
   const gradeIds = Array.from(
     new Set(classGroups.map((group) => String(group.gradeId)))
   ).filter(Boolean);
@@ -247,7 +255,9 @@ async function hydrateAssignments(list: HomeworkLean[]) {
   );
 
   return list.map((item) => {
-    const classLabels = (item.classGroupIds || []).map((group) => {
+    const classLabels = (item.classGroupIds || [])
+      .filter(isPopulatedClassGroup)
+      .map((group) => {
       const gradeName = group.gradeId ? gradeMap.get(String(group.gradeId)) : null;
       const name = gradeName ? `${gradeName} ${group.name}` : group.name;
       return {
@@ -255,7 +265,7 @@ async function hydrateAssignments(list: HomeworkLean[]) {
         name,
         gradeName: gradeName || undefined,
       };
-    });
+      });
 
     const counts = statMap.get(String(item._id)) || {
       total: item.submissionCount || 0,

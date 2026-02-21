@@ -6,6 +6,53 @@ import { Grade } from "@/models/Grade";
 import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 
+type PopulatedClassGroup = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  gradeId?: mongoose.Types.ObjectId | null;
+  homeroomTeacherId?: mongoose.Types.ObjectId | null;
+};
+
+type PopulatedSubject = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+};
+
+type ScheduleSlot = {
+  dayOfWeek?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+};
+
+type TeacherClassAssignmentLean = {
+  classGroupId?: PopulatedClassGroup | mongoose.Types.ObjectId | null;
+  subjectId?: PopulatedSubject | mongoose.Types.ObjectId | null;
+  schedules?: ScheduleSlot[];
+  schedule?: ScheduleSlot | null;
+};
+
+type StudentCountRow = {
+  _id: mongoose.Types.ObjectId;
+  count: number;
+};
+
+type GradeNameRow = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+};
+
+function isPopulatedClassGroup(
+  value: TeacherClassAssignmentLean["classGroupId"]
+): value is PopulatedClassGroup {
+  return Boolean(value && typeof value === "object" && "_id" in value && "name" in value);
+}
+
+function isPopulatedSubject(
+  value: TeacherClassAssignmentLean["subjectId"]
+): value is PopulatedSubject {
+  return Boolean(value && typeof value === "object" && "_id" in value && "name" in value);
+}
+
 export async function GET() {
   try {
     const context = await requireTeacher();
@@ -30,14 +77,16 @@ export async function GET() {
     })
       .populate("classGroupId", "name gradeId homeroomTeacherId")
       .populate("subjectId", "name")
-      .lean();
+      .lean<TeacherClassAssignmentLean[]>();
 
     const classGroupIds = Array.from(
       new Set(
         assignments
           .map((assignment) => assignment.classGroupId)
           .filter(Boolean)
-          .map((group: any) => String(group._id))
+          .map((group) =>
+            isPopulatedClassGroup(group) ? String(group._id) : String(group)
+          )
       )
     ).map((id) => new mongoose.Types.ObjectId(id));
 
@@ -45,8 +94,11 @@ export async function GET() {
       new Set(
         assignments
           .map((assignment) => assignment.classGroupId)
-          .filter(Boolean)
-          .map((group: any) => (group.gradeId ? String(group.gradeId) : null))
+          .map((group) =>
+            isPopulatedClassGroup(group) && group.gradeId
+              ? String(group.gradeId)
+              : null
+          )
           .filter(Boolean)
       )
     ).map((id) => new mongoose.Types.ObjectId(String(id)));
@@ -74,26 +126,26 @@ export async function GET() {
     ]);
 
     const studentCountMap = new Map(
-      studentCounts.map((entry: { _id: mongoose.Types.ObjectId; count: number }) => [
+      studentCounts.map((entry: StudentCountRow) => [
         String(entry._id),
         entry.count,
       ])
     );
 
     const gradeMap = new Map(
-      grades.map((grade: { _id: mongoose.Types.ObjectId; name: string }) => [
+      grades.map((grade: GradeNameRow) => [
         String(grade._id),
         grade.name,
       ])
     );
 
-    const classes = assignments.map((assignment: any) => {
-      const classGroup = assignment.classGroupId as
-        | { _id: mongoose.Types.ObjectId; name: string; gradeId: mongoose.Types.ObjectId; homeroomTeacherId?: mongoose.Types.ObjectId }
-        | undefined;
-      const subject = assignment.subjectId as
-        | { _id: mongoose.Types.ObjectId; name: string }
-        | undefined;
+    const classes = assignments.map((assignment) => {
+      const classGroup = isPopulatedClassGroup(assignment.classGroupId)
+        ? assignment.classGroupId
+        : undefined;
+      const subject = isPopulatedSubject(assignment.subjectId)
+        ? assignment.subjectId
+        : undefined;
 
       const gradeName = classGroup ? gradeMap.get(String(classGroup.gradeId)) : undefined;
       const className = classGroup
@@ -115,7 +167,7 @@ export async function GET() {
         studentCount: classGroup
           ? studentCountMap.get(String(classGroup._id)) || 0
           : 0,
-        schedule: schedule.map((slot: any) => ({
+        schedule: schedule.map((slot) => ({
           dayOfWeek: slot.dayOfWeek ?? null,
           startTime: slot.startTime ?? null,
           endTime: slot.endTime ?? null,

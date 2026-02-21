@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type CalendarEventStatus = "draft" | "published" | "cancelled";
 export type CalendarEventType =
@@ -178,8 +178,8 @@ const academicCalendarEventSchema = new Schema<IAcademicCalendarEvent>(
 academicCalendarEventSchema.index({ calendarId: 1, startDate: 1 });
 academicCalendarEventSchema.index({ schoolId: 1, status: 1, startDate: 1 });
 
-export const AcademicCalendarEvent =
-  models.AcademicCalendarEvent ||
+export const AcademicCalendarEvent: Model<IAcademicCalendarEvent> =
+  (models.AcademicCalendarEvent as Model<IAcademicCalendarEvent>) ||
   model<IAcademicCalendarEvent>(
     "AcademicCalendarEvent",
     academicCalendarEventSchema

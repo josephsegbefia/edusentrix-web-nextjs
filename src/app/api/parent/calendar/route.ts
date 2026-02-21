@@ -139,7 +139,13 @@ export async function GET(req: NextRequest) {
         scope: event.audience?.scope || "school",
         gradeIds: (event.audience?.gradeIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
         classGroupIds: (event.audience?.classGroupIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
-        roles: event.audience?.roles || [],
+        roles: (event.audience?.roles || []) as (
+          | "teacher"
+          | "parent"
+          | "student"
+          | "staff"
+          | "bursar"
+        )[],
       });
 
       if (!audienceIncludesRole(audience, "parent")) return false;
@@ -260,7 +266,14 @@ export async function GET(req: NextRequest) {
           location: event.location,
           color: event.color,
           coverImageUrl: event.coverImageUrl,
-          recurrence: event.recurrence || null,
+          recurrence: event.recurrence
+            ? {
+                ...event.recurrence,
+                until: event.recurrence.until
+                  ? new Date(event.recurrence.until).toISOString()
+                  : undefined,
+              }
+            : null,
         },
         range.start,
         range.end
@@ -309,7 +322,13 @@ export async function GET(req: NextRequest) {
               scope: event.audience?.scope || "school",
               gradeIds: (event.audience?.gradeIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
               classGroupIds: (event.audience?.classGroupIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
-              roles: event.audience?.roles || [],
+              roles: (event.audience?.roles || []) as (
+                | "teacher"
+                | "parent"
+                | "student"
+                | "staff"
+                | "bursar"
+              )[],
             });
 
             return {

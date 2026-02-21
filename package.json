@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test --import tsx",
+    "test": "node --test --import tsx \"tests/**/*.test.ts\"",
     "seed:banks": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv",
     "seed:banks:drop": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --drop",
     "seed:banks:dry": "tsx scripts/seed-bank-branches.ts --file ./data/bank_sort_codes.csv --dryRun",

@@ -266,7 +266,7 @@ function ResourceCard({
     setUploadError(null);
 
     try {
-      const result = await startUpload([file], { schoolId } as never);
+      const result = await startUpload([file], { schoolId });
       const uploaded = result?.[0];
 
       if (!uploaded) {

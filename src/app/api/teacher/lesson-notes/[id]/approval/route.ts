@@ -3,7 +3,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
-import { PERMISSIONS } from "@/lib/rbac";
+import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import { LessonNote, type ILessonNote } from "@/models/LessonNote";
 
 // ============================================================================
@@ -34,6 +34,8 @@ const ApprovalActionSchema = z.discriminatedUnion("action", [
   RejectSchema,
   ReturnToDraftSchema,
 ]);
+
+const JOURNAL_APPROVE_PERMISSION = "journal:approve" as Permission;
 
 // ============================================================================
 // Helpers
@@ -109,7 +111,7 @@ export async function POST(
     const isOwner = String(note.teacherId) === String(context.teacherId);
     const canApprove =
       context.isAdmin ||
-      can(context.permissions, PERMISSIONS.journalApprove || "journal:approve");
+      can(context.permissions, JOURNAL_APPROVE_PERMISSION);
 
     // Handle each action
     switch (action) {
@@ -391,17 +393,11 @@ export async function GET(
         canSubmit: isOwner && ["draft", "rejected"].includes(note.status),
         canApprove:
           (context.isAdmin ||
-            can(
-              context.permissions,
-              PERMISSIONS.journalApprove || "journal:approve"
-            )) &&
+            can(context.permissions, JOURNAL_APPROVE_PERMISSION)) &&
           note.status === "submitted",
         canReject:
           (context.isAdmin ||
-            can(
-              context.permissions,
-              PERMISSIONS.journalApprove || "journal:approve"
-            )) &&
+            can(context.permissions, JOURNAL_APPROVE_PERMISSION)) &&
           note.status === "submitted",
         canReturnToDraft:
           (isOwner || context.isAdmin) &&

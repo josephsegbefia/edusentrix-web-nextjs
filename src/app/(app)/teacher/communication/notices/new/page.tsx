@@ -68,7 +68,10 @@ export default function NewTeacherNoticePage() {
   const canPublish = can(permissions, PERMISSIONS.noticesPublish);
 
   const { data: classesData } = useTeacherClasses();
-  const classes = classesData?.data.classes || [];
+  const classes = React.useMemo(
+    () => classesData?.data.classes || [],
+    [classesData?.data.classes]
+  );
 
   const [form, setForm] = React.useState<NoticeForm>({
     title: "",

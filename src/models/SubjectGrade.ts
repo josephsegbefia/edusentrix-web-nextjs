@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface ISubjectGrade {
   _id: Types.ObjectId;
@@ -134,6 +134,6 @@ subjectGradeSchema.index(
   { name: "by_school_term " }
 );
 
-export const SubjectGrade =
-  models.SubjectGrade ||
+export const SubjectGrade: Model<ISubjectGrade> =
+  (models.SubjectGrade as Model<ISubjectGrade>) ||
   model<ISubjectGrade>("SubjectGrade", subjectGradeSchema);

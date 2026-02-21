@@ -85,6 +85,32 @@ function removeFromDraftIndex(key: string): void {
   saveDraftIndex(index.filter((k) => k !== key));
 }
 
+function readDraftMetas(): DraftMeta[] {
+  if (typeof window === "undefined") return [];
+
+  const index = getDraftIndex();
+  const draftMetas: DraftMeta[] = [];
+
+  for (const key of index) {
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const draft: StoredDraft = JSON.parse(stored);
+        draftMetas.push(draft.meta);
+      }
+    } catch {
+      removeFromDraftIndex(key);
+    }
+  }
+
+  draftMetas.sort(
+    (a, b) =>
+      new Date(b.lastSaved).getTime() - new Date(a.lastSaved).getTime()
+  );
+
+  return draftMetas;
+}
+
 // ============================================================================
 // Hook: useLessonNoteDraftPersistence
 // ============================================================================
@@ -243,34 +269,7 @@ export function useLessonNoteDraftPersistence(
 // ============================================================================
 
 export function useAvailableDrafts() {
-  const [drafts, setDrafts] = useState<DraftMeta[]>([]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    
-    const index = getDraftIndex();
-    const draftMetas: DraftMeta[] = [];
-    
-    for (const key of index) {
-      try {
-        const stored = localStorage.getItem(key);
-        if (stored) {
-          const draft: StoredDraft = JSON.parse(stored);
-          draftMetas.push(draft.meta);
-        }
-      } catch {
-        // Remove invalid entries
-        removeFromDraftIndex(key);
-      }
-    }
-    
-    // Sort by last saved, newest first
-    draftMetas.sort((a, b) => 
-      new Date(b.lastSaved).getTime() - new Date(a.lastSaved).getTime()
-    );
-    
-    setDrafts(draftMetas);
-  }, []);
+  const [drafts, setDrafts] = useState<DraftMeta[]>(() => readDraftMetas());
 
   const loadDraft = useCallback((key: string): LessonNoteFormData | null => {
     if (typeof window === "undefined") return null;

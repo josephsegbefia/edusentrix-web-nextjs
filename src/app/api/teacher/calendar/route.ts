@@ -14,6 +14,14 @@ import {
 } from "@/lib/academic-calendar/audience";
 import { expandRecurringEvent, clampRange, getRangeDefaults } from "@/lib/academic-calendar/recurrence";
 
+type TeacherAssignmentClassGroupRef = {
+  classGroupId?: mongoose.Types.ObjectId | null;
+};
+
+type ClassGroupGradeRef = {
+  gradeId?: mongoose.Types.ObjectId | null;
+};
+
 function parseDateParam(value: string | null) {
   if (!value) return null;
   const date = new Date(value);
@@ -74,10 +82,14 @@ export async function GET(req: NextRequest) {
       status: "active",
     })
       .select("classGroupId")
-      .lean();
+      .lean<TeacherAssignmentClassGroupRef[]>();
 
     const classGroupIds = new Set<string>();
-    assignments.forEach((a) => classGroupIds.add(String((a as any).classGroupId)));
+    assignments.forEach((assignment) => {
+      if (assignment.classGroupId) {
+        classGroupIds.add(String(assignment.classGroupId));
+      }
+    });
     if (context.homeroomClassGroupId) {
       classGroupIds.add(String(context.homeroomClassGroupId));
     }
@@ -90,9 +102,15 @@ export async function GET(req: NextRequest) {
         _id: { $in: classGroupIdList.map((id) => new mongoose.Types.ObjectId(id)) },
       })
         .select("gradeId")
-        .lean();
+        .lean<ClassGroupGradeRef[]>();
       gradeIds = Array.from(
-        new Set(classGroups.map((c) => String((c as any).gradeId)))
+        new Set(
+          classGroups
+            .map((classGroup) =>
+              classGroup.gradeId ? String(classGroup.gradeId) : null
+            )
+            .filter((id): id is string => Boolean(id))
+        )
       );
     }
 
@@ -109,7 +127,13 @@ export async function GET(req: NextRequest) {
         scope: event.audience?.scope || "school",
         gradeIds: (event.audience?.gradeIds || []).map((id) => String(id)),
         classGroupIds: (event.audience?.classGroupIds || []).map((id) => String(id)),
-        roles: event.audience?.roles || [],
+        roles: (event.audience?.roles || []) as (
+          | "teacher"
+          | "parent"
+          | "student"
+          | "staff"
+          | "bursar"
+        )[],
       });
 
       if (!audienceIncludesRole(audience, "teacher")) return false;
@@ -136,7 +160,14 @@ export async function GET(req: NextRequest) {
           location: event.location,
           color: event.color,
           coverImageUrl: event.coverImageUrl,
-          recurrence: event.recurrence || null,
+          recurrence: event.recurrence
+            ? {
+                ...event.recurrence,
+                until: event.recurrence.until
+                  ? new Date(event.recurrence.until).toISOString()
+                  : undefined,
+              }
+            : null,
         },
         range.start,
         range.end

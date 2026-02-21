@@ -15,6 +15,14 @@ function toObjectIdOrNull(id: string) {
   }
 }
 
+type UserNameLean = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  name?: string | null;
+};
+
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ threadId: string }> }
@@ -53,10 +61,10 @@ export async function GET(
 
     const users = await User.find({ _id: { $in: userIds } })
       .select("_id firstName lastName email name")
-      .lean();
+      .lean<UserNameLean[]>();
 
     const userMap = new Map(
-      users.map((user: any) => [
+      users.map((user) => [
         String(user._id),
         `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.name || user.email,
       ])

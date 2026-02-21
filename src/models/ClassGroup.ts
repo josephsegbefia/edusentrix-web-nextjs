@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/models/ClassGroup.ts
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 import type { IGrade } from "./Grade";
 
 export interface IClassGroup {
@@ -87,5 +87,6 @@ classGroupSchema.virtual("fullLabel").get(function () {
     : this.name;
 });
 
-export const ClassGroup =
-  models.ClassGroup || model<IClassGroup>("ClassGroup", classGroupSchema);
+export const ClassGroup: Model<IClassGroup> =
+  (models.ClassGroup as Model<IClassGroup>) ||
+  model<IClassGroup>("ClassGroup", classGroupSchema);

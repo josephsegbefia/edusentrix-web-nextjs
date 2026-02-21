@@ -111,7 +111,14 @@ export async function POST(req: NextRequest) {
         location: event.location,
         color: event.color,
         coverImageUrl: event.coverImageUrl,
-        recurrence: event.recurrence || null,
+        recurrence: event.recurrence
+          ? {
+              ...event.recurrence,
+              until: event.recurrence.until
+                ? new Date(event.recurrence.until).toISOString()
+                : undefined,
+            }
+          : null,
       },
       rangeStart,
       rangeEnd
@@ -123,7 +130,13 @@ export async function POST(req: NextRequest) {
       scope: event.audience?.scope || "school",
       gradeIds: (event.audience?.gradeIds || []).map((id: any) => String(id)),
       classGroupIds: (event.audience?.classGroupIds || []).map((id: any) => String(id)),
-      roles: event.audience?.roles || [],
+      roles: (event.audience?.roles || []) as (
+        | "teacher"
+        | "parent"
+        | "student"
+        | "staff"
+        | "bursar"
+      )[],
     };
 
     const recipients = await resolveAudienceRecipients({

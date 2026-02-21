@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 export type SchoolType = "Basic" | "SHS";
 
 export interface ISchool {
@@ -77,4 +77,6 @@ const schoolSchema = new Schema<ISchool>(
 
 schoolSchema.index({ name: 1, type: 1 });
 
-export const School = models.School || model<ISchool>("School", schoolSchema);
+export const School: Model<ISchool> =
+  (models.School as Model<ISchool>) ||
+  model<ISchool>("School", schoolSchema);

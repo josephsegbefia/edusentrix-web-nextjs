@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface ISubject {
   _id: Types.ObjectId;
@@ -31,5 +31,6 @@ subjectSchema.index(
   { unique: true, collation: { locale: "en", strength: 2 } }
 );
 
-export const Subject =
-  models.Subject || model<ISubject>("Subject", subjectSchema);
+export const Subject: Model<ISubject> =
+  (models.Subject as Model<ISubject>) ||
+  model<ISubject>("Subject", subjectSchema);

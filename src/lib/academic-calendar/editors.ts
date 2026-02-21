@@ -34,7 +34,7 @@ export async function resolveEditorIds(input: {
     .lean();
 
   const valid = new Set(
-    memberships.map((m) => String((m as { userId: Types.ObjectId }).userId))
+    memberships.map((m) => String((m as unknown as { userId: Types.ObjectId }).userId))
   );
 
   return candidates.filter((id) => valid.has(String(id)));
@@ -45,7 +45,9 @@ export async function fetchEligibleEditors(schoolId: Types.ObjectId) {
     .select("userId")
     .lean();
 
-  const teacherUserIds = teacherDocs.map((t) => (t as { userId: Types.ObjectId }).userId);
+  const teacherUserIds = teacherDocs.map(
+    (t) => (t as unknown as { userId: Types.ObjectId }).userId
+  );
 
   const bursarMemberships = await UserMembership.find({
     schoolId,
@@ -56,7 +58,7 @@ export async function fetchEligibleEditors(schoolId: Types.ObjectId) {
     .lean();
 
   const bursarUserIds = bursarMemberships.map(
-    (m) => (m as { userId: Types.ObjectId }).userId
+    (m) => (m as unknown as { userId: Types.ObjectId }).userId
   );
 
   const userIds = Array.from(new Set([...teacherUserIds, ...bursarUserIds]));
@@ -67,7 +69,7 @@ export async function fetchEligibleEditors(schoolId: Types.ObjectId) {
     .lean();
 
   const userMap = new Map(
-    users.map((u) => [String((u as { _id: Types.ObjectId })._id), u])
+    users.map((u) => [String((u as unknown as { _id: Types.ObjectId })._id), u])
   );
 
   return userIds

@@ -108,7 +108,7 @@ export function ImageUploader({
       };
       reader.readAsDataURL(file);
 
-      const result = await startUpload([file], { schoolId: _schoolId } as never);
+      const result = await startUpload([file], { schoolId: _schoolId });
       const uploaded = result?.[0];
 
       if (!uploaded) {

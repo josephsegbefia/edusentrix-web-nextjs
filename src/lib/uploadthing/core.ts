@@ -6,11 +6,9 @@ import { createUploadthing, type FileRouter, UTFiles } from "uploadthing/next";
 import { z } from "zod";
 
 const f = createUploadthing();
-const RouteInput = z
-  .object({
-    schoolId: z.string().trim().min(1).optional(),
-  })
-  .optional();
+const RouteInput = z.object({
+  schoolId: z.string().trim().min(1).optional(),
+});
 
 type UploadMetadata = {
   userId: string;
@@ -92,7 +90,7 @@ async function getUploaderContext(requestedSchoolId?: string) {
 
 async function buildMetadata(
   folder: string,
-  files: Array<{ name: string }>,
+  files: ReadonlyArray<{ name: string }>,
   requestedSchoolId?: string
 ) {
   const context = await getUploaderContext(requestedSchoolId);
@@ -136,7 +134,7 @@ function buildUploadResponse(metadata: UploadMetadata, file: {
 
 export const ourFileRouter = {
   studentAvatar: f({
-    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .input(RouteInput)
     .middleware(async ({ files, input }) =>
@@ -147,7 +145,7 @@ export const ourFileRouter = {
     ),
 
   teacherAvatar: f({
-    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .input(RouteInput)
     .middleware(async ({ files, input }) =>
@@ -158,7 +156,7 @@ export const ourFileRouter = {
     ),
 
   parentAvatar: f({
-    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .input(RouteInput)
     .middleware(async ({ files, input }) =>
@@ -169,7 +167,7 @@ export const ourFileRouter = {
     ),
 
   schoolAdminAvatar: f({
-    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .input(RouteInput)
     .middleware(async ({ files, input }) =>
@@ -180,7 +178,7 @@ export const ourFileRouter = {
     ),
 
   staffAvatar: f({
-    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .input(RouteInput)
     .middleware(async ({ files, input }) =>
@@ -191,7 +189,7 @@ export const ourFileRouter = {
     ),
 
   bursarAvatar: f({
-    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .input(RouteInput)
     .middleware(async ({ files, input }) =>
@@ -206,20 +204,20 @@ export const ourFileRouter = {
     image: { maxFileSize: "8MB", maxFileCount: 1 },
     video: { maxFileSize: "64MB", maxFileCount: 1 },
     "text/csv": { maxFileSize: "8MB", maxFileCount: 1 },
-    "application/vnd.ms-excel": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.ms-excel": { maxFileSize: "16MB", maxFileCount: 1 },
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
-      maxFileSize: "12MB",
+      maxFileSize: "16MB",
       maxFileCount: 1,
     },
-    "application/vnd.ms-powerpoint": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.ms-powerpoint": { maxFileSize: "16MB", maxFileCount: 1 },
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": {
-      maxFileSize: "12MB",
+      maxFileSize: "16MB",
       maxFileCount: 1,
     },
-    "application/msword": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/msword": { maxFileSize: "16MB", maxFileCount: 1 },
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       {
-        maxFileSize: "12MB",
+        maxFileSize: "16MB",
         maxFileCount: 1,
       },
   })
@@ -233,7 +231,7 @@ export const ourFileRouter = {
 
   expenseReceipt: f({
     pdf: { maxFileSize: "8MB", maxFileCount: 1 },
-    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
   })
     .input(RouteInput)
     .middleware(async ({ files, input }) =>
@@ -247,15 +245,15 @@ export const ourFileRouter = {
     pdf: { maxFileSize: "16MB", maxFileCount: 1 },
     image: { maxFileSize: "8MB", maxFileCount: 1 },
     "text/csv": { maxFileSize: "8MB", maxFileCount: 1 },
-    "application/vnd.ms-excel": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.ms-excel": { maxFileSize: "16MB", maxFileCount: 1 },
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
-      maxFileSize: "12MB",
+      maxFileSize: "16MB",
       maxFileCount: 1,
     },
-    "application/msword": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/msword": { maxFileSize: "16MB", maxFileCount: 1 },
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       {
-        maxFileSize: "12MB",
+        maxFileSize: "16MB",
         maxFileCount: 1,
       },
   })
@@ -271,15 +269,15 @@ export const ourFileRouter = {
     pdf: { maxFileSize: "16MB", maxFileCount: 1 },
     image: { maxFileSize: "8MB", maxFileCount: 1 },
     "text/csv": { maxFileSize: "8MB", maxFileCount: 1 },
-    "application/vnd.ms-excel": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/vnd.ms-excel": { maxFileSize: "16MB", maxFileCount: 1 },
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
-      maxFileSize: "12MB",
+      maxFileSize: "16MB",
       maxFileCount: 1,
     },
-    "application/msword": { maxFileSize: "12MB", maxFileCount: 1 },
+    "application/msword": { maxFileSize: "16MB", maxFileCount: 1 },
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       {
-        maxFileSize: "12MB",
+        maxFileSize: "16MB",
         maxFileCount: 1,
       },
   })
@@ -293,7 +291,7 @@ export const ourFileRouter = {
 
   noticeAttachment: f({
     pdf: { maxFileSize: "8MB", maxFileCount: 1 },
-    image: { maxFileSize: "5MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
     "application/msword": { maxFileSize: "8MB", maxFileCount: 1 },
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
       {

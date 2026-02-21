@@ -137,7 +137,15 @@ const LessonNoteSchema = z.object({
 
   // Body - stored as Mixed in MongoDB, accept any object structure
   // The frontend handles validation by template type
-  body: z.record(z.string(), z.unknown()).optional().nullable(),
+  body: z
+    .union([
+      NaCCA3PhaseBodySchema,
+      ClassicJHSBodySchema,
+      SimpleBodySchema,
+      z.record(z.string(), z.unknown()),
+    ])
+    .optional()
+    .nullable(),
 
   // Assessment
   assessment: AssessmentSchema.optional(),
@@ -560,9 +568,9 @@ export async function POST(req: Request) {
     
     // If body exists and we don't have legacy content, extract from body
     if (finalBody && !content) {
-      if ("content" in finalBody && finalBody.content) {
+      if ("content" in finalBody && typeof finalBody.content === "string") {
         legacyContent = finalBody.content;
-      } else if ("starter" in finalBody && finalBody.starter?.activities) {
+      } else if ("starter" in finalBody) {
         // For NaCCA template, use starter activities as content summary
         legacyContent = "See structured lesson body";
       } else if ("presentationSteps" in finalBody) {

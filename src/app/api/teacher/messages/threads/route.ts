@@ -32,6 +32,29 @@ function buildPreview(value: string, limit = 120) {
   return `${trimmed.slice(0, limit)}...`;
 }
 
+type StudentNameLean = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string | null;
+  lastName?: string | null;
+};
+
+type UserNameLean = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  name?: string | null;
+};
+
+type UnreadAggRow = {
+  _id: mongoose.Types.ObjectId;
+  count: number;
+};
+
+type GuardianParticipantLean = {
+  userId?: mongoose.Types.ObjectId | null;
+};
+
 export async function GET() {
   try {
     const context = await requireTeacher();
@@ -59,7 +82,7 @@ export async function GET() {
       studentIds.length
         ? Student.find({ _id: { $in: studentIds } })
             .select("_id firstName lastName")
-            .lean()
+            .lean<StudentNameLean[]>()
         : Promise.resolve([]),
       User.find({
         _id: {
@@ -69,7 +92,7 @@ export async function GET() {
         },
       })
         .select("_id firstName lastName email name")
-        .lean(),
+        .lean<UserNameLean[]>(),
       Message.aggregate([
         {
           $match: {
@@ -84,18 +107,21 @@ export async function GET() {
     ]);
 
     const studentMap = new Map(
-      students.map((student: any) => [String(student._id), `${student.firstName} ${student.lastName}`.trim()])
+      students.map((student) => [
+        String(student._id),
+        `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+      ])
     );
 
     const userMap = new Map(
-      users.map((user: any) => [
+      users.map((user) => [
         String(user._id),
         `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.name || user.email,
       ])
     );
 
     const unreadMap = new Map(
-      unreadAgg.map((row: any) => [String(row._id), row.count])
+      (unreadAgg as UnreadAggRow[]).map((row) => [String(row._id), row.count])
     );
 
     return Response.json({
@@ -202,13 +228,13 @@ export async function POST(req: Request) {
 
     const guardians = await Guardian.find({ studentId: studentObjId })
       .select("userId")
-      .lean();
+      .lean<GuardianParticipantLean[]>();
 
     const participantMap = new Map<string, { userId: mongoose.Types.ObjectId; role: "teacher" | "parent" | "student" }>();
 
     participantMap.set(String(context.userId), { userId: context.userId, role: "teacher" });
 
-    guardians.forEach((guardian: any) => {
+    guardians.forEach((guardian) => {
       if (!guardian.userId) return;
       participantMap.set(String(guardian.userId), { userId: guardian.userId, role: "parent" });
     });

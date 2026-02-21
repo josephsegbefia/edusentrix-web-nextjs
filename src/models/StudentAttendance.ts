@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type AttendanceType = "homeroom" | "period";
 export type AttendanceStatus = "present" | "absent" | "late" | "excused";
@@ -88,6 +88,6 @@ studentAttendanceSchema.index(
 studentAttendanceSchema.index({ schoolId: 1, classGroupId: 1, date: 1 });
 studentAttendanceSchema.index({ schoolId: 1, date: 1, status: 1 });
 
-export const StudentAttendance =
-  models.StudentAttendance ||
+export const StudentAttendance: Model<IStudentAttendance> =
+  (models.StudentAttendance as Model<IStudentAttendance>) ||
   model<IStudentAttendance>("StudentAttendance", studentAttendanceSchema);

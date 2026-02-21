@@ -1,5 +1,5 @@
 // src/models/User.ts
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 import type { AppRole } from "@/lib/roles";
 
 export interface IUser {
@@ -64,4 +64,5 @@ userSchema.index({ email: 1 });
 // optional compound index if you want faster lookups when both exist:
 userSchema.index({ email: 1, clerkUserId: 1 });
 
-export const User = models.User || model<IUser>("User", userSchema);
+export const User: Model<IUser> =
+  (models.User as Model<IUser>) || model<IUser>("User", userSchema);

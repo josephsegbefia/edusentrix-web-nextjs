@@ -1,5 +1,5 @@
 // src/models/Student.ts
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 import type { IClassGroup } from "./ClassGroup";
 import type { IGrade } from "./Grade";
 
@@ -135,5 +135,6 @@ studentSchema.methods.getEffectiveSubjectIds = async function (): Promise<
   return Array.from(base).map((id) => new Types.ObjectId(id));
 };
 
-export const Student =
-  models.Student || model<IStudent>("Student", studentSchema);
+export const Student: Model<IStudent> =
+  (models.Student as Model<IStudent>) ||
+  model<IStudent>("Student", studentSchema);

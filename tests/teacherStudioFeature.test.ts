@@ -50,12 +50,12 @@ test("requireTeacherStudioAccess blocks when permission missing", async () => {
   process.env.NEXT_PUBLIC_FEATURE_TEACHER_STUDIO = "true";
 
   const originalFindOne = SchoolSettings.findOne.bind(SchoolSettings);
-  // @ts-expect-error - override for test
-  SchoolSettings.findOne = () => ({
+  const mockedFindOne = (() => ({
     select: () => ({
       lean: async () => ({ teacherStudio: { enabled: true } }),
     }),
-  });
+  })) as unknown as typeof SchoolSettings.findOne;
+  SchoolSettings.findOne = mockedFindOne;
 
   const context: TeacherContext = {
     ...baseContext,
@@ -67,7 +67,6 @@ test("requireTeacherStudioAccess blocks when permission missing", async () => {
       await requireTeacherStudioAccess(context, PERMISSIONS.assignmentsView);
     });
   } finally {
-    // @ts-expect-error - restore
     SchoolSettings.findOne = originalFindOne;
     if (previous === undefined) {
       delete process.env.NEXT_PUBLIC_FEATURE_TEACHER_STUDIO;

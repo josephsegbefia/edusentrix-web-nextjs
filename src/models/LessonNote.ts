@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 // ============================================================================
 // Enums & Basic Types
@@ -468,5 +468,6 @@ LessonNoteSchema.index({ topic: "text", tags: "text" });
 // Export Model
 // ============================================================================
 
-export const LessonNote =
-  models.LessonNote || model<ILessonNote>("LessonNote", LessonNoteSchema);
+export const LessonNote: Model<ILessonNote> =
+  (models.LessonNote as Model<ILessonNote>) ||
+  model<ILessonNote>("LessonNote", LessonNoteSchema);

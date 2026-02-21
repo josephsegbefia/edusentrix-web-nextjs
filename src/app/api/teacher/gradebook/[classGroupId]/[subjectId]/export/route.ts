@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
@@ -97,13 +97,13 @@ function truncateText(
 }
 
 function drawCellText(options: {
-  page: any;
+  page: PDFPage;
   text: string;
   x: number;
   y: number;
   width: number;
   align?: "left" | "center" | "right";
-  font: any;
+  font: PDFFont;
   size: number;
 }) {
   const { page, text, x, y, width, align = "left", font, size } = options;
@@ -583,9 +583,7 @@ export async function GET(
       });
     }
 
-    const periodLabel = period?.name
-      ? `${period.name}${period.termNumber ? ` · Term ${period.termNumber}` : ""}`
-      : null;
+    const periodLabel = period ? `${period.yearLabel} ${period.term}` : null;
 
     const pdfBytes = await buildPdf({
       classLabel,
@@ -595,7 +593,7 @@ export async function GET(
       rows: rowData,
     });
 
-    return new Response(pdfBytes, {
+    return new Response(Buffer.from(pdfBytes), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename=\"${filenameBase.replace(/\s+/g, "-")}.pdf\"`,

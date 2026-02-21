@@ -161,7 +161,7 @@ type HomeworkLean = {
   weight?: number | null;
   subjectId?: { _id?: mongoose.Types.ObjectId; name: string } | mongoose.Types.ObjectId | null;
   rubricId?: { _id?: mongoose.Types.ObjectId; title: string } | mongoose.Types.ObjectId | null;
-  classGroupIds?: ClassGroupLean[];
+  classGroupIds?: Array<ClassGroupLean | mongoose.Types.ObjectId>;
   targetStudentIds?: Array<mongoose.Types.ObjectId | string>;
   attachments?: Array<{ name: string; url: string; type: string; size?: number }>;
   questions?: QuestionLean[];
@@ -192,8 +192,14 @@ function isPopulatedRubric(
   return Boolean(value && typeof value === "object" && "title" in value);
 }
 
+function isPopulatedClassGroup(
+  value: ClassGroupLean | mongoose.Types.ObjectId
+): value is ClassGroupLean {
+  return typeof value === "object" && "name" in value;
+}
+
 async function hydrateAssignment(item: HomeworkLean) {
-  const classGroups = item.classGroupIds || [];
+  const classGroups = (item.classGroupIds || []).filter(isPopulatedClassGroup);
   const gradeIds = Array.from(
     new Set(classGroups.map((group) => String(group.gradeId)))
   ).filter(Boolean);
@@ -381,7 +387,7 @@ export async function PATCH(
     const classGroupIds = update.classGroupIds
       ? update.classGroupIds
           .map((id) => toObjectIdOrNull(id))
-          .filter(Boolean)
+          .filter((id): id is mongoose.Types.ObjectId => Boolean(id))
       : (current.classGroupIds as mongoose.Types.ObjectId[]);
 
     if (!subjectObjId || classGroupIds.length === 0) {

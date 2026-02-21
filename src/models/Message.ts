@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface IMessageAttachment {
   name: string;
@@ -72,4 +72,6 @@ const messageSchema = new Schema<IMessage>(
 messageSchema.index({ threadId: 1, createdAt: -1 });
 messageSchema.index({ schoolId: 1, senderId: 1, createdAt: -1 });
 
-export const Message = models.Message || model<IMessage>("Message", messageSchema);
+export const Message: Model<IMessage> =
+  (models.Message as Model<IMessage>) ||
+  model<IMessage>("Message", messageSchema);

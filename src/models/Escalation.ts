@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type EscalationType = "discipline" | "academic" | "welfare" | "other";
 export type EscalationStatus = "open" | "in_review" | "resolved" | "closed";
@@ -55,5 +55,6 @@ const escalationSchema = new Schema<IEscalation>(
 
 escalationSchema.index({ schoolId: 1, teacherId: 1, createdAt: -1 });
 
-export const Escalation =
-  models.Escalation || model<IEscalation>("Escalation", escalationSchema);
+export const Escalation: Model<IEscalation> =
+  (models.Escalation as Model<IEscalation>) ||
+  model<IEscalation>("Escalation", escalationSchema);

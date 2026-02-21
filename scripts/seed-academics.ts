@@ -225,7 +225,7 @@ async function main() {
   let gradingScale = await GradingScale.findOne({
     schoolId,
     isDefault: true,
-  });
+  }).lean<IGradingScale | null>();
 
   if (!gradingScale) {
     const defaultScale = {
@@ -247,7 +247,8 @@ async function main() {
       console.log("  [DRY] Would create grading scale");
       gradingScale = defaultScale as IGradingScale;
     } else {
-      gradingScale = await GradingScale.create(defaultScale);
+      const createdScale = await GradingScale.create(defaultScale);
+      gradingScale = createdScale.toObject() as IGradingScale;
       console.log("  ✓ Created grading scale");
     }
   } else {
@@ -293,6 +294,10 @@ async function main() {
       }
     }
 
+    if (!user) {
+      throw new Error("Failed to resolve teacher user");
+    }
+
     // Find or create Teacher
     let teacher = await Teacher.findOne({
       schoolId,
@@ -314,7 +319,15 @@ async function main() {
       }
     }
 
+    if (!teacher) {
+      throw new Error("Failed to resolve teacher record");
+    }
+
     teacherMap.set(subject.name, teacher._id);
+  }
+
+  if (!gradingScale) {
+    throw new Error("Failed to resolve grading scale");
   }
 
   // Step 5: Create academic periods (2 years = 6 terms)

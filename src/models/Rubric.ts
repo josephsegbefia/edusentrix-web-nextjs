@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface IRubricCriterion {
   title: string;
@@ -51,4 +51,6 @@ const rubricSchema = new Schema<IRubric>(
 
 rubricSchema.index({ schoolId: 1, teacherId: 1, createdAt: -1 });
 
-export const Rubric = models.Rubric || model<IRubric>("Rubric", rubricSchema);
+export const Rubric: Model<IRubric> =
+  (models.Rubric as Model<IRubric>) ||
+  model<IRubric>("Rubric", rubricSchema);

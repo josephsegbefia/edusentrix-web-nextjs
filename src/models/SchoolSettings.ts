@@ -1,5 +1,5 @@
 // src/models/SchoolSettings.ts
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 /**
  * Break period configuration
@@ -319,6 +319,6 @@ function minutesToTime(minutes: number): string {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-export const SchoolSettings =
-  models.SchoolSettings ||
+export const SchoolSettings: Model<ISchoolSettings> =
+  (models.SchoolSettings as Model<ISchoolSettings>) ||
   model<ISchoolSettings>("SchoolSettings", SchoolSettingsSchema);

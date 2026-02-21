@@ -50,7 +50,7 @@ export function TemplatePicker({ value, onChange, disabled }: TemplatePickerProp
     <div className="grid gap-4 sm:grid-cols-3">
       {TEMPLATES.map((template) => {
         const isSelected = value === template.id;
-        const colorClasses = {
+        const colorClasses = ({
           indigo: {
             bg: isSelected ? "bg-indigo-500/20" : "bg-white/5",
             border: isSelected ? "border-indigo-400/50" : "border-white/10",
@@ -69,7 +69,12 @@ export function TemplatePicker({ value, onChange, disabled }: TemplatePickerProp
             icon: isSelected ? "bg-amber-500/30 text-amber-200" : "bg-white/10 text-white/60",
             ring: "ring-amber-400/50",
           },
-        }[template.color];
+        }[template.color] ?? {
+          bg: isSelected ? "bg-white/10" : "bg-white/5",
+          border: "border-white/10",
+          icon: "bg-white/10 text-white/60",
+          ring: "ring-white/20",
+        });
 
         return (
           <button

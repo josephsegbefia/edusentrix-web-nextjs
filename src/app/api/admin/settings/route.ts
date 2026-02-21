@@ -102,7 +102,7 @@ export async function GET() {
         },
         offlineMode: { enabled: true },
       });
-      settings = newSettings.toObject();
+      settings = newSettings.toObject() as unknown as Record<string, unknown>;
     }
 
     const s = settings as Record<string, unknown>;

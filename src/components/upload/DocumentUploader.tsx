@@ -82,7 +82,7 @@ export function DocumentUploader({
       setUploadProgress(0);
       uploadErrorMessage.current = null;
 
-      const result = await startUpload([file], { schoolId: _schoolId } as never);
+      const result = await startUpload([file], { schoolId: _schoolId });
       const uploaded = result?.[0];
 
       if (!uploaded) {

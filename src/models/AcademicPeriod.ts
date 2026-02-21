@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface IAcademicPeriod {
   _id: Types.ObjectId;
@@ -34,6 +34,6 @@ academicPeriodSchema.index(
   { unique: true }
 );
 
-export const AcademicPeriod =
-  models.AcademicPeriod ||
+export const AcademicPeriod: Model<IAcademicPeriod> =
+  (models.AcademicPeriod as Model<IAcademicPeriod>) ||
   model<IAcademicPeriod>("AcademicPeriod", academicPeriodSchema);

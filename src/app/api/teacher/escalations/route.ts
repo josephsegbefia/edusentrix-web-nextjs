@@ -9,6 +9,13 @@ import { Escalation } from "@/models/Escalation";
 import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 
+type EscalationStudentLite = {
+  _id: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  admissionNo?: string | null;
+};
+
 const EscalationCreateSchema = z.object({
   studentId: z.string().optional(),
   type: z.enum(["discipline", "academic", "welfare", "other"]),
@@ -50,10 +57,12 @@ export async function GET(req: Request) {
 
     const studentIds = escalations.map((e) => e.studentId).filter(Boolean) as mongoose.Types.ObjectId[];
     const students = studentIds.length
-      ? await Student.find({ _id: { $in: studentIds } }).select("_id firstName lastName admissionNo").lean()
+      ? await Student.find({ _id: { $in: studentIds } })
+          .select("_id firstName lastName admissionNo")
+          .lean<EscalationStudentLite[]>()
       : [];
     const studentMap = new Map(
-      students.map((student: any) => [
+      students.map((student) => [
         String(student._id),
         {
           name: `${student.firstName} ${student.lastName}`.trim(),

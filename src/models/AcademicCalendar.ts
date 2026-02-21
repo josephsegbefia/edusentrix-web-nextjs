@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface IAcademicCalendar {
   _id: Types.ObjectId;
@@ -42,6 +42,6 @@ const academicCalendarSchema = new Schema<IAcademicCalendar>(
 
 academicCalendarSchema.index({ schoolId: 1, academicPeriodId: 1, name: 1 });
 
-export const AcademicCalendar =
-  models.AcademicCalendar ||
+export const AcademicCalendar: Model<IAcademicCalendar> =
+  (models.AcademicCalendar as Model<IAcademicCalendar>) ||
   model<IAcademicCalendar>("AcademicCalendar", academicCalendarSchema);

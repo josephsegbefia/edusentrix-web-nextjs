@@ -10,7 +10,7 @@ import { PERMISSIONS } from "@/lib/rbac";
 const GradeSchema = z.object({
   score: z.number().min(0).optional().nullable(),
   feedback: z.string().max(2000).optional().nullable(),
-  rubricScores: z.record(z.number()).optional(),
+  rubricScores: z.record(z.string(), z.number()).optional(),
   publish: z.boolean().optional(),
 });
 

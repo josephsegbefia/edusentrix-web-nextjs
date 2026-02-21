@@ -234,7 +234,7 @@ export function LessonNoteWizard({
             onAIGenerated={(body, tlms) => {
               // Update body and TLMs from AI generation
               updateForm({
-                body: body as LessonNoteFormData["body"],
+                body: body as unknown as LessonNoteFormData["body"],
                 ...(tlms?.length ? { tlms } : {}),
               });
               // Automatically proceed to next step

@@ -1,5 +1,5 @@
 // src/models/GradingScale.ts
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface IGradeMapping {
   minPercentage: number;
@@ -59,6 +59,6 @@ gradingScaleSchema.index(
   { name: "by_school_default" }
 );
 
-export const GradingScale =
-  models.GradingScale ||
+export const GradingScale: Model<IGradingScale> =
+  (models.GradingScale as Model<IGradingScale>) ||
   model<IGradingScale>("GradingScale", gradingScaleSchema);

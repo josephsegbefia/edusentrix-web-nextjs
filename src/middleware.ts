@@ -13,6 +13,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/banks/search",
+  "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
@@ -37,6 +38,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       "/auth/callback",
       "/favicon.ico",
       "/api/banks/search",
+      "/api/uploadthing",
     ].some((p) => pathname === p || pathname.startsWith(p));
 
   if (!userId) {

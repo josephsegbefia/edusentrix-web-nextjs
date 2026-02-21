@@ -134,7 +134,15 @@ const UpdateLessonNoteSchema = z.object({
   tlms: z.array(z.string().max(100)).optional(),
 
   // Body - stored as Mixed in MongoDB, accept any object structure
-  body: z.record(z.string(), z.unknown()).optional().nullable(),
+  body: z
+    .union([
+      NaCCA3PhaseBodySchema,
+      ClassicJHSBodySchema,
+      SimpleBodySchema,
+      z.record(z.string(), z.unknown()),
+    ])
+    .optional()
+    .nullable(),
 
   // Assessment
   assessment: AssessmentSchema.optional().nullable(),

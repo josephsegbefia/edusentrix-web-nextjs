@@ -14,6 +14,54 @@ function toObjectIdOrNull(id: string) {
   }
 }
 
+type HomeworkSubjectLean = {
+  _id?: mongoose.Types.ObjectId;
+  name: string;
+};
+
+type HomeworkListLean = {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  subjectId?: HomeworkSubjectLean | mongoose.Types.ObjectId | null;
+  classGroupIds?: mongoose.Types.ObjectId[];
+  type: string;
+  dueDate?: Date | null;
+  status: string;
+  maxScore?: number;
+};
+
+type SubmissionStudentLean = {
+  _id?: mongoose.Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
+  admissionNo?: string | null;
+  photoUrl?: string | null;
+};
+
+type StudioSubmissionLean = {
+  _id: mongoose.Types.ObjectId;
+  homeworkId: mongoose.Types.ObjectId;
+  status: string;
+  submittedAt?: Date | null;
+  isLate?: boolean;
+  score?: number | null;
+  gradedAt?: Date | null;
+  publishedAt?: Date | null;
+  studentId?: SubmissionStudentLean | mongoose.Types.ObjectId | null;
+};
+
+function isPopulatedSubject(
+  value: HomeworkListLean["subjectId"]
+): value is HomeworkSubjectLean {
+  return Boolean(value && typeof value === "object" && "name" in value);
+}
+
+function isPopulatedStudent(
+  value: StudioSubmissionLean["studentId"]
+): value is SubmissionStudentLean {
+  return Boolean(value && typeof value === "object" && "firstName" in value);
+}
+
 export async function GET(req: Request) {
   try {
     const context = await requireTeacher();
@@ -47,7 +95,7 @@ export async function GET(req: Request) {
     const homeworkList = await Homework.find(homeworkQuery)
       .select("_id title subjectId classGroupIds type dueDate status maxScore")
       .populate("subjectId", "name")
-      .lean();
+      .lean<HomeworkListLean[]>();
 
     const homeworkIds = homeworkList.map((hw) => hw._id);
     const submissionQuery: Record<string, unknown> = {
@@ -60,15 +108,21 @@ export async function GET(req: Request) {
       ? await Submission.find(submissionQuery)
           .populate("studentId", "firstName lastName admissionNo photoUrl")
           .sort({ submittedAt: -1, createdAt: -1 })
-          .lean()
+          .lean<StudioSubmissionLean[]>()
       : [];
 
     const homeworkMap = new Map(
-      homeworkList.map((hw: any) => [String(hw._id), hw])
+      homeworkList.map((homework) => [String(homework._id), homework])
     );
 
-    const data = submissions.map((submission: any) => {
+    const data = submissions.map((submission) => {
       const homework = homeworkMap.get(String(submission.homeworkId));
+      const student = isPopulatedStudent(submission.studentId)
+        ? submission.studentId
+        : null;
+      const subject = homework && isPopulatedSubject(homework.subjectId)
+        ? homework.subjectId
+        : null;
       return {
         id: String(submission._id),
         status: submission.status,
@@ -77,12 +131,12 @@ export async function GET(req: Request) {
         score: submission.score ?? null,
         gradedAt: submission.gradedAt ? submission.gradedAt.toISOString() : null,
         publishedAt: submission.publishedAt ? submission.publishedAt.toISOString() : null,
-        student: submission.studentId
+        student: student
           ? {
-              id: String(submission.studentId._id || submission.studentId),
-              name: `${submission.studentId.firstName || ""} ${submission.studentId.lastName || ""}`.trim(),
-              admissionNo: submission.studentId.admissionNo || undefined,
-              photoUrl: submission.studentId.photoUrl || undefined,
+              id: String(student._id || submission.studentId),
+              name: `${student.firstName || ""} ${student.lastName || ""}`.trim(),
+              admissionNo: student.admissionNo || undefined,
+              photoUrl: student.photoUrl || undefined,
             }
           : null,
         assignment: homework
@@ -92,10 +146,10 @@ export async function GET(req: Request) {
               type: homework.type,
               status: homework.status,
               dueDate: homework.dueDate ? homework.dueDate.toISOString() : null,
-              subject: homework.subjectId
+              subject: subject
                 ? {
-                    id: String(homework.subjectId._id || homework.subjectId),
-                    name: homework.subjectId.name,
+                    id: String(subject._id || homework.subjectId),
+                    name: subject.name,
                   }
                 : null,
             }

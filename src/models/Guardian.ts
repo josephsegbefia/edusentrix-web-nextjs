@@ -1,5 +1,5 @@
 // src/models/Guardian.ts
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type GuardianRelationship =
   | "mother"
@@ -109,5 +109,6 @@ guardianSchema.pre("save", async function (next) {
   next();
 });
 
-export const Guardian =
-  models.Guardian || model<IGuardian>("Guardian", guardianSchema);
+export const Guardian: Model<IGuardian> =
+  (models.Guardian as Model<IGuardian>) ||
+  model<IGuardian>("Guardian", guardianSchema);

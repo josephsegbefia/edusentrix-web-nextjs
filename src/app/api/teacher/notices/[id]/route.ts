@@ -52,6 +52,29 @@ function parseDateInput(value?: string | null) {
   return parsed;
 }
 
+type NoticeClassGroupLean = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  gradeId?: mongoose.Types.ObjectId | null;
+};
+
+type NoticeSubjectLean = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+};
+
+type NoticeStudentLean = {
+  _id: mongoose.Types.ObjectId;
+  firstName: string;
+  lastName: string;
+  admissionNo?: string | null;
+};
+
+type GradeNameLean = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+};
+
 async function ensureNoticeScope(params: {
   schoolId: mongoose.Types.ObjectId;
   teacherId: mongoose.Types.ObjectId;
@@ -154,24 +177,38 @@ export async function GET(
 
     const [classGroups, subjects, students] = await Promise.all([
       classGroupIds.length
-        ? ClassGroup.find({ _id: { $in: classGroupIds } }).select("_id name gradeId").lean()
+        ? ClassGroup.find({ _id: { $in: classGroupIds } })
+            .select("_id name gradeId")
+            .lean<NoticeClassGroupLean[]>()
         : Promise.resolve([]),
       subjectIds.length
-        ? Subject.find({ _id: { $in: subjectIds } }).select("_id name").lean()
+        ? Subject.find({ _id: { $in: subjectIds } })
+            .select("_id name")
+            .lean<NoticeSubjectLean[]>()
         : Promise.resolve([]),
       studentIds.length
-        ? Student.find({ _id: { $in: studentIds } }).select("_id firstName lastName admissionNo gradeId classGroupId").lean()
+        ? Student.find({ _id: { $in: studentIds } })
+            .select("_id firstName lastName admissionNo gradeId classGroupId")
+            .lean<NoticeStudentLean[]>()
         : Promise.resolve([]),
     ]);
 
     const gradeIds = Array.from(
-      new Set(classGroups.map((group: any) => String(group.gradeId)))
+      new Set(
+        classGroups
+          .map((group) => (group.gradeId ? String(group.gradeId) : null))
+          .filter((id): id is string => Boolean(id))
+      )
     ).filter(Boolean);
 
     const grades = gradeIds.length
-      ? await Grade.find({ _id: { $in: gradeIds } }).select("_id name").lean()
+      ? await Grade.find({ _id: { $in: gradeIds } })
+          .select("_id name")
+          .lean<GradeNameLean[]>()
       : [];
-    const gradeMap = new Map(grades.map((grade: any) => [String(grade._id), grade.name]));
+    const gradeMap = new Map(
+      grades.map((grade) => [String(grade._id), grade.name])
+    );
 
     return Response.json({
       success: true,
@@ -185,17 +222,17 @@ export async function GET(
           scheduledFor: notice.scheduledFor ? notice.scheduledFor.toISOString() : null,
           publishedAt: notice.publishedAt ? notice.publishedAt.toISOString() : null,
           attachments: notice.attachments || [],
-          classGroups: classGroups.map((group: any) => ({
+          classGroups: classGroups.map((group) => ({
             id: String(group._id),
             name: gradeMap.get(String(group.gradeId))
               ? `${gradeMap.get(String(group.gradeId))} ${group.name}`.trim()
               : group.name,
           })),
-          subjects: subjects.map((subject: any) => ({
+          subjects: subjects.map((subject) => ({
             id: String(subject._id),
             name: subject.name,
           })),
-          students: students.map((student: any) => ({
+          students: students.map((student) => ({
             id: String(student._id),
             name: `${student.firstName} ${student.lastName}`.trim(),
             admissionNo: student.admissionNo || undefined,
@@ -252,14 +289,20 @@ export async function PATCH(
     }
 
     const classGroupIds = (parsed.data.classGroupIds || notice.classGroupIds || [])
-      .map((value: any) => toObjectIdOrNull(String(value)))
-      .filter(Boolean) as mongoose.Types.ObjectId[];
+      .map((value: mongoose.Types.ObjectId | string) =>
+        toObjectIdOrNull(String(value))
+      )
+      .filter((id): id is mongoose.Types.ObjectId => Boolean(id));
     const subjectIds = (parsed.data.subjectIds || notice.subjectIds || [])
-      .map((value: any) => toObjectIdOrNull(String(value)))
-      .filter(Boolean) as mongoose.Types.ObjectId[];
+      .map((value: mongoose.Types.ObjectId | string) =>
+        toObjectIdOrNull(String(value))
+      )
+      .filter((id): id is mongoose.Types.ObjectId => Boolean(id));
     const targetStudentIds = (parsed.data.targetStudentIds || notice.targetStudentIds || [])
-      .map((value: any) => toObjectIdOrNull(String(value)))
-      .filter(Boolean) as mongoose.Types.ObjectId[];
+      .map((value: mongoose.Types.ObjectId | string) =>
+        toObjectIdOrNull(String(value))
+      )
+      .filter((id): id is mongoose.Types.ObjectId => Boolean(id));
 
     const audience = parsed.data.audience || notice.audience;
 

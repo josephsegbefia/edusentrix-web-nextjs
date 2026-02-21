@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface ITeacherSettings {
   _id: Types.ObjectId;
@@ -114,5 +114,6 @@ const TeacherSettingsSchema = new Schema<ITeacherSettings>(
 TeacherSettingsSchema.index({ schoolId: 1, teacherId: 1 }, { unique: true });
 TeacherSettingsSchema.index({ schoolId: 1, userId: 1 }, { unique: true });
 
-export const TeacherSettings =
-  models.TeacherSettings || model<ITeacherSettings>("TeacherSettings", TeacherSettingsSchema);
+export const TeacherSettings: Model<ITeacherSettings> =
+  (models.TeacherSettings as Model<ITeacherSettings>) ||
+  model<ITeacherSettings>("TeacherSettings", TeacherSettingsSchema);

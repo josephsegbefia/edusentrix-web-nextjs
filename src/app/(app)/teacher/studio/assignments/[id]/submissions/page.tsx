@@ -24,8 +24,9 @@ export default function AssignmentSubmissionsPage() {
   const { data, isLoading } = useAssignmentSubmissions(assignmentId);
   const submissions = data?.data.submissions || [];
   const assignment = data?.data.assignment;
+  const assignmentType = (assignment as { type?: string } | undefined)?.type;
 
-  if (!isLoading && assignment?.type === "quiz") {
+  if (!isLoading && assignmentType === "quiz") {
     return (
       <div className="space-y-4">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-white/70">

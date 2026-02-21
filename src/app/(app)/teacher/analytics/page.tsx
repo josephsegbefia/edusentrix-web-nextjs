@@ -249,7 +249,14 @@ export default function TeacherAnalyticsPage() {
         error: "Failed to refresh analytics",
       }
     );
-  }, [busyToast, completionQuery, attendanceQuery, performanceQuery, atRiskQuery]);
+  }, [
+    busyToast,
+    completionQuery,
+    attendanceQuery,
+    performanceQuery,
+    atRiskQuery,
+    canViewAtRisk,
+  ]);
 
   if (!canView) {
     return (

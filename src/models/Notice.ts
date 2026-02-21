@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type NoticeStatus = "draft" | "published" | "scheduled" | "archived";
 export type NoticeAudience = "class" | "subject" | "school" | "custom";
@@ -76,4 +76,6 @@ const noticeSchema = new Schema<INotice>(
 
 noticeSchema.index({ schoolId: 1, teacherId: 1, status: 1, createdAt: -1 });
 
-export const Notice = models.Notice || model<INotice>("Notice", noticeSchema);
+export const Notice: Model<INotice> =
+  (models.Notice as Model<INotice>) ||
+  model<INotice>("Notice", noticeSchema);

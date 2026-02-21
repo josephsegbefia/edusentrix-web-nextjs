@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type ActivityType =
   | "student.created"
@@ -117,5 +117,6 @@ activitySchema.index({ schoolId: 1, createdAt: -1 });
 activitySchema.index({ schoolId: 1, type: 1, createdAt: -1 });
 activitySchema.index({ entityType: 1, entityId: 1 });
 
-export const Activity =
-  models.Activity || model<IActivity>("Activity", activitySchema);
+export const Activity: Model<IActivity> =
+  (models.Activity as Model<IActivity>) ||
+  model<IActivity>("Activity", activitySchema);

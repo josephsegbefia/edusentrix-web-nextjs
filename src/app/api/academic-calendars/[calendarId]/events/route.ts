@@ -141,7 +141,14 @@ export async function GET(
         location: event.location,
         color: event.color,
         coverImageUrl: event.coverImageUrl,
-        recurrence: event.recurrence || null,
+        recurrence: event.recurrence
+          ? {
+              ...event.recurrence,
+              until: event.recurrence.until
+                ? new Date(event.recurrence.until).toISOString()
+                : undefined,
+            }
+          : null,
       },
       range.start,
       range.end

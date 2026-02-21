@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/models/TeacherAssignment.ts
-import mongoose, { Schema, model, models, Types } from "mongoose";
+import mongoose, { Schema, model, models, Types, type Model } from "mongoose";
 
 export type AssignmentStatus = "active" | "inactive";
 
@@ -158,6 +158,6 @@ TeacherAssignmentSchema.index({
   status: 1,
 });
 
-export const TeacherAssignment =
-  models.TeacherAssignment ||
+export const TeacherAssignment: Model<ITeacherAssignment> =
+  (models.TeacherAssignment as Model<ITeacherAssignment>) ||
   model<ITeacherAssignment>("TeacherAssignment", TeacherAssignmentSchema);

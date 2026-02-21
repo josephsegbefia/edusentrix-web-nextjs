@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type MessageParticipantRole =
   | "teacher"
@@ -58,6 +58,6 @@ const messageThreadSchema = new Schema<IMessageThread>(
 messageThreadSchema.index({ schoolId: 1, lastMessageAt: -1 });
 messageThreadSchema.index({ schoolId: 1, "participants.userId": 1 });
 
-export const MessageThread =
-  models.MessageThread ||
+export const MessageThread: Model<IMessageThread> =
+  (models.MessageThread as Model<IMessageThread>) ||
   model<IMessageThread>("MessageThread", messageThreadSchema);

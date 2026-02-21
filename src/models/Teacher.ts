@@ -1,5 +1,5 @@
 // src/models/Teacher.ts
-import { Schema, model, models, type InferSchemaType } from "mongoose";
+import { Schema, model, models, type InferSchemaType, type Model } from "mongoose";
 
 const QualificationSchema = new Schema(
   {
@@ -105,5 +105,6 @@ TeacherSchema.pre("save", async function (next) {
   }
 });
 
-export const Teacher =
-  models.Teacher || model<ITeacher>("Teacher", TeacherSchema);
+export const Teacher: Model<ITeacher> =
+  (models.Teacher as Model<ITeacher>) ||
+  model<ITeacher>("Teacher", TeacherSchema);

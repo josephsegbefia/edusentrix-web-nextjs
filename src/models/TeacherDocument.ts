@@ -1,5 +1,5 @@
 // src/models/TeacherDocument.ts
-import mongoose, { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export type TeacherDocumentType =
   | "contract"
@@ -76,6 +76,6 @@ TeacherDocumentSchema.index({ teacherId: 1, createdAt: -1 });
 TeacherDocumentSchema.index({ schoolId: 1, category: 1 });
 TeacherDocumentSchema.index({ schoolId: 1, expiryDate: 1 }); // For expiring documents query
 
-export const TeacherDocument =
-  models.TeacherDocument ||
+export const TeacherDocument: Model<ITeacherDocument> =
+  (models.TeacherDocument as Model<ITeacherDocument>) ||
   model<ITeacherDocument>("TeacherDocument", TeacherDocumentSchema);

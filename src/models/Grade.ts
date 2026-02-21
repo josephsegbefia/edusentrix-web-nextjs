@@ -1,5 +1,5 @@
 // src/models/Grade.ts
-import { Schema, model, models, Types } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
 export interface IGrade {
   _id: Types.ObjectId;
@@ -40,4 +40,5 @@ gradeSchema.index(
   { unique: true, collation: { locale: "en", strength: 2 } }
 );
 
-export const Grade = models.Grade || model<IGrade>("Grade", gradeSchema);
+export const Grade: Model<IGrade> =
+  (models.Grade as Model<IGrade>) || model<IGrade>("Grade", gradeSchema);

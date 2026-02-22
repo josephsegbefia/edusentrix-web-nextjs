@@ -19,6 +19,7 @@ import { StudentFeesTab } from "@/components/admin/students/detail/StudentFeesTa
 import { StudentBehaviourTab } from "@/components/admin/students/detail/StudentBehaviourTab";
 import { StudentRelationshipsTab } from "@/components/admin/students/detail/StudentRelationshipsTab";
 import { StudentActivityLogTab } from "@/components/admin/students/detail/StudentActivityLogTab";
+import { StudentInsightsTab } from "@/components/admin/students/detail/StudentInsightsTab";
 
 function getInitialTab(sp: URLSearchParams | null): StudentDetailTabId {
   if (!sp) return "overview";
@@ -29,7 +30,8 @@ function getInitialTab(sp: URLSearchParams | null): StudentDetailTabId {
     raw === "fees" ||
     raw === "behaviour" ||
     raw === "relationships" ||
-    raw === "activity"
+    raw === "activity" ||
+    raw === "insights"
   ) {
     return raw;
   }
@@ -45,6 +47,9 @@ function StudentDetailContent() {
   const [activeTab, setActiveTab] = React.useState<StudentDetailTabId>(() =>
     getInitialTab(searchParams)
   );
+  const [recordPaymentRequestId, setRecordPaymentRequestId] = React.useState<
+    number | null
+  >(null);
 
   const { data: student, isLoading, isError } = useStudentDetail(studentId);
 
@@ -67,6 +72,11 @@ function StudentDetailContent() {
 
   function handleTabChange(tab: StudentDetailTabId) {
     setActiveTab(tab);
+  }
+
+  function handleRecordPaymentFromHeader() {
+    setActiveTab("fees");
+    setRecordPaymentRequestId(Date.now());
   }
 
   if (!studentId) {
@@ -275,7 +285,10 @@ function StudentDetailContent() {
       </div>
 
       {/* Student Header */}
-      <StudentDetailHeader student={student} />
+      <StudentDetailHeader
+        student={student}
+        onRecordPayment={handleRecordPaymentFromHeader}
+      />
 
       {/* Tabs Navigation */}
       <StudentDetailTabs value={activeTab} onChange={handleTabChange} />
@@ -287,13 +300,19 @@ function StudentDetailContent() {
         ) : activeTab === "academics" ? (
           <StudentAcademicsTab studentId={studentId!} />
         ) : activeTab === "fees" ? (
-          <StudentFeesTab student={student} />
+          <StudentFeesTab
+            student={student}
+            recordPaymentRequestId={recordPaymentRequestId}
+            onRecordPaymentRequestHandled={() => setRecordPaymentRequestId(null)}
+          />
         ) : activeTab === "behaviour" ? (
           <StudentBehaviourTab student={student} />
         ) : activeTab === "relationships" ? (
           <StudentRelationshipsTab student={student} />
         ) : activeTab === "activity" ? (
           <StudentActivityLogTab student={student} />
+        ) : activeTab === "insights" ? (
+          <StudentInsightsTab studentId={studentId!} />
         ) : null}
       </div>
     </div>

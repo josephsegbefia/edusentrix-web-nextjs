@@ -583,9 +583,9 @@ function TeacherMessagesPageContent() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setComposeOpen(true)}
-                  className="h-8 rounded-lg border border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+                  className="group h-8 rounded-lg border border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
                   New
                 </Button>
               ) : null}

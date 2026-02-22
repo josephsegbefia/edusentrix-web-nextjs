@@ -22,6 +22,7 @@ type StudentsToolbarProps = {
   onExportAll?: () => void;
   exportingAll?: boolean;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
+  activeFilterCount?: number;
 };
 
 export function StudentsToolbar({
@@ -33,11 +34,12 @@ export function StudentsToolbar({
   onExportAll,
   exportingAll,
   searchInputRef,
+  activeFilterCount = 0,
 }: StudentsToolbarProps) {
   const [isFocused, setIsFocused] = React.useState(false);
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
       {/* Search input */}
       <div className="relative w-full md:max-w-md">
         <div
@@ -48,10 +50,10 @@ export function StudentsToolbar({
               : "border-white/10 bg-white/5 hover:border-white/15 hover:bg-white/8"
           )}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center sm:h-10 sm:w-10">
             <Search
               className={cn(
-                "h-4 w-4 transition-colors",
+                "h-3.5 w-3.5 transition-colors sm:h-4 sm:w-4",
                 isFocused ? "text-teal-400" : "text-white/40"
               )}
             />
@@ -63,8 +65,8 @@ export function StudentsToolbar({
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder="Search students by name, ID, or class..."
-            className="h-10 flex-1 bg-transparent pr-3 text-sm text-white placeholder:text-white/40 focus:outline-none"
+            placeholder="Search by name, ID, or class..."
+            className="h-9 flex-1 bg-transparent pr-3 text-sm text-white placeholder:text-white/40 focus:outline-none sm:h-10"
           />
           {search && (
             <button
@@ -90,19 +92,28 @@ export function StudentsToolbar({
           variant="outline"
           size="sm"
           onClick={onOpenFilters}
-          className="group gap-2 rounded-xl border-white/10 bg-white/5 px-4 text-xs text-white/70 hover:border-white/15 hover:bg-white/10 hover:text-white"
+          className={cn(
+            "group gap-1.5 rounded-xl border-white/10 bg-white/5 px-3 text-xs text-white/70 hover:border-white/15 hover:bg-white/10 hover:text-white sm:gap-2 sm:px-4",
+            activeFilterCount > 0 &&
+              "border-teal-500/30 bg-teal-500/10 text-teal-300"
+          )}
         >
           <SlidersHorizontal className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
           <span>Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-teal-500/30 text-[9px] font-bold text-teal-200">
+              {activeFilterCount}
+            </span>
+          )}
         </Button>
 
         {/* View mode toggle */}
-        <div className="flex items-center rounded-xl border border-white/10 bg-white/5 p-1">
+        <div className="flex items-center rounded-xl border border-white/10 bg-white/5 p-0.5 sm:p-1">
           <button
             type="button"
             onClick={() => onViewModeChange("cards")}
             className={cn(
-              "relative inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200",
+              "relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200 sm:gap-2 sm:px-3",
               viewMode === "cards"
                 ? "bg-white/10 text-white shadow-sm"
                 : "text-white/50 hover:text-white/80"
@@ -116,7 +127,7 @@ export function StudentsToolbar({
             type="button"
             onClick={() => onViewModeChange("table")}
             className={cn(
-              "relative inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200",
+              "relative inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all duration-200 sm:gap-2 sm:px-3",
               viewMode === "table"
                 ? "bg-white/10 text-white shadow-sm"
                 : "text-white/50 hover:text-white/80"
@@ -134,7 +145,7 @@ export function StudentsToolbar({
           size="sm"
           onClick={() => onExportAll?.()}
           disabled={exportingAll}
-          className="group gap-2 rounded-xl border-white/10 bg-white/5 px-4 text-xs text-white/70 hover:border-white/15 hover:bg-white/10 hover:text-white"
+          className="group gap-1.5 rounded-xl border-white/10 bg-white/5 px-3 text-xs text-white/70 hover:border-white/15 hover:bg-white/10 hover:text-white sm:gap-2 sm:px-4"
         >
           <Download className="h-3.5 w-3.5 transition-transform group-hover:translate-y-0.5" />
           <span>{exportingAll ? "Exporting..." : "Export"}</span>

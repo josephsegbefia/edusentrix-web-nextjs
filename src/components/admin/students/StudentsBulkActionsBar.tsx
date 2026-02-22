@@ -38,7 +38,7 @@ export function StudentsBulkActionsBar({
     <div
       className={cn(
         "fixed bottom-4 left-4 right-4 z-40",
-        "md:left-6 md:right-6 lg:left-[260px] lg:right-6" // leave room for sidebar if any
+        "sm:left-4 sm:right-4 md:left-6 md:right-6 lg:left-[260px] lg:right-6"
       )}
     >
       <div

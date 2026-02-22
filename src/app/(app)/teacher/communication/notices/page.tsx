@@ -209,10 +209,10 @@ export default function TeacherNoticesPage() {
             {canPublish && (
               <Button
                 asChild
-                className="bg-emerald-500/30 text-emerald-50 hover:bg-emerald-500/40"
+                className="group bg-emerald-500/30 text-emerald-50 hover:bg-emerald-500/40"
               >
                 <Link href="/teacher/communication/notices/new">
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
                   New notice
                 </Link>
               </Button>

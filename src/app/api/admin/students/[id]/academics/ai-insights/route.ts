@@ -1,6 +1,6 @@
 // src/app/api/admin/students/[id]/academics/ai-insights/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { buildStudentAcademicsDTO } from "@/lib/academics/buildStudentAcademicsDTO";
 import OpenAI from "openai";
@@ -12,10 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { schoolId } = await requireSchoolAdmin();
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
@@ -30,25 +27,41 @@ export async function GET(
 
     await connectToDatabase();
 
+    if (!schoolId) {
+      return NextResponse.json({ error: "School ID not found" }, { status: 400 });
+    }
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return NextResponse.json({ error: "Invalid studentId" }, { status: 400 });
+    }
+    if (termId && !mongoose.Types.ObjectId.isValid(termId)) {
+      return NextResponse.json({ error: "Invalid termId" }, { status: 400 });
+    }
+
+    const schoolObjectId =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
     // Get student and schoolId
-    const student = await Student.findById(studentId)
-      .select("schoolId firstName lastName")
+    const student = await Student.findOne({
+      _id: studentId,
+      schoolId: schoolObjectId,
+    })
+      .select("firstName lastName")
       .lean<{
-        schoolId?: mongoose.Types.ObjectId;
         firstName?: string;
         lastName?: string;
       } | null>();
 
-    if (!student?.schoolId) {
+    if (!student) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const schoolId = student.schoolId.toString();
     const studentName = `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim();
 
     // Build academics DTO
     const academicsDTO = await buildStudentAcademicsDTO({
-      schoolId,
+      schoolId: schoolObjectId,
       studentId,
       academicPeriodId: termId,
     });
@@ -88,7 +101,7 @@ Overall Average: ${academicsDTO.summary.overallAverage ?? "N/A"}%
 Class Position: ${academicsDTO.summary.classPosition ?? "N/A"} of ${academicsDTO.summary.totalStudents ?? "N/A"}
 Performance Tier: ${academicsDTO.summary.performanceTier ?? "N/A"}
 Trend: ${academicsDTO.summary.trend} ${academicsDTO.summary.trendDelta ? `(${academicsDTO.summary.trendDelta > 0 ? "+" : ""}${academicsDTO.summary.trendDelta} points)` : ""}
-Risk Level: ${academicsDTO.riskLevel ?? "low"}
+Risk Level: ${academicsDTO.riskLevel ?? "N/A"}
 
 Subject Performance:
 ${subjectScores}
@@ -184,6 +197,8 @@ Be specific, actionable, and culturally appropriate for Ghanaian education conte
       data: aiInsights,
     });
   } catch (error) {
+    if (error instanceof Response) return error;
+
     console.error("Error generating AI insights:", error);
     return NextResponse.json(
       {

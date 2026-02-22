@@ -163,6 +163,15 @@ function getActivityColors(type: string) {
   return colorMap[type.toLowerCase()] || colorMap.default;
 }
 
+function formatPerformanceTierLabel(
+  tier: "top" | "above_average" | "average" | "at_risk" | null | undefined
+) {
+  if (!tier) return "N/A";
+  if (tier === "above_average") return "Above Average";
+  if (tier === "at_risk") return "At Risk";
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
 export function StudentOverviewTab({ student }: StudentOverviewTabProps) {
   const { academicSummary, feesSummary, attendanceSummary, recentActivity } =
     student;
@@ -172,6 +181,15 @@ export function StudentOverviewTab({ student }: StudentOverviewTabProps) {
   const feesStatus = feesSummary?.status;
   const feesOutstanding = feesSummary?.totalOutstanding;
   const activityCount = recentActivity.length;
+  const academicDataSourceHint = academicSummary
+    ? academicSummary.isFromPreviousTerm
+      ? `Source: Previous term${
+          academicSummary.previousTermLabel
+            ? ` (${academicSummary.previousTermLabel})`
+            : ""
+        }`
+      : "Source: Current term"
+    : null;
 
   const groupedActivities = React.useMemo(() => {
     const groups: Record<string, typeof recentActivity> = {};
@@ -263,6 +281,18 @@ export function StudentOverviewTab({ student }: StudentOverviewTabProps) {
                 <p className="text-xs text-white/50">
                   Current term performance overview
                 </p>
+                {academicDataSourceHint ? (
+                  <p
+                    className={cn(
+                      "mt-1 text-[11px]",
+                      academicSummary?.isFromPreviousTerm
+                        ? "text-amber-300/80"
+                        : "text-emerald-300/70"
+                    )}
+                  >
+                    {academicDataSourceHint}
+                  </p>
+                ) : null}
               </div>
             </div>
           </CardHeader>
@@ -276,8 +306,8 @@ export function StudentOverviewTab({ student }: StudentOverviewTabProps) {
                       <TrendingUp className="h-3.5 w-3.5" />
                       Performance Tier
                     </div>
-                    <div className="mt-2 text-lg font-bold text-white capitalize">
-                      {academicSummary.performanceTier ?? "N/A"}
+                    <div className="mt-2 text-lg font-bold text-white">
+                      {formatPerformanceTierLabel(academicSummary.performanceTier)}
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/2 p-4">

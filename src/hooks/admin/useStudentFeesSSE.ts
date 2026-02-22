@@ -42,14 +42,34 @@ export function useStudentFeesSSE(opts: {
       if (invoiceId) qc.invalidateQueries({ queryKey: ["invoice", invoiceId] });
     };
 
-    es.addEventListener("payments.updated", invalidateFees);
-    es.addEventListener("invoices.updated", invalidateFees);
+    const shouldHandleEvent = (e: MessageEvent) => {
+      try {
+        const payload = JSON.parse(e.data) as { studentId?: string | null };
+        return !payload?.studentId || payload.studentId === studentId;
+      } catch {
+        return true;
+      }
+    };
+
+    const onPaymentsUpdated = (e: MessageEvent) => {
+      if (!shouldHandleEvent(e)) return;
+      invalidateFees();
+    };
+    const onInvoicesUpdated = (e: MessageEvent) => {
+      if (!shouldHandleEvent(e)) return;
+      invalidateFees();
+    };
+
+    es.addEventListener("payments.updated", onPaymentsUpdated);
+    es.addEventListener("invoices.updated", onInvoicesUpdated);
 
     es.onerror = () => {
       // allow default auto-retry; avoid noisy logs
     };
 
     return () => {
+      es.removeEventListener("payments.updated", onPaymentsUpdated);
+      es.removeEventListener("invoices.updated", onInvoicesUpdated);
       detachSSE?.();
       es.close();
     };

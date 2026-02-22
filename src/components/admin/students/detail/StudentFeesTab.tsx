@@ -55,6 +55,8 @@ import { ExportStatementButton } from "./ExportStatementButton";
 
 type Props = {
   student: StudentDetailDTO;
+  recordPaymentRequestId?: number | null;
+  onRecordPaymentRequestHandled?: () => void;
 };
 
 function fmtDate(iso: string) {
@@ -78,7 +80,11 @@ function safeStr(v: any) {
   return String(v);
 }
 
-export function StudentFeesTab({ student }: Props) {
+export function StudentFeesTab({
+  student,
+  recordPaymentRequestId = null,
+  onRecordPaymentRequestHandled,
+}: Props) {
   const { data: periodsData, isLoading: periodsLoading } = useAcademicPeriods();
   const [recordPaymentModalOpen, setRecordPaymentModalOpen] =
     React.useState(false);
@@ -110,6 +116,7 @@ export function StudentFeesTab({ student }: Props) {
     null
   );
   const [paymentDrawerOpen, setPaymentDrawerOpen] = React.useState(false);
+  const recordPaymentHandledRef = React.useRef(onRecordPaymentRequestHandled);
 
   // Pick default term once periods arrive
   React.useEffect(() => {
@@ -117,6 +124,17 @@ export function StudentFeesTab({ student }: Props) {
     if (currentPeriod?._id) setAcademicPeriodId(currentPeriod._id);
     else if (periods[0]?._id) setAcademicPeriodId(periods[0]._id);
   }, [academicPeriodId, currentPeriod?._id, periods]);
+
+  React.useEffect(() => {
+    recordPaymentHandledRef.current = onRecordPaymentRequestHandled;
+  }, [onRecordPaymentRequestHandled]);
+
+  // Support opening the payment modal from the profile header action.
+  React.useEffect(() => {
+    if (recordPaymentRequestId === null) return;
+    setRecordPaymentModalOpen(true);
+    recordPaymentHandledRef.current?.();
+  }, [recordPaymentRequestId]);
 
   // Fetch invoice list for selected term (summary + installments)
   const { data: invoiceListData } = useInvoices(

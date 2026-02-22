@@ -358,9 +358,9 @@ export default function ExpensesListPage() {
           </Button>
           <Button
             onClick={() => setCreateModalOpen(true)}
-            className="bg-linear-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700"
+            className="group bg-linear-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
             New Expense
           </Button>
         </div>

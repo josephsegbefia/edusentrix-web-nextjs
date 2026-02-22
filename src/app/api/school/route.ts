@@ -39,8 +39,8 @@ export async function GET(req: NextRequest) {
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(user.schoolId));
     const school = await School.findById(schoolIdObj)
-      .select("_id name logo type status")
-      .lean<Pick<ISchool, "_id" | "name" | "logo" | "type" | "status">>();
+      .select("_id name logo type status gesSchoolCode")
+      .lean<Pick<ISchool, "_id" | "name" | "logo" | "type" | "status" | "gesSchoolCode">>();
 
     if (!school) {
       return NextResponse.json(
@@ -57,10 +57,68 @@ export async function GET(req: NextRequest) {
         logo: school.logo || null,
         type: school.type,
         status: school.status,
+        gesSchoolCode: school.gesSchoolCode || null,
       },
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to fetch school";
+    return NextResponse.json(
+      { success: false, error: message },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/school
+ * Update school profile fields (currently: gesSchoolCode)
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    await connectToDatabase();
+
+    const user = await User.findOne({ clerkUserId }).select("schoolId role").lean<Pick<IUser, "_id" | "schoolId" | "role">>();
+    if (!user?.schoolId) {
+      return NextResponse.json(
+        { success: false, error: "No school associated" },
+        { status: 404 }
+      );
+    }
+
+    if (user.role !== "school_admin" && user.role !== "platform_admin") {
+      return NextResponse.json(
+        { success: false, error: "Only admins can update school info" },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json();
+    const updates: Record<string, unknown> = {};
+
+    if (typeof body.gesSchoolCode === "string" || body.gesSchoolCode === null) {
+      updates.gesSchoolCode = body.gesSchoolCode?.trim() || null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json(
+        { success: false, error: "No valid fields to update" },
+        { status: 400 }
+      );
+    }
+
+    await School.findByIdAndUpdate(user.schoolId, { $set: updates });
+
+    return NextResponse.json({ success: true });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to update school";
     return NextResponse.json(
       { success: false, error: message },
       { status: 500 }

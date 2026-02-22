@@ -419,8 +419,8 @@ export default function BudgetsPage() {
             </PremiumSelectContent>
           </PremiumSelect>
           <Link href="/admin/finance/budgets/create">
-            <Button className="bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button className="group bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-600 hover:to-purple-700">
+              <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
               Create Budget
             </Button>
           </Link>

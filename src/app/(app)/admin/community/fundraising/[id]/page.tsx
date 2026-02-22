@@ -474,9 +474,9 @@ export default function CampaignDetailPage() {
               setPostUpdateModalOpen(true);
             }}
             size="sm"
-            className="gap-1.5 bg-violet-600/80 text-white hover:bg-violet-600"
+            className="group gap-1.5 bg-violet-600/80 text-white hover:bg-violet-600"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
             Post Update
           </Button>
         </CardHeader>

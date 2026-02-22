@@ -11,6 +11,7 @@ import {
   Users,
   Activity,
 } from "lucide-react";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 
 type StudentDetailTabsProps = {
   value: StudentDetailTabId;
@@ -86,6 +87,16 @@ const TABS: TabConfig[] = [
       active:
         "border-violet-500/40 bg-violet-500/15 text-violet-200 shadow-violet-500/20",
       icon: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+    },
+  },
+  {
+    id: "insights",
+    label: "Leo's Insights",
+    icon: LeoIcon,
+    colors: {
+      active:
+        "border-purple-500/40 bg-purple-500/15 text-purple-200 shadow-purple-500/20",
+      icon: "bg-purple-500/20 text-purple-300 border-purple-500/30",
     },
   },
 ];

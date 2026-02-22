@@ -5,6 +5,8 @@ import { Student } from "@/models/Student";
 import { Teacher } from "@/models/Teacher";
 import { Subject } from "@/models/Subject";
 import { AcademicPeriod, IAcademicPeriod } from "@/models/AcademicPeriod";
+import { Payment } from "@/models/Payment";
+import { Invoice } from "@/models/Invoice";
 import { CommunityPoll } from "@/models/CommunityPoll";
 import { FundraisingCampaign } from "@/models/FundraisingCampaign";
 import mongoose from "mongoose";
@@ -63,8 +65,53 @@ export async function GET() {
     "yearLabel" | "term" | "startDate" | "endDate"
   > | null;
 
-  // TODO => when Payment/Invoice models arrive
-  const revenueCurrent = 0;
+  // Revenue: sum of completed payments scoped to the current academic period (or all-time if no period)
+  const paymentMatch: Record<string, unknown> = {
+    schoolId: schoolIdObj,
+    status: "completed",
+  };
+  if (period) {
+    paymentMatch.paymentDate = {
+      $gte: new Date(period.startDate),
+      $lte: new Date(period.endDate),
+    };
+  }
+
+  const [revenueAgg, outstandingAgg, totalBilledAgg] = await Promise.all([
+    Payment.aggregate([
+      { $match: paymentMatch },
+      { $group: { _id: null, total: { $sum: "$amountMinor" } } },
+    ]),
+    Invoice.aggregate([
+      {
+        $match: {
+          schoolId: schoolIdObj,
+          status: { $in: ["issued", "partially_paid", "overdue"] },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$totalOutstandingMinor" } } },
+    ]),
+    Invoice.aggregate([
+      {
+        $match: {
+          schoolId: schoolIdObj,
+          status: { $ne: "draft" },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$totalAmountMinor" } } },
+    ]),
+  ]);
+
+  const totalRevenueMinor = revenueAgg[0]?.total ?? 0;
+  const totalOutstandingMinor = outstandingAgg[0]?.total ?? 0;
+  const totalBilledMinor = totalBilledAgg[0]?.total ?? 0;
+  const collectionRate =
+    totalBilledMinor > 0
+      ? Math.round(((totalRevenueMinor / totalBilledMinor) * 100) * 100) / 100
+      : 0;
+
+  // Convert minor (pesewas) to major (cedis) for the revenue display
+  const revenueCurrent = Math.round(totalRevenueMinor / 100);
   const revenueTrend = { deltaPct: 0, direction: "flat" as const };
 
   const studentsTrend = { deltaPct: 0, direction: "flat" as const };
@@ -86,8 +133,11 @@ export async function GET() {
           endDate: period.endDate,
         }
       : null,
-    collections: { collected: 0, outstanding: 0, rate: 0 },
-    // Community Hub metrics
+    collections: {
+      collected: Math.round(totalRevenueMinor / 100),
+      outstanding: Math.round(totalOutstandingMinor / 100),
+      rate: collectionRate,
+    },
     community: {
       polls: {
         live: pollsLive,

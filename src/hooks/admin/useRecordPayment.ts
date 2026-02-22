@@ -34,16 +34,17 @@ export function useRecordPayment() {
       if (!res.ok) throw new Error(data?.error || "Failed to record payment");
       return data;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Invalidate all fees-related queries for instant updates
       qc.invalidateQueries({ queryKey: ["invoices"] });
       qc.invalidateQueries({ queryKey: ["invoice"] });
-      qc.invalidateQueries({ queryKey: ["studentFeesLedger"] });
+      qc.invalidateQueries({ queryKey: ["student-fees-ledger"] });
       qc.invalidateQueries({ queryKey: ["studentCreditBalance"] });
       qc.invalidateQueries({ queryKey: ["student-payments"] });
-      qc.invalidateQueries({ queryKey: ["student-fees-summary"] });
-      qc.invalidateQueries({ queryKey: ["student-invoices"] });
-      qc.invalidateQueries({ queryKey: ["student-installments"] });
+      qc.invalidateQueries({ queryKey: ["student-fees-summary", variables.studentId] });
+      qc.invalidateQueries({ queryKey: ["student-invoices", variables.studentId] });
+      qc.invalidateQueries({ queryKey: ["student-installments", variables.studentId] });
+      qc.invalidateQueries({ queryKey: ["admin-student-detail", variables.studentId] });
     },
   });
 }

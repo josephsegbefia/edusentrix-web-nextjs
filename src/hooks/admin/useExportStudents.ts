@@ -16,7 +16,10 @@ export type ExportStudentsParams = {
   sortOrder: StudentsSortOrder;
   filters: {
     search?: string;
-    // TODO later: classGroupId?, gradeId?, status?, etc.
+    gradeId?: string;
+    classGroupId?: string;
+    status?: string;
+    gender?: string;
   };
   selectedIds?: string[];
 };
@@ -31,8 +34,13 @@ async function exportStudentsRequest(params: ExportStudentsParams) {
   query.set("sortOrder", sortOrder);
 
   if (filters.search) query.set("search", filters.search);
+  if (filters.gradeId) query.set("gradeId", filters.gradeId);
+  if (filters.classGroupId) query.set("classGroupId", filters.classGroupId);
+  if (filters.status && filters.status !== "all")
+    query.set("status", filters.status);
+  if (filters.gender && filters.gender !== "all")
+    query.set("gender", filters.gender);
   if (selectedIds && selectedIds.length > 0) {
-    // Server can treat this as "export only these"
     query.set("selectedIds", selectedIds.join(","));
   }
 

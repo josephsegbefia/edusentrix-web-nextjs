@@ -8,6 +8,7 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Guardian } from "@/models/Guardian";
 import { Payment } from "@/models/Payment";
 import { Invoice } from "@/models/Invoice";
+import { StudentAttendance } from "@/models/StudentAttendance";
 import mongoose from "mongoose";
 import type { NextRequest } from "next/server";
 
@@ -46,6 +47,9 @@ export async function GET(req: NextRequest) {
       // Watch for guardian changes
       // We'll filter by student's schoolId in the change handler
       const guardianWatch = Guardian.watch([], {
+        fullDocument: "updateLookup",
+      });
+      const attendanceWatch = StudentAttendance.watch(pipeline, {
         fullDocument: "updateLookup",
       });
 
@@ -98,6 +102,16 @@ export async function GET(req: NextRequest) {
         } catch (err) {
           console.error("Error processing guardian change:", err);
         }
+      });
+
+      attendanceWatch.on("change", (change: any) => {
+        const studentId = change?.fullDocument?.studentId
+          ? String(change.fullDocument.studentId)
+          : null;
+        send("attendance.updated", {
+          studentId,
+          operationType: change?.operationType || "update",
+        });
       });
 
       // Watch for payment changes
@@ -161,14 +175,26 @@ export async function GET(req: NextRequest) {
         });
       };
 
-      paymentWatch.on("change", () => {
+      paymentWatch.on("change", (change: any) => {
         pushFeeSummary();
-        send("payments.updated", {});
+        const studentId = change?.fullDocument?.studentId
+          ? String(change.fullDocument.studentId)
+          : null;
+        send("payments.updated", {
+          studentId,
+          operationType: change?.operationType || "update",
+        });
       });
 
-      invoiceWatch.on("change", () => {
+      invoiceWatch.on("change", (change: any) => {
         pushFeeSummary();
-        send("invoices.updated", {});
+        const studentId = change?.fullDocument?.studentId
+          ? String(change.fullDocument.studentId)
+          : null;
+        send("invoices.updated", {
+          studentId,
+          operationType: change?.operationType || "update",
+        });
       });
 
       // Initial fee summary push
@@ -187,6 +213,7 @@ export async function GET(req: NextRequest) {
         subjectWatch.close();
         periodWatch.close();
         guardianWatch.close();
+        attendanceWatch.close();
         paymentWatch.close();
         invoiceWatch.close();
         controller.close();

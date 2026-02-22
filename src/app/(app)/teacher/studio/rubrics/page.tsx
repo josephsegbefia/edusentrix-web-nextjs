@@ -289,9 +289,9 @@ export default function TeacherRubricsPage() {
           <div className="flex flex-col gap-2 lg:items-end">
             <Button
               onClick={openCreate}
-              className="bg-indigo-500/30 text-indigo-50 hover:bg-indigo-500/40"
+              className="group bg-indigo-500/30 text-indigo-50 hover:bg-indigo-500/40"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               New rubric
             </Button>
             <p className="text-xs text-white/45">Use weighted criteria for advanced scoring.</p>

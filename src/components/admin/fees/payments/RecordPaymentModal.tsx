@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,23 @@ function parseMoneyToMinor(v: string) {
 
 function minorToMoneyInput(minor: number) {
   return (minor / 100).toFixed(2);
+}
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value: string) {
+  const [yearRaw, monthRaw, dayRaw] = value.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  if (!year || !month || !day) return null;
+  const parsed = new Date(year, month - 1, day);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function ModalShell(props: {
@@ -130,7 +148,7 @@ export function RecordPaymentModal(props: {
   const [amount, setAmount] = React.useState("");
   const [paymentDate, setPaymentDate] = React.useState(() => {
     const d = new Date();
-    return d.toISOString().slice(0, 10);
+    return formatDateInput(d);
   });
   const [paymentMethod, setPaymentMethod] = React.useState<
     "cash" | "bank_transfer" | "mobile_money" | "paystack" | "cheque" | "other"
@@ -146,6 +164,7 @@ export function RecordPaymentModal(props: {
     setStatus("completed");
     setAllocationMode("auto");
     setAmount("");
+    setPaymentDate(formatDateInput(new Date()));
     setReceiptNumber("");
     setReference("");
     setNote("");
@@ -153,6 +172,10 @@ export function RecordPaymentModal(props: {
   }, [open]);
 
   const amountMinor = parseMoneyToMinor(amount);
+  const paymentDateValue = React.useMemo(
+    () => parseDateInput(paymentDate),
+    [paymentDate]
+  );
 
   const manualAllocations = React.useMemo(() => {
     const list: { invoiceLineItemId: string; amountMinor: number }[] = [];
@@ -175,6 +198,7 @@ export function RecordPaymentModal(props: {
   async function onSubmit() {
     if (!invoiceId) return toast.error("No invoice selected for this term.");
     if (amountMinor <= 0) return toast.error("Enter a valid amount.");
+    if (!paymentDateValue) return toast.error("Select a valid payment date.");
 
     if (allocationMode === "manual" && overAlloc) {
       return toast.error("Manual allocations exceed the payment amount.");
@@ -185,7 +209,7 @@ export function RecordPaymentModal(props: {
         studentId,
         invoiceId,
         amountMinor,
-        paymentDate: new Date(paymentDate).toISOString(),
+        paymentDate: paymentDateValue.toISOString(),
         paymentMethod,
         receiptNumber: receiptNumber || undefined,
         reference: reference || undefined,
@@ -246,12 +270,13 @@ export function RecordPaymentModal(props: {
             >
               Payment Date *
             </Label>
-            <Input
-              id="paymentDate"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+            <CustomDatePicker
+              value={paymentDateValue}
+              onChange={(date) => {
+                setPaymentDate(date ? formatDateInput(date) : "");
+              }}
+              placeholder="Select payment date"
+              className="w-full"
             />
           </div>
 

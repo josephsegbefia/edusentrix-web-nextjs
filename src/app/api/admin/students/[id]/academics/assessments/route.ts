@@ -1,11 +1,12 @@
 // src/app/api/admin/students/[id]/academics/assessments/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Assessment } from "@/models/Assessment";
 import { SubjectGrade } from "@/models/SubjectGrade";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Subject } from "@/models/Subject";
+import { Student } from "@/models/Student";
 import mongoose from "mongoose";
 
 export async function GET(
@@ -13,9 +14,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    if (!schoolId) {
+      return NextResponse.json({ error: "School ID not found" }, { status: 400 });
     }
 
     const { id: studentId } = await params;
@@ -30,12 +33,28 @@ export async function GET(
       );
     }
 
-    await connectToDatabase();
+    if (
+      !mongoose.Types.ObjectId.isValid(studentId) ||
+      !mongoose.Types.ObjectId.isValid(subjectId) ||
+      !mongoose.Types.ObjectId.isValid(termId)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid studentId, subjectId, or termId" },
+        { status: 400 }
+      );
+    }
 
-    // Verify student exists and get schoolId
-    const { Student } = await import("@/models/Student");
-    const studentRaw = await Student.findById(studentId)
-      .select("schoolId")
+    const schoolObjectId =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
+    // Verify student exists and belongs to this school
+    const studentRaw = await Student.findOne({
+      _id: studentId,
+      schoolId: schoolObjectId,
+    })
+      .select("_id")
       .lean();
 
     // Normalize student (findById().lean() can be inferred as array by TypeScript)
@@ -47,12 +66,10 @@ export async function GET(
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const schoolId = student.schoolId.toString();
-
     // Verify academic period exists
     const periodRaw = await AcademicPeriod.findOne({
       _id: termId,
-      schoolId,
+      schoolId: schoolObjectId,
     })
       .select("yearLabel term")
       .lean();
@@ -70,7 +87,10 @@ export async function GET(
     }
 
     // Get subject name
-    const subjectRaw = await Subject.findById(subjectId)
+    const subjectRaw = await Subject.findOne({
+      _id: subjectId,
+      schoolId: schoolObjectId,
+    })
       .select("name code")
       .lean();
 
@@ -85,7 +105,7 @@ export async function GET(
 
     // Fetch all assessments for this student + subject + term
     const assessments = await Assessment.find({
-      schoolId,
+      schoolId: schoolObjectId,
       studentId,
       subjectId,
       academicPeriodId: termId,
@@ -95,7 +115,7 @@ export async function GET(
 
     // Get SubjectGrade summary
     const subjectGradeRaw = await SubjectGrade.findOne({
-      schoolId,
+      schoolId: schoolObjectId,
       studentId,
       subjectId,
       academicPeriodId: termId,
@@ -139,6 +159,8 @@ export async function GET(
       },
     });
   } catch (error) {
+    if (error instanceof Response) return error;
+
     console.error("Error fetching assessment breakdown:", error);
     return NextResponse.json(
       { error: "Failed to fetch assessment breakdown" },

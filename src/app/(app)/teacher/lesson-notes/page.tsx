@@ -396,9 +396,9 @@ export default function TeacherLessonNotesPage() {
           <Button
             onClick={handleCreateNew}
             disabled={isInitializing || !canWrite || noClassesAssigned}
-            className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
+            className="group bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
           >
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="mr-1 h-4 w-4 transition-transform group-hover:rotate-90" />
             {isInitializing ? "Loading..." : "New Note"}
           </Button>
         </div>

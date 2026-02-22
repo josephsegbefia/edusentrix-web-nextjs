@@ -58,6 +58,8 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status") || null;
     const sex = searchParams.get("gender") || null;
     const tab = searchParams.get("tab") || "all";
+    const enrollmentFrom = searchParams.get("enrollmentFrom") || null;
+    const enrollmentTo = searchParams.get("enrollmentTo") || null;
 
     const sortBy = searchParams.get("sortBy") || "name";
     const sortOrderParam = searchParams.get("sortOrder") || "asc";
@@ -69,6 +71,17 @@ export async function GET(req: NextRequest) {
     if (classGroupId) query.classGroupId = classGroupId;
     if (status && status !== "all") query.status = status;
     if (sex === "male" || sex === "female") query.sex = sex;
+
+    if (enrollmentFrom || enrollmentTo) {
+      const dateFilter: Record<string, Date> = {};
+      if (enrollmentFrom) dateFilter.$gte = new Date(enrollmentFrom);
+      if (enrollmentTo) {
+        const end = new Date(enrollmentTo);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.$lte = end;
+      }
+      query.enrolledAt = dateFilter;
+    }
 
     if (search) {
       const regex = new RegExp(escapeRegex(search), "i");

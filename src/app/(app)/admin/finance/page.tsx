@@ -357,9 +357,9 @@ export default function FinancialCenterPage() {
           </Link>
           <Button
             onClick={() => setRecordModalOpen(true)}
-            className="bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
+            className="group bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
             Record Transaction
           </Button>
         </div>

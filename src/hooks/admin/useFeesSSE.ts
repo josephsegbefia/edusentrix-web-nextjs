@@ -38,6 +38,7 @@ export function useFeesSSE() {
           },
         };
       });
+      qc.invalidateQueries({ queryKey: ["overdueRisk"] });
     });
 
     es.addEventListener("payments.updated", () => {
@@ -50,6 +51,7 @@ export function useFeesSSE() {
       // Invalidate invoices queries
       qc.invalidateQueries({ queryKey: ["invoices"] });
       qc.invalidateQueries({ queryKey: ["feeSummary"] });
+      qc.invalidateQueries({ queryKey: ["overdueRisk"] });
     });
 
     es.onerror = () => {

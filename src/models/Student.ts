@@ -25,6 +25,10 @@ export interface IStudent {
   status: "active" | "inactive" | "withdrawn";
   enrolledAt?: Date | null;
 
+  // GES (Ghana Education Service) fields — optional, can be attached later
+  gesIndexNumber?: string | null; // JHS BECE index number
+  gesSchoolCode?: string | null; // snapshot of the school's GES code at time of assignment
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +77,9 @@ const studentSchema = new Schema<IStudent>(
       default: "active",
     },
     enrolledAt: { type: Date, default: null },
+
+    gesIndexNumber: { type: String, default: null, trim: true },
+    gesSchoolCode: { type: String, default: null, trim: true },
   },
   { timestamps: true }
 );

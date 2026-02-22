@@ -132,6 +132,8 @@ export async function POST(req: NextRequest) {
       enrolledAt: body.enrolledAt ? new Date(body.enrolledAt) : null,
       subjectAddIds: subjectAddIds.length > 0 ? subjectAddIds : undefined,
       subjectRemoveIds: subjectRemoveIds.length > 0 ? subjectRemoveIds : undefined,
+      gesIndexNumber: (body as Record<string, unknown>).gesIndexNumber || null,
+      gesSchoolCode: (body as Record<string, unknown>).gesSchoolCode || null,
     });
 
     await student.save();

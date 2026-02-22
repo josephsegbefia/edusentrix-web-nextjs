@@ -161,7 +161,7 @@ function RolesDutiesContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -253,9 +253,9 @@ function RolesDutiesContent() {
                 </DropdownMenu>
                 <Button
                   onClick={() => setAssignRoleModalOpen(true)}
-                  className="gap-2 bg-brand text-black shadow-lg shadow-brand/20 hover:opacity-90"
+                  className="group gap-2 bg-brand text-black shadow-lg shadow-brand/20 hover:opacity-90"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
                   Assign Role
                 </Button>
               </>
@@ -292,9 +292,9 @@ function RolesDutiesContent() {
                 </DropdownMenu>
                 <Button
                   onClick={() => setAssignDutyModalOpen(true)}
-                  className="gap-2 bg-brand text-black shadow-lg shadow-brand/20 hover:opacity-90"
+                  className="group gap-2 bg-brand text-black shadow-lg shadow-brand/20 hover:opacity-90"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
                   Assign Duty
                 </Button>
               </>
@@ -802,7 +802,7 @@ function RoleAssignmentCard({
             src={assignment.student?.photoUrl || ""}
             alt={assignment.student?.fullName || ""}
           />
-          <AvatarFallback className="bg-gradient-to-br from-brand to-brand/60 text-sm font-semibold text-black">
+          <AvatarFallback className="bg-linear-to-br from-brand to-brand/60 text-sm font-semibold text-black">
             {getInitials(
               assignment.student?.firstName || "",
               assignment.student?.lastName || ""
@@ -926,7 +926,7 @@ function DutyAssignmentCard({
             src={assignment.teacher?.photoUrl || ""}
             alt={assignment.teacher?.fullName || ""}
           />
-          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-semibold text-white">
+          <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-600 text-sm font-semibold text-white">
             {getInitials(
               assignment.teacher?.firstName || "",
               assignment.teacher?.lastName || ""
@@ -1033,7 +1033,7 @@ export default function RolesDutiesPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
           <Loader2 className="h-10 w-10 animate-spin text-brand" />
         </div>
       }

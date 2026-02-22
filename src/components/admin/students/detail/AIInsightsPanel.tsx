@@ -4,9 +4,9 @@
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAIInsights } from "@/hooks/admin/useAIInsights";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 import {
   Loader2,
-  Sparkles,
   TrendingUp,
   TrendingDown,
   AlertTriangle,
@@ -25,12 +25,13 @@ type Props = {
 
 export function AIInsightsPanel({ studentId, termId }: Props) {
   const [isExpanded, setIsExpanded] = React.useState(true);
+  const [hasRequestedInsights, setHasRequestedInsights] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"student" | "parent" | "teacher">("student");
 
   const { data, isLoading, isError, refetch } = useAIInsights(
     studentId,
     termId,
-    isExpanded // only fetch when expanded
+    hasRequestedInsights && isExpanded // only fetch when user explicitly requested
   );
 
   const insights = data?.data;
@@ -41,16 +42,18 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
     high: "bg-red-500/20 text-red-200 border-red-400/40",
   };
 
+  const showGenerateCTA = !hasRequestedInsights && !data && !isLoading && !isError;
+
   return (
     <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
-              <Sparkles className="h-4 w-4 text-primary-200" />
+              <LeoIcon className="h-4 w-4 text-primary-200" />
             </div>
             <CardTitle className="text-sm font-semibold text-white/80">
-              AI Insights & Recommendations
+              Leo Insights & Recommendations
             </CardTitle>
           </div>
           <Button
@@ -70,11 +73,31 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
 
       {isExpanded && (
         <CardContent className="space-y-4">
+          {showGenerateCTA && (
+            <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 px-6 py-8 text-center">
+              <div className="flex justify-center mb-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/20">
+                  <LeoIcon className="h-6 w-6 text-primary-200" />
+                </div>
+              </div>
+              <p className="text-sm text-white/70 mb-4">
+                Get AI-powered insights and recommendations for this student&apos;s academic performance.
+              </p>
+              <Button
+                onClick={() => setHasRequestedInsights(true)}
+                className="gap-2 rounded-xl bg-primary hover:bg-primary/90"
+              >
+                <LeoIcon className="h-4 w-4" />
+                Generate with Leo
+              </Button>
+            </div>
+          )}
+
           {isLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">
-                Generating insights...
+                Leo is analyzing...
               </span>
             </div>
           )}
@@ -82,7 +105,7 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
           {isError && (
             <div className="rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-6 text-center">
               <p className="text-sm text-destructive mb-2">
-                Failed to generate AI insights
+                Leo couldn&apos;t generate insights
               </p>
               <Button
                 variant="outline"

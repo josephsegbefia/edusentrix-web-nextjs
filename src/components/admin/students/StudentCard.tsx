@@ -7,12 +7,12 @@ import { StudentAvatarStatus } from "./StudentAvatarStatus";
 import { FeeStatusBadge } from "./FeeStatusBadge";
 import { AcademicBadgePill } from "./AcademicBadgePill";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuTrigger,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+} from "@/components/ui/premium-dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
   MoreHorizontal,
@@ -149,7 +149,7 @@ export function StudentCard({
         if (e.key === "Enter" || e.key === " ") handleCardClick();
       }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br backdrop-blur-xl",
+        "group relative flex flex-col overflow-hidden rounded-2xl border bg-linear-to-br backdrop-blur-xl",
         config.bg,
         config.border,
         "shadow-xl shadow-black/30 transition-all duration-300",
@@ -168,7 +168,7 @@ export function StudentCard({
 
       {/* Top shine */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
         aria-hidden="true"
       />
 
@@ -181,9 +181,9 @@ export function StudentCard({
       />
 
       {/* Card content */}
-      <div className="relative z-10 flex flex-col gap-4 p-5">
+      <div className="relative z-10 flex flex-col gap-3 p-4 sm:gap-4 sm:p-5">
         {/* Header: Avatar + Name + Menu */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           <div className="relative">
             <StudentAvatarStatus
               fullName={student.fullName}
@@ -207,8 +207,8 @@ export function StudentCard({
                 <p className="truncate text-xs text-white/50">{classLabel}</p>
               </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <PremiumDropdownMenu>
+                <PremiumDropdownMenuTrigger asChild>
                   <Button
                     type="button"
                     variant="ghost"
@@ -218,50 +218,44 @@ export function StudentCard({
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
+                </PremiumDropdownMenuTrigger>
+                <PremiumDropdownMenuContent
                   align="end"
-                  className="min-w-[180px] rounded-xl border border-white/10 bg-slate-900/95 p-1 text-xs text-slate-50 shadow-xl backdrop-blur-xl"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <DropdownMenuItem
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onView)}
-                    className="gap-2 rounded-lg"
+                    icon={<ExternalLink className="h-3.5 w-3.5" />}
                   >
-                    <ExternalLink className="h-3.5 w-3.5" />
                     View profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                  </PremiumDropdownMenuItem>
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onEdit)}
-                    className="gap-2 rounded-lg"
+                    icon={<Pencil className="h-3.5 w-3.5" />}
                   >
-                    <Pencil className="h-3.5 w-3.5" />
                     Edit details
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem
+                  </PremiumDropdownMenuItem>
+                  <PremiumDropdownMenuSeparator />
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onAssignClass)}
-                    className="gap-2 rounded-lg"
+                    icon={<UserPlus className="h-3.5 w-3.5" />}
                   >
-                    <UserPlus className="h-3.5 w-3.5" />
                     Assign / change class
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                  </PremiumDropdownMenuItem>
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onRecordPayment)}
-                    className="gap-2 rounded-lg"
+                    icon={<CreditCard className="h-3.5 w-3.5" />}
                   >
-                    <CreditCard className="h-3.5 w-3.5" />
                     Record payment
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                  </PremiumDropdownMenuItem>
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onSendMessage)}
-                    className="gap-2 rounded-lg"
+                    icon={<Mail className="h-3.5 w-3.5" />}
                   >
-                    <Mail className="h-3.5 w-3.5" />
                     Message parent
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </PremiumDropdownMenuItem>
+                </PremiumDropdownMenuContent>
+              </PremiumDropdownMenu>
             </div>
 
             {/* Status + ID badges */}
@@ -297,7 +291,7 @@ export function StudentCard({
       </div>
 
       {/* Footer */}
-      <div className="relative z-10 flex items-center justify-between border-t border-white/5 bg-white/[0.02] px-5 py-3">
+      <div className="relative z-10 flex items-center justify-between border-t border-white/5 bg-white/2 px-4 py-2.5 sm:px-5 sm:py-3">
         <div className="flex items-center gap-1.5 text-[10px] text-white/40">
           <Calendar className="h-3 w-3" />
           <span>

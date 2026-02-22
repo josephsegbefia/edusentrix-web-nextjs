@@ -233,7 +233,9 @@ export async function buildStudentAcademicsDTO(params: {
       schoolId: schoolKey,
       studentId: studentKey,
       academicPeriodId: selectedTermId,
-    }).populate("subjectId", "name code");
+    })
+      .sort({ updatedAt: -1, createdAt: -1, _id: -1 })
+      .populate("subjectId", "name code");
 
     // Only populate teacher if model is available
     if (canPopulateTeacher) {
@@ -267,7 +269,7 @@ export async function buildStudentAcademicsDTO(params: {
 
       // Extract subjectId - handle both populated (object) and unpopulated (ObjectId) cases
       let subjectIdStr: string;
-      if (subject && typeof subject === 'object' && subject._id) {
+      if (subject && typeof subject === "object" && subject._id) {
         // Subject is populated, use its _id
         subjectIdStr = toStringId(subject._id) || subject._id.toString();
       } else {
@@ -363,7 +365,10 @@ export async function buildStudentAcademicsDTO(params: {
 
   // 9) Extended fields for enhanced gradebook
   // Get student's classGroupId
-  const studentDoc = await Student.findById(studentKey)
+  const studentDoc = await Student.findOne({
+    _id: studentKey,
+    schoolId: schoolKey,
+  })
     .select("classGroupId")
     .lean<{ classGroupId?: mongoose.Types.ObjectId } | null>();
   const classGroupId = studentDoc?.classGroupId;
@@ -430,8 +435,11 @@ export async function buildStudentAcademicsDTO(params: {
         $in: terms.map((t) => t.termId).filter(Boolean),
       },
     })
+      .sort({ updatedAt: -1, createdAt: -1, _id: -1 })
       .populate("subjectId", "name code")
       .lean()) as unknown as (ISubjectGrade & { subjectId?: any })[];
+
+    const seenSubjectTermPairs = new Set<string>();
 
     for (const sg of allSubjectGrades) {
       const subjectIdStr = sg.subjectId?._id
@@ -441,6 +449,9 @@ export async function buildStudentAcademicsDTO(params: {
 
       const periodId = toStringId(sg.academicPeriodId);
       if (!periodId) continue;
+      const pairKey = `${subjectIdStr}:${periodId}`;
+      if (seenSubjectTermPairs.has(pairKey)) continue;
+      seenSubjectTermPairs.add(pairKey);
 
       const period = periodMap.get(periodId);
       if (!period) continue;
@@ -487,13 +498,20 @@ export async function buildStudentAcademicsDTO(params: {
     }
   }
 
-  const riskLevel = calculateRiskLevel({
-    overallAverage: summary.overallAverage,
-    performanceTier: summary.performanceTier,
-    trend: trendDirection,
-    weakSubjectsCount,
-    consecutiveDeclines,
-  });
+  const hasScoredAcademicData =
+    summary.overallAverage !== null ||
+    terms.some((term) => term.averageScore !== null) ||
+    subjects.some((subject) => subject.totalScore !== null);
+
+  const riskLevel = hasScoredAcademicData
+    ? calculateRiskLevel({
+        overallAverage: summary.overallAverage,
+        performanceTier: summary.performanceTier,
+        trend: trendDirection,
+        weakSubjectsCount,
+        consecutiveDeclines,
+      })
+    : undefined;
 
   // Find strongest and weakest subjects
   let strongestSubject: {

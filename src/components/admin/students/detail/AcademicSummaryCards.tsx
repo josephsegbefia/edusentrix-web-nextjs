@@ -41,7 +41,9 @@ export function AcademicSummaryCards({
     totalStudents,
     performanceTier,
     trend,
+    trendDelta,
   } = summary;
+  const hasTrendData = overallAverage != null || trendDelta != null;
 
   const riskColors = {
     low: "from-emerald-500/10 via-emerald-500/5",
@@ -75,8 +77,14 @@ export function AcademicSummaryCards({
             )}
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-emerald-100/80">
-            <TrendIcon trend={trend} />
-            <span className="capitalize">{trend}</span>
+            {hasTrendData ? (
+              <>
+                <TrendIcon trend={trend} />
+                <span className="capitalize">{trend}</span>
+              </>
+            ) : (
+              <span>No trend data yet</span>
+            )}
           </div>
         </CardContent>
       </Card>

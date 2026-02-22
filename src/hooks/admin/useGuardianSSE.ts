@@ -16,18 +16,49 @@ export function useGuardianSSE(studentId: string | undefined) {
     const es = new EventSource("/api/admin/metrics/stream");
     const detachSSE = sseManager?.attachEventSource(es);
 
-    es.addEventListener("guardians.updated", (e: MessageEvent) => {
+    const invalidateStudentDetail = () => {
+      qc.invalidateQueries({ queryKey: ["admin-student-detail", studentId] });
+    };
+
+    const onGuardiansUpdated = (e: MessageEvent) => {
       try {
         const data = JSON.parse(e.data);
         // If the update is for this student, invalidate the guardians query
         if (data.studentId === studentId) {
           qc.invalidateQueries({ queryKey: ["guardians", studentId] });
-          qc.invalidateQueries({ queryKey: ["student", studentId] });
+          invalidateStudentDetail();
         }
       } catch (err) {
         console.error("Failed to parse guardian update:", err);
       }
-    });
+    };
+
+    const onAttendanceUpdated = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as { studentId?: string | null };
+        if (!data.studentId || data.studentId === studentId) {
+          invalidateStudentDetail();
+        }
+      } catch {
+        invalidateStudentDetail();
+      }
+    };
+
+    const onPaymentsOrInvoicesUpdated = (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as { studentId?: string | null };
+        if (!data.studentId || data.studentId === studentId) {
+          invalidateStudentDetail();
+        }
+      } catch {
+        invalidateStudentDetail();
+      }
+    };
+
+    es.addEventListener("guardians.updated", onGuardiansUpdated);
+    es.addEventListener("attendance.updated", onAttendanceUpdated);
+    es.addEventListener("payments.updated", onPaymentsOrInvoicesUpdated);
+    es.addEventListener("invoices.updated", onPaymentsOrInvoicesUpdated);
 
     es.onerror = () => {
       // SSE connection error - will auto-reconnect
@@ -35,6 +66,10 @@ export function useGuardianSSE(studentId: string | undefined) {
     };
 
     return () => {
+      es.removeEventListener("guardians.updated", onGuardiansUpdated);
+      es.removeEventListener("attendance.updated", onAttendanceUpdated);
+      es.removeEventListener("payments.updated", onPaymentsOrInvoicesUpdated);
+      es.removeEventListener("invoices.updated", onPaymentsOrInvoicesUpdated);
       detachSSE?.();
       es.close();
     };

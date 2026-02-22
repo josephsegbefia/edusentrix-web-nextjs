@@ -81,9 +81,9 @@ export default function TeacherProjectsPage() {
           <p className="text-sm text-white/60">Track long-form class projects.</p>
         </div>
         {canCreate && (
-          <Button asChild className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
+          <Button asChild className="group bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
             <Link href="/teacher/studio/assignments/new?type=project">
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               New project
             </Link>
           </Button>

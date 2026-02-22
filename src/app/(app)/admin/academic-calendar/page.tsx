@@ -861,8 +861,8 @@ export default function AcademicCalendarPage() {
             <Sparkles className="mr-2 h-4 w-4" />
             New Calendar
           </Button>
-          <Button onClick={() => openEventModal()}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button onClick={() => openEventModal()} className="group">
+            <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
             New Event
           </Button>
         </div>
@@ -875,8 +875,8 @@ export default function AcademicCalendarPage() {
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
                 Calendars
               </CardTitle>
-              <Button size="icon" variant="ghost" onClick={() => openCalendarModal()}>
-                <Plus className="h-4 w-4" />
+              <Button size="icon" variant="ghost" onClick={() => openCalendarModal()} className="group">
+                <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">

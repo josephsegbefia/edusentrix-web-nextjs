@@ -27,6 +27,14 @@ import {
   MessageSquare,
   PlusCircle,
   ClipboardList,
+  Wallet,
+  BarChart3,
+  Award,
+  AlertTriangle,
+  Activity,
+  Vote,
+  Heart,
+  Trophy,
 } from "lucide-react";
 
 /* ------------------ NEW: hooks + modals ------------------ */
@@ -34,10 +42,7 @@ import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
 import { useAdminSSE } from "@/hooks/admin/useAdminSSE";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
-import {
-  useCreateInvitation,
-  useInvitationStats,
-} from "@/hooks/admin/useInvitations";
+import { useCreateInvitation } from "@/hooks/admin/useInvitations";
 
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 
@@ -54,6 +59,7 @@ import { format } from "date-fns/format";
 import type { CreateStudentInput } from "@/schemas/student";
 import type { CreateTeacherInput } from "@/schemas/teacher";
 import { CreateClassGroupsModal } from "@/components/modals/CreateClassGroupsModal";
+import { AcademicPeriodOverviewModal } from "@/components/modals/AcademicPeriodOverviewModal";
 import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
 import { ShimmerHighlight } from "@/components/onboarding/ShimmerHighlight";
 import { OnboardingProgressIndicator } from "@/components/onboarding/OnboardingProgressIndicator";
@@ -61,6 +67,13 @@ import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { PeriodWarningBanner } from "@/components/dashboard/PeriodWarningBanner";
 import { PeriodExpiryModal } from "@/components/dashboard/PeriodExpiryModal";
 import { usePeriodStatus } from "@/hooks/admin/usePeriodStatus";
+import { useAcademicPeriodOverview } from "@/hooks/admin/useAcademicPeriodOverview";
+import { useOverdueRisk } from "@/hooks/admin/useOverdueRisk";
+import { useFeeSummary } from "@/hooks/admin/useFeeSummary";
+import { useFinancialTransactions, useFinancialOverview } from "@/hooks/admin/useFinancialCenter";
+import { useReportsSummary, useReportsCharts } from "@/hooks/admin/useReports";
+import { useStudentStats } from "@/hooks/admin/useStudentStats";
+import { useTeacherStats } from "@/hooks/admin/useTeacherStats";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -102,6 +115,64 @@ function termProgress(start?: string, end?: string) {
   if (now >= e) return { pct: 100, label: "Completed" };
   const pct = Math.round(((now - s) / (e - s)) * 100);
   return { pct, label: `${pct}% complete` };
+}
+
+function toIsoDate(value: Date | string | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function formatEventWhen(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date not available";
+  return format(date, "EEE, dd MMM • p");
+}
+
+function formatMoneyMinor(value: number) {
+  return new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format((value || 0) / 100);
+}
+
+function getPeriodStateBadge(status?: string, fallback = "Not Set") {
+  switch (status) {
+    case "active":
+      return {
+        label: "Active",
+        className: "bg-emerald-500/20 border-emerald-500/30 text-emerald-300",
+      };
+    case "expiring_soon":
+    case "expiring_very_soon":
+      return {
+        label: "Expiring Soon",
+        className: "bg-amber-500/20 border-amber-500/30 text-amber-300",
+      };
+    case "expiring_critical":
+    case "grace_period":
+      return {
+        label: "Action Needed",
+        className: "bg-orange-500/20 border-orange-500/30 text-orange-300",
+      };
+    case "expired":
+      return {
+        label: "Expired",
+        className: "bg-rose-500/20 border-rose-500/30 text-rose-300",
+      };
+    case "no_period":
+      return {
+        label: "No Period",
+        className: "bg-rose-500/20 border-rose-500/30 text-rose-300",
+      };
+    default:
+      return {
+        label: fallback,
+        className: "bg-amber-500/20 border-amber-500/30 text-amber-400",
+      };
+  }
 }
 
 /* --------------------------------------------------------------------------------
@@ -374,10 +445,36 @@ function useCommandPalette(items: CmdItem[]) {
 -------------------------------------------------------------------------------- */
 
 export default function SchoolAdminOverviewPage() {
+  const router = useRouter();
   const { data: m } = useAdminMetrics();
   useAdminSSE();
+  const feeSummaryQuery = useFeeSummary();
+  const unmatchedReconQuery = useFinancialTransactions({
+    reconciliationStatus: "unmatched",
+    page: 1,
+    limit: 1,
+  });
+  const { data: overdueRiskData, isLoading: overdueRiskLoading } = useOverdueRisk({
+    limit: 8,
+    topLimit: 5,
+  });
+  const overdueRiskError = !overdueRiskLoading && !overdueRiskData;
 
   const busy = useBusyToast();
+  const { data: periodStatus } = usePeriodStatus();
+  const { data: periodOverview, isLoading: periodOverviewLoading } =
+    useAcademicPeriodOverview();
+  const reportsSummaryQuery = useReportsSummary({
+    periodId: periodOverview?.currentPeriod?.id ?? null,
+    enabled: true,
+  });
+  const reportsChartsQuery = useReportsCharts({
+    periodId: periodOverview?.currentPeriod?.id ?? null,
+    enabled: true,
+  });
+  const financialOverviewQuery = useFinancialOverview({ range: "this_month" });
+  const studentStatsQuery = useStudentStats();
+  const teacherStatsQuery = useTeacherStats();
 
   /* Mapped metrics (keep UI) */
   const students = m?.students.total ?? 0;
@@ -404,14 +501,30 @@ export default function SchoolAdminOverviewPage() {
     direction: "flat",
   };
 
-  const period = m?.period
+  const currentPeriodSource = periodOverview?.currentPeriod
+    ? {
+        yearLabel: periodOverview.currentPeriod.yearLabel,
+        term: periodOverview.currentPeriod.term,
+        startDate: periodOverview.currentPeriod.startDate,
+        endDate: periodOverview.currentPeriod.endDate,
+      }
+    : m?.period
     ? {
         yearLabel: m.period.yearLabel,
         term: m.period.term,
-        startDate: formatDateLong(m.period.startDate),
-        endDate: formatDateLong(m.period.endDate),
-        startDateRaw: new Date(m.period.startDate).toISOString().slice(0, 10),
-        endDateRaw: new Date(m.period.endDate).toISOString().slice(0, 10),
+        startDate: m.period.startDate,
+        endDate: m.period.endDate,
+      }
+    : null;
+
+  const period = currentPeriodSource
+    ? {
+        yearLabel: currentPeriodSource.yearLabel,
+        term: currentPeriodSource.term,
+        startDate: formatDateLong(currentPeriodSource.startDate),
+        endDate: formatDateLong(currentPeriodSource.endDate),
+        startDateRaw: toIsoDate(currentPeriodSource.startDate),
+        endDateRaw: toIsoDate(currentPeriodSource.endDate),
       }
     : {
         yearLabel: "—",
@@ -422,27 +535,65 @@ export default function SchoolAdminOverviewPage() {
         endDateRaw: "",
       };
   const progress = termProgress(period.startDateRaw, period.endDateRaw);
+  const previousPeriod = periodOverview?.previousPeriod || null;
+  const periodBadge = getPeriodStateBadge(periodStatus?.status, progress.label);
+  const upcomingInWindow = periodOverview?.upcoming.totalCount ?? 0;
+  const upcomingInNext7 = periodOverview?.upcoming.next7DaysCount ?? 0;
+  const calendarsConfigured = periodOverview?.meta.calendarsCount ?? 0;
+  const eventsConfigured = periodOverview?.meta.eventsConfigured ?? 0;
+  const periodOverviewSubtitle =
+    periodStatus?.message ||
+    (progress.label === "Not Set"
+      ? "No active academic period configured"
+      : "Academic period in progress");
 
+  const collectionsSummary = feeSummaryQuery.data?.summary;
+  const collectionsStatusCounts = feeSummaryQuery.data?.statusCounts;
   const collections = {
-    collected: `₵${(m?.collections.collected ?? 0).toLocaleString()}`,
-    outstanding: `₵${(m?.collections.outstanding ?? 0).toLocaleString()}`,
-    rate: `${(m?.collections.rate ?? 0).toFixed(0)}%`,
+    collectedMinor: collectionsSummary?.totalRevenueMinor ?? 0,
+    monthlyMinor: collectionsSummary?.monthlyRevenueMinor ?? 0,
+    outstandingMinor: collectionsSummary?.totalOutstandingMinor ?? 0,
+    rate: collectionsSummary?.collectionRate ?? 0,
+    overdueCount: collectionsSummary?.overdueCount ?? 0,
+    issuedOpenCount:
+      (collectionsStatusCounts?.issued ?? 0) +
+      (collectionsStatusCounts?.partially_paid ?? 0),
   };
+  const collectionsError = feeSummaryQuery.isError;
+  const collectionsLoading = feeSummaryQuery.isLoading;
 
-  const reconUnmatched = 0; // placeholder
+  const reconUnmatched = unmatchedReconQuery.data?.pagination.total ?? 0;
+  const reconLoading = unmatchedReconQuery.isLoading;
+
+  const overdueSummary = overdueRiskData?.data.summary;
+  const overdueTopStudents = overdueRiskData?.data.topStudents ?? [];
 
   const overdues = {
-    "0–7d": 0,
-    "8–14d": 0,
-    "15–30d": 0,
-    "30d+": 0,
+    "0–7d": overdueSummary?.buckets["0_7"]?.invoiceCount ?? 0,
+    "8–14d": overdueSummary?.buckets["8_14"]?.invoiceCount ?? 0,
+    "15–30d": overdueSummary?.buckets["15_30"]?.invoiceCount ?? 0,
+    "30d+": overdueSummary?.buckets["30_plus"]?.invoiceCount ?? 0,
   };
+  const overdueAmountMinor = overdueSummary?.totalOutstandingMinor ?? 0;
+  const overdueInvoiceCount = overdueSummary?.overdueInvoiceCount ?? 0;
+  const overdueStudentCount = overdueSummary?.overdueStudentCount ?? 0;
+  const attendanceSummary = reportsSummaryQuery.data?.categories.attendance;
+  const attendanceRange = reportsSummaryQuery.data?.range;
+  const attendanceLoading = reportsSummaryQuery.isLoading;
+  const attendanceError = reportsSummaryQuery.isError;
+  const attendanceTotalRecords = attendanceSummary?.totalRecords ?? 0;
+  const attendancePresentRate = attendanceSummary?.presentRate ?? 0;
+  const attendanceCoverageRate = attendanceSummary?.coverageRate ?? 0;
+  const attendanceAbsentCount = attendanceSummary?.status.absent ?? 0;
 
-  const upcomingEvents = [
-    { id: 1, title: "—", when: "No events yet" },
-    { id: 2, title: " ", when: " " },
-    { id: 3, title: " ", when: " " },
-  ];
+  const upcomingEvents =
+    periodOverview?.upcoming.preview && periodOverview.upcoming.preview.length > 0
+      ? periodOverview.upcoming.preview.map((event) => ({
+          id: event.id,
+          title: event.title,
+          when: formatEventWhen(event.startDate),
+        }))
+      : [{ id: "none", title: "No upcoming events", when: "Next 30 days" }];
 
   const suggestions = [
     {
@@ -560,7 +711,11 @@ export default function SchoolAdminOverviewPage() {
       label: "Send Fee Reminder",
       onRun: () => setShowReminder("email"),
     },
-    { id: "create-event", label: "Create Event", onRun: () => {} },
+    {
+      id: "create-event",
+      label: "Create Event",
+      onRun: () => router.push("/admin/academic-calendar"),
+    },
     {
       id: "reports",
       label: "Generate Simple Report",
@@ -572,8 +727,11 @@ export default function SchoolAdminOverviewPage() {
   /* Onboarding progress */
   const onboarding = useOnboardingProgress();
 
-  /* Invitation stats */
-  const { data: invitationStats } = useInvitationStats();
+  const [activeDashboardTab, setActiveDashboardTab] = useState<
+    "overview" | "insights"
+  >("overview");
+
+  /* Invitation actions */
   const createInvitation = useCreateInvitation();
 
   /* Quick action modal state */
@@ -587,14 +745,12 @@ export default function SchoolAdminOverviewPage() {
   const [showCreateTeacher, setShowCreateTeacher] = useState(false);
   const [showInviteBursar, setShowInviteBursar] = useState(false);
   const [showSimpleReport, setShowSimpleReport] = useState(false);
+  const [showPeriodOverview, setShowPeriodOverview] = useState(false);
 
   /* Academic period modal state */
   const [showCreatePeriod, setShowCreatePeriod] = useState(false);
   const [showPeriodExpiryModal, setShowPeriodExpiryModal] = useState(false);
   const [creatingPeriod, setCreatingPeriod] = useState(false);
-
-  /* Period status for warnings */
-  const { data: periodStatus } = usePeriodStatus();
 
   /* Auto-show period expiry modal for critical statuses */
   React.useEffect(() => {
@@ -884,7 +1040,35 @@ export default function SchoolAdminOverviewPage() {
         />
       )}
 
+      <div className="flex items-center gap-2 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveDashboardTab("overview")}
+          className={[
+            "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+            activeDashboardTab === "overview"
+              ? "border-brand bg-brand/20 text-brand"
+              : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+          ].join(" ")}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveDashboardTab("insights")}
+          className={[
+            "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+            activeDashboardTab === "insights"
+              ? "border-brand bg-brand/20 text-brand"
+              : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+          ].join(" ")}
+        >
+          Insights
+        </button>
+      </div>
+
       {/* KPI Grid */}
+      {activeDashboardTab === "overview" && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Students"
@@ -919,109 +1103,58 @@ export default function SchoolAdminOverviewPage() {
           icon={DollarSign}
         />
       </div>
-
-      {/* Enhanced Quick Stats */}
-      {invitationStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/15 via-violet-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardContent className="relative z-10 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-violet-500/20 border border-violet-500/30">
-                  <Mail className="h-4 w-4 text-violet-300" />
-                </div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">
-                  Pending Invitations
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-amber-300">
-                {invitationStats.pending}
-              </div>
-              <div className="text-xs text-white/50 mt-1">
-                {invitationStats.total} total sent
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardContent className="relative z-10 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                </div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">
-                  Acceptance Rate
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-emerald-300">
-                {invitationStats.total > 0
-                  ? `${Math.round(
-                      (invitationStats.accepted / invitationStats.total) * 100
-                    )}%`
-                  : "—"}
-              </div>
-              <div className="text-xs text-white/50 mt-1">
-                {invitationStats.accepted} accepted
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-500/15 via-orange-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardContent className="relative z-10 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30">
-                  <Users className="h-4 w-4 text-orange-300" />
-                </div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">
-                  Student/Teacher Ratio
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-white">
-                {teachers > 0 && students > 0
-                  ? `1:${Math.round(students / teachers)}`
-                  : "—"}
-              </div>
-              <div className="text-xs text-white/50 mt-1">
-                Students per teacher
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardContent className="relative z-10 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30">
-                  <School className="h-4 w-4 text-cyan-300" />
-                </div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">
-                  Class Groups
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-white">
-                {onboarding.hasClassGroups ? "Active" : "—"}
-              </div>
-              <div className="text-xs text-white/50 mt-1">
-                {onboarding.hasClassGroups
-                  ? "Classes configured"
-                  : "Setup required"}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       )}
 
+      {/* Enhanced Quick Stats */}
+      {activeDashboardTab === "insights" && (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-500/15 via-orange-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30">
+                <Users className="h-4 w-4 text-orange-300" />
+              </div>
+              <div className="text-xs text-white/60 uppercase tracking-wider">
+                Student/Teacher Ratio
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-white">
+              {teachers > 0 && students > 0 ? `1:${Math.round(students / teachers)}` : "—"}
+            </div>
+            <div className="text-xs text-white/50 mt-1">Students per teacher</div>
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-cyan-500/15 via-cyan-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardContent className="relative z-10 p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30">
+                <School className="h-4 w-4 text-cyan-300" />
+              </div>
+              <div className="text-xs text-white/60 uppercase tracking-wider">
+                Class Groups
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-white">
+              {onboarding.hasClassGroups ? "Active" : "—"}
+            </div>
+            <div className="text-xs text-white/50 mt-1">
+              {onboarding.hasClassGroups ? "Classes configured" : "Setup required"}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      )}
+
+      {activeDashboardTab === "overview" && (
+      <>
       {/* Primary row: Quick Actions + Academic Period */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
@@ -1142,33 +1275,45 @@ export default function SchoolAdminOverviewPage() {
                 <Calendar className="h-4 w-4 text-amber-400" />
               </div>
               Academic Period
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-200">
+                {upcomingInWindow} upcoming
+              </span>
             </CardTitle>
 
-            {progress.label === "Not Set" && (
-              <>
-                {onboarding.nextAction === "academic_period" ? (
-                  <ShimmerHighlight enabled={true}>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowPeriodOverview(true)}
+                className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10"
+              >
+                Overview
+              </button>
+              {progress.label === "Not Set" && (
+                <>
+                  {onboarding.nextAction === "academic_period" ? (
+                    <ShimmerHighlight enabled={true}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreatePeriod(true)}
+                        className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:opacity-90"
+                      >
+                        Create period
+                      </button>
+                    </ShimmerHighlight>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => setShowCreatePeriod(true)}
-                      className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 hover:opacity-90"
+                      disabled={true}
+                      className="rounded-lg border border-amber-500/10 bg-amber-500/5 px-3 py-1.5 text-xs font-medium text-amber-300/40 hover:opacity-90 opacity-40 cursor-not-allowed"
+                      title="Complete previous steps first"
                     >
                       Create period
                     </button>
-                  </ShimmerHighlight>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowCreatePeriod(true)}
-                    disabled={true}
-                    className="rounded-lg border border-amber-500/10 bg-amber-500/5 px-3 py-1.5 text-xs font-medium text-amber-300/40 hover:opacity-90 opacity-40 cursor-not-allowed"
-                    title="Complete previous steps first"
-                  >
-                    Create period
-                  </button>
-                )}
-              </>
-            )}
+                  )}
+                </>
+              )}
+            </div>
           </CardHeader>
 
           <CardContent className="relative z-10 space-y-4">
@@ -1179,14 +1324,14 @@ export default function SchoolAdminOverviewPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-semibold text-white">Current Term</span>
-                  <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400">
-                    {progress.label}
+                  <span
+                    className={`px-2 py-0.5 text-xs rounded-full border ${periodBadge.className}`}
+                  >
+                    {periodBadge.label}
                   </span>
                 </div>
                 <div className="text-sm text-white/60 mb-3">
-                  {progress.pct === 0 && progress.label === "Not Set"
-                    ? "No active academic period configured"
-                    : "Academic period in progress"}
+                  {periodOverviewSubtitle}
                 </div>
                 {progress.label !== "Not Set" && (
                   <div className="mb-3">
@@ -1234,59 +1379,82 @@ export default function SchoolAdminOverviewPage() {
                     <span>End: {period.endDate || "—"}</span>
                   </div>
                 </div>
+                {periodStatus?.daysUntilExpiry !== null &&
+                periodStatus?.daysUntilExpiry !== undefined ? (
+                  <div className="mt-2 text-xs text-amber-200/90">
+                    {periodStatus.daysUntilExpiry} day
+                    {periodStatus.daysUntilExpiry === 1 ? "" : "s"} until period
+                    end
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            <div className="pt-3 border-t border-white/10">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-white/50">Academic Year</span>
-                <span className="text-white/70 font-medium">
-                  {period.yearLabel}
-                </span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div className="text-[11px] text-white/50">
+                  Upcoming ({periodOverview?.upcoming.days ?? 30}d)
+                </div>
+                <div className="mt-1 text-lg font-semibold text-white">
+                  {upcomingInWindow}
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div className="text-[11px] text-white/50">Next 7 days</div>
+                <div className="mt-1 text-lg font-semibold text-white">
+                  {upcomingInNext7}
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div className="text-[11px] text-white/50">Calendars</div>
+                <div className="mt-1 text-lg font-semibold text-white">
+                  {calendarsConfigured}
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div className="text-[11px] text-white/50">Events</div>
+                <div className="mt-1 text-lg font-semibold text-white">
+                  {eventsConfigured}
+                </div>
               </div>
             </div>
+
+            {previousPeriod ? (
+              <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-white/55">Immediate Past Period</span>
+                  <span className="text-white/70">
+                    Ended {formatDateLong(previousPeriod.endDate)}
+                  </span>
+                </div>
+                <div className="mt-1 text-sm text-white/90 font-medium">
+                  {previousPeriod.term} {previousPeriod.yearLabel}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+              <div className="text-xs text-white/50">
+                Academic Year{" "}
+                <span className="text-white/70 font-medium">{period.yearLabel}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPeriodOverview(true)}
+                className="text-xs text-brand hover:opacity-90"
+              >
+                View period overview →
+              </button>
+            </div>
+            {periodOverviewLoading ? (
+              <div className="text-[11px] text-white/40">Refreshing overview...</div>
+            ) : null}
           </CardContent>
         </Card>
       </div>
 
-      {/* Overdues & Risk + Collections Snapshot */}
+      {/* Collections Snapshot + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent"
-            aria-hidden="true"
-          />
-          <CardHeader className="relative z-10 flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-rose-500/20 border border-rose-500/30">
-                <DollarSign className="h-4 w-4 text-rose-300" />
-              </div>
-              Overdues &amp; Risk
-            </CardTitle>
-            {onboarding.step === "complete" ? (
-              <Link
-                href="/admin/overdue-report"
-                className="text-sm text-brand hover:opacity-80"
-              >
-                Overdue report →
-              </Link>
-            ) : (
-              <span className="text-sm text-white/40 cursor-not-allowed">
-                Overdue report →
-              </span>
-            )}
-          </CardHeader>
-          <CardContent className="relative z-10">
-            {overdueTotal > 0 ? (
-              <Donut segments={donutSegments} />
-            ) : (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
-                No overdue invoices yet.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
           <div
             className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
@@ -1301,105 +1469,81 @@ export default function SchoolAdminOverviewPage() {
             </CardTitle>
             <ReconPill count={reconUnmatched} />
           </CardHeader>
-          <CardContent className="relative z-10 grid grid-cols-3 gap-4">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs text-white/60 mb-1">Collected</div>
-              <div className="text-lg font-semibold text-white">
-                {collections.collected}
+          <CardContent className="relative z-10 space-y-3">
+            {collectionsLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+                Loading collections snapshot...
               </div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs text-white/60 mb-1">Outstanding</div>
-              <div className="text-lg font-semibold text-white">
-                {collections.outstanding}
+            ) : collectionsError ? (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+                Could not load collections data. Please refresh.
               </div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs text-white/60 mb-1">Collection Rate</div>
-              <div className="text-lg font-semibold text-white">
-                {collections.rate}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-xs text-white/60 mb-1">Collected</div>
+                    <div className="text-lg font-semibold text-emerald-200">
+                      {formatMoneyMinor(collections.collectedMinor)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-xs text-white/60 mb-1">Outstanding</div>
+                    <div className="text-lg font-semibold text-white">
+                      {formatMoneyMinor(collections.outstandingMinor)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-xs text-white/60 mb-1">Collection Rate</div>
+                    <div className="text-lg font-semibold text-white">
+                      {collections.rate.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
 
-      {/* Pending Invitations Card */}
-      {invitationStats && invitationStats.pending > 0 && (
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/15 via-violet-500/5 to-transparent"
-            aria-hidden="true"
-          />
-          <CardHeader className="relative z-10 flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-violet-500/20 border border-violet-500/30">
-                <Mail className="h-4 w-4 text-violet-300" />
-              </div>
-              Pending Invitations
-            </CardTitle>
-            <Link
-              href="/admin/invitations"
-              className="text-sm text-brand hover:opacity-80"
-            >
-              View all →
-            </Link>
-          </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex-1">
-                <div className="text-xs text-white/60 mb-1">Pending</div>
-                <div className="text-2xl font-bold text-amber-300">
-                  {invitationStats.pending}
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="text-[11px] text-white/55">This Month</div>
+                    <div className="text-sm font-medium text-white/90">
+                      {formatMoneyMinor(collections.monthlyMinor)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="text-[11px] text-white/55">Open Invoices</div>
+                    <div className="text-sm font-medium text-white/90">
+                      {collections.issuedOpenCount}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="text-[11px] text-white/55">Overdue Invoices</div>
+                    <div className="text-sm font-medium text-rose-200">
+                      {collections.overdueCount}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-white/50 mt-1">
-                  {invitationStats.pending === 1
-                    ? "invitation awaiting response"
-                    : "invitations awaiting response"}
-                </div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex-1">
-                <div className="text-xs text-white/60 mb-1">Total Sent</div>
-                <div className="text-2xl font-bold text-white">
-                  {invitationStats.total}
-                </div>
-                <div className="text-xs text-white/50 mt-1">
-                  {invitationStats.accepted} accepted
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Attendance & Coverage + Upcoming Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/15 via-blue-500/5 to-transparent"
-            aria-hidden="true"
-          />
-          <CardHeader className="relative z-10">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
-                <Users className="h-4 w-4 text-blue-300" />
-              </div>
-              Attendance &amp; Coverage
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="relative z-10 grid grid-cols-3 gap-4">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs text-white/60 mb-1">Today</div>
-              <div className="text-lg font-semibold text-white">—</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs text-white/60 mb-1">7-day Trend</div>
-              <div className="text-xs text-white/70">No recent data</div>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <div className="text-xs text-white/60 mb-1">Teacher Coverage</div>
-              <div className="text-lg font-semibold text-white">—</div>
-            </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2">
+                  <div className="text-xs text-white/50">
+                    {reconLoading
+                      ? "Checking reconciliation status..."
+                      : reconUnmatched > 0
+                      ? `${reconUnmatched} unmatched settlements require review`
+                      : "All tracked settlements currently reconciled"}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <Link href="/admin/fees" className="text-brand hover:opacity-90">
+                      Open fees →
+                    </Link>
+                    <Link
+                      href="/admin/reconciliation"
+                      className="text-brand hover:opacity-90"
+                    >
+                      Reconcile →
+                    </Link>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -1419,7 +1563,7 @@ export default function SchoolAdminOverviewPage() {
               <button
                 type="button"
                 className="inline-flex items-center gap-1 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-1.5 text-xs text-fuchsia-200 hover:opacity-90"
-                onClick={() => {}}
+                onClick={() => router.push("/admin/academic-calendar")}
               >
                 <PlusCircle className="h-3.5 w-3.5" />
                 Add event
@@ -1451,6 +1595,499 @@ export default function SchoolAdminOverviewPage() {
                 </div>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      </div>
+      </>
+      )}
+
+      {/* Financial Overview + Student Enrollment */}
+      {activeDashboardTab === "insights" && (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-green-500/15 via-green-500/5 to-transparent" aria-hidden="true" />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-green-500/20 border border-green-500/30">
+                <Wallet className="h-4 w-4 text-green-300" />
+              </div>
+              Financial Overview
+            </CardTitle>
+            <Link href="/admin/financial-center" className="text-sm text-brand hover:opacity-80">
+              Details →
+            </Link>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {financialOverviewQuery.isLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading financial overview...</div>
+            ) : financialOverviewQuery.isError ? (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load financial data.</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">Inflow</div>
+                    <div className="mt-1 text-sm font-semibold text-emerald-200">
+                      {formatMoneyMinor(financialOverviewQuery.data?.kpis.totalInflow ?? 0)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">Outflow</div>
+                    <div className="mt-1 text-sm font-semibold text-rose-200">
+                      {formatMoneyMinor(financialOverviewQuery.data?.kpis.totalOutflow ?? 0)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">Net Position</div>
+                    <div className={`mt-1 text-sm font-semibold ${(financialOverviewQuery.data?.kpis.netPosition ?? 0) >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
+                      {formatMoneyMinor(financialOverviewQuery.data?.kpis.netPosition ?? 0)}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="text-[11px] text-white/55">Transactions</div>
+                    <div className="text-sm font-medium text-white/90">
+                      {(financialOverviewQuery.data?.kpis.inflowCount ?? 0) + (financialOverviewQuery.data?.kpis.outflowCount ?? 0)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="text-[11px] text-white/55">Pending</div>
+                    <div className="text-sm font-medium text-amber-200">
+                      {financialOverviewQuery.data?.kpis.pendingCount ?? 0}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="text-[11px] text-white/55">Failed</div>
+                    <div className="text-sm font-medium text-rose-200">
+                      {financialOverviewQuery.data?.kpis.failedCount ?? 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[11px] text-white/40">This month&apos;s summary</div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/15 via-violet-500/5 to-transparent" aria-hidden="true" />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-violet-500/20 border border-violet-500/30">
+                <BarChart3 className="h-4 w-4 text-violet-300" />
+              </div>
+              Student Enrollment
+            </CardTitle>
+            <Link href="/admin/students" className="text-sm text-brand hover:opacity-80">
+              View all →
+            </Link>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {studentStatsQuery.isLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading student stats...</div>
+            ) : studentStatsQuery.isError ? (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load student stats.</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">Total</div>
+                    <div className="mt-1 text-lg font-semibold text-white">{studentStatsQuery.data?.total ?? 0}</div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">New This Month</div>
+                    <div className="mt-1 text-lg font-semibold text-emerald-200">{studentStatsQuery.data?.newThisMonth ?? 0}</div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">Owing</div>
+                    <div className="mt-1 text-lg font-semibold text-amber-200">{studentStatsQuery.data?.owingCount ?? 0}</div>
+                  </div>
+                </div>
+                {(studentStatsQuery.data?.gradeDistribution?.length ?? 0) > 0 && (
+                  <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+                    <div className="mb-2 text-[11px] font-medium text-white/65">By Grade</div>
+                    <div className="space-y-1.5">
+                      {studentStatsQuery.data!.gradeDistribution.slice(0, 5).map((g) => (
+                        <div key={g.gradeId} className="flex items-center justify-between text-xs">
+                          <span className="text-white/70">{g.gradeName}</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-16 rounded-full bg-white/10 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-violet-400/70"
+                                style={{ width: `${Math.min(100, ((g.count / (studentStatsQuery.data?.total || 1)) * 100))}%` }}
+                              />
+                            </div>
+                            <span className="text-white/90 font-medium w-6 text-right">{g.count}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      )}
+
+      {/* Teacher Status + Fee Collection Trend */}
+      {activeDashboardTab === "insights" && (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-teal-500/15 via-teal-500/5 to-transparent" aria-hidden="true" />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-teal-500/20 border border-teal-500/30">
+                <Users className="h-4 w-4 text-teal-300" />
+              </div>
+              Teacher Status
+            </CardTitle>
+            <Link href="/admin/teachers" className="text-sm text-brand hover:opacity-80">
+              View all →
+            </Link>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {teacherStatsQuery.isLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading teacher stats...</div>
+            ) : teacherStatsQuery.isError ? (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load teacher stats.</div>
+            ) : (() => {
+              const ts = teacherStatsQuery.data?.data;
+              return (
+                <>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-[11px] text-white/55">Active</div>
+                      <div className="mt-1 text-lg font-semibold text-emerald-200">{ts?.active ?? 0}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-[11px] text-white/55">Homeroom</div>
+                      <div className="mt-1 text-lg font-semibold text-white">{ts?.homeroom ?? 0}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-[11px] text-white/55">On Leave</div>
+                      <div className="mt-1 text-lg font-semibold text-amber-200">{ts?.onLeave ?? 0}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-[11px] text-white/55">Inactive</div>
+                      <div className="mt-1 text-lg font-semibold text-rose-200">{ts?.inactive ?? 0}</div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                    Total: {ts?.total ?? 0} teachers
+                    {(ts?.terminated ?? 0) > 0 && ` • ${ts!.terminated} terminated`}
+                  </div>
+                </>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-sky-500/15 via-sky-500/5 to-transparent" aria-hidden="true" />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-sky-500/20 border border-sky-500/30">
+                <TrendingUp className="h-4 w-4 text-sky-300" />
+              </div>
+              Fee Collection Trend
+            </CardTitle>
+            <Link href="/admin/reports" className="text-sm text-brand hover:opacity-80">
+              Reports →
+            </Link>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {reportsChartsQuery.isLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading fee trends...</div>
+            ) : reportsChartsQuery.isError ? (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load chart data.</div>
+            ) : (() => {
+              const points = reportsChartsQuery.data?.charts.fees.revenueTrend.points ?? [];
+              const maxVal = Math.max(...points.map((p) => p.value), 1);
+              return points.length > 0 ? (
+                <>
+                  <div className="flex items-end gap-1 h-24">
+                    {points.map((p, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div
+                          className="w-full rounded-t bg-sky-400/60 min-h-[2px] transition-all"
+                          style={{ height: `${Math.max(2, (p.value / maxVal) * 100)}%` }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-1 overflow-hidden">
+                    {points.map((p, i) => (
+                      <div key={i} className="flex-1 text-center text-[9px] text-white/40 truncate">
+                        {p.label}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                    {points.length} data points • {reportsChartsQuery.data?.charts.fees.revenueTrend.interval ?? "day"} interval
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">No fee collection data yet.</div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      </div>
+      )}
+
+      {/* Academic Performance + Community Hub */}
+      {activeDashboardTab === "insights" && (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-yellow-500/15 via-yellow-500/5 to-transparent" aria-hidden="true" />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-yellow-500/20 border border-yellow-500/30">
+                <Award className="h-4 w-4 text-yellow-300" />
+              </div>
+              Academic Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {reportsSummaryQuery.isLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading academic data...</div>
+            ) : reportsSummaryQuery.isError ? (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">Could not load academic data.</div>
+            ) : (() => {
+              const ac = reportsSummaryQuery.data?.categories.academics;
+              return (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-[11px] text-white/55">Avg Score</div>
+                      <div className="mt-1 text-lg font-semibold text-white">
+                        {(ac?.averageScore ?? 0) > 0 ? `${(ac!.averageScore).toFixed(1)}%` : "—"}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-[11px] text-white/55">Pass Rate</div>
+                      <div className="mt-1 text-lg font-semibold text-emerald-200">
+                        {(ac?.passRate ?? 0) > 0 ? `${(ac!.passRate).toFixed(1)}%` : "—"}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="text-[11px] text-white/55">Records</div>
+                      <div className="mt-1 text-lg font-semibold text-white">{ac?.records ?? 0}</div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                    Scope: {ac?.scope || "Current period"}
+                  </div>
+                </>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-pink-500/15 via-pink-500/5 to-transparent" aria-hidden="true" />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-pink-500/20 border border-pink-500/30">
+                <Heart className="h-4 w-4 text-pink-300" />
+              </div>
+              Community Hub
+            </CardTitle>
+            <Link href="/admin/community" className="text-sm text-brand hover:opacity-80">
+              Open →
+            </Link>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Vote className="h-3.5 w-3.5 text-pink-300" />
+                  <div className="text-[11px] text-white/55">Polls</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-lg font-semibold text-white">{m?.community?.polls?.live ?? 0}</div>
+                    <div className="text-[10px] text-white/40">Live</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-white/70">{m?.community?.polls?.total ?? 0}</div>
+                    <div className="text-[10px] text-white/40">Total</div>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Heart className="h-3.5 w-3.5 text-pink-300" />
+                  <div className="text-[11px] text-white/55">Fundraising</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-lg font-semibold text-white">{m?.community?.campaigns?.live ?? 0}</div>
+                    <div className="text-[10px] text-white/40">Live</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-emerald-200">
+                      {formatMoneyMinor(m?.community?.campaigns?.totalRaisedMinor ?? 0)}
+                    </div>
+                    <div className="text-[10px] text-white/40">Raised</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      )}
+
+      {/* Overdues & Risk + Attendance & Coverage */}
+      {activeDashboardTab === "insights" && (
+      <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10 flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-rose-500/20 border border-rose-500/30">
+                <DollarSign className="h-4 w-4 text-rose-300" />
+              </div>
+              Overdues &amp; Risk
+            </CardTitle>
+            {onboarding.step === "complete" ? (
+              <Link
+                href="/admin/overdue-report"
+                className="text-sm text-brand hover:opacity-80"
+              >
+                Overdue report →
+              </Link>
+            ) : (
+              <span className="text-sm text-white/40 cursor-not-allowed">
+                Overdue report →
+              </span>
+            )}
+          </CardHeader>
+          <CardContent className="relative z-10">
+            {overdueRiskLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+                Loading overdue risk snapshot...
+              </div>
+            ) : overdueRiskError ? (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+                Could not load overdue risk snapshot. Please refresh the page.
+              </div>
+            ) : overdueTotal > 0 ? (
+              <div className="space-y-4">
+                <Donut segments={donutSegments} />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">Overdue Amount</div>
+                    <div className="mt-1 text-sm font-semibold text-rose-200">
+                      {formatMoneyMinor(overdueAmountMinor)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">Overdue Invoices</div>
+                    <div className="mt-1 text-sm font-semibold text-white">
+                      {overdueInvoiceCount}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-[11px] text-white/55">Students at Risk</div>
+                    <div className="mt-1 text-sm font-semibold text-white">
+                      {overdueStudentCount}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-black/10 p-3">
+                  <div className="mb-2 text-[11px] font-medium text-white/65">
+                    Highest Risk Accounts
+                  </div>
+                  <div className="space-y-2">
+                    {overdueTopStudents.slice(0, 3).map((student) => (
+                      <div
+                        key={student.studentId}
+                        className="flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-white/90">{student.studentName}</div>
+                          <div className="text-white/50">
+                            {student.oldestDaysOverdue} day(s) overdue
+                          </div>
+                        </div>
+                        <div className="font-semibold text-rose-200">
+                          {formatMoneyMinor(student.totalOutstandingMinor)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+                No overdue invoices yet.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div
+            className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/15 via-blue-500/5 to-transparent"
+            aria-hidden="true"
+          />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
+                <Users className="h-4 w-4 text-blue-300" />
+              </div>
+              Attendance &amp; Coverage
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {attendanceLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+                Loading attendance snapshot...
+              </div>
+            ) : attendanceError ? (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-6 text-sm text-rose-100">
+                Could not load attendance data. Please refresh.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-xs text-white/60 mb-1">Present Rate</div>
+                    <div className="text-lg font-semibold text-emerald-200">
+                      {attendancePresentRate.toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-xs text-white/60 mb-1">Attendance Records</div>
+                    <div className="text-lg font-semibold text-white">
+                      {attendanceTotalRecords.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-xs text-white/60 mb-1">Teacher Coverage</div>
+                    <div className="text-lg font-semibold text-white">
+                      {attendanceCoverageRate.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                  {attendanceRange?.period?.label
+                    ? `Period: ${attendanceRange.period.label}`
+                    : "Using default attendance range"}{" "}
+                  • Absent records: {attendanceAbsentCount.toLocaleString()}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -1546,125 +2183,123 @@ export default function SchoolAdminOverviewPage() {
         </Card>
       </div>
 
-      {/* Quick Actions + Notices */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Top Performers + Upcoming Due Invoices + Reports Generated */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
-            aria-hidden="true"
-          />
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/15 via-amber-500/5 to-transparent" aria-hidden="true" />
           <CardHeader className="relative z-10">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                <PlusCircle className="h-4 w-4 text-emerald-300" />
+              <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                <Trophy className="h-4 w-4 text-amber-300" />
               </div>
-              Quick Actions
+              Top Performers
             </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setShowCreateStudent(true)}
-                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
-              >
-                <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
-                  <GraduationCap className="h-4 w-4 text-blue-300" />
+            {studentStatsQuery.isLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading...</div>
+            ) : (studentStatsQuery.data?.topPerformers ?? 0) > 0 ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                    <Trophy className="h-5 w-5 text-amber-300" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-white">{studentStatsQuery.data!.topPerformers}</div>
+                    <div className="text-xs text-white/50">Students excelling academically</div>
+                  </div>
                 </div>
-                <span className="text-xs font-medium text-white/90">
-                  Add Student
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCreateTeacher(true)}
-                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
-              >
-                <div className="p-2 rounded-lg bg-purple-500/20 border border-purple-500/30">
-                  <Users className="h-4 w-4 text-purple-300" />
-                </div>
-                <span className="text-xs font-medium text-white/90">
-                  Add Teacher
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowCreateClass(true)}
-                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
-              >
-                <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                  <School className="h-4 w-4 text-emerald-300" />
-                </div>
-                <span className="text-xs font-medium text-white/90">
-                  Create Class
-                </span>
-              </button>
-              <Link
-                href="/admin/fees/invoices"
-                className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition-colors text-left"
-              >
-                <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                  <DollarSign className="h-4 w-4 text-amber-300" />
-                </div>
-                <span className="text-xs font-medium text-white/90">
-                  Create Invoice
-                </span>
-              </Link>
-            </div>
-            <div className="pt-2 border-t border-white/10">
-              <Link
-                href="/admin/students"
-                className="flex items-center justify-between text-sm text-white/70 hover:text-white/90 transition-colors"
-              >
-                <span>View all students</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+                No academic performance data yet.
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <div
-            className="pointer-events-none absolute inset-0 bg-linear-to-br from-fuchsia-500/15 via-fuchsia-500/5 to-transparent"
-            aria-hidden="true"
-          />
-          <CardHeader className="relative z-10 flex flex-row items-center justify-between">
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-orange-500/15 via-orange-500/5 to-transparent" aria-hidden="true" />
+          <CardHeader className="relative z-10 flex items-center justify-between">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
-                <Bell className="h-4 w-4 text-fuchsia-300" />
+              <div className="p-2 rounded-lg bg-orange-500/20 border border-orange-500/30">
+                <AlertTriangle className="h-4 w-4 text-orange-300" />
               </div>
-              Notices
+              Upcoming Due
             </CardTitle>
-            <button
-              type="button"
-              className="text-sm text-brand hover:opacity-80"
-              onClick={() => {}}
-            >
-              Create notice
-            </button>
+            <Link href="/admin/fees" className="text-sm text-brand hover:opacity-80">
+              Fees →
+            </Link>
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
-            <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
-              <div className="p-2 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
-                <Bell className="h-4 w-4 text-fuchsia-300" />
+            {feeSummaryQuery.isLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading...</div>
+            ) : (feeSummaryQuery.data?.upcomingDue?.length ?? 0) > 0 ? (
+              <div className="space-y-2">
+                {feeSummaryQuery.data!.upcomingDue.slice(0, 4).map((inv) => (
+                  <div key={inv._id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs">
+                    <div className="min-w-0">
+                      <div className="truncate text-white/90">
+                        {inv.studentId?.firstName} {inv.studentId?.lastName}
+                      </div>
+                      <div className="text-white/50">
+                        Due {format(new Date(inv.dueDate), "dd MMM")}
+                      </div>
+                    </div>
+                    <div className="font-semibold text-orange-200 shrink-0">
+                      {formatMoneyMinor(inv.totalOutstandingMinor)}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm text-white/80">No notices yet</div>
-                <div className="text-xs text-white/50 mt-0.5">—</div>
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">
+                No invoices due in the next 2 weeks.
               </div>
-            </div>
-            <div className="pt-1">
-              <button
-                type="button"
-                className="text-sm text-white/70 hover:text-white/90"
-                onClick={() => {}}
-              >
-                See all notices →
-              </button>
-            </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent" aria-hidden="true" />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
+                <Activity className="h-4 w-4 text-indigo-300" />
+              </div>
+              Admin Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 space-y-3">
+            {reportsSummaryQuery.isLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-sm text-white/70">Loading...</div>
+            ) : (() => {
+              const act = reportsSummaryQuery.data?.categories.activity;
+              return (
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[11px] text-white/55">Total Actions</div>
+                        <div className="mt-1 text-2xl font-semibold text-white">{act?.totalInRange ?? 0}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-white/55">Reports Generated</div>
+                        <div className="mt-1 text-2xl font-semibold text-indigo-200">{act?.reportsGenerated ?? 0}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/55">
+                    Activity in current academic period
+                  </div>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
+      </>
+      )}
 
       {/* Command palette hint */}
       <div className="flex items-center justify-center pt-4">
@@ -1739,6 +2374,19 @@ export default function SchoolAdminOverviewPage() {
         onSubmit={handleCreatePeriod}
         isLoading={creatingPeriod}
       />
+
+      <ResponsiveModal
+        open={showPeriodOverview}
+        onClose={() => setShowPeriodOverview(false)}
+        title="Academic Period Overview"
+      >
+        <AcademicPeriodOverviewModal
+          onClose={() => setShowPeriodOverview(false)}
+          overview={periodOverview}
+          status={periodStatus}
+          isLoading={periodOverviewLoading}
+        />
+      </ResponsiveModal>
 
       {/* Quick Action Modals */}
       <ResponsiveModal

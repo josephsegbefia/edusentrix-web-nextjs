@@ -23,6 +23,7 @@ export function StudentAcademicsTab({ studentId }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const searchParamsString = searchParams?.toString() ?? "";
   const termIdParam = searchParams?.get("termId") ?? null;
   const [selectedTermId, setSelectedTermId] = React.useState<string | null>(
     termIdParam
@@ -42,31 +43,51 @@ export function StudentAcademicsTab({ studentId }: Props) {
     setBreakdownModalOpen(true);
   }, []);
 
-  // Sync selectedTermId with URL param
+  // Sync selectedTermId with URL param and canonicalize invalid term IDs.
   React.useEffect(() => {
     const termId = searchParams?.get("termId");
-    if (termId && termId !== selectedTermId) {
-      setSelectedTermId(termId);
-    } else if (!termId && academics?.selectedTermId) {
-      setSelectedTermId(academics.selectedTermId);
-    }
-  }, [searchParams, academics?.selectedTermId, selectedTermId]);
 
-  // Set initial term from DTO if not set
-  React.useEffect(() => {
-    if (!selectedTermId && academics?.selectedTermId) {
-      setSelectedTermId(academics.selectedTermId);
+    if (!termId) {
+      if (academics?.selectedTermId && selectedTermId !== academics.selectedTermId) {
+        setSelectedTermId(academics.selectedTermId);
+      }
+      return;
     }
-  }, [academics?.selectedTermId, selectedTermId]);
+
+    if (!academics) {
+      if (termId !== selectedTermId) {
+        setSelectedTermId(termId);
+      }
+      return;
+    }
+
+    const isKnownTermId = academics.term.some((term) => term.termId === termId);
+    if (!isKnownTermId && academics.selectedTermId) {
+      const params = new URLSearchParams(searchParamsString);
+      const normalizedTermId = academics.selectedTermId;
+      if (selectedTermId !== normalizedTermId) {
+        setSelectedTermId(normalizedTermId);
+      }
+      if (params.get("termId") !== normalizedTermId) {
+        params.set("termId", normalizedTermId);
+        router.replace(`?${params.toString()}`, { scroll: false });
+      }
+      return;
+    }
+
+    if (termId !== selectedTermId) {
+      setSelectedTermId(termId);
+    }
+  }, [searchParams, academics, selectedTermId, router, searchParamsString]);
 
   const handleTermChange = React.useCallback(
     (termId: string) => {
       setSelectedTermId(termId);
-      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      const params = new URLSearchParams(searchParamsString);
       params.set("termId", termId);
-      router.push(`?${params.toString()}`, { scroll: false });
+      router.replace(`?${params.toString()}`, { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParamsString]
   );
 
   if (isLoading) {
@@ -129,11 +150,18 @@ export function StudentAcademicsTab({ studentId }: Props) {
     weakestSubject,
   } = academics;
 
+  const hasScoredSubjectData = subjects.some(
+    (subject) =>
+      subject.totalScore != null ||
+      subject.caPercentage != null ||
+      subject.examPercentage != null ||
+      subject.gradeLetter != null
+  );
+  const hasTermResultData = terms.some((term) => term.averageScore != null);
   const hasAcademicData =
     summary.overallAverage != null ||
-    terms.length > 0 ||
-    subjects.length > 0 ||
-    comments.length > 0;
+    hasTermResultData ||
+    hasScoredSubjectData;
 
   return (
     <div className="space-y-6">
@@ -157,7 +185,7 @@ export function StudentAcademicsTab({ studentId }: Props) {
       )}
 
       {/* Subject Performance Over Time */}
-      {hasAcademicData && subjects.length > 0 && subjectHistory && (
+      {hasAcademicData && hasScoredSubjectData && subjectHistory && (
         <SubjectPerformanceOverTime
           subjects={subjects}
           subjectHistory={subjectHistory}
@@ -206,11 +234,11 @@ export function StudentAcademicsTab({ studentId }: Props) {
                 </div>
                 <div className="space-y-1">
                   <p className="text-base font-semibold text-white">
-                    No academic records yet
+                    No graded academic records yet
                   </p>
                   <p className="text-sm text-white/50">
-                    Once teachers start recording grades and term results,
-                    they&apos;ll appear here as a full gradebook.
+                    Once teachers start recording scored assessments and term
+                    results, they&apos;ll appear here as a full gradebook.
                   </p>
                 </div>
               </div>

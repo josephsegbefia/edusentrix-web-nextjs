@@ -81,9 +81,9 @@ export default function TeacherQuizzesPage() {
           <p className="text-sm text-white/60">Manage quick checks and quiz assessments.</p>
         </div>
         {canCreate && (
-          <Button asChild className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
+          <Button asChild className="group bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30">
             <Link href="/teacher/studio/quizzes/new">
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               New quiz
             </Link>
           </Button>

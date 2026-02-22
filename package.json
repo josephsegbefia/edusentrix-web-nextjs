@@ -15,6 +15,8 @@
     "seed:jhs:dry": "tsx scripts/seed-jhs-classes.ts --dryRun",
     "seed:academics": "tsx scripts/seed-academics.ts",
     "seed:academics:dry": "tsx scripts/seed-academics.ts --dryRun",
+    "seed:insights": "tsx scripts/seed-insights-data.ts",
+    "seed:insights:dry": "tsx scripts/seed-insights-data.ts --dryRun",
     "admin:create": "tsx scripts/createPlatformAdmin.ts"
   },
   "dependencies": {

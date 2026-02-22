@@ -17,6 +17,10 @@ export const CreateStudentSchema = z
 
     subjectAddIds: z.array(z.string().trim()),
     subjectRemoveIds: z.array(z.string().trim()),
+
+    // GES (Ghana Education Service) — optional, can be attached later
+    gesIndexNumber: z.string().trim().optional(),
+    gesSchoolCode: z.string().trim().optional(),
   })
   .refine(
     (v) => {

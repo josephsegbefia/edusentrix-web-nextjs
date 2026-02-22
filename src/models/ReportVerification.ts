@@ -1,7 +1,7 @@
 import { Schema, model, models, Types } from "mongoose";
 
 export type ReportVerificationStatus = "issued" | "revoked";
-export type ReportVerificationType = "simple_snapshot";
+export type ReportVerificationType = "simple_snapshot" | "overdue_report";
 
 export interface IReportVerification {
   _id: Types.ObjectId;
@@ -21,6 +21,9 @@ export interface IReportVerification {
   meta: {
     categories: string[];
     version: number;
+    rowCount?: number | null;
+    totalOutstandingMinor?: number | null;
+    overdueInvoiceCount?: number | null;
   };
   issuedAt: Date;
   revokedAt?: Date | null;
@@ -39,7 +42,7 @@ const reportVerificationSchema = new Schema<IReportVerification>(
     },
     reportType: {
       type: String,
-      enum: ["simple_snapshot"],
+      enum: ["simple_snapshot", "overdue_report"],
       required: true,
       default: "simple_snapshot",
     },
@@ -73,6 +76,9 @@ const reportVerificationSchema = new Schema<IReportVerification>(
     meta: {
       categories: { type: [String], default: [] },
       version: { type: Number, default: 1 },
+      rowCount: { type: Number, default: null },
+      totalOutstandingMinor: { type: Number, default: null },
+      overdueInvoiceCount: { type: Number, default: null },
     },
     issuedAt: { type: Date, default: Date.now, required: true },
     revokedAt: { type: Date, default: null },
@@ -86,4 +92,3 @@ reportVerificationSchema.index({ verificationId: 1, status: 1 });
 export const ReportVerification =
   models.ReportVerification ||
   model<IReportVerification>("ReportVerification", reportVerificationSchema);
-

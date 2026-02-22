@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import * as ReactDOM from "react-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
@@ -15,11 +17,21 @@ import {
   Sparkles,
   Calendar,
   Hash,
+  Landmark,
+  FileText,
+  Pencil,
+  Check,
+  X,
+  Loader2,
+  HelpCircle,
 } from "lucide-react";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/useToast";
 
 type StudentDetailHeaderProps = {
   student: StudentDetailDTO;
+  onRecordPayment?: () => void;
 };
 
 function initialsFromName(fullName: string) {
@@ -32,20 +44,35 @@ function initialsFromName(fullName: string) {
   );
 }
 
-// Stat Card Component
 function MetricStatCard({
   icon: Icon,
   label,
   value,
   subLabel,
   tone,
+  tooltip,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   subLabel?: string;
   tone: "teal" | "cyan" | "emerald" | "amber" | "red";
+  tooltip?: string;
 }) {
+  const [showTooltip, setShowTooltip] = React.useState(false);
+  const helpRef = React.useRef<HTMLDivElement>(null);
+  const [tooltipPos, setTooltipPos] = React.useState({ top: 0, left: 0 });
+
+  React.useEffect(() => {
+    if (showTooltip && helpRef.current) {
+      const rect = helpRef.current.getBoundingClientRect();
+      setTooltipPos({
+        top: rect.bottom + 6,
+        left: rect.right - 208,
+      });
+    }
+  }, [showTooltip]);
+
   const tones = {
     teal: {
       gradient: "from-teal-500/10 via-teal-500/5 to-transparent",
@@ -77,10 +104,10 @@ function MetricStatCard({
   const style = tones[tone];
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black p-4 shadow-lg shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
+    <div className="group/card relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black p-4 shadow-lg shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
       <div
         className={cn(
-          "pointer-events-none absolute inset-0 bg-linear-to-br opacity-60 transition-opacity duration-300 group-hover:opacity-100",
+          "pointer-events-none absolute inset-0 bg-linear-to-br opacity-60 transition-opacity duration-300 group-hover/card:opacity-100",
           style.gradient
         )}
         aria-hidden="true"
@@ -89,6 +116,28 @@ function MetricStatCard({
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
         aria-hidden="true"
       />
+
+      {tooltip && (
+        <div
+          ref={helpRef}
+          className="absolute right-2.5 top-2.5 z-20"
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          <HelpCircle className="h-3.5 w-3.5 cursor-help text-white/25 transition-colors hover:text-white/50" />
+          {showTooltip &&
+            ReactDOM.createPortal(
+              <div
+                style={{ top: tooltipPos.top, left: tooltipPos.left }}
+                className="fixed z-9999 w-52 rounded-lg border border-white/15 bg-slate-900 px-3 py-2 text-[11px] leading-relaxed text-white/70 shadow-xl shadow-black/50"
+              >
+                <div className="absolute -top-1 right-2 h-2 w-2 rotate-45 border-l border-t border-white/15 bg-slate-900" />
+                {tooltip}
+              </div>,
+              document.body
+            )}
+        </div>
+      )}
 
       <div className="relative z-10 space-y-2">
         <div className="flex items-center gap-2">
@@ -100,7 +149,7 @@ function MetricStatCard({
           >
             <Icon className={cn("h-4 w-4", style.iconColor)} />
           </div>
-          <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-white/50">
+          <span className="text-[10px] font-medium uppercase tracking-widest text-white/50">
             {label}
           </span>
         </div>
@@ -113,8 +162,12 @@ function MetricStatCard({
   );
 }
 
-export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
+export function StudentDetailHeader({
+  student,
+  onRecordPayment,
+}: StudentDetailHeaderProps) {
   const {
+    id,
     fullName,
     classGroup,
     grade,
@@ -124,10 +177,100 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
     ageYears,
     academicSummary,
     feesSummary,
+    guardians,
+    gesIndexNumber,
+    gesSchoolCode,
   } = student;
 
   const performanceTier = academicSummary?.performanceTier ?? null;
   const feesStatus = feesSummary?.status ?? null;
+
+  // GES inline editing
+  const [editingGes, setEditingGes] = React.useState(false);
+  const [gesForm, setGesForm] = React.useState({
+    gesSchoolCode: gesSchoolCode ?? "",
+    gesIndexNumber: gesIndexNumber ?? "",
+  });
+  const [savingGes, setSavingGes] = React.useState(false);
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  const primaryGuardian = React.useMemo(() => {
+    if (!guardians?.length) return null;
+
+    return (
+      guardians.find(
+        (guardian) =>
+          guardian.isPrimary &&
+          (guardian.phone?.trim() || guardian.email?.trim())
+      ) ??
+      guardians.find(
+        (guardian) => guardian.phone?.trim() || guardian.email?.trim()
+      ) ??
+      null
+    );
+  }, [guardians]);
+
+  const guardianPhone = primaryGuardian?.phone?.trim() || "";
+  const guardianEmail = primaryGuardian?.email?.trim() || "";
+
+  function handlePhoneClick() {
+    if (!guardianPhone) {
+      toast.warning("No guardian phone number available for this student");
+      return;
+    }
+
+    window.location.href = `tel:${guardianPhone}`;
+  }
+
+  function handleEmailClick() {
+    if (!guardianEmail) {
+      toast.warning("No guardian email available for this student");
+      return;
+    }
+
+    const subject = encodeURIComponent(`Update on ${fullName}`);
+    window.location.href = `mailto:${guardianEmail}?subject=${subject}`;
+  }
+
+  function handleRecordPaymentClick() {
+    if (onRecordPayment) {
+      onRecordPayment();
+      return;
+    }
+
+    toast.info("Open the Fees tab to record a payment");
+  }
+
+  React.useEffect(() => {
+    setGesForm({
+      gesSchoolCode: gesSchoolCode ?? "",
+      gesIndexNumber: gesIndexNumber ?? "",
+    });
+  }, [gesSchoolCode, gesIndexNumber]);
+
+  async function handleSaveGes() {
+    setSavingGes(true);
+    try {
+      const res = await fetch(`/api/admin/students/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gesSchoolCode: gesForm.gesSchoolCode || null,
+          gesIndexNumber: gesForm.gesIndexNumber || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-student-detail", id],
+      });
+      setEditingGes(false);
+    } catch {
+      // Error handled silently, stay in editing mode
+    } finally {
+      setSavingGes(false);
+    }
+  }
 
   return (
     <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-teal-950/40 to-transparent shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -205,7 +348,7 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
                   </Badge>
                 )}
                 {admissionNo && (
-                  <span className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/60">
+                  <span className="flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/60 font-mono">
                     <Hash className="h-3 w-3" />
                     {admissionNo}
                   </span>
@@ -230,6 +373,102 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
                   {status.charAt(0).toUpperCase() + status.slice(1)}
                 </span>
               </div>
+
+              {/* GES Information row */}
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                {gesSchoolCode && !editingGes && (
+                  <span className="flex items-center gap-1.5 rounded-lg border border-violet-400/20 bg-violet-500/10 px-2.5 py-1 text-[10px] font-medium text-violet-200 font-mono">
+                    <Landmark className="h-3 w-3" />
+                    GES: {gesSchoolCode}
+                  </span>
+                )}
+                {gesIndexNumber && !editingGes && (
+                  <span className="flex items-center gap-1.5 rounded-lg border border-indigo-400/20 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-medium text-indigo-200 font-mono">
+                    <FileText className="h-3 w-3" />
+                    Index: {gesIndexNumber}
+                  </span>
+                )}
+                {!editingGes && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingGes(true)}
+                    className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium text-white/40 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/60"
+                  >
+                    <Pencil className="h-2.5 w-2.5" />
+                    {gesSchoolCode || gesIndexNumber ? "Edit" : "Add"} GES Info
+                  </button>
+                )}
+              </div>
+
+              {/* GES inline edit form */}
+              {editingGes && (
+                <div className="mt-2 flex flex-col gap-2 rounded-xl border border-violet-500/20 bg-violet-500/5 p-3 sm:flex-row sm:items-end">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[9px] font-medium uppercase tracking-wider text-violet-300/60">
+                      GES School Code
+                    </label>
+                    <Input
+                      value={gesForm.gesSchoolCode}
+                      onChange={(e) =>
+                        setGesForm((f) => ({
+                          ...f,
+                          gesSchoolCode: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. 0301234"
+                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-white placeholder:text-violet-300/30 focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[9px] font-medium uppercase tracking-wider text-violet-300/60">
+                      BECE Index Number
+                    </label>
+                    <Input
+                      value={gesForm.gesIndexNumber}
+                      onChange={(e) =>
+                        setGesForm((f) => ({
+                          ...f,
+                          gesIndexNumber: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. 0301234001"
+                      className="h-8 border-violet-500/20 bg-violet-500/5 font-mono text-xs text-white placeholder:text-violet-300/30 focus:border-violet-400/40 focus:ring-1 focus:ring-violet-400/30"
+                    />
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={handleSaveGes}
+                      disabled={savingGes}
+                      className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
+                    >
+                      {savingGes ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingGes(false);
+                        setGesForm({
+                          gesSchoolCode: gesSchoolCode ?? "",
+                          gesIndexNumber: gesIndexNumber ?? "",
+                        });
+                      }}
+                      disabled={savingGes}
+                      className="h-8 w-8 rounded-lg bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -248,6 +487,13 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
               }
               subLabel={academicSummary?.latestTermLabel ?? "No term data"}
               tone="teal"
+              tooltip={
+                academicSummary?.isFromPreviousTerm
+                  ? `No results yet for the current term. Showing data from ${academicSummary.previousTermLabel ?? "a previous term"}.`
+                  : academicSummary?.overallAverage != null
+                    ? `Showing recorded results for ${academicSummary.latestTermLabel ?? "the current term"}.`
+                    : "No academic results have been recorded for this student yet."
+              }
             />
             <MetricStatCard
               icon={Wallet}
@@ -282,7 +528,14 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
               type="button"
               variant="outline"
               size="icon"
+              onClick={handlePhoneClick}
               className="h-9 w-9 rounded-xl border-white/15 bg-white/5 text-white/60 transition-all hover:border-teal-500/30 hover:bg-teal-500/10 hover:text-teal-300"
+              aria-label={
+                guardianPhone ? `Call ${primaryGuardian?.fullName ?? "guardian"}` : "Call guardian"
+              }
+              title={
+                guardianPhone ? `Call ${primaryGuardian?.fullName ?? "guardian"}` : "No guardian phone available"
+              }
             >
               <PhoneCall className="h-4 w-4" />
             </Button>
@@ -290,7 +543,14 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
               type="button"
               variant="outline"
               size="icon"
+              onClick={handleEmailClick}
               className="h-9 w-9 rounded-xl border-white/15 bg-white/5 text-white/60 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300"
+              aria-label={
+                guardianEmail ? `Email ${primaryGuardian?.fullName ?? "guardian"}` : "Email guardian"
+              }
+              title={
+                guardianEmail ? `Email ${primaryGuardian?.fullName ?? "guardian"}` : "No guardian email available"
+              }
             >
               <Mail className="h-4 w-4" />
             </Button>
@@ -298,6 +558,7 @@ export function StudentDetailHeader({ student }: StudentDetailHeaderProps) {
               type="button"
               variant="outline"
               size="sm"
+              onClick={handleRecordPaymentClick}
               className="gap-2 rounded-xl border-teal-500/30 bg-teal-500/10 text-xs font-medium text-teal-200 transition-all hover:bg-teal-500/20"
             >
               <Wallet className="h-3.5 w-3.5" />

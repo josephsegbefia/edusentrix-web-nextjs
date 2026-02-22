@@ -10,6 +10,7 @@ export interface ISchool {
   email?: string;
   city?: string;
   region?: string;
+  gesSchoolCode?: string | null; // GES-assigned school code
   bank?: {
     bankName?: string;
     branchName?: string;
@@ -43,6 +44,7 @@ const schoolSchema = new Schema<ISchool>(
     email: String,
     city: String,
     region: String,
+    gesSchoolCode: { type: String, default: null, trim: true },
     bank: {
       bankName: String,
       branchName: String,

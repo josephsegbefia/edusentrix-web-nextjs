@@ -8,7 +8,8 @@ export type StudentDetailTabId =
   | "fees"
   | "behaviour"
   | "relationships"
-  | "activity";
+  | "activity"
+  | "insights";
 
 export type StudentDetailDTO = {
   id: string;
@@ -24,6 +25,11 @@ export type StudentDetailDTO = {
   photoUrl: string | null;
   status: "active" | "inactive" | "withdrawn";
   enrolledAt: string | null;
+
+  // GES (Ghana Education Service)
+  gesIndexNumber: string | null;
+  gesSchoolCode: string | null;
+
   grade: {
     id: string;
     name: string;
@@ -59,6 +65,8 @@ export type StudentDetailDTO = {
     totalSubjects?: number;
     performanceTier?: "top" | "above_average" | "average" | "at_risk";
     trend?: "up" | "down" | "stable";
+    isFromPreviousTerm?: boolean;
+    previousTermLabel?: string;
   } | null;
   attendanceSummary: {
     presentPercent?: number;

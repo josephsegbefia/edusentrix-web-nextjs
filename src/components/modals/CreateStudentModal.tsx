@@ -11,10 +11,19 @@ import { useClassGroupOptions } from "@/hooks/admin/useClassGroupOptions";
 import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
 import { useAuth } from "@/providers/auth-provider";
 import { ImageUploader } from "@/components/upload/ImageUploader";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Check, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  X,
+  Wand2,
+  Loader2,
+  Info,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -63,7 +72,17 @@ export default function CreateStudentModal({
   const [currentStep, setCurrentStep] = React.useState(1);
   const { data: grades = [], isLoading: loadingGrades } = useGradeOptions();
 
-  // Form setup
+  // ID generation state
+  const [generatingId, setGeneratingId] = React.useState(false);
+  const [idGenerated, setIdGenerated] = React.useState(false);
+  const [idBreakdown, setIdBreakdown] = React.useState<{
+    schoolPrefix: string;
+    enrollYear: string;
+    birthMonth: string;
+    initials: string;
+    sequence: string;
+  } | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -89,6 +108,8 @@ export default function CreateStudentModal({
   const photoUrl = useWatch({ control, name: "photoUrl" });
   const firstName = useWatch({ control, name: "firstName" });
   const lastName = useWatch({ control, name: "lastName" });
+  const dateOfBirth = useWatch({ control, name: "dateOfBirth" });
+  const admissionNo = useWatch({ control, name: "admissionNo" });
   const subjectAddIds = useWatch({ control, name: "subjectAddIds" }) ?? [];
   const subjectRemoveIds =
     useWatch({ control, name: "subjectRemoveIds" }) ?? [];
@@ -104,6 +125,63 @@ export default function CreateStudentModal({
     }
   }, [gradeId, resetField]);
 
+  // Auto-generate student ID when name + DOB are available and no ID has been generated yet
+  const autoGenRef = React.useRef(false);
+  React.useEffect(() => {
+    if (
+      firstName?.trim() &&
+      lastName?.trim() &&
+      dateOfBirth &&
+      !idGenerated &&
+      !autoGenRef.current &&
+      !admissionNo?.trim()
+    ) {
+      autoGenRef.current = true;
+      generateStudentId();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstName, lastName, dateOfBirth]);
+
+  async function generateStudentId() {
+    const fn = watch("firstName")?.trim();
+    const ln = watch("lastName")?.trim();
+    const dob = watch("dateOfBirth");
+
+    if (!fn || !ln) {
+      busy.error("Please fill in first name and last name first");
+      return;
+    }
+
+    setGeneratingId(true);
+    try {
+      const res = await fetch("/api/admin/students/generate-id", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: fn,
+          lastName: ln,
+          dateOfBirth: dob ? dob.toISOString() : undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        setValue("admissionNo", data.admissionNo, { shouldValidate: true });
+        setIdGenerated(true);
+        setIdBreakdown(data.breakdown ?? null);
+      }
+    } catch (e) {
+      console.error("Failed to generate student ID:", e);
+      autoGenRef.current = false;
+    } finally {
+      setGeneratingId(false);
+    }
+  }
+
   const currentStepData = STEPS[currentStep - 1];
   const isFirstStep = currentStep === 1;
   const isLastStep = currentStep === STEPS.length;
@@ -112,16 +190,12 @@ export default function CreateStudentModal({
     try {
       await onSubmit({
         ...values,
-        // ensure no overlap between add/remove (double-safety)
         subjectRemoveIds: (values.subjectRemoveIds ?? []).filter(
           (id) => !(values.subjectAddIds ?? []).includes(id)
         ),
       });
-      // Only close modal on success - parent handles errors and toasts
       onClose();
     } catch (e: unknown) {
-      // Error is already handled by handleCreateStudent's busy.promise toast
-      // Don't close modal on error, let user see the error and retry
       console.error("Student creation error:", e);
     }
   }
@@ -154,7 +228,7 @@ export default function CreateStudentModal({
 
   return (
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
-      {/* Step Indicator - Simple dots like CreateTeacherModal */}
+      {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
         <div className="text-sm text-white/70">
           Step <span className="font-semibold">{currentStep}</span> of{" "}
@@ -245,20 +319,6 @@ export default function CreateStudentModal({
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="admissionNo"
-                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-                  >
-                    Admission Number
-                  </Label>
-                  <Input
-                    id="admissionNo"
-                    {...register("admissionNo")}
-                    placeholder="SCH-2025-0012"
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Sex
                   </Label>
@@ -290,43 +350,176 @@ export default function CreateStudentModal({
                     )}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                    Date of Birth
+                  </Label>
+                  <Controller
+                    name="dateOfBirth"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomDatePicker
+                        value={field.value ?? null}
+                        onChange={(d) => field.onChange(d ?? undefined)}
+                        placeholder="Select date of birth"
+                        maxDate={new Date()}
+                        error={errors.dateOfBirth?.message}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Student ID (Admission Number) — auto-generated */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label
+                    htmlFor="admissionNo"
+                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                  >
+                    Student ID (Admission Number)
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      autoGenRef.current = false;
+                      setIdGenerated(false);
+                      generateStudentId();
+                    }}
+                    disabled={generatingId || !firstName?.trim() || !lastName?.trim()}
+                    className="h-7 gap-1.5 rounded-lg px-2.5 text-[11px] text-brand hover:bg-brand/10 hover:text-brand disabled:opacity-40"
+                  >
+                    {generatingId ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-3 w-3" />
+                    )}
+                    {generatingId ? "Generating…" : idGenerated ? "Regenerate" : "Generate ID"}
+                  </Button>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="admissionNo"
+                    {...register("admissionNo")}
+                    placeholder={generatingId ? "Generating…" : "Auto-generated or enter manually"}
+                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono tracking-wide"
+                  />
+                  {generatingId && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-brand/60" />
+                    </div>
+                  )}
+                </div>
+                {idBreakdown && idGenerated && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-2 rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2"
+                  >
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-400" />
+                    <div className="space-y-0.5 text-[11px] text-teal-200/80">
+                      <span className="font-medium text-teal-200">ID Breakdown:</span>{" "}
+                      <span className="font-mono">
+                        {idBreakdown.schoolPrefix}
+                      </span>{" "}
+                      (school) —{" "}
+                      <span className="font-mono">
+                        {idBreakdown.enrollYear}
+                      </span>{" "}
+                      (year) —{" "}
+                      <span className="font-mono">
+                        {idBreakdown.birthMonth}
+                      </span>{" "}
+                      (birth month) —{" "}
+                      <span className="font-mono">
+                        {idBreakdown.initials}
+                      </span>{" "}
+                      (initials) —{" "}
+                      <span className="font-mono">
+                        {idBreakdown.sequence}
+                      </span>{" "}
+                      (seq)
+                    </div>
+                  </motion.div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="dateOfBirth"
-                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-                  >
-                    Date of Birth
-                  </Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    {...register("dateOfBirth", {
-                      valueAsDate: true,
-                    })}
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
-                  />
-                  {errors.dateOfBirth && (
-                    <div className="text-xs text-rose-300">
-                      {errors.dateOfBirth.message}
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="enrolledAt"
-                    className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-                  >
+                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Enrollment Date
                   </Label>
-                  <Input
-                    id="enrolledAt"
-                    type="date"
-                    {...register("enrolledAt")}
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                  <Controller
+                    name="enrolledAt"
+                    control={control}
+                    render={({ field }) => {
+                      const dateValue = field.value
+                        ? new Date(field.value)
+                        : null;
+                      return (
+                        <CustomDatePicker
+                          value={
+                            dateValue && !isNaN(dateValue.getTime())
+                              ? dateValue
+                              : null
+                          }
+                          onChange={(d) =>
+                            field.onChange(
+                              d ? d.toISOString().slice(0, 10) : undefined
+                            )
+                          }
+                          placeholder="Select enrollment date"
+                        />
+                      );
+                    }}
                   />
+                </div>
+              </div>
+
+              {/* GES Fields — optional */}
+              <div className="space-y-3 rounded-xl border border-white/8 bg-white/2 p-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                    GES Information
+                  </h3>
+                  <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-white/40">
+                    Optional
+                  </span>
+                </div>
+                <p className="text-[11px] text-white/40">
+                  Ghana Education Service school code and BECE index number. These can also be added later from the student&apos;s profile.
+                </p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="gesSchoolCode"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      GES School Code
+                    </Label>
+                    <Input
+                      id="gesSchoolCode"
+                      {...register("gesSchoolCode")}
+                      placeholder="e.g. 0301234"
+                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="gesIndexNumber"
+                      className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+                    >
+                      BECE Index Number
+                    </Label>
+                    <Input
+                      id="gesIndexNumber"
+                      {...register("gesIndexNumber")}
+                      placeholder="e.g. 0301234001"
+                      className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             </section>

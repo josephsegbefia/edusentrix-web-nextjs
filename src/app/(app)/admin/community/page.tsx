@@ -284,14 +284,14 @@ export default function CommunityHubPage() {
         {/* Quick Actions */}
         <div className="mb-8 flex flex-wrap gap-3">
           <Link href="/admin/community/polls?create=1">
-            <Button className="gap-2 border-violet-500/30 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20">
-              <Plus className="h-4 w-4" />
+            <Button className="group gap-2 border-violet-500/30 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20">
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               Create Poll
             </Button>
           </Link>
           <Link href="/admin/community/fundraising?create=1">
-            <Button className="gap-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
-              <Plus className="h-4 w-4" />
+            <Button className="group gap-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20">
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               Create Campaign
             </Button>
           </Link>

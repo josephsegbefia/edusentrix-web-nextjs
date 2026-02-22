@@ -58,6 +58,16 @@ export async function GET(_req: NextRequest, context: RouteContext) {
           ? report.meta.categories
           : [],
         version: typeof report.meta?.version === "number" ? report.meta.version : 1,
+        rowCount:
+          typeof report.meta?.rowCount === "number" ? report.meta.rowCount : null,
+        totalOutstandingMinor:
+          typeof report.meta?.totalOutstandingMinor === "number"
+            ? report.meta.totalOutstandingMinor
+            : null,
+        overdueInvoiceCount:
+          typeof report.meta?.overdueInvoiceCount === "number"
+            ? report.meta.overdueInvoiceCount
+            : null,
       },
       createdAt: report.createdAt ? new Date(report.createdAt).toISOString() : null,
     },

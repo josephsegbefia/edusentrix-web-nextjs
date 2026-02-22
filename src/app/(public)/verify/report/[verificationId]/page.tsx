@@ -23,6 +23,9 @@ type VerificationPayload = {
   meta: {
     categories: string[];
     version: number;
+    rowCount: number | null;
+    totalOutstandingMinor: number | null;
+    overdueInvoiceCount: number | null;
   };
   createdAt: string | null;
 };
@@ -42,7 +45,17 @@ function fmtDate(value: string | null) {
 
 function labelizeReportType(type: string) {
   if (type === "simple_snapshot") return "Simple Report Snapshot";
+  if (type === "overdue_report") return "Overdue Risk Report";
   return type;
+}
+
+function formatMoneyMinor(value: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "N/A";
+  return new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(value / 100);
 }
 
 export default function ReportVerificationPage() {
@@ -213,6 +226,20 @@ export default function ReportVerificationPage() {
                   Template version {data.meta.version}. Included sections:{" "}
                   {data.meta.categories.join(", ")}.
                 </p>
+                {data.meta.rowCount !== null ||
+                data.meta.totalOutstandingMinor !== null ||
+                data.meta.overdueInvoiceCount !== null ? (
+                  <p className="mt-1 text-xs text-white/55">
+                    Records:{" "}
+                    {data.meta.rowCount !== null ? data.meta.rowCount : "N/A"} | Overdue
+                    invoices:{" "}
+                    {data.meta.overdueInvoiceCount !== null
+                      ? data.meta.overdueInvoiceCount
+                      : "N/A"}{" "}
+                    | Outstanding:{" "}
+                    {formatMoneyMinor(data.meta.totalOutstandingMinor)}
+                  </p>
+                ) : null}
               </div>
             </div>
           ) : null}

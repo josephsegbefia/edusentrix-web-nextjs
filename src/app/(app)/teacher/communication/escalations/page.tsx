@@ -423,9 +423,9 @@ export default function TeacherEscalationsPage() {
             {canEscalate ? (
               <Button
                 onClick={openCreateDialog}
-                className="bg-rose-500/30 text-rose-50 hover:bg-rose-500/40"
+                className="group bg-rose-500/30 text-rose-50 hover:bg-rose-500/40"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
                 New escalation
               </Button>
             ) : (

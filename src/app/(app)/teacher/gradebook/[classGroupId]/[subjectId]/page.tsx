@@ -259,9 +259,9 @@ export default function TeacherGradebookDetailPage() {
           {canRecord && (
             <Button
               onClick={() => setAddOpen(true)}
-              className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
+              className="group bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               Add assessment
             </Button>
           )}

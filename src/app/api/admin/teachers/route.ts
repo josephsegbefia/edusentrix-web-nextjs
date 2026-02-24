@@ -205,6 +205,10 @@ export async function GET(req: NextRequest) {
           ? new Date(t.terminationDate).toISOString()
           : null,
 
+        leaveStartDate: t.leaveStartDate ? new Date(t.leaveStartDate).toISOString() : null,
+        leaveEndDate: t.leaveEndDate ? new Date(t.leaveEndDate).toISOString() : null,
+        leaveReason: t.leaveReason ? String(t.leaveReason) : null,
+
         subjects: Array.isArray(t.subjects)
           ? t.subjects
               .slice(0, 6)

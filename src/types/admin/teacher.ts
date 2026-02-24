@@ -37,6 +37,9 @@ export type TeacherDetailDTO = {
   department: string | null;
   hireDate: string | null;
   terminationDate: string | null;
+  leaveStartDate?: string | null;
+  leaveEndDate?: string | null;
+  leaveReason?: string | null;
 
   maxClasses: number | null;
   maxStudents: number | null;
@@ -77,6 +80,9 @@ export type TeacherListItemDTO = {
   hireDate: string | null;
   createdAt: string;
   isNew: boolean;
+  leaveStartDate?: string | null;
+  leaveEndDate?: string | null;
+  leaveReason?: string | null;
 };
 
 // API response types

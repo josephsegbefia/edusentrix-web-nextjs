@@ -18,6 +18,7 @@ import {
   Power,
   PowerOff,
   Trash2,
+  Calendar,
 } from "lucide-react";
 import type { TeacherStatus } from "@/types/admin/teacher";
 
@@ -31,6 +32,7 @@ type TeacherRowActionsProps = {
   onActivate?: (id: string) => void;
   onDeactivate?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onUpdateLeave?: (id: string) => void;
   isChangingStatus?: boolean;
 };
 
@@ -44,6 +46,7 @@ export function TeacherRowActions({
   onActivate,
   onDeactivate,
   onDelete,
+  onUpdateLeave,
   isChangingStatus,
 }: TeacherRowActionsProps) {
   const handle =
@@ -96,6 +99,15 @@ export function TeacherRowActions({
         <DropdownMenuSeparator className="bg-white/10" />
 
         {/* Status management options */}
+        {status === "on_leave" && onUpdateLeave && (
+          <DropdownMenuItem
+            onClick={handle(onUpdateLeave)}
+            className="text-amber-300 focus:text-amber-200 focus:bg-amber-500/10"
+          >
+            <Calendar className="h-3.5 w-3.5 mr-2" />
+            Update leave dates
+          </DropdownMenuItem>
+        )}
         {canActivate && (
           <DropdownMenuItem
             onClick={handle(onActivate)}

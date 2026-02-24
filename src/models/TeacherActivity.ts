@@ -20,7 +20,8 @@ export type TeacherActivityType =
   | "leave.submitted"
   | "leave.approved"
   | "leave.rejected"
-  | "leave.cancelled";
+  | "leave.cancelled"
+  | "leave.updated";
 
 export interface ITeacherActivity {
   _id: Types.ObjectId;

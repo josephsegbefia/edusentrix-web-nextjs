@@ -56,6 +56,9 @@ type TeacherOverviewTabProps = {
     department?: string | null;
     hireDate?: string | Date | null;
     terminationDate?: string | Date | null;
+    leaveStartDate?: string | Date | null;
+    leaveEndDate?: string | Date | null;
+    leaveReason?: string | null;
     createdAt: string | Date;
     updatedAt?: string | Date | null;
   };
@@ -63,6 +66,7 @@ type TeacherOverviewTabProps = {
   onActivate?: () => void;
   onDeactivate?: () => void;
   onDelete?: () => void;
+  onUpdateLeave?: () => void;
   isChangingStatus?: boolean;
   onNavigateToTab?: (tab: TeacherDetailTabId) => void;
 };
@@ -281,6 +285,7 @@ export function TeacherOverviewTab({
   onActivate,
   onDeactivate,
   onDelete,
+  onUpdateLeave,
   isChangingStatus,
   onNavigateToTab,
 }: TeacherOverviewTabProps) {
@@ -486,6 +491,62 @@ export function TeacherOverviewTab({
                 tone="purple"
               />
             </div>
+
+            {/* Leave info card */}
+            {teacher.status === "on_leave" && teacher.leaveStartDate && teacher.leaveEndDate && (
+              <div className="mt-3 rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
+                      <span className="text-xl font-bold text-amber-200">
+                        {(() => {
+                          const end = new Date(teacher.leaveEndDate);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          end.setHours(0, 0, 0, 0);
+                          return Math.max(0, Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+                        })()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-200">
+                        {(() => {
+                          const end = new Date(teacher.leaveEndDate);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          end.setHours(0, 0, 0, 0);
+                          const daysLeft = Math.max(0, Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+                          return daysLeft === 0 ? "Leave ends today" : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`;
+                        })()}
+                      </p>
+                      <p className="text-xs text-amber-200/70">
+                        {formatDate(teacher.leaveStartDate)} → {formatDate(teacher.leaveEndDate)}
+                      </p>
+                      {teacher.leaveReason && (
+                        <p className="mt-1 text-[11px] text-white/50 line-clamp-2">{teacher.leaveReason}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {onUpdateLeave && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 rounded-lg border-amber-500/30 bg-amber-500/10 text-xs text-amber-200 hover:bg-amber-500/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdateLeave();
+                        }}
+                      >
+                        <CalendarCheck className="h-3.5 w-3.5" />
+                        Update dates
+                      </Button>
+                    )}
+                    <Clock className="h-4 w-4 text-amber-200/50" />
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -607,6 +668,11 @@ export function TeacherOverviewTab({
               </div>
             </CardContent>
           </Card>
+
+          {/* Leave Info Card — only shown when teacher is on leave */}
+          {teacher.status === "on_leave" && teacher.leaveEndDate && (
+            <LeaveInfoCard teacher={teacher} />
+          )}
 
           {/* Professional Info Card */}
           <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -1075,5 +1141,145 @@ export function TeacherOverviewTab({
       />
       {confirmationDialog}
     </div>
+  );
+}
+
+// ============================================================================
+// Leave Info Card
+// ============================================================================
+
+function LeaveInfoCard({
+  teacher,
+}: {
+  teacher: {
+    leaveStartDate?: string | Date | null;
+    leaveEndDate?: string | Date | null;
+    leaveReason?: string | null;
+  };
+}) {
+  const startDate = teacher.leaveStartDate
+    ? new Date(teacher.leaveStartDate)
+    : null;
+  const endDate = teacher.leaveEndDate
+    ? new Date(teacher.leaveEndDate)
+    : null;
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const endNorm = endDate ? new Date(endDate) : null;
+  if (endNorm) endNorm.setHours(0, 0, 0, 0);
+
+  const daysLeft = endNorm
+    ? Math.max(0, Math.ceil((endNorm.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  const totalDays =
+    startDate && endDate
+      ? Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        ) + 1
+      : 0;
+
+  const elapsed = totalDays - daysLeft;
+  const progressPct = totalDays > 0 ? Math.min(100, (elapsed / totalDays) * 100) : 0;
+
+  return (
+    <Card className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <div
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-amber-400/30 to-transparent"
+        aria-hidden="true"
+      />
+
+      <CardHeader className="relative z-10 border-b border-amber-500/10 pb-0">
+        <div className="flex items-center justify-between pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/15">
+              <Clock className="h-5 w-5 text-amber-300" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-semibold tracking-tight text-white">
+                Leave Status
+              </CardTitle>
+              <p className="text-xs text-amber-200/60">Currently on leave</p>
+            </div>
+          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10">
+            <span className="text-xl font-bold text-amber-200">{daysLeft}</span>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="relative z-10 space-y-4 p-6">
+        {/* Days remaining header */}
+        <div className="text-center">
+          <p className="text-sm font-medium text-amber-200">
+            {daysLeft === 0
+              ? "Leave ends today"
+              : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} remaining`}
+          </p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="space-y-2">
+          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-linear-to-r from-amber-400 to-amber-500 transition-all duration-500"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-white/40">
+            <span>{elapsed} of {totalDays} days elapsed</span>
+            <span>{Math.round(progressPct)}%</span>
+          </div>
+        </div>
+
+        {/* Date range */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-amber-500/15 bg-amber-500/5 p-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-amber-200/50">
+              Start
+            </p>
+            <p className="mt-1 text-sm font-medium text-white">
+              {startDate
+                ? startDate.toLocaleDateString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  })
+                : "—"}
+            </p>
+          </div>
+          <div className="rounded-xl border border-amber-500/15 bg-amber-500/5 p-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-amber-200/50">
+              End
+            </p>
+            <p className="mt-1 text-sm font-medium text-white">
+              {endDate
+                ? endDate.toLocaleDateString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* Reason */}
+        {teacher.leaveReason && (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-white/40 mb-1">
+              Reason
+            </p>
+            <p className="text-sm text-white/80">{teacher.leaveReason}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -23,6 +23,7 @@ import {
   Calendar,
   Briefcase,
   Power,
+  Clock,
 } from "lucide-react";
 
 type TeacherCardProps = {
@@ -32,6 +33,7 @@ type TeacherCardProps = {
   onManageAccess?: (id: string) => void;
   onSendMessage?: (id: string) => void;
   onActivate?: (id: string) => void;
+  onUpdateLeave?: (id: string) => void;
 };
 
 type StatusTone = "emerald" | "rose" | "amber" | "slate";
@@ -97,6 +99,7 @@ export function TeacherCard({
   onManageAccess,
   onSendMessage,
   onActivate,
+  onUpdateLeave,
 }: TeacherCardProps) {
   const tone = getStatusTone(teacher);
   const config = toneConfig[tone];
@@ -124,6 +127,19 @@ export function TeacherCard({
         return teacher.status;
     }
   })();
+
+  const leaveInfo = React.useMemo(() => {
+    if (teacher.status !== "on_leave" || !teacher.leaveStartDate || !teacher.leaveEndDate) return null;
+    const start = new Date(teacher.leaveStartDate);
+    const end = new Date(teacher.leaveEndDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const daysLeft = Math.max(0, Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    const startLabel = start.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    const endLabel = end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    return { daysLeft, startLabel, endLabel };
+  }, [teacher.status, teacher.leaveStartDate, teacher.leaveEndDate]);
 
   const handleCardClick = () => {
     onView?.(teacher.id);
@@ -253,18 +269,29 @@ export function TeacherCard({
                     <Mail className="h-3.5 w-3.5" />
                     Send message
                   </DropdownMenuItem>
-                  {teacher.status === "on_leave" && onActivate ? (
+                  {teacher.status === "on_leave" && (
                     <>
                       <DropdownMenuSeparator className="bg-white/10" />
-                      <DropdownMenuItem
-                        onClick={handleAction(onActivate)}
-                        className="gap-2 rounded-lg text-emerald-300 focus:text-emerald-200 focus:bg-emerald-500/10"
-                      >
-                        <Power className="h-3.5 w-3.5" />
-                        End leave
-                      </DropdownMenuItem>
+                      {onUpdateLeave && (
+                        <DropdownMenuItem
+                          onClick={handleAction(onUpdateLeave)}
+                          className="gap-2 rounded-lg text-amber-300 focus:text-amber-200 focus:bg-amber-500/10"
+                        >
+                          <Calendar className="h-3.5 w-3.5" />
+                          Update leave dates
+                        </DropdownMenuItem>
+                      )}
+                      {onActivate && (
+                        <DropdownMenuItem
+                          onClick={handleAction(onActivate)}
+                          className="gap-2 rounded-lg text-emerald-300 focus:text-emerald-200 focus:bg-emerald-500/10"
+                        >
+                          <Power className="h-3.5 w-3.5" />
+                          End leave
+                        </DropdownMenuItem>
+                      )}
                     </>
-                  ) : null}
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -303,6 +330,26 @@ export function TeacherCard({
             </span>
           )}
         </div>
+
+        {/* Leave info banner */}
+        {leaveInfo && (
+          <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-amber-500/5 px-3 py-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20">
+              <span className="text-sm font-bold text-amber-200">{leaveInfo.daysLeft}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-medium text-amber-200">
+                {leaveInfo.daysLeft === 0
+                  ? "Leave ends today"
+                  : `${leaveInfo.daysLeft} day${leaveInfo.daysLeft !== 1 ? "s" : ""} left`}
+              </p>
+              <p className="text-[10px] text-amber-200/60 truncate">
+                {leaveInfo.startLabel && `${leaveInfo.startLabel} → `}{leaveInfo.endLabel}
+              </p>
+            </div>
+            <Clock className="h-3.5 w-3.5 shrink-0 text-amber-200/40" />
+          </div>
+        )}
 
         {/* Subjects */}
         <div className="space-y-2">

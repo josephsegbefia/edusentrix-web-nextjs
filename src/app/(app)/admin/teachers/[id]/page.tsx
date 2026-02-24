@@ -14,6 +14,7 @@ import {
   useActivateTeacher,
   useDeactivateTeacher,
   useDeleteTeacher,
+  useUpdateTeacherLeave,
 } from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { TeacherDetailHeader } from "@/components/admin/teachers/detail/TeacherDetailHeader";
@@ -30,6 +31,7 @@ import { TeacherPerformanceTab } from "@/components/admin/teachers/detail/Teache
 import { TeacherActivityTab } from "@/components/admin/teachers/detail/TeacherActivityTab";
 import { TeacherDutiesTab } from "@/components/admin/teachers/detail/TeacherDutiesTab";
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
+import { UpdateLeaveModal } from "@/components/modals/UpdateLeaveModal";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (!sp) return "overview";
@@ -61,6 +63,7 @@ function TeacherDetailContent() {
     getInitialTab(searchParams)
   );
   const [editOpen, setEditOpen] = React.useState(false);
+  const [updateLeaveOpen, setUpdateLeaveOpen] = React.useState(false);
 
   const { data, isLoading, isError } = useTeacher(String(teacherId));
   const teacher = data?.data;
@@ -68,11 +71,13 @@ function TeacherDetailContent() {
   const activateTeacher = useActivateTeacher();
   const deactivateTeacher = useDeactivateTeacher();
   const deleteTeacher = useDeleteTeacher();
+  const updateTeacherLeave = useUpdateTeacherLeave();
 
   const isChangingStatus =
     activateTeacher.isPending ||
     deactivateTeacher.isPending ||
-    deleteTeacher.isPending;
+    deleteTeacher.isPending ||
+    updateTeacherLeave.isPending;
 
   const handleActivate = async () => {
     if (!teacher) return;
@@ -364,6 +369,7 @@ function TeacherDetailContent() {
             onActivate={handleActivate}
             onDeactivate={handleDeactivate}
             onDelete={handleDelete}
+            onUpdateLeave={() => setUpdateLeaveOpen(true)}
             isChangingStatus={isChangingStatus}
             onNavigateToTab={handleTabChange}
           />
@@ -440,6 +446,32 @@ function TeacherDetailContent() {
             );
           }}
           isLoading={updateTeacher.isPending}
+        />
+      )}
+
+      {/* Update Leave Modal */}
+      {teacher && teacher.status === "on_leave" && (
+        <UpdateLeaveModal
+          open={updateLeaveOpen}
+          onOpenChange={setUpdateLeaveOpen}
+          teacherName={teacher.fullName}
+          initialStartDate={teacher.leaveStartDate ?? null}
+          initialEndDate={teacher.leaveEndDate ?? null}
+          initialReason={teacher.leaveReason ?? null}
+          onSubmit={async (payload) => {
+            await busy.promise(
+              updateTeacherLeave.mutateAsync({
+                teacherId: teacher.id,
+                ...payload,
+              }),
+              {
+                loading: "Updating leave dates...",
+                success: "Leave dates updated successfully",
+                error: (e: Error) => e.message || "Failed to update leave",
+              }
+            );
+          }}
+          isPending={updateTeacherLeave.isPending}
         />
       )}
       {confirmationDialog}

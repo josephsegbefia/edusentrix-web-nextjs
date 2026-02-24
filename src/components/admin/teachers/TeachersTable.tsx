@@ -29,6 +29,7 @@ type TeachersTableProps = {
   onActivate?: (id: string) => void;
   onDeactivate?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onUpdateLeave?: (id: string) => void;
   isChangingStatus?: boolean;
 };
 
@@ -87,6 +88,7 @@ export function TeachersTable({
   onActivate,
   onDeactivate,
   onDelete,
+  onUpdateLeave,
   isChangingStatus,
 }: TeachersTableProps) {
   const visibleIds = React.useMemo(() => teachers.map((t) => t.id), [teachers]);
@@ -281,21 +283,35 @@ export function TeachersTable({
                   )}
                 </td>
                 <td className="px-3 py-2 align-middle text-xs">
-                  <span
-                    className={cn(
-                      "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
-                      teacher.status === "active" &&
-                        "bg-emerald-500/15 text-emerald-100 border border-emerald-400/40",
-                      teacher.status === "inactive" &&
-                        "bg-slate-500/20 text-slate-100 border border-slate-400/40",
-                      teacher.status === "on_leave" &&
-                        "bg-amber-500/15 text-amber-100 border border-amber-400/40",
-                      teacher.status === "terminated" &&
-                        "bg-red-500/15 text-red-100 border border-red-400/40"
-                    )}
-                  >
-                    {statusLabel(teacher.status)}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
+                        teacher.status === "active" &&
+                          "bg-emerald-500/15 text-emerald-100 border border-emerald-400/40",
+                        teacher.status === "inactive" &&
+                          "bg-slate-500/20 text-slate-100 border border-slate-400/40",
+                        teacher.status === "on_leave" &&
+                          "bg-amber-500/15 text-amber-100 border border-amber-400/40",
+                        teacher.status === "terminated" &&
+                          "bg-red-500/15 text-red-100 border border-red-400/40"
+                      )}
+                    >
+                      {statusLabel(teacher.status)}
+                    </span>
+                    {teacher.status === "on_leave" && teacher.leaveEndDate && (() => {
+                      const end = new Date(teacher.leaveEndDate!);
+                      const now = new Date();
+                      now.setHours(0, 0, 0, 0);
+                      end.setHours(0, 0, 0, 0);
+                      const d = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                      return (
+                        <span className="text-[10px] text-amber-300/70">
+                          {d === 0 ? "ends today" : `${d}d left`}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </td>
                 <td className="px-3 py-2 align-middle text-xs text-white/80">
                   {hireDateLabel}
@@ -311,6 +327,7 @@ export function TeachersTable({
                     onActivate={onActivate}
                     onDeactivate={onDeactivate}
                     onDelete={onDelete}
+                    onUpdateLeave={onUpdateLeave}
                     isChangingStatus={isChangingStatus}
                   />
                 </td>

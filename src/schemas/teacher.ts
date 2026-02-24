@@ -55,6 +55,9 @@ export const UpdateTeacherSchema = z.object({
   department: z.string().trim().optional().nullable(),
   hireDate: z.string().optional().nullable(), // ISO date string
   terminationDate: z.string().optional().nullable(), // ISO date string
+  leaveStartDate: z.string().optional().nullable(), // ISO date string or YYYY-MM-DD
+  leaveEndDate: z.string().optional().nullable(), // ISO date string or YYYY-MM-DD
+  leaveReason: z.string().trim().max(500).optional().nullable(),
 
   // Capacity
   maxClasses: z.number().min(0).optional().nullable(),
@@ -73,6 +76,39 @@ export const UpdateTeacherSchema = z.object({
   // Internal notes and tags
   notes: z.string().trim().optional().nullable(),
   tags: z.array(z.string().trim()).optional(),
+}).superRefine((data, ctx) => {
+  if (data.status !== "on_leave") return;
+
+  if (!data.leaveStartDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["leaveStartDate"],
+      message: "Leave start date is required when status is On Leave",
+    });
+  }
+
+  if (!data.leaveEndDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["leaveEndDate"],
+      message: "Leave end date is required when status is On Leave",
+    });
+  }
+
+  if (!data.leaveStartDate || !data.leaveEndDate) return;
+
+  const start = new Date(data.leaveStartDate);
+  const end = new Date(data.leaveEndDate);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
+
+  if (end < start) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["leaveEndDate"],
+      message: "Leave end date must be on or after leave start date",
+    });
+  }
 });
 
 export type UpdateTeacherInput = z.infer<typeof UpdateTeacherSchema>;

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus,
@@ -46,6 +47,7 @@ import { TeachersCommandPalette } from "@/components/admin/teachers/TeachersComm
 import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
 import { ImportTeachersCSVModal } from "@/components/modals/ImportTeachersCSVModal";
+import { UpdateLeaveModal } from "@/components/modals/UpdateLeaveModal";
 import { TeachersAdvancedFiltersDialog } from "@/components/admin/teachers/TeachersAdvancedFiltersDialog";
 import {
   useCreateTeacher,
@@ -55,6 +57,7 @@ import {
   useDeactivateTeacher,
   useDeleteTeacher,
   useStartTeacherLeave,
+  useUpdateTeacherLeave,
 } from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
@@ -294,9 +297,10 @@ export default function TeachersPage() {
   const [statusActionTeacherId, setStatusActionTeacherId] = React.useState<
     string | null
   >(null);
-  const [leaveStartDate, setLeaveStartDate] = React.useState("");
-  const [leaveEndDate, setLeaveEndDate] = React.useState("");
+  const [leaveStartDate, setLeaveStartDate] = React.useState<Date | null>(null);
+  const [leaveEndDate, setLeaveEndDate] = React.useState<Date | null>(null);
   const [leaveReason, setLeaveReason] = React.useState("");
+  const [updateLeaveTeacherId, setUpdateLeaveTeacherId] = React.useState<string | null>(null);
 
   const createTeacher = useCreateTeacher();
   const updateTeacher = useUpdateTeacher();
@@ -304,6 +308,7 @@ export default function TeachersPage() {
   const deactivateTeacher = useDeactivateTeacher();
   const deleteTeacher = useDeleteTeacher();
   const startTeacherLeave = useStartTeacherLeave();
+  const updateTeacherLeave = useUpdateTeacherLeave();
   const busy = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
@@ -315,7 +320,8 @@ export default function TeachersPage() {
     deactivateTeacher.isPending ||
     updateTeacher.isPending ||
     deleteTeacher.isPending ||
-    startTeacherLeave.isPending;
+    startTeacherLeave.isPending ||
+    updateTeacherLeave.isPending;
 
   React.useEffect(() => {
     const hasOverlayOpen =
@@ -338,6 +344,10 @@ export default function TeachersPage() {
     commandOpen,
     statusModalTarget,
   ]);
+
+  const handleUpdateLeave = (teacherId: string) => {
+    setUpdateLeaveTeacherId(teacherId);
+  };
 
   const handleActivateTeacher = async (teacherId: string) => {
     const teacher = teachers.find((t) => t.id === teacherId);
@@ -528,6 +538,10 @@ export default function TeachersPage() {
     },
   });
 
+  const updateLeaveTeacher = updateLeaveTeacherId
+    ? teachers.find((t) => t.id === updateLeaveTeacherId)
+    : null;
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -549,12 +563,11 @@ export default function TeachersPage() {
     setStatusModalSearch("");
     setStatusActionTeacherId(null);
     if (target === "on_leave") {
-      const today = toDateInputValue(new Date());
-      setLeaveStartDate(today);
-      setLeaveEndDate(today);
+      setLeaveStartDate(new Date());
+      setLeaveEndDate(null);
     } else {
-      setLeaveStartDate("");
-      setLeaveEndDate("");
+      setLeaveStartDate(null);
+      setLeaveEndDate(null);
     }
     setLeaveReason("");
   }
@@ -563,8 +576,8 @@ export default function TeachersPage() {
     setStatusModalTarget(null);
     setStatusModalSearch("");
     setStatusActionTeacherId(null);
-    setLeaveStartDate("");
-    setLeaveEndDate("");
+    setLeaveStartDate(null);
+    setLeaveEndDate(null);
     setLeaveReason("");
   }
 
@@ -595,15 +608,13 @@ export default function TeachersPage() {
           return;
         }
         if (leaveEndDate < leaveStartDate) {
-          toast.error("Leave end date must be on or after leave start date.");
+          toast.error("Leave end date must be on or after start date.");
           return;
         }
 
         const decision = await confirm({
           title: "Mark Teacher On Leave?",
-          description: `Move ${teacher.fullName} from "${STATUS_LABELS[teacher.status]}" to "On Leave" from ${formatDateInputValue(
-            leaveStartDate
-          )} to ${formatDateInputValue(leaveEndDate)}?`,
+          description: `Move ${teacher.fullName} from "${STATUS_LABELS[teacher.status]}" to "On Leave" from ${leaveStartDate!.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })} to ${leaveEndDate!.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })} (${leaveDurationDays} day${leaveDurationDays !== 1 ? "s" : ""})?`,
           confirmLabel: "Start Leave",
           cancelLabel: "Cancel",
           intent: "warning",
@@ -613,8 +624,8 @@ export default function TeachersPage() {
         await busy.promise(
           startTeacherLeave.mutateAsync({
             teacherId: teacher.id,
-            startDate: leaveStartDate,
-            endDate: leaveEndDate,
+            startDate: toDateInputValue(leaveStartDate!),
+            endDate: toDateInputValue(leaveEndDate!),
             reason: leaveReason.trim() || undefined,
           }),
           {
@@ -653,7 +664,13 @@ export default function TeachersPage() {
     : null;
   const isLeavePeriodValid =
     statusModalTarget !== "on_leave" ||
-    (Boolean(leaveStartDate) && Boolean(leaveEndDate) && leaveEndDate >= leaveStartDate);
+    (leaveStartDate != null && leaveEndDate != null && leaveEndDate >= leaveStartDate);
+
+  const leaveDurationDays = React.useMemo(() => {
+    if (!leaveStartDate || !leaveEndDate || leaveEndDate < leaveStartDate) return 0;
+    const diff = leaveEndDate.getTime() - leaveStartDate.getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1;
+  }, [leaveStartDate, leaveEndDate]);
 
   return (
     <div className="space-y-8">
@@ -965,6 +982,7 @@ export default function TeachersPage() {
                     notifyComingSoon("Send message");
                   }}
                   onActivate={handleActivateTeacher}
+                  onUpdateLeave={handleUpdateLeave}
                 />
               ) : (
                 <TeachersTable
@@ -1021,6 +1039,7 @@ export default function TeachersPage() {
                   onActivate={handleActivateTeacher}
                   onDeactivate={handleDeactivateTeacher}
                   onDelete={handleDeleteTeacher}
+                  onUpdateLeave={handleUpdateLeave}
                   isChangingStatus={isChangingStatus}
                 />
               )}
@@ -1087,46 +1106,75 @@ export default function TeachersPage() {
                 {statusModalConfig.modalDescription}
               </p>
               {statusModalTarget === "on_leave" ? (
-                <div className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-200/80">
-                    Leave Period
-                  </p>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="space-y-1">
-                      <label className="text-xs text-white/60">Start date</label>
-                      <Input
-                        type="date"
+                <div className="space-y-4 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-200/80">
+                      Leave Period
+                    </p>
+                    {isLeavePeriodValid && leaveDurationDays > 0 && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-200">
+                        {leaveDurationDays} day{leaveDurationDays !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-white/60">Start date</label>
+                      <CustomDatePicker
                         value={leaveStartDate}
-                        onChange={(e) => setLeaveStartDate(e.target.value)}
-                        className="h-10 border-white/15 bg-white/5 text-white"
+                        onChange={(date) => {
+                          setLeaveStartDate(date);
+                          if (date && leaveEndDate && leaveEndDate < date) {
+                            setLeaveEndDate(null);
+                          }
+                        }}
+                        minDate={new Date()}
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-white/60">End date</label>
-                      <Input
-                        type="date"
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-white/60">End date</label>
+                      <CustomDatePicker
                         value={leaveEndDate}
-                        onChange={(e) => setLeaveEndDate(e.target.value)}
-                        min={leaveStartDate || undefined}
-                        className="h-10 border-white/15 bg-white/5 text-white"
+                        onChange={(date) => setLeaveEndDate(date)}
+                        minDate={leaveStartDate || new Date()}
                       />
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-white/60">
-                      Reason (optional)
+
+                  {isLeavePeriodValid && leaveDurationDays > 0 && (
+                    <div className="flex items-center gap-2 rounded-xl border border-amber-500/10 bg-amber-500/5 px-3 py-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20">
+                        <span className="text-sm font-bold text-amber-200">{leaveDurationDays}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-white/70">
+                          {leaveStartDate!.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                          {" → "}
+                          {leaveEndDate!.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-white/60">
+                      Reason <span className="text-white/30">(optional)</span>
                     </label>
                     <Textarea
                       value={leaveReason}
                       onChange={(e) => setLeaveReason(e.target.value)}
-                      placeholder="Optional reason shown in teacher notification..."
-                      className="min-h-[78px] border-white/15 bg-white/5 text-white placeholder:text-white/40"
+                      placeholder="e.g., Medical leave, Personal leave, Professional development..."
+                      className="min-h-[78px] rounded-xl border-white/15 bg-white/5 text-white placeholder:text-white/40"
                       maxLength={500}
                     />
+                    {leaveReason.length > 0 && (
+                      <p className="text-right text-[10px] text-white/30">{leaveReason.length}/500</p>
+                    )}
                   </div>
-                  {!isLeavePeriodValid ? (
+
+                  {!isLeavePeriodValid && leaveStartDate && leaveEndDate ? (
                     <p className="text-xs text-red-300/80">
-                      Leave end date must be on or after start date.
+                      End date must be on or after the start date.
                     </p>
                   ) : null}
                 </div>
@@ -1278,6 +1326,34 @@ export default function TeachersPage() {
           </TeacherModalShell>
         )
       ) : null}
+
+      {/* Update Leave Modal */}
+      {updateLeaveTeacher && (
+        <UpdateLeaveModal
+          open={!!updateLeaveTeacherId}
+          onOpenChange={(open) => {
+            if (!open) setUpdateLeaveTeacherId(null);
+          }}
+          teacherName={updateLeaveTeacher.fullName}
+          initialStartDate={updateLeaveTeacher.leaveStartDate ?? null}
+          initialEndDate={updateLeaveTeacher.leaveEndDate ?? null}
+          initialReason={updateLeaveTeacher.leaveReason ?? null}
+          onSubmit={async (payload) => {
+            await busy.promise(
+              updateTeacherLeave.mutateAsync({
+                teacherId: updateLeaveTeacherId!,
+                ...payload,
+              }),
+              {
+                loading: "Updating leave dates...",
+                success: "Leave dates updated successfully",
+                error: (e: Error) => e.message || "Failed to update leave",
+              }
+            );
+          }}
+          isPending={updateTeacherLeave.isPending}
+        />
+      )}
 
       {/* Filters */}
       <TeachersAdvancedFiltersDialog

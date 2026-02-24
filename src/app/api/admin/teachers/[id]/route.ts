@@ -9,6 +9,7 @@ import { Subject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
 import { UpdateTeacherSchema } from "@/schemas/teacher";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
+import { createTeacherNotification } from "@/lib/teachers/teacherNotifications";
 import mongoose from "mongoose";
 
 function startOfDay(d: Date) {
@@ -23,6 +24,27 @@ function toObjectIdOrNull(id: string) {
   } catch {
     return null;
   }
+}
+
+function parseDateInput(value: string): Date | null {
+  const trimmed = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, d] = trimmed.split("-").map(Number);
+    return new Date(y, m - 1, d, 0, 0, 0, 0);
+  }
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+function formatDate(date: Date) {
+  return date.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export async function GET(
@@ -111,6 +133,13 @@ export async function GET(
         terminationDate: t.terminationDate
           ? new Date(t.terminationDate).toISOString()
           : null,
+        leaveStartDate: t.leaveStartDate
+          ? new Date(t.leaveStartDate).toISOString()
+          : null,
+        leaveEndDate: t.leaveEndDate
+          ? new Date(t.leaveEndDate).toISOString()
+          : null,
+        leaveReason: t.leaveReason ? String(t.leaveReason) : null,
 
         maxClasses: typeof t.maxClasses === "number" ? t.maxClasses : null,
         maxStudents: typeof t.maxStudents === "number" ? t.maxStudents : null,
@@ -440,6 +469,13 @@ export async function PATCH(
         terminationDate: t.terminationDate
           ? new Date(t.terminationDate).toISOString()
           : null,
+        leaveStartDate: t.leaveStartDate
+          ? new Date(t.leaveStartDate).toISOString()
+          : null,
+        leaveEndDate: t.leaveEndDate
+          ? new Date(t.leaveEndDate).toISOString()
+          : null,
+        leaveReason: t.leaveReason ? String(t.leaveReason) : null,
         maxClasses: typeof t.maxClasses === "number" ? t.maxClasses : null,
         maxStudents: typeof t.maxStudents === "number" ? t.maxStudents : null,
         emergencyContact: t.emergencyContact || null,

@@ -11,6 +11,7 @@ import {
   Home,
   BookOpen,
   Calendar,
+  Clock3,
   MapPin,
   Sparkles,
 } from "lucide-react";
@@ -29,6 +30,9 @@ type TeacherDetailHeaderProps = {
     subjects?: Array<{ id: string; name: string }>;
     hireDate?: string | null;
     department?: string | null;
+    leaveStartDate?: string | null;
+    leaveEndDate?: string | null;
+    leaveReason?: string | null;
   };
 };
 
@@ -81,6 +85,7 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
     subjects,
     hireDate,
     department,
+    leaveEndDate,
   } = teacher;
 
   const statusStyle = statusConfig[status] || statusConfig.inactive;
@@ -93,6 +98,42 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
       year: "numeric",
     });
   }, [hireDate]);
+
+  const leaveCountdown = React.useMemo(() => {
+    if (status !== "on_leave" || !leaveEndDate) return null;
+
+    const endDate = new Date(leaveEndDate);
+    if (Number.isNaN(endDate.getTime())) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const leaveEnd = new Date(endDate);
+    leaveEnd.setHours(0, 0, 0, 0);
+
+    const daysLeft = Math.max(
+      0,
+      Math.ceil((leaveEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    );
+
+    const returnDate = new Date(leaveEnd);
+    returnDate.setDate(returnDate.getDate() + 1);
+
+    return {
+      daysLeft,
+      daysLabel:
+        daysLeft === 0
+          ? "Ends Today"
+          : daysLeft === 1
+          ? "1 Day Left"
+          : `${daysLeft} Days Left`,
+      returnLabel: returnDate.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+    };
+  }, [status, leaveEndDate]);
 
   return (
     <Card className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -211,6 +252,20 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
 
           {/* Right: Quick Stats */}
           <div className="flex flex-wrap gap-3 lg:flex-col lg:items-end">
+            {leaveCountdown && (
+              <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                <Clock3 className="h-4 w-4 text-amber-300" />
+                <div className="text-xs">
+                  <p className="text-amber-200/80">Leave Countdown</p>
+                  <p className="font-semibold text-amber-100">
+                    {leaveCountdown.daysLabel}
+                  </p>
+                  <p className="text-amber-200/70">
+                    Returns {leaveCountdown.returnLabel}
+                  </p>
+                </div>
+              </div>
+            )}
             {hireDateLabel && (
               <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
                 <Calendar className="h-4 w-4 text-indigo-400" />

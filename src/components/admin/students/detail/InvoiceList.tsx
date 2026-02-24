@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
 import {
@@ -22,8 +21,8 @@ import {
   ChevronDown,
   ChevronUp,
   Calendar,
-  DollarSign,
   Clock,
+  DollarSign,
   CheckCircle2,
   XCircle,
   AlertCircle,
@@ -67,6 +66,11 @@ function statusBadge(status: string) {
       label: "Overdue",
       className: "border-red-400/25 bg-red-500/10 text-red-200",
       icon: AlertCircle,
+    },
+    cancelled: {
+      label: "Cancelled",
+      className: "border-slate-400/25 bg-slate-500/10 text-slate-200",
+      icon: XCircle,
     },
     partially_paid: {
       label: "Partially Paid",
@@ -183,20 +187,46 @@ export function InvoiceList({ studentId, academicPeriodId }: Props) {
                 className="pl-9 bg-white/5 border-white/10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] bg-white/5 border-white/10">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="issued">Issued</SelectItem>
-                <SelectItem value="partially_paid">Partially Paid</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-              </SelectContent>
-            </Select>
+            <PremiumDropdownMenu>
+              <PremiumDropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex w-full items-center justify-between gap-2 rounded-lg border-white/15 bg-white/5 px-3 py-2 text-xs text-white/80 sm:w-[180px]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    {statusFilter === "all"
+                      ? "All Status"
+                      : statusFilter.replace("_", " ")}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+                </Button>
+              </PremiumDropdownMenuTrigger>
+              <PremiumDropdownMenuContent align="start" className="min-w-[180px]">
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("all")}>
+                  All Status
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("draft")}>
+                  Draft
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("issued")}>
+                  Issued
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("partially_paid")}>
+                  Partially Paid
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("paid")}>
+                  Paid
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("overdue")}>
+                  Overdue
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("cancelled")}>
+                  Cancelled
+                </PremiumDropdownMenuItem>
+              </PremiumDropdownMenuContent>
+            </PremiumDropdownMenu>
           </div>
 
           {/* Sort controls */}

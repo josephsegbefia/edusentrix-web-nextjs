@@ -19,6 +19,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ImageUploader } from "@/components/upload/ImageUploader";
+import {
+  CURRICULUM_OPTIONS,
+  getCurriculumProfile,
+  type CurriculumCode,
+} from "@/constants/curriculum-profiles";
+import { getSubjectNamesForCurriculum } from "@/constants/curriculum-subject-templates";
 
 type Bootstrap = {
   user: {
@@ -35,6 +41,7 @@ type Bootstrap = {
     id: string;
     name: string;
     type: "Basic" | "Secondary";
+    curriculumCode?: CurriculumCode;
     address: string;
     city: string;
     region: string;
@@ -90,6 +97,8 @@ export default function OnboardPage() {
   // Step 2: school + curriculum
   const [schoolName, setSchoolName] = useState("");
   const [schoolType, setSchoolType] = useState<"Basic" | "Secondary">("Basic");
+  const [curriculumCode, setCurriculumCode] =
+    useState<CurriculumCode>("ghana_nacca");
   const [schoolAddress, setSchoolAddress] = useState("");
   const [city, setCity] = useState("");
   const [region, setRegion] = useState("");
@@ -142,6 +151,7 @@ export default function OnboardPage() {
         if (payload.school) {
           setSchoolName(payload.school.name || "");
           setSchoolType(payload.school.type || "Basic");
+          setCurriculumCode(payload.school.curriculumCode || "ghana_nacca");
           setSchoolAddress(payload.school.address || "");
           setCity(payload.school.city || "");
           setRegion(payload.school.region || "");
@@ -242,6 +252,7 @@ export default function OnboardPage() {
           schoolId: data.school.id,
           name: schoolName.trim(),
           type: schoolType,
+          curriculumCode,
           address: schoolAddress.trim() || undefined,
           city: city.trim() || undefined,
           region: region.trim() || undefined,
@@ -259,6 +270,29 @@ export default function OnboardPage() {
         toast.error(error?.error || "Failed to save school profile");
         return;
       }
+
+      const newSubjects = getSubjectNamesForCurriculum(
+        curriculumCode,
+        schoolType === "Secondary" ? "SHS" : undefined
+      );
+      setSubjectPool(newSubjects);
+      setSelectedSubjects(newSubjects);
+
+      const profile = getCurriculumProfile(curriculumCode);
+      const defaultTerm = profile.termLabels[0] || "Term 1";
+      setPeriods([
+        {
+          yearLabel: `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
+          term: defaultTerm,
+          startDate: format(new Date(), "yyyy-MM-dd"),
+          endDate: format(
+            new Date(new Date().setMonth(new Date().getMonth() + 3)),
+            "yyyy-MM-dd"
+          ),
+          isCurrent: true,
+        },
+      ]);
+
       toast.success("School profile saved");
       setCurrentStep(3);
     } catch {
@@ -284,6 +318,7 @@ export default function OnboardPage() {
           schoolId: data.school.id,
           name: schoolName.trim(),
           type: schoolType,
+          curriculumCode,
           address: schoolAddress.trim() || undefined,
           city: city.trim() || undefined,
           region: region.trim() || undefined,
@@ -720,20 +755,49 @@ export default function OnboardPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label
-                          htmlFor="schoolAddress"
-                          className="text-sm font-semibold"
-                        >
-                          Address
+                        <Label className="text-sm font-semibold">
+                          Curriculum
                         </Label>
-                        <Input
-                          id="schoolAddress"
-                          value={schoolAddress}
-                          onChange={(e) => setSchoolAddress(e.target.value)}
-                          className="bg-background/50 border-border h-11"
-                          placeholder="School address"
-                        />
+                        <Select
+                          value={curriculumCode}
+                          onValueChange={(v) =>
+                            setCurriculumCode(v as CurriculumCode)
+                          }
+                        >
+                          <SelectTrigger className="bg-background/50 border-border h-11">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            {CURRICULUM_OPTIONS.map((c) => (
+                              <SelectItem key={c.code} value={c.code}>
+                                {c.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
+                    </div>
+                    {curriculumCode !== "ghana_nacca" && (
+                      <div className="rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
+                        <p className="text-sm text-white/80">
+                          {getCurriculumProfile(curriculumCode).description}
+                        </p>
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="schoolAddress"
+                        className="text-sm font-semibold"
+                      >
+                        Address
+                      </Label>
+                      <Input
+                        id="schoolAddress"
+                        value={schoolAddress}
+                        onChange={(e) => setSchoolAddress(e.target.value)}
+                        className="bg-background/50 border-border h-11"
+                        placeholder="School address"
+                      />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">

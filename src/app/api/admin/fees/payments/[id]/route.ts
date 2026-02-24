@@ -10,6 +10,7 @@ import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { InvoiceEvent } from "@/models/InvoiceEvent";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
+import { PaymentAuditEvent } from "@/models/PaymentAuditEvent";
 import {
   calculateInvoiceTotals,
   calculateInvoiceStatus,
@@ -17,6 +18,14 @@ import {
 import { applyPaymentAllocations } from "@/lib/fees/applyPaymentAllocation";
 import { recordFeePaymentInLedger } from "@/lib/finance/writeLedgerEntry";
 import { Student } from "@/models/Student";
+
+function buildActorName(actor: any) {
+  if (!actor) return null;
+  const fullName = String(
+    actor.name || `${actor.firstName || ""} ${actor.lastName || ""}`.trim()
+  ).trim();
+  return fullName || actor.email || null;
+}
 
 export async function GET(
   _req: NextRequest,
@@ -26,11 +35,19 @@ export async function GET(
   await connectToDatabase();
 
   const { id } = await params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return NextResponse.json({ error: "Invalid payment ID" }, { status: 400 });
+  }
 
   const payment = await Payment.findOne({ _id: id, schoolId })
     .populate("studentId", "firstName lastName admissionNo")
-    .populate("invoiceId", "invoiceNumber academicPeriodId")
-    .populate("receivedBy", "name email")
+    .populate({
+      path: "invoiceId",
+      select: "invoiceNumber academicPeriodId issueDate dueDate",
+      populate: { path: "academicPeriodId", select: "yearLabel term isCurrent" },
+    })
+    .populate("receivedBy", "name firstName lastName email")
+    .populate("reviewedBy", "name firstName lastName email")
     .lean();
 
   if (!payment)
@@ -42,7 +59,30 @@ export async function GET(
     .populate("invoiceLineItemId", "name amountMinor")
     .lean();
 
-  return NextResponse.json({ payment: { ...payment, allocations } });
+  const timeline = await PaymentAuditEvent.find({
+    schoolId,
+    paymentId: new mongoose.Types.ObjectId(id),
+  })
+    .sort({ createdAt: -1 })
+    .populate("actorId", "name firstName lastName email")
+    .lean();
+
+  return NextResponse.json({
+    payment: {
+      ...payment,
+      allocations,
+      timeline: timeline.map((event: any) => ({
+        ...event,
+        _id: String(event._id),
+        paymentId: String(event.paymentId),
+        invoiceId: event.invoiceId ? String(event.invoiceId) : null,
+        studentId: event.studentId ? String(event.studentId) : null,
+        actorLabel: event.actorId
+          ? buildActorName(event.actorId)
+          : event.actorName || null,
+      })),
+    },
+  });
 }
 
 export async function POST(
@@ -53,11 +93,17 @@ export async function POST(
   await connectToDatabase();
 
   const { id } = await params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return NextResponse.json({ error: "Invalid payment ID" }, { status: 400 });
+  }
   const body = await req.json();
   const { action, reviewNotes } = body as {
     action: "approve_proof" | "reject_proof" | "reverse";
     reviewNotes?: string;
   };
+  if (!["approve_proof", "reject_proof", "reverse"].includes(action)) {
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  }
 
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -197,6 +243,30 @@ export async function POST(
         { session }
       );
 
+      await PaymentAuditEvent.create(
+        [
+          {
+            schoolId,
+            paymentId: payment._id,
+            invoiceId: invoice._id,
+            studentId: invoice.studentId,
+            eventType: "payment_approved",
+            title: "Payment approved",
+            description:
+              reviewNotes?.trim() ||
+              `Payment proof approved${
+                payment.receiptNumber ? ` (${payment.receiptNumber})` : ""
+              }.`,
+            actorId: userId ? new mongoose.Types.ObjectId(userId) : null,
+            metadata: {
+              approvalStatus: "approved",
+              paymentStatus: payment.status,
+            },
+          },
+        ],
+        { session }
+      );
+
       await session.commitTransaction();
 
       // Write to Financial Center ledger
@@ -271,6 +341,30 @@ export async function POST(
             description: `Payment proof rejected • ${payment.receiptNumber}`,
             performedBy: userId || null,
             relatedPaymentId: payment._id,
+          },
+        ],
+        { session }
+      );
+
+      await PaymentAuditEvent.create(
+        [
+          {
+            schoolId,
+            paymentId: payment._id,
+            invoiceId: invoice._id,
+            studentId: invoice.studentId,
+            eventType: "payment_rejected",
+            title: "Payment rejected",
+            description:
+              reviewNotes?.trim() ||
+              `Payment proof rejected${
+                payment.receiptNumber ? ` (${payment.receiptNumber})` : ""
+              }.`,
+            actorId: userId ? new mongoose.Types.ObjectId(userId) : null,
+            metadata: {
+              approvalStatus: "rejected",
+              paymentStatus: payment.status,
+            },
           },
         ],
         { session }
@@ -394,6 +488,27 @@ export async function POST(
             description: `Payment reversed • ${payment.receiptNumber}`,
             performedBy: userId || null,
             relatedPaymentId: payment._id,
+          },
+        ],
+        { session }
+      );
+
+      await PaymentAuditEvent.create(
+        [
+          {
+            schoolId,
+            paymentId: payment._id,
+            invoiceId: invoice._id,
+            studentId: invoice.studentId,
+            eventType: "payment_reversed",
+            title: "Payment reversed",
+            description:
+              reviewNotes?.trim() ||
+              `Payment reversed${
+                payment.receiptNumber ? ` (${payment.receiptNumber})` : ""
+              }.`,
+            actorId: userId ? new mongoose.Types.ObjectId(userId) : null,
+            metadata: { paymentStatus: payment.status },
           },
         ],
         { session }

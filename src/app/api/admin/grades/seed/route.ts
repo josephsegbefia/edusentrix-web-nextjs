@@ -4,6 +4,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Grade } from "@/models/Grade";
 import { School, type ISchool } from "@/models/School";
+import { getGradeTemplatesForCurriculum } from "@/constants/curriculum-grade-templates";
 import { GRADE_TEMPLATES } from "@/constants/grade-templates";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -15,11 +16,22 @@ export async function POST(_req: NextRequest) {
     const school = (await School.findById(schoolId).lean()) as ISchool | null;
     if (!school) return new Response("School not found", { status: 404 });
 
-    const type: "Basic" | "SHS" = school.type === "SHS" ? "SHS" : "Basic";
-    const tpl = GRADE_TEMPLATES[type];
-    if (!tpl) return new Response("Unsupported school type", { status: 400 });
+    const curriculumCode = school.curriculumCode || "ghana_nacca";
 
-    // Idempotent upserts by (schoolId + code)
+    let tpl = getGradeTemplatesForCurriculum(curriculumCode, school.type);
+
+    if (tpl.length === 0) {
+      const legacyType: "Basic" | "SHS" =
+        school.type === "SHS" ? "SHS" : "Basic";
+      tpl = [...GRADE_TEMPLATES[legacyType]];
+    }
+
+    if (tpl.length === 0) {
+      return new Response("No grade template found for this curriculum", {
+        status: 400,
+      });
+    }
+
     await Promise.all(
       tpl.map((g) =>
         Grade.updateOne(
@@ -39,7 +51,6 @@ export async function POST(_req: NextRequest) {
       )
     );
 
-    // No manual emit: metrics SSE doesn’t watch grades; UI should refetch via React Query invalidation.
     return Response.json({ success: true });
   } catch (e: unknown) {
     console.error(e);

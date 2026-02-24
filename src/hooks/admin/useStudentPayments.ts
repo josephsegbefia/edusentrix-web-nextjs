@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export type StudentPaymentFilters = {
   invoiceId?: string;
+  academicPeriodId?: string;
   paymentMethod?: string;
   status?: string;
   dateFrom?: string;
@@ -23,6 +24,9 @@ export function useStudentPayments(
       const params = new URLSearchParams();
       if (filters?.invoiceId) {
         params.set("invoiceId", filters.invoiceId);
+      }
+      if (filters?.academicPeriodId) {
+        params.set("academicPeriodId", filters.academicPeriodId);
       }
       if (filters?.paymentMethod) {
         params.set("paymentMethod", filters.paymentMethod);

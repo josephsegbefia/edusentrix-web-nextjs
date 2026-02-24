@@ -13,7 +13,6 @@ import {
   type LessonNoteFormData,
   type LessonNoteTemplateType,
   type WizardStep,
-  WIZARD_STEPS,
   DEFAULT_FORM_DATA,
   getDefaultBodyForTemplate,
 } from "@/types/lesson-notes";
@@ -33,6 +32,10 @@ import { ResourcesStep } from "./steps/ResourcesStep";
 import { BodyStep } from "./steps/BodyStep";
 import { AssessmentStep } from "./steps/AssessmentStep";
 import { ReviewStep } from "./steps/ReviewStep";
+import { UnitPlannerSectionStep } from "./steps/UnitPlannerSectionStep";
+
+import type { CurriculumCode } from "@/constants/curriculum-profiles";
+import { getTemplateDefinition, getDefaultTemplate } from "@/constants/curriculum-lesson-templates";
 
 // ============================================================================
 // Types
@@ -52,17 +55,14 @@ type LessonNoteWizardProps = {
   schoolName?: string;
   schoolLogo?: string;
   teacherName?: string;
+  curriculumCode?: CurriculumCode;
 };
 
 // ============================================================================
 // Step Configuration
 // ============================================================================
 
-const STEP_IDS: WizardStep[] = ["context", "curriculum", "resources", "body", "assessment", "review"];
-
-function getStepIndex(step: WizardStep): number {
-  return STEP_IDS.indexOf(step);
-}
+const DEFAULT_STEP_IDS: WizardStep[] = ["context", "curriculum", "resources", "body", "assessment", "review"];
 
 // ============================================================================
 // Component
@@ -76,6 +76,7 @@ export function LessonNoteWizard({
   schoolName,
   schoolLogo,
   teacherName,
+  curriculumCode = "ghana_nacca",
 }: LessonNoteWizardProps) {
   const busyToast = useBusyToast();
   const createMutation = useTeacherLessonNoteCreate();
@@ -89,15 +90,30 @@ export function LessonNoteWizard({
   const [showPrintPreview, setShowPrintPreview] = React.useState(false);
 
   // Form state
+  const defaultTemplate = getDefaultTemplate(curriculumCode);
   const [formData, setFormData] = React.useState<LessonNoteFormData>(() => ({
     ...DEFAULT_FORM_DATA,
     classGroupId: initialData?.classGroupId || classOptions[0]?.id || "",
+    templateType: initialData?.templateType || defaultTemplate.id,
+    curriculumCode,
     ...initialData,
   }));
 
+  // Derive wizard steps from the selected template
+  const templateDef = getTemplateDefinition(formData.templateType);
+  const wizardStepDefs = templateDef?.wizardSteps || defaultTemplate.wizardSteps;
+  const stepIds = wizardStepDefs.map((s) => s.id) as WizardStep[];
+
   // Current step
   const [currentStep, setCurrentStep] = React.useState<WizardStep>("context");
-  const currentStepIndex = getStepIndex(currentStep);
+  const currentStepIndex = stepIds.indexOf(currentStep);
+
+  // If current step is not in the new step list (after template change), reset to context
+  React.useEffect(() => {
+    if (!stepIds.includes(currentStep)) {
+      setCurrentStep("context");
+    }
+  }, [stepIds, currentStep]);
 
   // Track completed steps
   const [completedSteps, setCompletedSteps] = React.useState<Set<WizardStep>>(new Set());
@@ -107,14 +123,17 @@ export function LessonNoteWizard({
     setFormData((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  // Handle template change - reset body to appropriate defaults
+  // Handle template change - reset body and curriculum metadata to appropriate defaults
   const handleTemplateChange = React.useCallback((templateType: LessonNoteTemplateType) => {
     setFormData((prev) => ({
       ...prev,
       templateType,
       body: getDefaultBodyForTemplate(templateType),
+      curriculumCode,
+      curriculumMetadata: {},
+      unitPlannerData: {},
     }));
-  }, []);
+  }, [curriculumCode]);
 
   // Step navigation
   const goToStep = (step: WizardStep) => {
@@ -122,19 +141,17 @@ export function LessonNoteWizard({
   };
 
   const goNext = () => {
-    // Mark current step as completed
     setCompletedSteps((prev) => new Set(prev).add(currentStep));
-
     const nextIndex = currentStepIndex + 1;
-    if (nextIndex < STEP_IDS.length) {
-      setCurrentStep(STEP_IDS[nextIndex]);
+    if (nextIndex < stepIds.length) {
+      setCurrentStep(stepIds[nextIndex]);
     }
   };
 
   const goBack = () => {
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) {
-      setCurrentStep(STEP_IDS[prevIndex]);
+      setCurrentStep(stepIds[prevIndex]);
     }
   };
 
@@ -231,13 +248,12 @@ export function LessonNoteWizard({
             classOptions={classOptions}
             onUpdate={updateForm}
             onTemplateChange={handleTemplateChange}
+            curriculumCode={curriculumCode}
             onAIGenerated={(body, tlms) => {
-              // Update body and TLMs from AI generation
               updateForm({
                 body: body as unknown as LessonNoteFormData["body"],
                 ...(tlms?.length ? { tlms } : {}),
               });
-              // Automatically proceed to next step
               goNext();
             }}
           />
@@ -246,8 +262,21 @@ export function LessonNoteWizard({
       case "curriculum":
         return <CurriculumStep formData={formData} onUpdate={updateForm} />;
 
-      case "resources":
+      case "resources": {
+        const resourceSection = templateDef?.unitSections?.find((s) => s.key === "resources");
+        if (resourceSection) {
+          return (
+            <UnitPlannerSectionStep
+              section={resourceSection}
+              data={formData.unitPlannerData || {}}
+              onUpdate={(updates) => {
+                updateForm({ unitPlannerData: { ...formData.unitPlannerData, ...updates } });
+              }}
+            />
+          );
+        }
         return <ResourcesStep formData={formData} onUpdate={updateForm} />;
+      }
 
       case "body":
         return <BodyStep formData={formData} onUpdate={updateForm} />;
@@ -264,8 +293,24 @@ export function LessonNoteWizard({
           />
         );
 
-      default:
+      default: {
+        // Handle IB unit planner section steps dynamically
+        const section = templateDef?.unitSections?.find((s) => s.key === currentStep);
+        if (section) {
+          return (
+            <UnitPlannerSectionStep
+              section={section}
+              data={formData.unitPlannerData || {}}
+              onUpdate={(updates) => {
+                updateForm({
+                  unitPlannerData: { ...formData.unitPlannerData, ...updates },
+                });
+              }}
+            />
+          );
+        }
         return null;
+      }
     }
   };
 
@@ -285,13 +330,14 @@ export function LessonNoteWizard({
           )}
         </div>
         <div className="flex items-center justify-center gap-2 flex-1">
-        {WIZARD_STEPS.map((step, index) => {
-          const isCompleted = completedSteps.has(step.id);
-          const isCurrent = currentStep === step.id;
+        {wizardStepDefs.map((step, index) => {
+          const stepId = step.id as WizardStep;
+          const isCompleted = completedSteps.has(stepId);
+          const isCurrent = currentStep === stepId;
           const isPast = index < currentStepIndex;
 
           return (
-            <React.Fragment key={step.id}>
+            <React.Fragment key={stepId}>
               {index > 0 && (
                 <div
                   className={cn(
@@ -302,7 +348,7 @@ export function LessonNoteWizard({
               )}
               <button
                 type="button"
-                onClick={() => goToStep(step.id)}
+                onClick={() => goToStep(stepId)}
                 className={cn(
                   "flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
                   isCurrent

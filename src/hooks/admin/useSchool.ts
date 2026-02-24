@@ -8,6 +8,7 @@ export type SchoolInfo = {
   logo: string | null;
   type: "Basic" | "SHS";
   status: "pending" | "active" | "deactivated";
+  curriculumCode?: string;
 };
 
 export type SchoolResponse = {

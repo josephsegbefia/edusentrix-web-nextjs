@@ -4,35 +4,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invite, IInvite } from "@/models/Invite";
 import { School, ISchool } from "@/models/School";
 import { User } from "@/models/User";
-
-const BASIC_SUBJECTS = [
-  "Mathematics",
-  "English Language",
-  "Science",
-  "Social Studies",
-  "Religious & Moral Education",
-  "ICT",
-  "French",
-  "Ghanaian Language",
-  "Creative Arts",
-  "Physical Education",
-];
-
-const SECONDARY_SUBJECTS = [
-  "Core Mathematics",
-  "English Language",
-  "Integrated Science",
-  "Social Studies",
-  "Biology",
-  "Chemistry",
-  "Physics",
-  "Geography",
-  "Economics",
-  "Government",
-  "Elective Mathematics",
-  "Literature-in-English",
-  "ICT",
-];
+import { getSubjectNamesForCurriculum } from "@/constants/curriculum-subject-templates";
 
 export async function GET() {
   // 1) Require a signed-in Clerk session
@@ -106,7 +78,12 @@ export async function GET() {
 
   const schoolTypeRaw = (school as { type?: string } | null)?.type;
   const isSecondary = schoolTypeRaw === "SHS" || schoolTypeRaw === "Secondary";
-  const subjectSuggestions = isSecondary ? SECONDARY_SUBJECTS : BASIC_SUBJECTS;
+  const curriculumCode =
+    (school as ISchool | null)?.curriculumCode || "ghana_nacca";
+  const subjectSuggestions = getSubjectNamesForCurriculum(
+    curriculumCode,
+    isSecondary ? "SHS" : undefined
+  );
   const schoolTypeForClient = isSecondary ? "Secondary" : "Basic";
 
   // 6) Response in the same shape your frontend expects
@@ -126,6 +103,7 @@ export async function GET() {
           id: String(school._id),
           name: school.name,
           type: schoolTypeForClient,
+          curriculumCode,
           address: school.address ?? "",
           city: school.city ?? "",
           region: school.region ?? "",

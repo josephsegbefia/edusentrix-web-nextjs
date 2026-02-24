@@ -26,6 +26,18 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10), 100);
+    if (studentId && !mongoose.Types.ObjectId.isValid(studentId)) {
+      return NextResponse.json(
+        { error: "Invalid student ID" },
+        { status: 400 }
+      );
+    }
+    if (academicPeriodId && !mongoose.Types.ObjectId.isValid(academicPeriodId)) {
+      return NextResponse.json(
+        { error: "Invalid academic period ID" },
+        { status: 400 }
+      );
+    }
 
     const query: any = { schoolId };
     if (studentId) query.studentId = new mongoose.Types.ObjectId(studentId);

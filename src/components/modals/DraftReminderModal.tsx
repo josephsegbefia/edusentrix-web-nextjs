@@ -7,6 +7,7 @@ import {
   Mail,
   MessageSquare,
   Send,
+  Sparkles,
   Smartphone,
   Users,
 } from "lucide-react";
@@ -34,6 +35,11 @@ import {
   type ReminderChannel,
 } from "@/hooks/admin/useFeeReminders";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import {
+  useFeeReminderAIDraft,
+  useGenerateFeeReminderAIDraft,
+  type ReminderTemplateTone,
+} from "@/hooks/admin/useFeesAI";
 
 type DraftReminderModalProps = {
   onClose: () => void;
@@ -48,6 +54,12 @@ const CHANNELS: Array<{
   { key: "email", label: "Email", icon: Mail },
   { key: "sms", label: "SMS", icon: MessageSquare },
   { key: "whatsapp", label: "WhatsApp", icon: Smartphone },
+];
+
+const TONES: Array<{ key: ReminderTemplateTone; label: string; hint: string }> = [
+  { key: "friendly", label: "Friendly", hint: "Warm and polite reminder." },
+  { key: "firm", label: "Firm", hint: "Clear and formal payment prompt." },
+  { key: "urgent", label: "Urgent", hint: "Escalation tone for overdue balances." },
 ];
 
 function formatMinorCurrency(minor: number) {
@@ -68,6 +80,14 @@ function formatDateTime(iso: string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(parsed);
+}
+
+function formatUsd(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 4,
+  }).format(value || 0);
 }
 
 function renderStatusBadge(status: "sent" | "failed" | "skipped") {
@@ -154,6 +174,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
   const busy = useBusyToast();
   const queryClient = useQueryClient();
   const [channel, setChannel] = React.useState<ReminderChannel>(initialChannel);
+  const [aiTone, setAiTone] = React.useState<ReminderTemplateTone>("friendly");
   const [subject, setSubject] = React.useState("Fee Reminder: Outstanding Balance");
   const [message, setMessage] = React.useState(
     "Please settle your outstanding fees at your earliest convenience. Thank you."
@@ -181,6 +202,15 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
   const preview = useFeeReminderPreview(channel, filters, true);
   const sendReminders = useSendFeeReminders();
   const history = useFeeReminderHistory(8, true);
+  const aiDraft = useFeeReminderAIDraft(
+    {
+      channel,
+      tone: aiTone,
+      onlyPrimaryGuardian,
+    },
+    true
+  );
+  const generateAIDraft = useGenerateFeeReminderAIDraft();
 
   const capability = preview.data?.capabilities?.[channel];
   const canSend =
@@ -213,6 +243,42 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
       busy.info(
         `Sent ${summary.sent}/${summary.attempted} via ${channel.toUpperCase()} (${summary.failed} failed, ${summary.skipped} skipped).`
       );
+    } catch {
+      // Handled by busy toast.
+    }
+  };
+
+  const applyAIDraft = React.useCallback(
+    (draft: {
+      subject: string | null;
+      message: string;
+    }) => {
+      if (channel === "email" && draft.subject) {
+        setSubject(draft.subject);
+      }
+      setMessage(draft.message || "");
+      busy.success("AI draft applied to the reminder message.");
+    },
+    [busy, channel]
+  );
+
+  const handleRegenerateAIDraft = async () => {
+    try {
+      const result = await busy.promise(
+        generateAIDraft.mutateAsync({
+          channel,
+          tone: aiTone,
+          onlyPrimaryGuardian,
+          force: true,
+        }),
+        {
+          loading: "Generating AI reminder draft...",
+          success: "AI reminder draft refreshed",
+          error: (error: Error) =>
+            error.message || "Failed to generate AI reminder draft",
+        }
+      );
+      applyAIDraft(result.template);
     } catch {
       // Handled by busy toast.
     }
@@ -269,6 +335,142 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
             </button>
           );
         })}
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+            <Sparkles className="h-4 w-4 text-fuchsia-300" />
+            AI Reminder Composer
+          </div>
+          <div className="inline-flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 border-white/15 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
+              disabled={
+                generateAIDraft.isPending ||
+                aiDraft.isLoading ||
+                (aiDraft.data ? !aiDraft.data.budget.canGenerate : false)
+              }
+              onClick={() => void handleRegenerateAIDraft()}
+              title={
+                aiDraft.data?.budget.canGenerate
+                  ? "Regenerate AI reminder draft"
+                  : aiDraft.data?.budget.reason || ""
+              }
+            >
+              {generateAIDraft.isPending ? "Generating…" : "Regenerate"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 bg-brand px-3 text-xs text-black hover:bg-brand/90"
+              disabled={!aiDraft.data?.template?.message}
+              onClick={() => {
+                if (!aiDraft.data?.template) return;
+                applyAIDraft(aiDraft.data.template);
+              }}
+            >
+              Use Draft
+            </Button>
+          </div>
+        </div>
+
+        <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {TONES.map((tone) => (
+            <button
+              key={tone.key}
+              type="button"
+              onClick={() => setAiTone(tone.key)}
+              className={`rounded-lg border px-3 py-2 text-left ${
+                aiTone === tone.key
+                  ? "border-brand bg-brand/10"
+                  : "border-white/10 bg-black/10"
+              }`}
+            >
+              <p className="text-xs font-semibold text-white">{tone.label}</p>
+              <p className="mt-0.5 text-[11px] text-white/55">{tone.hint}</p>
+            </button>
+          ))}
+        </div>
+
+        {aiDraft.isLoading ? (
+          <p className="text-sm text-white/60">Loading AI draft cache…</p>
+        ) : aiDraft.isError ? (
+          <p className="text-sm text-rose-300">Failed to load AI reminder draft.</p>
+        ) : aiDraft.data ? (
+          <div className="space-y-3">
+            <div className="rounded-lg border border-white/10 bg-black/10 p-3 text-xs text-white/70">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className="border-white/15 bg-white/5 text-white/80"
+                >
+                  Source: {aiDraft.data.source === "ai" ? "AI" : "Rule-based"}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className={
+                    aiDraft.data.cacheStatus === "fresh"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                      : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                  }
+                >
+                  Cache: {aiDraft.data.cacheStatus}
+                </Badge>
+                <span>
+                  Updated:{" "}
+                  {aiDraft.data.generatedAt
+                    ? formatDateTime(aiDraft.data.generatedAt)
+                    : "Not generated yet"}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/55">
+                <span>Tokens today: {aiDraft.data.budget.tokensUsedToday}</span>
+                <span>Remaining: {aiDraft.data.budget.tokensRemainingToday}</span>
+                <span>
+                  Cost today: {formatUsd(aiDraft.data.budget.estimatedCostUsdToday)}
+                </span>
+              </div>
+            </div>
+
+            {channel === "email" ? (
+              <div className="rounded-lg border border-white/10 bg-black/10 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-white/50">
+                  Suggested subject
+                </p>
+                <p className="mt-1 text-sm text-white/90">
+                  {aiDraft.data.template.subject || "No subject generated"}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="rounded-lg border border-white/10 bg-black/10 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-white/50">
+                Suggested custom message
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-white/85">
+                {aiDraft.data.template.message || "No draft message generated"}
+              </p>
+            </div>
+
+            <p className="text-xs text-white/55">
+              Why this draft: {aiDraft.data.template.rationale}
+            </p>
+
+            {!aiDraft.data.budget.canGenerate ? (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <div className="mb-1 inline-flex items-center gap-1 font-medium">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  AI generation paused
+                </div>
+                <p>{aiDraft.data.budget.reason}</p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

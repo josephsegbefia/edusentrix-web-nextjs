@@ -33,6 +33,7 @@ export function useReviewPayment() {
       qc.invalidateQueries({ queryKey: ["student-fees-ledger"] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
       qc.invalidateQueries({ queryKey: ["invoice"] });
+      qc.invalidateQueries({ queryKey: ["admin", "metrics"] });
     },
     onError: (e: any) => toast.error(e?.message || "Failed"),
   });

@@ -117,8 +117,20 @@ const UpdateLessonNoteSchema = z.object({
   classGroupId: z.string().min(1).optional(),
   subjectId: z.string().optional().nullable(),
 
-  // Template type
-  templateType: z.enum(["NACCA_3_PHASE", "CLASSIC_JHS", "SIMPLE"]).optional(),
+  // Template type & curriculum
+  templateType: z.enum([
+    "NACCA_3_PHASE",
+    "CLASSIC_JHS",
+    "SIMPLE",
+    "CAMBRIDGE_3_PART",
+    "BRITISH_3_PART",
+    "AMERICAN_STANDARDS",
+    "IB_PYP_UNIT_PLANNER",
+    "IB_MYP_UNIT_PLANNER",
+  ]).optional(),
+  curriculumCode: z.string().max(50).optional(),
+  curriculumMetadata: z.record(z.string(), z.unknown()).optional(),
+  unitPlannerData: z.record(z.string(), z.unknown()).optional(),
 
   // Basic info
   weekOf: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
@@ -198,8 +210,11 @@ function formatLessonNoteResponse(
     subjectName,
     academicPeriodId: entry.academicPeriodId ? String(entry.academicPeriodId) : null,
 
-    // Template
+    // Template & curriculum
     templateType: entry.templateType || "SIMPLE",
+    curriculumCode: (entry as unknown as Record<string, unknown>).curriculumCode || null,
+    curriculumMetadata: (entry as unknown as Record<string, unknown>).curriculumMetadata || null,
+    unitPlannerData: (entry as unknown as Record<string, unknown>).unitPlannerData || null,
 
     // Basic info
     weekOf: entry.weekOf ? new Date(entry.weekOf).toISOString() : null,
@@ -411,6 +426,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Basic fields
     if (parsed.data.templateType) updateData.templateType = parsed.data.templateType;
+    if (parsed.data.curriculumCode !== undefined) updateData.curriculumCode = parsed.data.curriculumCode;
+    if (parsed.data.curriculumMetadata !== undefined) updateData.curriculumMetadata = parsed.data.curriculumMetadata;
+    if (parsed.data.unitPlannerData !== undefined) updateData.unitPlannerData = parsed.data.unitPlannerData;
     if (parsed.data.topic) updateData.topic = parsed.data.topic;
     if (parsed.data.durationMinutes !== undefined) {
       if (parsed.data.durationMinutes === null) {

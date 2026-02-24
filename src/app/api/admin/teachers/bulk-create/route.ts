@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
 import { Teacher } from "@/models/Teacher";
 import { Subject } from "@/models/Subject";
+import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
 import { UserMembership } from "@/models/UserMembership";
 import { School } from "@/models/School";
@@ -33,8 +34,11 @@ type CSVRow = {
   employeeId?: string;
   department?: string;
   status?: string;
-  subjectIds?: string; // comma-separated
-  homeroomClassGroupId?: string;
+  subjects?: string; // comma-separated subject names (e.g. "Mathematics,English")
+  subjectIds?: string; // legacy: comma-separated IDs
+  homeroomGrade?: string;
+  homeroomClass?: string;
+  homeroomClassGroupId?: string; // legacy: ID
 };
 
 /**
@@ -103,20 +107,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Normalize column names (case-insensitive)
+    // Normalize column names (case-insensitive, spaces allowed)
     const normalizedRows = rows.map((row) => {
       const normalized: any = {};
+      const norm = (k: string) => k.toLowerCase().trim().replace(/\s+/g, "");
       for (const [key, value] of Object.entries(row)) {
-        const lowerKey = key.toLowerCase().trim();
-        if (lowerKey === "firstname" || lowerKey === "first_name") normalized.firstName = value;
-        else if (lowerKey === "lastname" || lowerKey === "last_name") normalized.lastName = value;
-        else if (lowerKey === "email") normalized.email = value;
-        else if (lowerKey === "phone") normalized.phone = value;
-        else if (lowerKey === "employeeid" || lowerKey === "employee_id") normalized.employeeId = value;
-        else if (lowerKey === "department") normalized.department = value;
-        else if (lowerKey === "status") normalized.status = value;
-        else if (lowerKey === "subjectids" || lowerKey === "subject_ids") normalized.subjectIds = value;
-        else if (lowerKey === "homeroomclassgroupid" || lowerKey === "homeroom_class_group_id")
+        const n = norm(key);
+        if (n === "firstname" || n === "first_name") normalized.firstName = value;
+        else if (n === "lastname" || n === "last_name") normalized.lastName = value;
+        else if (n === "email") normalized.email = value;
+        else if (n === "phone") normalized.phone = value;
+        else if (n === "employeeid" || n === "employee_id") normalized.employeeId = value;
+        else if (n === "department") normalized.department = value;
+        else if (n === "status") normalized.status = value;
+        else if (n === "subjects") normalized.subjects = value;
+        else if (n === "subjectids" || n === "subject_ids") normalized.subjectIds = value;
+        else if (n === "homeroomgrade" || n === "homeroom_grade") normalized.homeroomGrade = value;
+        else if (n === "homeroomclass" || n === "homeroom_class") normalized.homeroomClass = value;
+        else if (n === "homeroomclassgroupid" || n === "homeroom_class_group_id")
           normalized.homeroomClassGroupId = value;
         else normalized[key] = value; // Keep unknown columns
       }
@@ -180,48 +188,118 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Validate and parse subject IDs
+        // Validate and resolve subjects — by name or (legacy) by ID
         let subjectIds: mongoose.Types.ObjectId[] = [];
-        if (row.subjectIds?.trim()) {
-          const subjectIdStrings = row.subjectIds
-            .split(",")
-            .map((id) => id.trim())
-            .filter((id) => id.length > 0);
+        const subjectInput = (row.subjects || row.subjectIds || "").trim();
+        if (subjectInput) {
+          const parts = subjectInput.split(",").map((p) => p.trim()).filter(Boolean);
 
-          const validSubjectIds = subjectIdStrings
-            .map((id) => toObjectIdOrNull(id))
-            .filter((id): id is mongoose.Types.ObjectId => id !== null);
+          if (parts.length > 0) {
+            const firstPart = parts[0];
+            const looksLikeId = /^[a-f0-9]{24}$/i.test(firstPart);
 
-          if (validSubjectIds.length > 0) {
-            const subjects = await Subject.find({
-              _id: { $in: validSubjectIds },
-              schoolId: schoolIdObj,
-              isActive: true,
-            }).lean();
+            if (looksLikeId) {
+              const validSubjectIds = parts
+                .map((id) => toObjectIdOrNull(id))
+                .filter((id): id is mongoose.Types.ObjectId => id !== null);
+              const subjects = await Subject.find({
+                _id: { $in: validSubjectIds },
+                schoolId: schoolIdObj,
+                isActive: true,
+              }).lean();
+              if (subjects.length !== validSubjectIds.length) {
+                results.push({
+                  row: rowNumber,
+                  success: false,
+                  email: normalizedEmail,
+                  error: "One or more subject IDs are invalid or not found",
+                });
+                continue;
+              }
+              subjectIds = subjects.map((s: any) =>
+                s._id instanceof mongoose.Types.ObjectId ? s._id : new mongoose.Types.ObjectId(String(s._id))
+              );
+            } else {
+              const allSubjects = await Subject.find({
+                schoolId: schoolIdObj,
+                isActive: true,
+              })
+                .select("_id name")
+                .lean();
+              const subjectMap = new Map(
+                allSubjects.map((s: any) => [s.name.toLowerCase().trim(), s._id])
+              );
 
-            if (subjects.length !== validSubjectIds.length) {
-              results.push({
-                row: rowNumber,
-                success: false,
-                email: normalizedEmail,
-                error: "One or more subject IDs are invalid or not found",
-              });
-              continue;
+              let subjectResolveFailed = false;
+              for (const name of parts) {
+                const id = subjectMap.get(name.toLowerCase().trim());
+                if (!id) {
+                  results.push({
+                    row: rowNumber,
+                    success: false,
+                    email: normalizedEmail,
+                    error: `Subject "${name}" not found. Available: ${[...subjectMap.keys()].slice(0, 10).join(", ")}${subjectMap.size > 10 ? "..." : ""}`,
+                  });
+                  subjectResolveFailed = true;
+                  break;
+                }
+                subjectIds.push(
+                  id instanceof mongoose.Types.ObjectId ? id : new mongoose.Types.ObjectId(String(id))
+                );
+              }
+              if (subjectResolveFailed) continue;
             }
-
-            subjectIds = subjects.map((s: any) => {
-              const id = s._id;
-              return id instanceof mongoose.Types.ObjectId
-                ? id
-                : new mongoose.Types.ObjectId(String(id));
-            });
           }
         }
 
-        // Validate homeroom class group if provided
+        // Validate homeroom — by Grade + Class names or (legacy) by ID
         let homeroomClassGroupId: mongoose.Types.ObjectId | null = null;
-        if (row.homeroomClassGroupId?.trim()) {
-          const classGroupObjId = toObjectIdOrNull(row.homeroomClassGroupId);
+        const hasHomeroomByName =
+          row.homeroomGrade?.trim() && row.homeroomClass?.trim();
+        const hasHomeroomById = row.homeroomClassGroupId?.trim();
+
+        if (hasHomeroomByName) {
+          const grade = await Grade.findOne({
+            schoolId: schoolIdObj,
+            name: new RegExp(`^${row.homeroomGrade!.trim()}$`, "i"),
+            isActive: true,
+          })
+            .select("_id")
+            .lean();
+
+          if (!grade) {
+            results.push({
+              row: rowNumber,
+              success: false,
+              email: normalizedEmail,
+              error: `Homeroom grade "${row.homeroomGrade}" not found`,
+            });
+            continue;
+          }
+
+          const classGroup = await ClassGroup.findOne({
+            schoolId: schoolIdObj,
+            gradeId: (grade as any)._id,
+            name: new RegExp(`^${row.homeroomClass!.trim()}$`, "i"),
+            isActive: true,
+          }).lean();
+
+          if (!classGroup) {
+            results.push({
+              row: rowNumber,
+              success: false,
+              email: normalizedEmail,
+              error: `Class "${row.homeroomClass}" not found under grade "${row.homeroomGrade}"`,
+            });
+            continue;
+          }
+
+          homeroomClassGroupId =
+            (classGroup as any)._id instanceof mongoose.Types.ObjectId
+              ? (classGroup as any)._id
+              : new mongoose.Types.ObjectId(String((classGroup as any)._id));
+        } else if (hasHomeroomById) {
+          const classGroupObjId = toObjectIdOrNull(row.homeroomClassGroupId!);
           if (!classGroupObjId) {
             results.push({
               row: rowNumber,
@@ -248,8 +326,14 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          // Check if class already has a homeroom teacher
-          if ((classGroup as any).homeroomTeacherId) {
+          homeroomClassGroupId = classGroupObjId;
+        }
+
+        if (homeroomClassGroupId) {
+          const classGroup = await ClassGroup.findById(homeroomClassGroupId)
+            .select("homeroomTeacherId")
+            .lean();
+          if ((classGroup as any)?.homeroomTeacherId) {
             results.push({
               row: rowNumber,
               success: false,
@@ -258,8 +342,6 @@ export async function POST(req: NextRequest) {
             });
             continue;
           }
-
-          homeroomClassGroupId = classGroupObjId;
         }
 
         // Validate status

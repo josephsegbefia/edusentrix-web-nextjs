@@ -119,8 +119,20 @@ const LessonNoteSchema = z.object({
   classGroupId: z.string().min(1),
   subjectId: z.string().optional().nullable(),
 
-  // Template type
-  templateType: z.enum(["NACCA_3_PHASE", "CLASSIC_JHS", "SIMPLE"]).optional(),
+  // Template type & curriculum
+  templateType: z.enum([
+    "NACCA_3_PHASE",
+    "CLASSIC_JHS",
+    "SIMPLE",
+    "CAMBRIDGE_3_PART",
+    "BRITISH_3_PART",
+    "AMERICAN_STANDARDS",
+    "IB_PYP_UNIT_PLANNER",
+    "IB_MYP_UNIT_PLANNER",
+  ]).optional(),
+  curriculumCode: z.string().max(50).optional(),
+  curriculumMetadata: z.record(z.string(), z.unknown()).optional(),
+  unitPlannerData: z.record(z.string(), z.unknown()).optional(),
 
   // Basic info
   weekOf: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
@@ -201,8 +213,11 @@ function formatLessonNoteResponse(
     subjectName: entry.subjectId ? subjectMap.get(String(entry.subjectId)) || "" : null,
     academicPeriodId: entry.academicPeriodId ? String(entry.academicPeriodId) : null,
 
-    // Template
+    // Template & curriculum
     templateType: entry.templateType || "SIMPLE",
+    curriculumCode: (entry as unknown as Record<string, unknown>).curriculumCode || null,
+    curriculumMetadata: (entry as unknown as Record<string, unknown>).curriculumMetadata || null,
+    unitPlannerData: (entry as unknown as Record<string, unknown>).unitPlannerData || null,
 
     // Basic info
     weekOf: entry.weekOf ? new Date(entry.weekOf).toISOString() : null,
@@ -480,6 +495,9 @@ export async function POST(req: Request) {
       classGroupId,
       subjectId,
       templateType,
+      curriculumCode,
+      curriculumMetadata,
+      unitPlannerData,
       weekOf,
       date,
       topic,
@@ -595,8 +613,11 @@ export async function POST(req: Request) {
       subjectId: subjectObjId || undefined,
       academicPeriodId: currentPeriod?._id || undefined,
 
-      // Template
+      // Template & curriculum
       templateType: finalTemplateType,
+      curriculumCode: curriculumCode || undefined,
+      curriculumMetadata: curriculumMetadata || undefined,
+      unitPlannerData: unitPlannerData || undefined,
 
       // Basic info
       weekOf: weekDate,

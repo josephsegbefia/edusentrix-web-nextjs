@@ -11,7 +11,15 @@
 // Enums
 // ============================================================================
 
-export type LessonNoteTemplateType = "NACCA_3_PHASE" | "CLASSIC_JHS" | "SIMPLE";
+export type LessonNoteTemplateType =
+  | "NACCA_3_PHASE"
+  | "CLASSIC_JHS"
+  | "SIMPLE"
+  | "CAMBRIDGE_3_PART"
+  | "BRITISH_3_PART"
+  | "AMERICAN_STANDARDS"
+  | "IB_PYP_UNIT_PLANNER"
+  | "IB_MYP_UNIT_PLANNER";
 
 export type LessonNoteStatus =
   | "draft"
@@ -24,6 +32,11 @@ export const TEMPLATE_LABELS: Record<LessonNoteTemplateType, string> = {
   NACCA_3_PHASE: "NaCCA 3-Phase",
   CLASSIC_JHS: "Classic JHS",
   SIMPLE: "Quick Note",
+  CAMBRIDGE_3_PART: "Cambridge 3-Part",
+  BRITISH_3_PART: "British NC Lesson",
+  AMERICAN_STANDARDS: "Standards-Based",
+  IB_PYP_UNIT_PLANNER: "PYP Unit Planner",
+  IB_MYP_UNIT_PLANNER: "MYP Unit Planner",
 };
 
 export const STATUS_LABELS: Record<LessonNoteStatus, string> = {
@@ -264,8 +277,11 @@ export interface LessonNote {
   subjectName?: string;
   academicPeriodId?: string;
 
-  // Template
+  // Template & Curriculum
   templateType: LessonNoteTemplateType;
+  curriculumCode?: string;
+  curriculumMetadata?: Record<string, unknown>;
+  unitPlannerData?: Record<string, unknown>;
 
   // Basic Info
   weekOf: string;
@@ -326,6 +342,9 @@ export interface LessonNoteFormData {
   classGroupId: string;
   subjectId?: string;
   templateType: LessonNoteTemplateType;
+  curriculumCode?: string;
+  curriculumMetadata?: Record<string, unknown>;
+  unitPlannerData?: Record<string, unknown>;
   weekOf: Date;
   date?: Date;
   topic: string;
@@ -371,7 +390,10 @@ export interface CreateLessonNotePayload {
   classGroupId: string;
   subjectId?: string;
   templateType?: LessonNoteTemplateType;
-  weekOf: string; // ISO date string
+  curriculumCode?: string;
+  curriculumMetadata?: Record<string, unknown>;
+  unitPlannerData?: Record<string, unknown>;
+  weekOf: string;
   date?: string;
   topic: string;
   durationMinutes?: number;
@@ -385,7 +407,7 @@ export interface CreateLessonNotePayload {
   tags?: string[];
   status?: LessonNoteStatus;
 
-  // Legacy fields (for backwards compatibility)
+  // Legacy fields
   content?: string;
   objectives?: string;
 }
@@ -430,7 +452,14 @@ export type WizardStep =
   | "resources"
   | "body"
   | "assessment"
-  | "review";
+  | "review"
+  // IB unit planner steps
+  | "overview"
+  | "planning"
+  | "experiences"
+  | "inquiry"
+  | "reflection"
+  | string;
 
 export const WIZARD_STEPS: { id: WizardStep; label: string }[] = [
   { id: "context", label: "Context" },
@@ -531,13 +560,33 @@ export function getDefaultBodyForTemplate(
 ): NaCCA3PhaseBody | ClassicJHSBody | SimpleBody {
   switch (templateType) {
     case "NACCA_3_PHASE":
+    case "CAMBRIDGE_3_PART":
+    case "BRITISH_3_PART":
+    case "AMERICAN_STANDARDS":
       return { ...DEFAULT_NACCA_BODY };
     case "CLASSIC_JHS":
       return { ...DEFAULT_CLASSIC_BODY };
+    case "IB_PYP_UNIT_PLANNER":
+    case "IB_MYP_UNIT_PLANNER":
     case "SIMPLE":
     default:
       return { ...DEFAULT_SIMPLE_BODY };
   }
+}
+
+const THREE_PHASE_TEMPLATES: LessonNoteTemplateType[] = [
+  "NACCA_3_PHASE",
+  "CAMBRIDGE_3_PART",
+  "BRITISH_3_PART",
+  "AMERICAN_STANDARDS",
+];
+
+export function isThreePhaseTemplate(templateType: LessonNoteTemplateType): boolean {
+  return THREE_PHASE_TEMPLATES.includes(templateType);
+}
+
+export function isUnitPlannerTemplate(templateType: LessonNoteTemplateType): boolean {
+  return templateType === "IB_PYP_UNIT_PLANNER" || templateType === "IB_MYP_UNIT_PLANNER";
 }
 
 export function calculateTotalTime(
@@ -546,7 +595,7 @@ export function calculateTotalTime(
 ): number {
   if (!body) return 0;
 
-  if (templateType === "NACCA_3_PHASE" && isNaCCA3PhaseBody(body)) {
+  if (isThreePhaseTemplate(templateType) && isNaCCA3PhaseBody(body)) {
     return (
       (body.starter.timeMins || 0) +
       (body.main.timeMins || 0) +

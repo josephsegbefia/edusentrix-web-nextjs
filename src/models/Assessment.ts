@@ -6,7 +6,13 @@ export type AssessmentType =
   | "midterm"
   | "exam"
   | "project"
-  | "mock";
+  | "mock"
+  | "criterion"
+  | "portfolio"
+  | "formative"
+  | "classwork"
+  | "homework"
+  | "final";
 
 export interface IAssessment {
   _id: Types.ObjectId;
@@ -21,6 +27,7 @@ export interface IAssessment {
   score: number;
   percentage: number; // score / maxScore * 100
   weight: number; // e.g CA = 0.3 Exam = 0.7
+  criterionName?: string | null;
   gradedAt: Date | null;
   remarks?: string | null;
   createdAt: Date;
@@ -55,12 +62,26 @@ const assessmentSchema = new Schema<IAssessment>(
     subjectId: {
       type: Schema.Types.ObjectId,
       ref: "Subject",
-      require: true,
+      required: true,
       index: true,
     },
     assessmentType: {
       type: String,
-      enum: ["ca", "quiz", "assignment", "midterm", "exam", "project", "mock"],
+      enum: [
+        "ca",
+        "quiz",
+        "assignment",
+        "midterm",
+        "exam",
+        "project",
+        "mock",
+        "criterion",
+        "portfolio",
+        "formative",
+        "classwork",
+        "homework",
+        "final",
+      ],
       required: true,
       index: true,
     },
@@ -88,6 +109,10 @@ const assessmentSchema = new Schema<IAssessment>(
       type: Number,
       required: true,
       index: true,
+    },
+    criterionName: {
+      type: String,
+      default: null,
     },
     gradedAt: {
       type: Date,

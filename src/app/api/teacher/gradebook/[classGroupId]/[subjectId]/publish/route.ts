@@ -6,11 +6,14 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Assessment } from "@/models/Assessment";
 import { ClassGroup } from "@/models/ClassGroup";
-import { GradingScale } from "@/models/GradingScale";
+import { GradingScale, type IGradingScale } from "@/models/GradingScale";
+import { School, type ISchool } from "@/models/School";
 import { Student } from "@/models/Student";
 import { Subject } from "@/models/Subject";
 import { SubjectGrade } from "@/models/SubjectGrade";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { getCurriculumProfile } from "@/constants/curriculum-profiles";
+import { calculateGradeByStrategy } from "@/lib/academics/grading-strategies";
 
 const CA_TYPES = new Set(["ca", "quiz", "assignment", "midterm", "project"]);
 const EXAM_TYPES = new Set(["exam", "mock"]);
@@ -147,50 +150,34 @@ export async function POST(
       );
     }
 
-    const gradingScale = await GradingScale.findOne({
-      schoolId: context.schoolId,
-      isDefault: true,
-    })
-      .select("caWeight examWeight gradeMappings")
-      .lean();
+    const [gradingScaleDoc, school] = await Promise.all([
+      GradingScale.findOne({
+        schoolId: context.schoolId,
+        isDefault: true,
+      })
+        .select("caWeight examWeight gradeMappings passThreshold")
+        .lean(),
+      School.findById(context.schoolId)
+        .select("curriculumCode")
+        .lean() as Promise<Pick<ISchool, "curriculumCode"> | null>,
+    ]);
 
-    const caWeight = gradingScale?.caWeight ?? 0.3;
-    const examWeight = gradingScale?.examWeight ?? 0.7;
-    const mappings = gradingScale?.gradeMappings || [];
+    const curriculumCode = school?.curriculumCode || "ghana_nacca";
+    const profile = getCurriculumProfile(curriculumCode);
 
-    const definitionMap = new Map<
-      string,
-      { id: string; title: string; maxScore: number; type: string; weight: number }
-    >();
+    const gradingScale: IGradingScale = {
+      caWeight: gradingScaleDoc?.caWeight ?? profile.defaultCaWeight,
+      examWeight: gradingScaleDoc?.examWeight ?? profile.defaultExamWeight,
+      gradeMappings: gradingScaleDoc?.gradeMappings || [],
+      passThreshold: (gradingScaleDoc as any)?.passThreshold ?? profile.passThreshold,
+    } as IGradingScale;
 
-    const byStudent = new Map<string, Map<string, typeof assessments[number]>>();
+    const byStudent = new Map<string, typeof assessments>();
     for (const assessment of assessments) {
-      const weight = assessment.weight ?? 1;
-      const key = buildAssessmentKey({
-        assessmentType: assessment.assessmentType,
-        title: assessment.title,
-        maxScore: assessment.maxScore,
-        weight,
-      });
-
-      if (!definitionMap.has(key)) {
-        definitionMap.set(key, {
-          id: key,
-          title: assessment.title,
-          maxScore: assessment.maxScore,
-          type: assessment.assessmentType,
-          weight,
-        });
-      }
-
-      const studentKey = String(assessment.studentId);
-      if (!byStudent.has(studentKey)) {
-        byStudent.set(studentKey, new Map());
-      }
-      byStudent.get(studentKey)?.set(key, assessment);
+      const key = String(assessment.studentId);
+      if (!byStudent.has(key)) byStudent.set(key, []);
+      byStudent.get(key)!.push(assessment);
     }
-
-    const definitions = Array.from(definitionMap.values());
 
     const now = new Date();
     const gradeOps: Array<{
@@ -202,44 +189,36 @@ export async function POST(
     }> = [];
 
     students.forEach((student) => {
-      const studentMap = byStudent.get(String(student._id));
-      if (!studentMap) return;
+      const studentAssessments = byStudent.get(String(student._id));
+      if (!studentAssessments?.length) return;
 
-      let caTotal = 0;
-      let caMaxTotal = 0;
-      let examScore = 0;
-      let examMaxScore = 0;
+      const result = calculateGradeByStrategy(
+        profile.assessmentModel,
+        studentAssessments as any,
+        gradingScale
+      );
 
-      definitions.forEach((definition) => {
-        const entry = studentMap.get(definition.id);
-        const score = entry?.score ?? null;
+      const teacherId =
+        studentAssessments[0]?.teacherId ?? context.teacherId;
 
-        if (score !== null) {
-          if (CA_TYPES.has(definition.type)) {
-            caTotal += score;
-            caMaxTotal += definition.maxScore;
-          } else if (EXAM_TYPES.has(definition.type)) {
-            examScore += score;
-            examMaxScore += definition.maxScore;
-          } else {
-            caTotal += score;
-            caMaxTotal += definition.maxScore;
-          }
-        } else {
-          if (CA_TYPES.has(definition.type)) caMaxTotal += definition.maxScore;
-          if (EXAM_TYPES.has(definition.type)) examMaxScore += definition.maxScore;
-        }
-      });
+      const $set: Record<string, unknown> = {
+        caTotal: Number(result.caTotal.toFixed(2)),
+        caMaxTotal: Number(result.caMaxTotal.toFixed(2)),
+        caPercentage: Number(result.caPercentage.toFixed(2)),
+        examScore: Number(result.examScore.toFixed(2)),
+        examMaxScore: Number(result.examMaxScore.toFixed(2)),
+        examPercentage: Number(result.examPercentage.toFixed(2)),
+        totalScore: Number(result.totalScore.toFixed(2)),
+        gradeLetter: result.gradeLetter,
+        gradePoint: result.gradePoint,
+        isPassed: result.isPassed,
+        teacherId,
+        lastUpdated: now,
+      };
 
-      const caPercentage = caMaxTotal > 0 ? (caTotal / caMaxTotal) * 100 : 0;
-      const examPercentage = examMaxScore > 0 ? (examScore / examMaxScore) * 100 : 0;
-      const totalScore = caPercentage * caWeight + examPercentage * examWeight;
-      const mapping = getGradeMapping(mappings, totalScore);
-
-      const gradeLetter = mapping?.letter ?? "";
-      const gradePoint = mapping?.point ?? 0;
-      const isPassed = totalScore >= 50;
-      const teacherId = studentMap.values().next().value?.teacherId ?? context.teacherId;
+      if (result.components) $set.components = result.components;
+      if (result.descriptorLevel !== undefined)
+        $set.descriptorLevel = result.descriptorLevel;
 
       gradeOps.push({
         updateOne: {
@@ -250,20 +229,7 @@ export async function POST(
             studentId: student._id,
           },
           update: {
-            $set: {
-              caTotal: Number(caTotal.toFixed(2)),
-              caMaxTotal: Number(caMaxTotal.toFixed(2)),
-              caPercentage: Number(caPercentage.toFixed(2)),
-              examScore: Number(examScore.toFixed(2)),
-              examMaxScore: Number(examMaxScore.toFixed(2)),
-              examPercentage: Number(examPercentage.toFixed(2)),
-              totalScore: Number(totalScore.toFixed(2)),
-              gradeLetter,
-              gradePoint,
-              isPassed,
-              teacherId,
-              lastUpdated: now,
-            },
+            $set,
             $setOnInsert: {
               schoolId: context.schoolId,
               academicPeriodId: period._id,

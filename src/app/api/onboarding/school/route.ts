@@ -12,6 +12,17 @@ const BodySchema = z.object({
   schoolId: z.string().min(1),
   name: z.string().min(2),
   type: z.enum(["Basic", "Secondary"]),
+  curriculumCode: z
+    .enum([
+      "ghana_nacca",
+      "cambridge",
+      "ib_pyp",
+      "ib_myp",
+      "british_nc",
+      "american",
+      "hybrid",
+    ])
+    .optional(),
   address: z.string().nullable().optional(),
   email: z.email().optional(),
   city: z.string().nullable().optional(),
@@ -78,6 +89,9 @@ export async function POST(req: NextRequest) {
 
     school.name = parsed.data.name;
     school.type = normalizedType;
+    if (parsed.data.curriculumCode) {
+      (school as any).curriculumCode = parsed.data.curriculumCode;
+    }
     school.address = parsed.data.address ?? undefined;
     school.email = parsed.data.email ?? undefined;
     school.city = parsed.data.city ?? undefined;

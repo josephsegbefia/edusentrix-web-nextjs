@@ -87,6 +87,7 @@ export default function TeacherGradebookDetailPage() {
   const gradebook = gradebookData?.data;
   const assessmentTypes = metaData?.data.assessmentTypes || [];
   const gradingScale = metaData?.data.gradingScale || null;
+  const assessmentModel: string = metaData?.data.assessmentModel || "ca_exam";
 
   const assessmentIds = React.useMemo(() => {
     const ids = new Set<string>();

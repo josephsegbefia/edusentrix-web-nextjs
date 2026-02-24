@@ -15,8 +15,14 @@ export interface IGradingScale {
   name: string;
   isDefault: boolean;
   gradeMappings: IGradeMapping[];
-  caWeight: number; // e.g. 0.3
-  examWeight: number; // e.g. 0.7
+  caWeight: number;
+  examWeight: number;
+  passThreshold: number;
+  performanceTiers?: {
+    top: number;
+    aboveAverage: number;
+    average: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +51,12 @@ const gradingScaleSchema = new Schema<IGradingScale>(
     gradeMappings: { type: [gradeMappingSchema], default: [] },
     caWeight: { type: Number, default: 0.3 },
     examWeight: { type: Number, default: 0.7 },
+    passThreshold: { type: Number, default: 50 },
+    performanceTiers: {
+      top: { type: Number, default: 80 },
+      aboveAverage: { type: Number, default: 65 },
+      average: { type: Number, default: 50 },
+    },
   },
   { timestamps: true }
 );

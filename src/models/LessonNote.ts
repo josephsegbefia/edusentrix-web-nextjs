@@ -4,7 +4,15 @@ import { Schema, model, models, Types, type Model } from "mongoose";
 // Enums & Basic Types
 // ============================================================================
 
-export type LessonNoteTemplateType = "NACCA_3_PHASE" | "CLASSIC_JHS" | "SIMPLE";
+export type LessonNoteTemplateType =
+  | "NACCA_3_PHASE"
+  | "CLASSIC_JHS"
+  | "SIMPLE"
+  | "CAMBRIDGE_3_PART"
+  | "BRITISH_3_PART"
+  | "AMERICAN_STANDARDS"
+  | "IB_PYP_UNIT_PLANNER"
+  | "IB_MYP_UNIT_PLANNER";
 
 export type LessonNoteStatus =
   | "draft"
@@ -162,8 +170,11 @@ export interface ILessonNote {
   subjectId?: Types.ObjectId;
   academicPeriodId?: Types.ObjectId;
 
-  // Template
+  // Template & Curriculum
   templateType: LessonNoteTemplateType;
+  curriculumCode?: string;
+  curriculumMetadata?: Record<string, unknown>;
+  unitPlannerData?: Record<string, unknown>;
 
   // Basic Info
   weekOf: Date;
@@ -375,13 +386,25 @@ const LessonNoteSchema = new Schema<ILessonNote>(
       index: true,
     },
 
-    // Template type
+    // Template type & curriculum
     templateType: {
       type: String,
-      enum: ["NACCA_3_PHASE", "CLASSIC_JHS", "SIMPLE"],
+      enum: [
+        "NACCA_3_PHASE",
+        "CLASSIC_JHS",
+        "SIMPLE",
+        "CAMBRIDGE_3_PART",
+        "BRITISH_3_PART",
+        "AMERICAN_STANDARDS",
+        "IB_PYP_UNIT_PLANNER",
+        "IB_MYP_UNIT_PLANNER",
+      ],
       default: "SIMPLE",
       index: true,
     },
+    curriculumCode: { type: String, index: true },
+    curriculumMetadata: { type: Schema.Types.Mixed },
+    unitPlannerData: { type: Schema.Types.Mixed },
 
     // Basic info
     weekOf: { type: Date, required: true, index: true },

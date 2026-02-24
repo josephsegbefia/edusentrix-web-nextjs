@@ -35,6 +35,7 @@ type RecentPaymentRow = {
   amount: number;
   paymentMethod: string;
   paymentDate: Date;
+  internalReference?: string;
   receiptNumber?: string;
 };
 
@@ -103,7 +104,7 @@ export async function GET(
       schoolId: context.schoolId,
       status: "completed",
     })
-      .select("_id amount paymentMethod paymentDate receiptNumber")
+      .select("_id amount paymentMethod paymentDate internalReference receiptNumber")
       .sort({ paymentDate: -1 })
       .limit(10)
       .lean<RecentPaymentRow[]>();
@@ -143,7 +144,7 @@ export async function GET(
       amount: pay.amount,
       date: pay.paymentDate.toISOString(),
       method: pay.paymentMethod,
-      reference: pay.receiptNumber || `PAY-${String(pay._id).slice(-6).toUpperCase()}`,
+      reference: pay.internalReference || pay.receiptNumber || `PAY-${String(pay._id).slice(-6).toUpperCase()}`,
     }));
 
     return NextResponse.json({

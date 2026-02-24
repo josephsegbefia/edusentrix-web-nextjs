@@ -19,10 +19,12 @@ import {
   isNaCCA3PhaseBody,
   isClassicJHSBody,
   isSimpleBody,
+  isUnitPlannerTemplate,
   calculateTotalTime,
 } from "@/types/lesson-notes";
 import type { ClassOption } from "../LessonNoteWizard";
 import { HtmlContent } from "@/components/ui/html-content";
+import { getTemplateDefinition } from "@/constants/curriculum-lesson-templates";
 
 type ReviewStepProps = {
   formData: LessonNoteFormData;
@@ -158,54 +160,13 @@ export function ReviewStep({ formData, classOptions, onEdit }: ReviewStepProps) 
       {/* Curriculum Section */}
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
         <SectionHeader title="Curriculum" step="curriculum" icon={<Target className="h-4 w-4" />} />
-        {formData.curriculum?.strand || formData.curriculum?.indicators?.length ? (
-          <div className="space-y-3">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs text-white/50">Strand</p>
-                <p className="text-white">{formData.curriculum?.strand || "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-white/50">Sub-strand</p>
-                <p className="text-white">{formData.curriculum?.subStrand || "—"}</p>
-              </div>
-            </div>
-            {formData.curriculum?.contentStandard && (
-              <div>
-                <p className="text-xs text-white/50">Content Standard</p>
-                <HtmlContent html={formData.curriculum.contentStandard} className="text-white" />
-              </div>
-            )}
-            {(formData.curriculum?.indicators || []).length > 0 && (
-              <div>
-                <p className="text-xs text-white/50 mb-1">Indicators</p>
-                <div className="flex flex-wrap gap-2">
-                  {formData.curriculum.indicators.map((ind, i) => (
-                    <Badge key={i} className="bg-emerald-500/20 text-emerald-200">
-                      {ind.refNo}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {(formData.curriculum?.learningOutcomes || []).length > 0 && (
-              <div>
-                <p className="text-xs text-white/50 mb-1">Learning Outcomes</p>
-                <ul className="space-y-1">
-                  {formData.curriculum.learningOutcomes.map((outcome, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-white/80">
-                      <span className="text-emerald-400">•</span>
-                      {outcome}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm text-white/40 italic">No curriculum alignment added</p>
-        )}
+        <CurriculumPreview formData={formData} />
       </div>
+
+      {/* Unit Planner Data (for IB templates) */}
+      {isUnitPlannerTemplate(formData.templateType) && formData.unitPlannerData && (
+        <UnitPlannerPreview formData={formData} onEdit={onEdit} SectionHeader={SectionHeader} />
+      )}
 
       {/* Resources Section */}
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -388,5 +349,205 @@ function SimpleBodyPreview({ body }: { body: SimpleBody }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ============================================================================
+// Curriculum Preview — shows NaCCA fields OR curriculum metadata
+// ============================================================================
+
+function CurriculumPreview({ formData }: { formData: LessonNoteFormData }) {
+  const isNaCCAStyle =
+    formData.templateType === "NACCA_3_PHASE" || formData.templateType === "CLASSIC_JHS";
+
+  if (isNaCCAStyle) {
+    const c = formData.curriculum;
+    if (!c?.strand && !(c?.indicators || []).length) {
+      return <p className="text-sm text-white/40 italic">No curriculum alignment added</p>;
+    }
+    return (
+      <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="text-xs text-white/50">Strand</p>
+            <p className="text-white">{c?.strand || "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-white/50">Sub-strand</p>
+            <p className="text-white">{c?.subStrand || "—"}</p>
+          </div>
+        </div>
+        {c?.contentStandard && (
+          <div>
+            <p className="text-xs text-white/50">Content Standard</p>
+            <HtmlContent html={c.contentStandard} className="text-white" />
+          </div>
+        )}
+        {(c?.indicators || []).length > 0 && (
+          <div>
+            <p className="text-xs text-white/50 mb-1">Indicators</p>
+            <div className="flex flex-wrap gap-2">
+              {c!.indicators.map((ind, i) => (
+                <Badge key={i} className="bg-emerald-500/20 text-emerald-200">
+                  {ind.refNo}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        {(c?.learningOutcomes || []).length > 0 && (
+          <div>
+            <p className="text-xs text-white/50 mb-1">Learning Outcomes</p>
+            <ul className="space-y-1">
+              {c!.learningOutcomes.map((outcome, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                  <span className="text-emerald-400">•</span>
+                  {outcome}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Non-NaCCA: show curriculumMetadata fields
+  const templateDef = getTemplateDefinition(formData.templateType);
+  const metadata = formData.curriculumMetadata || {};
+  const fields = templateDef?.curriculumFields || [];
+  const hasData = fields.some((f) => {
+    const v = metadata[f.key];
+    return v && (typeof v === "string" ? v.trim() : Array.isArray(v) ? v.length > 0 : true);
+  });
+
+  if (!hasData) {
+    return <p className="text-sm text-white/40 italic">No curriculum alignment added</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {fields.map((field) => {
+        const v = metadata[field.key];
+        if (!v) return null;
+
+        if (Array.isArray(v)) {
+          if (v.length === 0) return null;
+          return (
+            <div key={field.key}>
+              <p className="text-xs text-white/50 mb-1">{field.label}</p>
+              <div className="flex flex-wrap gap-2">
+                {v.map((item, i) => (
+                  <Badge key={i} className="bg-emerald-500/20 text-emerald-200">
+                    {typeof item === "object" && item !== null && "refNo" in item
+                      ? (item as { refNo: string }).refNo
+                      : String(item)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        if (typeof v === "string" && v.trim()) {
+          const displayLabel =
+            field.type === "select"
+              ? field.options?.find((o) => o.value === v)?.label || v
+              : v;
+          return (
+            <div key={field.key}>
+              <p className="text-xs text-white/50">{field.label}</p>
+              {field.type === "richtext" ? (
+                <HtmlContent html={displayLabel} className="text-white text-sm" />
+              ) : (
+                <p className="text-white text-sm">{displayLabel}</p>
+              )}
+            </div>
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+}
+
+// ============================================================================
+// Unit Planner Preview — shows unit planner section data
+// ============================================================================
+
+function UnitPlannerPreview({
+  formData,
+  onEdit,
+  SectionHeader,
+}: {
+  formData: LessonNoteFormData;
+  onEdit: (step: WizardStep) => void;
+  SectionHeader: React.ComponentType<{
+    title: string;
+    step: WizardStep;
+    icon: React.ReactNode;
+  }>;
+}) {
+  const templateDef = getTemplateDefinition(formData.templateType);
+  const sections = templateDef?.unitSections || [];
+  const data = formData.unitPlannerData || {};
+
+  return (
+    <>
+      {sections.map((section) => {
+        const sectionData = Object.entries(data).filter(([key]) =>
+          section.fields.some((f) => f.key === key)
+        );
+        if (sectionData.length === 0) return null;
+
+        return (
+          <div key={section.key} className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <SectionHeader
+              title={section.label}
+              step={section.key as WizardStep}
+              icon={<BookOpen className="h-4 w-4" />}
+            />
+            <div className="space-y-3">
+              {section.fields.map((field) => {
+                const v = data[field.key];
+                if (!v) return null;
+
+                if (Array.isArray(v) && v.length > 0) {
+                  return (
+                    <div key={field.key}>
+                      <p className="text-xs text-white/50 mb-1">{field.label}</p>
+                      <ul className="space-y-1">
+                        {v.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                            <span className="text-violet-400">•</span>
+                            {String(item)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                }
+
+                if (typeof v === "string" && v.trim()) {
+                  return (
+                    <div key={field.key}>
+                      <p className="text-xs text-white/50">{field.label}</p>
+                      {field.type === "richtext" ? (
+                        <HtmlContent html={v} className="text-white text-sm" />
+                      ) : (
+                        <p className="text-white text-sm">{v}</p>
+                      )}
+                    </div>
+                  );
+                }
+
+                return null;
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </>
   );
 }

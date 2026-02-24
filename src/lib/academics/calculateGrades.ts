@@ -56,7 +56,8 @@ export function calculateSubjectGradeFromAssessments(options: {
 
   const gradeLetter = mapping?.letter ?? "";
   const gradePoint = mapping?.point ?? 0;
-  const isPassed = totalScore >= 50; // can be made configurable later
+  const passThreshold = gradingScale.passThreshold ?? 50;
+  const isPassed = passThreshold > 0 ? totalScore >= passThreshold : true;
 
   return {
     caTotal,
@@ -75,7 +76,8 @@ export function calculateSubjectGradeFromAssessments(options: {
 export function calculateTermResultFromSubjectGrades(
   subjectGrades: Pick<ISubjectGrade, "totalScore">[],
   totalStudents: number,
-  classPosition: number
+  classPosition: number,
+  tiers?: { top: number; aboveAverage: number; average: number }
 ): Pick<
   ITermResult,
   "totalSubjects" | "totalScore" | "averageScore" | "performanceTier"
@@ -87,10 +89,14 @@ export function calculateTermResultFromSubjectGrades(
   );
   const averageScore = totalSubjects > 0 ? totalScore / totalSubjects : 0;
 
+  const topThreshold = tiers?.top ?? 80;
+  const aboveAvgThreshold = tiers?.aboveAverage ?? 65;
+  const avgThreshold = tiers?.average ?? 50;
+
   let performanceTier: ITermResult["performanceTier"] = "average";
-  if (averageScore >= 80) performanceTier = "top";
-  else if (averageScore >= 65) performanceTier = "above_average";
-  else if (averageScore < 50) performanceTier = "at_risk";
+  if (averageScore >= topThreshold) performanceTier = "top";
+  else if (averageScore >= aboveAvgThreshold) performanceTier = "above_average";
+  else if (averageScore < avgThreshold) performanceTier = "at_risk";
 
   return {
     totalSubjects,

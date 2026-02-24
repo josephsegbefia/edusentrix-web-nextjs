@@ -13,6 +13,7 @@ import { FileText, Download, FileDown } from "lucide-react";
 import { useStudentInvoices } from "@/hooks/admin/useStudentInvoices";
 import { useStudentPayments } from "@/hooks/admin/useStudentPayments";
 import { useStudentInstallments } from "@/hooks/admin/useStudentInstallments";
+import { useStudentCreditBalance } from "@/hooks/admin/useStudentCreditBalance";
 import {
   downloadCSVStatement,
   downloadTextStatement,
@@ -58,33 +59,52 @@ export function ExportStatementButton({
   });
 
   const { data: installmentsData } = useStudentInstallments(studentId);
+  const { data: creditBalanceData } = useStudentCreditBalance(studentId);
 
   const handleExport = React.useCallback(
     async (format: "csv" | "txt") => {
       setIsExporting(true);
       try {
         const invoices = invoicesData?.invoices || [];
-        const payments = paymentsData?.payments || [];
-        const installments = installmentsData?.installments || [];
+        const invoiceIds = new Set(invoices.map((inv: any) => String(inv._id)));
+        const allPayments = paymentsData?.payments || [];
+        const payments = academicPeriodId
+          ? allPayments.filter((payment: any) => {
+              const paymentInvoiceId = payment?.invoiceId?._id;
+              return paymentInvoiceId
+                ? invoiceIds.has(String(paymentInvoiceId))
+                : false;
+            })
+          : allPayments;
+        const allInstallments = installmentsData?.installments || [];
+        const installments = academicPeriodId
+          ? allInstallments.filter((installment: any) =>
+              installment.invoiceId
+                ? invoiceIds.has(String(installment.invoiceId))
+                : false
+            )
+          : allInstallments;
+        const activeInvoices = invoices.filter((invoice: any) =>
+          ["issued", "partially_paid", "paid", "overdue"].includes(
+            String(invoice.status)
+          )
+        );
 
         // Calculate summary
-        const totalBilled = invoices.reduce(
+        const totalBilled = activeInvoices.reduce(
           (sum: number, inv: any) => sum + (inv.totalAmountMinor || 0),
           0
         );
-        const totalPaid = invoices.reduce(
+        const totalPaid = activeInvoices.reduce(
           (sum: number, inv: any) => sum + (inv.totalPaidMinor || 0),
           0
         );
-        const totalOutstanding = invoices.reduce(
+        const totalOutstanding = activeInvoices.reduce(
           (sum: number, inv: any) => sum + (inv.totalOutstandingMinor || 0),
           0
         );
 
-        // Get credit balance from payments summary or calculate
-        const creditBalance = paymentsData?.summary?.totalPaid
-          ? Math.max(0, paymentsData.summary.totalPaid - totalBilled)
-          : 0;
+        const creditBalance = creditBalanceData?.creditBalance?.balanceMinor ?? 0;
 
         const statementData: StatementData = {
           student: {
@@ -94,8 +114,8 @@ export function ExportStatementButton({
           },
           period: academicPeriodId
             ? {
-                label: invoices[0]?.academicPeriodId?.yearLabel
-                  ? `${invoices[0].academicPeriodId.yearLabel} • ${invoices[0].academicPeriodId.term}`
+                label: activeInvoices[0]?.academicPeriodId?.yearLabel
+                  ? `${activeInvoices[0].academicPeriodId.yearLabel} • ${activeInvoices[0].academicPeriodId.term}`
                   : "Selected Period",
               }
             : undefined,
@@ -151,6 +171,7 @@ export function ExportStatementButton({
       invoicesData,
       paymentsData,
       installmentsData,
+      creditBalanceData,
       studentId,
       studentName,
       admissionNo,

@@ -49,3 +49,5 @@ export { ClassicJHSEditor } from "./steps/ClassicJHSEditor";
 export { SimpleEditor } from "./steps/SimpleEditor";
 export { AssessmentStep } from "./steps/AssessmentStep";
 export { ReviewStep } from "./steps/ReviewStep";
+export { DynamicPhaseEditor } from "./steps/DynamicPhaseEditor";
+export { UnitPlannerSectionStep } from "./steps/UnitPlannerSectionStep";

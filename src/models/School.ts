@@ -1,4 +1,6 @@
 import { Schema, model, models, Types, type Model } from "mongoose";
+import type { CurriculumCode } from "@/constants/curriculum-profiles";
+
 export type SchoolType = "Basic" | "SHS";
 
 export interface ISchool {
@@ -6,11 +8,12 @@ export interface ISchool {
   name: string;
   logo?: string;
   type: SchoolType;
+  curriculumCode: CurriculumCode;
   address?: string;
   email?: string;
   city?: string;
   region?: string;
-  gesSchoolCode?: string | null; // GES-assigned school code
+  gesSchoolCode?: string | null;
   bank?: {
     bankName?: string;
     branchName?: string;
@@ -40,6 +43,33 @@ const schoolSchema = new Schema<ISchool>(
     name: { type: String, required: true, trim: true },
     logo: { type: String, default: null },
     type: { type: String, enum: ["Basic", "SHS"], required: true },
+    curriculumCode: {
+      type: String,
+      enum: [
+        "ghana_nacca",
+        "cambridge",
+        "ib_pyp",
+        "ib_myp",
+        "british_nc",
+        "american",
+        "hybrid",
+      ],
+      default: "ghana_nacca",
+    },
+    pendingCurriculumCode: {
+      type: String,
+      enum: [
+        "ghana_nacca",
+        "cambridge",
+        "ib_pyp",
+        "ib_myp",
+        "british_nc",
+        "american",
+        "hybrid",
+      ],
+      default: null,
+    },
+    pendingCurriculumEffective: { type: String, default: null },
     address: String,
     email: String,
     city: String,

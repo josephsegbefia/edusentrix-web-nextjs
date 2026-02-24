@@ -52,6 +52,8 @@ import {
   type LessonNoteTemplateType,
   type LessonNoteStatus,
 } from "@/types/lesson-notes";
+import { getTemplatesForCurriculum } from "@/constants/curriculum-lesson-templates";
+import type { CurriculumCode } from "@/constants/curriculum-profiles";
 
 // ============================================================================
 // Constants
@@ -66,17 +68,23 @@ const STATUS_OPTIONS = [
   { value: "published", label: "Published" },
 ];
 
-const TEMPLATE_OPTIONS = [
-  { value: "all", label: "All templates" },
-  { value: "NACCA_3_PHASE", label: "NaCCA 3-Phase" },
-  { value: "CLASSIC_JHS", label: "Classic JHS" },
-  { value: "SIMPLE", label: "Quick Note" },
-];
+function buildTemplateOptions(curriculumCode: CurriculumCode) {
+  const templates = getTemplatesForCurriculum(curriculumCode);
+  return [
+    { value: "all", label: "All templates" },
+    ...templates.map((t) => ({ value: t.id, label: t.label })),
+  ];
+}
 
-const TEMPLATE_ICONS: Record<LessonNoteTemplateType, React.ReactNode> = {
+const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
   NACCA_3_PHASE: <BookOpen className="h-3.5 w-3.5" />,
   CLASSIC_JHS: <GraduationCap className="h-3.5 w-3.5" />,
   SIMPLE: <FileText className="h-3.5 w-3.5" />,
+  CAMBRIDGE_3_PART: <BookOpen className="h-3.5 w-3.5" />,
+  BRITISH_3_PART: <BookOpen className="h-3.5 w-3.5" />,
+  AMERICAN_STANDARDS: <BookOpen className="h-3.5 w-3.5" />,
+  IB_PYP_UNIT_PLANNER: <BookOpen className="h-3.5 w-3.5" />,
+  IB_MYP_UNIT_PLANNER: <GraduationCap className="h-3.5 w-3.5" />,
 };
 
 // ============================================================================
@@ -177,6 +185,8 @@ export default function TeacherLessonNotesPage() {
   );
 
   const notes = notesData?.data.entries || [];
+  const schoolCurriculumCode = (contextData?.data.school?.curriculumCode || "ghana_nacca") as CurriculumCode;
+  const templateOptions = React.useMemo(() => buildTemplateOptions(schoolCurriculumCode), [schoolCurriculumCode]);
   const noClassesAssigned = !isLoadingClasses && classOptions.length === 0;
   const isInitializing = isLoadingClasses || !contextData;
 
@@ -370,6 +380,7 @@ export default function TeacherLessonNotesPage() {
           }
           onComplete={handleWizardComplete}
           onCancel={handleWizardCancel}
+          curriculumCode={(contextData?.data.school?.curriculumCode as import("@/constants/curriculum-profiles").CurriculumCode) || "ghana_nacca"}
         />
       </div>
     );
@@ -428,7 +439,7 @@ export default function TeacherLessonNotesPage() {
               <PremiumSelectValue placeholder="Template" />
             </PremiumSelectTrigger>
             <PremiumSelectContent>
-              {TEMPLATE_OPTIONS.map((opt) => (
+              {templateOptions.map((opt) => (
                 <PremiumSelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </PremiumSelectItem>

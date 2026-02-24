@@ -39,8 +39,8 @@ export async function GET(req: NextRequest) {
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(user.schoolId));
     const school = await School.findById(schoolIdObj)
-      .select("_id name logo type status gesSchoolCode")
-      .lean<Pick<ISchool, "_id" | "name" | "logo" | "type" | "status" | "gesSchoolCode">>();
+      .select("_id name logo type status gesSchoolCode curriculumCode")
+      .lean<Pick<ISchool, "_id" | "name" | "logo" | "type" | "status" | "gesSchoolCode" | "curriculumCode">>();
 
     if (!school) {
       return NextResponse.json(
@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
         type: school.type,
         status: school.status,
         gesSchoolCode: school.gesSchoolCode || null,
+        curriculumCode: school.curriculumCode || "ghana_nacca",
       },
     });
   } catch (e: unknown) {

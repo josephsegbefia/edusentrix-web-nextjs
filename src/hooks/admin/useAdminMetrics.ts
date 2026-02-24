@@ -13,6 +13,24 @@ export type MetricsDTO = {
     endDate: Date;
   } | null;
   collections: { collected: number; outstanding: number; rate: number };
+  ledgerHealth: {
+    unreconciledCount: number;
+    averageApprovalLagHours: number;
+    reversalRatePct: number;
+  };
+  community: {
+    polls: {
+      live: number;
+      pending: number;
+      total: number;
+    };
+    campaigns: {
+      live: number;
+      pending: number;
+      total: number;
+      totalRaisedMinor: number;
+    };
+  };
 };
 export function useAdminMetrics() {
   return useQuery<MetricsDTO>({

@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -20,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/fees/money";
-import { Clock, X, Sparkles } from "lucide-react";
+import { CircleHelp, Clock, X, Sparkles } from "lucide-react";
 import { useRecordPayment } from "@/hooks/admin/useRecordPayment";
 import { toast } from "sonner";
 import { premiumSelectContent } from "@/components/ui/premium";
@@ -156,8 +163,14 @@ export function RecordPaymentModal(props: {
   const [receiptNumber, setReceiptNumber] = React.useState("");
   const [reference, setReference] = React.useState("");
   const [note, setNote] = React.useState("");
+  const [allowDuplicate, setAllowDuplicate] = React.useState(false);
+  const [duplicateReason, setDuplicateReason] = React.useState("");
+  const [duplicateCandidates, setDuplicateCandidates] = React.useState<any[]>(
+    []
+  );
 
   const [manual, setManual] = React.useState<Record<string, string>>({});
+  const idempotencyKeyRef = React.useRef("");
 
   React.useEffect(() => {
     if (!open) return;
@@ -168,8 +181,21 @@ export function RecordPaymentModal(props: {
     setReceiptNumber("");
     setReference("");
     setNote("");
+    setAllowDuplicate(false);
+    setDuplicateReason("");
+    setDuplicateCandidates([]);
     setManual({});
+    idempotencyKeyRef.current =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }, [open]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    setDuplicateCandidates([]);
+    setAllowDuplicate(false);
+  }, [receiptNumber, reference, open]);
 
   const amountMinor = parseMoneyToMinor(amount);
   const paymentDateValue = React.useMemo(
@@ -212,7 +238,12 @@ export function RecordPaymentModal(props: {
         paymentDate: paymentDateValue.toISOString(),
         paymentMethod,
         receiptNumber: receiptNumber || undefined,
-        reference: reference || undefined,
+        reference: paymentMethod !== "paystack" ? reference || undefined : undefined,
+        paystackReference:
+          paymentMethod === "paystack" ? reference || undefined : undefined,
+        idempotencyKey: idempotencyKeyRef.current,
+        allowDuplicate: allowDuplicate || undefined,
+        duplicateReason: duplicateReason || undefined,
         note: note || undefined,
         status,
         allocationMode,
@@ -227,11 +258,17 @@ export function RecordPaymentModal(props: {
       );
       onOpenChange(false);
     } catch (e: any) {
+      if (e?.code === "DUPLICATE_PAYMENT_REFERENCE") {
+        setDuplicateCandidates(Array.isArray(e?.duplicates) ? e.duplicates : []);
+      }
       toast.error(e?.message || "Failed to record payment");
     }
   }
 
-  const disabled = mutation.isPending || !invoiceId;
+  const duplicateOverrideRequired =
+    duplicateCandidates.length > 0 && !allowDuplicate;
+  const disabled =
+    mutation.isPending || !invoiceId || duplicateOverrideRequired;
 
   return (
     <ModalShell
@@ -345,12 +382,31 @@ export function RecordPaymentModal(props: {
           </div>
 
           <div className="space-y-2">
-            <Label
-              htmlFor="receiptNumber"
-              className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-            >
-              Receipt Number
-            </Label>
+            <div className="flex items-center gap-1.5">
+              <Label
+                htmlFor="receiptNumber"
+                className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+              >
+                Receipt Number
+              </Label>
+              <TooltipProvider delayDuration={250}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-white/40 hover:text-white/70"
+                      aria-label="Receipt number help"
+                    >
+                      <CircleHelp className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Receipt numbers are checked for duplicates to prevent missing
+                    or double-posted payments.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="receiptNumber"
               value={receiptNumber}
@@ -361,12 +417,34 @@ export function RecordPaymentModal(props: {
           </div>
 
           <div className="space-y-2">
-            <Label
-              htmlFor="reference"
-              className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-            >
-              Reference
-            </Label>
+            <div className="flex items-center gap-1.5">
+              <Label
+                htmlFor="reference"
+                className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
+              >
+                Reference
+              </Label>
+              <TooltipProvider delayDuration={250}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-white/40 hover:text-white/70"
+                      aria-label="Reference help"
+                    >
+                      <CircleHelp className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    {["paystack", "bank_transfer", "mobile_money"].includes(
+                      paymentMethod
+                    )
+                      ? "Required for Paystack, bank, and MoMo—use gateway or bank statement reference for reconciliation."
+                      : "Use bank/MoMo/paystack references for reconciliation. Duplicate references are flagged."}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="reference"
               value={reference}
@@ -392,6 +470,49 @@ export function RecordPaymentModal(props: {
             className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand min-h-[80px]"
           />
         </div>
+
+        {duplicateCandidates.length > 0 ? (
+          <Card className="border-amber-500/30 bg-amber-500/10 p-4">
+            <div className="text-sm font-semibold text-amber-100">
+              Duplicate warning
+            </div>
+            <p className="mt-1 text-xs text-amber-100/85">
+              Existing payment reference(s) matched. Confirm override only if this
+              is intentional.
+            </p>
+            <div className="mt-3 space-y-1 text-xs text-amber-100/80">
+              {duplicateCandidates.slice(0, 3).map((candidate: any) => (
+                <div key={candidate.paymentId} className="rounded-md bg-black/20 px-2 py-1">
+                  {candidate.field}: {candidate.value} •{" "}
+                  {formatMoney(candidate.amountMinor || 0)}
+                </div>
+              ))}
+              {duplicateCandidates.length > 3 ? (
+                <div>+{duplicateCandidates.length - 3} more matches</div>
+              ) : null}
+            </div>
+
+            <div className="mt-3 flex items-start gap-2">
+              <Checkbox
+                id="allowDuplicate"
+                checked={allowDuplicate}
+                onCheckedChange={(checked) => setAllowDuplicate(checked === true)}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="allowDuplicate" className="text-xs text-amber-50">
+                  I have verified this is not an accidental duplicate
+                </Label>
+                <Input
+                  value={duplicateReason}
+                  onChange={(e) => setDuplicateReason(e.target.value)}
+                  placeholder="Reason for override (recommended)"
+                  className="h-8 border-amber-300/25 bg-black/20 text-xs text-amber-50 placeholder:text-amber-200/50"
+                />
+              </div>
+            </div>
+          </Card>
+        ) : null}
 
         <Separator className="bg-white/10" />
 

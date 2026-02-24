@@ -6,6 +6,7 @@ import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Payment } from "@/models/Payment";
 import { PaymentAllocation } from "@/models/PaymentAllocation";
+import { Invoice } from "@/models/Invoice";
 import { Student } from "@/models/Student";
 
 export async function GET(
@@ -26,9 +27,11 @@ export async function GET(
       );
     }
 
+    const studentObjectId = new mongoose.Types.ObjectId(studentId);
+
     // Verify student exists and belongs to school
     const student = await Student.findOne({
-      _id: new mongoose.Types.ObjectId(studentId),
+      _id: studentObjectId,
       schoolId,
     }).lean();
 
@@ -41,6 +44,7 @@ export async function GET(
 
     // Parse query parameters
     const invoiceId = searchParams.get("invoiceId");
+    const academicPeriodId = searchParams.get("academicPeriodId");
     const paymentMethod = searchParams.get("paymentMethod");
     const status = searchParams.get("status");
     const dateFrom = searchParams.get("dateFrom");
@@ -48,32 +52,17 @@ export async function GET(
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10), 100);
 
-    // Build query
-    const query: any = {
-      schoolId,
-      studentId: new mongoose.Types.ObjectId(studentId),
-    };
-
-    if (invoiceId) {
-      query.invoiceId = new mongoose.Types.ObjectId(invoiceId);
+    if (invoiceId && !mongoose.Types.ObjectId.isValid(invoiceId)) {
+      return NextResponse.json(
+        { error: "Invalid invoice ID" },
+        { status: 400 }
+      );
     }
-
-    if (paymentMethod) {
-      query.paymentMethod = paymentMethod;
-    }
-
-    if (status) {
-      query.status = status;
-    }
-
-    if (dateFrom || dateTo) {
-      query.paymentDate = {};
-      if (dateFrom) {
-        query.paymentDate.$gte = new Date(dateFrom);
-      }
-      if (dateTo) {
-        query.paymentDate.$lte = new Date(dateTo);
-      }
+    if (academicPeriodId && !mongoose.Types.ObjectId.isValid(academicPeriodId)) {
+      return NextResponse.json(
+        { error: "Invalid academic period ID" },
+        { status: 400 }
+      );
     }
 
     const skip = (page - 1) * limit;
@@ -82,11 +71,24 @@ export async function GET(
     // Build payment query
     const paymentQuery: any = {
       schoolId,
-      studentId: new mongoose.Types.ObjectId(studentId),
+      studentId: studentObjectId,
     };
 
     if (invoiceId) {
       paymentQuery.invoiceId = new mongoose.Types.ObjectId(invoiceId);
+    }
+
+    if (academicPeriodId && !invoiceId) {
+      const periodInvoiceIds = await Invoice.find({
+        schoolId,
+        studentId: studentObjectId,
+        academicPeriodId: new mongoose.Types.ObjectId(academicPeriodId),
+      })
+        .select("_id")
+        .lean();
+      paymentQuery.invoiceId = {
+        $in: periodInvoiceIds.map((inv: any) => inv._id),
+      };
     }
 
     if (paymentMethod) {
@@ -142,19 +144,18 @@ export async function GET(
       allocationsByPaymentId.get(pid)!.push(alloc);
     }
 
-    // Calculate summary - only count completed payments
-    // Query all completed payments for the student (ignoring filters for summary)
-    const summaryQuery: any = {
-      schoolId,
-      studentId: new mongoose.Types.ObjectId(studentId),
-      status: "completed",
-    };
+    // Summary follows current filters. If status is not provided,
+    // default summary to completed payments to avoid mixing pending/reversed amounts.
+    const summaryQuery: any = { ...paymentQuery };
+    if (!status) {
+      summaryQuery.status = "completed";
+    }
 
-    const completedPayments = await Payment.find(summaryQuery)
+    const summaryPayments = await Payment.find(summaryQuery)
       .populate("invoiceId", "issueDate")
       .lean();
 
-    const totalPaid = completedPayments.reduce(
+    const totalPaid = summaryPayments.reduce(
       (sum, p) => sum + (p.amountMinor || 0),
       0
     );
@@ -162,7 +163,7 @@ export async function GET(
     // Calculate average payment time (days from invoice issue to payment)
     let totalDays = 0;
     let countWithIssueDate = 0;
-    for (const p of completedPayments) {
+    for (const p of summaryPayments) {
       const invoice = p.invoiceId as any;
       if (invoice?.issueDate && p.paymentDate) {
         const days =
@@ -179,7 +180,7 @@ export async function GET(
 
     // Payment method breakdown
     const paymentMethodBreakdown: Record<string, number> = {};
-    for (const p of completedPayments) {
+    for (const p of summaryPayments) {
       const method = p.paymentMethod || "unknown";
       paymentMethodBreakdown[method] =
         (paymentMethodBreakdown[method] || 0) + (p.amountMinor || 0);
@@ -204,9 +205,10 @@ export async function GET(
       })),
       summary: {
         totalPaid,
-        paymentCount: completedPayments.length, // Already filtered to completed payments
+        paymentCount: summaryPayments.length,
         averagePaymentTime,
         paymentMethodBreakdown,
+        summaryStatus: status || "completed",
       },
       pagination: {
         page,

@@ -7,6 +7,13 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { Student } from "@/models/Student";
 
+const ACTIVE_INVOICE_STATUSES = new Set([
+  "issued",
+  "partially_paid",
+  "paid",
+  "overdue",
+]);
+
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
@@ -45,6 +52,12 @@ export async function GET(
     const dateTo = searchParams.get("dateTo");
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10), 100);
+    if (academicPeriodId && !mongoose.Types.ObjectId.isValid(academicPeriodId)) {
+      return NextResponse.json(
+        { error: "Invalid academic period ID" },
+        { status: 400 }
+      );
+    }
 
     // Build query
     const query: any = {
@@ -83,28 +96,44 @@ export async function GET(
       Invoice.countDocuments(query),
     ]);
 
-    // Calculate summary
-    const allInvoices = await Invoice.find({
+    // Calculate summary — scope to same filters as returned invoices
+    const summaryQuery: any = {
       schoolId,
       studentId: new mongoose.Types.ObjectId(studentId),
-    }).lean();
+    };
+    if (academicPeriodId) {
+      summaryQuery.academicPeriodId = new mongoose.Types.ObjectId(academicPeriodId);
+    }
+    if (status) {
+      summaryQuery.status = status;
+    }
+    if (dateFrom || dateTo) {
+      summaryQuery.createdAt = {};
+      if (dateFrom) summaryQuery.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) summaryQuery.createdAt.$lte = new Date(dateTo);
+    }
 
+    const allInvoices = await Invoice.find(summaryQuery).lean();
+    const activeInvoices = allInvoices.filter((invoice) =>
+      ACTIVE_INVOICE_STATUSES.has(String(invoice.status))
+    );
     const summary = {
-      totalBilled: allInvoices.reduce(
+      totalBilled: activeInvoices.reduce(
         (sum, inv) => sum + (inv.totalAmountMinor || 0),
         0
       ),
-      totalPaid: allInvoices.reduce(
+      totalPaid: activeInvoices.reduce(
         (sum, inv) => sum + (inv.totalPaidMinor || 0),
         0
       ),
-      totalOutstanding: allInvoices.reduce(
+      totalOutstanding: activeInvoices.reduce(
         (sum, inv) => sum + (inv.totalOutstandingMinor || 0),
         0
       ),
-      invoiceCount: allInvoices.length,
-      paidCount: allInvoices.filter((inv) => inv.status === "paid").length,
-      overdueCount: allInvoices.filter((inv) => inv.status === "overdue").length,
+      invoiceCount: activeInvoices.length,
+      paidCount: activeInvoices.filter((inv) => inv.status === "paid").length,
+      overdueCount: activeInvoices.filter((inv) => inv.status === "overdue")
+        .length,
     };
 
     return NextResponse.json({

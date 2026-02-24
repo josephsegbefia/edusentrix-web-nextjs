@@ -18,6 +18,7 @@ export type TeacherContextResponse = {
       _id: string;
       name: string;
       logoUrl?: string;
+      curriculumCode?: string;
     };
     currentPeriod: {
       _id: string;

@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       $inc: { balanceMinor: -appliedMinor },
       $push: {
         entries: allocations.map((a) => ({
-          type: "apply",
+          type: "application",
           amountMinor: a.amountMinor,
           createdAt: new Date(),
           reason: body.note ?? "Credit applied",

@@ -31,7 +31,11 @@ export interface IPayment {
 
   // Metadata
   receivedBy?: Types.ObjectId | null; // User who recorded the payment
-  receiptNumber?: string | null; // "RCP-2024-001"
+  idempotencyKey?: string | null;
+  /** Internal reference (auto-generated): RCP-24-000001, BNK-24-000002, etc. */
+  internalReference?: string | null;
+  receiptNumber?: string | null; // External: manual receipt number
+  externalReference?: string | null; // External: bank/MoMo reference
   notes?: string | null;
   attachments?: string[]; // Receipt images/document URLs
 
@@ -104,7 +108,10 @@ const paymentSchema = new Schema<IPayment>(
     gatewayVerifiedAt: { type: Date, default: null },
     bankMatchedAt: { type: Date, default: null },
     receivedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    idempotencyKey: { type: String, default: null, trim: true },
+    internalReference: { type: String, default: null, trim: true },
     receiptNumber: { type: String, default: null, trim: true },
+    externalReference: { type: String, default: null, trim: true },
     notes: { type: String, default: null, trim: true },
     attachments: [{ type: String }],
     status: {
@@ -156,6 +163,40 @@ paymentSchema.index(
     unique: true,
     sparse: true,
     partialFilterExpression: { paystackReference: { $ne: null } },
+  }
+);
+paymentSchema.index(
+  { schoolId: 1, idempotencyKey: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: { idempotencyKey: { $exists: true, $ne: null } },
+  }
+);
+paymentSchema.index(
+  { schoolId: 1, internalReference: 1 },
+  {
+    unique: true,
+    sparse: true,
+    partialFilterExpression: {
+      internalReference: { $exists: true, $ne: null },
+    },
+  }
+);
+paymentSchema.index(
+  { schoolId: 1, receiptNumber: 1 },
+  {
+    sparse: true,
+    partialFilterExpression: { receiptNumber: { $exists: true, $ne: null } },
+  }
+);
+paymentSchema.index(
+  { schoolId: 1, externalReference: 1 },
+  {
+    sparse: true,
+    partialFilterExpression: {
+      externalReference: { $exists: true, $ne: null },
+    },
   }
 );
 paymentSchema.index({ reconciliationStatus: 1 });

@@ -14,16 +14,18 @@ import {
 } from "@/components/ui/premium-select";
 import { TemplatePicker } from "../TemplatePicker";
 import { AIGenerateButton } from "../AIAssistant";
-import type { LessonNoteFormData, LessonNoteTemplateType, isNaCCA3PhaseBody, isClassicJHSBody, isSimpleBody } from "@/types/lesson-notes";
+import type { LessonNoteFormData, LessonNoteTemplateType } from "@/types/lesson-notes";
 import { getDefaultBodyForTemplate } from "@/types/lesson-notes";
 import type { ClassOption } from "../LessonNoteWizard";
 import type { NaCCA3PhaseGenerated, ClassicJHSGenerated, SimpleGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
+import type { CurriculumCode } from "@/constants/curriculum-profiles";
 
 type ContextStepProps = {
   formData: LessonNoteFormData;
   classOptions: ClassOption[];
   onUpdate: (updates: Partial<LessonNoteFormData>) => void;
   onTemplateChange: (templateType: LessonNoteTemplateType) => void;
+  curriculumCode?: CurriculumCode;
   onAIGenerated?: (body: Record<string, unknown>, tlms?: string[]) => void;
 };
 
@@ -42,6 +44,7 @@ export function ContextStep({
   classOptions,
   onUpdate,
   onTemplateChange,
+  curriculumCode = "ghana_nacca",
   onAIGenerated,
 }: ContextStepProps) {
   // Get subjects for selected class
@@ -221,6 +224,7 @@ export function ContextStep({
         <TemplatePicker
           value={formData.templateType}
           onChange={onTemplateChange}
+          curriculumCode={curriculumCode}
         />
       </div>
 

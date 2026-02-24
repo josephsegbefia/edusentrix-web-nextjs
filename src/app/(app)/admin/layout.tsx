@@ -6,6 +6,8 @@ import SchoolAdminSidebar from "@/components/nav/sidebars/school-admin-sidebar";
 import BursarSidebar from "@/components/nav/sidebars/bursar-sidebar";
 import { AuthRefreshHandler } from "@/components/auth/auth-refresh-handler";
 import { AdminRolePathGuard } from "@/components/auth/admin-role-path-guard";
+import { SidebarProvider } from "@/providers/sidebar-provider";
+import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
 
 export default async function AdminLayout({
   children,
@@ -20,10 +22,12 @@ export default async function AdminLayout({
     <>
       <AuthRefreshHandler />
       <AdminRolePathGuard role={user.role} />
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
-        {isBursar ? <BursarSidebar /> : <SchoolAdminSidebar />}
-        <main className="flex-1 p-4 pt-16 md:pt-4 md:ml-64">{children}</main>
-      </div>
+      <SidebarProvider>
+        <div className="flex min-h-[calc(100vh-3.5rem)]">
+          {isBursar ? <BursarSidebar /> : <SchoolAdminSidebar />}
+          <AdminMainContent isBursar={isBursar}>{children}</AdminMainContent>
+        </div>
+      </SidebarProvider>
     </>
   );
 }

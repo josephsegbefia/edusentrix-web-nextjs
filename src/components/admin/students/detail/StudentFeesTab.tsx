@@ -37,7 +37,8 @@ import { premiumSelectContent } from "@/components/ui/premium";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useStudentCreditBalance } from "@/hooks/admin/useStudentCreditBalance";
-import { useInvoices, useInvoice } from "@/hooks/admin/useInvoices";
+import { useInvoice } from "@/hooks/admin/useInvoices";
+import { useStudentInvoices } from "@/hooks/admin/useStudentInvoices";
 import { useStudentFeesLedger } from "@/hooks/admin/useStudentFeesLedger";
 import { useStudentFeesSummary } from "@/hooks/admin/useStudentFeesSummary";
 import { useStudentFeesSSE } from "@/hooks/admin/useStudentFeesSSE";
@@ -52,6 +53,7 @@ import { PaymentHistory } from "./PaymentHistory";
 import { InstallmentSchedule } from "./InstallmentSchedule";
 import { FeesCharts } from "./FeesCharts";
 import { ExportStatementButton } from "./ExportStatementButton";
+import { FeesAIAccountBriefCard } from "./FeesAIAccountBriefCard";
 
 type Props = {
   student: StudentDetailDTO;
@@ -79,6 +81,13 @@ function safeStr(v: any) {
   if (v === null || v === undefined) return "";
   return String(v);
 }
+
+const ACTIVE_INVOICE_STATUSES = new Set([
+  "issued",
+  "partially_paid",
+  "paid",
+  "overdue",
+]);
 
 export function StudentFeesTab({
   student,
@@ -137,13 +146,36 @@ export function StudentFeesTab({
   }, [recordPaymentRequestId]);
 
   // Fetch invoice list for selected term (summary + installments)
-  const { data: invoiceListData } = useInvoices(
-    academicPeriodId
-      ? { studentId: student.id, academicPeriodId, limit: 5, page: 1 }
-      : { studentId: student.id, limit: 5, page: 1 }
-  );
+  const { data: termInvoicesData, isLoading: termInvoicesLoading } =
+    useStudentInvoices(student.id, {
+      academicPeriodId: academicPeriodId || undefined,
+      page: 1,
+      limit: 100,
+    });
+  const termInvoices = termInvoicesData?.invoices ?? [];
+  const primaryInvoice = React.useMemo(() => {
+    if (termInvoices.length === 0) return null;
 
-  const invoiceId = invoiceListData?.invoices?.[0]?._id ?? null;
+    const priority: Record<string, number> = {
+      overdue: 0,
+      partially_paid: 1,
+      issued: 2,
+      paid: 3,
+      draft: 4,
+      cancelled: 5,
+    };
+
+    return [...termInvoices].sort((a: any, b: any) => {
+      const aPriority = priority[a.status] ?? 99;
+      const bPriority = priority[b.status] ?? 99;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return (
+        new Date(b.createdAt || b.issueDate || 0).getTime() -
+        new Date(a.createdAt || a.issueDate || 0).getTime()
+      );
+    })[0];
+  }, [termInvoices]);
+  const invoiceId = primaryInvoice?._id ?? null;
   const { data: invoiceDetailData, isLoading: invoiceLoading } = useInvoice(
     invoiceId || ""
   );
@@ -153,12 +185,18 @@ export function StudentFeesTab({
   useStudentFeesSSE({ studentId: student.id, invoiceId });
 
   // Credit wallet
-  const { data: creditData } = useStudentCreditBalance(student.id);
+  const { data: creditData, isLoading: creditLoading } =
+    useStudentCreditBalance(student.id);
   const creditBalance = creditData?.creditBalance ?? null;
 
   // Enhanced summary
-  const { data: summaryData, isLoading: summaryLoading } =
-    useStudentFeesSummary(student.id);
+  const {
+    data: summaryData,
+    isLoading: summaryLoading,
+    isError: summaryError,
+  } = useStudentFeesSummary(student.id);
+  const effectiveCreditBalance =
+    creditBalance?.balanceMinor ?? summaryData?.creditBalance ?? 0;
 
   // Ledger rows always come from API (term vs all-time driven by academicPeriodId param)
   const ledgerAcademicPeriodId: string | "all" =
@@ -346,9 +384,71 @@ export function StudentFeesTab({
   const currentPeriodSummary = summary?.currentPeriod;
   const allTimeSummary = summary?.allTime;
   const upcomingInstallments = summary?.upcomingInstallments;
+  const hasCurrentPeriodBilled = Number(currentPeriodSummary?.totalBilled || 0) > 0;
+  const averagePaymentTimeSampleCount = Number(
+    summary?.trends?.averagePaymentTimeSampleCount || 0
+  );
+  const hasAveragePaymentTime =
+    averagePaymentTimeSampleCount > 0 ||
+    Number(summary?.trends?.averagePaymentTime || 0) > 0;
+
+  const termActiveInvoices = React.useMemo(
+    () =>
+      termInvoices.filter((invoice: any) =>
+        ACTIVE_INVOICE_STATUSES.has(String(invoice.status))
+      ),
+    [termInvoices]
+  );
+  const termSummary = React.useMemo(
+    () => ({
+      invoiceCount: termInvoices.length,
+      activeInvoiceCount: termActiveInvoices.length,
+      totalBilled: termActiveInvoices.reduce(
+        (sum: number, invoice: any) => sum + Number(invoice.totalAmountMinor || 0),
+        0
+      ),
+      totalPaid: termActiveInvoices.reduce(
+        (sum: number, invoice: any) => sum + Number(invoice.totalPaidMinor || 0),
+        0
+      ),
+      totalOutstanding: termActiveInvoices.reduce(
+        (sum: number, invoice: any) =>
+          sum + Number(invoice.totalOutstandingMinor || 0),
+        0
+      ),
+      nextDueDate:
+        termActiveInvoices
+          .filter(
+            (invoice: any) =>
+              Number(invoice.totalOutstandingMinor || 0) > 0 && invoice.dueDate
+          )
+          .sort(
+            (a: any, b: any) =>
+              new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+          )[0]?.dueDate ?? null,
+    }),
+    [termActiveInvoices, termInvoices.length]
+  );
+  const hasTermInvoices = termInvoices.length > 0;
+  const hasActionableInvoice = Boolean(
+    invoiceDetail?._id &&
+      ACTIVE_INVOICE_STATUSES.has(String(invoiceDetail.status))
+  );
+  const canApplyCredit = Boolean(
+    hasActionableInvoice &&
+      effectiveCreditBalance > 0 &&
+      Number(invoiceDetail?.totalOutstandingMinor || 0) > 0
+  );
 
   return (
     <div className="space-y-6">
+      {summaryError ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
+          Fees summary is temporarily unavailable. Summary cards show placeholders
+          until data loads again.
+        </div>
+      ) : null}
+
       {/* Enhanced Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Billed */}
@@ -370,6 +470,8 @@ export function StudentFeesTab({
                 <div className="mt-1 text-xl font-bold text-white/90">
                   {summaryLoading ? (
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
+                  ) : summaryError ? (
+                    "--"
                   ) : (
                     formatMoney(allTimeSummary?.totalBilled ?? 0)
                   )}
@@ -401,6 +503,8 @@ export function StudentFeesTab({
                 <div className="mt-1 text-xl font-bold text-emerald-200">
                   {summaryLoading ? (
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-emerald-400" />
+                  ) : summaryError ? (
+                    "--"
                   ) : (
                     formatMoney(allTimeSummary?.totalPaid ?? 0)
                   )}
@@ -433,13 +537,19 @@ export function StudentFeesTab({
                   <span className="text-xl font-bold text-white/90">
                     {summaryLoading ? (
                       <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400" />
+                    ) : summaryError ? (
+                      "--"
                     ) : (
-                      `${currentPeriodSummary?.collectionRate ?? 0}%`
+                      hasCurrentPeriodBilled
+                        ? `${currentPeriodSummary?.collectionRate ?? 0}%`
+                        : "--"
                     )}
                   </span>
-                  {summary?.trends?.collectionRateTrend === "up" ? (
+                  {hasCurrentPeriodBilled &&
+                  summary?.trends?.collectionRateTrend === "up" ? (
                     <TrendingUp className="h-4 w-4 text-emerald-400" />
-                  ) : summary?.trends?.collectionRateTrend === "down" ? (
+                  ) : hasCurrentPeriodBilled &&
+                    summary?.trends?.collectionRateTrend === "down" ? (
                     <TrendingDown className="h-4 w-4 text-red-400" />
                   ) : (
                     <Minus className="h-4 w-4 text-white/40" />
@@ -472,8 +582,12 @@ export function StudentFeesTab({
                 <div className="mt-1 text-xl font-bold text-white/90">
                   {summaryLoading ? (
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-violet-400" />
+                  ) : summaryError ? (
+                    "--"
                   ) : (
-                    `${summary?.trends?.averagePaymentTime ?? 0} days`
+                    hasAveragePaymentTime
+                      ? `${summary?.trends?.averagePaymentTime ?? 0} days`
+                      : "--"
                   )}
                 </div>
               </div>
@@ -506,6 +620,8 @@ export function StudentFeesTab({
                 <div className="mt-1 text-xl font-bold text-amber-200">
                   {summaryLoading ? (
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-amber-400" />
+                  ) : summaryError ? (
+                    "--"
                   ) : (
                     formatMoney(allTimeSummary?.totalOutstanding ?? 0)
                   )}
@@ -535,10 +651,10 @@ export function StudentFeesTab({
                   Credit Balance
                 </div>
                 <div className="mt-1 text-xl font-bold text-cyan-200">
-                  {summaryLoading ? (
+                  {summaryLoading || creditLoading ? (
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400" />
                   ) : (
-                    formatMoney(summary?.creditBalance ?? 0)
+                    formatMoney(effectiveCreditBalance)
                   )}
                 </div>
               </div>
@@ -568,6 +684,8 @@ export function StudentFeesTab({
                 <div className="mt-1 text-xl font-bold text-white/90">
                   {summaryLoading ? (
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
+                  ) : summaryError ? (
+                    "--"
                   ) : (
                     <>
                       {upcomingInstallments?.count ?? 0} due •{" "}
@@ -575,7 +693,7 @@ export function StudentFeesTab({
                     </>
                   )}
                 </div>
-                {upcomingInstallments?.nextDueDate && (
+                {!summaryError && upcomingInstallments?.nextDueDate && (
                   <div className="mt-1 text-[10px] text-white/50">
                     Next: {fmtDate(upcomingInstallments.nextDueDate)}
                   </div>
@@ -626,6 +744,12 @@ export function StudentFeesTab({
                   variant="outline"
                   size="sm"
                   onClick={() => setRecordPaymentModalOpen(true)}
+                  disabled={!hasActionableInvoice}
+                  title={
+                    hasActionableInvoice
+                      ? "Record payment"
+                      : "No active invoice available for payment"
+                  }
                   className="gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
                 >
                   <Receipt className="h-4 w-4" />
@@ -638,6 +762,12 @@ export function StudentFeesTab({
                   variant="outline"
                   size="sm"
                   onClick={() => setApplyCreditModalOpen(true)}
+                  disabled={!canApplyCredit}
+                  title={
+                    canApplyCredit
+                      ? "Apply available credit"
+                      : "Requires credit balance and outstanding amount on the selected invoice"
+                  }
                   className="gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
                 >
                   <Wallet className="h-4 w-4" />
@@ -964,10 +1094,10 @@ export function StudentFeesTab({
             academicPeriodId={academicPeriodId}
           />
 
-          {/* Payment History */}
+          {/* Payment History — all payments for this student, optionally scoped by term */}
           <PaymentHistory
             studentId={student.id}
-            invoiceId={invoiceDetail?._id}
+            academicPeriodId={academicPeriodId}
           />
 
           {/* Installment Schedule */}
@@ -976,11 +1106,16 @@ export function StudentFeesTab({
 
         {/* Right: Pending approvals + Summary + Credit */}
         <div className="space-y-6">
+          <FeesAIAccountBriefCard
+            studentId={student.id}
+            periodId={academicPeriodId}
+          />
+
           {/* Pending approvals for bursar/admin review */}
           <PendingApprovalsCard
             studentId={student.id}
-            invoiceId={invoiceDetail?._id}
-            academicPeriodId={academicPeriodId || undefined}
+            invoiceId={invoiceId}
+            academicPeriodId={academicPeriodId}
             onOpenPayment={(pid) => openPayment(pid)}
           />
 
@@ -1020,29 +1155,38 @@ export function StudentFeesTab({
                     </div>
                   </div>
                 </div>
-              ) : invoiceLoading ? (
+              ) : termInvoicesLoading || invoiceLoading ? (
                 <div className="flex items-center justify-center gap-3 py-10">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-teal-400" />
-                  <p className="text-sm text-white/60">Loading invoice…</p>
+                  <p className="text-sm text-white/60">Loading term invoices…</p>
                 </div>
-              ) : invoiceDetail ? (
+              ) : hasTermInvoices ? (
                 <div className="space-y-3">
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="text-sm font-semibold text-white">
-                          {invoiceDetail.invoiceNumber}
-                        </div>
-                        <div className="mt-1 text-xs text-white/50">
                           {termLabel}
                         </div>
+                        <div className="mt-1 text-xs text-white/50">
+                          {termSummary.activeInvoiceCount} active invoice
+                          {termSummary.activeInvoiceCount === 1 ? "" : "s"} •{" "}
+                          {termSummary.invoiceCount} total
+                        </div>
+                        {primaryInvoice?.invoiceNumber ? (
+                          <div className="mt-1 text-xs text-white/50">
+                            Primary invoice: {primaryInvoice.invoiceNumber}
+                          </div>
+                        ) : null}
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="border-white/10 bg-white/5 text-white/70"
-                      >
-                        {safeStr(invoiceDetail.status).replaceAll("_", " ")}
-                      </Badge>
+                      {primaryInvoice ? (
+                        <Badge
+                          variant="outline"
+                          className="border-white/10 bg-white/5 text-white/70"
+                        >
+                          {safeStr(primaryInvoice.status).replaceAll("_", " ")}
+                        </Badge>
+                      ) : null}
                     </div>
 
                     <Separator className="my-3 bg-white/10" />
@@ -1051,29 +1195,48 @@ export function StudentFeesTab({
                       <div>
                         <div className="text-white/50">Total billed</div>
                         <div className="mt-1 font-semibold text-white/85">
-                          {formatMoney(invoiceDetail.totalAmountMinor)}
+                          {formatMoney(termSummary.totalBilled)}
                         </div>
                       </div>
                       <div>
                         <div className="text-white/50">Total paid</div>
                         <div className="mt-1 font-semibold text-emerald-200">
-                          {formatMoney(invoiceDetail.totalPaidMinor)}
+                          {formatMoney(termSummary.totalPaid)}
                         </div>
                       </div>
                       <div>
                         <div className="text-white/50">Outstanding</div>
                         <div className="mt-1 font-semibold text-white/85">
-                          {formatMoney(invoiceDetail.totalOutstandingMinor)}
+                          {formatMoney(termSummary.totalOutstanding)}
                         </div>
                       </div>
                       <div>
-                        <div className="text-white/50">Due date</div>
+                        <div className="text-white/50">Next due date</div>
                         <div className="mt-1 font-semibold text-white/75">
-                          {fmtDate(invoiceDetail.dueDate)}
+                          {termSummary.nextDueDate
+                            ? fmtDate(termSummary.nextDueDate)
+                            : "--"}
                         </div>
                       </div>
                     </div>
                   </div>
+
+                  {termSummary.activeInvoiceCount === 0 ? (
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="mt-0.5 h-5 w-5 text-amber-300" />
+                        <div>
+                          <div className="text-sm font-semibold text-white">
+                            No issued invoice in this term yet
+                          </div>
+                          <p className="mt-1 text-xs text-white/50">
+                            Only draft/cancelled invoices are available, so
+                            billed and outstanding totals are shown as 0.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Button
@@ -1082,6 +1245,12 @@ export function StudentFeesTab({
                       size="sm"
                       className="flex-1 gap-2 rounded-xl border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
                       onClick={() => setRecordPaymentModalOpen(true)}
+                      disabled={!hasActionableInvoice}
+                      title={
+                        hasActionableInvoice
+                          ? "Record payment"
+                          : "No active invoice available for payment"
+                      }
                     >
                       <Receipt className="h-4 w-4" />
                       Record Payment
@@ -1092,6 +1261,12 @@ export function StudentFeesTab({
                       size="sm"
                       className="flex-1 gap-2 rounded-xl border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
                       onClick={() => setApplyCreditModalOpen(true)}
+                      disabled={!canApplyCredit}
+                      title={
+                        canApplyCredit
+                          ? "Apply available credit"
+                          : "Requires credit balance and outstanding amount on the selected invoice"
+                      }
                     >
                       <Wallet className="h-4 w-4" />
                       Apply Credit
@@ -1107,8 +1282,8 @@ export function StudentFeesTab({
                         No invoice found for {termLabel}
                       </div>
                       <p className="mt-1 text-xs text-white/50">
-                        Create/issue an invoice for this term to enable
-                        installment tracking.
+                        Create and issue an invoice for this term to enable
+                        fees tracking and payment actions.
                       </p>
                     </div>
                   </div>
@@ -1140,13 +1315,17 @@ export function StudentFeesTab({
             <CardContent className="relative z-10 space-y-3">
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs text-white/50">Balance</div>
+                  <div className="text-xs text-white/50">Available Balance</div>
                   <div className="text-lg font-bold text-cyan-200">
-                    {formatMoney(creditBalance?.balanceMinor ?? 0)}
+                    {creditLoading ? (
+                      <span className="inline-block h-5 w-8 animate-pulse rounded bg-white/20" />
+                    ) : (
+                      formatMoney(effectiveCreditBalance)
+                    )}
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-white/50">
-                  Credit comes from overpayments and can be applied to invoices.
+                  Credit comes from overpayments and can be applied to outstanding invoices.
                 </div>
               </div>
 
@@ -1225,7 +1404,7 @@ export function StudentFeesTab({
         onOpenChange={setApplyCreditModalOpen}
         studentId={student.id}
         invoice={invoiceDetail}
-        creditBalanceMinor={creditBalance?.balanceMinor ?? 0}
+        creditBalanceMinor={effectiveCreditBalance}
       />
     </div>
   );

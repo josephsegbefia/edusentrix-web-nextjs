@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
 import {
@@ -30,11 +30,12 @@ import {
 } from "lucide-react";
 import { useStudentPayments } from "@/hooks/admin/useStudentPayments";
 import { PaymentDetailsDrawer } from "@/components/admin/fees/payments/PaymentDetailsDrawer";
-import { premiumMenuContent } from "@/components/ui/premium";
 
 type Props = {
   studentId: string;
   invoiceId?: string | null;
+  /** When set, filters to payments for invoices in this term. Toggle "All terms" in UI to show everything. */
+  academicPeriodId?: string | null;
 };
 
 function fmtDate(iso: string | Date) {
@@ -83,18 +84,23 @@ function statusBadge(status: string) {
 }
 
 function paymentMethodBadge(method: string) {
+  const label = String(method || "unknown").replaceAll("_", " ");
   return (
     <Badge
       className="border-white/10 bg-white/5 text-xs text-white/70"
       variant="outline"
     >
       <CreditCard className="mr-1 h-3 w-3" />
-      {method}
+      {label}
     </Badge>
   );
 }
 
-export function PaymentHistory({ studentId, invoiceId }: Props) {
+export function PaymentHistory({
+  studentId,
+  invoiceId,
+  academicPeriodId,
+}: Props) {
   const [paymentMethodFilter, setPaymentMethodFilter] = React.useState<string>("all");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -103,18 +109,23 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
   const [page, setPage] = React.useState(1);
   const [selectedPaymentId, setSelectedPaymentId] = React.useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [viewAllTerms, setViewAllTerms] = React.useState(false);
 
   const { data, isLoading, isError } = useStudentPayments(studentId, {
     invoiceId: invoiceId || undefined,
+    academicPeriodId: viewAllTerms ? undefined : (academicPeriodId || undefined),
     paymentMethod: paymentMethodFilter !== "all" ? paymentMethodFilter : undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     page,
-    limit: 20,
+    limit: 50,
   });
 
   const payments = data?.payments ?? [];
   const pagination = data?.pagination;
   const summary = data?.summary;
+  const summaryStatus = summary?.summaryStatus ?? "completed";
+  const summaryShowsCompleted = summaryStatus === "completed";
+  const summaryTotalLabel = summaryShowsCompleted ? "Total Paid" : "Total Amount";
 
   const paymentMethodLabel =
     paymentMethodFilter === "all"
@@ -129,14 +140,14 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
   const filteredAndSorted = React.useMemo(() => {
     let result = [...payments];
 
-    // Search filter
+    // Search filter — receipt number, invoice number, method
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase();
       result = result.filter(
         (p: any) =>
-          p.receiptNumber?.toLowerCase().includes(query) ||
-          p.invoiceId?.invoiceNumber?.toLowerCase().includes(query) ||
-          p.paymentMethod?.toLowerCase().includes(query)
+          p.receiptNumber?.toLowerCase().includes(q) ||
+          p.invoiceId?.invoiceNumber?.toLowerCase().includes(q) ||
+          p.paymentMethod?.toLowerCase().replace(/_/g, " ").includes(q)
       );
     }
 
@@ -180,13 +191,31 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
           aria-hidden="true"
         />
         <CardHeader className="relative z-10 pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-sm font-semibold uppercase tracking-wider text-white/80">
               Payment History
             </CardTitle>
+            {academicPeriodId && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewAllTerms((v) => !v)}
+                className={cn(
+                  "h-7 text-xs",
+                  viewAllTerms
+                    ? "bg-white/10 text-white"
+                    : "text-white/60 hover:text-white/80"
+                )}
+              >
+                {viewAllTerms ? "This term" : "All terms"}
+              </Button>
+            )}
             {summary && (
               <div className="text-xs text-muted-foreground">
-                {summary.paymentCount} payments • {formatMoney(summary.totalPaid)} total
+                {summary.paymentCount} payment
+                {summary.paymentCount === 1 ? "" : "s"} for this student •{" "}
+                {formatMoney(summary.totalPaid)} total paid
               </div>
             )}
           </div>
@@ -196,7 +225,7 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
           {summary && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <div className="text-xs text-muted-foreground">Total Paid</div>
+                <div className="text-xs text-muted-foreground">{summaryTotalLabel}</div>
                 <div className="mt-1 text-sm font-semibold text-emerald-200">
                   {formatMoney(summary.totalPaid)}
                 </div>
@@ -204,7 +233,9 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                 <div className="text-xs text-muted-foreground">Avg Payment Time</div>
                 <div className="mt-1 text-sm font-semibold text-white/90">
-                  {summary.averagePaymentTime} days
+                  {summaryShowsCompleted
+                    ? `${summary.averagePaymentTime} days`
+                    : "--"}
                 </div>
               </div>
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
@@ -221,14 +252,14 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search payments..."
+                placeholder="Search by receipt #, invoice #, or method..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 bg-white/5 border-white/10"
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <PremiumDropdownMenu>
+              <PremiumDropdownMenuTrigger asChild>
                 <Button
                   type="button"
                   variant="outline"
@@ -240,34 +271,34 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 text-white/50" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className={premiumMenuContent} align="start">
-                <DropdownMenuItem onClick={() => setPaymentMethodFilter("all")}>
+              </PremiumDropdownMenuTrigger>
+              <PremiumDropdownMenuContent align="start" className="min-w-[180px]">
+                <PremiumDropdownMenuItem onClick={() => setPaymentMethodFilter("all")}>
                   All methods
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPaymentMethodFilter("cash")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setPaymentMethodFilter("cash")}>
                   Cash
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPaymentMethodFilter("bank_transfer")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setPaymentMethodFilter("bank_transfer")}>
                   Bank Transfer
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPaymentMethodFilter("mobile_money")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setPaymentMethodFilter("mobile_money")}>
                   Mobile Money
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPaymentMethodFilter("cheque")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setPaymentMethodFilter("cheque")}>
                   Cheque
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPaymentMethodFilter("paystack")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setPaymentMethodFilter("paystack")}>
                   Paystack
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setPaymentMethodFilter("other")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setPaymentMethodFilter("other")}>
                   Other
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </PremiumDropdownMenuItem>
+              </PremiumDropdownMenuContent>
+            </PremiumDropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <PremiumDropdownMenu>
+              <PremiumDropdownMenuTrigger asChild>
                 <Button
                   type="button"
                   variant="outline"
@@ -279,25 +310,25 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 text-white/50" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className={premiumMenuContent} align="start">
-                <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+              </PremiumDropdownMenuTrigger>
+              <PremiumDropdownMenuContent align="start" className="min-w-[180px]">
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("all")}>
                   All status
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("pending")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("pending")}>
                   Pending
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("completed")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("completed")}>
                   Completed
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("reversed")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("reversed")}>
                   Reversed
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("failed")}>
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem onClick={() => setStatusFilter("failed")}>
                   Failed
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </PremiumDropdownMenuItem>
+              </PremiumDropdownMenuContent>
+            </PremiumDropdownMenu>
           </div>
 
           {/* Sort controls */}
@@ -406,9 +437,10 @@ export function PaymentHistory({ studentId, invoiceId }: Props) {
                         {paymentMethodBadge(payment.paymentMethod)}
                         {payment.receiptNumber && (
                           <Badge
-                            className="border-white/10 bg-white/5 text-xs"
+                            className="gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-xs"
                             variant="outline"
                           >
+                            <Receipt className="h-3 w-3" />
                             {payment.receiptNumber}
                           </Badge>
                         )}

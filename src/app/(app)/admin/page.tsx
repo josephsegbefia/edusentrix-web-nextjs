@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Bell,
   AlertCircle,
+  CircleHelp,
   Search,
   Mail,
   MessageSquare,
@@ -36,6 +37,12 @@ import {
   Heart,
   Trophy,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 /* ------------------ NEW: hooks + modals ------------------ */
 import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
@@ -564,6 +571,11 @@ export default function SchoolAdminOverviewPage() {
 
   const reconUnmatched = unmatchedReconQuery.data?.pagination.total ?? 0;
   const reconLoading = unmatchedReconQuery.isLoading;
+  const ledgerHealth = m?.ledgerHealth ?? {
+    unreconciledCount: 0,
+    averageApprovalLagHours: 0,
+    reversalRatePct: 0,
+  };
 
   const overdueSummary = overdueRiskData?.data.summary;
   const overdueTopStudents = overdueRiskData?.data.topStudents ?? [];
@@ -1518,6 +1530,82 @@ export default function SchoolAdminOverviewPage() {
                     <div className="text-[11px] text-white/55">Overdue Invoices</div>
                     <div className="text-sm font-medium text-rose-200">
                       {collections.overdueCount}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="flex items-center gap-1 text-[11px] text-white/55">
+                      Unreconciled
+                      <TooltipProvider delayDuration={250}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-white/40 hover:text-white/70"
+                              aria-label="Unreconciled help"
+                            >
+                              <CircleHelp className="h-3 w-3" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            Completed payments that are not fully reconciled yet.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <div className="text-sm font-medium text-amber-200">
+                      {ledgerHealth.unreconciledCount}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="flex items-center gap-1 text-[11px] text-white/55">
+                      Approval Lag
+                      <TooltipProvider delayDuration={250}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-white/40 hover:text-white/70"
+                              aria-label="Approval lag help"
+                            >
+                              <CircleHelp className="h-3 w-3" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            Average hours it takes to approve/reject payment
+                            proofs.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <div className="text-sm font-medium text-white/90">
+                      {ledgerHealth.averageApprovalLagHours.toFixed(1)}h
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
+                    <div className="flex items-center gap-1 text-[11px] text-white/55">
+                      Reversal Rate
+                      <TooltipProvider delayDuration={250}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-white/40 hover:text-white/70"
+                              aria-label="Reversal rate help"
+                            >
+                              <CircleHelp className="h-3 w-3" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs text-xs">
+                            Percentage of posted payments that were later reversed.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <div className="text-sm font-medium text-white/90">
+                      {ledgerHealth.reversalRatePct.toFixed(1)}%
                     </div>
                   </div>
                 </div>

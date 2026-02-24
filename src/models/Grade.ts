@@ -6,7 +6,7 @@ export interface IGrade {
   schoolId: Types.ObjectId;
   name: string; // e.g. "JHS 1"
   code?: string | null;
-  stage?: "Basic" | "Secondary" | "Other";
+  stage?: string;
   order?: number; // sort order within the school
   isActive: boolean;
   createdAt: Date;
@@ -25,7 +25,6 @@ const gradeSchema = new Schema<IGrade>(
     code: { type: String, default: null },
     stage: {
       type: String,
-      enum: ["Basic", "Secondary", "Other"],
       default: "Basic",
     },
     order: { type: Number, default: 0 },

@@ -1,5 +1,13 @@
 import { Schema, model, models, Types, type Model } from "mongoose";
 
+export interface IAssessmentComponent {
+  label: string;
+  score: number;
+  maxScore: number;
+  percentage: number;
+  weight: number;
+}
+
 export interface ISubjectGrade {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
@@ -13,6 +21,8 @@ export interface ISubjectGrade {
   examScore: number;
   examMaxScore: number;
   examPercentage: number;
+  components?: IAssessmentComponent[];
+  descriptorLevel?: string | null;
   totalScore: number;
   gradeLetter: string;
   gradePoint: number;
@@ -82,6 +92,22 @@ const subjectGradeSchema = new Schema<ISubjectGrade>(
       type: Number,
       required: true,
       default: 0,
+    },
+    components: {
+      type: [
+        {
+          label: { type: String, required: true },
+          score: { type: Number, required: true, default: 0 },
+          maxScore: { type: Number, required: true, default: 0 },
+          percentage: { type: Number, required: true, default: 0 },
+          weight: { type: Number, required: true, default: 1 },
+        },
+      ],
+      default: undefined,
+    },
+    descriptorLevel: {
+      type: String,
+      default: null,
     },
     totalScore: {
       type: Number,

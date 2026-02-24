@@ -3,21 +3,65 @@
 
 import * as React from "react";
 import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
+import {
+  getSubjectTemplatesForCurriculum,
+  type SubjectTemplateEntry,
+} from "@/constants/curriculum-subject-templates";
+import type { CurriculumCode } from "@/constants/curriculum-profiles";
 import { useBulkCreateSubjects } from "@/hooks/admin/useBulkCreateSubjects";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
   onDone: () => void;
+  curriculumCode?: CurriculumCode;
+  schoolType?: string;
 };
 
-export function SubjectsSetupModal({ onDone }: Props) {
-  const [selected, setSelected] = React.useState<string[]>(
-    [...GHANA_BASIC_SUBJECTS] // pre-checked
+const categoryLabels: Record<string, string> = {
+  core: "Core",
+  elective: "Elective",
+  foundation: "Foundation",
+  optional: "Optional",
+  transdisciplinary_theme: "Theme",
+  subject_group: "Subject Group",
+};
+
+const categoryColors: Record<string, string> = {
+  core: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
+  elective: "border-amber-500/25 bg-amber-500/10 text-amber-300",
+  foundation: "border-blue-500/25 bg-blue-500/10 text-blue-300",
+  optional: "border-white/15 bg-white/5 text-white/60",
+  transdisciplinary_theme:
+    "border-violet-500/25 bg-violet-500/10 text-violet-300",
+  subject_group: "border-indigo-500/25 bg-indigo-500/10 text-indigo-300",
+};
+
+export function SubjectsSetupModal({ onDone, curriculumCode, schoolType }: Props) {
+  const templates: SubjectTemplateEntry[] = React.useMemo(() => {
+    if (curriculumCode && curriculumCode !== "ghana_nacca") {
+      return getSubjectTemplatesForCurriculum(curriculumCode, schoolType);
+    }
+    return GHANA_BASIC_SUBJECTS.map((name) => ({
+      name,
+      category: "core" as const,
+    }));
+  }, [curriculumCode, schoolType]);
+
+  const subjectNames = React.useMemo(
+    () => templates.map((t) => t.name),
+    [templates]
   );
+
+  const [selected, setSelected] = React.useState<string[]>([...subjectNames]);
   const [custom, setCustom] = React.useState<string>("");
   const createSubjects = useBulkCreateSubjects();
+
+  React.useEffect(() => {
+    setSelected([...subjectNames]);
+  }, [subjectNames]);
 
   function toggle(name: string) {
     setSelected((prev) =>
@@ -41,28 +85,41 @@ export function SubjectsSetupModal({ onDone }: Props) {
     onDone();
   }
 
+  const curriculumLabel =
+    curriculumCode && curriculumCode !== "ghana_nacca"
+      ? `Recommended subjects for your curriculum`
+      : "We recommend the Ghana Basic Curriculum subjects";
+
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
         <p className="text-sm text-white/80">
-          We recommend the Ghana Basic Curriculum subjects. Uncheck any you
-          don’t need and add your own before creating.
+          {curriculumLabel}. Uncheck any you don&apos;t need and add your own
+          before creating.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 max-h-[280px] overflow-auto pr-1">
-        {GHANA_BASIC_SUBJECTS.map((name) => (
+        {templates.map((t) => (
           <label
-            key={name}
+            key={t.name}
             className="flex items-center gap-2 rounded-md p-2 hover:bg-white/5 cursor-pointer border border-white/10 bg-white/5"
           >
             <input
               type="checkbox"
-              checked={selected.includes(name)}
-              onChange={() => toggle(name)}
+              checked={selected.includes(t.name)}
+              onChange={() => toggle(t.name)}
               className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
             />
-            <span className="text-sm text-white/80">{name}</span>
+            <span className="text-sm text-white/80 flex-1">{t.name}</span>
+            {t.category && (
+              <Badge
+                variant="outline"
+                className={`text-[9px] px-1.5 py-0 ${categoryColors[t.category] || ""}`}
+              >
+                {categoryLabels[t.category] || t.category}
+              </Badge>
+            )}
           </label>
         ))}
       </div>

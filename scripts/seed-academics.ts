@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 import connectToDatabase, {
   disconnectDatabase,
 } from "../src/db/connectToDatabase";
-import { School } from "../src/models/School";
+import { School, type ISchool } from "../src/models/School";
 import { Student } from "../src/models/Student";
 import { ClassGroup } from "../src/models/ClassGroup";
 import { Subject } from "../src/models/Subject";
@@ -25,6 +25,8 @@ import {
   resolveGradingScaleLetter,
   calculateTermResultFromSubjectGrades,
 } from "../src/lib/academics/calculateGrades";
+import { getGradingPreset } from "../src/constants/curriculum-grading-presets";
+import type { CurriculumCode } from "../src/constants/curriculum-profiles";
 
 const argv = yargs(hideBin(process.argv))
   .option("mongo", {
@@ -228,19 +230,21 @@ async function main() {
   }).lean<IGradingScale | null>();
 
   if (!gradingScale) {
+    const schoolDoc = (await School.findById(schoolId)
+      .select("curriculumCode")
+      .lean()) as Pick<ISchool, "curriculumCode"> | null;
+    const currCode = (schoolDoc?.curriculumCode || "ghana_nacca") as CurriculumCode;
+    const preset = getGradingPreset(currCode);
+
     const defaultScale = {
       schoolId,
-      name: "Default Grading Scale",
+      name: preset.name,
       isDefault: true,
-      caWeight: 0.3,
-      examWeight: 0.7,
-      gradeMappings: [
-        { minPercentage: 80, maxPercentage: 100, letter: "A", point: 4.0 },
-        { minPercentage: 70, maxPercentage: 79.9, letter: "B", point: 3.0 },
-        { minPercentage: 60, maxPercentage: 69.9, letter: "C", point: 2.0 },
-        { minPercentage: 50, maxPercentage: 59.9, letter: "D", point: 1.0 },
-        { minPercentage: 0, maxPercentage: 49.9, letter: "F", point: 0.0 },
-      ],
+      caWeight: preset.caWeight,
+      examWeight: preset.examWeight,
+      passThreshold: preset.passThreshold,
+      performanceTiers: preset.performanceTiers,
+      gradeMappings: preset.gradeMappings,
     };
 
     if (argv.dryRun) {

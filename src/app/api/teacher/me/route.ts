@@ -33,7 +33,7 @@ export async function GET() {
       User.findById(context.userId)
         .select("firstName lastName email avatarUrl")
         .lean(),
-      School.findById(context.schoolId).select("name logo").lean(),
+      School.findById(context.schoolId).select("name logo curriculumCode").lean(),
       AcademicPeriod.findOne({
         schoolId: context.schoolId,
         isCurrent: true,
@@ -185,6 +185,7 @@ export async function GET() {
           _id: school?._id ? String(school._id) : "",
           name: school?.name || "",
           logoUrl: school?.logo || undefined,
+          curriculumCode: (school as unknown as Record<string, unknown>)?.curriculumCode as string || "ghana_nacca",
         },
         currentPeriod: currentPeriod
           ? {

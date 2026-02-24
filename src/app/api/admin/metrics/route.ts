@@ -102,6 +102,41 @@ export async function GET() {
     ]),
   ]);
 
+  const [
+    unreconciledCount,
+    reversedCount,
+    completedOrReversedCount,
+    approvalLagAgg,
+  ] = await Promise.all([
+    Payment.countDocuments({
+      schoolId: schoolIdObj,
+      status: "completed",
+      reconciliationStatus: { $ne: "fully_reconciled" },
+    }),
+    Payment.countDocuments({ schoolId: schoolIdObj, status: "reversed" }),
+    Payment.countDocuments({
+      schoolId: schoolIdObj,
+      status: { $in: ["completed", "reversed"] },
+    }),
+    Payment.aggregate([
+      {
+        $match: {
+          schoolId: schoolIdObj,
+          approvalStatus: { $in: ["approved", "rejected"] },
+          reviewedAt: { $ne: null },
+        },
+      },
+      {
+        $project: {
+          lagHours: {
+            $divide: [{ $subtract: ["$reviewedAt", "$createdAt"] }, 1000 * 60 * 60],
+          },
+        },
+      },
+      { $group: { _id: null, avgLagHours: { $avg: "$lagHours" } } },
+    ]),
+  ]);
+
   const totalRevenueMinor = revenueAgg[0]?.total ?? 0;
   const totalOutstandingMinor = outstandingAgg[0]?.total ?? 0;
   const totalBilledMinor = totalBilledAgg[0]?.total ?? 0;
@@ -119,6 +154,12 @@ export async function GET() {
   const subjectsTrend = { deltaPct: 0, direction: "flat" as const };
 
   const totalRaisedMinor = campaignsRaisedAgg[0]?.total ?? 0;
+  const reversalRatePct =
+    completedOrReversedCount > 0
+      ? Math.round((reversedCount / completedOrReversedCount) * 1000) / 10
+      : 0;
+  const averageApprovalLagHours =
+    Math.round(Number(approvalLagAgg[0]?.avgLagHours || 0) * 10) / 10;
 
   return NextResponse.json({
     students: { total: studentsTotal, trend: studentsTrend },
@@ -137,6 +178,11 @@ export async function GET() {
       collected: Math.round(totalRevenueMinor / 100),
       outstanding: Math.round(totalOutstandingMinor / 100),
       rate: collectionRate,
+    },
+    ledgerHealth: {
+      unreconciledCount,
+      averageApprovalLagHours,
+      reversalRatePct,
     },
     community: {
       polls: {

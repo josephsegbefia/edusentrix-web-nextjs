@@ -45,17 +45,18 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
   }, [open]);
 
   const handleDownloadTemplate = () => {
-    // Create CSV template
+    // Create CSV template — use human-readable names (Subjects, Homeroom Grade, Homeroom Class)
     const headers = [
-      "firstName",
-      "lastName",
-      "email",
-      "phone",
-      "employeeId",
-      "department",
-      "status",
-      "subjectIds",
-      "homeroomClassGroupId",
+      "First Name",
+      "Last Name",
+      "Email",
+      "Phone",
+      "Employee ID",
+      "Department",
+      "Status",
+      "Subjects",
+      "Homeroom Grade",
+      "Homeroom Class",
     ];
     const exampleRow = [
       "John",
@@ -65,8 +66,9 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
       "EMP001",
       "Mathematics",
       "active",
-      "subject-id-1,subject-id-2",
-      "class-group-id",
+      "Mathematics,English",
+      "JHS 1",
+      "JHS 1A",
     ];
 
     const csvContent = [headers.join(","), exampleRow.join(",")].join("\n");
@@ -235,7 +237,8 @@ export function ImportTeachersCSVModal({ open, onOpenChange }: Props) {
                       </p>
                       <p className="text-xs text-blue-200/80 mb-3">
                         Download the template to ensure your CSV file has the
-                        correct format and column headers.
+                        correct format. Use subject names (e.g. Mathematics, English)
+                        and grade/class names (e.g. JHS 1, JHS 1A) — no IDs required.
                       </p>
                       <Button
                         type="button"

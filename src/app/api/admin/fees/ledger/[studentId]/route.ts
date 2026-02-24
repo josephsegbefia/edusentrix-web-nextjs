@@ -9,6 +9,13 @@ import { Payment } from "@/models/Payment";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 
+const ACTIVE_INVOICE_STATUSES = [
+  "issued",
+  "partially_paid",
+  "paid",
+  "overdue",
+] as const;
+
 type LedgerRow =
   | {
       id: string;
@@ -65,6 +72,19 @@ export async function GET(
 
   const academicPeriodId = searchParams.get("academicPeriodId"); // "all" or ObjectId
   const includePending = searchParams.get("includePending") !== "false";
+  if (!mongoose.Types.ObjectId.isValid(studentId)) {
+    return NextResponse.json({ error: "Invalid student ID" }, { status: 400 });
+  }
+  if (
+    academicPeriodId &&
+    academicPeriodId !== "all" &&
+    !mongoose.Types.ObjectId.isValid(academicPeriodId)
+  ) {
+    return NextResponse.json(
+      { error: "Invalid academic period ID" },
+      { status: 400 }
+    );
+  }
 
   const student = await Student.findOne({ _id: studentId, schoolId }).lean();
   if (!student)
@@ -73,6 +93,7 @@ export async function GET(
   const invoiceQuery: mongoose.FilterQuery<typeof Invoice> = {
     schoolId,
     studentId: new mongoose.Types.ObjectId(studentId),
+    status: { $in: ACTIVE_INVOICE_STATUSES },
   };
   if (academicPeriodId && academicPeriodId !== "all") {
     invoiceQuery.academicPeriodId = new mongoose.Types.ObjectId(
@@ -180,7 +201,7 @@ export async function GET(
           status: "posted",
           sourcePaymentId: e.sourcePaymentId ? String(e.sourcePaymentId) : null,
         });
-      } else if (e.type === "application") {
+      } else if (e.type === "application" || e.type === "apply") {
         rows.push({
           id: `crapp:${e.createdAt}:${e.amountMinor}:${String(
             e.appliedToInvoiceId || ""

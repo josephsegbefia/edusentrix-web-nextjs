@@ -4,7 +4,14 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import mongoose from "mongoose";
 import { Teacher } from "@/models/Teacher";
-import { escapeRegex, parsePositiveInt } from "@/lib/utils";
+import { parsePositiveInt } from "@/lib/utils";
+
+const ALLOWED_STATUSES = new Set([
+  "active",
+  "inactive",
+  "on_leave",
+  "terminated",
+]);
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,11 +23,23 @@ export async function GET(req: NextRequest) {
 
     const q = (searchParams.get("q") || "").trim();
     const limit = Math.min(parsePositiveInt(searchParams.get("limit"), 10), 25);
+    const statusesParam = (searchParams.get("statuses") || "").trim();
 
-    const query: any = { schoolId: schoolIdObj, status: { $in: ["active", "on_leave"] } };
+    const requestedStatuses = statusesParam
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s): s is "active" | "inactive" | "on_leave" | "terminated" =>
+        ALLOWED_STATUSES.has(s)
+      );
+
+    // Keep existing behavior by default: active + on leave teachers.
+    const statuses =
+      requestedStatuses.length > 0 ? requestedStatuses : ["active", "on_leave"];
+
+    const query: any = { schoolId: schoolIdObj, status: { $in: statuses } };
 
     const items = await Teacher.find(query)
-      .select("_id userId")
+      .select("_id userId status")
       .populate("userId", "firstName lastName email avatarUrl")
       .limit(limit * 2) // Get more to filter after population
       .lean();
@@ -58,6 +77,7 @@ export async function GET(req: NextRequest) {
           fullName,
           email: user?.email || null,
           photoUrl: user?.avatarUrl || null,
+          status: t?.status || "active",
         };
       }),
     });

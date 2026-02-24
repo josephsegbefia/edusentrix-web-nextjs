@@ -57,6 +57,14 @@ const TeacherSchema = new Schema(
     employeeId: { type: String, trim: true },
     hireDate: { type: Date },
     terminationDate: { type: Date },
+    leaveStartDate: { type: Date, default: null },
+    leaveEndDate: { type: Date, default: null, index: true },
+    leaveReason: { type: String, trim: true, default: null },
+    leaveReminderOffsetsSent: { type: [Number], default: [] },
+    leaveLastReminderAt: { type: Date, default: null },
+    leaveEndedAt: { type: Date, default: null },
+    leaveEndedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    leaveAutoActivatedAt: { type: Date, default: null },
     department: { type: String, trim: true },
     qualifications: { type: [QualificationSchema], default: [] },
 
@@ -82,6 +90,7 @@ TeacherSchema.index(
   { schoolId: 1, employeeId: 1 },
   { unique: true, sparse: true }
 );
+TeacherSchema.index({ schoolId: 1, status: 1, leaveEndDate: 1 });
 
 type ITeacher = InferSchemaType<typeof TeacherSchema>;
 // Guardrail: homeroom class group (when set) must belong to the same school

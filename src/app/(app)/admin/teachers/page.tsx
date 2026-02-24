@@ -3,13 +3,18 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Plus,
   Upload,
   Loader2,
   AlertCircle,
+  Search,
   Users,
   X,
   Sparkles,
@@ -49,11 +54,14 @@ import {
   useActivateTeacher,
   useDeactivateTeacher,
   useDeleteTeacher,
+  useStartTeacherLeave,
 } from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
+import type { TeacherStatus } from "@/types/admin/teacher";
+import { toast } from "sonner";
 
 function isTypingTarget(el: EventTarget | null) {
   if (!el || !(el as HTMLElement).tagName) return false;
@@ -131,6 +139,117 @@ function TeacherModalShell({
   );
 }
 
+type StatusActionTarget = "inactive" | "on_leave" | "terminated";
+
+type TeacherSearchResult = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string | null;
+  photoUrl: string | null;
+  status: TeacherStatus;
+};
+
+const STATUS_ACTION_CONFIG: Record<
+  StatusActionTarget,
+  {
+    ctaLabel: string;
+    emptyStateDescription: string;
+    modalTitle: string;
+    modalDescription: string;
+    searchPlaceholder: string;
+    emptyMessage: string;
+    actionLabel: string;
+    actionClassName: string;
+  }
+> = {
+  inactive: {
+    ctaLabel: "Add an inactive teacher",
+    emptyStateDescription:
+      "Move an existing active or on-leave teacher into the inactive list.",
+    modalTitle: "Add an Inactive Teacher",
+    modalDescription:
+      "Search active or on-leave teachers and set their status to inactive.",
+    searchPlaceholder: "Search active or on-leave teachers...",
+    emptyMessage: "No eligible teachers found for inactive status.",
+    actionLabel: "Make Inactive",
+    actionClassName:
+      "border-slate-400/40 bg-slate-500/20 text-slate-100 hover:bg-slate-500/30",
+  },
+  on_leave: {
+    ctaLabel: "Add a teacher on leave",
+    emptyStateDescription:
+      "Mark an existing active or inactive teacher as on leave.",
+    modalTitle: "Add a Teacher On Leave",
+    modalDescription:
+      "Set a leave period, then search active or inactive teachers to mark on leave.",
+    searchPlaceholder: "Search active or inactive teachers...",
+    emptyMessage: "No eligible teachers found to place on leave.",
+    actionLabel: "Start Leave",
+    actionClassName:
+      "border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30",
+  },
+  terminated: {
+    ctaLabel: "Add a terminated teacher",
+    emptyStateDescription:
+      "Terminate an existing teacher to move them to this tab.",
+    modalTitle: "Add a Terminated Teacher",
+    modalDescription:
+      "Search active, inactive, or on-leave teachers and terminate them.",
+    searchPlaceholder: "Search teachers to terminate...",
+    emptyMessage: "No eligible teachers found to terminate.",
+    actionLabel: "Terminate",
+    actionClassName:
+      "border-rose-500/40 bg-rose-500/20 text-rose-100 hover:bg-rose-500/30",
+  },
+};
+
+const STATUS_LABELS: Record<TeacherStatus, string> = {
+  active: "Active",
+  inactive: "Inactive",
+  on_leave: "On Leave",
+  terminated: "Terminated",
+};
+
+const STATUS_BADGE_STYLES: Record<TeacherStatus, string> = {
+  active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  inactive: "border-slate-400/30 bg-slate-500/10 text-slate-300",
+  on_leave: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+  terminated: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+};
+
+function isStatusActionTarget(tab: TeachersTabId): tab is StatusActionTarget {
+  return tab === "inactive" || tab === "on_leave" || tab === "terminated";
+}
+
+function getTeacherInitials(fullName: string) {
+  return fullName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+}
+
+function toDateInputValue(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function formatDateInputValue(dateValue: string) {
+  const [y, m, d] = dateValue.split("-").map(Number);
+  const parsed = new Date(y, (m || 1) - 1, d || 1);
+  return parsed.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default function TeachersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -169,12 +288,22 @@ export default function TeachersPage() {
   const [editTeacherId, setEditTeacherId] = React.useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
+  const [statusModalTarget, setStatusModalTarget] =
+    React.useState<StatusActionTarget | null>(null);
+  const [statusModalSearch, setStatusModalSearch] = React.useState("");
+  const [statusActionTeacherId, setStatusActionTeacherId] = React.useState<
+    string | null
+  >(null);
+  const [leaveStartDate, setLeaveStartDate] = React.useState("");
+  const [leaveEndDate, setLeaveEndDate] = React.useState("");
+  const [leaveReason, setLeaveReason] = React.useState("");
 
   const createTeacher = useCreateTeacher();
   const updateTeacher = useUpdateTeacher();
   const activateTeacher = useActivateTeacher();
   const deactivateTeacher = useDeactivateTeacher();
   const deleteTeacher = useDeleteTeacher();
+  const startTeacherLeave = useStartTeacherLeave();
   const busy = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
@@ -182,6 +311,11 @@ export default function TeachersPage() {
     activateTeacher.isPending ||
     deactivateTeacher.isPending ||
     deleteTeacher.isPending;
+  const isStatusModalActionPending =
+    deactivateTeacher.isPending ||
+    updateTeacher.isPending ||
+    deleteTeacher.isPending ||
+    startTeacherLeave.isPending;
 
   React.useEffect(() => {
     const hasOverlayOpen =
@@ -189,20 +323,47 @@ export default function TeachersPage() {
       importOpen ||
       !!editTeacherId ||
       filtersOpen ||
-      commandOpen;
+      commandOpen ||
+      !!statusModalTarget;
 
     if (!hasOverlayOpen) {
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
     }
-  }, [createOpen, importOpen, editTeacherId, filtersOpen, commandOpen]);
+  }, [
+    createOpen,
+    importOpen,
+    editTeacherId,
+    filtersOpen,
+    commandOpen,
+    statusModalTarget,
+  ]);
 
   const handleActivateTeacher = async (teacherId: string) => {
     const teacher = teachers.find((t) => t.id === teacherId);
+    const isLeaveActivation = teacher?.status === "on_leave";
+
+    if (isLeaveActivation) {
+      const decision = await confirm({
+        title: "End Leave and Activate Teacher?",
+        description: `This will manually end leave for ${
+          teacher?.fullName || "this teacher"
+        } and set status to active.`,
+        confirmLabel: "End Leave",
+        cancelLabel: "Cancel",
+        intent: "warning",
+      });
+      if (decision !== "confirm") return;
+    }
+
     try {
       await busy.promise(activateTeacher.mutateAsync(teacherId), {
-        loading: "Activating teacher...",
-        success: `${teacher?.fullName || "Teacher"} activated successfully`,
+        loading: isLeaveActivation
+          ? "Ending leave and activating teacher..."
+          : "Activating teacher...",
+        success: isLeaveActivation
+          ? `${teacher?.fullName || "Teacher"} leave ended and activated`
+          : `${teacher?.fullName || "Teacher"} activated successfully`,
         error: (e: Error) => e.message || "Failed to activate teacher",
       });
     } catch {
@@ -264,6 +425,52 @@ export default function TeachersPage() {
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
+  const debouncedStatusModalSearch = useDebouncedValue(statusModalSearch, 300);
+  const statusModalConfig = statusModalTarget
+    ? STATUS_ACTION_CONFIG[statusModalTarget]
+    : null;
+
+  const statusSearchStatuses = React.useMemo(() => {
+    if (statusModalTarget === "inactive") return "active,on_leave";
+    if (statusModalTarget === "on_leave") return "active,inactive";
+    if (statusModalTarget === "terminated") return "active,inactive,on_leave";
+    return "";
+  }, [statusModalTarget]);
+
+  const {
+    data: statusSearchData,
+    isLoading: isStatusSearchLoading,
+    isError: isStatusSearchError,
+  } = useQuery<{ success: true; data: TeacherSearchResult[] }>({
+    queryKey: [
+      "teachers",
+      "status-modal-search",
+      statusModalTarget,
+      debouncedStatusModalSearch,
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      const searchValue = debouncedStatusModalSearch.trim();
+      if (searchValue) params.set("q", searchValue);
+      params.set("limit", "20");
+      if (statusSearchStatuses) params.set("statuses", statusSearchStatuses);
+
+      const res = await fetch(`/api/admin/teachers/search?${params.toString()}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const error = await res
+          .json()
+          .catch(() => ({ error: "Failed to search teachers" }));
+        throw new Error(error.error || "Failed to search teachers");
+      }
+      return res.json();
+    },
+    enabled: !!statusModalTarget,
+    staleTime: 20_000,
+  });
+
+  const statusSearchResults = statusSearchData?.data ?? [];
 
   // URL sync
   React.useEffect(() => {
@@ -336,6 +543,117 @@ export default function TeachersPage() {
     setPage(1);
     clearSelection();
   }
+
+  function openStatusModal(target: StatusActionTarget) {
+    setStatusModalTarget(target);
+    setStatusModalSearch("");
+    setStatusActionTeacherId(null);
+    if (target === "on_leave") {
+      const today = toDateInputValue(new Date());
+      setLeaveStartDate(today);
+      setLeaveEndDate(today);
+    } else {
+      setLeaveStartDate("");
+      setLeaveEndDate("");
+    }
+    setLeaveReason("");
+  }
+
+  function closeStatusModal() {
+    setStatusModalTarget(null);
+    setStatusModalSearch("");
+    setStatusActionTeacherId(null);
+    setLeaveStartDate("");
+    setLeaveEndDate("");
+    setLeaveReason("");
+  }
+
+  async function handleStatusModalAction(teacher: TeacherSearchResult) {
+    if (!statusModalTarget) return;
+
+    setStatusActionTeacherId(teacher.id);
+
+    try {
+      if (statusModalTarget === "inactive") {
+        const decision = await confirm({
+          title: "Mark Teacher Inactive?",
+          description: `Move ${teacher.fullName} from "${STATUS_LABELS[teacher.status]}" to "Inactive"?`,
+          confirmLabel: "Make Inactive",
+          cancelLabel: "Cancel",
+          intent: "warning",
+        });
+        if (decision !== "confirm") return;
+
+        await busy.promise(deactivateTeacher.mutateAsync(teacher.id), {
+          loading: "Updating teacher status...",
+          success: `${teacher.fullName} moved to inactive`,
+          error: (e: Error) => e.message || "Failed to update teacher status",
+        });
+      } else if (statusModalTarget === "on_leave") {
+        if (!leaveStartDate || !leaveEndDate) {
+          toast.error("Select leave start and end dates.");
+          return;
+        }
+        if (leaveEndDate < leaveStartDate) {
+          toast.error("Leave end date must be on or after leave start date.");
+          return;
+        }
+
+        const decision = await confirm({
+          title: "Mark Teacher On Leave?",
+          description: `Move ${teacher.fullName} from "${STATUS_LABELS[teacher.status]}" to "On Leave" from ${formatDateInputValue(
+            leaveStartDate
+          )} to ${formatDateInputValue(leaveEndDate)}?`,
+          confirmLabel: "Start Leave",
+          cancelLabel: "Cancel",
+          intent: "warning",
+        });
+        if (decision !== "confirm") return;
+
+        await busy.promise(
+          startTeacherLeave.mutateAsync({
+            teacherId: teacher.id,
+            startDate: leaveStartDate,
+            endDate: leaveEndDate,
+            reason: leaveReason.trim() || undefined,
+          }),
+          {
+            loading: "Starting leave period...",
+            success: `${teacher.fullName} is now on leave`,
+            error: (e: Error) => e.message || "Failed to start leave period",
+          }
+        );
+      } else {
+        const decision = await confirm({
+          title: "Terminate Teacher?",
+          description: `Are you sure you want to terminate ${teacher.fullName}? This will set their status to "Terminated", deactivate active assignments, and remove homeroom assignments. This action cannot be undone.`,
+          confirmLabel: "Terminate",
+          cancelLabel: "Cancel",
+          intent: "destructive",
+        });
+        if (decision !== "confirm") return;
+
+        await busy.promise(deleteTeacher.mutateAsync(teacher.id), {
+          loading: "Terminating teacher...",
+          success: `${teacher.fullName} terminated successfully`,
+          error: (e: Error) => e.message || "Failed to terminate teacher",
+        });
+      }
+
+      closeStatusModal();
+    } catch {
+      // Error already handled by busy.promise
+    } finally {
+      setStatusActionTeacherId(null);
+    }
+  }
+
+  const tabStatusActionConfig = isStatusActionTarget(tab)
+    ? STATUS_ACTION_CONFIG[tab]
+    : null;
+  const isLeavePeriodValid =
+    statusModalTarget !== "on_leave" ||
+    (Boolean(leaveStartDate) && Boolean(leaveEndDate) && leaveEndDate >= leaveStartDate);
 
   return (
     <div className="space-y-8">
@@ -578,17 +896,24 @@ export default function TeachersPage() {
                 <p className="mt-1 max-w-xs text-sm text-white/50">
                   {search
                     ? "Try adjusting your search or filters to find what you're looking for"
-                    : "Get started by adding your first teacher to the directory"}
+                    : tabStatusActionConfig?.emptyStateDescription ||
+                      "Get started by adding your first teacher to the directory"}
                 </p>
               </div>
               {!search && (
                 <Button
                   size="sm"
                   className="mt-2 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700"
-                  onClick={() => setCreateOpen(true)}
+                  onClick={() => {
+                    if (tabStatusActionConfig && isStatusActionTarget(tab)) {
+                      openStatusModal(tab);
+                      return;
+                    }
+                    setCreateOpen(true);
+                  }}
                 >
                   <Plus className="h-4 w-4" />
-                  Add your first teacher
+                  {tabStatusActionConfig?.ctaLabel || "Add your first teacher"}
                 </Button>
               )}
             </div>
@@ -639,6 +964,7 @@ export default function TeachersPage() {
                     void id;
                     notifyComingSoon("Send message");
                   }}
+                  onActivate={handleActivateTeacher}
                 />
               ) : (
                 <TeachersTable
@@ -747,6 +1073,162 @@ export default function TeachersPage() {
           isLoading={createTeacher.isPending}
         />
       </TeacherModalShell>
+
+      {/* Status Change Modal (Inactive / On Leave / Terminated tabs) */}
+      {statusModalTarget && statusModalConfig ? (
+        <TeacherModalShell
+          open
+          title={statusModalConfig.modalTitle}
+          onClose={closeStatusModal}
+        >
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <p className="text-sm text-white/70">
+                {statusModalConfig.modalDescription}
+              </p>
+              {statusModalTarget === "on_leave" ? (
+                <div className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-200/80">
+                    Leave Period
+                  </p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="text-xs text-white/60">Start date</label>
+                      <Input
+                        type="date"
+                        value={leaveStartDate}
+                        onChange={(e) => setLeaveStartDate(e.target.value)}
+                        className="h-10 border-white/15 bg-white/5 text-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-white/60">End date</label>
+                      <Input
+                        type="date"
+                        value={leaveEndDate}
+                        onChange={(e) => setLeaveEndDate(e.target.value)}
+                        min={leaveStartDate || undefined}
+                        className="h-10 border-white/15 bg-white/5 text-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-white/60">
+                      Reason (optional)
+                    </label>
+                    <Textarea
+                      value={leaveReason}
+                      onChange={(e) => setLeaveReason(e.target.value)}
+                      placeholder="Optional reason shown in teacher notification..."
+                      className="min-h-[78px] border-white/15 bg-white/5 text-white placeholder:text-white/40"
+                      maxLength={500}
+                    />
+                  </div>
+                  {!isLeavePeriodValid ? (
+                    <p className="text-xs text-red-300/80">
+                      Leave end date must be on or after start date.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                <Input
+                  value={statusModalSearch}
+                  onChange={(e) => setStatusModalSearch(e.target.value)}
+                  placeholder={statusModalConfig.searchPlaceholder}
+                  className="h-11 border-white/15 bg-white/5 pl-9 text-white placeholder:text-white/40 focus-visible:ring-indigo-400"
+                />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              {isStatusSearchLoading ? (
+                <div className="flex items-center justify-center gap-2 py-8 text-sm text-white/60">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Searching teachers...
+                </div>
+              ) : isStatusSearchError ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                  <AlertCircle className="h-5 w-5 text-red-400/70" />
+                  <p className="text-sm text-red-300/80">
+                    Failed to search teachers. Try again.
+                  </p>
+                </div>
+              ) : statusSearchResults.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                  <Users className="h-6 w-6 text-white/30" />
+                  <p className="text-sm text-white/60">
+                    {statusModalConfig.emptyMessage}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {statusSearchResults.map((teacher) => {
+                    const isUpdatingCurrentTeacher =
+                      statusActionTeacherId === teacher.id &&
+                      isStatusModalActionPending;
+
+                    return (
+                      <div
+                        key={teacher.id}
+                        className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-3 md:flex-row md:items-center md:justify-between"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 border border-white/10">
+                              <AvatarImage src={teacher.photoUrl ?? undefined} />
+                              <AvatarFallback className="bg-white/10 text-xs text-white/80">
+                                {getTeacherInitials(teacher.fullName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-white">
+                                {teacher.fullName}
+                              </p>
+                              <p className="truncate text-xs text-white/55">
+                                {teacher.email || "No email"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 md:justify-end">
+                          <span
+                            className={cn(
+                              "rounded-full border px-2 py-1 text-[10px] font-medium",
+                              STATUS_BADGE_STYLES[teacher.status]
+                            )}
+                          >
+                            {STATUS_LABELS[teacher.status]}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className={cn("gap-2", statusModalConfig.actionClassName)}
+                            onClick={() => handleStatusModalAction(teacher)}
+                            disabled={
+                              isStatusModalActionPending ||
+                              (statusModalTarget === "on_leave" &&
+                                !isLeavePeriodValid)
+                            }
+                          >
+                            {isUpdatingCurrentTeacher ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : null}
+                            {statusModalConfig.actionLabel}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </TeacherModalShell>
+      ) : null}
 
       {/* Edit Teacher */}
       {editTeacherId ? (

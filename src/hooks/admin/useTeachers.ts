@@ -159,6 +159,18 @@ type StatusChangeResponse = {
   data: { id: string; status: string };
 };
 
+type StartLeaveResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    status: "on_leave";
+    leaveStartDate: string;
+    leaveEndDate: string;
+    leaveReason: string | null;
+  };
+};
+
 /**
  * useActivateTeacher - Mutation hook for activating a teacher
  */
@@ -232,6 +244,52 @@ export function useDeleteTeacher() {
       queryClient.invalidateQueries({ queryKey: ["teachers", "stats"] });
       // Also invalidate assignments as they get deactivated
       queryClient.invalidateQueries({ queryKey: ["teachers", "assignments", teacherId] });
+    },
+  });
+}
+
+/**
+ * useStartTeacherLeave - Mutation hook for starting a teacher leave period
+ */
+export function useStartTeacherLeave() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      teacherId,
+      startDate,
+      endDate,
+      reason,
+    }: {
+      teacherId: string;
+      startDate: string;
+      endDate: string;
+      reason?: string;
+    }): Promise<StartLeaveResponse> => {
+      const res = await fetch(`/api/admin/teachers/${teacherId}/leave/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate,
+          endDate,
+          reason: reason?.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res
+          .json()
+          .catch(() => ({ error: "Failed to start teacher leave period" }));
+        throw new Error(error.error || "Failed to start teacher leave period");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({
+        queryKey: ["teachers", "detail", variables.teacherId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "stats"] });
     },
   });
 }

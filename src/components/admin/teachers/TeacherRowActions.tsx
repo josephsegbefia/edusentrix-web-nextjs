@@ -56,6 +56,7 @@ export function TeacherRowActions({
   const canActivate = status === "inactive" || status === "terminated" || status === "on_leave";
   const canDeactivate = status === "active";
   const canDelete = status !== "terminated";
+  const activateLabel = status === "on_leave" ? "End Leave" : "Activate";
 
   return (
     <DropdownMenu>
@@ -101,7 +102,7 @@ export function TeacherRowActions({
             className="text-emerald-300 focus:text-emerald-200 focus:bg-emerald-500/10"
           >
             <Power className="h-3.5 w-3.5 mr-2" />
-            Activate
+            {activateLabel}
           </DropdownMenuItem>
         )}
         {canDeactivate && (

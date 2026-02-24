@@ -8,6 +8,7 @@ import { User } from "@/models/User";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Subject } from "@/models/Subject";
 import { escapeRegex, parsePositiveInt } from "@/lib/utils";
+import { runTeacherLeaveAutomation } from "@/lib/teachers/leaveAutomation";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string | null): mongoose.Types.ObjectId | null {
@@ -34,6 +35,10 @@ export async function GET(req: NextRequest) {
       schoolId instanceof mongoose.Types.ObjectId
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
+
+    // Opportunistic sweep so expired leaves and near-end reminders stay current
+    // even before external cron wiring is in place.
+    await runTeacherLeaveAutomation({ schoolId: schoolIdObj });
 
     const { searchParams } = new URL(req.url);
 

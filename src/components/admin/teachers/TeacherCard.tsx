@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Calendar,
   Briefcase,
+  Power,
 } from "lucide-react";
 
 type TeacherCardProps = {
@@ -30,6 +31,7 @@ type TeacherCardProps = {
   onEdit?: (id: string) => void;
   onManageAccess?: (id: string) => void;
   onSendMessage?: (id: string) => void;
+  onActivate?: (id: string) => void;
 };
 
 type StatusTone = "emerald" | "rose" | "amber" | "slate";
@@ -94,6 +96,7 @@ export function TeacherCard({
   onEdit,
   onManageAccess,
   onSendMessage,
+  onActivate,
 }: TeacherCardProps) {
   const tone = getStatusTone(teacher);
   const config = toneConfig[tone];
@@ -250,6 +253,18 @@ export function TeacherCard({
                     <Mail className="h-3.5 w-3.5" />
                     Send message
                   </DropdownMenuItem>
+                  {teacher.status === "on_leave" && onActivate ? (
+                    <>
+                      <DropdownMenuSeparator className="bg-white/10" />
+                      <DropdownMenuItem
+                        onClick={handleAction(onActivate)}
+                        className="gap-2 rounded-lg text-emerald-300 focus:text-emerald-200 focus:bg-emerald-500/10"
+                      >
+                        <Power className="h-3.5 w-3.5" />
+                        End leave
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

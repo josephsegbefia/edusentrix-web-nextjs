@@ -10,6 +10,7 @@ type TeachersCardGridProps = {
   onEdit?: (id: string) => void;
   onManageAccess?: (id: string) => void;
   onSendMessage?: (id: string) => void;
+  onActivate?: (id: string) => void;
 };
 
 export function TeachersCardGrid({
@@ -18,6 +19,7 @@ export function TeachersCardGrid({
   onEdit,
   onManageAccess,
   onSendMessage,
+  onActivate,
 }: TeachersCardGridProps) {
   if (!teachers.length) return null;
 
@@ -31,6 +33,7 @@ export function TeachersCardGrid({
           onEdit={onEdit}
           onManageAccess={onManageAccess}
           onSendMessage={onSendMessage}
+          onActivate={onActivate}
         />
       ))}
     </div>

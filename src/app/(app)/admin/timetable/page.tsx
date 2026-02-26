@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useGrades } from "@/hooks/admin/useGrades";
 import { AssignSubjectScheduleModal } from "@/components/modals/AssignSubjectScheduleModal";
 import {
   Select,
@@ -124,12 +125,28 @@ function detectConflicts(entries: TimetableEntry[]): Map<string, TimetableEntry[
 
 export default function MasterTimetablePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const gradeIdFromUrl = searchParams.get("gradeId");
+
   const [selectedDay, setSelectedDay] = React.useState<number | null>(null); // null = all days
   const [selectedGrade, setSelectedGrade] = React.useState<string>("all");
   const [selectedClass, setSelectedClass] = React.useState<string>("all");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [selectedEntry, setSelectedEntry] = React.useState<TimetableEntry | null>(null);
+
+  const { data: gradesData } = useGrades(true);
+  const grades = gradesData?.data ?? [];
+
+  // When gradeId is in URL, set selectedGrade to the matching grade name
+  React.useEffect(() => {
+    if (gradeIdFromUrl && grades.length > 0) {
+      const grade = grades.find((g) => g.id === gradeIdFromUrl);
+      if (grade) {
+        setSelectedGrade(grade.name);
+      }
+    }
+  }, [gradeIdFromUrl, grades]);
 
   // Fetch master timetable
   const { data, isLoading, isError, refetch } = useQuery<{
@@ -149,12 +166,7 @@ export default function MasterTimetablePage() {
 
   const allEntries = data?.data || [];
 
-  // Get unique grades and classes for filters
-  const grades = React.useMemo(() => {
-    const gradeSet = new Set(allEntries.map((e) => e.gradeName));
-    return Array.from(gradeSet).sort();
-  }, [allEntries]);
-
+  // Get unique classes for filters (grades come from useGrades for gradeId URL sync)
   const classes = React.useMemo(() => {
     const classSet = new Set(allEntries.map((e) => e.className));
     return Array.from(classSet).sort();
@@ -343,9 +355,9 @@ export default function MasterTimetablePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Grades</SelectItem>
-                {grades.map((grade) => (
-                  <SelectItem key={grade} value={grade}>
-                    {grade}
+                {grades.map((g) => (
+                  <SelectItem key={g.id} value={g.name}>
+                    {g.name}
                   </SelectItem>
                 ))}
               </SelectContent>

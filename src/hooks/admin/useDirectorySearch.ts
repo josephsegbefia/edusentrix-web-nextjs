@@ -34,13 +34,14 @@ export function useSubjectSearch(q: string) {
   });
 }
 
-export function useClassGroupSearch(q: string) {
+export function useClassGroupSearch(q: string, subjectId?: string) {
   return useQuery<{ success: true; data: ClassGroupMini[] }>({
-    queryKey: ["classGroups", "search", q],
+    queryKey: ["classGroups", "search", q, subjectId || ""],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("q", q);
-      params.set("limit", "10");
+      params.set("limit", "50");
+      if (subjectId) params.set("subjectId", subjectId);
       const res = await fetch(
         `/api/admin/class-groups/search?${params.toString()}`,
         { cache: "no-store" }
@@ -59,7 +60,7 @@ export function useTeacherSearch(q: string) {
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("q", q);
-      params.set("limit", "10");
+      params.set("limit", "20");
       const res = await fetch(
         `/api/admin/teachers/search?${params.toString()}`,
         { cache: "no-store" }

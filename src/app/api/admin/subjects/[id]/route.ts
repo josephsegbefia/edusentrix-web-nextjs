@@ -52,10 +52,58 @@ export async function GET(
       );
     }
 
-    // Get classes that have this subject
-    const classes = await ClassGroup.find({
+    // Get current academic period (needed for TeacherAssignment lookup)
+    const currentPeriod = await AcademicPeriod.findOne({
+      schoolId: schoolIdObj,
+      isCurrent: true,
+    })
+      .select("_id yearLabel term")
+      .lean();
+
+    // Assigned Classes: union of
+    // 1) ClassGroups with subject in subjectIds
+    // 2) ClassGroups from active TeacherAssignments (handles legacy data where subject wasn't added to class)
+    const classIdsFromSubject = new Set<string>();
+    const classesFromSubject = await ClassGroup.find({
       schoolId: schoolIdObj,
       subjectIds: subjectId,
+      isActive: true,
+    })
+      .select("_id")
+      .lean();
+    classesFromSubject.forEach((c: any) => classIdsFromSubject.add(String(c._id)));
+
+    let classIdsFromAssignments = new Set<string>();
+    if (currentPeriod) {
+      const assignmentsWithClass = await TeacherAssignment.find({
+        schoolId: schoolIdObj,
+        subjectId: subjectId,
+        academicPeriodId: (currentPeriod as any)._id,
+        status: "active",
+      })
+        .select("classGroupId")
+        .lean();
+      assignmentsWithClass.forEach((a: any) =>
+        classIdsFromAssignments.add(String(a.classGroupId))
+      );
+    }
+
+    const allClassIds = new Set([...classIdsFromSubject, ...classIdsFromAssignments]);
+    // Backfill: add subject to ClassGroup.subjectIds for classes only in assignments (legacy data)
+    const idsOnlyInAssignments = [...classIdsFromAssignments].filter((id) => !classIdsFromSubject.has(id));
+    if (idsOnlyInAssignments.length > 0) {
+      await ClassGroup.updateMany(
+        {
+          _id: { $in: idsOnlyInAssignments.map((id) => new mongoose.Types.ObjectId(id)) },
+          schoolId: schoolIdObj,
+        },
+        { $addToSet: { subjectIds: subjectId } }
+      );
+    }
+
+    const classes = await ClassGroup.find({
+      _id: { $in: Array.from(allClassIds).map((id) => new mongoose.Types.ObjectId(id)) },
+      schoolId: schoolIdObj,
       isActive: true,
     })
       .populate("gradeId", "name code stage order")
@@ -76,16 +124,9 @@ export async function GET(
       };
     });
 
-    // Get current academic period
-    const currentPeriod = await AcademicPeriod.findOne({
-      schoolId: schoolIdObj,
-      isCurrent: true,
-    })
-      .select("_id yearLabel term")
-      .lean();
-
     // Get teachers assigned to this subject
     let teachersData: Array<{
+      assignmentId: string;
       id: string;
       firstName: string;
       lastName: string;
@@ -128,6 +169,7 @@ export async function GET(
         const grade = classGroup?.gradeId;
 
         return {
+          assignmentId: String(a._id || ""),
           id: String(teacher?._id || ""),
           firstName: user?.firstName || "",
           lastName: user?.lastName || "",

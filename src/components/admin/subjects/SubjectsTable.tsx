@@ -4,28 +4,27 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  MoreHorizontal,
-  School,
-  Users,
-  ExternalLink,
-  Pencil,
-  BookOpen,
-  UserPlus,
   ArrowUpDown,
-  ChevronUp,
   ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  BookOpen,
+  MoreHorizontal,
+  Pencil,
+  School,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuTrigger,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+} from "@/components/ui/premium-dropdown-menu";
 
 export type SubjectsSortBy = "name" | "classes" | "teachers" | "createdAt";
 export type SubjectsSortOrder = "asc" | "desc";
@@ -72,7 +71,7 @@ function SortableHeader({
     return (
       <span
         className={cn(
-          "text-xs font-medium text-white/60",
+          "text-xs font-medium text-muted-foreground",
           align === "center" && "text-center",
           align === "right" && "text-right"
         )}
@@ -87,18 +86,13 @@ function SortableHeader({
       type="button"
       onClick={() => onSortChange(column)}
       className={cn(
-        "group inline-flex items-center gap-1 text-xs font-medium text-white/60 hover:text-white transition-colors",
+        "group inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground",
         align === "right" && "ml-auto",
         align === "center" && "mx-auto"
       )}
     >
       <span>{label}</span>
-      <Icon
-        className={cn(
-          "h-3.5 w-3.5 transition-colors",
-          isActive ? "text-rose-400" : "text-white/40 group-hover:text-white/60"
-        )}
-      />
+      <Icon className="h-3.5 w-3.5 text-muted-foreground/70 group-hover:text-foreground" />
     </button>
   );
 }
@@ -132,7 +126,7 @@ export function SubjectsTable({
   if (subjects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-white/10 to-white/5">
           <BookOpen className="h-8 w-8 text-white/30" />
         </div>
         <p className="mt-4 text-sm font-medium text-white/70">No subjects found</p>
@@ -147,21 +141,21 @@ export function SubjectsTable({
     <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/10">
       <table className="min-w-full border-collapse text-xs md:text-sm">
         <thead>
-          <tr className="border-b border-white/10 bg-white/5 text-xs">
+          <tr className="border-b border-white/10 bg-white/5 text-xs text-muted-foreground">
             {onToggleRow && (
-              <th className="w-8 px-3 py-3 text-left align-middle">
+              <th className="w-8 px-3 py-2 text-left align-middle">
                 <Checkbox
                   checked={allVisibleSelected}
                   onCheckedChange={handleHeaderCheckboxChange}
                   className={cn(
-                    "h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-rose-600"
+                    "h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
                   )}
                   aria-label="Select all visible subjects"
                   indeterminate={someVisibleSelected}
                 />
               </th>
             )}
-            <th className="min-w-[200px] px-4 py-3 text-left align-middle">
+            <th className="min-w-[220px] px-3 py-2 text-left align-middle">
               <SortableHeader
                 label="Subject"
                 column="name"
@@ -170,31 +164,33 @@ export function SubjectsTable({
                 onSortChange={onSortChange}
               />
             </th>
-            <th className="min-w-[100px] px-4 py-3 text-center align-middle">
+            <th className="min-w-[100px] px-3 py-2 text-left align-middle">
               <SortableHeader
                 label="Classes"
                 column="classes"
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 onSortChange={onSortChange}
-                align="center"
               />
             </th>
-            <th className="min-w-[100px] px-4 py-3 text-center align-middle">
+            <th className="min-w-[100px] px-3 py-2 text-left align-middle">
               <SortableHeader
                 label="Teachers"
                 column="teachers"
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 onSortChange={onSortChange}
-                align="center"
               />
             </th>
-            <th className="min-w-[100px] px-4 py-3 text-left align-middle">
-              <span className="text-xs font-medium text-white/60">Status</span>
+            <th className="min-w-[80px] px-3 py-2 text-left align-middle">
+              <span className="text-xs font-medium text-muted-foreground">
+                Status
+              </span>
             </th>
-            <th className="w-12 px-4 py-3 text-right align-middle">
-              <span className="text-xs font-medium text-white/60">Actions</span>
+            <th className="w-12 px-3 py-2 text-right align-middle">
+              <span className="text-xs font-medium text-muted-foreground">
+                Actions
+              </span>
             </th>
           </tr>
         </thead>
@@ -209,122 +205,116 @@ export function SubjectsTable({
                 className={cn(
                   "border-b border-white/5 transition-colors cursor-pointer",
                   "hover:bg-white/5",
-                  isSelected && "bg-rose-500/10"
+                  isSelected && "bg-blue-500/10"
                 )}
               >
                 {onToggleRow && (
-                  <td className="px-3 py-3 align-middle">
+                  <td className="px-3 py-2 align-middle">
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => onToggleRow(subject.id)}
-                      className="h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-rose-600"
+                      className="h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-primary"
                       aria-label={`Select ${subject.name}`}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </td>
                 )}
-                <td className="px-4 py-3 align-middle">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-rose-500/30 bg-gradient-to-br from-rose-500/20 to-pink-500/20">
-                      <BookOpen className="h-5 w-5 text-rose-300" />
+                <td className="px-3 py-2 align-middle">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10">
+                      <BookOpen className="h-4 w-4 text-blue-300" />
                     </div>
-                    <div>
-                      <p className="font-medium text-white">{subject.name}</p>
-                      {subject.code && (
-                        <p className="text-xs text-white/50">Code: {subject.code}</p>
-                      )}
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-medium text-white">
+                        {subject.name}
+                      </p>
+                      <p className="truncate text-[11px] text-white/60">
+                        {subject.code ?? "—"}
+                      </p>
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-center align-middle">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <School className="h-4 w-4 text-rose-400" />
-                    <span className="font-medium text-white tabular-nums">
-                      {subject.classCount}
-                    </span>
+                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                  <div className="flex items-center gap-1.5">
+                    <School className="h-3.5 w-3.5 text-blue-300" />
+                    <span>{subject.classCount}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-center align-middle">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Users className="h-4 w-4 text-rose-400" />
-                    <span className="font-medium text-white tabular-nums">
-                      {subject.teacherCount}
-                    </span>
+                <td className="px-3 py-2 align-middle text-xs text-white/80">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5 text-blue-300" />
+                    <span>{subject.teacherCount}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 align-middle">
-                  <Badge
-                    variant="outline"
+                <td className="px-3 py-2 align-middle text-xs">
+                  <span
                     className={cn(
-                      "rounded-full px-2.5 py-0.5 text-[10px] font-medium",
+                      "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
                       subject.isActive
-                        ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
-                        : "border-slate-500/30 bg-slate-500/10 text-slate-300"
+                        ? "bg-blue-500/15 text-blue-100 border border-blue-400/40"
+                        : "bg-slate-500/20 text-slate-100 border border-slate-400/40"
                     )}
                   >
                     {subject.isActive ? "Active" : "Inactive"}
-                  </Badge>
+                  </span>
                 </td>
-                <td className="px-4 py-3 text-right align-middle">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                <td className="px-3 py-2 text-right align-middle">
+                  <PremiumDropdownMenu>
+                    <PremiumDropdownMenuTrigger asChild>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+                        className="h-7 w-7 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">More actions</span>
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
+                    </PremiumDropdownMenuTrigger>
+                    <PremiumDropdownMenuContent
                       align="end"
-                      className="min-w-[180px] border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <DropdownMenuItem
+                      <PremiumDropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           onView?.(subject.id);
                         }}
-                        className="cursor-pointer gap-2"
+                        icon={<ExternalLink className="h-3.5 w-3.5" />}
                       >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
+                        View subject
+                      </PremiumDropdownMenuItem>
+                      <PremiumDropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           onEdit?.(subject.id);
                         }}
-                        className="cursor-pointer gap-2"
+                        icon={<Pencil className="h-3.5 w-3.5" />}
                       >
-                        <Pencil className="h-3.5 w-3.5" />
-                        Edit Subject
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator className="bg-white/10" />
-                      <DropdownMenuItem
+                        Edit subject
+                      </PremiumDropdownMenuItem>
+                      <PremiumDropdownMenuSeparator />
+                      <PremiumDropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           onAssignToClasses?.(subject.id);
                         }}
-                        className="cursor-pointer gap-2"
+                        icon={<School className="h-3.5 w-3.5" />}
                       >
-                        <School className="h-3.5 w-3.5" />
-                        Assign to Classes
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
+                        Assign to classes
+                      </PremiumDropdownMenuItem>
+                      <PremiumDropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           onAssignTeachers?.(subject.id);
                         }}
-                        className="cursor-pointer gap-2"
+                        icon={<UserPlus className="h-3.5 w-3.5" />}
                       >
-                        <UserPlus className="h-3.5 w-3.5" />
-                        Assign Teachers
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        Assign teachers
+                      </PremiumDropdownMenuItem>
+                    </PremiumDropdownMenuContent>
+                  </PremiumDropdownMenu>
                 </td>
               </tr>
             );

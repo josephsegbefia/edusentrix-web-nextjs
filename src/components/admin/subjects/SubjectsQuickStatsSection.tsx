@@ -7,7 +7,7 @@ import { BookOpen, School, Users, TrendingUp } from "lucide-react";
 import { useSubjects } from "@/hooks/admin/useSubjects";
 import CountUp from "react-countup";
 
-type StatTone = "rose" | "pink" | "fuchsia" | "violet";
+type StatTone = "slate" | "zinc" | "neutral" | "stone";
 
 type StatCardProps = {
   label: string;
@@ -29,37 +29,37 @@ const toneConfig: Record<
     glow: string;
   }
 > = {
-  rose: {
-    border: "border-rose-500/30",
-    bg: "from-rose-500/10 via-rose-500/5 to-transparent",
-    iconBg: "from-rose-500/20 to-rose-600/20",
-    iconColor: "text-rose-300",
-    valueColor: "text-rose-100",
-    glow: "bg-rose-500/20",
+  slate: {
+    border: "border-slate-700/55",
+    bg: "from-slate-800/50 via-slate-900/40 to-transparent",
+    iconBg: "from-slate-700/35 to-slate-800/35",
+    iconColor: "text-slate-200",
+    valueColor: "text-slate-100",
+    glow: "bg-slate-700/20",
   },
-  pink: {
-    border: "border-pink-500/30",
-    bg: "from-pink-500/10 via-pink-500/5 to-transparent",
-    iconBg: "from-pink-500/20 to-pink-600/20",
-    iconColor: "text-pink-300",
-    valueColor: "text-pink-100",
-    glow: "bg-pink-500/20",
+  zinc: {
+    border: "border-zinc-700/55",
+    bg: "from-zinc-800/50 via-zinc-900/40 to-transparent",
+    iconBg: "from-zinc-700/35 to-zinc-800/35",
+    iconColor: "text-zinc-200",
+    valueColor: "text-zinc-100",
+    glow: "bg-zinc-700/20",
   },
-  fuchsia: {
-    border: "border-fuchsia-500/30",
-    bg: "from-fuchsia-500/10 via-fuchsia-500/5 to-transparent",
-    iconBg: "from-fuchsia-500/20 to-fuchsia-600/20",
-    iconColor: "text-fuchsia-300",
-    valueColor: "text-fuchsia-100",
-    glow: "bg-fuchsia-500/20",
+  neutral: {
+    border: "border-neutral-700/55",
+    bg: "from-neutral-800/50 via-neutral-900/40 to-transparent",
+    iconBg: "from-neutral-700/35 to-neutral-800/35",
+    iconColor: "text-neutral-200",
+    valueColor: "text-neutral-100",
+    glow: "bg-neutral-700/20",
   },
-  violet: {
-    border: "border-violet-500/30",
-    bg: "from-violet-500/10 via-violet-500/5 to-transparent",
-    iconBg: "from-violet-500/20 to-violet-600/20",
-    iconColor: "text-violet-300",
-    valueColor: "text-violet-100",
-    glow: "bg-violet-500/20",
+  stone: {
+    border: "border-stone-700/55",
+    bg: "from-stone-800/50 via-stone-900/40 to-transparent",
+    iconBg: "from-stone-700/35 to-stone-800/35",
+    iconColor: "text-stone-200",
+    valueColor: "text-stone-100",
+    glow: "bg-stone-700/20",
   },
 };
 
@@ -117,7 +117,7 @@ function StatCard({
             </p>
           </div>
           {subtitle && (
-            <p className="text-xs text-white/40">{subtitle}</p>
+            <p className="text-[11px] text-white/40">{subtitle}</p>
           )}
         </div>
 
@@ -159,14 +159,14 @@ export function SubjectsQuickStatsSection() {
         label="Total Subjects"
         value={stats.total}
         icon={<BookOpen className="h-5 w-5" />}
-        tone="rose"
+        tone="slate"
         loading={isLoading}
       />
       <StatCard
         label="Active Subjects"
         value={stats.active}
-        icon={<BookOpen className="h-5 w-5" />}
-        tone="pink"
+        icon={<TrendingUp className="h-5 w-5" />}
+        tone="zinc"
         loading={isLoading}
         subtitle={`${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}% of total`}
       />
@@ -174,7 +174,7 @@ export function SubjectsQuickStatsSection() {
         label="Classes Teaching"
         value={stats.totalClasses}
         icon={<School className="h-5 w-5" />}
-        tone="fuchsia"
+        tone="neutral"
         loading={isLoading}
         subtitle="Total class assignments"
       />
@@ -182,7 +182,7 @@ export function SubjectsQuickStatsSection() {
         label="Teachers Assigned"
         value={stats.totalTeachers}
         icon={<Users className="h-5 w-5" />}
-        tone="violet"
+        tone="stone"
         loading={isLoading}
         subtitle="Teaching subjects"
       />

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
 import { z } from "zod";
@@ -170,6 +171,12 @@ export async function POST(req: NextRequest) {
         { status: 409 }
       );
     }
+
+    // Ensure the class has this subject in subjectIds (so it appears in Assigned Classes)
+    await ClassGroup.updateOne(
+      { _id: classGroupObjId, schoolId: schoolIdObj },
+      { $addToSet: { subjectIds: subjectObjId } }
+    );
 
     // Create new assignment
     const assignment = await TeacherAssignment.create({

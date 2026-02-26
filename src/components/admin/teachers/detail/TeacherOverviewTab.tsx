@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,7 +21,6 @@ import {
   TrendingUp,
   Users,
   X,
-  Zap,
   ArrowRight,
   CalendarCheck,
   FolderOpen,
@@ -127,7 +125,7 @@ function getStatusLabel(status: TeacherStatus): string {
   }
 }
 
-// Premium stat card component
+// Stat card component
 type StatCardProps = {
   icon: React.ElementType;
   label: string;
@@ -139,36 +137,30 @@ type StatCardProps = {
 
 const toneStyles: Record<
   StatCardProps["tone"],
-  { gradient: string; iconBg: string; iconColor: string }
+  { iconBg: string; iconColor: string }
 > = {
   indigo: {
-    gradient: "from-indigo-500/10 via-indigo-500/5 to-transparent",
-    iconBg: "bg-indigo-500/20 border-indigo-500/30",
+    iconBg: "bg-indigo-500/15 border-indigo-500/25",
     iconColor: "text-indigo-300",
   },
   purple: {
-    gradient: "from-purple-500/10 via-purple-500/5 to-transparent",
-    iconBg: "bg-purple-500/20 border-purple-500/30",
+    iconBg: "bg-purple-500/15 border-purple-500/25",
     iconColor: "text-purple-300",
   },
   emerald: {
-    gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
-    iconBg: "bg-emerald-500/20 border-emerald-500/30",
+    iconBg: "bg-emerald-500/15 border-emerald-500/25",
     iconColor: "text-emerald-300",
   },
   amber: {
-    gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
-    iconBg: "bg-amber-500/20 border-amber-500/30",
+    iconBg: "bg-amber-500/15 border-amber-500/25",
     iconColor: "text-amber-300",
   },
   cyan: {
-    gradient: "from-cyan-500/10 via-cyan-500/5 to-transparent",
-    iconBg: "bg-cyan-500/20 border-cyan-500/30",
+    iconBg: "bg-cyan-500/15 border-cyan-500/25",
     iconColor: "text-cyan-300",
   },
   rose: {
-    gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
-    iconBg: "bg-rose-500/20 border-rose-500/30",
+    iconBg: "bg-rose-500/15 border-rose-500/25",
     iconColor: "text-rose-300",
   },
 };
@@ -184,47 +176,30 @@ function StatCard({
   const style = toneStyles[tone];
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black p-5 shadow-xl shadow-black/30 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-      {/* Gradient overlay */}
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-0 bg-linear-to-br opacity-60 transition-opacity duration-300 group-hover:opacity-100",
-          style.gradient
-        )}
-        aria-hidden="true"
-      />
-
-      {/* Top shine */}
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
-        aria-hidden="true"
-      />
-
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-center gap-2">
-            <div
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-xl border",
-                style.iconBg
-              )}
-            >
-              <Icon className={cn("h-4 w-4", style.iconColor)} />
-            </div>
-            <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/50">
-              {label}
-            </span>
-          </div>
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.04]">
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border",
+            style.iconBg
+          )}
+        >
+          <Icon className={cn("h-5 w-5", style.iconColor)} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-white/45">
+            {label}
+          </p>
           <div
             className={cn(
-              "text-2xl font-bold tracking-tight text-white",
+              "mt-1 text-xl font-semibold text-white",
               valueClassName
             )}
           >
             {value}
           </div>
           {description && (
-            <p className="text-[11px] text-white/40">{description}</p>
+            <p className="mt-0.5 text-xs text-white/40">{description}</p>
           )}
         </div>
       </div>
@@ -263,7 +238,7 @@ function QuickAction({
     <Button
       variant="outline"
       className={cn(
-        "group w-full justify-between gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all duration-200",
+        "group w-full justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium",
         variants[variant],
         disabled && "opacity-50 cursor-not-allowed"
       )}
@@ -274,7 +249,7 @@ function QuickAction({
         <Icon className="h-4 w-4" />
         {label}
       </span>
-      <ArrowRight className="h-3.5 w-3.5 opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-100" />
+      <ArrowRight className="h-3.5 w-3.5 opacity-50 group-hover:opacity-100" />
     </Button>
   );
 }
@@ -373,76 +348,38 @@ export function TeacherOverviewTab({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)]">
       {/* Main Content */}
       <div className="space-y-6">
-        {/* Overview Header Card */}
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-          {/* Decorative elements */}
-          <div
-            className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-linear-to-br from-indigo-500/15 via-purple-500/10 to-transparent blur-3xl"
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
-            aria-hidden="true"
-          />
-
-          <CardHeader className="relative z-10 border-b border-white/5 pb-0">
-            <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-indigo-500/20 to-purple-500/20 shadow-inner shadow-white/5">
-                  <Zap className="h-5 w-5 text-indigo-300" />
-                </div>
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg font-semibold tracking-tight text-white">
-                      Overview
-                    </CardTitle>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-[10px] font-semibold capitalize",
-                        statusStyle.bg,
-                        statusStyle.border,
-                        statusStyle.text
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "h-1.5 w-1.5 rounded-full",
-                          statusStyle.dot
-                        )}
-                      />
-                      {getStatusLabel(teacher.status)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/50">
-                    Workload, assignments, and profile snapshot
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 rounded-xl border-indigo-500/30 bg-indigo-500/10 text-xs text-indigo-300 hover:bg-indigo-500/20"
-                  onClick={() => setAssignSubjectOpen(true)}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Assign Subject
-                </Button>
-          <Button
-            variant="outline"
-                  size="sm"
-                  className="gap-2 rounded-xl border-purple-500/30 bg-purple-500/10 text-xs text-purple-300 hover:bg-purple-500/20"
-                  onClick={() => setAssignHomeroomOpen(true)}
-          >
-                  <Home className="h-3.5 w-3.5" />
-                  {homeroom ? "Change Homeroom" : "Assign Homeroom"}
-          </Button>
-              </div>
+        {/* Overview Section */}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-white">Overview</h3>
+              <p className="mt-0.5 text-sm text-white/50">
+                Workload, assignments, and profile snapshot
+              </p>
             </div>
-          </CardHeader>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 rounded-lg border-indigo-500/25 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/15"
+                onClick={() => setAssignSubjectOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Assign Subject
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 rounded-lg border-purple-500/25 bg-purple-500/10 text-purple-300 hover:bg-purple-500/15"
+                onClick={() => setAssignHomeroomOpen(true)}
+              >
+                <Home className="h-3.5 w-3.5" />
+                {homeroom ? "Change Homeroom" : "Assign Homeroom"}
+              </Button>
+            </div>
+          </div>
 
-          <CardContent className="relative z-10 p-6">
+          <div>
             {/* Stats Grid */}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
@@ -494,7 +431,7 @@ export function TeacherOverviewTab({
 
             {/* Leave info card */}
             {teacher.status === "on_leave" && teacher.leaveStartDate && teacher.leaveEndDate && (
-              <div className="mt-3 rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-4">
+              <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
@@ -547,38 +484,25 @@ export function TeacherOverviewTab({
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Two Column Grid */}
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Assignments Card */}
-          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
-              aria-hidden="true"
-            />
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
-              aria-hidden="true"
-            />
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-white">
+                Teaching Assignments
+              </h3>
+              <p className="mt-0.5 text-xs text-white/45">
+                Subjects and homeroom ownership
+              </p>
+            </div>
 
-            <CardHeader className="relative z-10 border-b border-white/5 pb-0">
-              <div className="flex items-center justify-between pb-4">
-                <div className="space-y-0.5">
-                  <CardTitle className="text-sm font-semibold tracking-tight text-white">
-                    Teaching Assignments
-                  </CardTitle>
-                  <p className="text-xs text-white/40">
-                    Subjects and homeroom ownership
-                  </p>
-                </div>
-              </div>
-        </CardHeader>
-
-            <CardContent className="relative z-10 space-y-4 p-6">
+            <div className="space-y-4">
           {/* Subjects */}
-              <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <p className="flex items-center gap-2 text-xs font-medium text-white/60">
                     <BookOpen className="h-3.5 w-3.5" />
@@ -625,7 +549,7 @@ export function TeacherOverviewTab({
           </div>
 
               {/* Homeroom */}
-              <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between mb-3">
                   <p className="flex items-center gap-2 text-xs font-medium text-white/60">
                     <Home className="h-3.5 w-3.5" />
@@ -666,8 +590,8 @@ export function TeacherOverviewTab({
                   <p className="text-sm text-white/40">No homeroom assigned.</p>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Leave Info Card — only shown when teacher is on leave */}
           {teacher.status === "on_leave" && teacher.leaveEndDate && (
@@ -675,28 +599,16 @@ export function TeacherOverviewTab({
           )}
 
           {/* Professional Info Card */}
-          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,var(--tw-gradient-stops))] from-purple-500/5 via-transparent to-transparent"
-              aria-hidden="true"
-            />
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
-              aria-hidden="true"
-            />
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-white">
+                Professional Info
+              </h3>
+              <p className="mt-0.5 text-xs text-white/45">Employment details</p>
+            </div>
 
-            <CardHeader className="relative z-10 border-b border-white/5 pb-0">
-              <div className="pb-4">
-                <CardTitle className="text-sm font-semibold tracking-tight text-white">
-                  Professional Info
-                </CardTitle>
-                <p className="text-xs text-white/40">Employment details</p>
-              </div>
-            </CardHeader>
-
-            <CardContent className="relative z-10 p-6">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+            <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Briefcase className="h-3 w-3" />
                 Employee ID
@@ -706,7 +618,7 @@ export function TeacherOverviewTab({
                   </p>
             </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Users className="h-3 w-3" />
                 Department
@@ -716,7 +628,7 @@ export function TeacherOverviewTab({
                   </p>
             </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Calendar className="h-3 w-3" />
                 Hire Date
@@ -726,46 +638,34 @@ export function TeacherOverviewTab({
                   </p>
             </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                   <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                     <Calendar className="h-3 w-3" />
-                    Termination
-                  </p>
+                Termination
+              </p>
                   <p className="mt-2 text-sm font-medium text-white">
-                {formatDate(teacher.terminationDate)}
+                  {formatDate(teacher.terminationDate)}
               </p>
             </div>
           </div>
-            </CardContent>
-          </Card>
+          </div>
         </div>
 
         {/* Workload & History */}
         {workload && (
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Workload Card */}
-            <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-              <div
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent"
-                aria-hidden="true"
-              />
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
-                aria-hidden="true"
-              />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-white">
+                  Workload Analysis
+                </h3>
+                <p className="mt-0.5 text-xs text-white/45">
+                  Current load vs capacity
+                </p>
+              </div>
 
-              <CardHeader className="relative z-10 border-b border-white/5 pb-0">
-                <div className="pb-4">
-                  <CardTitle className="text-sm font-semibold tracking-tight text-white">
-                    Workload Analysis
-                  </CardTitle>
-                  <p className="text-xs text-white/40">
-                    Current load vs capacity
-                  </p>
-                </div>
-              </CardHeader>
-
-              <CardContent className="relative z-10 space-y-4 p-6">
+              <div className="space-y-4">
                 {/* Warnings */}
                 {(workload.warnings.isOverCapacity ||
                   workload.warnings.isAboveAverage) && (
@@ -793,7 +693,7 @@ export function TeacherOverviewTab({
 
                 {/* Progress bars */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <BookOpen className="h-4 w-4 text-emerald-400" />
                       <p className="text-xs font-medium text-white/60">
@@ -844,7 +744,7 @@ export function TeacherOverviewTab({
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <Users className="h-4 w-4 text-amber-400" />
                       <p className="text-xs font-medium text-white/60">
@@ -898,7 +798,7 @@ export function TeacherOverviewTab({
 
                 {/* Additional stats */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-white/10 bg-white/2 p-3">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                     <div className="mb-1 flex items-center gap-2">
                       <Clock className="h-3.5 w-3.5 text-white/40" />
                       <p className="text-xs text-white/40">Workload Hours</p>
@@ -908,7 +808,7 @@ export function TeacherOverviewTab({
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-white/10 bg-white/2 p-3">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                     <div className="mb-1 flex items-center gap-2">
                       <TrendingUp className="h-3.5 w-3.5 text-white/40" />
                       <p className="text-xs text-white/40">vs School Avg</p>
@@ -932,32 +832,20 @@ export function TeacherOverviewTab({
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Record History Card */}
-            <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-              <div
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent"
-                aria-hidden="true"
-              />
-              <div
-                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
-                aria-hidden="true"
-              />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-white">
+                  Record History
+                </h3>
+                <p className="mt-0.5 text-xs text-white/45">Profile timeline</p>
+              </div>
 
-              <CardHeader className="relative z-10 border-b border-white/5 pb-0">
-                <div className="pb-4">
-                  <CardTitle className="text-sm font-semibold tracking-tight text-white">
-                    Record History
-                  </CardTitle>
-                  <p className="text-xs text-white/40">Profile timeline</p>
-                </div>
-              </CardHeader>
-
-              <CardContent className="relative z-10 p-6">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+              <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                     <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                       <Calendar className="h-3 w-3" />
                       Created
@@ -966,7 +854,7 @@ export function TeacherOverviewTab({
                       {formatDate(teacher.createdAt)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                     <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                       <Calendar className="h-3 w-3" />
                       Updated
@@ -976,83 +864,57 @@ export function TeacherOverviewTab({
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           </div>
         )}
 
         {/* Record History (when no workload data) */}
         {!workload && (
-          <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <div
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent"
-              aria-hidden="true"
-            />
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
-              aria-hidden="true"
-            />
-
-            <CardHeader className="relative z-10 border-b border-white/5 pb-0">
-              <div className="pb-4">
-                <CardTitle className="text-sm font-semibold tracking-tight text-white">
-                  Record History
-                </CardTitle>
-                <p className="text-xs text-white/40">Profile timeline</p>
-              </div>
-            </CardHeader>
-
-            <CardContent className="relative z-10 p-6">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-white/10 bg-white/2 p-4">
-                  <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
-                    <Calendar className="h-3 w-3" />
-                Created
-              </p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {formatDate(teacher.createdAt)}
-                  </p>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-white">
+                Record History
+              </h3>
+              <p className="mt-0.5 text-xs text-white/45">Profile timeline</p>
             </div>
-                <div className="rounded-xl border border-white/10 bg-white/2 p-4">
-                  <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
-                    <Calendar className="h-3 w-3" />
-                Updated
-              </p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                {formatDate(teacher.updatedAt)}
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+                  <Calendar className="h-3 w-3" />
+                  Created
+                </p>
+                <p className="mt-2 text-sm font-medium text-white">
+                  {formatDate(teacher.createdAt)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
+                  <Calendar className="h-3 w-3" />
+                  Updated
+                </p>
+                <p className="mt-2 text-sm font-medium text-white">
+                  {formatDate(teacher.updatedAt)}
+                </p>
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
         )}
       </div>
 
       {/* Sidebar */}
       <div className="space-y-6 lg:sticky lg:top-6">
         {/* Quick Actions Card */}
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <div
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
-            aria-hidden="true"
-          />
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-white">
+              Quick Actions
+            </h3>
+            <p className="mt-0.5 text-xs text-white/45">
+              Shortcuts for common tasks
+            </p>
+          </div>
 
-          <CardHeader className="relative z-10 border-b border-white/5 pb-0">
-            <div className="pb-4">
-              <CardTitle className="text-sm font-semibold tracking-tight text-white">
-                Quick Actions
-              </CardTitle>
-              <p className="text-xs text-white/40">
-                Shortcuts for common tasks
-              </p>
-            </div>
-        </CardHeader>
-
-          <CardContent className="relative z-10 space-y-4 p-6">
+          <div className="space-y-4">
             {/* Primary Actions */}
             <div className="space-y-2">
               <QuickAction
@@ -1083,7 +945,7 @@ export function TeacherOverviewTab({
             </div>
 
             {/* Status Management */}
-            <div className="rounded-xl border border-white/10 bg-white/2 p-4">
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <p className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
                 <FileText className="h-3 w-3" />
                 Status Management
@@ -1121,8 +983,8 @@ export function TeacherOverviewTab({
                 )}
               </div>
             </div>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
       </div>
 
       {/* Modals */}
@@ -1184,36 +1046,23 @@ function LeaveInfoCard({
   const progressPct = totalDays > 0 ? Math.min(100, (elapsed / totalDays) * 100) : 0;
 
   return (
-    <Card className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent shadow-2xl shadow-black/40 backdrop-blur-xl">
-      <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-amber-400/30 to-transparent"
-        aria-hidden="true"
-      />
-
-      <CardHeader className="relative z-10 border-b border-amber-500/10 pb-0">
-        <div className="flex items-center justify-between pb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/15">
-              <Clock className="h-5 w-5 text-amber-300" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-semibold tracking-tight text-white">
-                Leave Status
-              </CardTitle>
-              <p className="text-xs text-amber-200/60">Currently on leave</p>
-            </div>
+    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/15">
+            <Clock className="h-5 w-5 text-amber-300" />
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10">
-            <span className="text-xl font-bold text-amber-200">{daysLeft}</span>
+          <div>
+            <h3 className="text-sm font-semibold text-white">Leave Status</h3>
+            <p className="text-xs text-amber-200/70">Currently on leave</p>
           </div>
         </div>
-      </CardHeader>
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/15">
+          <span className="text-xl font-bold text-amber-200">{daysLeft}</span>
+        </div>
+      </div>
 
-      <CardContent className="relative z-10 space-y-4 p-6">
+      <div className="space-y-4">
         {/* Days remaining header */}
         <div className="text-center">
           <p className="text-sm font-medium text-amber-200">
@@ -1279,7 +1128,7 @@ function LeaveInfoCard({
             <p className="text-sm text-white/80">{teacher.leaveReason}</p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

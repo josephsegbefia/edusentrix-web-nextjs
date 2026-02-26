@@ -97,11 +97,11 @@ function ClassDetailContent() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => router.push("/admin/classes")}
+              onClick={() => router.push("/admin/grades")}
               className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Back to Classes
+              Back to Grades
             </Button>
           </CardContent>
         </Card>
@@ -188,17 +188,21 @@ function ClassDetailContent() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => router.push("/admin/classes")}
+              onClick={() => router.push("/admin/grades")}
               className="gap-2 rounded-xl border-red-500/30 bg-red-500/10 text-red-200 hover:bg-red-500/20"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Back to Classes
+              Back to Grades
             </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
+
+  const backToGradeHref = classData?.grade?.id
+    ? `/admin/grades/${classData.grade.id}`
+    : "/admin/grades";
 
   return (
     <div className="space-y-6">
@@ -220,7 +224,7 @@ function ClassDetailContent() {
               type="button"
               variant="ghost"
               size="icon"
-              onClick={() => router.push("/admin/classes")}
+              onClick={() => router.push(backToGradeHref)}
               className="h-10 w-10 shrink-0 rounded-xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -247,11 +251,11 @@ function ClassDetailContent() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push("/admin/classes")}
+              onClick={() => router.push(backToGradeHref)}
               className="gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10 hover:text-white"
             >
               <School className="h-3.5 w-3.5" />
-              All Classes
+              {classData?.grade?.id ? "Back to Grade" : "All Grades"}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

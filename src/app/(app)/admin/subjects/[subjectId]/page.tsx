@@ -13,53 +13,124 @@ import {
   AlertTriangle,
   ArrowLeft,
   BookOpen,
-  Sparkles,
+  Calendar,
+  Clock3,
   Edit,
+  ExternalLink,
+  Mail,
   MoreHorizontal,
   School,
-  Users,
+  Search,
+  Sparkles,
+  Trash2,
   UserPlus,
-  ExternalLink,
-  Calendar,
+  Users,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { useSubjectDetail } from "@/hooks/admin/useSubjects";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
+import { useSubjectDetail, useUnassignTeacher, type SubjectDTO } from "@/hooks/admin/useSubjects";
+import { useBusyToast } from "@/hooks/useBusyToast";
+import { AssignTeacherToSubjectModal } from "@/components/modals/AssignTeacherToSubjectModal";
+import { notifyComingSoon } from "@/lib/ui/feature-notices";
+
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function getInitials(firstName?: string, lastName?: string) {
+  return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase() || "?";
+}
 
 function SubjectDetailContent() {
   const params = useParams<{ subjectId: string }>();
   const router = useRouter();
 
   const subjectId = params?.subjectId;
+  const busy = useBusyToast();
+  const unassignTeacher = useUnassignTeacher(subjectId);
+  const [assignTeacherModalOpen, setAssignTeacherModalOpen] = React.useState(false);
+  const [editAssignment, setEditAssignment] = React.useState<{
+    assignmentId: string;
+    teacherId: string;
+    classGroupId: string;
+    className?: string;
+    teacherDisplay?: { firstName: string; lastName: string; fullName: string; email?: string | null; photoUrl?: string | null };
+  } | null>(null);
+  const [classQuery, setClassQuery] = React.useState("");
+  const [teacherQuery, setTeacherQuery] = React.useState("");
 
   const { data, isLoading, isError } = useSubjectDetail(subjectId);
   const subject = data?.data;
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase() || "?";
-  };
+  const gradeBreakdown = React.useMemo(() => {
+    const map = new Map<string, number>();
+    const classes = subject?.classes ?? [];
+    classes.forEach((cls) => {
+      const grade = cls.grade?.name || "Uncategorized";
+      map.set(grade, (map.get(grade) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [subject?.classes]);
+
+  const filteredClasses = React.useMemo(() => {
+    const classes = subject?.classes ?? [];
+    const q = classQuery.trim().toLowerCase();
+    if (!q) return classes;
+    return classes.filter((cls) => {
+      const gradeName = cls.grade?.name || "";
+      return (
+        cls.fullLabel.toLowerCase().includes(q) ||
+        cls.name.toLowerCase().includes(q) ||
+        gradeName.toLowerCase().includes(q)
+      );
+    });
+  }, [subject?.classes, classQuery]);
+
+  const filteredTeachers = React.useMemo(() => {
+    const teachers = subject?.teachers ?? [];
+    const q = teacherQuery.trim().toLowerCase();
+    if (!q) return teachers;
+    return teachers.filter((teacher) => {
+      const email = teacher.email || "";
+      return (
+        teacher.fullName.toLowerCase().includes(q) ||
+        teacher.className.toLowerCase().includes(q) ||
+        email.toLowerCase().includes(q)
+      );
+    });
+  }, [subject?.teachers, teacherQuery]);
+
+  const teachersPerClass =
+    subject && subject.classCount > 0 ? (subject.teacherCount / subject.classCount).toFixed(1) : "0.0";
+
+  const currentPeriodLabel = subject?.currentPeriod
+    ? `${subject.currentPeriod.yearLabel} • ${subject.currentPeriod.term}`
+    : "No active academic period";
 
   if (!subjectId) {
     return (
       <div className="space-y-6">
-        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-950/40 via-slate-950/60 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-linear-to-br from-red-950/30 via-slate-950/70 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
           <CardContent className="relative z-10 flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/20">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/15">
                 <AlertTriangle className="h-5 w-5 text-red-300" />
               </div>
               <div>
-                <div className="font-semibold text-red-100">
-                  Missing subject identifier
-                </div>
-                <p className="text-xs text-red-200/70">
-                  The subject ID was not provided in the URL.
-                </p>
+                <p className="font-semibold text-red-100">Missing subject identifier</p>
+                <p className="text-xs text-red-200/70">The subject ID was not provided in the URL.</p>
               </div>
             </div>
             <Button
@@ -80,31 +151,32 @@ function SubjectDetailContent() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="relative">
-          <div
-            className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-rose-500/10 blur-3xl"
-            aria-hidden="true"
-          />
-          <div className="relative z-10 flex items-start gap-4">
-            <div className="h-10 w-10 animate-pulse rounded-xl border border-white/10 bg-white/5" />
-            <div className="space-y-2">
-              <div className="h-9 w-64 animate-pulse rounded-lg bg-white/10" />
-              <div className="h-4 w-96 animate-pulse rounded bg-white/5" />
-            </div>
-          </div>
-        </div>
-        <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-rose-950/40 via-slate-950/60 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <CardContent className="flex animate-pulse flex-col gap-6 p-8">
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-20 rounded-2xl bg-white/10" />
+      <div className="space-y-6 sm:space-y-8">
+        <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40">
+          <CardContent className="p-6 sm:p-8">
+            <div className="flex animate-pulse items-start gap-4">
+              <div className="h-10 w-10 rounded-xl bg-white/10" />
               <div className="space-y-3">
-                <div className="h-8 w-48 rounded bg-white/15" />
-                <div className="h-5 w-24 rounded-full bg-white/10" />
+                <div className="h-8 w-56 rounded-lg bg-white/10" />
+                <div className="h-4 w-72 rounded bg-white/5" />
               </div>
             </div>
           </CardContent>
         </Card>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card
+              key={i}
+              className="overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/70 to-slate-950/90"
+            >
+              <CardContent className="p-4">
+                <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
+                <div className="mt-3 h-8 w-14 animate-pulse rounded bg-white/10" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -112,16 +184,14 @@ function SubjectDetailContent() {
   if (isError || !subject) {
     return (
       <div className="space-y-6">
-        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-950/40 via-slate-950/60 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <Card className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-linear-to-br from-red-950/30 via-slate-950/70 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
           <CardContent className="relative z-10 flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/20">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/15">
                 <AlertTriangle className="h-5 w-5 text-red-300" />
               </div>
               <div>
-                <div className="font-semibold text-red-100">
-                  Unable to load subject details
-                </div>
+                <p className="font-semibold text-red-100">Unable to load subject details</p>
                 <p className="text-xs text-red-200/70">
                   The subject might not exist or you might not have access.
                 </p>
@@ -143,60 +213,132 @@ function SubjectDetailContent() {
     );
   }
 
+  const subjectForAssign: SubjectDTO = {
+    id: subject.id,
+    name: subject.name,
+    code: subject.code,
+    classCount: subject.classCount,
+    teacherCount: subject.teacherCount,
+    isActive: subject.isActive,
+    createdAt: subject.createdAt,
+    updatedAt: subject.updatedAt,
+  };
+
+  const statCards = [
+    {
+      label: "Assigned Classes",
+      value: subject.classCount,
+      subtitle: `${gradeBreakdown.length} grade level${gradeBreakdown.length === 1 ? "" : "s"}`,
+      icon: School,
+    },
+    {
+      label: "Teaching Staff",
+      value: subject.teacherCount,
+      subtitle: "Teachers with active assignment",
+      icon: Users,
+    },
+    {
+      label: "Teachers / Class",
+      value: teachersPerClass,
+      subtitle: "Average assignment density",
+      icon: Sparkles,
+    },
+    {
+      label: "Last Updated",
+      value: formatDate(subject.updatedAt),
+      subtitle: `Created ${formatDate(subject.createdAt)}`,
+      icon: Clock3,
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="relative">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-8">
         <div
-          className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-rose-500/10 blur-3xl"
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-blue-500/15 via-indigo-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute -right-10 top-10 h-40 w-40 rounded-full bg-pink-500/10 blur-3xl"
+          className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-linear-to-tr from-sky-500/10 via-blue-500/5 to-transparent blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
           aria-hidden="true"
         />
 
-        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4">
+        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3 sm:gap-4">
             <Button
               type="button"
               variant="ghost"
               size="icon"
               onClick={() => router.push("/admin/subjects")}
-              className="h-10 w-10 shrink-0 rounded-xl border border-white/10 bg-white/5 transition-all duration-200 hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-300"
+              className="mt-0.5 h-10 w-10 shrink-0 rounded-xl border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                <h1 className="bg-gradient-to-r from-rose-200 via-pink-200 to-fuchsia-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
-                  Subject Details
+
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                  {subject.name}
                 </h1>
-                {subject.isActive && (
-                  <div className="flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] font-medium text-rose-300">
-                    <Sparkles className="h-3 w-3" />
-                    Active
-                  </div>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "rounded-md border px-2 py-0.5 text-[10px] font-medium",
+                    subject.isActive
+                      ? "border-blue-500/30 bg-blue-500/20 text-blue-300"
+                      : "border-slate-500/30 bg-slate-500/20 text-slate-300"
+                  )}
+                >
+                  {subject.isActive ? "Active" : "Inactive"}
+                </Badge>
+                {subject.code && (
+                  <Badge
+                    variant="outline"
+                    className="rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70"
+                  >
+                    {subject.code}
+                  </Badge>
                 )}
               </div>
-              <p className="text-sm text-white/60">
-                View subject information, assigned classes, and teachers
+
+              <p className="max-w-2xl text-sm text-white/60">
+                Review subject coverage across classes and teaching staff assignments.
               </p>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-white/55">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {currentPeriodLabel}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  Updated {formatDate(subject.updatedAt)}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:mt-1">
+          <div className="flex items-center gap-2 self-start lg:self-auto">
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={() => router.push("/admin/subjects")}
-              className="gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10 hover:text-white"
+              onClick={() => {
+                setEditAssignment(null);
+                setAssignTeacherModalOpen(true);
+              }}
+              className="gap-2 rounded-xl border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
             >
-              <BookOpen className="h-3.5 w-3.5" />
-              All Subjects
+              <UserPlus className="h-3.5 w-3.5" />
+              Assign Teacher
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+
+            <PremiumDropdownMenu>
+              <PremiumDropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
@@ -204,161 +346,157 @@ function SubjectDetailContent() {
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="min-w-[160px] border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
-              >
-                <DropdownMenuItem className="cursor-pointer gap-2">
-                  <Edit className="h-3.5 w-3.5" />
-                  Edit Subject
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-white/10" />
-                <DropdownMenuItem className="cursor-pointer gap-2">
-                  <School className="h-3.5 w-3.5" />
-                  Assign to Classes
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer gap-2">
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Assign Teachers
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </PremiumDropdownMenuTrigger>
+              <PremiumDropdownMenuContent align="end">
+                <PremiumDropdownMenuItem
+                  icon={<BookOpen className="h-3.5 w-3.5" />}
+                  onClick={() => router.push("/admin/subjects")}
+                >
+                  All subjects
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem
+                  icon={<Edit className="h-3.5 w-3.5" />}
+                  onClick={() => notifyComingSoon("Edit subject")}
+                >
+                  Edit subject
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuSeparator />
+                <PremiumDropdownMenuItem
+                  icon={<School className="h-3.5 w-3.5" />}
+                  onClick={() => notifyComingSoon("Assign subject to classes")}
+                >
+                  Assign to classes
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem
+                  icon={<UserPlus className="h-3.5 w-3.5" />}
+                  onClick={() => {
+                setEditAssignment(null);
+                setAssignTeacherModalOpen(true);
+              }}
+                >
+                  Assign teachers
+                </PremiumDropdownMenuItem>
+              </PremiumDropdownMenuContent>
+            </PremiumDropdownMenu>
           </div>
         </div>
       </div>
 
-      {/* Subject Header Card */}
-      <Card className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-        <div
-          className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-rose-500/15 via-pink-500/10 to-transparent blur-3xl"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
-          aria-hidden="true"
-        />
-
-        <CardContent className="relative z-10 p-8">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-            {/* Left: Icon + Info */}
-            <div className="flex flex-1 items-start gap-6">
-              <div className="relative shrink-0">
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-white/20 bg-gradient-to-br from-rose-500/30 to-pink-600/30 shadow-2xl shadow-black/50 ring-4 ring-rose-500/20">
-                  <BookOpen className="h-10 w-10 text-rose-200" />
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {statCards.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card
+              key={stat.label}
+              className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-xl shadow-black/30"
+            >
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+                aria-hidden="true"
+              />
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-white/45">{stat.label}</p>
+                    <p className="text-xl font-bold text-white sm:text-2xl">{stat.value}</p>
+                    <p className="text-[11px] text-white/45">{stat.subtitle}</p>
+                  </div>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-200">
+                    <Icon className="h-4 w-4" />
+                  </span>
                 </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-12">
+        <Card className="xl:col-span-7 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/30">
+          <CardHeader className="border-b border-white/10 pb-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base text-white">
+                  <School className="h-4 w-4 text-blue-300" />
+                  Assigned Classes ({subject.classes.length})
+                </CardTitle>
+                <p className="mt-1 text-xs text-white/50">
+                  Classes currently configured to run this subject.
+                </p>
               </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => notifyComingSoon("Assign subject to classes")}
+                className="gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                <School className="h-3.5 w-3.5" />
+                Assign Class
+              </Button>
+            </div>
 
-              <div className="flex-1 min-w-0 space-y-4">
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-                      {subject.name}
-                    </h1>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "rounded-lg border px-2.5 py-1 text-xs font-semibold",
-                        subject.isActive
-                          ? "border-rose-500/40 bg-rose-500/15 text-rose-300"
-                          : "border-slate-500/40 bg-slate-500/15 text-slate-300"
-                      )}
-                    >
-                      {subject.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
+            {gradeBreakdown.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {gradeBreakdown.map(([grade, count]) => (
+                  <span
+                    key={grade}
+                    className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60"
+                  >
+                    {grade} ({count})
+                  </span>
+                ))}
+              </div>
+            )}
 
-                  {subject.code && (
-                    <p className="text-sm text-white/60">Code: {subject.code}</p>
-                  )}
-                </div>
+            <div className="relative pt-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/35" />
+              <input
+                value={classQuery}
+                onChange={(e) => setClassQuery(e.target.value)}
+                placeholder="Search class or grade"
+                className="h-9 w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 text-xs text-white placeholder:text-white/40 focus:border-blue-500/35 focus:outline-none"
+              />
+            </div>
+          </CardHeader>
 
-                {subject.currentPeriod && (
-                  <div className="flex items-center gap-2 text-sm text-white/60">
-                    <Calendar className="h-4 w-4" />
-                    <span>
-                      {subject.currentPeriod.yearLabel} - {subject.currentPeriod.term}
-                    </span>
-                  </div>
+          <CardContent className="p-4">
+            {filteredClasses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <School className="h-8 w-8 text-white/25" />
+                <p className="mt-2 text-sm text-white/65">
+                  {classQuery ? "No classes match your search" : "No class assignments yet"}
+                </p>
+                {!classQuery && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => notifyComingSoon("Assign subject to classes")}
+                    className="mt-4 gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10"
+                  >
+                    <School className="h-3.5 w-3.5" />
+                    Assign to Classes
+                  </Button>
                 )}
               </div>
-            </div>
-
-            {/* Right: Quick Stats */}
-            <div className="flex flex-wrap gap-3 lg:flex-col lg:items-end">
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                <School className="h-5 w-5 text-rose-400" />
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-white tabular-nums">
-                    {subject.classCount}
-                  </p>
-                  <p className="text-[10px] uppercase tracking-wider text-white/40">
-                    Classes
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                <Users className="h-5 w-5 text-purple-400" />
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-white tabular-nums">
-                    {subject.teacherCount}
-                  </p>
-                  <p className="text-[10px] uppercase tracking-wider text-white/40">
-                    Teachers
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Classes Card */}
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
-          <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white">
-              <School className="h-4 w-4 text-rose-400" />
-              Assigned Classes ({subject.classes.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            {subject.classes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <School className="h-8 w-8 text-white/20" />
-                <p className="mt-2 text-sm text-white/50">
-                  Not assigned to any classes
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4 gap-2 border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10"
-                >
-                  <School className="h-3.5 w-3.5" />
-                  Assign to Classes
-                </Button>
-              </div>
             ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {subject.classes.map((cls) => (
+              <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                {filteredClasses.map((cls) => (
                   <button
                     key={cls.id}
                     onClick={() => router.push(`/admin/classes/${cls.id}`)}
-                    className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-rose-500/30 hover:bg-rose-500/5"
+                    className="group flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-blue-500/30 hover:bg-blue-500/10"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/20">
-                        <School className="h-4 w-4 text-rose-300" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-white">{cls.fullLabel}</p>
-                        {cls.grade && (
-                          <p className="text-xs text-white/50">{cls.grade.name}</p>
-                        )}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-200">
+                        <School className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-white">{cls.fullLabel}</p>
+                        <p className="truncate text-xs text-white/55">{cls.grade?.name || "No grade"}</p>
                       </div>
                     </div>
-                    <ExternalLink className="h-4 w-4 text-white/40" />
+                    <ExternalLink className="h-4 w-4 shrink-0 text-white/35 group-hover:text-white/65" />
                   </button>
                 ))}
               </div>
@@ -366,59 +504,176 @@ function SubjectDetailContent() {
           </CardContent>
         </Card>
 
-        {/* Teachers Card */}
-        <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+        <Card className="xl:col-span-5 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/30">
           <CardHeader className="border-b border-white/10 pb-4">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Users className="h-4 w-4 text-purple-400" />
-              Teaching Staff ({subject.teacherCount})
-            </CardTitle>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base text-white">
+                  <Users className="h-4 w-4 text-blue-300" />
+                  Teaching Staff ({subject.teacherCount})
+                </CardTitle>
+                <p className="mt-1 text-xs text-white/50">
+                  Teachers actively assigned to this subject.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                setEditAssignment(null);
+                setAssignTeacherModalOpen(true);
+              }}
+                className="gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Assign Teacher
+              </Button>
+            </div>
+
+            <div className="relative pt-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/35" />
+              <input
+                value={teacherQuery}
+                onChange={(e) => setTeacherQuery(e.target.value)}
+                placeholder="Search teacher, class, or email"
+                className="h-9 w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 text-xs text-white placeholder:text-white/40 focus:border-blue-500/35 focus:outline-none"
+              />
+            </div>
           </CardHeader>
+
           <CardContent className="p-4">
-            {subject.teachers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <Users className="h-8 w-8 text-white/20" />
-                <p className="mt-2 text-sm text-white/50">No teachers assigned</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4 gap-2 border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10"
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Assign Teachers
-                </Button>
+            {filteredTeachers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Users className="h-8 w-8 text-white/25" />
+                <p className="mt-2 text-sm text-white/65">
+                  {teacherQuery ? "No teachers match your search" : "No teachers assigned yet"}
+                </p>
+                {!teacherQuery && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                setEditAssignment(null);
+                setAssignTeacherModalOpen(true);
+              }}
+                    className="mt-4 gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Assign Teachers
+                  </Button>
+                )}
               </div>
             ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {subject.teachers.map((teacher, idx) => (
-                  <button
-                    key={`${teacher.id}-${teacher.classId}-${idx}`}
-                    onClick={() => router.push(`/admin/teachers/${teacher.id}`)}
-                    className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-purple-500/30 hover:bg-purple-500/5"
+              <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                {filteredTeachers.map((teacher, index) => (
+                  <div
+                    key={`${teacher.id}-${teacher.classId}-${index}`}
+                    className="group flex w-full items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-blue-500/30 hover:bg-blue-500/10"
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9 border border-white/20">
-                        <AvatarImage
-                          src={teacher.photoUrl || ""}
-                          alt={teacher.fullName}
-                        />
-                        <AvatarFallback className="bg-gradient-to-br from-purple-600 to-violet-700 text-xs font-semibold text-white">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/admin/teachers/${teacher.id}`)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      <Avatar className="h-9 w-9 shrink-0 border border-white/20">
+                        <AvatarImage src={teacher.photoUrl || ""} alt={teacher.fullName} />
+                        <AvatarFallback className="bg-linear-to-br from-slate-700 to-slate-800 text-xs font-semibold text-slate-100">
                           {getInitials(teacher.firstName, teacher.lastName)}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="font-medium text-white">{teacher.fullName}</p>
-                        <p className="text-xs text-white/50">{teacher.className}</p>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-white">{teacher.fullName}</p>
+                        <p className="truncate text-xs text-white/55">{teacher.className}</p>
+                        {teacher.email && (
+                          <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-white/45">
+                            <Mail className="h-3 w-3" />
+                            {teacher.email}
+                          </p>
+                        )}
                       </div>
-                    </div>
-                    <ExternalLink className="h-4 w-4 text-white/40" />
-                  </button>
+                      <ExternalLink className="h-4 w-4 shrink-0 text-white/35 group-hover:text-white/65" />
+                    </button>
+
+                    <PremiumDropdownMenu>
+                      <PremiumDropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </PremiumDropdownMenuTrigger>
+                      <PremiumDropdownMenuContent align="end">
+                        <PremiumDropdownMenuItem
+                          icon={<Edit className="h-3.5 w-3.5" />}
+                          onClick={() => {
+                            setEditAssignment({
+                              assignmentId: teacher.assignmentId,
+                              teacherId: teacher.id,
+                              classGroupId: teacher.classId,
+                              className: teacher.className,
+                              teacherDisplay: {
+                                firstName: teacher.firstName,
+                                lastName: teacher.lastName,
+                                fullName: teacher.fullName,
+                                email: teacher.email,
+                                photoUrl: teacher.photoUrl,
+                              },
+                            });
+                            setAssignTeacherModalOpen(true);
+                          }}
+                        >
+                          Edit assignment
+                        </PremiumDropdownMenuItem>
+                        <PremiumDropdownMenuItem
+                          icon={<Trash2 className="h-3.5 w-3.5" />}
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                `Remove ${teacher.fullName} from teaching ${subject?.name} in ${teacher.className}? This will also remove the class from Assigned Classes if no other teacher is assigned.`
+                              )
+                            )
+                              return;
+                            try {
+                              await busy.promise(
+                                unassignTeacher.mutateAsync(teacher.assignmentId),
+                                {
+                                  loading: "Removing assignment...",
+                                  success: "Assignment removed",
+                                  error: (e: Error) => e.message || "Failed to remove",
+                                }
+                              );
+                            } catch {
+                              // Error handled by busy toast
+                            }
+                          }}
+                          className="text-red-300 focus:text-red-200"
+                        >
+                          Remove assignment
+                        </PremiumDropdownMenuItem>
+                      </PremiumDropdownMenuContent>
+                    </PremiumDropdownMenu>
+                  </div>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
-      </div>
+      </section>
+
+      <AssignTeacherToSubjectModal
+        open={assignTeacherModalOpen}
+        onOpenChange={(open) => {
+          setAssignTeacherModalOpen(open);
+          if (!open) setEditAssignment(null);
+        }}
+        subject={subjectForAssign}
+        editAssignment={editAssignment ?? undefined}
+      />
     </div>
   );
 }
@@ -427,20 +682,18 @@ export default function SubjectDetailPage() {
   return (
     <Suspense
       fallback={
-        <div className="space-y-6">
-          <div className="relative">
-            <div
-              className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-rose-500/10 blur-3xl"
-              aria-hidden="true"
-            />
-            <div className="relative z-10 flex items-start gap-4">
-              <div className="h-10 w-10 animate-pulse rounded-xl border border-white/10 bg-white/5" />
-              <div className="space-y-2">
-                <div className="h-9 w-64 animate-pulse rounded-lg bg-white/10" />
-                <div className="h-4 w-96 animate-pulse rounded bg-white/5" />
+        <div className="space-y-6 sm:space-y-8">
+          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex animate-pulse items-start gap-4">
+                <div className="h-10 w-10 rounded-xl bg-white/10" />
+                <div className="space-y-3">
+                  <div className="h-8 w-56 rounded-lg bg-white/10" />
+                  <div className="h-4 w-72 rounded bg-white/5" />
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       }
     >

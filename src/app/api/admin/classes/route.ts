@@ -9,6 +9,119 @@ import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
+import { z } from "zod";
+
+const CreateClassSchema = z.object({
+  gradeId: z.string().min(1, "Grade is required"),
+  name: z.string().min(1, "Class name is required").max(50),
+  subjectIds: z.array(z.string()).optional().default([]),
+  capacity: z.number().int().positive().optional().nullable(),
+});
+
+/**
+ * POST /api/admin/classes
+ * Create a new class under a grade
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+
+    const body = await req.json().catch(() => ({}));
+    const parsed = CreateClassSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { gradeId, name, subjectIds, capacity } = parsed.data;
+
+    const gradeIdObj = new mongoose.Types.ObjectId(gradeId);
+
+    // Verify grade exists and belongs to school
+    const { Grade } = await import("@/models/Grade");
+    const gradeDoc = await Grade.findOne({
+      _id: gradeIdObj,
+      schoolId: schoolIdObj,
+    }).lean();
+    if (!gradeDoc) {
+      return NextResponse.json(
+        { success: false, error: "Grade not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check for duplicate class name in same grade
+    const existing = await ClassGroup.findOne({
+      schoolId: schoolIdObj,
+      gradeId: gradeIdObj,
+      name: name.trim(),
+    });
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: `Class "${name}" already exists in this grade` },
+        { status: 409 }
+      );
+    }
+
+    const subjectIdsObj = (subjectIds || [])
+      .filter(Boolean)
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    const newClass = await ClassGroup.create({
+      schoolId: schoolIdObj,
+      gradeId: gradeIdObj,
+      name: name.trim(),
+      subjectIds: subjectIdsObj,
+      capacity: capacity ?? null,
+      isActive: true,
+    });
+
+    const populated = await ClassGroup.findById(newClass._id)
+      .populate("gradeId", "name code stage order")
+      .populate("subjectIds", "name code")
+      .lean();
+
+    const gradePop = populated?.gradeId as { _id: string; name: string; code?: string; stage?: string; order?: number } | null;
+    const subjectPop = (populated?.subjectIds || []) as Array<{ _id: string; name: string; code?: string }>;
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: String(newClass._id),
+        name: newClass.name,
+        fullLabel: gradePop ? `${gradePop.name} ${newClass.name}` : newClass.name,
+        grade: gradePop
+          ? {
+              id: String(gradePop._id),
+              name: gradePop.name,
+              code: gradePop.code || null,
+              stage: gradePop.stage || null,
+              order: gradePop.order || 0,
+            }
+          : null,
+        homeroomTeacher: null,
+        subjects: subjectPop.map((s) => ({
+          id: String(s._id),
+          name: s.name,
+          code: s.code || null,
+        })),
+        studentCount: 0,
+        teacherCount: 0,
+        subjectCount: subjectIdsObj.length,
+        capacity: newClass.capacity,
+        isActive: newClass.isActive,
+      },
+    });
+  } catch (e: unknown) {
+    console.error("Error creating class:", e);
+    const message = e instanceof Error ? e.message : "Failed to create class";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
 
 /**
  * GET /api/admin/classes

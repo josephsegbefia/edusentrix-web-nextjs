@@ -26,7 +26,6 @@ import {
 } from "@/hooks/admin/useTeacherAttendance";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { RecordAttendanceModal } from "@/components/modals/RecordAttendanceModal";
-import { SubmitLeaveRequestModal } from "@/components/modals/SubmitLeaveRequestModal";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { ComingSoonState } from "@/components/ui/coming-soon-state";
 
@@ -119,8 +118,6 @@ function formatTime(time: string | null): string {
 export function TeacherAttendanceTab({ teacher }: Props) {
   const [viewMode, setViewMode] = React.useState<"calendar" | "list">("list");
   const [recordModalOpen, setRecordModalOpen] = React.useState(false);
-  const [leaveRequestModalOpen, setLeaveRequestModalOpen] =
-    React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<string | undefined>();
 
   // Get current month for filtering
@@ -218,15 +215,6 @@ export function TeacherAttendanceTab({ teacher }: Props) {
             >
               <Plus className="h-4 w-4" />
               Record Attendance
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLeaveRequestModalOpen(true)}
-              className="gap-2 rounded-xl border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20"
-            >
-              <Plus className="h-4 w-4" />
-              Submit Leave Request
             </Button>
           </div>
         </CardHeader>
@@ -499,13 +487,6 @@ export function TeacherAttendanceTab({ teacher }: Props) {
         teacherId={teacher.id}
         teacherName={teacher.fullName}
         defaultDate={selectedDate}
-      />
-
-      <SubmitLeaveRequestModal
-        open={leaveRequestModalOpen}
-        onOpenChange={setLeaveRequestModalOpen}
-        teacherId={teacher.id}
-        teacherName={teacher.fullName}
       />
       {confirmationDialog}
     </div>

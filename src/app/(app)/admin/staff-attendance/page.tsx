@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,21 @@ function formatDateStr(d: Date): string {
   return d.toISOString().split("T")[0]; // YYYY-MM-DD
 }
 
+function formatRelativeTime(isoDate: string | null): string {
+  if (!isoDate) return "";
+  const d = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString();
+}
+
 function formatDisplayDate(d: Date): string {
   return d.toLocaleDateString(undefined, {
     weekday: "long",
@@ -52,7 +68,6 @@ function formatDisplayDate(d: Date): string {
 }
 import {
   ClipboardCheck,
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   Users,
@@ -72,11 +87,13 @@ import {
   Check,
   X,
   Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useDailyAttendance,
   useAllLeaveRequests,
+  useBulkRecordAttendance,
   useQuickMarkAttendance,
   type TeacherWithAttendance,
   type TeacherAttendanceStatus,
@@ -84,6 +101,12 @@ import {
 import { useApproveLeave, useRejectLeave } from "@/hooks/admin/useTeacherAttendance";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import {
+  useStaffAttendanceAIInsightsQuery,
+  useStaffAttendanceAIInsights,
+  type StaffAttendanceAIInsights,
+} from "@/hooks/admin/useStaffAttendanceAIInsights";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stats Card Component
@@ -566,6 +589,11 @@ export default function StaffAttendancePage() {
   const [search, setSearch] = React.useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [bulkScope, setBulkScope] = React.useState<"not_recorded" | "filtered">(
+    "not_recorded"
+  );
+  const [bulkStatus, setBulkStatus] =
+    React.useState<TeacherAttendanceStatus>("present");
 
   // Tab state
   const [activeTab, setActiveTab] = React.useState<"attendance" | "leave">(
@@ -590,8 +618,19 @@ export default function StaffAttendancePage() {
     refetch: refetchLeave,
   } = useAllLeaveRequests(leaveFilter);
 
+  const { data: cachedLeo, isLoading: cachedLeoLoading } =
+    useStaffAttendanceAIInsightsQuery(dateStr);
+  const leoAI = useStaffAttendanceAIInsights(dateStr);
+
+  const leoInsights: StaffAttendanceAIInsights | null =
+    leoAI.data?.data ?? cachedLeo?.data ?? null;
+  const leoGeneratedAt: string | null =
+    leoAI.data?.generatedAt ?? cachedLeo?.generatedAt ?? null;
+  const leoIsStale = cachedLeo?.isStale ?? false;
+
   // Mutations
   const quickMark = useQuickMarkAttendance();
+  const bulkRecord = useBulkRecordAttendance();
   const approveLeave = useApproveLeave();
   const rejectLeave = useRejectLeave();
 
@@ -667,42 +706,74 @@ export default function StaffAttendancePage() {
     return teachers;
   }, [attendanceData?.data, debouncedSearch, statusFilter]);
 
+  const bulkCandidates = React.useMemo(() => {
+    if (bulkScope === "not_recorded") {
+      return filteredTeachers.filter((teacher) => !teacher.attendance);
+    }
+    return filteredTeachers.filter(
+      (teacher) => teacher.attendance?.status !== bulkStatus
+    );
+  }, [filteredTeachers, bulkScope, bulkStatus]);
+
+  const handleBulkMark = React.useCallback(() => {
+    const records = bulkCandidates.map((teacher) => ({
+      teacherId: teacher.teacherId,
+      status: bulkStatus,
+    }));
+
+    if (records.length === 0) {
+      busy.info("No teachers match the current bulk criteria.");
+      return;
+    }
+
+    const statusLabel = bulkStatus.replace("_", " ");
+    busy.promise(bulkRecord.mutateAsync({ date: dateStr, records }), {
+      loading: `Applying ${statusLabel} to ${records.length} teacher${records.length === 1 ? "" : "s"}...`,
+      success: `Bulk attendance updated for ${records.length} teacher${records.length === 1 ? "" : "s"}`,
+      error: (e: Error) => e.message || "Failed to update attendance in bulk",
+    });
+  }, [bulkCandidates, bulkRecord, bulkStatus, busy, dateStr]);
+
   const summary = attendanceData?.summary;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="relative overflow-hidden border-b border-white/10 bg-linear-to-br from-indigo-950/40 via-purple-950/20 to-transparent">
-        {/* Decorative elements */}
-        <div
-          className="pointer-events-none absolute -left-32 -top-32 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute -right-32 bottom-0 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl"
-          aria-hidden="true"
-        />
+      <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
+        <section className="relative mb-6 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-6 shadow-2xl shadow-black/40">
+          <div
+            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-tr from-cyan-500/10 via-indigo-500/5 to-transparent blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            aria-hidden="true"
+          />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-2">
+          <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+            <div>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/30 bg-linear-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
-                  <ClipboardCheck className="h-6 w-6 text-indigo-300" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
+                  <ClipboardCheck className="h-5 w-5 text-indigo-300" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                  <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                     Staff Attendance
                   </h1>
-                  <p className="text-sm text-white/60">
+                  <p className="mt-1 text-sm text-white/70">
                     Record and manage daily teacher attendance
                   </p>
                 </div>
               </div>
+              <p className="mt-4 text-xs uppercase tracking-[0.18em] text-indigo-200/80">
+                {formatDisplayDate(selectedDate)}
+              </p>
             </div>
 
-            {/* Date Navigation */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
                 size="icon"
@@ -712,22 +783,15 @@ export default function StaffAttendancePage() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formatDateStr(selectedDate)}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setSelectedDate(startOfDay(new Date(e.target.value)));
-                    }
-                  }}
-                  className={cn(
-                    "h-9 min-w-[180px] rounded-md border bg-transparent px-3 text-sm text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50",
-                    "border-white/15 bg-white/5 hover:bg-white/10",
-                    isToday(selectedDate) && "border-indigo-500/50"
-                  )}
-                />
-              </div>
+              <CustomDatePicker
+                value={selectedDate}
+                onChange={(nextDate) => {
+                  if (!nextDate) return;
+                  setSelectedDate(startOfDay(nextDate));
+                }}
+                placeholder="Select attendance date"
+                className="w-[220px]"
+              />
 
               <Button
                 variant="outline"
@@ -751,10 +815,8 @@ export default function StaffAttendancePage() {
               )}
             </div>
           </div>
-        </div>
-      </header>
+        </section>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Stats */}
         <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard
@@ -799,6 +861,137 @@ export default function StaffAttendancePage() {
             tone="slate"
             loading={isLoadingAttendance}
           />
+        </section>
+
+        {/* Leo AI Insights */}
+        <section className="mb-6 overflow-hidden rounded-2xl border border-purple-500/20 bg-linear-to-r from-purple-500/10 via-indigo-500/5 to-transparent p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg border border-purple-400/30 bg-purple-500/20 p-1.5">
+                <LeoIcon className="h-4 w-4 text-purple-200" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Leo Insights & Recommendations
+                </p>
+                <p className="text-xs text-white/60">
+                  AI-powered analysis for {formatDisplayDate(selectedDate)} — load saved or generate on demand
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            {cachedLeoLoading && !leoInsights ? (
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
+                <span className="text-sm text-white/60">Loading saved insights...</span>
+              </div>
+            ) : leoAI.isError && !leoInsights ? (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-6 text-center">
+                <p className="text-sm text-red-200 mb-2">
+                  Leo couldn&apos;t generate insights
+                </p>
+                <p className="text-xs text-red-200/70 mb-4">{leoAI.error?.message}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => leoAI.mutate()}
+                  disabled={leoAI.isPending}
+                  className="gap-2 border-red-500/30 text-red-200 hover:bg-red-500/20"
+                >
+                  {leoAI.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  Retry
+                </Button>
+              </div>
+            ) : !leoInsights ? (
+              <div className="rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8 text-center">
+                <div className="flex justify-center mb-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
+                    <LeoIcon className="h-6 w-6 text-purple-300" />
+                  </div>
+                </div>
+                <p className="text-sm text-white/70 mb-4">
+                  Get AI-powered insights and recommendations for today&apos;s attendance.
+                </p>
+                <Button
+                  onClick={() => leoAI.mutate()}
+                  disabled={leoAI.isPending}
+                  className="gap-2 rounded-xl bg-purple-600 hover:bg-purple-700"
+                >
+                  {leoAI.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LeoIcon className="h-4 w-4" />
+                  )}
+                  Generate with Leo
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(leoGeneratedAt || leoIsStale) && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-purple-400/20 bg-purple-500/10 px-3 py-2">
+                    <span className="flex items-center gap-1.5 text-xs text-white/60">
+                      <Clock className="h-3.5 w-3.5" />
+                      Generated {formatRelativeTime(leoGeneratedAt)}
+                    </span>
+                    {leoIsStale && (
+                      <span className="text-[10px] text-amber-400">
+                        Data may have changed
+                      </span>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => leoAI.mutate()}
+                      disabled={leoAI.isPending}
+                      className="h-7 gap-1 text-xs text-purple-200 hover:bg-purple-500/20"
+                    >
+                      {leoAI.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      Regenerate
+                    </Button>
+                  </div>
+                )}
+                <p className="text-sm text-white/90 leading-relaxed">{leoInsights.summary}</p>
+                {leoInsights.insights.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">
+                      Insights
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {leoInsights.insights.map((insight, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                          <span className="text-purple-400 mt-0.5">•</span>
+                          <span>{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {leoInsights.recommendedActions.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">
+                      Recommended Actions
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {leoInsights.recommendedActions.map((action, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                          <ArrowRight className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+                          <span>{action}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Tabs */}
@@ -939,6 +1132,73 @@ export default function StaffAttendancePage() {
                       Searching for &quot;{debouncedSearch}&quot;
                     </p>
                   )}
+                </div>
+              )}
+
+              {!isLoadingAttendance && attendanceData?.data && (
+                <div className="mb-4 rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-3">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="space-y-1">
+                      <p className="flex items-center gap-1.5 text-xs font-medium text-indigo-100">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Smart Bulk Actions
+                      </p>
+                      <p className="text-xs text-indigo-200/75">
+                        {bulkCandidates.length} teacher
+                        {bulkCandidates.length === 1 ? "" : "s"} ready for bulk
+                        update.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Select
+                        value={bulkScope}
+                        onValueChange={(value) =>
+                          setBulkScope(value as "not_recorded" | "filtered")
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-[170px] border-white/15 bg-black/30 text-xs text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-neutral-950">
+                          <SelectItem value="not_recorded">Not Recorded Only</SelectItem>
+                          <SelectItem value="filtered">All Filtered Teachers</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={bulkStatus}
+                        onValueChange={(value) =>
+                          setBulkStatus(value as TeacherAttendanceStatus)
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-[140px] border-white/15 bg-black/30 text-xs text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-neutral-950">
+                          <SelectItem value="present">Mark Present</SelectItem>
+                          <SelectItem value="absent">Mark Absent</SelectItem>
+                          <SelectItem value="late">Mark Late</SelectItem>
+                          <SelectItem value="on_leave">Mark On Leave</SelectItem>
+                          <SelectItem value="sick">Mark Sick</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Button
+                        size="sm"
+                        onClick={handleBulkMark}
+                        disabled={bulkRecord.isPending || bulkCandidates.length === 0}
+                        className="h-8 gap-1.5 bg-indigo-500 text-xs font-medium text-white hover:bg-indigo-500/90 disabled:opacity-50"
+                      >
+                        {bulkRecord.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        )}
+                        Apply in Bulk
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 

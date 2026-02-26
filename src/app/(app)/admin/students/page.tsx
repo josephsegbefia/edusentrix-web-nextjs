@@ -86,7 +86,14 @@ export default function StudentsPage() {
   const [showCreateStudent, setShowCreateStudent] = React.useState(false);
   const [creatingStudent, setCreatingStudent] = React.useState(false);
   const [advancedFilters, setAdvancedFilters] = React.useState<StudentsFilters>(
-    {}
+    () => {
+      const g = searchParams.get("gradeId");
+      const c = searchParams.get("classGroupId");
+      return {
+        ...(g ? { gradeId: g } : {}),
+        ...(c ? { classGroupId: c } : {}),
+      };
+    }
   );
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -103,15 +110,30 @@ export default function StudentsPage() {
     }
   }, [commandOpen]);
 
+  // Sync state from URL when navigating (e.g. from grade detail Fee Defaulters link)
+  React.useEffect(() => {
+    const tabFromUrl = getInitialTab(searchParams);
+    const gradeIdFromUrl = searchParams.get("gradeId");
+    const classGroupIdFromUrl = searchParams.get("classGroupId");
+    setTab(tabFromUrl);
+    setAdvancedFilters((prev) => ({
+      ...prev,
+      gradeId: gradeIdFromUrl ?? undefined,
+      classGroupId: classGroupIdFromUrl ?? undefined,
+    }));
+  }, [searchParams]);
+
   React.useEffect(() => {
     const params = new URLSearchParams();
     params.set("tab", tab);
     params.set("view", viewMode);
     if (debouncedSearch) params.set("q", debouncedSearch);
     params.set("page", String(page));
+    if (advancedFilters.gradeId) params.set("gradeId", advancedFilters.gradeId);
+    if (advancedFilters.classGroupId) params.set("classGroupId", advancedFilters.classGroupId);
 
     router.replace(`/admin/students?${params.toString()}`);
-  }, [tab, viewMode, debouncedSearch, page, router]);
+  }, [tab, viewMode, debouncedSearch, page, advancedFilters.gradeId, advancedFilters.classGroupId, router]);
 
   React.useEffect(() => {
     if (tab === "recent") {

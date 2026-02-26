@@ -7,6 +7,7 @@ import {
   Users,
   Shield,
   Clock,
+  Sparkles,
   Plus,
   Search,
   Award,
@@ -19,6 +20,9 @@ import {
   GraduationCap,
   BookOpen,
   Settings,
+  ArrowRight,
+  CheckCircle2,
+  TriangleAlert,
   WifiOff,
   RefreshCw,
 } from "lucide-react";
@@ -54,19 +58,70 @@ import { AssignSchoolRoleModal } from "@/components/modals/AssignSchoolRoleModal
 import { AssignTeacherDutyModal } from "@/components/modals/AssignTeacherDutyModal";
 import { CreateSchoolRoleModal } from "@/components/modals/CreateSchoolRoleModal";
 import { CreateDutyModal } from "@/components/modals/CreateDutyModal";
+import { CreateClassRoleModal } from "@/components/modals/CreateClassRoleModal";
+import { LeoIcon } from "@/components/icons/LeoIcon";
+import {
+  useRolesDutiesAIInsightsQuery,
+  useRolesDutiesAIInsights,
+  type RolesDutiesAIInsights,
+} from "@/hooks/admin/useRolesDutiesAIInsights";
 
 type ActiveTab = "student-roles" | "teacher-duties" | "class-roles";
+
+function formatRelativeTime(isoDate: string | null): string {
+  if (!isoDate) return "";
+  const d = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString();
+}
+
+type AIInsightSeverity = "critical" | "attention" | "good";
+
+type AIInsight = {
+  id: string;
+  title: string;
+  detail: string;
+  metric?: string;
+  severity: AIInsightSeverity;
+  actionLabel?: string;
+  onAction?: () => void;
+};
 
 function RolesDutiesContent() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("student-roles");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showAIInsights, setShowAIInsights] = useState(true);
   const [assignRoleModalOpen, setAssignRoleModalOpen] = useState(false);
   const [assignDutyModalOpen, setAssignDutyModalOpen] = useState(false);
   const [createRoleModalOpen, setCreateRoleModalOpen] = useState(false);
   const [createDutyModalOpen, setCreateDutyModalOpen] = useState(false);
+  const [createClassRoleModalOpen, setCreateClassRoleModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<SchoolRoleDefinitionDTO | null>(null);
   const [selectedDuty, setSelectedDuty] = useState<DutyDefinitionDTO | null>(null);
+  const roleCategoryScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const [showRoleCategoryLeftHint, setShowRoleCategoryLeftHint] = useState(false);
+  const [showRoleCategoryRightHint, setShowRoleCategoryRightHint] = useState(false);
+  const classRoleCategoryScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const [showClassRoleCategoryLeftHint, setShowClassRoleCategoryLeftHint] = useState(false);
+  const [showClassRoleCategoryRightHint, setShowClassRoleCategoryRightHint] = useState(false);
+  const { data: cachedLeo, isLoading: cachedLeoLoading } = useRolesDutiesAIInsightsQuery(activeTab);
+  const leoAI = useRolesDutiesAIInsights(activeTab);
+
+  // Display: prefer mutation result (just generated), else cached from DB
+  const leoInsights: RolesDutiesAIInsights | null =
+    leoAI.data?.data ?? cachedLeo?.data ?? null;
+  const leoGeneratedAt: string | null =
+    leoAI.data?.generatedAt ?? cachedLeo?.generatedAt ?? null;
+  const leoIsStale = cachedLeo?.isStale ?? false;
 
   const { data: rolesData, isLoading: rolesLoading, isError: rolesError, error: rolesErrorData } = useSchoolRoles(true);
   const { data: dutiesData, isLoading: dutiesLoading, isError: dutiesError, error: dutiesErrorData } = useTeacherDuties(true);
@@ -103,6 +158,7 @@ function RolesDutiesContent() {
     { key: "sports", label: "Sports", icon: Shield, color: "text-rose-400" },
     { key: "cultural", label: "Cultural", icon: GraduationCap, color: "text-purple-400" },
     { key: "service", label: "Service", icon: UserCheck, color: "text-cyan-400" },
+    { key: "custom", label: "Custom", icon: Settings, color: "text-indigo-400" },
   ];
 
   const dutyCategories = [
@@ -160,9 +216,450 @@ function RolesDutiesContent() {
     return error instanceof Error ? error.message : "An unexpected error occurred. Please try again.";
   };
 
+  const updateRoleCategoryOverflowHints = React.useCallback(() => {
+    const el = roleCategoryScrollRef.current;
+    if (!el) return;
+
+    const canScroll = el.scrollWidth > el.clientWidth + 2;
+    if (!canScroll) {
+      setShowRoleCategoryLeftHint(false);
+      setShowRoleCategoryRightHint(false);
+      return;
+    }
+
+    setShowRoleCategoryLeftHint(el.scrollLeft > 2);
+    setShowRoleCategoryRightHint(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  React.useEffect(() => {
+    const raf = requestAnimationFrame(updateRoleCategoryOverflowHints);
+    const onResize = () => updateRoleCategoryOverflowHints();
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [updateRoleCategoryOverflowHints, rolesData?.data?.length, activeTab]);
+
+  const updateClassRoleCategoryOverflowHints = React.useCallback(() => {
+    const el = classRoleCategoryScrollRef.current;
+    if (!el) return;
+
+    const canScroll = el.scrollWidth > el.clientWidth + 2;
+    if (!canScroll) {
+      setShowClassRoleCategoryLeftHint(false);
+      setShowClassRoleCategoryRightHint(false);
+      return;
+    }
+
+    setShowClassRoleCategoryLeftHint(el.scrollLeft > 2);
+    setShowClassRoleCategoryRightHint(
+      el.scrollLeft + el.clientWidth < el.scrollWidth - 2
+    );
+  }, []);
+
+  React.useEffect(() => {
+    const raf = requestAnimationFrame(updateClassRoleCategoryOverflowHints);
+    const onResize = () => updateClassRoleCategoryOverflowHints();
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [
+    updateClassRoleCategoryOverflowHints,
+    classRolesData?.data?.length,
+    activeTab,
+  ]);
+
+  React.useEffect(() => {
+    setSelectedCategory(null);
+  }, [activeTab]);
+
+  const roleAssignmentCounts = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    (rolesData?.assignments || []).forEach((assignment) => {
+      const roleId = assignment.role?.id;
+      if (!roleId) return;
+      counts.set(roleId, (counts.get(roleId) || 0) + 1);
+    });
+    return counts;
+  }, [rolesData?.assignments]);
+
+  const dutyAssignmentCounts = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    (dutiesData?.assignments || []).forEach((assignment) => {
+      const dutyId = assignment.duty?.id;
+      if (!dutyId) return;
+      counts.set(dutyId, (counts.get(dutyId) || 0) + 1);
+    });
+    return counts;
+  }, [dutiesData?.assignments]);
+
+  const activeInsightTone: Record<
+    AIInsightSeverity,
+    { border: string; bg: string; text: string; pill: string; icon: React.ComponentType<{ className?: string }> }
+  > = {
+    critical: {
+      border: "border-rose-400/30",
+      bg: "bg-rose-500/10",
+      text: "text-rose-200",
+      pill: "bg-rose-500/20 text-rose-100",
+      icon: TriangleAlert,
+    },
+    attention: {
+      border: "border-amber-400/30",
+      bg: "bg-amber-500/10",
+      text: "text-amber-100",
+      pill: "bg-amber-500/20 text-amber-100",
+      icon: Sparkles,
+    },
+    good: {
+      border: "border-emerald-400/30",
+      bg: "bg-emerald-500/10",
+      text: "text-emerald-100",
+      pill: "bg-emerald-500/20 text-emerald-100",
+      icon: CheckCircle2,
+    },
+  };
+
+  const aiInsights = React.useMemo<AIInsight[]>(() => {
+    if (activeTab === "student-roles") {
+      if (rolesLoading) {
+        return [
+          {
+            id: "student-loading",
+            title: "Building role health model",
+            detail: "Analyzing current school role allocations...",
+            severity: "attention",
+          },
+        ];
+      }
+      if (rolesError) {
+        return [
+          {
+            id: "student-error",
+            title: "AI analysis unavailable",
+            detail: "Role data could not be loaded. Retry to get recommendations.",
+            severity: "critical",
+            actionLabel: "Retry",
+            onAction: () => globalThis.location.reload(),
+          },
+        ];
+      }
+
+      const roleDefinitions = rolesData?.data || [];
+      const roleAssignments = rolesData?.assignments || [];
+      const unassignedDefinitions = roleDefinitions.filter(
+        (role) => (roleAssignmentCounts.get(role.id) || 0) === 0
+      );
+      const overCapacityRoles = roleDefinitions
+        .map((role) => {
+          const assigned = roleAssignmentCounts.get(role.id) || 0;
+          return { role, assigned };
+        })
+        .filter(
+          ({ role, assigned }) =>
+            typeof role.maxPerSchool === "number" && assigned > role.maxPerSchool
+        )
+        .sort((a, b) => b.assigned - a.assigned);
+      const customRoles = roleDefinitions.filter((role) => role.category === "custom");
+
+      const insights: AIInsight[] = [];
+
+      if (roleAssignments.length === 0) {
+        insights.push({
+          id: "student-no-assignments",
+          title: "No school roles assigned yet",
+          detail: "Start by assigning core positions like prefects and council reps.",
+          metric: "0 assigned",
+          severity: "attention",
+          actionLabel: "Assign first role",
+          onAction: () => setAssignRoleModalOpen(true),
+        });
+      }
+
+      if (overCapacityRoles.length > 0) {
+        const top = overCapacityRoles[0];
+        insights.push({
+          id: "student-over-capacity",
+          title: "Role cap exceeded",
+          detail: `${top.role.name} has ${top.assigned} assignments against a cap of ${top.role.maxPerSchool}.`,
+          metric: `${overCapacityRoles.length} over cap`,
+          severity: "critical",
+          actionLabel: "Review role",
+          onAction: () => setSearchQuery(top.role.name),
+        });
+      }
+
+      if (unassignedDefinitions.length > 0) {
+        insights.push({
+          id: "student-unused-roles",
+          title: "Unutilized role definitions",
+          detail: `${unassignedDefinitions.length} defined roles are currently unused.`,
+          metric: `${unassignedDefinitions.length} unused`,
+          severity: "attention",
+          actionLabel: "Focus gap",
+          onAction: () => {
+            setSelectedCategory(unassignedDefinitions[0].category);
+            setSearchQuery(unassignedDefinitions[0].name);
+          },
+        });
+      }
+
+      if (customRoles.length === 0) {
+        insights.push({
+          id: "student-no-custom",
+          title: "No custom school role yet",
+          detail: "Create school-specific leadership roles for your school culture.",
+          severity: "good",
+          actionLabel: "Create custom role",
+          onAction: () => setCreateRoleModalOpen(true),
+        });
+      }
+
+      if (insights.length === 0) {
+        insights.push({
+          id: "student-balanced",
+          title: "School roles look balanced",
+          detail: "Definitions are being used and no cap violations were detected.",
+          metric: `${roleAssignments.length} active`,
+          severity: "good",
+        });
+      }
+
+      return insights.slice(0, 3);
+    }
+
+    if (activeTab === "teacher-duties") {
+      if (dutiesLoading) {
+        return [
+          {
+            id: "duty-loading",
+            title: "Building duty workload model",
+            detail: "Analyzing duty distribution by teacher and category...",
+            severity: "attention",
+          },
+        ];
+      }
+      if (dutiesError) {
+        return [
+          {
+            id: "duty-error",
+            title: "AI analysis unavailable",
+            detail: "Duty data could not be loaded. Retry to get recommendations.",
+            severity: "critical",
+            actionLabel: "Retry",
+            onAction: () => globalThis.location.reload(),
+          },
+        ];
+      }
+
+      const dutyDefinitions = dutiesData?.data || [];
+      const dutyAssignments = dutiesData?.assignments || [];
+      const unassignedDefinitions = dutyDefinitions.filter(
+        (duty) => (dutyAssignmentCounts.get(duty.id) || 0) === 0
+      );
+      const teacherLoad = new Map<string, { name: string; count: number }>();
+      dutyAssignments.forEach((assignment) => {
+        const teacherId = assignment.teacher?.id;
+        if (!teacherId) return;
+        const current = teacherLoad.get(teacherId) || {
+          name: assignment.teacher?.fullName || "Teacher",
+          count: 0,
+        };
+        current.count += 1;
+        teacherLoad.set(teacherId, current);
+      });
+      const overloadedTeachers = Array.from(teacherLoad.values())
+        .filter((entry) => entry.count >= 4)
+        .sort((a, b) => b.count - a.count);
+      const timeBoundAssignments = dutyAssignments.filter(
+        (assignment) => Boolean(assignment.endDate)
+      );
+
+      const insights: AIInsight[] = [];
+
+      if (dutyAssignments.length === 0) {
+        insights.push({
+          id: "duty-no-assignments",
+          title: "No duties assigned yet",
+          detail: "Start with critical duties such as gate, break, and assembly.",
+          metric: "0 assigned",
+          severity: "attention",
+          actionLabel: "Assign first duty",
+          onAction: () => setAssignDutyModalOpen(true),
+        });
+      }
+
+      if (overloadedTeachers.length > 0) {
+        const top = overloadedTeachers[0];
+        insights.push({
+          id: "duty-overloaded",
+          title: "Potential duty overload detected",
+          detail: `${top.name} currently has ${top.count} active duty allocations.`,
+          metric: `${overloadedTeachers.length} teachers`,
+          severity: "critical",
+          actionLabel: "Review teacher",
+          onAction: () => setSearchQuery(top.name),
+        });
+      }
+
+      if (unassignedDefinitions.length > 0) {
+        insights.push({
+          id: "duty-unused-definitions",
+          title: "Uncovered duty definitions",
+          detail: `${unassignedDefinitions.length} duties are defined but not currently assigned.`,
+          metric: `${unassignedDefinitions.length} uncovered`,
+          severity: "attention",
+          actionLabel: "Focus gap",
+          onAction: () => {
+            setSelectedCategory(unassignedDefinitions[0].category);
+            setSearchQuery(unassignedDefinitions[0].name);
+          },
+        });
+      }
+
+      if (timeBoundAssignments.length > 0) {
+        const target =
+          timeBoundAssignments[0].teacher?.fullName ||
+          timeBoundAssignments[0].duty?.name ||
+          "";
+        insights.push({
+          id: "duty-time-bound",
+          title: "Time-bound duties detected",
+          detail: `${timeBoundAssignments.length} duty assignment(s) have a defined end date.`,
+          metric: "Has end dates",
+          severity: "good",
+          actionLabel: target ? "Review schedule" : undefined,
+          onAction: target ? () => setSearchQuery(target) : undefined,
+        });
+      }
+
+      if (insights.length === 0) {
+        insights.push({
+          id: "duty-balanced",
+          title: "Duty roster looks healthy",
+          detail: "No overload or short-term duty gaps were detected.",
+          metric: `${dutyAssignments.length} active`,
+          severity: "good",
+        });
+      }
+
+      return insights.slice(0, 3);
+    }
+
+    if (classRolesLoading) {
+      return [
+        {
+          id: "class-loading",
+          title: "Building class role model",
+          detail: "Analyzing class role definitions and category coverage...",
+          severity: "attention",
+        },
+      ];
+    }
+    if (classRolesError) {
+      return [
+        {
+          id: "class-error",
+          title: "AI analysis unavailable",
+          detail: "Class role data could not be loaded. Retry to get recommendations.",
+          severity: "critical",
+          actionLabel: "Retry",
+          onAction: () => globalThis.location.reload(),
+        },
+      ];
+    }
+
+    const roleDefinitions = classRolesData?.data || [];
+    const customRoles = roleDefinitions.filter((role) => role.category === "custom");
+    const missingCoreCategories = (
+      ["leadership", "academic", "service", "social"] as ClassRoleCategory[]
+    ).filter((category) => (classRolesData?.grouped?.[category] || []).length === 0);
+    const unlimitedRoles = roleDefinitions.filter((role) => role.maxPerClass === null);
+
+    const insights: AIInsight[] = [];
+
+    if (roleDefinitions.length === 0) {
+      insights.push({
+        id: "class-empty",
+        title: "No class role definitions yet",
+        detail: "Create baseline roles before assigning them across class pages.",
+        metric: "0 roles",
+        severity: "attention",
+        actionLabel: "Create class role",
+        onAction: () => setCreateClassRoleModalOpen(true),
+      });
+    }
+
+    if (missingCoreCategories.length > 0) {
+      insights.push({
+        id: "class-missing-core",
+        title: "Core class role category missing",
+        detail: `${missingCoreCategories.length} core category slot(s) have no role definition.`,
+        metric: missingCoreCategories
+          .map((category) => getRoleCategoryInfo(category).label)
+          .join(", "),
+        severity: "critical",
+        actionLabel: "Focus category",
+        onAction: () => setSelectedCategory(missingCoreCategories[0]),
+      });
+    }
+
+    if (customRoles.length === 0) {
+      insights.push({
+        id: "class-no-custom",
+        title: "No custom class role",
+        detail: "Add school-specific roles for behavior, clubs, or pastoral structure.",
+        severity: "attention",
+        actionLabel: "Create custom role",
+        onAction: () => setCreateClassRoleModalOpen(true),
+      });
+    }
+
+    if (unlimitedRoles.length > 0) {
+      insights.push({
+        id: "class-unlimited",
+        title: "Unlimited roles detected",
+        detail: `${unlimitedRoles.length} role definition(s) have no per-class limit.`,
+        metric: `${unlimitedRoles.length} unlimited`,
+        severity: "good",
+      });
+    }
+
+    if (insights.length === 0) {
+      insights.push({
+        id: "class-balanced",
+        title: "Class role setup looks complete",
+        detail: "Core categories are covered and ready for class-level assignment.",
+        metric: `${roleDefinitions.length} roles`,
+        severity: "good",
+      });
+    }
+
+    return insights.slice(0, 3);
+  }, [
+    activeTab,
+    classRolesData?.data,
+    classRolesData?.grouped,
+    classRolesError,
+    classRolesLoading,
+    dutiesData?.assignments,
+    dutiesData?.data,
+    dutiesError,
+    dutiesLoading,
+    roleAssignmentCounts,
+    dutyAssignmentCounts,
+    rolesData?.assignments,
+    rolesData?.data,
+    rolesError,
+    rolesLoading,
+  ]);
+
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white sm:text-3xl">
@@ -197,7 +694,7 @@ function RolesDutiesContent() {
             )}
           >
             <BookOpen className="h-4 w-4" />
-            Class Roles
+            Class Roles & Duties
           </button>
           <button
             onClick={() => setActiveTab("teacher-duties")}
@@ -261,9 +758,34 @@ function RolesDutiesContent() {
               </>
             )}
             {activeTab === "class-roles" && (
-              <p className="text-sm text-white/50">
-                Class roles are managed per class. Visit a class to assign roles.
-              </p>
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Manage
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="border border-white/10 bg-slate-900/95 text-slate-50 backdrop-blur-xl"
+                  >
+                    <DropdownMenuItem
+                      onClick={() => setCreateClassRoleModalOpen(true)}
+                      className="cursor-pointer gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Custom Class Role
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <p className="text-sm text-white/50">
+                  Assignments are handled inside each class page.
+                </p>
+              </>
             )}
             {activeTab === "teacher-duties" && (
               <>
@@ -302,6 +824,212 @@ function RolesDutiesContent() {
           </div>
         </div>
 
+        {/* Health Check (rule-based, no AI cost) */}
+        <div className="mb-6 overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg border border-white/15 bg-white/10 p-1.5">
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-white">Health Check</p>
+                <p className="text-xs text-white/60">
+                  Quick status based on current {activeTab.replace("-", " ")} data
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAIInsights((prev) => !prev)}
+              className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+            >
+              {showAIInsights ? "Hide" : "Show"}
+            </Button>
+          </div>
+
+          {showAIInsights && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {aiInsights.map((insight) => {
+                const tone = activeInsightTone[insight.severity];
+                const Icon = tone.icon;
+                return (
+                  <div
+                    key={insight.id}
+                    className={cn(
+                      "rounded-xl border p-3.5",
+                      tone.border,
+                      tone.bg
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2.5">
+                        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", tone.text)} />
+                        <div>
+                          <p className={cn("text-sm font-semibold", tone.text)}>
+                            {insight.title}
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-white/75">
+                            {insight.detail}
+                          </p>
+                        </div>
+                      </div>
+                      {insight.metric && (
+                        <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium", tone.pill)}>
+                          {insight.metric}
+                        </span>
+                      )}
+                    </div>
+
+                    {insight.onAction && insight.actionLabel && (
+                      <button
+                        onClick={insight.onAction}
+                        className={cn(
+                          "mt-3 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all",
+                          tone.text,
+                          "border border-white/15 bg-white/10 hover:bg-white/15"
+                        )}
+                      >
+                        {insight.actionLabel}
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Leo AI Insights (on-demand, uses OpenAI) */}
+        <div className="mb-6 overflow-hidden rounded-2xl border border-purple-500/20 bg-linear-to-r from-purple-500/10 via-indigo-500/5 to-transparent p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg border border-purple-400/30 bg-purple-500/20 p-1.5">
+                <LeoIcon className="h-4 w-4 text-purple-200" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-white">Leo Insights & Recommendations</p>
+                <p className="text-xs text-white/60">
+                  AI-powered analysis for {activeTab.replace("-", " ")} — generate on demand
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            {cachedLeoLoading && !leoInsights ? (
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
+                <span className="text-sm text-white/60">Loading saved insights...</span>
+              </div>
+            ) : leoAI.isError && !leoInsights ? (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-6 text-center">
+                <p className="text-sm text-red-200 mb-2">
+                  Leo couldn&apos;t generate insights
+                </p>
+                <p className="text-xs text-red-200/70 mb-4">{leoAI.error?.message}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => leoAI.mutate()}
+                  disabled={leoAI.isPending}
+                  className="gap-2 border-red-500/30 text-red-200 hover:bg-red-500/20"
+                >
+                  {leoAI.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  Retry
+                </Button>
+              </div>
+            ) : !leoInsights ? (
+              <div className="rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8 text-center">
+                <div className="flex justify-center mb-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
+                    <LeoIcon className="h-6 w-6 text-purple-300" />
+                  </div>
+                </div>
+                <p className="text-sm text-white/70 mb-4">
+                  Get AI-powered insights and recommendations for your {activeTab.replace("-", " ")} setup.
+                </p>
+                <Button
+                  onClick={() => leoAI.mutate()}
+                  disabled={leoAI.isPending}
+                  className="gap-2 rounded-xl bg-purple-600 hover:bg-purple-700"
+                >
+                  {leoAI.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LeoIcon className="h-4 w-4" />
+                  )}
+                  Generate with Leo
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(leoGeneratedAt || leoIsStale) && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-purple-400/20 bg-purple-500/10 px-3 py-2">
+                    <span className="flex items-center gap-1.5 text-xs text-white/60">
+                      <Clock className="h-3.5 w-3.5" />
+                      Generated {formatRelativeTime(leoGeneratedAt)}
+                    </span>
+                    {leoIsStale && (
+                      <span className="text-[10px] text-amber-400">
+                        Data may have changed
+                      </span>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => leoAI.mutate()}
+                      disabled={leoAI.isPending}
+                      className="h-7 gap-1 text-xs text-purple-200 hover:bg-purple-500/20"
+                    >
+                      {leoAI.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      Regenerate
+                    </Button>
+                  </div>
+                )}
+                <p className="text-sm text-white/90 leading-relaxed">{leoInsights.summary}</p>
+                {leoInsights.insights.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">
+                      Insights
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {leoInsights.insights.map((insight, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                          <span className="text-purple-400 mt-0.5">•</span>
+                          <span>{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {leoInsights.recommendedActions.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wide mb-2">
+                      Recommended Actions
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {leoInsights.recommendedActions.map((action, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                          <ArrowRight className="h-3.5 w-3.5 text-purple-400 shrink-0 mt-0.5" />
+                          <span>{action}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         <AnimatePresence mode="wait">
           {activeTab === "student-roles" ? (
             <motion.div
@@ -312,35 +1040,56 @@ function RolesDutiesContent() {
               className="space-y-6"
             >
               {/* Role Categories Quick View */}
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                {roleCategories.map((cat) => {
-                  const Icon = cat.icon;
-                  const count =
-                    rolesData?.grouped?.[cat.key as keyof typeof rolesData.grouped]?.length || 0;
-                  const assignmentCount = (rolesData?.assignments || []).filter(
-                    (a) => a.role?.category === cat.key
-                  ).length;
-                  return (
-                    <button
-                      key={cat.key}
-                      onClick={() =>
-                        setSelectedCategory(selectedCategory === cat.key ? null : cat.key)
-                      }
-                      className={cn(
-                        "group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all",
-                        selectedCategory === cat.key
-                          ? "border-brand/50 bg-brand/10"
-                          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
-                      )}
-                    >
-                      <Icon className={cn("h-6 w-6", cat.color)} />
-                      <span className="text-xs font-medium text-white">{cat.label}</span>
-                      <span className="text-xs text-white/50">
-                        {assignmentCount} assigned
-                      </span>
-                    </button>
-                  );
-                })}
+              <div className="relative">
+                <div
+                  ref={roleCategoryScrollRef}
+                  onScroll={updateRoleCategoryOverflowHints}
+                  className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  {roleCategories.map((cat) => {
+                    const Icon = cat.icon;
+                    const count =
+                      rolesData?.grouped?.[cat.key as keyof typeof rolesData.grouped]?.length || 0;
+                    const assignmentCount = (rolesData?.assignments || []).filter(
+                      (a) => a.role?.category === cat.key
+                    ).length;
+                    return (
+                      <button
+                        key={cat.key}
+                        onClick={() =>
+                          setSelectedCategory(selectedCategory === cat.key ? null : cat.key)
+                        }
+                        className={cn(
+                          "group flex min-w-[140px] shrink-0 flex-1 flex-col items-center gap-2 rounded-xl border p-4 transition-all",
+                          selectedCategory === cat.key
+                            ? "border-brand/50 bg-brand/10"
+                            : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                        )}
+                      >
+                        <Icon className={cn("h-6 w-6", cat.color)} />
+                        <span className="text-xs font-medium text-white">{cat.label}</span>
+                        <span className="text-xs text-white/50">
+                          {assignmentCount} assigned
+                        </span>
+                        <span className="text-[10px] text-white/40">
+                          {count} role{count === 1 ? "" : "s"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {showRoleCategoryLeftHint && (
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-transparent" />
+                )}
+                {showRoleCategoryRightHint && (
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-slate-950/95 via-slate-950/80 to-transparent" />
+                )}
+                {showRoleCategoryRightHint && (
+                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[10px] font-medium text-white/70 backdrop-blur">
+                    More
+                  </div>
+                )}
               </div>
 
               {/* Current Assignments */}
@@ -445,7 +1194,7 @@ function RolesDutiesContent() {
                 )}
               </div>
             </motion.div>
-          ) : (
+          ) : activeTab === "teacher-duties" ? (
             <motion.div
               key="teacher-duties"
               initial={{ opacity: 0, y: 10 }}
@@ -585,7 +1334,7 @@ function RolesDutiesContent() {
                 )}
               </div>
             </motion.div>
-          )}
+          ) : null}
 
           {/* Class Roles Tab */}
           {activeTab === "class-roles" && (
@@ -597,43 +1346,71 @@ function RolesDutiesContent() {
               className="space-y-8"
             >
               {/* Class Role Categories */}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                {(["leadership", "academic", "service", "social", "custom"] as ClassRoleCategory[]).map((cat) => {
-                  const info = getRoleCategoryInfo(cat);
-                  const count = classRolesData?.grouped?.[cat]?.length || 0;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() =>
-                        setSelectedCategory(selectedCategory === cat ? null : cat)
-                      }
-                      className={cn(
-                        "group flex flex-col items-center gap-2 rounded-xl border p-4 transition-all",
-                        selectedCategory === cat
-                          ? "border-brand/50 bg-brand/10"
-                          : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
-                      )}
-                    >
-                      <span className={cn("text-sm font-medium", info.color)}>
-                        {info.label}
-                      </span>
-                      <span className="text-xs text-white/50">
-                        {count} role{count !== 1 ? "s" : ""}
-                      </span>
-                    </button>
-                  );
-                })}
+              <div className="relative">
+                <div
+                  ref={classRoleCategoryScrollRef}
+                  onScroll={updateClassRoleCategoryOverflowHints}
+                  className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  {(["leadership", "academic", "service", "social", "custom"] as ClassRoleCategory[]).map((cat) => {
+                    const info = getRoleCategoryInfo(cat);
+                    const count = classRolesData?.grouped?.[cat]?.length || 0;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() =>
+                          setSelectedCategory(selectedCategory === cat ? null : cat)
+                        }
+                        className={cn(
+                          "group flex min-w-[140px] shrink-0 flex-1 flex-col items-center gap-2 rounded-xl border p-4 transition-all",
+                          selectedCategory === cat
+                            ? "border-brand/50 bg-brand/10"
+                            : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                        )}
+                      >
+                        <span className={cn("text-sm font-medium", info.color)}>
+                          {info.label}
+                        </span>
+                        <span className="text-xs text-white/50">
+                          {count} role{count !== 1 ? "s" : ""}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {showClassRoleCategoryLeftHint && (
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-transparent" />
+                )}
+                {showClassRoleCategoryRightHint && (
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-slate-950/95 via-slate-950/80 to-transparent" />
+                )}
+                {showClassRoleCategoryRightHint && (
+                  <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-[10px] font-medium text-white/70 backdrop-blur">
+                    More
+                  </div>
+                )}
               </div>
 
               {/* Class Role Definitions */}
               <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-5">
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">
-                    Class Role Definitions
-                  </h2>
-                  <p className="text-xs text-white/50">
-                    These roles can be assigned to students within each class
-                  </p>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">
+                      Class Role Definitions
+                    </h2>
+                    <p className="text-xs text-white/50">
+                      These roles can be assigned to students within each class
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setCreateClassRoleModalOpen(true)}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Custom Role
+                  </Button>
                 </div>
 
                 {classRolesLoading ? (
@@ -758,6 +1535,11 @@ function RolesDutiesContent() {
       <CreateSchoolRoleModal
         open={createRoleModalOpen}
         onOpenChange={setCreateRoleModalOpen}
+      />
+
+      <CreateClassRoleModal
+        open={createClassRoleModalOpen}
+        onOpenChange={setCreateClassRoleModalOpen}
       />
 
       <CreateDutyModal

@@ -34,12 +34,24 @@ export async function GET(req: NextRequest) {
     const activeOnly = url.searchParams.get("active") === "1";
     const category = url.searchParams.get("category") as ClassRoleCategory | null;
 
-    // Check if roles exist, seed defaults if not
-    const existingCount = await ClassRoleDefinition.countDocuments({ schoolId: schoolIdObj });
+    // Ensure default roles exist for this school (including legacy schools)
+    const existingRoles = await ClassRoleDefinition.find({ schoolId: schoolIdObj })
+      .select("code order")
+      .lean();
+    const existingCodes = new Set(
+      existingRoles.map((r) => String(r.code || "").toUpperCase())
+    );
+    const missingDefaults = DEFAULT_CLASS_ROLES.filter(
+      (role) => !existingCodes.has(role.code)
+    );
 
-    if (existingCount === 0) {
-      // Seed default roles
-      const defaultRoles = DEFAULT_CLASS_ROLES.map((role, idx) => ({
+    if (missingDefaults.length > 0) {
+      const maxOrder = existingRoles.reduce((max, role) => {
+        const orderValue = typeof role.order === "number" ? role.order : -1;
+        return Math.max(max, orderValue);
+      }, -1);
+
+      const defaultRoles = missingDefaults.map((role, idx) => ({
         schoolId: schoolIdObj,
         name: role.name,
         code: role.code,
@@ -48,7 +60,7 @@ export async function GET(req: NextRequest) {
         maxPerClass: role.maxPerClass,
         isDefault: true,
         isActive: true,
-        order: idx,
+        order: maxOrder + idx + 1,
       }));
 
       await ClassRoleDefinition.insertMany(defaultRoles);

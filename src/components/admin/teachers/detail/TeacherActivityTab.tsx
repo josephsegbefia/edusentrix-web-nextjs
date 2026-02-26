@@ -185,6 +185,7 @@ const ALL_ACTIVITY_TYPES: TeacherActivityType[] = [
   "note.deleted",
   "performance.evaluated",
 ];
+const RECENT_ACTIVITY_LIMIT = 10;
 
 export function TeacherActivityTab({ teacher }: Props) {
   const [typeFilter, setTypeFilter] =
@@ -192,7 +193,7 @@ export function TeacherActivityTab({ teacher }: Props) {
 
   const { data: activityData, isLoading } = useTeacherActivity(teacher.id, {
     type: typeFilter || undefined,
-    limit: 100,
+    limit: RECENT_ACTIVITY_LIMIT,
   });
 
   const activities = React.useMemo(

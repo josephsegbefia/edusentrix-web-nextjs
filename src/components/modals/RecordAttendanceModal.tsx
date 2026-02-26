@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   useRecordAttendance,
   type RecordAttendanceInput,
@@ -26,6 +27,21 @@ import {
   type LeaveType,
 } from "@/hooks/admin/useTeacherAttendance";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
+
+function formatDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value?: string | null): Date | null {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  const parsed = new Date(year, month - 1, day);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 
 const RecordAttendanceSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -76,7 +92,7 @@ export function RecordAttendanceModal({
   } = useForm<AttendanceFormValues>({
     resolver: zodResolver(RecordAttendanceSchema),
     defaultValues: {
-      date: defaultDate || new Date().toISOString().split("T")[0],
+      date: defaultDate || formatDateInput(new Date()),
       status: "present",
       checkInTime: undefined,
       checkOutTime: undefined,
@@ -90,12 +106,13 @@ export function RecordAttendanceModal({
   const status = watch("status");
   const isLeaveOrSick = status === "on_leave" || status === "sick";
   const isLate = status === "late";
+  const selectedDate = parseDateInput(watch("date"));
 
   // Reset form when modal opens
   React.useEffect(() => {
     if (open) {
       reset({
-        date: defaultDate || new Date().toISOString().split("T")[0],
+        date: defaultDate || formatDateInput(new Date()),
         status: "present",
         checkInTime: undefined,
         checkOutTime: undefined,
@@ -212,23 +229,18 @@ export function RecordAttendanceModal({
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="date"
-                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-                      >
-                        Date *
-                      </Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        {...register("date")}
-                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      <CustomDatePicker
+                        value={selectedDate}
+                        onChange={(date) =>
+                          setValue("date", date ? formatDateInput(date) : "", {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
+                        label="Date *"
+                        placeholder="Select attendance date"
+                        error={errors.date?.message}
                       />
-                      {errors.date && (
-                        <p className="text-xs text-red-300/80">
-                          {errors.date.message}
-                        </p>
-                      )}
                     </div>
 
                     <div className="space-y-2">

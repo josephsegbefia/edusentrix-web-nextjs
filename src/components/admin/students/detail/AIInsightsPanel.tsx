@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAIInsights } from "@/hooks/admin/useAIInsights";
+import { useAIInsights, useGenerateAcademicAIInsights } from "@/hooks/admin/useAIInsights";
 import { LeoIcon } from "@/components/icons/LeoIcon";
 import {
   Loader2,
@@ -14,9 +14,26 @@ import {
   XCircle,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+function formatRelativeTime(isoDate: string | null): string {
+  if (!isoDate) return "";
+  const d = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString();
+}
 
 type Props = {
   studentId: string;
@@ -25,16 +42,15 @@ type Props = {
 
 export function AIInsightsPanel({ studentId, termId }: Props) {
   const [isExpanded, setIsExpanded] = React.useState(true);
-  const [hasRequestedInsights, setHasRequestedInsights] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"student" | "parent" | "teacher">("student");
 
-  const { data, isLoading, isError, refetch } = useAIInsights(
-    studentId,
-    termId,
-    hasRequestedInsights && isExpanded // only fetch when user explicitly requested
-  );
+  const { data, isLoading, isError, refetch } = useAIInsights(studentId, termId, !!studentId);
+  const generateMutation = useGenerateAcademicAIInsights(studentId, termId);
 
-  const insights = data?.data;
+  // Use cached data, or data from successful generate
+  const insights = data?.data ?? generateMutation.data?.data;
+  const generatedAt = data?.generatedAt ?? generateMutation.data?.generatedAt;
+  const isStale = data?.isStale ?? false;
 
   const riskColors = {
     low: "bg-emerald-500/20 text-emerald-200 border-emerald-400/40",
@@ -42,7 +58,7 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
     high: "bg-red-500/20 text-red-200 border-red-400/40",
   };
 
-  const showGenerateCTA = !hasRequestedInsights && !data && !isLoading && !isError;
+  const showGenerateCTA = !insights && !isLoading && !generateMutation.isPending && !isError;
 
   return (
     <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
@@ -73,6 +89,34 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
 
       {isExpanded && (
         <CardContent className="space-y-4">
+          {generatedAt && insights && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+              <span className="flex items-center gap-1.5 text-xs text-white/50">
+                <Clock className="h-3.5 w-3.5" />
+                Generated {formatRelativeTime(generatedAt)}
+              </span>
+              {isStale && (
+                <span className="text-[10px] text-amber-400">
+                  Data may have changed
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => generateMutation.mutate()}
+                disabled={generateMutation.isPending}
+                className="h-7 gap-1 text-xs text-primary hover:bg-primary/10"
+              >
+                {generateMutation.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                Regenerate
+              </Button>
+            </div>
+          )}
+
           {showGenerateCTA && (
             <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 px-6 py-8 text-center">
               <div className="flex justify-center mb-3">
@@ -84,25 +128,46 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
                 Get AI-powered insights and recommendations for this student&apos;s academic performance.
               </p>
               <Button
-                onClick={() => setHasRequestedInsights(true)}
+                onClick={() => generateMutation.mutate()}
+                disabled={generateMutation.isPending}
                 className="gap-2 rounded-xl bg-primary hover:bg-primary/90"
               >
-                <LeoIcon className="h-4 w-4" />
+                {generateMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LeoIcon className="h-4 w-4" />
+                )}
                 Generate with Leo
               </Button>
             </div>
           )}
 
-          {isLoading && (
+          {(isLoading || generateMutation.isPending) && !insights && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">
-                Leo is analyzing...
+                {generateMutation.isPending ? "Leo is analyzing..." : "Loading..."}
               </span>
             </div>
           )}
 
-          {isError && (
+          {isError && !insights && (
+            <div className="rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-6 text-center">
+              <p className="text-sm text-destructive mb-2">
+                Leo couldn&apos;t load insights
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                className="mt-2"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {generateMutation.isError && !insights && (
             <div className="rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-6 text-center">
               <p className="text-sm text-destructive mb-2">
                 Leo couldn&apos;t generate insights
@@ -110,7 +175,8 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => refetch()}
+                onClick={() => generateMutation.mutate()}
+                disabled={generateMutation.isPending}
                 className="mt-2"
               >
                 Retry

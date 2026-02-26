@@ -15,6 +15,7 @@ export type SubjectDetailDTO = {
     grade: { id: string; name: string } | null;
   }>;
   teachers: Array<{
+    assignmentId: string;
     id: string;
     firstName: string;
     lastName: string;
@@ -161,8 +162,38 @@ export function useAssignTeacherToSubject() {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["subject", variables.subjectId] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-assignments"] });
+    },
+  });
+}
+
+/**
+ * Hook to unassign a teacher from a subject in a class
+ */
+export function useUnassignTeacher(subjectId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (assignmentId: string): Promise<{ success: boolean }> => {
+      const res = await fetch("/api/admin/subjects/unassign-teacher", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to unassign teacher");
+      return data;
+    },
+    onSuccess: (_, _vars) => {
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+      if (subjectId) {
+        queryClient.invalidateQueries({ queryKey: ["subject", subjectId] });
+      }
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
       queryClient.invalidateQueries({ queryKey: ["teacher-assignments"] });

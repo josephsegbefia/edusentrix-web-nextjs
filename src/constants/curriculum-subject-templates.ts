@@ -8,90 +8,96 @@ export type SubjectCategory =
   | "transdisciplinary_theme"
   | "subject_group";
 
+/** Stages where this subject can be taught. Empty = all stages. */
 export interface SubjectTemplateEntry {
   name: string;
   code?: string;
   category: SubjectCategory;
+  /** Stage names from grade templates (e.g. "Primary", "JHS"). Empty = all stages. */
+  stages?: string[];
 }
+
+/** NaCCA Basic stages: Pre-Primary, Kindergarten, Primary, JHS */
+const NACCA_BASIC_STAGES = ["Pre-Primary", "Kindergarten", "Primary", "JHS"] as const;
 
 export const CURRICULUM_SUBJECT_TEMPLATES: Record<
   CurriculumCode,
   SubjectTemplateEntry[]
 > = {
   ghana_nacca: [
-    { name: "English", code: "ENG", category: "core" },
-    { name: "Mathematics", code: "MATH", category: "core" },
-    { name: "Science", code: "SCI", category: "core" },
-    { name: "Ghanaian Language", code: "GHA", category: "core" },
-    { name: "Creative Arts", code: "ART", category: "core" },
-    { name: "Religious and Moral Education", code: "RME", category: "core" },
-    { name: "Physical Education", code: "PE", category: "core" },
-    { name: "History", code: "HIST", category: "core" },
-    { name: "Our World Our People", code: "OWOP", category: "core" },
-    { name: "Computing", code: "ICT", category: "core" },
-    { name: "French", code: "FRE", category: "elective" },
-    { name: "Basic Design and Technology", code: "BDT", category: "elective" },
+    { name: "English", code: "ENG", category: "core", stages: [...NACCA_BASIC_STAGES] },
+    { name: "Mathematics", code: "MATH", category: "core", stages: [...NACCA_BASIC_STAGES] },
+    { name: "Science", code: "SCI", category: "core", stages: ["Primary", "JHS"] },
+    { name: "Ghanaian Language", code: "GHA", category: "core", stages: [...NACCA_BASIC_STAGES] },
+    { name: "Creative Arts", code: "ART", category: "core", stages: [...NACCA_BASIC_STAGES] },
+    { name: "Religious and Moral Education", code: "RME", category: "core", stages: [...NACCA_BASIC_STAGES] },
+    { name: "Physical Education", code: "PE", category: "core", stages: [...NACCA_BASIC_STAGES] },
+    { name: "History", code: "HIST", category: "core", stages: ["Primary", "JHS"] },
+    { name: "Our World Our People", code: "OWOP", category: "core", stages: ["Primary", "JHS"] },
+    { name: "Computing", code: "ICT", category: "core", stages: ["Primary", "JHS"] },
+    { name: "French", code: "FRE", category: "elective", stages: ["Primary", "JHS"] },
+    { name: "Basic Design and Technology", code: "BDT", category: "elective", stages: ["JHS"] },
   ],
 
   cambridge: [
-    { name: "English", code: "ENG", category: "core" },
-    { name: "Mathematics", code: "MATH", category: "core" },
-    { name: "Science", code: "SCI", category: "core" },
-    { name: "ICT", code: "ICT", category: "core" },
-    { name: "Global Perspectives", code: "GP", category: "core" },
-    { name: "Art & Design", code: "ART", category: "foundation" },
-    { name: "Music", code: "MUS", category: "foundation" },
-    { name: "Physical Education", code: "PE", category: "foundation" },
-    { name: "French", code: "FRE", category: "elective" },
-    { name: "Spanish", code: "SPA", category: "elective" },
+    { name: "English", code: "ENG", category: "core", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "Mathematics", code: "MATH", category: "core", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "Science", code: "SCI", category: "core", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "ICT", code: "ICT", category: "core", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "Global Perspectives", code: "GP", category: "core", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "Art & Design", code: "ART", category: "foundation", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "Music", code: "MUS", category: "foundation", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "Physical Education", code: "PE", category: "foundation", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "French", code: "FRE", category: "elective", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
+    { name: "Spanish", code: "SPA", category: "elective", stages: ["Cambridge Primary", "Cambridge Lower Secondary"] },
   ],
 
   ib_pyp: [
-    { name: "Language", code: "LANG", category: "transdisciplinary_theme" },
-    { name: "Mathematics", code: "MATH", category: "transdisciplinary_theme" },
-    { name: "Science", code: "SCI", category: "transdisciplinary_theme" },
-    { name: "Social Studies", code: "SOC", category: "transdisciplinary_theme" },
-    { name: "Arts", code: "ART", category: "transdisciplinary_theme" },
-    { name: "Personal, Social & Physical Education", code: "PSPE", category: "transdisciplinary_theme" },
+    { name: "Language", code: "LANG", category: "transdisciplinary_theme", stages: ["Early Years", "PYP"] },
+    { name: "Mathematics", code: "MATH", category: "transdisciplinary_theme", stages: ["Early Years", "PYP"] },
+    { name: "Science", code: "SCI", category: "transdisciplinary_theme", stages: ["Early Years", "PYP"] },
+    { name: "Social Studies", code: "SOC", category: "transdisciplinary_theme", stages: ["Early Years", "PYP"] },
+    { name: "Arts", code: "ART", category: "transdisciplinary_theme", stages: ["Early Years", "PYP"] },
+    { name: "Personal, Social & Physical Education", code: "PSPE", category: "transdisciplinary_theme", stages: ["Early Years", "PYP"] },
   ],
 
   ib_myp: [
-    { name: "Language & Literature", code: "LL", category: "subject_group" },
-    { name: "Language Acquisition", code: "LA", category: "subject_group" },
-    { name: "Individuals & Societies", code: "IS", category: "subject_group" },
-    { name: "Sciences", code: "SCI", category: "subject_group" },
-    { name: "Mathematics", code: "MATH", category: "subject_group" },
-    { name: "Arts", code: "ART", category: "subject_group" },
-    { name: "Physical & Health Education", code: "PHE", category: "subject_group" },
-    { name: "Design", code: "DES", category: "subject_group" },
+    { name: "Language & Literature", code: "LL", category: "subject_group", stages: ["MYP"] },
+    { name: "Language Acquisition", code: "LA", category: "subject_group", stages: ["MYP"] },
+    { name: "Individuals & Societies", code: "IS", category: "subject_group", stages: ["MYP"] },
+    { name: "Sciences", code: "SCI", category: "subject_group", stages: ["MYP"] },
+    { name: "Mathematics", code: "MATH", category: "subject_group", stages: ["MYP"] },
+    { name: "Arts", code: "ART", category: "subject_group", stages: ["MYP"] },
+    { name: "Physical & Health Education", code: "PHE", category: "subject_group", stages: ["MYP"] },
+    { name: "Design", code: "DES", category: "subject_group", stages: ["MYP"] },
   ],
 
   british_nc: [
-    { name: "English", code: "ENG", category: "core" },
-    { name: "Mathematics", code: "MATH", category: "core" },
-    { name: "Science", code: "SCI", category: "core" },
-    { name: "History", code: "HIST", category: "foundation" },
-    { name: "Geography", code: "GEO", category: "foundation" },
-    { name: "Art & Design", code: "ART", category: "foundation" },
-    { name: "Music", code: "MUS", category: "foundation" },
-    { name: "Physical Education", code: "PE", category: "foundation" },
-    { name: "Computing", code: "ICT", category: "foundation" },
-    { name: "Design & Technology", code: "DT", category: "foundation" },
-    { name: "Modern Foreign Languages", code: "MFL", category: "foundation" },
-    { name: "Religious Education", code: "RE", category: "foundation" },
+    { name: "English", code: "ENG", category: "core", stages: ["EYFS", "Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Mathematics", code: "MATH", category: "core", stages: ["EYFS", "Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Science", code: "SCI", category: "core", stages: ["Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "History", code: "HIST", category: "foundation", stages: ["Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Geography", code: "GEO", category: "foundation", stages: ["Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Art & Design", code: "ART", category: "foundation", stages: ["EYFS", "Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Music", code: "MUS", category: "foundation", stages: ["EYFS", "Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Physical Education", code: "PE", category: "foundation", stages: ["EYFS", "Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Computing", code: "ICT", category: "foundation", stages: ["Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Design & Technology", code: "DT", category: "foundation", stages: ["Key Stage 1", "Key Stage 2", "Key Stage 3"] },
+    { name: "Modern Foreign Languages", code: "MFL", category: "foundation", stages: ["Key Stage 2", "Key Stage 3"] },
+    { name: "Religious Education", code: "RE", category: "foundation", stages: ["Key Stage 1", "Key Stage 2", "Key Stage 3"] },
   ],
 
   american: [
-    { name: "English Language Arts", code: "ELA", category: "core" },
-    { name: "Mathematics", code: "MATH", category: "core" },
-    { name: "Science", code: "SCI", category: "core" },
-    { name: "Social Studies", code: "SOC", category: "core" },
-    { name: "Physical Education", code: "PE", category: "core" },
-    { name: "Art", code: "ART", category: "elective" },
-    { name: "Music", code: "MUS", category: "elective" },
-    { name: "World Languages", code: "WL", category: "elective" },
-    { name: "Technology", code: "TECH", category: "elective" },
-    { name: "Health", code: "HLT", category: "elective" },
+    { name: "English Language Arts", code: "ELA", category: "core", stages: ["Elementary", "Middle School"] },
+    { name: "Mathematics", code: "MATH", category: "core", stages: ["Elementary", "Middle School"] },
+    { name: "Science", code: "SCI", category: "core", stages: ["Elementary", "Middle School"] },
+    { name: "Social Studies", code: "SOC", category: "core", stages: ["Elementary", "Middle School"] },
+    { name: "Physical Education", code: "PE", category: "core", stages: ["Elementary", "Middle School"] },
+    { name: "Art", code: "ART", category: "elective", stages: ["Elementary", "Middle School"] },
+    { name: "Music", code: "MUS", category: "elective", stages: ["Elementary", "Middle School"] },
+    { name: "World Languages", code: "WL", category: "elective", stages: ["Elementary", "Middle School"] },
+    { name: "Technology", code: "TECH", category: "elective", stages: ["Elementary", "Middle School"] },
+    { name: "Health", code: "HLT", category: "elective", stages: ["Elementary", "Middle School"] },
   ],
 
   hybrid: [],
@@ -130,4 +136,21 @@ export function getSubjectNamesForCurriculum(
   return getSubjectTemplatesForCurriculum(curriculumCode, schoolType).map(
     (s) => s.name
   );
+}
+
+/**
+ * Get allowed stages for a subject by name (case-insensitive match).
+ * Returns empty array if no match = allow all stages (permissive fallback).
+ */
+export function getAllowedStagesForSubject(
+  subjectName: string,
+  curriculumCode: CurriculumCode,
+  schoolType?: string
+): string[] {
+  const templates = getSubjectTemplatesForCurriculum(curriculumCode, schoolType);
+  const normalized = subjectName.trim().toLowerCase();
+  const template = templates.find(
+    (t) => t.name.trim().toLowerCase() === normalized
+  );
+  return template?.stages ?? [];
 }

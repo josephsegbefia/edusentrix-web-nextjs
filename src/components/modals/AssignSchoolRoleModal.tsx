@@ -39,6 +39,47 @@ interface StudentResult {
   className: string | null;
 }
 
+function normalizeStudentResult(student: any): StudentResult {
+  const firstName =
+    typeof student?.firstName === "string" ? student.firstName.trim() : "";
+  const lastName =
+    typeof student?.lastName === "string" ? student.lastName.trim() : "";
+
+  const apiFullName =
+    typeof student?.fullName === "string" ? student.fullName.trim() : "";
+  const fullNameFromParts = [firstName, lastName].filter(Boolean).join(" ").trim();
+  const fullName = apiFullName || fullNameFromParts || "Unknown Student";
+
+  const fallbackNameParts = fullName.split(/\s+/).filter(Boolean);
+  const resolvedFirstName = firstName || fallbackNameParts[0] || "";
+  const resolvedLastName =
+    lastName ||
+    (fallbackNameParts.length > 1 ? fallbackNameParts.slice(1).join(" ") : "");
+
+  return {
+    id: String(student?.id ?? ""),
+    firstName: resolvedFirstName,
+    lastName: resolvedLastName,
+    fullName,
+    photoUrl:
+      typeof student?.photoUrl === "string" && student.photoUrl.trim() !== ""
+        ? student.photoUrl
+        : null,
+    admissionNo:
+      typeof student?.admissionNo === "string"
+        ? student.admissionNo
+        : typeof student?.admissionNumber === "string"
+        ? student.admissionNumber
+        : null,
+    className:
+      typeof student?.className === "string"
+        ? student.className
+        : typeof student?.classGroupName === "string"
+        ? student.classGroupName
+        : null,
+  };
+}
+
 export function AssignSchoolRoleModal({
   open,
   onOpenChange,
@@ -80,15 +121,9 @@ export function AssignSchoolRoleModal({
   });
 
   const students: StudentResult[] = useMemo(() => {
-    return (studentsData?.data || []).map((s: any) => ({
-      id: s.id,
-      firstName: s.firstName,
-      lastName: s.lastName,
-      fullName: `${s.firstName} ${s.lastName}`.trim(),
-      photoUrl: s.photoUrl || null,
-      admissionNo: s.admissionNo || null,
-      className: s.className || null,
-    }));
+    return (studentsData?.data || [])
+      .map((s: any) => normalizeStudentResult(s))
+      .filter((s: StudentResult) => s.id.length > 0);
   }, [studentsData]);
 
   const selectedRole = roles.find((r) => r.id === selectedRoleId);

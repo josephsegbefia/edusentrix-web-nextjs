@@ -2,67 +2,54 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   X,
   UserPlus,
   Check,
-  ChevronsUpDown,
   Loader2,
   AlertTriangle,
+  AlertCircle,
   Info,
   BookOpen,
   School,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
   useTeacherSearch,
   useSubjectSearch,
   useClassGroupSearch,
 } from "@/hooks/admin/useDirectorySearch";
-import { useAssignTeacherToSubject } from "@/hooks/admin/useSubjects";
+import { useAssignTeacherToSubject, useUnassignTeacher } from "@/hooks/admin/useSubjects";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
-import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
 
-const schema = z.object({
-  teacherId: z.string().min(1, "Select a teacher"),
-  subjectId: z.string().min(1, "Select a subject"),
-  classGroupId: z.string().min(1, "Select a class group"),
-  academicPeriodId: z.string().optional(),
-  allowMultiple: z.boolean(),
-});
-
-type FormValues = z.infer<typeof schema>;
+const STEPS = 4;
 
 type AssignTeacherToSubjectModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subject?: SubjectDTO;
   initialClassGroupId?: string;
+  /** Edit mode: prefilled teacher and class, unassigns old assignment on save */
+  editAssignment?: {
+    assignmentId: string;
+    teacherId: string;
+    classGroupId: string;
+    className?: string;
+    teacherDisplay?: { firstName: string; lastName: string; fullName: string; email?: string | null; photoUrl?: string | null };
+  };
 };
 
 export function AssignTeacherToSubjectModal({
@@ -70,12 +57,28 @@ export function AssignTeacherToSubjectModal({
   onOpenChange,
   subject,
   initialClassGroupId,
+  editAssignment,
 }: AssignTeacherToSubjectModalProps) {
   const busy = useBusyToast();
   const assignTeacher = useAssignTeacherToSubject();
+  const unassignTeacher = useUnassignTeacher(subject?.id);
+  const isSubjectPrefilled = Boolean(subject?.id);
+  const isEditMode = Boolean(editAssignment);
+
+  const [step, setStep] = React.useState(1);
+  const [selectedTeacherId, setSelectedTeacherId] = React.useState("");
+  const [selectedSubjectId, setSelectedSubjectId] = React.useState(subject?.id || "");
+  const [selectedClassIds, setSelectedClassIds] = React.useState<string[]>(
+    initialClassGroupId ? [initialClassGroupId] : []
+  );
+  const [selectedClassLabels, setSelectedClassLabels] = React.useState<Record<string, string>>({});
+  const [allowMultiple, setAllowMultiple] = React.useState(false);
+  const [conflictError, setConflictError] = React.useState<string | null>(null);
+
   const [teacherQuery, setTeacherQuery] = React.useState("");
   const [subjectQuery, setSubjectQuery] = React.useState("");
   const [classQuery, setClassQuery] = React.useState("");
+
   const debouncedTeacherQuery = useDebouncedValue(teacherQuery, 300);
   const debouncedSubjectQuery = useDebouncedValue(subjectQuery, 300);
   const debouncedClassQuery = useDebouncedValue(classQuery, 300);
@@ -86,85 +89,148 @@ export function AssignTeacherToSubjectModal({
   const { data: subjectsData, isLoading: isLoadingSubjects } = useSubjectSearch(
     debouncedSubjectQuery
   );
-  const { data: classesData, isLoading: isLoadingClasses } = useClassGroupSearch(
-    debouncedClassQuery
-  );
   const { data: periodsData } = useAcademicPeriods();
 
-  const teachers = teachersData?.data || [];
-  const subjects = subjectsData?.data || [];
-  const classes = classesData?.data || [];
+  const teachers = React.useMemo(() => {
+    const fetched = teachersData?.data || [];
+    if (!editAssignment?.teacherId) return fetched;
+    if (fetched.some((t) => t.id === editAssignment.teacherId)) return fetched;
+    if (editAssignment.teacherDisplay) {
+      return [
+        {
+          id: editAssignment.teacherId,
+          firstName: editAssignment.teacherDisplay.firstName,
+          lastName: editAssignment.teacherDisplay.lastName,
+          fullName: editAssignment.teacherDisplay.fullName,
+          email: editAssignment.teacherDisplay.email ?? null,
+          photoUrl: editAssignment.teacherDisplay.photoUrl ?? null,
+        },
+        ...fetched,
+      ];
+    }
+    return fetched;
+  }, [teachersData?.data, editAssignment]);
   const periods = periodsData?.periods || [];
   const currentPeriod = periods.find((p) => p.isCurrent) || periods[0];
 
-  const {
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      teacherId: "",
-      subjectId: subject?.id || "",
-      classGroupId: initialClassGroupId || "",
-      academicPeriodId: currentPeriod?._id || "",
-      allowMultiple: false,
-    },
-  });
+  const { data: classesData, isLoading: isLoadingClasses } = useClassGroupSearch(
+    debouncedClassQuery,
+    selectedSubjectId || undefined
+  );
 
-  const selectedTeacherId = watch("teacherId");
-  const selectedSubjectId = watch("subjectId");
-  const selectedClassId = watch("classGroupId");
-  const allowMultiple = watch("allowMultiple");
+  const subjects = React.useMemo(() => {
+    const fetched = subjectsData?.data || [];
+    if (!subject?.id) return fetched;
+    if (fetched.some((s) => s.id === subject.id)) return fetched;
+    return [{ id: subject.id, name: subject.name }, ...fetched];
+  }, [subjectsData?.data, subject?.id, subject?.name]);
 
-  const selectedTeacher = React.useMemo(
-    () => teachers.find((t) => t.id === selectedTeacherId),
-    [teachers, selectedTeacherId]
-  );
-  const selectedSubject = React.useMemo(
-    () => subjects.find((s) => s.id === selectedSubjectId),
-    [subjects, selectedSubjectId]
-  );
-  const selectedClass = React.useMemo(
-    () => classes.find((c) => c.id === selectedClassId),
-    [classes, selectedClassId]
-  );
+  const classes = classesData?.data || [];
+
+  const selectedTeacher = teachers.find((t) => t.id === selectedTeacherId);
+  const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
+  const selectedClasses = classes.filter((c) => selectedClassIds.includes(c.id));
+  const displayTeacher = selectedTeacher ?? (editAssignment?.teacherDisplay
+    ? {
+        id: editAssignment.teacherId,
+        firstName: editAssignment.teacherDisplay.firstName,
+        lastName: editAssignment.teacherDisplay.lastName,
+        fullName: editAssignment.teacherDisplay.fullName,
+        email: editAssignment.teacherDisplay.email ?? null,
+        photoUrl: editAssignment.teacherDisplay.photoUrl ?? null,
+      }
+    : null);
 
   React.useEffect(() => {
     if (open) {
-      reset({
-        teacherId: "",
-        subjectId: subject?.id || "",
-        classGroupId: initialClassGroupId || "",
-        academicPeriodId: currentPeriod?._id || "",
-        allowMultiple: false,
-      });
+      setStep(1);
+      if (editAssignment) {
+        setSelectedTeacherId(editAssignment.teacherId);
+        setSelectedSubjectId(subject?.id || "");
+        setSelectedClassIds([editAssignment.classGroupId]);
+        setSelectedClassLabels(
+          editAssignment.className ? { [editAssignment.classGroupId]: editAssignment.className } : {}
+        );
+        setStep(2);
+      } else {
+        setSelectedTeacherId("");
+        setSelectedSubjectId(subject?.id || "");
+        setSelectedClassIds(initialClassGroupId ? [initialClassGroupId] : []);
+        setSelectedClassLabels({});
+      }
+      setAllowMultiple(false);
+      setConflictError(null);
       setTeacherQuery("");
       setSubjectQuery("");
       setClassQuery("");
     }
-  }, [open, subject?.id, initialClassGroupId, currentPeriod?._id, reset]);
+  }, [open, subject?.id, initialClassGroupId, editAssignment]);
 
-  const [conflictError, setConflictError] = React.useState<string | null>(null);
+  // Populate labels for pre-selected classes when they load
+  React.useEffect(() => {
+    if (!open || selectedClassIds.length === 0) return;
+    const missing = selectedClassIds.filter((id) => !selectedClassLabels[id]);
+    if (missing.length === 0) return;
+    const updates: Record<string, string> = {};
+    for (const id of missing) {
+      const c = classes.find((cls) => cls.id === id);
+      if (c) updates[id] = c.label || c.name;
+    }
+    if (Object.keys(updates).length > 0) {
+      setSelectedClassLabels((prev) => ({ ...prev, ...updates }));
+    }
+  }, [open, selectedClassIds, selectedClassLabels, classes]);
 
-  const onSubmit = async (data: FormValues) => {
+  const canProceed =
+    step === 1
+      ? !!selectedSubjectId
+      : step === 2
+      ? selectedClassIds.length > 0
+      : step === 3
+      ? !!selectedTeacherId
+      : true;
+
+  const handleNext = () => {
+    if (step < STEPS) setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    if (step === 1) onOpenChange(false);
+    else setStep(step - 1);
+  };
+
+  const handleConfirm = async () => {
+    if (!selectedTeacherId || !selectedSubjectId || selectedClassIds.length === 0) return;
     setConflictError(null);
+    const count = selectedClassIds.length;
     try {
       await busy.promise(
-        assignTeacher.mutateAsync({
-          teacherId: data.teacherId,
-          subjectId: data.subjectId,
-          classGroupId: data.classGroupId,
-          academicPeriodId: data.academicPeriodId,
-          allowMultiple: data.allowMultiple,
-        }),
+        (async () => {
+          if (editAssignment) {
+            await unassignTeacher.mutateAsync(editAssignment.assignmentId);
+          }
+          for (const classGroupId of selectedClassIds) {
+            await assignTeacher.mutateAsync({
+              teacherId: selectedTeacherId,
+              subjectId: selectedSubjectId,
+              classGroupId,
+              academicPeriodId: currentPeriod?._id || "",
+              allowMultiple,
+            });
+          }
+        })(),
         {
-          loading: "Assigning teacher...",
-          success: "Teacher assigned successfully",
+          loading: isEditMode
+            ? "Updating assignment..."
+            : count > 1
+            ? `Assigning teacher to ${count} classes...`
+            : "Assigning teacher...",
+          success: isEditMode
+            ? "Assignment updated successfully"
+            : count > 1
+            ? `Teacher assigned to ${count} classes successfully`
+            : "Teacher assigned successfully",
           error: (e: Error) => {
-            // Check if it's a conflict error
             if (e.message.includes("already assigned") || e.message.includes("Conflict")) {
               setConflictError(e.message);
               return e.message;
@@ -175,7 +241,6 @@ export function AssignTeacherToSubjectModal({
       );
       onOpenChange(false);
     } catch (e) {
-      // Error handled by busy.promise
       if (e instanceof Error && (e.message.includes("already assigned") || e.message.includes("Conflict"))) {
         setConflictError(e.message);
       }
@@ -187,7 +252,6 @@ export function AssignTeacherToSubjectModal({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -196,374 +260,417 @@ export function AssignTeacherToSubjectModal({
           onClick={() => onOpenChange(false)}
         />
 
-        {/* Modal */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative z-10 w-full max-w-2xl rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl"
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 260, damping: 22 }}
+          className="relative z-10 w-full max-w-lg max-h-[90vh] rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl flex flex-col"
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 p-6">
-            <div className="flex items-center gap-3">
+          <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10">
                 <UserPlus className="h-5 w-5 text-rose-300" />
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-white">
-                  Assign Teacher to Subject
-                </h2>
-                <p className="text-sm text-white/60">
-                  {subject ? `Assigning teachers to ${subject.name}` : "Select teacher, subject, and class"}
-                </p>
-              </div>
+              <span className="text-base font-semibold text-white">
+                {isEditMode ? "Edit Assignment" : "Assign Teacher to Subject"}
+              </span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="text-white/60 hover:text-white"
             >
-              <X className="h-4 w-4" />
-            </Button>
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Step Indicator */}
+          <div className="px-5 pt-4 flex items-center justify-between">
+            <div className="text-sm text-white/70">
+              Step <span className="font-semibold">{step}</span> of {STEPS}
+            </div>
+            <div className="flex gap-1">
+              {Array.from({ length: STEPS }, (_, i) => i + 1).map((s) => (
+                <span
+                  key={s}
+                  className={cn(
+                    "h-1.5 w-6 rounded-full transition-all",
+                    s <= step ? "bg-rose-500" : "bg-white/20"
+                  )}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Content */}
-          <form onSubmit={handleSubmit(onSubmit)} className="p-6">
-            <div className="space-y-6">
-              {/* Conflict warning */}
-              {conflictError && (
-                <Alert className="border-amber-400/20 bg-amber-500/10">
-                  <AlertTriangle className="h-4 w-4 text-amber-400" />
-                  <AlertDescription className="text-amber-100">
-                    {conflictError}
-                    <div className="mt-2">
-                      <label className="flex items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={allowMultiple}
-                          onCheckedChange={(checked) =>
-                            setValue("allowMultiple", checked === true)
-                          }
-                        />
-                        <span>Allow multiple teachers (co-teaching)</span>
-                      </label>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Info */}
-              <Alert className="border-sky-400/20 bg-sky-500/10">
-                <Info className="h-4 w-4 text-sky-400" />
-                <AlertDescription className="text-sky-100">
-                  By default, only one teacher can teach a subject in a class. Enable "Allow multiple teachers" to allow co-teaching.
-                </AlertDescription>
-              </Alert>
-
-              {/* Teacher selection */}
-              <div className="space-y-2">
-                <Label htmlFor="teacherId" className="text-white">
-                  Teacher <span className="text-rose-400">*</span>
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-12 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                    >
-                      {selectedTeacher ? (
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6 border border-white/20">
-                            {selectedTeacher.photoUrl ? (
-                              <AvatarImage
-                                src={selectedTeacher.photoUrl}
-                                alt={selectedTeacher.fullName}
-                              />
-                            ) : (
-                              <AvatarFallback className="bg-linear-to-br from-rose-600 to-pink-700 text-[10px] font-semibold text-white">
-                                {selectedTeacher.firstName?.charAt(0) || ""}
-                                {selectedTeacher.lastName?.charAt(0) || ""}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          <span className="truncate">{selectedTeacher.fullName}</span>
+          <div className="p-5 overflow-y-auto flex-1 min-h-0">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {/* Step 1: Select Subject */}
+                {step === 1 && (
+                  <section className="space-y-4">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                      Select Subject
+                    </h2>
+                    {isSubjectPrefilled && subject ? (
+                      <div className="flex h-14 w-full items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 text-white">
+                        <BookOpen className="h-5 w-5 text-rose-300" />
+                        <div>
+                          <p className="font-medium">{subject.name}</p>
+                          <p className="text-xs text-white/60">Prefilled from subject detail</p>
                         </div>
-                      ) : (
-                        <span className="text-white/50">Select a teacher...</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-70" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className={cn(
-                      premiumSelectContent,
-                      "w-[--radix-popover-trigger-width] p-1 max-h-[400px]"
-                    )}
-                  >
-                    <Command shouldFilter={false} className="bg-transparent">
-                      <CommandInput
-                        placeholder="Search teachers..."
-                        value={teacherQuery}
-                        onValueChange={setTeacherQuery}
-                        className="border-b border-neutral-800/60 bg-transparent"
-                      />
-                      <CommandList className="max-h-[300px] overflow-y-auto">
-                        {isLoadingTeachers ? (
-                          <div className="px-3 py-3 text-sm text-neutral-400">
-                            Searching...
-                          </div>
-                        ) : (
-                          <>
-                            <CommandEmpty className="py-6 text-center text-sm text-neutral-400">
-                              No teachers found.
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {teachers.map((teacher) => (
-                                <CommandItem
-                                  key={teacher.id}
-                                  value={teacher.id}
-                                  onSelect={() => {
-                                    setValue("teacherId", teacher.id);
-                                  }}
-                                  className={cn(
-                                    premiumMenuItem,
-                                    "flex items-center justify-between gap-2"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <Avatar className="h-6 w-6 border border-white/20">
-                                      {teacher.photoUrl ? (
-                                        <AvatarImage
-                                          src={teacher.photoUrl}
-                                          alt={teacher.fullName}
-                                        />
-                                      ) : (
-                                        <AvatarFallback className="bg-linear-to-br from-rose-600 to-pink-700 text-[10px] font-semibold text-white">
-                                          {teacher.firstName?.charAt(0) || ""}
-                                          {teacher.lastName?.charAt(0) || ""}
-                                        </AvatarFallback>
-                                      )}
-                                    </Avatar>
-                                    <span className="truncate">{teacher.fullName}</span>
-                                  </div>
-                                  {selectedTeacherId === teacher.id ? (
-                                    <Check className="h-4 w-4 text-neutral-300" />
-                                  ) : null}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </>
-                        )}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {errors.teacherId && (
-                  <p className="text-xs text-rose-400">{errors.teacherId.message}</p>
-                )}
-              </div>
-
-              {/* Subject selection */}
-              <div className="space-y-2">
-                <Label htmlFor="subjectId" className="text-white">
-                  Subject <span className="text-rose-400">*</span>
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-12 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                    >
-                      {selectedSubject ? (
-                        <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-rose-300" />
-                          <span className="truncate">{selectedSubject.name}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                          <input
+                            type="text"
+                            placeholder="Search subjects..."
+                            value={subjectQuery}
+                            onChange={(e) => setSubjectQuery(e.target.value)}
+                            className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
+                          />
                         </div>
-                      ) : (
-                        <span className="text-white/50">Select a subject...</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-70" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className={cn(
-                      premiumSelectContent,
-                      "w-[--radix-popover-trigger-width] p-1 max-h-[400px]"
-                    )}
-                  >
-                    <Command shouldFilter={false} className="bg-transparent">
-                      <CommandInput
-                        placeholder="Search subjects..."
-                        value={subjectQuery}
-                        onValueChange={setSubjectQuery}
-                        className="border-b border-neutral-800/60 bg-transparent"
-                      />
-                      <CommandList className="max-h-[300px] overflow-y-auto">
                         {isLoadingSubjects ? (
-                          <div className="px-3 py-3 text-sm text-neutral-400">
-                            Searching...
+                          <div className="flex justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
                           </div>
                         ) : (
-                          <>
-                            <CommandEmpty className="py-6 text-center text-sm text-neutral-400">
-                              No subjects found.
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {subjects.map((subject) => (
-                                <CommandItem
-                                  key={subject.id}
-                                  value={subject.id}
-                                  onSelect={() => {
-                                    setValue("subjectId", subject.id);
-                                  }}
-                                  className={cn(
-                                    premiumMenuItem,
-                                    "flex items-center justify-between"
-                                  )}
-                                >
-                                  <span className="truncate">{subject.name}</span>
-                                  {selectedSubjectId === subject.id ? (
-                                    <Check className="h-4 w-4 text-neutral-300" />
-                                  ) : null}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </>
+                          <div className="grid gap-2 max-h-[40vh] overflow-y-auto pr-1">
+                            {subjects.map((s) => (
+                              <motion.label
+                                key={s.id}
+                                htmlFor={`subject-${s.id}`}
+                                className={cn(
+                                  "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
+                                  selectedSubjectId === s.id
+                                    ? "border-rose-500/40 bg-rose-500/15"
+                                    : "border-white/10 bg-white/5 hover:border-white/20"
+                                )}
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.99 }}
+                              >
+                                <input
+                                  type="radio"
+                                  id={`subject-${s.id}`}
+                                  name="subjectId"
+                                  value={s.id}
+                                  checked={selectedSubjectId === s.id}
+                                  onChange={() => setSelectedSubjectId(s.id)}
+                                  className="sr-only"
+                                />
+                                <BookOpen className="h-5 w-5 text-rose-300" />
+                                <span className="text-sm font-medium text-white truncate">{s.name}</span>
+                                {selectedSubjectId === s.id && (
+                                  <Check className="ml-auto h-5 w-5 text-rose-400" />
+                                )}
+                              </motion.label>
+                            ))}
+                          </div>
                         )}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {errors.subjectId && (
-                  <p className="text-xs text-rose-400">{errors.subjectId.message}</p>
-                )}
-              </div>
-
-              {/* Class selection */}
-              <div className="space-y-2">
-                <Label htmlFor="classGroupId" className="text-white">
-                  Class Group <span className="text-rose-400">*</span>
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-12 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                    >
-                      {selectedClass ? (
-                        <div className="flex items-center gap-2">
-                          <School className="h-4 w-4 text-rose-300" />
-                          <span className="truncate">{selectedClass.label || selectedClass.name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-white/50">Select a class group...</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-70" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className={cn(
-                      premiumSelectContent,
-                      "w-[--radix-popover-trigger-width] p-1 max-h-[400px]"
+                      </>
                     )}
-                  >
-                    <Command shouldFilter={false} className="bg-transparent">
-                      <CommandInput
+                  </section>
+                )}
+
+                {/* Step 2: Select Class Group(s) */}
+                {step === 2 && (
+                  <section className="space-y-4">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                      Select Class Group(s)
+                    </h2>
+                    <p className="text-xs text-white/60">
+                      Select one or more classes. The teacher will be assigned to teach this subject in all selected classes.
+                    </p>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                      <input
+                        type="text"
                         placeholder="Search classes..."
                         value={classQuery}
-                        onValueChange={setClassQuery}
-                        className="border-b border-neutral-800/60 bg-transparent"
+                        onChange={(e) => setClassQuery(e.target.value)}
+                        className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
                       />
-                      <CommandList className="max-h-[300px] overflow-y-auto">
-                        {isLoadingClasses ? (
-                          <div className="px-3 py-3 text-sm text-neutral-400">
-                            Searching...
-                          </div>
-                        ) : (
-                          <>
-                            <CommandEmpty className="py-6 text-center text-sm text-neutral-400">
-                              No classes found.
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {classes.map((classGroup) => (
-                                <CommandItem
-                                  key={classGroup.id}
-                                  value={classGroup.id}
-                                  onSelect={() => {
-                                    setValue("classGroupId", classGroup.id);
-                                  }}
-                                  className={cn(
-                                    premiumMenuItem,
-                                    "flex items-center justify-between"
-                                  )}
-                                >
-                                  <span className="truncate">
-                                    {classGroup.label || classGroup.name}
-                                  </span>
-                                  {selectedClassId === classGroup.id ? (
-                                    <Check className="h-4 w-4 text-neutral-300" />
-                                  ) : null}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </>
-                        )}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {errors.classGroupId && (
-                  <p className="text-xs text-rose-400">{errors.classGroupId.message}</p>
+                    </div>
+                    {isLoadingClasses ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
+                      </div>
+                    ) : classes.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <AlertCircle className="h-6 w-6 text-white/30" />
+                        <p className="mt-2 text-sm text-white/50">No classes found for this subject</p>
+                        <p className="mt-1 text-xs text-white/40">Classes are filtered by grade stage</p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 max-h-[40vh] overflow-y-auto pr-1">
+                        {classes.map((classGroup) => {
+                          const isSelected = selectedClassIds.includes(classGroup.id);
+                          return (
+                            <motion.label
+                              key={classGroup.id}
+                              htmlFor={`class-${classGroup.id}`}
+                              className={cn(
+                                "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
+                                isSelected
+                                  ? "border-rose-500/40 bg-rose-500/15"
+                                  : "border-white/10 bg-white/5 hover:border-white/20"
+                              )}
+                              whileHover={{ scale: 1.01 }}
+                              whileTap={{ scale: 0.99 }}
+                            >
+                              <input
+                                type="checkbox"
+                                id={`class-${classGroup.id}`}
+                                checked={isSelected}
+                                onChange={() => {
+                                  const label = classGroup.label || classGroup.name;
+                                  setSelectedClassIds((prev) =>
+                                    prev.includes(classGroup.id)
+                                      ? prev.filter((id) => id !== classGroup.id)
+                                      : [...prev, classGroup.id]
+                                  );
+                                  setSelectedClassLabels((prev) => {
+                                    const next = { ...prev };
+                                    if (next[classGroup.id]) delete next[classGroup.id];
+                                    else next[classGroup.id] = label;
+                                    return next;
+                                  });
+                                }}
+                                className="sr-only"
+                              />
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+                                <School className="h-5 w-5 text-rose-300" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="truncate text-sm font-medium text-white">
+                                  {classGroup.label || classGroup.name}
+                                </p>
+                                {classGroup.gradeName && (
+                                  <p className="truncate text-xs text-white/50">{classGroup.gradeName}</p>
+                                )}
+                              </div>
+                              {isSelected && (
+                                <Check className="h-5 w-5 text-rose-400" />
+                              )}
+                            </motion.label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
                 )}
-              </div>
 
-              {/* Allow multiple checkbox */}
-              <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 p-3">
-                <Checkbox
-                  id="allowMultiple"
-                  checked={allowMultiple}
-                  onCheckedChange={(checked) =>
-                    setValue("allowMultiple", checked === true)
-                  }
-                />
-                <Label
-                  htmlFor="allowMultiple"
-                  className="cursor-pointer text-sm text-white/90"
-                >
-                  Allow multiple teachers (co-teaching)
-                </Label>
-              </div>
-            </div>
+                {/* Step 3: Select Teacher */}
+                {step === 3 && (
+                  <section className="space-y-4">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                      Select Teacher
+                    </h2>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                      <input
+                        type="text"
+                        placeholder="Search teachers..."
+                        value={teacherQuery}
+                        onChange={(e) => setTeacherQuery(e.target.value)}
+                        className="w-full rounded-lg border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/40 focus:border-rose-500/50 focus:outline-none focus:ring-1 focus:ring-rose-500/50"
+                      />
+                    </div>
+                    {isLoadingTeachers ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
+                      </div>
+                    ) : teachers.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <AlertCircle className="h-6 w-6 text-white/30" />
+                        <p className="mt-2 text-sm text-white/50">No teachers found</p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 max-h-[40vh] overflow-y-auto pr-1">
+                        {teachers.map((teacher) => (
+                          <motion.label
+                            key={teacher.id}
+                            htmlFor={`teacher-${teacher.id}`}
+                            className={cn(
+                              "relative flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all",
+                              selectedTeacherId === teacher.id
+                                ? "border-rose-500/40 bg-rose-500/15"
+                                : "border-white/10 bg-white/5 hover:border-white/20"
+                            )}
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                          >
+                            <input
+                              type="radio"
+                              id={`teacher-${teacher.id}`}
+                              name="teacherId"
+                              value={teacher.id}
+                              checked={selectedTeacherId === teacher.id}
+                              onChange={() => setSelectedTeacherId(teacher.id)}
+                              className="sr-only"
+                            />
+                            <Avatar className="h-10 w-10 border-2 border-white/20">
+                              <AvatarImage src={teacher.photoUrl || ""} alt={teacher.fullName} />
+                              <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-600 text-sm font-semibold text-white">
+                                {teacher.firstName?.charAt(0) || ""}
+                                {teacher.lastName?.charAt(0) || ""}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate text-sm font-medium text-white">
+                                {teacher.fullName}
+                              </p>
+                              <p className="truncate text-xs text-white/50">
+                                {teacher.email || "Teacher"}
+                              </p>
+                            </div>
+                            {selectedTeacherId === teacher.id && (
+                              <Check className="h-5 w-5 text-rose-400" />
+                            )}
+                          </motion.label>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
 
-            {/* Footer */}
-            <div className="mt-6 flex items-center justify-end gap-3">
+                {/* Step 4: Review & Confirm */}
+                {step === 4 && (
+                  <section className="space-y-4">
+                    <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                      Review Assignment
+                    </h2>
+
+                    {conflictError && (
+                      <Alert className="border-amber-400/20 bg-amber-500/10">
+                        <AlertTriangle className="h-4 w-4 text-amber-400" />
+                        <AlertDescription className="text-amber-100">
+                          {conflictError}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <Alert className="border-sky-400/20 bg-sky-500/10">
+                      <Info className="h-4 w-4 text-sky-400" />
+                      <AlertDescription className="text-sky-100">
+                        By default, only one teacher can teach a subject in a class. Enable co-teaching below to allow multiple teachers.
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 space-y-4">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-14 w-14 border-2 border-white/20">
+                          <AvatarImage src={displayTeacher?.photoUrl || ""} alt={displayTeacher?.fullName || ""} />
+                          <AvatarFallback className="bg-linear-to-br from-indigo-500 to-purple-600 text-lg font-semibold text-white">
+                            {displayTeacher?.firstName?.charAt(0) || ""}
+                            {displayTeacher?.lastName?.charAt(0) || ""}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-lg font-semibold text-white">
+                            {displayTeacher?.fullName}
+                          </p>
+                          <p className="text-sm text-white/60">
+                            {displayTeacher?.email || "Teacher"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="h-4 w-4 text-white/50 shrink-0" />
+                          <span className="text-sm text-white">{selectedSubject?.name}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <School className="h-4 w-4 text-white/50 shrink-0 mt-0.5" />
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedClassIds.map((id) => (
+                              <Badge
+                                key={id}
+                                variant="secondary"
+                                className="bg-white/10 text-white border-white/20"
+                              >
+                                {selectedClassLabels[id] ?? selectedClasses.find((c) => c.id === id)?.label ?? selectedClasses.find((c) => c.id === id)?.name ?? id}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 p-3">
+                      <Checkbox
+                        id="allowMultiple"
+                        checked={allowMultiple}
+                        onCheckedChange={(checked) => setAllowMultiple(checked === true)}
+                      />
+                      <Label
+                        htmlFor="allowMultiple"
+                        className="cursor-pointer text-sm text-white/90"
+                      >
+                        Allow multiple teachers (co-teaching)
+                      </Label>
+                    </div>
+                  </section>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between border-t border-white/10 p-5 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              {step === 1 ? "Cancel" : "Back"}
+            </Button>
+
+            {step < STEPS ? (
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                onClick={handleNext}
+                disabled={!canProceed}
+                className="gap-2 bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50"
               >
-                Cancel
+                Next
+                <ChevronRight className="h-4 w-4" />
               </Button>
+            ) : (
               <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-rose-500 text-white hover:bg-rose-600"
+                type="button"
+                onClick={handleConfirm}
+                disabled={assignTeacher.isPending}
+                className="gap-2 bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50"
               >
-                {isSubmitting ? (
+                {assignTeacher.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Assigning...
                   </>
                 ) : (
-                  "Assign Teacher"
+                  <>
+                    <Check className="h-4 w-4" />
+                    Confirm Assignment
+                  </>
                 )}
               </Button>
-            </div>
-          </form>
+            )}
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>

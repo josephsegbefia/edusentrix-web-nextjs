@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns/format";
 import {
   Mail,
   Search,
@@ -15,11 +15,25 @@ import {
   Send,
   Ban,
   Download,
+  FilterX,
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useInvitations,
   useInvitationStats,
-  useCreateInvitation,
   useResendInvitation,
   useRevokeInvitation,
   useDeleteInvitation,
@@ -27,12 +41,18 @@ import {
   type InvitationRole,
 } from "@/hooks/admin/useInvitations";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { format } from "date-fns/format";
-import { motion, AnimatePresence } from "framer-motion";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { cn } from "@/lib/utils";
 
 function StatusBadge({ status }: { status: InvitationStatus }) {
-  const config = {
+  const config: Record<
+    InvitationStatus,
+    {
+      icon: React.ComponentType<{ className?: string }>;
+      className: string;
+      label: string;
+    }
+  > = {
     pending: {
       icon: Clock,
       className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
@@ -45,7 +65,7 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
     },
     expired: {
       icon: XCircle,
-      className: "border-gray-500/30 bg-gray-500/10 text-gray-300",
+      className: "border-slate-500/30 bg-slate-500/10 text-slate-300",
       label: "Expired",
     },
     revoked: {
@@ -61,10 +81,12 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
   };
 
   const { icon: Icon, className, label } = config[status];
-
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+        className
+      )}
     >
       <Icon className="h-3 w-3" />
       {label}
@@ -73,35 +95,106 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
 }
 
 function RoleBadge({ role }: { role: InvitationRole }) {
-  const config: Record<InvitationRole, string> = {
-    teacher: "bg-purple-500/10 text-purple-300 border-purple-500/30",
-    staff: "bg-blue-500/10 text-blue-300 border-blue-500/30",
-    school_admin: "bg-brand/20 text-brand border-brand/30",
-    parent: "bg-green-500/10 text-green-300 border-green-500/30",
-    bursar: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+  const config: Record<
+    InvitationRole,
+    { label: string; className: string }
+  > = {
+    teacher: {
+      label: "Teacher",
+      className: "border-purple-500/30 bg-purple-500/10 text-purple-300",
+    },
+    staff: {
+      label: "Staff",
+      className: "border-blue-500/30 bg-blue-500/10 text-blue-300",
+    },
+    school_admin: {
+      label: "School Admin",
+      className: "border-brand/30 bg-brand/20 text-brand",
+    },
+    parent: {
+      label: "Parent",
+      className: "border-green-500/30 bg-green-500/10 text-green-300",
+    },
+    bursar: {
+      label: "Bursar",
+      className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    },
   };
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${config[role]}`}
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+        config[role].className
+      )}
     >
-      {role.replace("_", " ")}
+      {config[role].label}
     </span>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "indigo" | "amber" | "emerald" | "slate" | "rose" | "red";
+}) {
+  const toneMap = {
+    indigo:
+      "border-indigo-500/30 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent text-indigo-200",
+    amber:
+      "border-amber-500/30 bg-linear-to-br from-amber-500/15 via-amber-500/5 to-transparent text-amber-200",
+    emerald:
+      "border-emerald-500/30 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent text-emerald-200",
+    slate:
+      "border-slate-500/30 bg-linear-to-br from-slate-500/15 via-slate-500/5 to-transparent text-slate-200",
+    rose:
+      "border-rose-500/30 bg-linear-to-br from-rose-500/15 via-rose-500/5 to-transparent text-rose-200",
+    red: "border-red-500/30 bg-linear-to-br from-red-500/15 via-red-500/5 to-transparent text-red-200",
+  } as const;
+
+  return (
+    <Card
+      className={cn(
+        "relative overflow-hidden border shadow-lg shadow-black/20 backdrop-blur",
+        toneMap[tone]
+      )}
+    >
+      <CardContent className="p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-white/60">
+            {label}
+          </p>
+          <div className="rounded-lg border border-white/10 bg-white/10 p-1.5">
+            <Icon className="h-3.5 w-3.5 text-white/80" />
+          </div>
+        </div>
+        <p className="text-2xl font-bold text-white">{value.toLocaleString()}</p>
+      </CardContent>
+    </Card>
   );
 }
 
 export default function InvitationsPage() {
   const busy = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
-  const [statusFilter, setStatusFilter] = useState<InvitationStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<InvitationStatus | "all">(
+    "all"
+  );
   const [roleFilter, setRoleFilter] = useState<InvitationRole | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteFirstName, setInviteFirstName] = useState("");
-  const [inviteLastName, setInviteLastName] = useState("");
 
-  const { data: invitationsData, isLoading } = useInvitations({
+  const {
+    data: invitationsData,
+    isLoading,
+    refetch: refetchInvitations,
+  } = useInvitations({
     status: statusFilter !== "all" ? statusFilter : undefined,
     role: roleFilter !== "all" ? roleFilter : undefined,
     search: searchQuery || undefined,
@@ -110,43 +203,33 @@ export default function InvitationsPage() {
   });
 
   const { data: stats } = useInvitationStats();
-  const createMutation = useCreateInvitation();
   const resendMutation = useResendInvitation();
   const revokeMutation = useRevokeInvitation();
   const deleteMutation = useDeleteInvitation();
 
   const invitations = invitationsData?.data || [];
   const pagination = invitationsData?.pagination;
+  const isActionBusy =
+    resendMutation.isPending || revokeMutation.isPending || deleteMutation.isPending;
 
-  const handleInviteBursar = async () => {
-    if (!inviteEmail.trim()) {
-      busy.error("Please enter an email address");
-      return;
-    }
-
-    try {
-      await busy.promise(
-        createMutation.mutateAsync({
-          email: inviteEmail.trim(),
-          role: "bursar",
-          firstName: inviteFirstName.trim() || undefined,
-          lastName: inviteLastName.trim() || undefined,
-        }),
+  const rolePills = useMemo(
+    () =>
+      [
+        { role: "teacher", label: "Teachers", count: stats?.byRole.teacher || 0 },
+        { role: "staff", label: "Staff", count: stats?.byRole.staff || 0 },
         {
-          loading: "Sending bursar invitation...",
-          success: "Bursar invitation sent",
-          error: "Failed to send bursar invitation",
-        }
-      );
-      setInviteEmail("");
-      setInviteFirstName("");
-      setInviteLastName("");
-      setRoleFilter("all");
-      setPage(1);
-    } catch {
-      // Error handled by busy.promise
-    }
-  };
+          role: "school_admin",
+          label: "School Admins",
+          count: stats?.byRole.school_admin || 0,
+        },
+        { role: "parent", label: "Parents", count: stats?.byRole.parent || 0 },
+        { role: "bursar", label: "Bursars", count: stats?.byRole.bursar || 0 },
+      ] as const,
+    [stats]
+  );
+
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) || statusFilter !== "all" || roleFilter !== "all";
 
   const handleResend = async (id: string) => {
     try {
@@ -236,175 +319,134 @@ export default function InvitationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Invitations</h1>
-          <p className="text-muted">
-            Manage and track invitations sent to school members
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={handleExport}
-            className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-        </div>
-      </div>
-
-      {/* Invite Bursar */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-6 shadow-2xl shadow-black/40">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/10 via-amber-500/5 to-transparent"
+          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-gradient-to-br from-indigo-500/20 via-cyan-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
-        <CardHeader className="relative z-10">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
-              <Send className="h-4 w-4 text-amber-300" />
+        <div
+          className="pointer-events-none absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-gradient-to-tr from-brand/10 via-brand/5 to-transparent blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          aria-hidden="true"
+        />
+
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-indigo-500/30 bg-indigo-500/15">
+                <ShieldCheck className="h-5 w-5 text-indigo-200" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                  Invitations
+                </h1>
+                <p className="mt-1 text-sm text-white/70">
+                  Monitor invitation delivery, acceptance, and access lifecycle.
+                </p>
+              </div>
             </div>
-            Invite Bursar
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="relative z-10">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <input
-              type="text"
-              placeholder="First name (optional)"
-              value={inviteFirstName}
-              onChange={(e) => setInviteFirstName(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-            />
-            <input
-              type="text"
-              placeholder="Last name (optional)"
-              value={inviteLastName}
-              onChange={(e) => setInviteLastName(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-            />
-            <input
-              type="email"
-              placeholder="bursar@school.edu"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder:text-white/40 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-            />
+          </div>
+
+          <div className="flex items-center gap-2">
             <Button
-              type="button"
-              onClick={handleInviteBursar}
-              disabled={createMutation.isPending || !inviteEmail.trim()}
-              className="gap-2 border-white/10 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30"
+              onClick={() => refetchInvitations()}
+              variant="outline"
+              className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
             >
-              <Send className="h-4 w-4" />
-              Send Invite
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button
+              onClick={handleExport}
+              className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-blue-500/15 via-blue-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardContent className="relative z-10 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-500/30">
-                  <Mail className="h-4 w-4 text-blue-300" />
-                </div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">
-                  Total
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-white">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-amber-500/15 via-amber-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardContent className="relative z-10 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                  <Clock className="h-4 w-4 text-amber-300" />
-                </div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">
-                  Pending
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-amber-300">
-                {stats.pending}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardContent className="relative z-10 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                </div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">
-                  Accepted
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-emerald-300">
-                {stats.accepted}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <div
-              className="pointer-events-none absolute inset-0 bg-linear-to-br from-gray-500/15 via-gray-500/5 to-transparent"
-              aria-hidden="true"
-            />
-            <CardContent className="relative z-10 p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-gray-500/20 border border-gray-500/30">
-                  <XCircle className="h-4 w-4 text-gray-300" />
-                </div>
-                <div className="text-xs text-white/60 uppercase tracking-wider">
-                  Expired
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-gray-300">
-                {stats.expired}
-              </div>
-            </CardContent>
-          </Card>
         </div>
+      </section>
+
+      {stats && (
+        <section className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <StatCard label="Total" value={stats.total} icon={Mail} tone="indigo" />
+            <StatCard
+              label="Pending"
+              value={stats.pending}
+              icon={Clock}
+              tone="amber"
+            />
+            <StatCard
+              label="Accepted"
+              value={stats.accepted}
+              icon={CheckCircle2}
+              tone="emerald"
+            />
+            <StatCard
+              label="Expired"
+              value={stats.expired}
+              icon={XCircle}
+              tone="slate"
+            />
+            <StatCard
+              label="Revoked"
+              value={stats.revoked}
+              icon={Ban}
+              tone="rose"
+            />
+            <StatCard
+              label="Failed"
+              value={stats.failed}
+              icon={AlertCircle}
+              tone="red"
+            />
+          </div>
+
+          <Card className="border border-white/10 bg-white/5">
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {rolePills.map((item) => {
+                  const active = roleFilter === item.role;
+                  return (
+                    <button
+                      key={item.role}
+                      onClick={() => {
+                        setRoleFilter(active ? "all" : item.role);
+                        setPage(1);
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-all",
+                        active
+                          ? "border-brand/40 bg-brand/20 text-brand"
+                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                      )}
+                    >
+                      <span className="font-medium">{item.label}</span>
+                      <Badge
+                        variant="outline"
+                        className="border-white/15 bg-black/20 px-1.5 py-0 text-[10px]"
+                      >
+                        {item.count}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
       )}
 
-      {/* Filters */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-        <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-violet-500/15 via-violet-500/5 to-transparent"
-          aria-hidden="true"
-        />
-        <CardHeader className="relative z-10">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-violet-500/20 border border-violet-500/30">
-              <Search className="h-4 w-4 text-violet-300" />
-            </div>
-            Filters & Search
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="relative z-10">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
+      <Card className="border border-white/10 bg-white/5">
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-              <input
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+              <Input
                 type="text"
                 placeholder="Search by email..."
                 value={searchQuery}
@@ -412,209 +454,196 @@ export default function InvitationsPage() {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                className="h-10 border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/40"
               />
             </div>
 
-            {/* Status Filter */}
-            <select
+            <Select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as InvitationStatus | "all");
+              onValueChange={(value) => {
+                setStatusFilter(value as InvitationStatus | "all");
                 setPage(1);
               }}
-              className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
             >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="accepted">Accepted</option>
-              <option value="expired">Expired</option>
-              <option value="revoked">Revoked</option>
-              <option value="failed">Failed</option>
-            </select>
+              <SelectTrigger className="h-10 w-full border-white/10 bg-black/20 text-white lg:w-[180px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent className="border-white/10 bg-neutral-950">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="accepted">Accepted</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="revoked">Revoked</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {/* Role Filter */}
-            <select
+            <Select
               value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value as InvitationRole | "all");
+              onValueChange={(value) => {
+                setRoleFilter(value as InvitationRole | "all");
                 setPage(1);
               }}
-              className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
             >
-              <option value="all">All Roles</option>
-              <option value="teacher">Teacher</option>
-              <option value="staff">Staff</option>
-              <option value="school_admin">School Admin</option>
-              <option value="parent">Parent</option>
-              <option value="bursar">Bursar</option>
-            </select>
+              <SelectTrigger className="h-10 w-full border-white/10 bg-black/20 text-white lg:w-[200px]">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent className="border-white/10 bg-neutral-950">
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="teacher">Teacher</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="school_admin">School Admin</SelectItem>
+                <SelectItem value="parent">Parent</SelectItem>
+                <SelectItem value="bursar">Bursar</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("all");
+                setRoleFilter("all");
+                setPage(1);
+              }}
+              disabled={!hasActiveFilters}
+              className="h-10 gap-2 border-white/10 bg-black/20 text-white hover:bg-white/10"
+            >
+              <FilterX className="h-4 w-4" />
+              Reset
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Invitations Table */}
-      <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className="relative overflow-hidden border border-white/10 bg-white/5 shadow-xl shadow-black/30">
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-br from-indigo-500/15 via-indigo-500/5 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent"
           aria-hidden="true"
         />
-        <CardHeader className="relative z-10">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/30">
+        <CardHeader className="border-b border-white/10 pb-4">
+          <CardTitle className="flex items-center justify-between gap-3 text-lg font-semibold text-white">
+            <span className="inline-flex items-center gap-2">
               <Mail className="h-4 w-4 text-indigo-300" />
-            </div>
-            Invitations
+              Invitations
+            </span>
+            {!isLoading && (
+              <span className="text-xs font-normal text-white/60">
+                {pagination?.total ?? invitations.length} total
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="relative z-10">
+        <CardContent className="p-4">
           {isLoading ? (
-            <div className="text-center py-12 text-white/60">
-              Loading invitations...
-            </div>
+            <div className="py-14 text-center text-white/60">Loading invitations...</div>
           ) : invitations.length === 0 ? (
-            <div className="text-center py-12 text-white/60">
-              <Mail className="h-12 w-12 mx-auto mb-4 text-white/20" />
-              <p>No invitations found</p>
+            <div className="py-14 text-center text-white/60">
+              <Mail className="mx-auto mb-3 h-10 w-10 text-white/20" />
+              <p className="text-sm">No invitations found for current filters</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-white/60">
-                      Email
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-white/60">
-                      Role
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-white/60">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-white/60">
-                      Sent
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-white/60">
-                      Expires
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider text-white/60">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <AnimatePresence>
-                    {invitations.map((invitation) => (
-                      <motion.tr
-                        key={invitation._id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                      >
-                        <td className="py-4 px-4">
-                          <div className="text-white font-medium">
-                            {invitation.email}
-                          </div>
-                          {invitation.metadata?.firstName &&
-                            invitation.metadata?.lastName && (
-                              <div className="text-xs text-white/60">
-                                {invitation.metadata.firstName}{" "}
-                                {invitation.metadata.lastName}
-                              </div>
-                            )}
-                        </td>
-                        <td className="py-4 px-4">
-                          <RoleBadge role={invitation.role} />
-                        </td>
-                        <td className="py-4 px-4">
-                          <StatusBadge status={invitation.status} />
-                        </td>
-                        <td className="py-4 px-4 text-sm text-white/80">
-                          {format(new Date(invitation.sentAt), "MMM d, yyyy")}
-                        </td>
-                        <td className="py-4 px-4 text-sm text-white/80">
-                          {format(new Date(invitation.expiresAt), "MMM d, yyyy")}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            {invitation.status === "pending" && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleResend(invitation._id)}
-                                  disabled={
-                                    resendMutation.isPending ||
-                                    revokeMutation.isPending ||
-                                    deleteMutation.isPending
-                                  }
-                                  className="border-white/10 bg-white/5 text-white hover:bg-white/10 h-8 px-3"
-                                >
-                                  <Send className="h-3 w-3 mr-1" />
-                                  Resend
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRevoke(invitation._id)}
-                                  disabled={
-                                    resendMutation.isPending ||
-                                    revokeMutation.isPending ||
-                                    deleteMutation.isPending
-                                  }
-                                  className="border-white/10 bg-white/5 text-white hover:bg-white/10 h-8 px-3"
-                                >
-                                  <Ban className="h-3 w-3 mr-1" />
-                                  Revoke
-                                </Button>
-                              </>
-                            )}
-                            {(invitation.status === "expired" ||
-                              invitation.status === "failed") && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleResend(invitation._id)}
-                                disabled={
-                                  resendMutation.isPending ||
-                                  revokeMutation.isPending ||
-                                  deleteMutation.isPending
-                                }
-                                className="border-white/10 bg-white/5 text-white hover:bg-white/10 h-8 px-3"
-                              >
-                                <RefreshCw className="h-3 w-3 mr-1" />
-                                Resend
-                              </Button>
-                            )}
+            <div className="space-y-3">
+              <AnimatePresence>
+                {invitations.map((invitation) => (
+                  <motion.div
+                    key={invitation._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="rounded-xl border border-white/10 bg-black/20 p-4 transition-all hover:border-white/20 hover:bg-black/30"
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0 space-y-1">
+                        <p className="truncate text-sm font-semibold text-white">
+                          {invitation.email}
+                        </p>
+                        <p className="text-xs text-white/60">
+                          {invitation.metadata?.firstName && invitation.metadata?.lastName
+                            ? `${invitation.metadata.firstName} ${invitation.metadata.lastName}`
+                            : "No profile name provided"}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/50">
+                          <span>Sent {format(new Date(invitation.sentAt), "MMM d, yyyy")}</span>
+                          <span className="text-white/30">•</span>
+                          <span>
+                            Expires {format(new Date(invitation.expiresAt), "MMM d, yyyy")}
+                          </span>
+                          {invitation.resendCount > 0 && (
+                            <>
+                              <span className="text-white/30">•</span>
+                              <span>{invitation.resendCount} resend(s)</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <RoleBadge role={invitation.role} />
+                        <StatusBadge status={invitation.status} />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                        {invitation.status === "pending" && (
+                          <>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleDelete(invitation._id)}
-                              disabled={
-                                resendMutation.isPending ||
-                                revokeMutation.isPending ||
-                                deleteMutation.isPending
-                              }
-                              className="border-white/10 bg-white/5 text-white hover:bg-white/10 h-8 px-3 text-rose-300 hover:text-rose-200"
+                              onClick={() => handleResend(invitation._id)}
+                              disabled={isActionBusy}
+                              className="h-8 gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Send className="h-3 w-3" />
+                              Resend
                             </Button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </AnimatePresence>
-                </tbody>
-              </table>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleRevoke(invitation._id)}
+                              disabled={isActionBusy}
+                              className="h-8 gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                            >
+                              <Ban className="h-3 w-3" />
+                              Revoke
+                            </Button>
+                          </>
+                        )}
+
+                        {(invitation.status === "expired" ||
+                          invitation.status === "failed") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleResend(invitation._id)}
+                            disabled={isActionBusy}
+                            className="h-8 gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Resend
+                          </Button>
+                        )}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(invitation._id)}
+                          disabled={isActionBusy}
+                          className="h-8 border-white/10 bg-white/5 text-rose-300 hover:bg-white/10 hover:text-rose-200"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
 
-          {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
+            <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-white/60">
-                Showing {((page - 1) * pagination.limit) + 1} to{" "}
+                Showing {Math.min((page - 1) * pagination.limit + 1, pagination.total)} to{" "}
                 {Math.min(page * pagination.limit, pagination.total)} of{" "}
                 {pagination.total} invitations
               </div>
@@ -624,23 +653,23 @@ export default function InvitationsPage() {
                   variant="outline"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="h-8 gap-1 border-white/10 bg-white/5 text-white hover:bg-white/10"
                 >
+                  <ChevronLeft className="h-3.5 w-3.5" />
                   Previous
                 </Button>
-                <span className="text-sm text-white/80 px-3">
-                  Page {page} of {pagination.totalPages}
+                <span className="px-2 text-sm text-white/80">
+                  Page {page} / {pagination.totalPages}
                 </span>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() =>
-                    setPage((p) => Math.min(pagination.totalPages, p + 1))
-                  }
+                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                   disabled={page === pagination.totalPages}
-                  className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  className="h-8 gap-1 border-white/10 bg-white/5 text-white hover:bg-white/10"
                 >
                   Next
+                  <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>

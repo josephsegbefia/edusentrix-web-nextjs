@@ -223,6 +223,41 @@ export function useAssignSubjectsToClass() {
 }
 
 /**
+ * Hook to create a new class under a grade
+ */
+export function useCreateClass() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: {
+      gradeId: string;
+      name: string;
+      subjectIds?: string[];
+      capacity?: number | null;
+    }) => {
+      const res = await fetch("/api/admin/classes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          typeof json.error === "string"
+            ? json.error
+            : json.error?.name?.[0] ?? "Failed to create class";
+        throw new Error(msg);
+      }
+      return json.data as ClassGroupDTO;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["grades"] });
+    },
+  });
+}
+
+/**
  * Hook to add a student to a class
  */
 export function useAddStudentToClass() {

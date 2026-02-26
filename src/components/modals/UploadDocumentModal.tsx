@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { DocumentUploader } from "@/components/upload/DocumentUploader";
 import {
   useUploadDocument,
@@ -27,6 +28,21 @@ import {
 } from "@/hooks/admin/useTeacherDocuments";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
 import { useAuth } from "@/providers/auth-provider";
+
+function formatDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value?: string | null): Date | null {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  const parsed = new Date(year, month - 1, day);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 
 const UploadDocumentSchema = z.object({
   name: z.string().min(1, "Document name is required").max(200),
@@ -94,6 +110,8 @@ export function UploadDocumentModal({
   });
 
   const type = watch("type");
+  const issueDateValue = parseDateInput(watch("issueDate"));
+  const expiryDateValue = parseDateInput(watch("expiryDate"));
 
   // Reset form when modal opens
   React.useEffect(() => {
@@ -416,38 +434,34 @@ export function UploadDocumentModal({
 
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="issueDate"
-                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-                      >
-                        Issue Date (optional)
-                      </Label>
-                      <Input
-                        id="issueDate"
-                        type="date"
-                        {...register("issueDate")}
-                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      <CustomDatePicker
+                        value={issueDateValue}
+                        onChange={(date) =>
+                          setValue("issueDate", date ? formatDateInput(date) : "", {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
+                        label="Issue Date (optional)"
+                        placeholder="Select issue date"
+                        maxDate={expiryDateValue || undefined}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="expiryDate"
-                        className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-                      >
-                        Expiry Date (optional)
-                      </Label>
-                      <Input
-                        id="expiryDate"
-                        type="date"
-                        {...register("expiryDate")}
-                        className="border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      <CustomDatePicker
+                        value={expiryDateValue}
+                        onChange={(date) =>
+                          setValue("expiryDate", date ? formatDateInput(date) : "", {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
+                        label="Expiry Date (optional)"
+                        placeholder="Select expiry date"
+                        minDate={issueDateValue || undefined}
+                        error={errors.expiryDate?.message}
                       />
-                      {errors.expiryDate && (
-                        <p className="text-xs text-red-300/80">
-                          {errors.expiryDate.message}
-                        </p>
-                      )}
                     </div>
                   </div>
 

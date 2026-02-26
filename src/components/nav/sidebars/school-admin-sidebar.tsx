@@ -119,8 +119,8 @@ const navSections: NavSection[] = [
     title: "Academics",
     items: [
       {
-        label: "Classes",
-        href: "/admin/classes",
+        label: "Grades",
+        href: "/admin/grades",
         icon: School,
       },
       {

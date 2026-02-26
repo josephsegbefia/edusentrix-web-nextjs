@@ -40,6 +40,8 @@ import { Label } from "@/components/ui/label";
 type BulkGradeSubjectAssignmentModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-select this grade when opening from grade detail page */
+  initialGradeId?: string | null;
 };
 
 type AssignmentMode = "same-for-all" | "individual";
@@ -47,6 +49,7 @@ type AssignmentMode = "same-for-all" | "individual";
 export function BulkGradeSubjectAssignmentModal({
   open,
   onOpenChange,
+  initialGradeId,
 }: BulkGradeSubjectAssignmentModalProps) {
   const [selectedGradeId, setSelectedGradeId] = React.useState<string | null>(null);
   const [selectedSubjectIds, setSelectedSubjectIds] = React.useState<string[]>([]);
@@ -55,14 +58,14 @@ export function BulkGradeSubjectAssignmentModal({
   const queryClient = useQueryClient();
   const busy = useBusyToast();
 
-  // Reset when modal opens
+  // Reset when modal opens, or pre-select grade when initialGradeId provided
   React.useEffect(() => {
     if (open) {
-      setSelectedGradeId(null);
+      setSelectedGradeId(initialGradeId ?? null);
       setSelectedSubjectIds([]);
       setAssignmentMode("same-for-all");
     }
-  }, [open]);
+  }, [open, initialGradeId]);
 
   // Fetch grades
   const { data: gradesData, isLoading: gradesLoading } = useGrades(true);

@@ -1,19 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
-  Users,
   PhoneCall,
   Mail,
   Home,
   BookOpen,
   Calendar,
   Clock3,
-  MapPin,
-  Sparkles,
 } from "lucide-react";
 
 type TeacherDetailHeaderProps = {
@@ -136,160 +132,127 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
   }, [status, leaveEndDate]);
 
   return (
-    <Card className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
-      {/* Background decorations */}
-      <div
-        className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/15 via-purple-500/10 to-transparent blur-3xl transition-opacity duration-500 group-hover:opacity-100 opacity-70"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-gradient-to-tr from-violet-500/10 via-fuchsia-500/5 to-transparent blur-3xl"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
-        aria-hidden="true"
-      />
+    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        {/* Left: Avatar + Info */}
+        <div className="flex flex-1 items-start gap-5">
+          <Avatar className="h-20 w-20 shrink-0 rounded-2xl border border-white/15 shadow-lg">
+            <AvatarImage
+              src={photoUrl || ""}
+              alt={fullName}
+              className="object-cover"
+            />
+            <AvatarFallback className="rounded-2xl bg-gradient-to-br from-indigo-500/30 to-purple-600/30 text-xl font-semibold text-white">
+              {initialsFromName(firstName, lastName)}
+            </AvatarFallback>
+          </Avatar>
 
-      <CardContent className="relative z-10 p-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-          {/* Left: Avatar + Info */}
-          <div className="flex flex-1 items-start gap-6">
-            {/* Avatar */}
-            <div className="relative shrink-0">
-              <div className="relative">
-                <Avatar className="h-24 w-24 rounded-2xl border-2 border-white/20 shadow-2xl shadow-black/50 ring-4 ring-indigo-500/20">
-                  <AvatarImage
-                    src={photoUrl || ""}
-                    alt={fullName}
-                    className="object-cover"
-                  />
-                  <AvatarFallback className="rounded-2xl bg-gradient-to-br from-indigo-500/40 to-purple-600/40 text-2xl font-bold text-white">
-                    {initialsFromName(firstName, lastName)}
-                  </AvatarFallback>
-                </Avatar>
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+                {fullName}
+              </h2>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium capitalize",
+                  statusStyle.bg,
+                  statusStyle.border,
+                  statusStyle.text
+                )}
+              >
+                <span
+                  className={cn("h-1.5 w-1.5 rounded-full", statusStyle.dot)}
+                />
+                {status.replace("_", " ")}
+              </span>
+            </div>
 
-                {/* Status indicator */}
-                <div
-                  className={cn(
-                    "absolute -bottom-1 -right-1 h-6 w-6 rounded-lg border-2 border-slate-900 flex items-center justify-center",
-                    statusStyle.dot
-                  )}
+            {department && (
+              <p className="text-sm text-white/55">{department}</p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              {homeroom && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/25 bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-300">
+                  <Home className="h-3.5 w-3.5" />
+                  {homeroom.name}
+                </span>
+              )}
+              {subjects && subjects.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/25 bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-300">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  {subjects.length} subject{subjects.length === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 text-sm text-white/50">
+              {email && (
+                <a
+                  href={`mailto:${email}`}
+                  className="flex items-center gap-1.5 transition-colors hover:text-white/85"
                 >
-                  <Sparkles className="h-3 w-3 text-white" />
-                </div>
-              </div>
+                  <Mail className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{email}</span>
+                </a>
+              )}
+              {phone && (
+                <a
+                  href={`tel:${phone}`}
+                  className="flex items-center gap-1.5 transition-colors hover:text-white/85"
+                >
+                  <PhoneCall className="h-4 w-4 shrink-0" />
+                  <span>{phone}</span>
+                </a>
+              )}
             </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0 space-y-4">
-              {/* Name and Status */}
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-                    {fullName}
-                  </h1>
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold capitalize",
-                      statusStyle.bg,
-                      statusStyle.border,
-                      statusStyle.text
-                    )}
-                  >
-                    <span
-                      className={cn("h-1.5 w-1.5 rounded-full", statusStyle.dot)}
-                    />
-                    {status.replace("_", " ")}
-                  </span>
-                </div>
-
-                {/* Department / Role */}
-                {department && (
-                  <p className="text-sm text-white/60">{department}</p>
-                )}
-              </div>
-
-              {/* Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                {homeroom && (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/15 px-2.5 py-1 text-xs font-medium text-blue-300">
-                    <Home className="h-3.5 w-3.5" />
-                    Homeroom: {homeroom.name}
-                  </span>
-                )}
-                {subjects && subjects.length > 0 && (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/15 px-2.5 py-1 text-xs font-medium text-purple-300">
-                    <BookOpen className="h-3.5 w-3.5" />
-                    {subjects.length} subject{subjects.length === 1 ? "" : "s"}
-                  </span>
-                )}
-              </div>
-
-              {/* Contact Info */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-white/50">
-                {email && (
-                  <a
-                    href={`mailto:${email}`}
-                    className="flex items-center gap-1.5 transition-colors hover:text-white/80"
-                  >
-                    <Mail className="h-4 w-4" />
-                    <span className="truncate">{email}</span>
-                  </a>
-                )}
-                {phone && (
-                  <a
-                    href={`tel:${phone}`}
-                    className="flex items-center gap-1.5 transition-colors hover:text-white/80"
-                  >
-                    <PhoneCall className="h-4 w-4" />
-                    <span>{phone}</span>
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Quick Stats */}
-          <div className="flex flex-wrap gap-3 lg:flex-col lg:items-end">
-            {leaveCountdown && (
-              <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-                <Clock3 className="h-4 w-4 text-amber-300" />
-                <div className="text-xs">
-                  <p className="text-amber-200/80">Leave Countdown</p>
-                  <p className="font-semibold text-amber-100">
-                    {leaveCountdown.daysLabel}
-                  </p>
-                  <p className="text-amber-200/70">
-                    Returns {leaveCountdown.returnLabel}
-                  </p>
-                </div>
-              </div>
-            )}
-            {hireDateLabel && (
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <Calendar className="h-4 w-4 text-indigo-400" />
-                <div className="text-xs">
-                  <p className="text-white/40">Joined</p>
-                  <p className="font-medium text-white/80">{hireDateLabel}</p>
-                </div>
-              </div>
-            )}
-            {subjects && subjects.length > 0 && (
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-                <Users className="h-4 w-4 text-purple-400" />
-                <div className="text-xs">
-                  <p className="text-white/40">Teaching</p>
-                  <p className="font-medium text-white/80">
-                    {subjects.slice(0, 2).map((s) => s.name).join(", ")}
-                    {subjects.length > 2 && ` +${subjects.length - 2}`}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Right: Quick Stats */}
+        <div className="flex flex-wrap gap-3 lg:flex-col lg:items-end">
+          {leaveCountdown && (
+            <div className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/20">
+                <Clock3 className="h-5 w-5 text-amber-300" />
+              </div>
+              <div className="text-sm">
+                <p className="font-medium text-amber-200">
+                  {leaveCountdown.daysLabel}
+                </p>
+                <p className="text-xs text-amber-200/70">
+                  Returns {leaveCountdown.returnLabel}
+                </p>
+              </div>
+            </div>
+          )}
+          {hireDateLabel && (
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/15">
+                <Calendar className="h-5 w-5 text-indigo-300" />
+              </div>
+              <div className="text-sm">
+                <p className="text-xs text-white/45">Joined</p>
+                <p className="font-medium text-white/90">{hireDateLabel}</p>
+              </div>
+            </div>
+          )}
+          {subjects && subjects.length > 0 && (
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/15">
+                <BookOpen className="h-5 w-5 text-purple-300" />
+              </div>
+              <div className="text-sm">
+                <p className="text-xs text-white/45">Teaching</p>
+                <p className="font-medium text-white/90 line-clamp-2">
+                  {subjects.slice(0, 2).map((s) => s.name).join(", ")}
+                  {subjects.length > 2 && ` +${subjects.length - 2}`}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

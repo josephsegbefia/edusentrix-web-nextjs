@@ -50,6 +50,7 @@ type TeacherOverviewTabProps = {
     status: TeacherStatus;
     homeroom?: { id: string; name: string } | null;
     subjects?: Array<{ id: string; name: string }>;
+    assignedSubjects?: Array<{ id: string; name: string; classGroups: string[] }>;
     employeeId?: string | null;
     department?: string | null;
     hireDate?: string | Date | null;
@@ -277,8 +278,11 @@ export function TeacherOverviewTab({
   const { data: subjectsData } = useTeacherSubjects(teacher.id);
   const { data: homeroomData } = useTeacherHomeroom(teacher.id);
   const { data: workloadData } = useTeacherWorkload(teacher.id);
-  const subjects = subjectsData?.data ?? [];
+  const subjectsFromApi = subjectsData?.data ?? [];
   const homeroom = homeroomData?.data ?? null;
+  const subjects = (teacher.assignedSubjects?.length ? teacher.assignedSubjects : subjectsFromApi).map((s) =>
+    "classGroups" in s ? { id: s.id, name: s.name } : s
+  );
   const workload = workloadData?.data;
   const homeroomLabel = homeroom
     ? `${homeroom.name}${homeroom.gradeName ? ` (${homeroom.gradeName})` : ""}`
@@ -522,29 +526,33 @@ export function TeacherOverviewTab({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {subjects.length > 0 ? (
-                    subjects.map((s) => (
-                  <Badge
-                    key={s.id}
-                    variant="outline"
-                        className="group gap-1.5 rounded-lg border-indigo-500/30 bg-indigo-500/10 pr-1.5 text-indigo-200"
-                  >
-                    {s.name}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSubject(s.id, s.name)}
-                          disabled={removeSubjectMutation.isPending}
-                          className="ml-0.5 rounded-full p-0.5 opacity-0 transition-all hover:bg-white/10 group-hover:opacity-100"
-                          title={`Remove ${s.name}`}
+                    subjects.map((s) => {
+                      const classGroups = teacher.assignedSubjects?.find((a) => a.id === s.id)?.classGroups;
+                      return (
+                        <Badge
+                          key={s.id}
+                          variant="outline"
+                          className="group gap-1.5 rounded-lg border-indigo-500/30 bg-indigo-500/10 pr-1.5 text-indigo-200"
                         >
-                          <X className="h-3 w-3" />
-                        </button>
-                  </Badge>
-                ))
-              ) : (
+                          {s.name}
+                          {classGroups?.length ? ` (${classGroups.join(", ")})` : ""}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSubject(s.id, s.name)}
+                            disabled={removeSubjectMutation.isPending}
+                            className="ml-0.5 rounded-full p-0.5 opacity-0 transition-all hover:bg-white/10 group-hover:opacity-100"
+                            title={`Remove ${s.name}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })
+                  ) : (
                     <p className="text-sm text-white/40">
-                  No subjects assigned yet.
-                </p>
-              )}
+                      No subjects assigned yet.
+                    </p>
+                  )}
             </div>
           </div>
 

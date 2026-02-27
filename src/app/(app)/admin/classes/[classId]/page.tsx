@@ -8,12 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, ArrowLeft, School, Sparkles, Edit, MoreHorizontal } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuTrigger,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+} from "@/components/ui/premium-dropdown-menu";
 import { useClassDetail } from "@/hooks/admin/useClasses";
 import { ClassDetailHeader } from "@/components/admin/classes/detail/ClassDetailHeader";
 import {
@@ -257,8 +257,8 @@ function ClassDetailContent() {
               <School className="h-3.5 w-3.5" />
               {classData?.grade?.id ? "Back to Grade" : "All Grades"}
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <PremiumDropdownMenu>
+              <PremiumDropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
@@ -266,30 +266,30 @@ function ClassDetailContent() {
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
+              </PremiumDropdownMenuTrigger>
+              <PremiumDropdownMenuContent
                 align="end"
                 className="min-w-[160px] border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
               >
-                <DropdownMenuItem className="cursor-pointer gap-2">
+                <PremiumDropdownMenuItem className="cursor-pointer gap-2">
                   <Edit className="h-3.5 w-3.5" />
                   Edit Class
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-white/10" />
-                <DropdownMenuItem
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuSeparator className="bg-white/10" />
+                <PremiumDropdownMenuItem
                   onClick={() => setAssignHomeroomOpen(true)}
                   className="cursor-pointer gap-2"
                 >
                   Assign Homeroom
-                </DropdownMenuItem>
-                <DropdownMenuItem
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem
                   onClick={() => setAssignSubjectsOpen(true)}
                   className="cursor-pointer gap-2"
                 >
                   Manage Subjects
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </PremiumDropdownMenuItem>
+              </PremiumDropdownMenuContent>
+            </PremiumDropdownMenu>
           </div>
         </div>
       </div>

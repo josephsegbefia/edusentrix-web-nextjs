@@ -3,10 +3,12 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
 import ActiveLink from "../active/ActiveLink";
 import {
   LayoutDashboard,
   ClipboardList,
+  CalendarClock,
   CalendarDays,
   BarChart3,
   Bell,
@@ -33,6 +35,8 @@ type NavSection = {
   }>;
 };
 
+const TIMETABLE_ROLE_VIEWS_ENABLED = isTimetableRoleReadViewsEnabled();
+
 const navSections: NavSection[] = [
   {
     title: "Overview",
@@ -58,6 +62,15 @@ const navSections: NavSection[] = [
         href: "/student/results",
         icon: BarChart3,
       },
+      ...(TIMETABLE_ROLE_VIEWS_ENABLED
+        ? [
+            {
+              label: "My Timetable",
+              href: "/student/timetable",
+              icon: CalendarClock,
+            },
+          ]
+        : []),
       {
         label: "Calendar",
         href: "/student/calendar",

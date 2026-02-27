@@ -16,6 +16,9 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +30,7 @@ import {
   useSubjectSearch,
   useClassGroupSearch,
 } from "@/hooks/admin/useDirectorySearch";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAssignTeacherToSubject, useUnassignTeacher } from "@/hooks/admin/useSubjects";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
@@ -59,6 +63,7 @@ export function AssignTeacherToSubjectModal({
   initialClassGroupId,
   editAssignment,
 }: AssignTeacherToSubjectModalProps) {
+  const queryClient = useQueryClient();
   const busy = useBusyToast();
   const assignTeacher = useAssignTeacherToSubject();
   const unassignTeacher = useUnassignTeacher(subject?.id);
@@ -74,6 +79,15 @@ export function AssignTeacherToSubjectModal({
   const [selectedClassLabels, setSelectedClassLabels] = React.useState<Record<string, string>>({});
   const [allowMultiple, setAllowMultiple] = React.useState(false);
   const [conflictError, setConflictError] = React.useState<string | null>(null);
+  const [createdAssignments, setCreatedAssignments] = React.useState<
+    { assignmentId: string; className: string }[]
+  >([]);
+  const [schedulePhase, setSchedulePhase] = React.useState<
+    "idle" | "prompt" | "form" | "done"
+  >("idle");
+  const [assignmentSchedules, setAssignmentSchedules] = React.useState<
+    Record<string, Array<{ dayOfWeek: number; startTime: string; endTime: string }>>
+  >({});
 
   const [teacherQuery, setTeacherQuery] = React.useState("");
   const [subjectQuery, setSubjectQuery] = React.useState("");
@@ -160,6 +174,9 @@ export function AssignTeacherToSubjectModal({
       }
       setAllowMultiple(false);
       setConflictError(null);
+      setCreatedAssignments([]);
+      setSchedulePhase("idle");
+      setAssignmentSchedules({});
       setTeacherQuery("");
       setSubjectQuery("");
       setClassQuery("");
@@ -204,20 +221,24 @@ export function AssignTeacherToSubjectModal({
     setConflictError(null);
     const count = selectedClassIds.length;
     try {
-      await busy.promise(
+      const results = await busy.promise(
         (async () => {
           if (editAssignment) {
             await unassignTeacher.mutateAsync(editAssignment.assignmentId);
           }
+          const created: { assignmentId: string; className: string }[] = [];
           for (const classGroupId of selectedClassIds) {
-            await assignTeacher.mutateAsync({
+            const res = await assignTeacher.mutateAsync({
               teacherId: selectedTeacherId,
               subjectId: selectedSubjectId,
               classGroupId,
               academicPeriodId: currentPeriod?._id || "",
               allowMultiple,
             });
+            const className = selectedClassLabels[classGroupId] ?? classes.find((c) => c.id === classGroupId)?.label ?? classes.find((c) => c.id === classGroupId)?.name ?? "Class";
+            created.push({ assignmentId: res.data.id, className });
           }
+          return created;
         })(),
         {
           loading: isEditMode
@@ -239,11 +260,98 @@ export function AssignTeacherToSubjectModal({
           },
         }
       );
-      onOpenChange(false);
+      if (isEditMode || !results || results.length === 0) {
+        onOpenChange(false);
+        return;
+      }
+      setCreatedAssignments(results);
+      setSchedulePhase("prompt");
     } catch (e) {
       if (e instanceof Error && (e.message.includes("already assigned") || e.message.includes("Conflict"))) {
         setConflictError(e.message);
       }
+    }
+  };
+
+  const handleSkipSchedule = () => {
+    onOpenChange(false);
+  };
+
+  const handleSetSchedule = () => {
+    setSchedulePhase("form");
+    setAssignmentSchedules(
+      Object.fromEntries(
+        createdAssignments.map((a) => [a.assignmentId, [{ dayOfWeek: 1, startTime: "08:00", endTime: "08:40" }]])
+      )
+    );
+  };
+
+  const addScheduleSlot = (assignmentId: string) => {
+    setAssignmentSchedules((prev) => {
+      const current = prev[assignmentId] ?? [];
+      return {
+        ...prev,
+        [assignmentId]: [...current, { dayOfWeek: 1, startTime: "09:00", endTime: "09:40" }],
+      };
+    });
+  };
+
+  const removeScheduleSlot = (assignmentId: string, idx: number) => {
+    setAssignmentSchedules((prev) => {
+      const current = prev[assignmentId] ?? [];
+      return { ...prev, [assignmentId]: current.filter((_, i) => i !== idx) };
+    });
+  };
+
+  const updateScheduleSlot = (
+    assignmentId: string,
+    idx: number,
+    field: "dayOfWeek" | "startTime" | "endTime",
+    value: number | string
+  ) => {
+    setAssignmentSchedules((prev) => {
+      const current = [...(prev[assignmentId] ?? [])];
+      current[idx] = { ...current[idx], [field]: value };
+      return { ...prev, [assignmentId]: current };
+    });
+  };
+
+  const handleSaveSchedules = async () => {
+    setConflictError(null);
+    try {
+      await busy.promise(
+        (async () => {
+          for (const { assignmentId } of createdAssignments) {
+            const schedules = assignmentSchedules[assignmentId];
+            if (schedules?.length && schedules.every((s) => s.startTime && s.endTime)) {
+              const res = await fetch(`/api/admin/teacher-assignments/${assignmentId}/schedule`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ schedules }),
+              });
+              const data = await res.json();
+              if (!res.ok) {
+                throw new Error(data.error || "Schedule conflict");
+              }
+            }
+          }
+        })(),
+        {
+          loading: "Saving schedules...",
+          success: "Schedules saved successfully",
+          error: (e: Error) => {
+            setConflictError(e.message);
+            return e.message;
+          },
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: ["teachers", "assignments"] });
+      if (subject?.id) {
+        queryClient.invalidateQueries({ queryKey: ["subject", subject.id] });
+      }
+      onOpenChange(false);
+    } catch {
+      // Error handled by busy
     }
   };
 
@@ -289,23 +397,175 @@ export function AssignTeacherToSubjectModal({
           {/* Step Indicator */}
           <div className="px-5 pt-4 flex items-center justify-between">
             <div className="text-sm text-white/70">
-              Step <span className="font-semibold">{step}</span> of {STEPS}
+              {schedulePhase === "idle" ? (
+                <>
+                  Step <span className="font-semibold">{step}</span> of {STEPS}
+                </>
+              ) : (
+                <span>Set teaching schedule</span>
+              )}
             </div>
-            <div className="flex gap-1">
-              {Array.from({ length: STEPS }, (_, i) => i + 1).map((s) => (
-                <span
-                  key={s}
-                  className={cn(
-                    "h-1.5 w-6 rounded-full transition-all",
-                    s <= step ? "bg-rose-500" : "bg-white/20"
-                  )}
-                />
-              ))}
-            </div>
+            {schedulePhase === "idle" && (
+              <div className="flex gap-1">
+                {Array.from({ length: STEPS }, (_, i) => i + 1).map((s) => (
+                  <span
+                    key={s}
+                    className={cn(
+                      "h-1.5 w-6 rounded-full transition-all",
+                      s <= step ? "bg-rose-500" : "bg-white/20"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Content */}
           <div className="p-5 overflow-y-auto flex-1 min-h-0">
+            {/* Schedule prompt - after assignment created */}
+            {schedulePhase === "prompt" && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-5"
+              >
+                <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 p-4">
+                  <p className="text-sm font-medium text-white">
+                    Would you like to set the days and times this teacher will teach?
+                  </p>
+                  <p className="mt-1 text-xs text-white/60">
+                    This helps build the master timetable and class timetables. Schedules are checked for conflicts.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleSetSchedule}
+                    className="w-full gap-2 bg-rose-500 text-white hover:bg-rose-600"
+                  >
+                    <Clock className="h-4 w-4" />
+                    Yes, set schedule
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSkipSchedule}
+                    className="w-full gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    Skip for now
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Schedule form */}
+            {schedulePhase === "form" && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-5"
+              >
+                {conflictError && (
+                  <Alert className="border-amber-400/20 bg-amber-500/10">
+                    <AlertTriangle className="h-4 w-4 text-amber-400" />
+                    <AlertDescription className="text-amber-100">{conflictError}</AlertDescription>
+                  </Alert>
+                )}
+                <p className="text-xs text-white/60">
+                  Add the days and times for each class. No overlapping slots are allowed for the teacher or the class.
+                </p>
+                <div className="space-y-4 max-h-[50vh] overflow-y-auto">
+                  {createdAssignments.map(({ assignmentId, className }) => (
+                    <div
+                      key={assignmentId}
+                      className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="bg-rose-500/20 text-rose-200 border-rose-500/30">
+                          {className}
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => addScheduleSlot(assignmentId)}
+                          className="h-7 gap-1 text-xs text-white/70 hover:text-white"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Add slot
+                        </Button>
+                      </div>
+                      {(assignmentSchedules[assignmentId] ?? []).map((slot, idx) => (
+                        <div
+                          key={idx}
+                          className="flex flex-wrap items-center gap-2 rounded-lg border border-white/5 bg-black/20 p-3"
+                        >
+                          <select
+                            value={slot.dayOfWeek}
+                            onChange={(e) =>
+                              updateScheduleSlot(assignmentId, idx, "dayOfWeek", Number(e.target.value))
+                            }
+                            className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white"
+                          >
+                            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+                              <option key={i} value={i} className="bg-neutral-900">
+                                {d}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="time"
+                            value={slot.startTime}
+                            onChange={(e) =>
+                              updateScheduleSlot(assignmentId, idx, "startTime", e.target.value)
+                            }
+                            className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white"
+                          />
+                          <span className="text-white/50">–</span>
+                          <input
+                            type="time"
+                            value={slot.endTime}
+                            onChange={(e) =>
+                              updateScheduleSlot(assignmentId, idx, "endTime", e.target.value)
+                            }
+                            className="h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-300 hover:bg-red-500/10"
+                            onClick={() => removeScheduleSlot(assignmentId, idx)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSkipSchedule}
+                    className="flex-1 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    Skip
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSaveSchedules}
+                    className="flex-1 gap-2 bg-rose-500 text-white hover:bg-rose-600"
+                  >
+                    <Check className="h-4 w-4" />
+                    Save schedules
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {schedulePhase === "idle" && (
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -626,9 +886,11 @@ export function AssignTeacherToSubjectModal({
                 )}
               </motion.div>
             </AnimatePresence>
+            )}
           </div>
 
-          {/* Footer */}
+          {/* Footer - only when in assign steps */}
+          {schedulePhase === "idle" && (
           <div className="flex items-center justify-between border-t border-white/10 p-5 shrink-0">
             <Button
               type="button"
@@ -671,6 +933,7 @@ export function AssignTeacherToSubjectModal({
               </Button>
             )}
           </div>
+          )}
         </motion.div>
       </div>
     </AnimatePresence>

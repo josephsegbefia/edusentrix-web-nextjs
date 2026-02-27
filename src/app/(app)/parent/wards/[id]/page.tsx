@@ -43,11 +43,13 @@ import {
   SubjectPerformanceOverTime,
   TeacherCommentsSection,
 } from "@/components/parent/academics";
+import { WardTimetable } from "@/components/parent/timetable/WardTimetable";
+import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
 
 /* --------------------------------------------------------------------------------
    Types
 -------------------------------------------------------------------------------- */
-type WardDetailTabId = "overview" | "academics" | "fees" | "attendance";
+type WardDetailTabId = "overview" | "timetable" | "academics" | "fees" | "attendance";
 
 type TabConfig = {
   id: WardDetailTabId;
@@ -62,6 +64,8 @@ type TabConfig = {
 /* --------------------------------------------------------------------------------
    Constants
 -------------------------------------------------------------------------------- */
+const TIMETABLE_ROLE_VIEWS_ENABLED = isTimetableRoleReadViewsEnabled();
+
 const TABS: TabConfig[] = [
   {
     id: "overview",
@@ -72,6 +76,19 @@ const TABS: TabConfig[] = [
       icon: "bg-teal-500/20 text-teal-300 border-teal-500/30",
     },
   },
+  ...(TIMETABLE_ROLE_VIEWS_ENABLED
+    ? [
+        {
+          id: "timetable" as WardDetailTabId,
+          label: "Timetable",
+          icon: Calendar,
+          colors: {
+            active: "border-sky-500/40 bg-sky-500/15 text-sky-200 shadow-sky-500/20",
+            icon: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+          },
+        },
+      ]
+    : []),
   {
     id: "academics",
     label: "Academics",
@@ -117,7 +134,13 @@ function initialsFromName(fullName: string) {
 function getInitialTab(sp: URLSearchParams | null): WardDetailTabId {
   if (!sp) return "overview";
   const raw = sp.get("tab");
-  if (raw === "overview" || raw === "academics" || raw === "fees" || raw === "attendance") {
+  if (
+    raw === "overview" ||
+    (raw === "timetable" && TIMETABLE_ROLE_VIEWS_ENABLED) ||
+    raw === "academics" ||
+    raw === "fees" ||
+    raw === "attendance"
+  ) {
     return raw;
   }
   return "overview";
@@ -1218,7 +1241,7 @@ function WardDetailContent() {
 
         {/* Tabs Skeleton */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {[...Array(4)].map((_, i) => (
+          {[...Array(TABS.length)].map((_, i) => (
             <div key={i} className="h-9 w-28 shrink-0 animate-pulse rounded-xl bg-white/10" />
           ))}
         </div>
@@ -1338,6 +1361,8 @@ function WardDetailContent() {
       <div>
         {activeTab === "overview" ? (
           <OverviewTab wardId={wardId} />
+        ) : activeTab === "timetable" && TIMETABLE_ROLE_VIEWS_ENABLED ? (
+          <WardTimetable wardId={wardId} wardName={ward.name} />
         ) : activeTab === "academics" ? (
           <AcademicsTab wardId={wardId} />
         ) : activeTab === "fees" ? (

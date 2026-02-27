@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { Teacher } from "@/models/Teacher";
 import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
@@ -37,6 +38,8 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const actorIdObj = adminUserId ? toObjectIdOrNull(String(adminUserId)) : null;
+    const warnings: string[] = [];
     const body = await req.json();
 
     const parsed = AssignTeacherSchema.safeParse(body);
@@ -178,6 +181,12 @@ export async function POST(req: NextRequest) {
       { $addToSet: { subjectIds: subjectObjId } }
     );
 
+    // Add subject to teacher's subjectIds (so it appears on teacher profile)
+    await Teacher.updateOne(
+      { _id: teacherObjId, schoolId: schoolIdObj },
+      { $addToSet: { subjectIds: subjectObjId } }
+    );
+
     // Create new assignment
     const assignment = await TeacherAssignment.create({
       teacherId: teacherObjId,
@@ -187,7 +196,7 @@ export async function POST(req: NextRequest) {
       classGroupId: classGroupObjId,
       workloadHours: workloadHours || 0,
       notes: notes || undefined,
-      assignedBy: adminUserId ? new mongoose.Types.ObjectId(String(adminUserId)) : undefined,
+      assignedBy: actorIdObj || undefined,
       assignedAt: new Date(),
       status: "active",
     });
@@ -203,6 +212,7 @@ export async function POST(req: NextRequest) {
         academicPeriodId: String(periodObjId),
         hasConflict: !!otherTeacherAssignment,
       },
+      warnings,
     });
   } catch (e: unknown) {
     const message =

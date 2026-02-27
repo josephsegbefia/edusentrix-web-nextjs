@@ -12,7 +12,7 @@ export const CreateStudentSchema = z
     sex: z.enum(["male", "female"]).optional(),
     dateOfBirth: z.date().optional(), // ISO "YYYY-MM-DD"
     photoUrl: z.url().optional(), // Cloudinary URL
-    status: z.enum(["active", "inactive", "withdrawn"]),
+    status: z.enum(["active", "inactive", "withdrawn", "graduated"]),
     enrolledAt: z.string().optional(), // ISO "YYYY-MM-DD"
 
     subjectAddIds: z.array(z.string().trim()),

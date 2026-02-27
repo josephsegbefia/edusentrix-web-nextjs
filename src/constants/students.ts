@@ -5,7 +5,8 @@ export type StudentsTabId =
   | "by-class"
   | "fee-defaulters"
   | "top-performers"
-  | "recent";
+  | "recent"
+  | "alumni";
 
 export const STUDENT_TABS: {
   id: StudentsTabId;
@@ -36,6 +37,11 @@ export const STUDENT_TABS: {
     id: "recent",
     label: "Recently Added",
     description: "Students enrolled or added this month.",
+  },
+  {
+    id: "alumni",
+    label: "Alumni",
+    description: "Graduated students — data preserved for records.",
   },
 ];
 

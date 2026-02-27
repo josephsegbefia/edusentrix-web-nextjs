@@ -2,14 +2,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { TeacherAssignment } from "@/models/TeacherAssignment";
-import { ClassGroup } from "@/models/ClassGroup";
-import { AcademicPeriod } from "@/models/AcademicPeriod";
+import {
+  resolvePublishedTimetableContext,
+  queryPublishedSlots,
+  enrichSlotsForDisplay,
+} from "@/lib/timetable/read-model";
+import { Grade } from "@/models/Grade";
 import mongoose from "mongoose";
 
 /**
  * GET /api/admin/timetable/master
- * Get master timetable - all schedules across all classes
+ * Get master timetable - all schedules from published TimetableSlot
  */
 export async function GET(req: NextRequest) {
   try {
@@ -18,78 +21,71 @@ export async function GET(req: NextRequest) {
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
 
-    // Get current academic period
-    const currentPeriod = await AcademicPeriod.findOne({
-      schoolId: schoolIdObj,
-      isCurrent: true,
-    })
-      .select("_id")
-      .lean() as { _id: any } | null;
+    const published = await resolvePublishedTimetableContext(
+      schoolIdObj,
+      new Date()
+    );
 
-    if (!currentPeriod) {
+    if (!published) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // Get all active assignments with schedules
-    const assignments = await TeacherAssignment.find({
+    const slots = await queryPublishedSlots({
       schoolId: schoolIdObj,
-      academicPeriodId: currentPeriod._id,
-      status: "active",
-      schedules: { $exists: true, $ne: [] },
-    })
-      .populate({
-        path: "teacherId",
-        select: "userId",
-        populate: {
-          path: "userId",
-          select: "firstName lastName avatarUrl",
-        },
-      })
-      .populate("subjectId", "name code")
-      .populate("classGroupId", "name gradeId")
-      .populate({
-        path: "classGroupId",
-        populate: {
-          path: "gradeId",
-          select: "name level",
-        },
-      })
-      .lean();
-
-    // Transform data for master timetable
-    const timetableData = assignments.flatMap((assignment: any) => {
-      const teacher = assignment.teacherId;
-      const user = teacher?.userId;
-      const subject = assignment.subjectId;
-      const classGroup = assignment.classGroupId;
-      const grade = classGroup?.gradeId;
-
-      if (!subject || !user || !classGroup) return [];
-
-      const schedules = assignment.schedules || [];
-
-      return schedules.map((schedule: any) => ({
-        assignmentId: String(assignment._id),
-        classId: String(classGroup._id),
-        className: classGroup.name,
-        gradeName: grade?.name || "Unknown",
-        gradeLevel: grade?.level || 0,
-        subjectId: String(subject._id),
-        subjectName: subject.name,
-        subjectCode: subject.code || null,
-        teacherId: String(teacher._id),
-        teacherName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-        teacherPhotoUrl: user.avatarUrl || null,
-        dayOfWeek: schedule.dayOfWeek,
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        location: schedule.location || null,
-        roomId: schedule.roomId ? String(schedule.roomId) : null,
-        contactHoursPerWeek: assignment.contactHoursPerWeek || 0,
-      }));
+      versionId: published.versionId,
+      scope: "school",
+      dayOfWeekIn: published.workingDays,
     });
 
-    // Sort by grade level, then class name, then day, then start time
+    const enrichedSlots = await enrichSlotsForDisplay({
+      schoolId: schoolIdObj,
+      slots,
+    });
+
+    const gradeIdStrs = Array.from(
+      new Set(enrichedSlots.map((s) => s.gradeId).filter(Boolean))
+    );
+    const gradeIds = gradeIdStrs
+      .map((id) => {
+        try {
+          return new mongoose.Types.ObjectId(id);
+        } catch {
+          return null;
+        }
+      })
+      .filter((id): id is mongoose.Types.ObjectId => id !== null);
+    const grades =
+      gradeIds.length > 0
+        ? await Grade.find({ schoolId: schoolIdObj, _id: { $in: gradeIds } })
+            .select("_id name order")
+            .lean()
+        : [];
+    const gradeOrderMap = new Map(
+      grades.map((g: { _id: unknown; order?: number }) => [
+        String(g._id),
+        (g as { order?: number }).order ?? 0,
+      ])
+    );
+
+    const timetableData = enrichedSlots.map((slot) => ({
+      slotId: slot.id,
+      classId: slot.classGroupId,
+      className: slot.classGroupName || slot.classGroupId,
+      gradeName: slot.gradeName || "Unknown",
+      gradeLevel: gradeOrderMap.get(slot.gradeId) ?? 0,
+      subjectId: slot.subjectId,
+      subjectName: slot.subjectName || slot.subjectId,
+      subjectCode: slot.subjectCode || null,
+      teacherId: slot.teacherId,
+      teacherName: slot.teacherName || slot.teacherId,
+      teacherPhotoUrl: null,
+      dayOfWeek: slot.dayOfWeek,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      location: slot.classroomLabel || null,
+      roomId: null,
+    }));
+
     timetableData.sort((a, b) => {
       if (a.gradeLevel !== b.gradeLevel) return a.gradeLevel - b.gradeLevel;
       if (a.className !== b.className) return a.className.localeCompare(b.className);

@@ -5,11 +5,13 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { getPublishedWeekTimetable } from "@/lib/timetable/read-model";
 import mongoose from "mongoose";
 
 /**
  * GET /api/admin/classes/[id]/schedules
- * Get all schedules for subjects in a class
+ * Get all schedules for subjects in a class.
+ * Schedules come from the published timetable (TimetableSlot), not from legacy assignment schedules.
  */
 export async function GET(
   req: NextRequest,
@@ -31,9 +33,11 @@ export async function GET(
       );
     }
 
-    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
 
-    // Verify class belongs to school
     const classGroup = await ClassGroup.findOne({
       _id: classIdObj,
       schoolId: schoolIdObj,
@@ -48,19 +52,17 @@ export async function GET(
       );
     }
 
-    // Get current academic period
     const currentPeriod = await AcademicPeriod.findOne({
       schoolId: schoolIdObj,
       isCurrent: true,
     })
       .select("_id")
-      .lean() as { _id: any } | null;
+      .lean() as { _id: mongoose.Types.ObjectId } | null;
 
     if (!currentPeriod) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // Get all active assignments for this class and period (including those without schedules)
     const assignments = await TeacherAssignment.find({
       schoolId: schoolIdObj,
       classGroupId: classIdObj,
@@ -78,15 +80,54 @@ export async function GET(
       .populate("subjectId", "name code")
       .lean();
 
+    const weekly = await getPublishedWeekTimetable({
+      schoolId: schoolIdObj,
+      targetDate: new Date(),
+      scope: "class",
+      classGroupId: classIdObj,
+    });
+
+    const slotBySubjectTeacher = new Map<
+      string,
+      Array<{ dayOfWeek: number; startTime: string; endTime: string; location: string | null; roomId: string | null }>
+    >();
+
+    if (!("error" in weekly) && weekly.data?.days) {
+      for (const day of weekly.data.days) {
+        for (const slot of day.slots || []) {
+          const key = `${slot.subjectId}|${slot.teacherId}`;
+          if (!slotBySubjectTeacher.has(key)) {
+            slotBySubjectTeacher.set(key, []);
+          }
+          const list = slotBySubjectTeacher.get(key)!;
+          list.push({
+            dayOfWeek: slot.dayOfWeek,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            location: slot.classroomLabel || null,
+            roomId: null,
+          });
+        }
+      }
+      for (const [, list] of slotBySubjectTeacher) {
+        list.sort((a, b) => {
+          if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+          return a.startTime.localeCompare(b.startTime);
+        });
+      }
+    }
+
     const data = assignments
-      .map((assignment: any) => {
-        const teacher = assignment.teacherId;
+      .map((assignment: Record<string, unknown>) => {
+        const teacher = assignment.teacherId as { _id: mongoose.Types.ObjectId; userId?: { firstName?: string; lastName?: string; avatarUrl?: string } } | null;
         const user = teacher?.userId;
-        const subject = assignment.subjectId;
+        const subject = assignment.subjectId as { _id: mongoose.Types.ObjectId; name: string; code?: string } | null;
 
         if (!subject || !user) return null;
 
-        const schedules = assignment.schedules || [];
+        const key = `${subject._id}|${teacher._id}`;
+        const schedules = slotBySubjectTeacher.get(key) || [];
+
         return {
           subjectId: String(subject._id),
           subjectName: subject.name,
@@ -95,14 +136,14 @@ export async function GET(
           teacherId: String(teacher._id),
           teacherName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
           teacherPhotoUrl: user.avatarUrl || null,
-          contactHoursPerWeek: assignment.contactHoursPerWeek || 0,
+          contactHoursPerWeek: (assignment.contactHoursPerWeek as number) || 0,
           schedulesCount: schedules.length,
-          schedules: schedules.map((s: any) => ({
+          schedules: schedules.map((s) => ({
             dayOfWeek: s.dayOfWeek,
             startTime: s.startTime,
             endTime: s.endTime,
-            location: s.location || null,
-            roomId: s.roomId ? String(s.roomId) : null,
+            location: s.location,
+            roomId: s.roomId,
           })),
         };
       })

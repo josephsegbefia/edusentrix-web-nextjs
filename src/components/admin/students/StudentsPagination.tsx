@@ -2,7 +2,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Select } from "@/components/ui/select";
 
 type StudentsPaginationProps = {
   page: number;
@@ -12,6 +11,8 @@ type StudentsPaginationProps = {
   pageSizeOptions: readonly number[] | number[];
   onChangePage: (page: number) => void;
   onChangePageSize: (size: number) => void;
+  /** Label for items (e.g. "students", "cycles", "decisions"). Default: "students" */
+  itemLabel?: string;
 };
 
 export function StudentsPagination({
@@ -22,6 +23,7 @@ export function StudentsPagination({
   pageSizeOptions,
   onChangePage,
   onChangePageSize,
+  itemLabel = "students",
 }: StudentsPaginationProps) {
   if (totalPages <= 1 && total <= pageSize) return null;
 
@@ -43,7 +45,7 @@ export function StudentsPagination({
           <span className="font-semibold text-foreground">
             {total.toLocaleString()}
           </span>{" "}
-          students
+          {itemLabel}
         </span>
         <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px]">
           Page <span className="font-semibold text-foreground">{page}</span> of{" "}

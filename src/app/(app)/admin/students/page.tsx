@@ -50,7 +50,8 @@ function getInitialTab(sp: URLSearchParams): StudentsTabId {
     tab === "by-class" ||
     tab === "fee-defaulters" ||
     tab === "top-performers" ||
-    tab === "recent"
+    tab === "recent" ||
+    tab === "alumni"
   ) {
     return tab;
   }

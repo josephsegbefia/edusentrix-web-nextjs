@@ -30,6 +30,7 @@ import {
   FileSearch,
   ChevronLeft,
   ChevronRight,
+  TrendingUp,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -147,6 +148,11 @@ const navSections: NavSection[] = [
         label: "Academic Periods",
         href: "/admin/periods",
         icon: Calendar,
+      },
+      {
+        label: "Promotions",
+        href: "/admin/promotions",
+        icon: TrendingUp,
       },
     ],
   },

@@ -34,9 +34,10 @@ type StudentCardProps = {
   onRecordPayment?: (id: string) => void;
 };
 
-type StatusTone = "teal" | "rose" | "amber" | "slate";
+type StatusTone = "teal" | "rose" | "amber" | "slate" | "violet";
 
 function getStatusTone(s: StudentListItem): StatusTone {
+  if (s.status === "graduated") return "violet";
   if (s.status !== "active") return "slate";
 
   switch (s.feeStatus) {
@@ -89,6 +90,13 @@ const toneConfig: Record<
     accent: "bg-slate-500",
     badge: "bg-slate-500/20 text-slate-300 border-slate-500/30",
   },
+  violet: {
+    border: "border-violet-500/30",
+    bg: "from-violet-500/10 via-violet-500/5 to-transparent",
+    glow: "bg-violet-500/20",
+    accent: "bg-violet-500",
+    badge: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+  },
 };
 
 export function StudentCard({
@@ -124,6 +132,8 @@ export function StudentCard({
         return "Inactive";
       case "withdrawn":
         return "Withdrawn";
+      case "graduated":
+        return "Alumni";
       default:
         return student.status;
     }

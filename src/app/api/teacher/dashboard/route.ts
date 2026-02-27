@@ -8,6 +8,7 @@ import { Student } from "@/models/Student";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { Submission } from "@/models/Submission";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { getPublishedWeekTimetable } from "@/lib/timetable/read-model";
 import { getTeacherStudioEnabledForSchool } from "@/lib/features/teacherStudio";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
@@ -248,42 +249,26 @@ export async function GET() {
       todayAttendanceTaken = !!attendance;
     }
 
-    const schedule = assignments
-      .flatMap((assignment): TodayScheduleRow[] => {
-        const classGroup = isPopulatedClassGroup(assignment.classGroupId)
-          ? assignment.classGroupId
-          : undefined;
-        const subject = isPopulatedSubject(assignment.subjectId)
-          ? assignment.subjectId
-          : undefined;
-
-        const gradeName = classGroup
-          ? gradeMap.get(String(classGroup.gradeId))
-          : undefined;
-        const className = classGroup
-          ? `${gradeName ? gradeName + " " : ""}${classGroup.name}`.trim()
-          : "";
-
-        const slots = (
-          assignment.schedules
-            ? assignment.schedules
-            : assignment.schedule
-              ? [assignment.schedule]
-              : []
-        ).filter((slot): slot is ScheduleSlot => Boolean(slot));
-
-        return slots
-          .filter((slot) => slot.dayOfWeek === dayOfWeek)
-          .map((slot) => ({
-            classGroupId: classGroup?._id ? String(classGroup._id) : "",
-            className,
-            subjectId: subject?._id ? String(subject._id) : "",
-            subjectName: subject?.name || "",
-            startTime: slot.startTime || null,
-            endTime: slot.endTime || null,
-          }));
-      })
-      .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
+    let schedule: TodayScheduleRow[] = [];
+    const weekly = await getPublishedWeekTimetable({
+      schoolId: context.schoolId,
+      targetDate: today,
+      scope: "teacher",
+      teacherId: context.teacherId,
+    });
+    if (!("error" in weekly) && weekly.data?.days) {
+      const todaySlots = weekly.data.days.find((d) => d.dayOfWeek === dayOfWeek)?.slots || [];
+      schedule = todaySlots
+        .map((slot) => ({
+          classGroupId: slot.classGroupId || "",
+          className: [slot.gradeName, slot.classGroupName].filter(Boolean).join(" ").trim() || "",
+          subjectId: slot.subjectId || "",
+          subjectName: slot.subjectName || "",
+          startTime: slot.startTime || null,
+          endTime: slot.endTime || null,
+        }))
+        .sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
+    }
 
     const attendanceQueueCount = context.homeroomClassGroupId
       ? todayAttendanceTaken

@@ -69,7 +69,13 @@ export async function GET(req: NextRequest) {
 
     if (gradeId) query.gradeId = gradeId;
     if (classGroupId) query.classGroupId = classGroupId;
-    if (status && status !== "all") query.status = status;
+    if (status && status !== "all") {
+      query.status = status;
+    } else if (tab === "alumni") {
+      query.status = "graduated";
+    } else {
+      query.status = { $in: ["active", "inactive", "withdrawn"] };
+    }
     if (sex === "male" || sex === "female") query.sex = sex;
 
     if (enrollmentFrom || enrollmentTo) {

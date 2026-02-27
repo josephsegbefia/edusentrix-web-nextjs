@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
 import {
   LayoutDashboard,
   Calendar,
+  CalendarDays,
   TrendingUp,
   Clock,
   FileText,
@@ -16,6 +18,7 @@ import {
 type TeacherDetailTabId =
   | "overview"
   | "assignments"
+  | "my_week"
   | "duties"
   | "performance"
   | "attendance"
@@ -28,7 +31,9 @@ type TeacherDetailTabsProps = {
   onChange: (tab: TeacherDetailTabId) => void;
 };
 
-const TABS: {
+const TIMETABLE_ROLE_VIEWS_ENABLED = isTimetableRoleReadViewsEnabled();
+
+const BASE_TABS: {
   id: TeacherDetailTabId;
   label: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
@@ -108,6 +113,22 @@ const TABS: {
   },
 ];
 
+const TABS = TIMETABLE_ROLE_VIEWS_ENABLED
+  ? [
+      ...BASE_TABS.slice(0, 2),
+      {
+        id: "my_week" as TeacherDetailTabId,
+        label: "My Week",
+        icon: CalendarDays,
+        color: {
+          active: "border-cyan-500/40 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/20",
+          icon: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+        },
+      },
+      ...BASE_TABS.slice(2),
+    ]
+  : BASE_TABS;
+
 export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
   return (
     <div className="flex w-full items-center justify-between gap-4 px-6 py-4">
@@ -153,7 +174,7 @@ export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
       {/* Helper text */}
       <div className="hidden items-center gap-2 text-[10px] text-white/40 lg:flex">
         <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-          8 sections
+          {TABS.length} sections
         </span>
       </div>
     </div>

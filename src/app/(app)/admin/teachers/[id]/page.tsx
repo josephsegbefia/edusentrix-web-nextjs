@@ -24,6 +24,7 @@ import {
 } from "@/components/admin/teachers/detail/TeacherDetailTabs";
 import { TeacherOverviewTab } from "@/components/admin/teachers/detail/TeacherOverviewTab";
 import { TeacherAssignmentsTab } from "@/components/admin/teachers/detail/TeacherAssignmentsTab";
+import { TeacherMyWeekTab } from "@/components/admin/teachers/detail/TeacherMyWeekTab";
 import { TeacherAttendanceTab } from "@/components/admin/teachers/detail/TeacherAttendanceTab";
 import { TeacherDocumentsTab } from "@/components/admin/teachers/detail/TeacherDocumentsTab";
 import { TeacherNotesTab } from "@/components/admin/teachers/detail/TeacherNotesTab";
@@ -33,12 +34,17 @@ import { TeacherDutiesTab } from "@/components/admin/teachers/detail/TeacherDuti
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
 import { UpdateLeaveModal } from "@/components/modals/UpdateLeaveModal";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
+
+const TIMETABLE_ROLE_VIEWS_ENABLED = isTimetableRoleReadViewsEnabled();
+
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (!sp) return "overview";
   const raw = sp.get("tab");
   if (
     raw === "overview" ||
     raw === "assignments" ||
+    (raw === "my_week" && TIMETABLE_ROLE_VIEWS_ENABLED) ||
     raw === "duties" ||
     raw === "performance" ||
     raw === "attendance" ||
@@ -330,6 +336,13 @@ function TeacherDetailContent() {
               id: teacher.id,
               fullName: teacher.fullName,
               maxClasses: teacher.maxClasses ?? null,
+            }}
+          />
+        ) : activeTab === "my_week" ? (
+          <TeacherMyWeekTab
+            teacher={{
+              id: teacher.id,
+              fullName: teacher.fullName,
             }}
           />
         ) : activeTab === "duties" ? (

@@ -104,6 +104,8 @@ export function StudentsTable({
         return "Inactive";
       case "withdrawn":
         return "Withdrawn";
+      case "graduated":
+        return "Alumni";
       default:
         return status;
     }
@@ -270,7 +272,9 @@ export function StudentsTable({
                       student.status === "inactive" &&
                         "bg-slate-500/20 text-slate-100 border border-slate-400/40",
                       student.status === "withdrawn" &&
-                        "bg-red-500/15 text-red-100 border border-red-400/40"
+                        "bg-red-500/15 text-red-100 border border-red-400/40",
+                      student.status === "graduated" &&
+                        "bg-violet-500/15 text-violet-100 border border-violet-400/40"
                     )}
                   >
                     {statusLabel(student.status)}

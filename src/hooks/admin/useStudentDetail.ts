@@ -23,7 +23,7 @@ export type StudentDetailDTO = {
   dateOfBirth: string | null;
   ageYears: number | null;
   photoUrl: string | null;
-  status: "active" | "inactive" | "withdrawn";
+  status: "active" | "inactive" | "withdrawn" | "graduated";
   enrolledAt: string | null;
 
   // GES (Ghana Education Service)

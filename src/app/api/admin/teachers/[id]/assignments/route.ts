@@ -8,7 +8,9 @@ import { Teacher } from "@/models/Teacher";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Subject } from "@/models/Subject";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
-import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { Grade } from "@/models/Grade";
+import { TimetableVersion } from "@/models/TimetableVersion";
+import { TimetableSlot } from "@/models/TimetableSlot";
 
 function toObjectIdOrThrow(id: string, label: string) {
   try {
@@ -18,24 +20,18 @@ function toObjectIdOrThrow(id: string, label: string) {
   }
 }
 
-function parseTimeToMinutes(hhmm: string) {
-  const m = /^(\d{2}):(\d{2})$/.exec(hhmm);
-  if (!m) return null;
-  const hh = Number(m[1]);
-  const mm = Number(m[2]);
-  if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
-  return hh * 60 + mm;
-}
-
-function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
-  const as = parseTimeToMinutes(aStart);
-  const ae = parseTimeToMinutes(aEnd);
-  const bs = parseTimeToMinutes(bStart);
-  const be = parseTimeToMinutes(bEnd);
-
-  if (as === null || ae === null || bs === null || be === null) return false;
-  // Treat as start, end
-  return as < be && bs < ae;
+function toObjectIdString(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (value instanceof mongoose.Types.ObjectId) return String(value);
+  if (typeof value === "object" && value && "_id" in value) {
+    return String((value as { _id: unknown })._id);
+  }
+  try {
+    return String(value);
+  } catch {
+    return null;
+  }
 }
 
 export async function GET(
@@ -73,59 +69,193 @@ export async function GET(
     .populate({
       path: "classGroupId",
       select: "name gradeId",
+      populate: { path: "gradeId", select: "name", model: Grade },
       model: ClassGroup,
-    })
-    .populate({
-      path: "academicPeriodId",
-      select: "name",
-      model: AcademicPeriod,
     })
     .lean();
 
-  const data = (items || []).map((a: any) => ({
-    id: String(a._id),
-    teacherId: String(a.teacherId),
-    schoolId: String(a.schoolId),
-    academicPeriodId: String(a.academicPeriodId),
+  const periodIds = Array.from(
+    new Set(
+      (items || [])
+        .map((item: any) => toObjectIdString(item.academicPeriodId))
+        .filter((value): value is string => Boolean(value))
+    )
+  );
 
-    subject: a.subjectId
-      ? { id: String(a.subjectId._id), name: String(a.subjectId.name) }
-      : null,
-    classGroup: a.classGroupId
-      ? { id: String(a.classGroupId._id), name: String(a.classGroupId.name) }
-      : null,
+  const periodObjIds = periodIds.map((value) => new mongoose.Types.ObjectId(value));
+  const versionsRaw =
+    periodObjIds.length > 0
+      ? await TimetableVersion.find({
+          schoolId: schoolIdObj,
+          academicPeriodId: { $in: periodObjIds },
+          status: { $in: ["draft", "published"] },
+        })
+          .sort({ academicPeriodId: 1, status: 1, updatedAt: -1, createdAt: -1 })
+          .select("_id academicPeriodId status")
+          .lean()
+      : [];
 
-    schedule: a.schedule
-      ? {
-          dayOfWeek:
-            typeof a.schedule.dayOfWeek === "number"
-              ? a.schedule.dayOfWeek
-              : null,
-          startTime: a.schedule.startTime || null,
-          endTime: a.schedule.endTime || null,
-          location: a.schedule.location || null,
-        }
-      : null,
-    schedules:
-      Array.isArray(a.schedules) && a.schedules.length > 0
-        ? a.schedules.map((s: any) => ({
-            dayOfWeek: typeof s.dayOfWeek === "number" ? s.dayOfWeek : null,
-            startTime: s.startTime || null,
-            endTime: s.endTime || null,
-            location: s.location || null,
-          }))
+  const preferredVersionByPeriodId = new Map<string, string>();
+  for (const version of versionsRaw as Array<{
+    _id: mongoose.Types.ObjectId;
+    academicPeriodId: mongoose.Types.ObjectId;
+    status: "draft" | "published";
+  }>) {
+    const periodKey = String(version.academicPeriodId);
+    if (!preferredVersionByPeriodId.has(periodKey)) {
+      preferredVersionByPeriodId.set(periodKey, String(version._id));
+    }
+  }
+
+  const preferredVersionIds = Array.from(new Set(preferredVersionByPeriodId.values()));
+  const versionObjIds = preferredVersionIds.map(
+    (value) => new mongoose.Types.ObjectId(value)
+  );
+
+  const timetableSlotsRaw =
+    versionObjIds.length > 0
+      ? await TimetableSlot.find({
+          schoolId: schoolIdObj,
+          teacherId: teacherIdObj,
+          versionId: { $in: versionObjIds },
+        })
+          .sort({ dayOfWeek: 1, startTime: 1, endTime: 1, _id: 1 })
+          .select(
+            "versionId classGroupId subjectId dayOfWeek startTime endTime classroomLabel"
+          )
+          .lean()
+      : [];
+
+  const slotScheduleMap = new Map<
+    string,
+    Array<{
+      dayOfWeek: number;
+      startTime: string;
+      endTime: string;
+      location: string | null;
+    }>
+  >();
+
+  for (const slot of timetableSlotsRaw as Array<{
+    versionId: mongoose.Types.ObjectId;
+    classGroupId: mongoose.Types.ObjectId;
+    subjectId: mongoose.Types.ObjectId;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    classroomLabel?: string;
+  }>) {
+    const key = [
+      String(slot.versionId),
+      String(slot.classGroupId),
+      String(slot.subjectId),
+    ].join("|");
+
+    if (!slotScheduleMap.has(key)) {
+      slotScheduleMap.set(key, []);
+    }
+
+    const list = slotScheduleMap.get(key)!;
+    list.push({
+      dayOfWeek: slot.dayOfWeek,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      location: slot.classroomLabel || null,
+    });
+  }
+
+  for (const [key, list] of slotScheduleMap) {
+    const seen = new Set<string>();
+    const deduped = list
+      .filter((s) => {
+        const hash = `${s.dayOfWeek}|${s.startTime}|${s.endTime}|${s.location || ""}`;
+        if (seen.has(hash)) return false;
+        seen.add(hash);
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+        if (a.startTime !== b.startTime) return a.startTime.localeCompare(b.startTime);
+        return a.endTime.localeCompare(b.endTime);
+      });
+    slotScheduleMap.set(key, deduped);
+  }
+
+  const data = (items || []).map((a: any) => {
+    const periodId = toObjectIdString(a.academicPeriodId);
+    const classGroupId = toObjectIdString(a.classGroupId);
+    const subjectId = toObjectIdString(a.subjectId);
+
+    const preferredVersionId = periodId
+      ? preferredVersionByPeriodId.get(periodId) || null
+      : null;
+
+    const slotKey =
+      preferredVersionId && classGroupId && subjectId
+        ? [preferredVersionId, classGroupId, subjectId].join("|")
+        : null;
+
+    const timetableSchedules =
+      String(a.status || "active") === "active" && slotKey
+        ? slotScheduleMap.get(slotKey) || []
+        : [];
+    const effectiveSchedules = timetableSchedules;
+    const primarySchedule = effectiveSchedules[0] || null;
+
+    return {
+      id: String(a._id),
+      teacherId: String(a.teacherId),
+      schoolId: String(a.schoolId),
+      academicPeriodId: periodId || "",
+
+      subject: a.subjectId
+        ? { id: String(a.subjectId._id), name: String(a.subjectId.name) }
+        : null,
+      classGroup: a.classGroupId
+        ? {
+            id: String(a.classGroupId._id),
+            name: String(a.classGroupId.name),
+            label:
+              a.classGroupId.gradeId?.name
+                ? `${a.classGroupId.gradeId.name} ${a.classGroupId.name}`.trim()
+                : a.classGroupId.name,
+          }
         : null,
 
-    workloadHours: typeof a.workloadHours === "number" ? a.workloadHours : 0,
-    status: String(a.status || "active"),
-    notes: a.notes ? String(a.notes) : null,
+      schedule: primarySchedule
+        ? {
+            dayOfWeek:
+              typeof primarySchedule.dayOfWeek === "number"
+                ? primarySchedule.dayOfWeek
+                : null,
+            startTime: primarySchedule.startTime || null,
+            endTime: primarySchedule.endTime || null,
+            location: primarySchedule.location || null,
+          }
+        : null,
+      schedules:
+        effectiveSchedules.length > 0
+          ? effectiveSchedules.map((s) => ({
+              dayOfWeek: typeof s.dayOfWeek === "number" ? s.dayOfWeek : null,
+              startTime: s.startTime || null,
+              endTime: s.endTime || null,
+              location: s.location || null,
+            }))
+          : null,
+      scheduleSource: timetableSchedules.length > 0 ? "timetable" : "none",
+      scheduleVersionId: timetableSchedules.length > 0 ? preferredVersionId : null,
 
-    assignedBy: a.assignedBy ? String(a.assignedBy) : null,
-    assignedAt: a.assignedAt ? new Date(a.assignedAt).toISOString() : null,
+      workloadHours: typeof a.workloadHours === "number" ? a.workloadHours : 0,
+      status: String(a.status || "active"),
+      notes: a.notes ? String(a.notes) : null,
 
-    createdAt: new Date(a.createdAt).toISOString(),
-    updatedAt: new Date(a.updatedAt).toISOString(),
-  }));
+      assignedBy: a.assignedBy ? String(a.assignedBy) : null,
+      assignedAt: a.assignedAt ? new Date(a.assignedAt).toISOString() : null,
+
+      createdAt: new Date(a.createdAt).toISOString(),
+      updatedAt: new Date(a.updatedAt).toISOString(),
+    };
+  });
 
   return Response.json({ success: true, data });
 }
@@ -157,44 +287,9 @@ export async function POST(
       "classGroupId"
     );
 
-    // Support both legacy single schedule and new schedules array
-    const schedules =
-      body.schedules && Array.isArray(body.schedules)
-        ? body.schedules
-        : body.schedule
-        ? [body.schedule]
-        : [];
-
-    // Validate all schedules
-    for (let i = 0; i < schedules.length; i++) {
-      const s = schedules[i];
-      if (s.dayOfWeek == null || s.dayOfWeek < 0 || s.dayOfWeek > 6) {
-        return Response.json(
-          { error: `Schedule ${i + 1}: dayOfWeek must be 0-6` },
-          { status: 400 }
-        );
-      }
-      if (!s.startTime || !/^\d{2}:\d{2}$/.test(s.startTime)) {
-        return Response.json(
-          { error: `Schedule ${i + 1}: startTime must be HH:MM` },
-          { status: 400 }
-        );
-      }
-      if (!s.endTime || !/^\d{2}:\d{2}$/.test(s.endTime)) {
-        return Response.json(
-          { error: `Schedule ${i + 1}: endTime must be HH:MM` },
-          { status: 400 }
-        );
-      }
-      const startMins = parseTimeToMinutes(s.startTime);
-      const endMins = parseTimeToMinutes(s.endTime);
-      if (startMins === null || endMins === null || startMins >= endMins) {
-        return Response.json(
-          { error: `Schedule ${i + 1}: endTime must be after startTime` },
-          { status: 400 }
-        );
-      }
-    }
+    const scheduleWriteAttempted =
+      Object.prototype.hasOwnProperty.call(body, "schedule") ||
+      Object.prototype.hasOwnProperty.call(body, "schedules");
 
     // Ensure teacher belongs to school
     const teacher = await Teacher.findOne({
@@ -225,6 +320,11 @@ export async function POST(
       return Response.json({ error: "Subject not found" }, { status: 404 });
 
     const warnings: string[] = [];
+    if (scheduleWriteAttempted) {
+      warnings.push(
+        "Assignment-level schedule writes are disabled. Manage schedules in the Master Timetable planner."
+      );
+    }
 
     // Optional: warn if subject not in class group’s configured subjects
     const cgSubjects = Array.isArray((classGroup as any).subjectIds)
@@ -248,130 +348,6 @@ export async function POST(
       warnings.push("Subject was added to teacher’s subject list.");
     }
 
-    // Schedule conflict check for all schedules
-    if (schedules.length > 0) {
-      // Get all existing assignments for this teacher and period
-      const existing = await TeacherAssignment.find({
-        schoolId: schoolIdObj,
-        teacherId: teacherObjId,
-        academicPeriodId: academicPeriodObjId,
-        status: "active",
-      })
-        .populate({ path: "subjectId", select: "name", model: Subject })
-        .populate({ path: "classGroupId", select: "name", model: ClassGroup })
-        .select("schedule schedules subjectId classGroupId")
-        .lean();
-
-      // Check each new schedule against existing ones
-      for (const newSched of schedules) {
-        // Check against single schedule field (legacy)
-        for (const existingAssignment of existing || []) {
-          if ((existingAssignment as any).schedule) {
-            const exSched = (existingAssignment as any).schedule;
-            if (
-              exSched.dayOfWeek === newSched.dayOfWeek &&
-              exSched.startTime &&
-              exSched.endTime &&
-              overlaps(
-                newSched.startTime,
-                newSched.endTime,
-                exSched.startTime,
-                exSched.endTime
-              )
-            ) {
-              return Response.json(
-                {
-                  error:
-                    "Schedule conflict: teacher already has an overlapping assignment for that day/time.",
-                  conflict: {
-                    id: String((existingAssignment as any)._id),
-                    subject: (existingAssignment as any).subjectId
-                      ? {
-                          id: String((existingAssignment as any).subjectId._id),
-                          name: String(
-                            (existingAssignment as any).subjectId.name
-                          ),
-                        }
-                      : null,
-                    classGroup: (existingAssignment as any).classGroupId
-                      ? {
-                          id: String(
-                            (existingAssignment as any).classGroupId._id
-                          ),
-                          name: String(
-                            (existingAssignment as any).classGroupId.name
-                          ),
-                        }
-                      : null,
-                    schedule: {
-                      dayOfWeek: exSched.dayOfWeek ?? null,
-                      startTime: exSched.startTime ?? null,
-                      endTime: exSched.endTime ?? null,
-                      location: exSched.location ?? null,
-                    },
-                  },
-                },
-                { status: 409 }
-              );
-            }
-          }
-          // Check against schedules array (new)
-          if (Array.isArray((existingAssignment as any).schedules)) {
-            for (const exSched of (existingAssignment as any).schedules) {
-              if (
-                exSched.dayOfWeek === newSched.dayOfWeek &&
-                exSched.startTime &&
-                exSched.endTime &&
-                overlaps(
-                  newSched.startTime,
-                  newSched.endTime,
-                  exSched.startTime,
-                  exSched.endTime
-                )
-              ) {
-                return Response.json(
-                  {
-                    error:
-                      "Schedule conflict: teacher already has an overlapping assignment for that day/time.",
-                    conflict: {
-                      id: String((existingAssignment as any)._id),
-                      subject: (existingAssignment as any).subjectId
-                        ? {
-                            id: String(
-                              (existingAssignment as any).subjectId._id
-                            ),
-                            name: String(
-                              (existingAssignment as any).subjectId.name
-                            ),
-                          }
-                        : null,
-                      classGroup: (existingAssignment as any).classGroupId
-                        ? {
-                            id: String(
-                              (existingAssignment as any).classGroupId._id
-                            ),
-                            name: String(
-                              (existingAssignment as any).classGroupId.name
-                            ),
-                          }
-                        : null,
-                      schedule: {
-                        dayOfWeek: exSched.dayOfWeek ?? null,
-                        startTime: exSched.startTime ?? null,
-                        endTime: exSched.endTime ?? null,
-                        location: exSched.location ?? null,
-                      },
-                    },
-                  },
-                  { status: 409 }
-                );
-              }
-            }
-          }
-        }
-      }
-    }
-
     // Create assignment
     try {
       const assignmentData: any = {
@@ -387,19 +363,6 @@ export async function POST(
         assignedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : null,
         assignedAt: new Date(),
       };
-
-      // Handle schedules: if multiple, use schedules array; if single, set both for compatibility
-      if (schedules.length > 0) {
-        if (schedules.length === 1) {
-          // Single schedule: set both fields for backward compatibility
-          assignmentData.schedule = schedules[0];
-          assignmentData.schedules = schedules;
-        } else {
-          // Multiple schedules: use schedules array, set first as schedule for compatibility
-          assignmentData.schedule = schedules[0];
-          assignmentData.schedules = schedules;
-        }
-      }
 
       const created = await TeacherAssignment.create(assignmentData);
 

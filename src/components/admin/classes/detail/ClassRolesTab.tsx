@@ -24,12 +24,12 @@ import {
   Star,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuTrigger,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+} from "@/components/ui/premium-dropdown-menu";
 import {
   useClassRoleAssignments,
   useRemoveClassRole,
@@ -134,8 +134,8 @@ function RoleCard({
         </div>
 
         {/* Actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <PremiumDropdownMenu>
+          <PremiumDropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
@@ -143,28 +143,28 @@ function RoleCard({
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
+          </PremiumDropdownMenuTrigger>
+          <PremiumDropdownMenuContent
             align="end"
             className="border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
           >
-            <DropdownMenuItem
+            <PremiumDropdownMenuItem
               onClick={() => onViewStudent(assignment.student.id)}
               className="cursor-pointer gap-2"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               View Student
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-white/10" />
-            <DropdownMenuItem
+            </PremiumDropdownMenuItem>
+            <PremiumDropdownMenuSeparator className="bg-white/10" />
+            <PremiumDropdownMenuItem
               onClick={handleRemove}
               className="cursor-pointer gap-2 text-red-400 focus:text-red-300"
             >
               <Trash2 className="h-3.5 w-3.5" />
               Remove Role
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </PremiumDropdownMenuItem>
+          </PremiumDropdownMenuContent>
+        </PremiumDropdownMenu>
       </div>
 
       {/* Assigned date */}

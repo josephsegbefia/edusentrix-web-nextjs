@@ -16,6 +16,7 @@ import {
   Star,
   Briefcase,
   Plus,
+  TrendingUp,
 } from "lucide-react";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
 import { ManageGuardiansContent } from "./ManageGuardiansModal";
@@ -23,6 +24,7 @@ import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import { useGuardianSSE } from "@/hooks/admin/useGuardianSSE";
 import { useGuardians } from "@/hooks/admin/useGuardians";
 import { useDocumentSSE } from "@/hooks/admin/useDocumentSSE";
+import { useStudentPromotionHistory } from "@/hooks/admin/useStudentPromotionHistory";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -62,6 +64,8 @@ export function StudentRelationshipsTab({ student }: Props) {
 
   // Fetch guardians with real-time updates
   const { data: guardians = [] } = useGuardians(student.id);
+  const { data: promotionHistoryData } = useStudentPromotionHistory(student.id);
+  const promotionHistory = promotionHistoryData?.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -376,12 +380,47 @@ export function StudentRelationshipsTab({ student }: Props) {
               </Badge>
             )}
           </div>
-          <div className="rounded-xl border border-dashed border-white/10 bg-white/2 px-4 py-3">
-            <p className="text-[10px] text-white/50">
-              This section can be extended to show historical classes, promotion
-              records and any special placement notes.
-            </p>
-          </div>
+          {/* Promotion History */}
+          {promotionHistory.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-white/50">
+                Promotion History
+              </div>
+              <div className="space-y-1.5">
+                {promotionHistory.slice(0, 5).map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/2 px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-3.5 w-3.5 text-indigo-400" />
+                      <span className="text-xs font-medium text-white/90">
+                        {item.cycleYearLabel}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] capitalize",
+                          item.finalOutcome === "promote" && "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+                          item.finalOutcome === "repeat" && "border-amber-500/40 bg-amber-500/10 text-amber-200",
+                          item.finalOutcome === "graduate" && "border-violet-500/40 bg-violet-500/10 text-violet-200",
+                          (item.finalOutcome === "hold" || !["promote", "repeat", "graduate"].includes(item.finalOutcome)) && "border-slate-500/40 bg-slate-500/10 text-slate-200"
+                        )}
+                      >
+                        {item.finalOutcome}
+                      </Badge>
+                    </div>
+                    <span className="text-[10px] text-white/40">
+                      {item.isApplied ? "Applied" : "Pending"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-white/40">
+                {promotionHistory.length} promotion record{promotionHistory.length !== 1 ? "s" : ""} on file
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

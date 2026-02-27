@@ -7,6 +7,9 @@ import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Subject } from "@/models/Subject";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { Grade } from "@/models/Grade";
 import { escapeRegex, parsePositiveInt } from "@/lib/utils";
 import { runTeacherLeaveAutomation } from "@/lib/teachers/leaveAutomation";
 import mongoose from "mongoose";
@@ -171,14 +174,55 @@ export async function GET(req: NextRequest) {
 
     const agg = await Teacher.aggregate(pipeline);
 
-    const items = agg?.[0]?.items ?? [];
+    const rawItems = agg?.[0]?.items ?? [];
     const total = agg?.[0]?.total?.[0]?.count ?? 0;
+
+    // Assigned subjects from TeacherAssignment (current period) for list cards
+    const teacherIds = rawItems.map((t: any) => t._id);
+    const currentPeriod = await AcademicPeriod.findOne({
+      schoolId: schoolIdObj,
+      isCurrent: true,
+    })
+      .select("_id")
+      .lean();
+    const periodFilter = currentPeriod
+      ? { academicPeriodId: (currentPeriod as any)._id }
+      : {};
+    const assignments = teacherIds.length
+      ? await TeacherAssignment.find({
+          schoolId: schoolIdObj,
+          teacherId: { $in: teacherIds },
+          ...periodFilter,
+          status: "active",
+        })
+          .populate({ path: "subjectId", select: "name", model: Subject })
+          .populate({
+            path: "classGroupId",
+            select: "name",
+            populate: { path: "gradeId", select: "name", model: Grade },
+          })
+          .lean()
+      : [];
+    const assignedByTeacher = new Map<
+      string,
+      Array<{ id: string; name: string }>
+    >();
+    for (const a of assignments as any[]) {
+      const tid = String(a.teacherId);
+      const subj = a.subjectId;
+      if (!subj) continue;
+      const sid = String(subj._id);
+      const sname = String(subj.name);
+      if (!assignedByTeacher.has(tid)) assignedByTeacher.set(tid, []);
+      const arr = assignedByTeacher.get(tid)!;
+      if (!arr.some((s) => s.id === sid)) arr.push({ id: sid, name: sname });
+    }
 
     const today = startOfDay(new Date());
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const data = items.map((t: any) => {
+    const data = rawItems.map((t: any) => {
       const u = t.user || {};
       const createdAt = t.createdAt ? new Date(t.createdAt) : new Date();
 
@@ -209,11 +253,16 @@ export async function GET(req: NextRequest) {
         leaveEndDate: t.leaveEndDate ? new Date(t.leaveEndDate).toISOString() : null,
         leaveReason: t.leaveReason ? String(t.leaveReason) : null,
 
-        subjects: Array.isArray(t.subjects)
-          ? t.subjects
-              .slice(0, 6)
-              .map((s: any) => ({ id: String(s._id), name: String(s.name) }))
-          : [],
+        subjects:
+          assignedByTeacher.get(String(t._id))?.length
+            ? assignedByTeacher
+                .get(String(t._id))!
+                .slice(0, 6)
+            : Array.isArray(t.subjects)
+              ? t.subjects
+                  .slice(0, 6)
+                  .map((s: any) => ({ id: String(s._id), name: String(s.name) }))
+              : [],
 
         homeroom: t.homeroom
           ? { id: String(t.homeroom._id), name: String(t.homeroom.name) }

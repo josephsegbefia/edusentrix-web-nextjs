@@ -60,7 +60,30 @@ export type ActivityType =
   | "transaction.created"
   | "transaction.voided"
   | "transaction.refunded"
-  | "transaction.adjusted";
+  | "transaction.adjusted"
+  // Timetable Reboot
+  | "timetable.version.created"
+  | "timetable.version.cloned_from_published"
+  | "timetable.conflicts.recomputed"
+  | "timetable.slot.created"
+  | "timetable.slot.updated"
+  | "timetable.slot.deleted"
+  | "timetable.version.published"
+  | "timetable.version.archived"
+  | "timetable.backfill.executed"
+  // Promotions
+  | "promotion.policy.created"
+  | "promotion.policy.activated"
+  | "promotion.cycle.preview_ready"
+  | "promotion.cycle.approved"
+  | "promotion.cycle.finalize_started"
+  | "promotion.cycle.finalized"
+  | "promotion.cycle.finalize_failed"
+  | "promotion.cycle.rollback_started"
+  | "promotion.cycle.rolled_back"
+  | "promotion.cycle.rollback_failed"
+  | "promotion.decision.override"
+  | "promotion.decision.placement";
 
 export interface IActivity {
   _id: Types.ObjectId;

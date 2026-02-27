@@ -69,6 +69,10 @@ export async function PATCH(
   const updateFields: Record<string, unknown> = {};
   const warnings: string[] = [];
   const changes: Array<{ field: string; from: unknown; to: unknown }> = [];
+  const scheduleWriteAttempted = Object.prototype.hasOwnProperty.call(
+    body,
+    "schedules"
+  );
 
   // Validate and update subjectId
   if (payload.subjectId !== undefined) {
@@ -194,21 +198,10 @@ export async function PATCH(
     }
   }
 
-  // Update schedules
-  if (payload.schedules !== undefined) {
-    if (payload.schedules === null) {
-      // Clear schedules
-      updateFields.schedules = undefined;
-      updateFields.schedule = undefined;
-      changes.push({ field: "schedules", from: "existing", to: "cleared" });
-    } else if (payload.schedules.length > 0) {
-      updateFields.schedules = payload.schedules;
-      changes.push({
-        field: "schedules",
-        from: existingAssignment.schedules?.length || 0,
-        to: payload.schedules.length,
-      });
-    }
+  if (scheduleWriteAttempted) {
+    warnings.push(
+      "Assignment-level schedule writes are disabled. Manage schedules in the Master Timetable planner."
+    );
   }
 
   // No changes
@@ -216,7 +209,7 @@ export async function PATCH(
     return Response.json({
       success: true,
       data: { id: assignmentId },
-      warnings: ["No changes detected"],
+      warnings: warnings.length > 0 ? warnings : ["No changes detected"],
     });
   }
 

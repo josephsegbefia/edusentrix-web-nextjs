@@ -23,12 +23,12 @@ import {
   ChevronDown,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuTrigger,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+} from "@/components/ui/premium-dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
@@ -347,8 +347,8 @@ export function ClassStudentsTab({
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right align-middle">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    <PremiumDropdownMenu>
+                      <PremiumDropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -357,12 +357,12 @@ export function ClassStudentsTab({
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
+                      </PremiumDropdownMenuTrigger>
+                      <PremiumDropdownMenuContent
                         align="end"
                         className="border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
                       >
-                        <DropdownMenuItem
+                        <PremiumDropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewStudent(student.id);
@@ -371,11 +371,11 @@ export function ClassStudentsTab({
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                           View Profile
-                        </DropdownMenuItem>
+                        </PremiumDropdownMenuItem>
                         {student.email && (
                           <>
-                            <DropdownMenuSeparator className="bg-white/10" />
-                            <DropdownMenuItem
+                            <PremiumDropdownMenuSeparator className="bg-white/10" />
+                            <PremiumDropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
                                 window.location.href = `mailto:${student.email}`;
@@ -384,11 +384,11 @@ export function ClassStudentsTab({
                             >
                               <Mail className="h-3.5 w-3.5" />
                               Send Email
-                            </DropdownMenuItem>
+                            </PremiumDropdownMenuItem>
                           </>
                         )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      </PremiumDropdownMenuContent>
+                    </PremiumDropdownMenu>
                   </td>
                 </tr>
               ))}

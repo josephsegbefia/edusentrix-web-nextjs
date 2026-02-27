@@ -1,4 +1,4 @@
-export type StudentStatus = "active" | "inactive" | "withdrawn";
+export type StudentStatus = "active" | "inactive" | "withdrawn" | "graduated";
 export type FeeStatus = "none" | "cleared" | "owing" | "partial" | "unknown"; // unknown is a placeholder until fees system is wired
 
 export type AcademicBadge =

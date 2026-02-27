@@ -5,6 +5,7 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Grade } from "@/models/Grade";
 import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { getPublishedWeekTimetable } from "@/lib/timetable/read-model";
 
 type PopulatedClassGroup = {
   _id: mongoose.Types.ObjectId;
@@ -139,6 +140,39 @@ export async function GET() {
       ])
     );
 
+    const slotByClassSubject = new Map<
+      string,
+      Array<{ dayOfWeek: number; startTime: string; endTime: string }>
+    >();
+    const weekly = await getPublishedWeekTimetable({
+      schoolId: context.schoolId,
+      targetDate: new Date(),
+      scope: "teacher",
+      teacherId: context.teacherId,
+    });
+    if (!("error" in weekly) && weekly.data?.days) {
+      for (const day of weekly.data.days) {
+        for (const slot of day.slots || []) {
+          const key = `${slot.classGroupId}|${slot.subjectId}`;
+          if (!slotByClassSubject.has(key)) {
+            slotByClassSubject.set(key, []);
+          }
+          const list = slotByClassSubject.get(key)!;
+          list.push({
+            dayOfWeek: slot.dayOfWeek,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+          });
+        }
+      }
+      for (const [, list] of slotByClassSubject) {
+        list.sort((a, b) => {
+          if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
+          return a.startTime.localeCompare(b.startTime);
+        });
+      }
+    }
+
     const classes = assignments.map((assignment) => {
       const classGroup = isPopulatedClassGroup(assignment.classGroupId)
         ? assignment.classGroupId
@@ -152,11 +186,11 @@ export async function GET() {
         ? `${gradeName ? gradeName + " " : ""}${classGroup.name}`.trim()
         : "";
 
-      const schedule = assignment.schedules
-        ? assignment.schedules
-        : assignment.schedule
-          ? [assignment.schedule]
-          : [];
+      const key =
+        classGroup?._id && subject?._id
+          ? `${classGroup._id}|${subject._id}`
+          : "";
+      const schedule = slotByClassSubject.get(key) || [];
 
       return {
         _id: classGroup?._id ? String(classGroup._id) : "",
@@ -168,9 +202,9 @@ export async function GET() {
           ? studentCountMap.get(String(classGroup._id)) || 0
           : 0,
         schedule: schedule.map((slot) => ({
-          dayOfWeek: slot.dayOfWeek ?? null,
-          startTime: slot.startTime ?? null,
-          endTime: slot.endTime ?? null,
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
         })),
         isHomeroom: classGroup?.homeroomTeacherId
           ? String(classGroup.homeroomTeacherId) === String(context.teacherId)

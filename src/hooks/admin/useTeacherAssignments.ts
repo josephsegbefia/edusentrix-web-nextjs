@@ -17,6 +17,16 @@ export type TeacherAssignmentDTO = {
     endTime: string | null;
     location: string | null;
   } | null;
+  schedules:
+    | Array<{
+        dayOfWeek: number | null;
+        startTime: string | null;
+        endTime: string | null;
+        location: string | null;
+      }>
+    | null;
+  scheduleSource?: "timetable" | "legacy" | "none";
+  scheduleVersionId?: string | null;
   workloadHours: number;
   status: "active" | "inactive";
   notes: string | null;

@@ -24,12 +24,12 @@ import {
   Clock,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuTrigger,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+} from "@/components/ui/premium-dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { QuickAssignTeacherModal } from "@/components/modals/QuickAssignTeacherModal";
 import { AssignSubjectScheduleModal } from "@/components/modals/AssignSubjectScheduleModal";
@@ -560,8 +560,8 @@ export function ClassSubjectsTeachersTab({
                           })}
 
                           {/* Actions dropdown */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                          <PremiumDropdownMenu>
+                            <PremiumDropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -569,31 +569,31 @@ export function ClassSubjectsTeachersTab({
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
+                            </PremiumDropdownMenuTrigger>
+                            <PremiumDropdownMenuContent
                               align="end"
                               className="border border-white/10 bg-slate-900/95 text-xs text-slate-50 backdrop-blur-xl"
                             >
                               {subject.teachers.map((teacher) => (
-                                <DropdownMenuItem
+                                <PremiumDropdownMenuItem
                                   key={teacher.id}
                                   onClick={() => handleViewTeacher(teacher.id)}
                                   className="cursor-pointer gap-2"
                                 >
                                   <ExternalLink className="h-3.5 w-3.5" />
                                   View {teacher.fullName}
-                                </DropdownMenuItem>
+                                </PremiumDropdownMenuItem>
                               ))}
-                              <DropdownMenuSeparator className="bg-white/10" />
-                              <DropdownMenuItem
+                              <PremiumDropdownMenuSeparator className="bg-white/10" />
+                              <PremiumDropdownMenuItem
                                 onClick={() => handleOpenQuickAssign(subject)}
                                 className="cursor-pointer gap-2"
                               >
                                 <UserPlus className="h-3.5 w-3.5" />
                                 Change Teacher
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              </PremiumDropdownMenuItem>
+                            </PremiumDropdownMenuContent>
+                          </PremiumDropdownMenu>
                         </div>
                       </div>
                     ) : (

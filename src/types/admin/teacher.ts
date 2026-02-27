@@ -51,6 +51,7 @@ export type TeacherDetailDTO = {
   notes: string | null;
 
   subjects: TeacherSubjectDTO[];
+  assignedSubjects?: Array<{ id: string; name: string; classGroups: string[] }>;
   homeroom: TeacherHomeroomDTO;
 
   createdAt: string;

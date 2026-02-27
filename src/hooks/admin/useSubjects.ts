@@ -73,6 +73,7 @@ export type SubjectsResponse = {
 export type AssignTeacherResponse = {
   success: boolean;
   message: string;
+  warnings?: string[];
   data: {
     id: string;
     teacherId: string;
@@ -167,7 +168,8 @@ export function useAssignTeacherToSubject() {
       queryClient.invalidateQueries({ queryKey: ["subject", variables.subjectId] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      queryClient.invalidateQueries({ queryKey: ["teacher-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "detail", variables.teacherId] });
     },
   });
 }
@@ -189,14 +191,14 @@ export function useUnassignTeacher(subjectId?: string) {
       if (!res.ok) throw new Error(data.error || "Failed to unassign teacher");
       return data;
     },
-    onSuccess: (_, _vars) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
       if (subjectId) {
         queryClient.invalidateQueries({ queryKey: ["subject", subjectId] });
       }
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      queryClient.invalidateQueries({ queryKey: ["teacher-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["teachers", "assignments"] });
     },
   });
 }

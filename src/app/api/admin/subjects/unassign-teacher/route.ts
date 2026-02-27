@@ -26,10 +26,12 @@ function toObjectIdOrNull(id: string) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId, userId: adminUserId } = await requireSchoolAdmin();
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const actorIdObj = adminUserId ? toObjectIdOrNull(String(adminUserId)) : null;
+    const warnings: string[] = [];
     const body = await req.json();
 
     const parsed = UnassignSchema.safeParse(body);
@@ -89,6 +91,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Teacher unassigned successfully",
+      warnings,
     });
   } catch (e: unknown) {
     const message =

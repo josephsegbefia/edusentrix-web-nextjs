@@ -7,6 +7,9 @@ import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
 import { Subject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { Grade } from "@/models/Grade";
 import { UpdateTeacherSchema } from "@/schemas/teacher";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { createTeacherNotification } from "@/lib/teachers/teacherNotifications";
@@ -101,6 +104,53 @@ export async function GET(
         }))
       : [];
 
+    // Assigned subjects: derive from TeacherAssignment (current period, or all if none) so profile reflects actual teaching load
+    let assignedSubjects: Array<{ id: string; name: string; classGroups: string[] }> = [];
+    const currentPeriod = await AcademicPeriod.findOne({
+      schoolId: schoolIdObj,
+      isCurrent: true,
+    })
+      .select("_id")
+      .lean();
+    const periodFilter = currentPeriod
+      ? { academicPeriodId: (currentPeriod as any)._id }
+      : {};
+    const assignments = await TeacherAssignment.find({
+      schoolId: schoolIdObj,
+      teacherId: teacherObjId,
+      ...periodFilter,
+      status: "active",
+    })
+      .populate({ path: "subjectId", select: "name", model: Subject })
+      .populate({
+        path: "classGroupId",
+        select: "name",
+        populate: { path: "gradeId", select: "name", model: Grade },
+      })
+      .lean();
+    const bySubject = new Map<
+      string,
+      { id: string; name: string; classGroups: string[] }
+    >();
+    for (const a of assignments as any[]) {
+      const subj = a.subjectId;
+      const cls = a.classGroupId;
+      if (!subj) continue;
+      const sid = String(subj._id);
+      const sname = String(subj.name);
+      const classLabel = cls?.gradeId?.name
+        ? `${(cls.gradeId as any).name} ${cls?.name || ""}`.trim()
+        : cls?.name || "—";
+      if (!bySubject.has(sid)) {
+        bySubject.set(sid, { id: sid, name: sname, classGroups: [] });
+      }
+      const entry = bySubject.get(sid)!;
+      if (classLabel && !entry.classGroups.includes(classLabel)) {
+        entry.classGroups.push(classLabel);
+      }
+    }
+    assignedSubjects = Array.from(bySubject.values());
+
     const homeroom = t.homeroomClassGroupId
       ? {
           id: String(t.homeroomClassGroupId._id),
@@ -151,6 +201,7 @@ export async function GET(
         notes: t.notes ? String(t.notes) : null,
 
         subjects,
+        assignedSubjects,
         homeroom,
 
         createdAt: createdAt.toISOString(),

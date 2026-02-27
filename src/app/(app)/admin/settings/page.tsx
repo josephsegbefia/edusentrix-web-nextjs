@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -614,6 +615,17 @@ export default function SettingsPage() {
                         Required for promotion to next grade
                       </p>
                     </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3">
+                    <p className="text-sm text-white/80">
+                      Configure promotion criteria and run previews
+                    </p>
+                    <Link
+                      href="/admin/promotions"
+                      className="text-sm font-medium text-indigo-300 hover:text-indigo-200"
+                    >
+                      Open Promotion Center →
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

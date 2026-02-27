@@ -17,7 +17,9 @@
     "seed:academics:dry": "tsx scripts/seed-academics.ts --dryRun",
     "seed:insights": "tsx scripts/seed-insights-data.ts",
     "seed:insights:dry": "tsx scripts/seed-insights-data.ts --dryRun",
-    "admin:create": "tsx scripts/createPlatformAdmin.ts"
+    "admin:create": "tsx scripts/createPlatformAdmin.ts",
+    "timetable:backfill": "tsx scripts/backfill-timetable-from-assignments.ts",
+    "timetable:parity": "tsx scripts/check-timetable-assignment-parity.ts"
   },
   "dependencies": {
     "@clerk/backend": "^2.29.0",

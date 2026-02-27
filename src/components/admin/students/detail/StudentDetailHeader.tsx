@@ -367,10 +367,12 @@ export function StudentDetailHeader({
                     status === "inactive" &&
                       "border-slate-400/50 bg-slate-500/20 text-slate-200",
                     status === "withdrawn" &&
-                      "border-red-400/50 bg-red-500/20 text-red-200"
+                      "border-red-400/50 bg-red-500/20 text-red-200",
+                    status === "graduated" &&
+                      "border-violet-400/50 bg-violet-500/20 text-violet-200"
                   )}
                 >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {status === "graduated" ? "Alumni" : status.charAt(0).toUpperCase() + status.slice(1)}
                 </span>
               </div>
 

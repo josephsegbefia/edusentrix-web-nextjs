@@ -24,6 +24,7 @@ type TeacherDetailHeaderProps = {
     status: string;
     homeroom?: { id: string; name: string } | null;
     subjects?: Array<{ id: string; name: string }>;
+    assignedSubjects?: Array<{ id: string; name: string; classGroups: string[] }>;
     hireDate?: string | null;
     department?: string | null;
     leaveStartDate?: string | null;
@@ -79,10 +80,12 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
     status,
     homeroom,
     subjects,
+    assignedSubjects,
     hireDate,
     department,
     leaveEndDate,
   } = teacher;
+  const displaySubjects = (assignedSubjects?.length ? assignedSubjects : subjects) ?? [];
 
   const statusStyle = statusConfig[status] || statusConfig.inactive;
 
@@ -178,10 +181,10 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
                   {homeroom.name}
                 </span>
               )}
-              {subjects && subjects.length > 0 && (
+              {displaySubjects.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/25 bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-300">
                   <BookOpen className="h-3.5 w-3.5" />
-                  {subjects.length} subject{subjects.length === 1 ? "" : "s"}
+                  {displaySubjects.length} subject{displaySubjects.length === 1 ? "" : "s"}
                 </span>
               )}
             </div>
@@ -237,7 +240,7 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
               </div>
             </div>
           )}
-          {subjects && subjects.length > 0 && (
+          {displaySubjects.length > 0 && (
             <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/15">
                 <BookOpen className="h-5 w-5 text-purple-300" />
@@ -245,8 +248,8 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
               <div className="text-sm">
                 <p className="text-xs text-white/45">Teaching</p>
                 <p className="font-medium text-white/90 line-clamp-2">
-                  {subjects.slice(0, 2).map((s) => s.name).join(", ")}
-                  {subjects.length > 2 && ` +${subjects.length - 2}`}
+                  {displaySubjects.slice(0, 2).map((s) => s.name).join(", ")}
+                  {displaySubjects.length > 2 && ` +${displaySubjects.length - 2}`}
                 </p>
               </div>
             </div>

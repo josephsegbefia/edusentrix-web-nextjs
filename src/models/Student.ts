@@ -22,12 +22,20 @@ export interface IStudent {
   subjectRemoveIds?: Types.ObjectId[]; // subjects this student does NOT take
 
   photoUrl?: string | null;
-  status: "active" | "inactive" | "withdrawn";
+  status: "active" | "inactive" | "withdrawn" | "graduated";
   enrolledAt?: Date | null;
 
   // GES (Ghana Education Service) fields — optional, can be attached later
   gesIndexNumber?: string | null; // JHS BECE index number
   gesSchoolCode?: string | null; // snapshot of the school's GES code at time of assignment
+
+  // Promotion service (additive only — PROMOTION_SERVICE_SPEC §8.5)
+  lastPromotionCycleId?: Types.ObjectId | null;
+  promotionHistoryCount?: number;
+  graduation?: {
+    graduatedAt?: Date;
+    graduatedFromGradeId?: Types.ObjectId;
+  };
 
   createdAt: Date;
   updatedAt: Date;
@@ -73,13 +81,29 @@ const studentSchema = new Schema<IStudent>(
     photoUrl: { type: String, default: null },
     status: {
       type: String,
-      enum: ["active", "inactive", "withdrawn"],
+      enum: ["active", "inactive", "withdrawn", "graduated"],
       default: "active",
     },
     enrolledAt: { type: Date, default: null },
 
     gesIndexNumber: { type: String, default: null, trim: true },
     gesSchoolCode: { type: String, default: null, trim: true },
+
+    lastPromotionCycleId: {
+      type: Schema.Types.ObjectId,
+      ref: "PromotionCycle",
+      default: null,
+    },
+    promotionHistoryCount: { type: Number },
+    graduation: {
+      type: new Schema(
+        {
+          graduatedAt: { type: Date },
+          graduatedFromGradeId: { type: Schema.Types.ObjectId, ref: "Grade" },
+        },
+        { _id: false }
+      ),
+    },
   },
   { timestamps: true }
 );

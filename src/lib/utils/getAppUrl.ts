@@ -1,30 +1,32 @@
 // src/lib/utils/getAppUrl.ts
 /**
- * Get the application URL for redirects.
- * Checks multiple environment variables in order of priority:
- * 1. APP_URL (explicit setting)
- * 2. NEXT_PUBLIC_APP_URL (client-accessible setting)
- * 3. VERCEL_URL (auto-set by Vercel)
- * 4. Fallback to localhost for development
+ * Get the application URL for redirects, verification links, etc.
+ * Priority:
+ * 1. APP_URL (explicit override)
+ * 2. NEXT_PUBLIC_APP_URL (explicit override)
+ * 3. Production: https://tryedusentrix.app
+ * 4. Development: http://localhost:3000 (or PORT)
  */
 export function getAppUrl(): string {
-  // Explicit APP_URL takes priority
+  // Explicit overrides take priority
   if (process.env.APP_URL) {
     return process.env.APP_URL;
   }
-
-  // Client-accessible URL
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL;
   }
 
-  // Vercel auto-sets this for deployments
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+  // Production: use tryedusentrix.app
+  const isProduction =
+    process.env.VERCEL_ENV === "production" ||
+    process.env.NODE_ENV === "production";
+  if (isProduction) {
+    return "https://tryedusentrix.app";
   }
 
-  // Development fallback
-  return "http://localhost:3000";
+  // Development: localhost
+  const port = process.env.PORT || "3000";
+  return `http://localhost:${port}`;
 }
 
 /**

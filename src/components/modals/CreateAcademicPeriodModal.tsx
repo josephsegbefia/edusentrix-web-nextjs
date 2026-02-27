@@ -21,20 +21,12 @@ const schema = z
   .superRefine((val, ctx) => {
     const start = new Date(val.startDate);
     const end = new Date(val.endDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     if (Number.isNaN(start.getTime())) {
       ctx.addIssue({
         code: "custom",
         path: ["startDate"],
         message: "Start date is invalid",
-      });
-    } else if (start <= today) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["startDate"],
-        message: "Start date must be in the future",
       });
     }
 
@@ -43,12 +35,6 @@ const schema = z
         code: "custom",
         path: ["endDate"],
         message: "End date is invalid",
-      });
-    } else if (end <= today) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["endDate"],
-        message: "End date must be in the future",
       });
     }
 
@@ -90,12 +76,6 @@ export default function CreateAcademicPeriodModal({
   });
 
   const isPending = Boolean(isLoading || form.formState.isSubmitting);
-
-  const minDate = React.useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
-  }, []);
 
   const startDate = form.watch("startDate");
 
@@ -236,7 +216,6 @@ export default function CreateAcademicPeriodModal({
                     </Label>
                     <Input
                       type="date"
-                      min={minDate}
                       className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
                       {...form.register("startDate")}
                     />
@@ -253,7 +232,7 @@ export default function CreateAcademicPeriodModal({
                     </Label>
                     <Input
                       type="date"
-                      min={startDate || minDate}
+                      min={startDate || undefined}
                       className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
                       {...form.register("endDate")}
                     />

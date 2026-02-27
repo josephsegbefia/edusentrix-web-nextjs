@@ -1,7 +1,13 @@
 import { Schema, model, models, Types } from "mongoose";
 
 export type ReportVerificationStatus = "issued" | "revoked";
-export type ReportVerificationType = "simple_snapshot" | "overdue_report";
+export type ReportVerificationType =
+  | "simple_snapshot"
+  | "overdue_report"
+  | "term_report"
+  | "weekly_report"
+  | "monthly_report"
+  | "biweekly_report";
 
 export interface IReportVerification {
   _id: Types.ObjectId;
@@ -42,7 +48,14 @@ const reportVerificationSchema = new Schema<IReportVerification>(
     },
     reportType: {
       type: String,
-      enum: ["simple_snapshot", "overdue_report"],
+      enum: [
+        "simple_snapshot",
+        "overdue_report",
+        "term_report",
+        "weekly_report",
+        "monthly_report",
+        "biweekly_report",
+      ],
       required: true,
       default: "simple_snapshot",
     },

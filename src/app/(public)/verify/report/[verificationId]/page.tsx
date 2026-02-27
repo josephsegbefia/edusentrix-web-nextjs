@@ -46,6 +46,10 @@ function fmtDate(value: string | null) {
 function labelizeReportType(type: string) {
   if (type === "simple_snapshot") return "Simple Report Snapshot";
   if (type === "overdue_report") return "Overdue Risk Report";
+  if (type === "term_report") return "Academic Term Report";
+  if (type === "weekly_report") return "Weekly Report";
+  if (type === "monthly_report") return "Monthly Report";
+  if (type === "biweekly_report") return "Biweekly Report";
   return type;
 }
 

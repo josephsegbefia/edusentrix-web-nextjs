@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type AcademicPeriodDTO = {
   _id: string;
@@ -28,5 +28,59 @@ export function useAcademicPeriods() {
     refetchOnMount: false,
     refetchOnReconnect: false,
     staleTime: 30_000,
+  });
+}
+
+export type CreatePeriodInput = {
+  yearLabel: string;
+  term: string;
+  startDate: string;
+  endDate: string;
+};
+
+export function useCreatePeriod() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreatePeriodInput) => {
+      const res = await fetch("/api/admin/periods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          yearLabel: input.yearLabel,
+          term: input.term,
+          startDate: input.startDate,
+          endDate: input.endDate,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error ?? "Failed to create period");
+      }
+      return json;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
+    },
+  });
+}
+
+export function useSetCurrentPeriod() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (periodId: string) => {
+      const res = await fetch(`/api/admin/periods/${periodId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isCurrent: true }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error ?? "Failed to set current period");
+      }
+      return json;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
+    },
   });
 }

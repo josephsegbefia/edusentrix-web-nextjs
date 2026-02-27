@@ -8,11 +8,14 @@ import { NetworkAccessibilityAnnouncer } from "@/components/system/NetworkAccess
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
+export const viewport = {
+  themeColor: "#0B1020",
+};
+
 export const metadata = {
   title: "EduSentrix",
   description: "Modern school management & payments",
   manifest: "/manifest.webmanifest",
-  themeColor: "#0B1020",
   icons: {
     icon: "/logo/edusentrix-logo.png",
     apple: "/logo/edusentrix-logo.png",

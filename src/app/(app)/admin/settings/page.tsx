@@ -21,6 +21,8 @@ import {
   AlertCircle,
   Plus,
   Trash2,
+  ChevronDown,
+  ChevronRight,
   Coffee,
   Megaphone,
   CheckCircle2,
@@ -34,8 +36,15 @@ import {
   formatTime,
   getShortDayName,
   type BreakPeriodDTO,
+  type BreakDailyOverrideDTO,
+  type BreakGradeOverrideDTO,
   type AssemblyConfigDTO,
+  type AssemblyDailyOverrideDTO,
+  type AssemblyGradeOverrideDTO,
+  type DailyScheduleOverrideDTO,
+  type GradeScheduleOverrideDTO,
 } from "@/hooks/admin/useSchoolSettings";
+import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
 import { useBusyToast } from "@/hooks/useBusyToast";
 
 type SettingsTab = "schedule" | "attendance" | "academic" | "features";
@@ -59,7 +68,18 @@ const DAYS_OF_WEEK = [
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = React.useState<SettingsTab>("schedule");
+  const [dailyOverridesExpanded, setDailyOverridesExpanded] =
+    React.useState(false);
+  const [gradeOverridesExpanded, setGradeOverridesExpanded] =
+    React.useState(false);
+  const [assemblyDailyExpanded, setAssemblyDailyExpanded] =
+    React.useState(false);
+  const [assemblyGradeExpanded, setAssemblyGradeExpanded] =
+    React.useState(false);
+  const [breakDailyExpanded, setBreakDailyExpanded] = React.useState(false);
+  const [breakGradeExpanded, setBreakGradeExpanded] = React.useState(false);
   const { data, isLoading, isError } = useSchoolSettings();
+  const { data: gradesData } = useGradeOptions();
   const updateSettings = useUpdateSchoolSettings();
   const busy = useBusyToast();
 
@@ -90,6 +110,12 @@ export default function SettingsPage() {
     offlineMode: {
       enabled: boolean;
     };
+    dailyScheduleOverrides: DailyScheduleOverrideDTO[];
+    gradeScheduleOverrides: GradeScheduleOverrideDTO[];
+    breakDailyOverrides: BreakDailyOverrideDTO[];
+    breakGradeOverrides: BreakGradeOverrideDTO[];
+    assemblyDailyOverrides: AssemblyDailyOverrideDTO[];
+    assemblyGradeOverrides: AssemblyGradeOverrideDTO[];
   } | null>(null);
 
   // Initialize form when data loads
@@ -113,6 +139,12 @@ export default function SettingsPage() {
           channels: { whatsapp: true, sms: false, email: false },
         },
         offlineMode: data.data.offlineMode || { enabled: true },
+        dailyScheduleOverrides: data.data.dailyScheduleOverrides || [],
+        gradeScheduleOverrides: data.data.gradeScheduleOverrides || [],
+        breakDailyOverrides: data.data.breakDailyOverrides || [],
+        breakGradeOverrides: data.data.breakGradeOverrides || [],
+        assemblyDailyOverrides: data.data.assemblyDailyOverrides || [],
+        assemblyGradeOverrides: data.data.assemblyGradeOverrides || [],
       });
     }
   }, [data, formData]);
@@ -155,6 +187,257 @@ export default function SettingsPage() {
     const newBreaks = [...formData.breaks];
     newBreaks[index] = { ...newBreaks[index], [field]: value };
     setFormData({ ...formData, breaks: newBreaks });
+  };
+
+  const addDailyOverride = () => {
+    if (!formData) return;
+    const existing = formData.dailyScheduleOverrides || [];
+    const usedDays = new Set(existing.map((o) => o.dayOfWeek));
+    const firstFree = [1, 2, 3, 4, 5].find((d) => !usedDays.has(d)) ?? 1;
+    setFormData({
+      ...formData,
+      dailyScheduleOverrides: [
+        ...existing,
+        { dayOfWeek: firstFree, startTime: undefined, endTime: undefined },
+      ],
+    });
+  };
+
+  const removeDailyOverride = (index: number) => {
+    if (!formData) return;
+    setFormData({
+      ...formData,
+      dailyScheduleOverrides: (formData.dailyScheduleOverrides || []).filter(
+        (_, i) => i !== index
+      ),
+    });
+  };
+
+  const updateDailyOverride = (
+    index: number,
+    field: keyof DailyScheduleOverrideDTO,
+    value: number | string | undefined
+  ) => {
+    if (!formData) return;
+    const overrides = [...(formData.dailyScheduleOverrides || [])];
+    overrides[index] = { ...overrides[index], [field]: value };
+    setFormData({ ...formData, dailyScheduleOverrides: overrides });
+  };
+
+  const addGradeOverride = () => {
+    if (!formData) return;
+    const grades = gradesData ?? [];
+    const existing = formData.gradeScheduleOverrides || [];
+    const usedGrades = new Set(existing.map((o) => o.gradeId));
+    const firstFree = grades.find((g) => !usedGrades.has(g.id || g._id));
+    if (!firstFree) return;
+    const gradeId = "id" in firstFree ? firstFree.id : firstFree._id;
+    setFormData({
+      ...formData,
+      gradeScheduleOverrides: [
+        ...existing,
+        { gradeId, periodsPerDay: undefined, periodDuration: undefined },
+      ],
+    });
+  };
+
+  const removeGradeOverride = (index: number) => {
+    if (!formData) return;
+    setFormData({
+      ...formData,
+      gradeScheduleOverrides: (formData.gradeScheduleOverrides || []).filter(
+        (_, i) => i !== index
+      ),
+    });
+  };
+
+  const updateGradeOverride = (
+    index: number,
+    field: keyof GradeScheduleOverrideDTO,
+    value: string | number | undefined
+  ) => {
+    if (!formData) return;
+    const overrides = [...(formData.gradeScheduleOverrides || [])];
+    overrides[index] = { ...overrides[index], [field]: value };
+    setFormData({ ...formData, gradeScheduleOverrides: overrides });
+  };
+
+  const addBreakDailyOverride = () => {
+    if (!formData) return;
+    const breaks = formData.breaks || [];
+    const existing = formData.breakDailyOverrides || [];
+    const firstBreak = breaks[0];
+    if (!firstBreak) return;
+    const candidateDays = formData.workingDays;
+    const usedKeys = new Set(
+      existing.map((o) => `${o.dayOfWeek}:${o.breakName}`)
+    );
+    const firstFreeDay = candidateDays.find((d) =>
+      breaks.some((b) => !usedKeys.has(`${d}:${b.name}`))
+    );
+    if (firstFreeDay == null) return;
+    const breakForDay = breaks.find((b) => !usedKeys.has(`${firstFreeDay}:${b.name}`));
+    if (!breakForDay) return;
+    setFormData({
+      ...formData,
+      breakDailyOverrides: [
+        ...existing,
+        {
+          dayOfWeek: firstFreeDay,
+          breakName: breakForDay.name,
+          startTime: undefined,
+          endTime: undefined,
+        },
+      ],
+    });
+  };
+
+  const removeBreakDailyOverride = (index: number) => {
+    if (!formData) return;
+    setFormData({
+      ...formData,
+      breakDailyOverrides: (formData.breakDailyOverrides || []).filter(
+        (_, i) => i !== index
+      ),
+    });
+  };
+
+  const updateBreakDailyOverride = (
+    index: number,
+    field: keyof BreakDailyOverrideDTO,
+    value: number | string | undefined
+  ) => {
+    if (!formData) return;
+    const overrides = [...(formData.breakDailyOverrides || [])];
+    overrides[index] = { ...overrides[index], [field]: value };
+    setFormData({ ...formData, breakDailyOverrides: overrides });
+  };
+
+  const addBreakGradeOverride = () => {
+    if (!formData) return;
+    const grades = gradesData ?? [];
+    const breaks = formData.breaks || [];
+    const existing = formData.breakGradeOverrides || [];
+    const usedKeys = new Set(
+      existing.map((o) => `${o.gradeId}:${o.breakName}`)
+    );
+    const firstFree = grades.find((g) => {
+      const gradeId = ("id" in g ? g.id : g._id) ?? "";
+      return breaks.some((b) => !usedKeys.has(`${gradeId}:${b.name}`));
+    });
+    if (!firstFree) return;
+    const gradeId = ("id" in firstFree ? firstFree.id : firstFree._id) ?? "";
+    const breakForGrade = breaks.find((b) => !usedKeys.has(`${gradeId}:${b.name}`));
+    if (!breakForGrade) return;
+    setFormData({
+      ...formData,
+      breakGradeOverrides: [
+        ...existing,
+        {
+          gradeId,
+          breakName: breakForGrade.name,
+          startTime: undefined,
+          endTime: undefined,
+        },
+      ],
+    });
+  };
+
+  const removeBreakGradeOverride = (index: number) => {
+    if (!formData) return;
+    setFormData({
+      ...formData,
+      breakGradeOverrides: (formData.breakGradeOverrides || []).filter(
+        (_, i) => i !== index
+      ),
+    });
+  };
+
+  const updateBreakGradeOverride = (
+    index: number,
+    field: keyof BreakGradeOverrideDTO,
+    value: string | undefined
+  ) => {
+    if (!formData) return;
+    const overrides = [...(formData.breakGradeOverrides || [])];
+    overrides[index] = { ...overrides[index], [field]: value };
+    setFormData({ ...formData, breakGradeOverrides: overrides });
+  };
+
+  const addAssemblyDailyOverride = () => {
+    if (!formData) return;
+    const candidateDays = formData.assembly?.days?.length
+      ? formData.assembly.days
+      : formData.workingDays;
+    const existing = formData.assemblyDailyOverrides || [];
+    const usedDays = new Set(existing.map((o) => o.dayOfWeek));
+    const firstFree = candidateDays.find((d) => !usedDays.has(d)) ?? 1;
+    setFormData({
+      ...formData,
+      assemblyDailyOverrides: [
+        ...existing,
+        { dayOfWeek: firstFree, startTime: undefined, duration: undefined },
+      ],
+    });
+  };
+
+  const removeAssemblyDailyOverride = (index: number) => {
+    if (!formData) return;
+    setFormData({
+      ...formData,
+      assemblyDailyOverrides: (formData.assemblyDailyOverrides || []).filter(
+        (_, i) => i !== index
+      ),
+    });
+  };
+
+  const updateAssemblyDailyOverride = (
+    index: number,
+    field: keyof AssemblyDailyOverrideDTO,
+    value: number | string | undefined
+  ) => {
+    if (!formData) return;
+    const overrides = [...(formData.assemblyDailyOverrides || [])];
+    overrides[index] = { ...overrides[index], [field]: value };
+    setFormData({ ...formData, assemblyDailyOverrides: overrides });
+  };
+
+  const addAssemblyGradeOverride = () => {
+    if (!formData) return;
+    const grades = gradesData ?? [];
+    const existing = formData.assemblyGradeOverrides || [];
+    const usedGrades = new Set(existing.map((o) => o.gradeId));
+    const firstFree = grades.find((g) => !usedGrades.has(("id" in g ? g.id : g._id) ?? ""));
+    if (!firstFree) return;
+    const gradeId = ("id" in firstFree ? firstFree.id : firstFree._id) ?? "";
+    setFormData({
+      ...formData,
+      assemblyGradeOverrides: [
+        ...existing,
+        { gradeId, startTime: undefined, duration: undefined },
+      ],
+    });
+  };
+
+  const removeAssemblyGradeOverride = (index: number) => {
+    if (!formData) return;
+    setFormData({
+      ...formData,
+      assemblyGradeOverrides: (formData.assemblyGradeOverrides || []).filter(
+        (_, i) => i !== index
+      ),
+    });
+  };
+
+  const updateAssemblyGradeOverride = (
+    index: number,
+    field: keyof AssemblyGradeOverrideDTO,
+    value: string | number | undefined
+  ) => {
+    if (!formData) return;
+    const overrides = [...(formData.assemblyGradeOverrides || [])];
+    overrides[index] = { ...overrides[index], [field]: value };
+    setFormData({ ...formData, assemblyGradeOverrides: overrides });
   };
 
   const toggleWorkingDay = (day: number) => {
@@ -395,6 +678,247 @@ export default function SettingsPage() {
                       })}
                     </div>
                   </div>
+
+                  {/* Per-day overrides */}
+                  <div className="mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setDailyOverridesExpanded(!dailyOverridesExpanded)}
+                      className="flex w-full items-center gap-2 text-left text-white/80 hover:text-white"
+                    >
+                      {dailyOverridesExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <span className="font-medium">Per-day overrides</span>
+                      <Badge
+                        variant="outline"
+                        className="border-white/20 text-xs text-white/60"
+                      >
+                        {(formData.dailyScheduleOverrides || []).length} set
+                      </Badge>
+                    </button>
+                    {dailyOverridesExpanded && (
+                      <div className="mt-3 space-y-3">
+                        <p className="text-xs text-white/50">
+                          Override start/end times for specific days (e.g., early
+                          dismissal on Friday).
+                        </p>
+                        {(formData.dailyScheduleOverrides || []).map(
+                          (override, index) => (
+                            <div
+                              key={index}
+                              className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Label className="text-white/60">Day</Label>
+                                <select
+                                  value={override.dayOfWeek}
+                                  onChange={(e) =>
+                                    updateDailyOverride(
+                                      index,
+                                      "dayOfWeek",
+                                      Number(e.target.value)
+                                    )
+                                  }
+                                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
+                                >
+                                  {DAYS_OF_WEEK.map((d) => (
+                                    <option
+                                      key={d.value}
+                                      value={d.value}
+                                      className="bg-slate-900 text-white"
+                                    >
+                                      {d.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <Input
+                                type="time"
+                                placeholder="Start"
+                                value={override.startTime || ""}
+                                onChange={(e) =>
+                                  updateDailyOverride(
+                                    index,
+                                    "startTime",
+                                    e.target.value || undefined
+                                  )
+                                }
+                                className="w-28 border-white/10 bg-white/5 text-white"
+                              />
+                              <span className="text-white/50">to</span>
+                              <Input
+                                type="time"
+                                placeholder="End"
+                                value={override.endTime || ""}
+                                onChange={(e) =>
+                                  updateDailyOverride(
+                                    index,
+                                    "endTime",
+                                    e.target.value || undefined
+                                  )
+                                }
+                                className="w-28 border-white/10 bg-white/5 text-white"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeDailyOverride(index)}
+                                className="h-8 w-8 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addDailyOverride}
+                          className="gap-2 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add day override
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Per-grade overrides */}
+                  <div className="mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setGradeOverridesExpanded(!gradeOverridesExpanded)}
+                      className="flex w-full items-center gap-2 text-left text-white/80 hover:text-white"
+                    >
+                      {gradeOverridesExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <span className="font-medium">Per-grade overrides</span>
+                      <Badge
+                        variant="outline"
+                        className="border-white/20 text-xs text-white/60"
+                      >
+                        {(formData.gradeScheduleOverrides || []).length} set
+                      </Badge>
+                    </button>
+                    {gradeOverridesExpanded && (
+                      <div className="mt-3 space-y-3">
+                        <p className="text-xs text-white/50">
+                          Override periods per day and period duration for
+                          specific grades (e.g., primary vs secondary).
+                        </p>
+                        {(formData.gradeScheduleOverrides || []).map(
+                          (override, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-white/60">Grade</Label>
+                                  <select
+                                    value={override.gradeId}
+                                    onChange={(e) =>
+                                      updateGradeOverride(
+                                        index,
+                                        "gradeId",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
+                                  >
+                                    {(gradesData ?? []).map((g) => {
+                                      const id = "id" in g ? g.id : g._id;
+                                      return (
+                                        <option
+                                          key={id}
+                                          value={id}
+                                          className="bg-slate-900 text-white"
+                                        >
+                                          {g.name}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-white/60">
+                                    Periods
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    max={15}
+                                    placeholder="Default"
+                                    value={override.periodsPerDay ?? ""}
+                                    onChange={(e) =>
+                                      updateGradeOverride(
+                                        index,
+                                        "periodsPerDay",
+                                        e.target.value
+                                          ? Number(e.target.value)
+                                          : undefined
+                                      )
+                                    }
+                                    className="w-20 border-white/10 bg-white/5 text-white"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-white/60">Duration</Label>
+                                  <Input
+                                    type="number"
+                                    min={15}
+                                    max={120}
+                                    placeholder="Default"
+                                    value={override.periodDuration ?? ""}
+                                    onChange={(e) =>
+                                      updateGradeOverride(
+                                        index,
+                                        "periodDuration",
+                                        e.target.value
+                                          ? Number(e.target.value)
+                                          : undefined
+                                      )
+                                    }
+                                    className="w-20 border-white/10 bg-white/5 text-white"
+                                  />
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeGradeOverride(index)}
+                                  className="h-8 w-8 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )
+                        )}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addGradeOverride}
+                          disabled={
+                            !gradesData?.length ||
+                            (formData.gradeScheduleOverrides || []).length >=
+                              (gradesData?.length ?? 0)
+                          }
+                          className="gap-2 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add grade override
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -467,6 +991,281 @@ export default function SettingsPage() {
                         No break periods configured
                       </p>
                     )}
+
+                    {/* Per-day break overrides */}
+                    <div className="mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setBreakDailyExpanded(!breakDailyExpanded)}
+                        className="flex w-full items-center gap-2 text-left text-white/80 hover:text-white"
+                      >
+                        {breakDailyExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        <span className="font-medium">Per-day break overrides</span>
+                        <Badge
+                          variant="outline"
+                          className="border-white/20 text-xs text-white/60"
+                        >
+                          {(formData.breakDailyOverrides || []).length} set
+                        </Badge>
+                      </button>
+                      {breakDailyExpanded && (
+                        <div className="mt-3 space-y-3">
+                          <p className="text-xs text-white/50">
+                            Override break times for specific days (e.g., earlier lunch on Friday).
+                          </p>
+                          {(formData.breakDailyOverrides || []).map(
+                            (override, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-white/60">Day</Label>
+                                  <select
+                                    value={override.dayOfWeek}
+                                    onChange={(e) =>
+                                      updateBreakDailyOverride(
+                                        index,
+                                        "dayOfWeek",
+                                        Number(e.target.value)
+                                      )
+                                    }
+                                    className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
+                                  >
+                                    {DAYS_OF_WEEK.filter((d) =>
+                                      formData.workingDays.includes(d.value)
+                                    ).map((d) => (
+                                      <option
+                                        key={d.value}
+                                        value={d.value}
+                                        className="bg-slate-900 text-white"
+                                      >
+                                        {d.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-white/60">Break</Label>
+                                  <select
+                                    value={override.breakName}
+                                    onChange={(e) =>
+                                      updateBreakDailyOverride(
+                                        index,
+                                        "breakName",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
+                                  >
+                                    {formData.breaks.map((b) => (
+                                      <option
+                                        key={b.name}
+                                        value={b.name}
+                                        className="bg-slate-900 text-white"
+                                      >
+                                        {b.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <Input
+                                  type="time"
+                                  placeholder="Start"
+                                  value={override.startTime || ""}
+                                  onChange={(e) =>
+                                    updateBreakDailyOverride(
+                                      index,
+                                      "startTime",
+                                      e.target.value || undefined
+                                    )
+                                  }
+                                  className="w-28 border-white/10 bg-white/5 text-white"
+                                />
+                                <Input
+                                  type="time"
+                                  placeholder="End"
+                                  value={override.endTime || ""}
+                                  onChange={(e) =>
+                                    updateBreakDailyOverride(
+                                      index,
+                                      "endTime",
+                                      e.target.value || undefined
+                                    )
+                                  }
+                                  className="w-28 border-white/10 bg-white/5 text-white"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeBreakDailyOverride(index)}
+                                  className="h-8 w-8 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addBreakDailyOverride}
+                            disabled={
+                              !formData.breaks.length ||
+                              (formData.breakDailyOverrides || []).length >=
+                                formData.breaks.length * formData.workingDays.length
+                            }
+                            className="border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+                          >
+                            <Plus className="mr-1 h-4 w-4" />
+                            Add per-day override
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Per-grade break overrides */}
+                    <div className="mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setBreakGradeExpanded(!breakGradeExpanded)}
+                        className="flex w-full items-center gap-2 text-left text-white/80 hover:text-white"
+                      >
+                        {breakGradeExpanded ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        <span className="font-medium">Per-grade break overrides</span>
+                        <Badge
+                          variant="outline"
+                          className="border-white/20 text-xs text-white/60"
+                        >
+                          {(formData.breakGradeOverrides || []).length} set
+                        </Badge>
+                      </button>
+                      {breakGradeExpanded && (
+                        <div className="mt-3 space-y-3">
+                          <p className="text-xs text-white/50">
+                            Override break times for specific grades (e.g., different lunch for secondary).
+                          </p>
+                          {(formData.breakGradeOverrides || []).map(
+                            (override, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-white/60">Grade</Label>
+                                  <select
+                                    value={override.gradeId}
+                                    onChange={(e) =>
+                                      updateBreakGradeOverride(
+                                        index,
+                                        "gradeId",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
+                                  >
+                                    {(gradesData ?? []).map((g) => {
+                                      const id = "id" in g ? g.id : g._id;
+                                      const label = "label" in g ? g.label : "name" in g ? g.name : String(id);
+                                      return (
+                                        <option
+                                          key={id}
+                                          value={id}
+                                          className="bg-slate-900 text-white"
+                                        >
+                                          {label}
+                                        </option>
+                                      );
+                                    })}
+                                  </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Label className="text-white/60">Break</Label>
+                                  <select
+                                    value={override.breakName}
+                                    onChange={(e) =>
+                                      updateBreakGradeOverride(
+                                        index,
+                                        "breakName",
+                                        e.target.value
+                                      )
+                                    }
+                                    className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
+                                  >
+                                    {formData.breaks.map((b) => (
+                                      <option
+                                        key={b.name}
+                                        value={b.name}
+                                        className="bg-slate-900 text-white"
+                                      >
+                                        {b.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <Input
+                                  type="time"
+                                  placeholder="Start"
+                                  value={override.startTime || ""}
+                                  onChange={(e) =>
+                                    updateBreakGradeOverride(
+                                      index,
+                                      "startTime",
+                                      e.target.value || undefined
+                                    )
+                                  }
+                                  className="w-28 border-white/10 bg-white/5 text-white"
+                                />
+                                <Input
+                                  type="time"
+                                  placeholder="End"
+                                  value={override.endTime || ""}
+                                  onChange={(e) =>
+                                    updateBreakGradeOverride(
+                                      index,
+                                      "endTime",
+                                      e.target.value || undefined
+                                    )
+                                  }
+                                  className="w-28 border-white/10 bg-white/5 text-white"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeBreakGradeOverride(index)}
+                                  className="h-8 w-8 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addBreakGradeOverride}
+                            disabled={
+                              !formData.breaks.length ||
+                              !(gradesData ?? []).length ||
+                              (formData.breakGradeOverrides || []).length >=
+                                formData.breaks.length * (gradesData ?? []).length
+                            }
+                            className="border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+                          >
+                            <Plus className="mr-1 h-4 w-4" />
+                            Add per-grade override
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -565,6 +1364,235 @@ export default function SettingsPage() {
                         }
                       )}
                     </div>
+                  </div>
+
+                  {/* Per-day assembly overrides */}
+                  <div className="mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setAssemblyDailyExpanded(!assemblyDailyExpanded)}
+                      className="flex w-full items-center gap-2 text-left text-white/80 hover:text-white"
+                    >
+                      {assemblyDailyExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <span className="font-medium">Per-day assembly overrides</span>
+                      <Badge
+                        variant="outline"
+                        className="border-white/20 text-xs text-white/60"
+                      >
+                        {(formData.assemblyDailyOverrides || []).length} set
+                      </Badge>
+                    </button>
+                    {assemblyDailyExpanded && (
+                      <div className="mt-3 space-y-3">
+                        <p className="text-xs text-white/50">
+                          Override assembly time/duration for specific days (e.g., shorter assembly on Friday).
+                        </p>
+                        {(formData.assemblyDailyOverrides || []).map(
+                          (override, index) => (
+                            <div
+                              key={index}
+                              className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Label className="text-white/60">Day</Label>
+                                <select
+                                  value={override.dayOfWeek}
+                                  onChange={(e) =>
+                                    updateAssemblyDailyOverride(
+                                      index,
+                                      "dayOfWeek",
+                                      Number(e.target.value)
+                                    )
+                                  }
+                                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
+                                >
+                                  {DAYS_OF_WEEK.filter((d) =>
+                                    formData.workingDays.includes(d.value)
+                                  ).map((d) => (
+                                    <option
+                                      key={d.value}
+                                      value={d.value}
+                                      className="bg-slate-900 text-white"
+                                    >
+                                      {d.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <Input
+                                type="time"
+                                placeholder="Start"
+                                value={override.startTime || ""}
+                                onChange={(e) =>
+                                  updateAssemblyDailyOverride(
+                                    index,
+                                    "startTime",
+                                    e.target.value || undefined
+                                  )
+                                }
+                                className="w-28 border-white/10 bg-white/5 text-white"
+                              />
+                              <Input
+                                type="number"
+                                min={5}
+                                max={180}
+                                placeholder="Duration"
+                                value={override.duration ?? ""}
+                                onChange={(e) =>
+                                  updateAssemblyDailyOverride(
+                                    index,
+                                    "duration",
+                                    e.target.value ? Number(e.target.value) : undefined
+                                  )
+                                }
+                                className="w-24 border-white/10 bg-white/5 text-white"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeAssemblyDailyOverride(index)}
+                                className="h-8 w-8 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={addAssemblyDailyOverride}
+                          disabled={
+                            (formData.assemblyDailyOverrides || []).length >=
+                            formData.workingDays.length
+                          }
+                          className="border-blue-500/30 text-blue-300 hover:bg-blue-500/20"
+                        >
+                          <Plus className="mr-1 h-4 w-4" />
+                          Add per-day override
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Per-grade assembly overrides */}
+                  <div className="mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setAssemblyGradeExpanded(!assemblyGradeExpanded)}
+                      className="flex w-full items-center gap-2 text-left text-white/80 hover:text-white"
+                    >
+                      {assemblyGradeExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      <span className="font-medium">Per-grade assembly overrides</span>
+                      <Badge
+                        variant="outline"
+                        className="border-white/20 text-xs text-white/60"
+                      >
+                        {(formData.assemblyGradeOverrides || []).length} set
+                      </Badge>
+                    </button>
+                    {assemblyGradeExpanded && (
+                      <div className="mt-3 space-y-3">
+                        <p className="text-xs text-white/50">
+                          Override assembly time/duration for specific grades (e.g., later/shorter for kindergarten).
+                        </p>
+                        {(formData.assemblyGradeOverrides || []).map(
+                          (override, index) => (
+                            <div
+                              key={index}
+                              className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Label className="text-white/60">Grade</Label>
+                                <select
+                                  value={override.gradeId}
+                                  onChange={(e) =>
+                                    updateAssemblyGradeOverride(
+                                      index,
+                                      "gradeId",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
+                                >
+                                  {(gradesData ?? []).map((g) => {
+                                    const id = "id" in g ? g.id : g._id;
+                                    const label = "label" in g ? g.label : "name" in g ? g.name : String(id);
+                                    return (
+                                      <option
+                                        key={id}
+                                        value={id}
+                                        className="bg-slate-900 text-white"
+                                      >
+                                        {label}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </div>
+                              <Input
+                                type="time"
+                                placeholder="Start"
+                                value={override.startTime || ""}
+                                onChange={(e) =>
+                                  updateAssemblyGradeOverride(
+                                    index,
+                                    "startTime",
+                                    e.target.value || undefined
+                                  )
+                                }
+                                className="w-28 border-white/10 bg-white/5 text-white"
+                              />
+                              <Input
+                                type="number"
+                                min={5}
+                                max={180}
+                                placeholder="Duration"
+                                value={override.duration ?? ""}
+                                onChange={(e) =>
+                                  updateAssemblyGradeOverride(
+                                    index,
+                                    "duration",
+                                    e.target.value ? Number(e.target.value) : undefined
+                                  )
+                                }
+                                className="w-24 border-white/10 bg-white/5 text-white"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeAssemblyGradeOverride(index)}
+                                className="h-8 w-8 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={addAssemblyGradeOverride}
+                          disabled={
+                            !(gradesData ?? []).length ||
+                            (formData.assemblyGradeOverrides || []).length >=
+                              (gradesData ?? []).length
+                          }
+                          className="border-blue-500/30 text-blue-300 hover:bg-blue-500/20"
+                        >
+                          <Plus className="mr-1 h-4 w-4" />
+                          Add per-grade override
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

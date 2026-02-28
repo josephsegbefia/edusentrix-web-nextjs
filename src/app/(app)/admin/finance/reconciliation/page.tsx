@@ -49,6 +49,7 @@ import {
 } from "@/hooks/admin/useReconciliation";
 import { ReconciliationIngestionModal } from "@/components/admin/fees/reconciliation/ReconciliationIngestionModal";
 import { ReconciliationHelpDrawer } from "@/components/admin/fees/reconciliation/ReconciliationHelpDrawer";
+import { formatCurrency } from "@/lib/fees/money";
 
 function formatDateTime(value: string | Date | null | undefined) {
   if (!value) return "—";
@@ -73,14 +74,6 @@ function formatShortDate(value: string | Date | null | undefined) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
-}
-
-function formatMinorCurrency(amountMinor: number) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format((amountMinor || 0) / 100);
 }
 
 function StatusIcon({ status }: { status: ReconciliationStatus }) {
@@ -558,7 +551,7 @@ export default function ReconciliationConsolePage() {
                         <div className="hidden items-center gap-4 sm:flex">
                           {confidenceBar(item.confidence || 0)}
                           <p className="w-28 text-right text-sm font-semibold text-white">
-                            {formatMinorCurrency(item.amountMinor)}
+                            {formatCurrency(item.amountMinor)}
                           </p>
                         </div>
 
@@ -570,7 +563,7 @@ export default function ReconciliationConsolePage() {
                           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
                               <p className="text-[11px] font-medium uppercase tracking-wider text-white/30">Amount</p>
-                              <p className="mt-1 text-sm font-semibold text-white">{formatMinorCurrency(item.amountMinor)}</p>
+                              <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(item.amountMinor)}</p>
                             </div>
                             <div>
                               <p className="text-[11px] font-medium uppercase tracking-wider text-white/30">Reference</p>
@@ -887,21 +880,7 @@ export default function ReconciliationConsolePage() {
       )}
 
       {/* Quick Links */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <Link href="/admin/fees" className="block">
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-                <ArrowDownRight className="h-5 w-5 text-emerald-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-white">Fees & Payments</p>
-                <p className="text-xs text-white/40">View invoices and record payments</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-white/20" />
-            </CardContent>
-          </Card>
-        </Link>
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <Link href="/admin/finance" className="block">
           <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
             <CardContent className="flex items-center gap-3 p-4">
@@ -911,6 +890,34 @@ export default function ReconciliationConsolePage() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-white">Financial Center</p>
                 <p className="text-xs text-white/40">Full ledger and transaction overview</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-white/20" />
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/admin/finance/transactions" className="block">
+          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
+                <Link2 className="h-5 w-5 text-indigo-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-white">Transactions Ledger</p>
+                <p className="text-xs text-white/40">Filter by reconciliation status</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-white/20" />
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/admin/fees" className="block">
+          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
+                <ArrowDownRight className="h-5 w-5 text-emerald-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-white">Fees & Payments</p>
+                <p className="text-xs text-white/40">View invoices and record payments</p>
               </div>
               <ChevronRight className="h-4 w-4 text-white/20" />
             </CardContent>

@@ -34,9 +34,7 @@ import { format, parseISO } from "date-fns";
 /* --------------------------------------------------------------------------------
    Helpers
 -------------------------------------------------------------------------------- */
-function formatCurrency(amount: number): string {
-  return `GH₵ ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatCurrencyFromMajor } from "@/lib/fees/money";
 
 const METHOD_ICONS: Record<string, React.ElementType> = {
   cash: Banknote,
@@ -169,7 +167,7 @@ function PaymentRow({ payment }: { payment: PaymentRecord }) {
       </div>
 
       <div className="text-right shrink-0">
-        <p className="text-lg font-bold text-emerald-300">{formatCurrency(payment.amount)}</p>
+        <p className="text-lg font-bold text-emerald-300">{formatCurrencyFromMajor(payment.amount)}</p>
       </div>
     </div>
   );
@@ -349,21 +347,21 @@ function PaymentsPageContent() {
         <SummaryCard
           icon={CreditCard}
           label="Total Amount"
-          value={formatCurrency(summary?.totalAmount || 0)}
+          value={formatCurrencyFromMajor(summary?.totalAmount || 0)}
           subLabel="Lifetime payments"
           tone="emerald"
         />
         <SummaryCard
           icon={TrendingUp}
           label="This Year"
-          value={formatCurrency(summary?.thisYearAmount || 0)}
+          value={formatCurrencyFromMajor(summary?.thisYearAmount || 0)}
           subLabel={`${currentYear} payments`}
           tone="blue"
         />
         <SummaryCard
           icon={Calendar}
           label="This Month"
-          value={formatCurrency(summary?.thisMonthAmount || 0)}
+          value={formatCurrencyFromMajor(summary?.thisMonthAmount || 0)}
           subLabel="Current month"
           tone="cyan"
         />

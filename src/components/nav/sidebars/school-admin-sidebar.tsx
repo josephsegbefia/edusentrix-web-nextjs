@@ -178,6 +178,7 @@ const navSections: NavSection[] = [
         label: "Financial Center",
         href: "/admin/finance",
         icon: Landmark,
+        exact: true,
       },
       {
         label: "Reconciliation Queue",

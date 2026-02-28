@@ -28,6 +28,7 @@ import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useTeachersForFilter } from "@/hooks/admin/useClasses";
 import { useSubjects } from "@/hooks/admin/useSubjects";
 import { useSchoolSettings } from "@/hooks/admin/useSchoolSettings";
+import { getResolvedScheduleSettings } from "@/lib/timetable/scheduleSettings";
 import {
   useClassTimetableSlots,
   useCreateClassSlot,
@@ -56,39 +57,25 @@ function minutesToTime(m: number): string {
 type ClassTimetableEditorProps = {
   classId: string;
   className: string;
+  gradeId?: string | null;
 };
 
-function getPeriodOptions(settings: { periodSlots?: Array<{ periodNumber: number; startTime: string; endTime: string; label?: string }>; schoolStartTime?: string; periodDuration?: number; periodsPerDay?: number } | null) {
-  if (!settings) return [];
-  const slots = settings.periodSlots;
-  if (Array.isArray(slots) && slots.length > 0) {
-    return slots.map((s) => ({
-      periodNumber: s.periodNumber,
-      startTime: s.startTime,
-      endTime: s.endTime,
-      label: s.label || `Period ${s.periodNumber}`,
-    }));
-  }
-  const start = settings.schoolStartTime || "07:30";
-  const duration = settings.periodDuration || 40;
-  const count = settings.periodsPerDay || 8;
-  const options: Array<{ periodNumber: number; startTime: string; endTime: string; label: string }> = [];
-  for (let i = 1; i <= count; i++) {
-    const [hh, mm] = start.split(":").map(Number);
-    const totalMins = hh * 60 + mm + (i - 1) * duration;
-    const startH = Math.floor(totalMins / 60) % 24;
-    const startM = totalMins % 60;
-    const endMins = totalMins + duration;
-    const endH = Math.floor(endMins / 60) % 24;
-    const endM = endMins % 60;
-    options.push({
-      periodNumber: i,
-      startTime: `${String(startH).padStart(2, "0")}:${String(startM).padStart(2, "0")}`,
-      endTime: `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`,
-      label: `Period ${i}`,
-    });
-  }
-  return options;
+function getPeriodOptionsFromResolved(resolved: {
+  periodSlots: Array<{
+    periodNumber: number;
+    startTime: string;
+    endTime: string;
+    label?: string;
+  }>;
+}): Array<{ periodNumber: number; startTime: string; endTime: string; label: string }> {
+  const slots = resolved.periodSlots;
+  if (!slots?.length) return [];
+  return slots.map((s) => ({
+    periodNumber: s.periodNumber,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    label: s.label || `Period ${s.periodNumber}`,
+  }));
 }
 
 function getIssuesFromError(error: unknown): TimetableValidationIssue[] {
@@ -96,7 +83,11 @@ function getIssuesFromError(error: unknown): TimetableValidationIssue[] {
   return Array.isArray(candidate.issues) ? candidate.issues : [];
 }
 
-export function ClassTimetableEditor({ classId, className }: ClassTimetableEditorProps) {
+export function ClassTimetableEditor({
+  classId,
+  className,
+  gradeId,
+}: ClassTimetableEditorProps) {
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>("");
   const [slotModalOpen, setSlotModalOpen] = React.useState(false);
   const [editingSlot, setEditingSlot] = React.useState<ClassTimetableSlotDTO | null>(null);
@@ -107,9 +98,38 @@ export function ClassTimetableEditor({ classId, className }: ClassTimetableEdito
 
   const settingsQuery = useSchoolSettings();
   const settings = settingsQuery.data?.data || null;
-  const periodOptions = React.useMemo(
-    () => getPeriodOptions(settings),
-    [settings]
+
+  const getPeriodOptionsForDay = React.useCallback(
+    (dayOfWeek: number) => {
+      if (!settings) return [];
+      const resolved = getResolvedScheduleSettings(
+        {
+          schoolStartTime: settings.schoolStartTime,
+          schoolEndTime: settings.schoolEndTime,
+          periodDuration: settings.periodDuration,
+          periodsPerDay: settings.periodsPerDay,
+          periodSlots: settings.periodSlots,
+          breaks: settings.breaks,
+          breakDailyOverrides: settings.breakDailyOverrides || [],
+          breakGradeOverrides: settings.breakGradeOverrides || [],
+          assembly: settings.assembly
+            ? {
+                days: settings.assembly.days,
+                startTime: settings.assembly.startTime,
+                duration: settings.assembly.duration,
+              }
+            : undefined,
+          assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
+          assemblyGradeOverrides: settings.assemblyGradeOverrides || [],
+          dailyScheduleOverrides: settings.dailyScheduleOverrides,
+          gradeScheduleOverrides: settings.gradeScheduleOverrides,
+        },
+        gradeId ?? undefined,
+        dayOfWeek
+      );
+      return getPeriodOptionsFromResolved(resolved);
+    },
+    [settings, gradeId]
   );
 
   const workingDays = settings?.workingDays?.length
@@ -184,7 +204,8 @@ export function ClassTimetableEditor({ classId, className }: ClassTimetableEdito
           Build the timetable for {className}. Pick a day, add a period with subject and teacher.
           This becomes the source of truth for the master timetable.
         </p>
-        {periodOptions.length === 0 && !settingsQuery.isLoading ? (
+        {getPeriodOptionsForDay(workingDays[0] ?? 1).length === 0 &&
+        !settingsQuery.isLoading ? (
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
             Set up school hours in{" "}
             <Link href="/admin/settings" className="underline hover:text-amber-100">
@@ -226,7 +247,7 @@ export function ClassTimetableEditor({ classId, className }: ClassTimetableEdito
                   }}
                   classId={classId}
                   academicPeriodId={selectedPeriodId}
-                  periodOptions={periodOptions}
+                  periodOptions={getPeriodOptionsForDay(day)}
                 />
               );
             })}
@@ -241,7 +262,9 @@ export function ClassTimetableEditor({ classId, className }: ClassTimetableEdito
         academicPeriodId={selectedPeriodId}
         dayOfWeek={addDayOfWeek}
         slot={editingSlot}
-        periodOptions={periodOptions}
+        periodOptions={getPeriodOptionsForDay(
+          editingSlot?.dayOfWeek ?? addDayOfWeek
+        )}
         subjects={subjects}
         teachers={teachers}
         onSaved={() => {

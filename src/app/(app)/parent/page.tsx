@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useParentDashboard, FeeStatus } from "@/hooks/parent/useParentDashboard";
 import { cn } from "@/lib/utils";
+import { formatCurrencyFromMajor } from "@/lib/fees/money";
 
 /* --------------------------------------------------------------------------------
    Types
@@ -299,14 +300,6 @@ export default function ParentDashboardPage() {
   const totalOutstanding = summary?.totalOutstanding || 0;
   const upcomingPayments = summary?.upcomingPayments || 0;
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000) {
-      return `GH₵ ${(amount / 1000).toFixed(1)}K`;
-    }
-    return `GH₵ ${amount.toLocaleString()}`;
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -348,7 +341,7 @@ export default function ParentDashboardPage() {
         />
         <MetricCard
           label="Outstanding Fees"
-          value={formatCurrency(totalOutstanding)}
+          value={formatCurrencyFromMajor(totalOutstanding, { compact: totalOutstanding >= 1000 })}
           accent={totalOutstanding > 0 ? "from-rose-500/25 via-rose-500/10 to-transparent" : "from-emerald-500/25 via-emerald-500/10 to-transparent"}
           subtitle={totalOutstanding > 0 ? `${upcomingPayments} pending invoices` : "All fees paid"}
           icon={DollarSign}

@@ -12,6 +12,26 @@ export interface IBreakPeriod {
 }
 
 /**
+ * Per-day break override (e.g., earlier lunch on Friday)
+ */
+export interface IBreakDailyOverride {
+  dayOfWeek: number; // 0-6
+  breakName: string; // matches IBreakPeriod.name
+  startTime?: string; // "HH:MM"
+  endTime?: string; // "HH:MM"
+}
+
+/**
+ * Per-grade break override (e.g., different lunch time for secondary)
+ */
+export interface IBreakGradeOverride {
+  gradeId: Types.ObjectId;
+  breakName: string; // matches IBreakPeriod.name
+  startTime?: string; // "HH:MM"
+  endTime?: string; // "HH:MM"
+}
+
+/**
  * Period/lesson slot configuration
  */
 export interface IPeriodSlot {
@@ -22,6 +42,25 @@ export interface IPeriodSlot {
 }
 
 /**
+ * Per-day schedule override (e.g., early dismissal on Friday)
+ */
+export interface IDailyScheduleOverride {
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  startTime?: string; // "HH:MM"
+  endTime?: string; // "HH:MM"
+}
+
+/**
+ * Per-grade schedule override (e.g., primary vs secondary)
+ */
+export interface IGradeScheduleOverride {
+  gradeId: Types.ObjectId;
+  periodsPerDay?: number;
+  periodDuration?: number;
+  periodSlots?: IPeriodSlot[];
+}
+
+/**
  * Assembly configuration
  */
 export interface IAssemblyConfig {
@@ -29,6 +68,24 @@ export interface IAssemblyConfig {
   startTime: string; // "HH:MM"
   duration: number; // minutes
   location?: string;
+}
+
+/**
+ * Per-day assembly override (e.g., shorter assembly on Friday)
+ */
+export interface IAssemblyDailyOverride {
+  dayOfWeek: number; // 0-6
+  startTime?: string; // "HH:MM"
+  duration?: number; // minutes
+}
+
+/**
+ * Per-grade assembly override (e.g., later/shorter assembly for kindergarten)
+ */
+export interface IAssemblyGradeOverride {
+  gradeId: Types.ObjectId;
+  startTime?: string; // "HH:MM"
+  duration?: number; // minutes
 }
 
 /**
@@ -48,11 +105,29 @@ export interface ISchoolSettings {
   // Period slots (auto-generated or custom)
   periodSlots?: IPeriodSlot[];
 
+  // Per-day overrides (e.g., early dismissal on Friday)
+  dailyScheduleOverrides?: IDailyScheduleOverride[];
+
+  // Per-grade overrides (e.g., primary 7×35 vs secondary 8×40)
+  gradeScheduleOverrides?: IGradeScheduleOverride[];
+
   // Breaks
   breaks: IBreakPeriod[];
 
+  // Per-day break overrides (e.g., earlier lunch on Friday)
+  breakDailyOverrides?: IBreakDailyOverride[];
+
+  // Per-grade break overrides (e.g., different lunch time for secondary)
+  breakGradeOverrides?: IBreakGradeOverride[];
+
   // Assembly
   assembly?: IAssemblyConfig;
+
+  // Per-day assembly overrides (e.g., shorter assembly on Friday)
+  assemblyDailyOverrides?: IAssemblyDailyOverride[];
+
+  // Per-grade assembly overrides (e.g., different time for kindergarten)
+  assemblyGradeOverrides?: IAssemblyGradeOverride[];
 
   // Attendance Rules
   lateArrivalCutoff?: string; // "HH:MM" - after this = late (e.g., "07:45")
@@ -107,6 +182,42 @@ const BreakPeriodSchema = new Schema<IBreakPeriod>(
   { _id: false }
 );
 
+const BreakDailyOverrideSchema = new Schema<IBreakDailyOverride>(
+  {
+    dayOfWeek: { type: Number, required: true, min: 0, max: 6 },
+    breakName: { type: String, required: true, trim: true },
+    startTime: {
+      type: String,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    endTime: {
+      type: String,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+  },
+  { _id: false }
+);
+
+const BreakGradeOverrideSchema = new Schema<IBreakGradeOverride>(
+  {
+    gradeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Grade",
+      required: true,
+    },
+    breakName: { type: String, required: true, trim: true },
+    startTime: {
+      type: String,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    endTime: {
+      type: String,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+  },
+  { _id: false }
+);
+
 const PeriodSlotSchema = new Schema<IPeriodSlot>(
   {
     periodNumber: { type: Number, required: true, min: 1 },
@@ -125,6 +236,35 @@ const PeriodSlotSchema = new Schema<IPeriodSlot>(
   { _id: false }
 );
 
+const DailyScheduleOverrideSchema = new Schema<IDailyScheduleOverride>(
+  {
+    dayOfWeek: { type: Number, required: true, min: 0, max: 6 },
+    startTime: {
+      type: String,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    endTime: {
+      type: String,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+  },
+  { _id: false }
+);
+
+const GradeScheduleOverrideSchema = new Schema<IGradeScheduleOverride>(
+  {
+    gradeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Grade",
+      required: true,
+    },
+    periodsPerDay: { type: Number, min: 1, max: 15 },
+    periodDuration: { type: Number, min: 15, max: 120 },
+    periodSlots: { type: [PeriodSlotSchema], default: undefined },
+  },
+  { _id: false }
+);
+
 const AssemblyConfigSchema = new Schema<IAssemblyConfig>(
   {
     days: [{ type: Number, min: 0, max: 6 }],
@@ -135,6 +275,34 @@ const AssemblyConfigSchema = new Schema<IAssemblyConfig>(
     },
     duration: { type: Number, required: true, min: 1, max: 180 }, // max 3 hours
     location: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
+const AssemblyDailyOverrideSchema = new Schema<IAssemblyDailyOverride>(
+  {
+    dayOfWeek: { type: Number, required: true, min: 0, max: 6 },
+    startTime: {
+      type: String,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    duration: { type: Number, min: 1, max: 180 },
+  },
+  { _id: false }
+);
+
+const AssemblyGradeOverrideSchema = new Schema<IAssemblyGradeOverride>(
+  {
+    gradeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Grade",
+      required: true,
+    },
+    startTime: {
+      type: String,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    duration: { type: Number, min: 1, max: 180 },
   },
   { _id: false }
 );
@@ -180,6 +348,18 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
     // Period slots
     periodSlots: { type: [PeriodSlotSchema], default: undefined },
 
+    // Per-day overrides
+    dailyScheduleOverrides: {
+      type: [DailyScheduleOverrideSchema],
+      default: undefined,
+    },
+
+    // Per-grade overrides
+    gradeScheduleOverrides: {
+      type: [GradeScheduleOverrideSchema],
+      default: undefined,
+    },
+
     // Breaks
     breaks: {
       type: [BreakPeriodSchema],
@@ -188,9 +368,25 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
         { name: "Lunch", startTime: "12:00", endTime: "13:00", isLunch: true },
       ],
     },
+    breakDailyOverrides: {
+      type: [BreakDailyOverrideSchema],
+      default: undefined,
+    },
+    breakGradeOverrides: {
+      type: [BreakGradeOverrideSchema],
+      default: undefined,
+    },
 
     // Assembly
     assembly: { type: AssemblyConfigSchema, default: undefined },
+    assemblyDailyOverrides: {
+      type: [AssemblyDailyOverrideSchema],
+      default: undefined,
+    },
+    assemblyGradeOverrides: {
+      type: [AssemblyGradeOverrideSchema],
+      default: undefined,
+    },
 
     // Attendance Rules
     lateArrivalCutoff: {

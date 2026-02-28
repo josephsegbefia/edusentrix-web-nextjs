@@ -54,14 +54,7 @@ import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 // Helper Functions
 // ========================
 
-function formatCurrency(amountMinor: number, currency = "GHS") {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amountMinor / 100);
-}
+import { formatCurrency } from "@/lib/fees/money";
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -164,7 +157,7 @@ function BudgetCard({ budget, onViewDetails, onActivate, onDelete }: BudgetCardP
           <div>
             <p className="text-xs text-white/50 mb-1">Budgeted</p>
             <p className="text-lg font-bold text-white">
-              {formatCurrency(budget.totalBudgetedMinor, budget.currency)}
+              {formatCurrency(budget.totalBudgetedMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
             </p>
           </div>
           <div>
@@ -223,13 +216,13 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
             <div className="rounded-xl bg-white/5 p-4 text-center">
               <p className="text-xs text-white/50 mb-1">Budgeted</p>
               <p className="text-lg font-bold text-white">
-                {formatCurrency(budget.totalBudgetedMinor, budget.currency)}
+                {formatCurrency(budget.totalBudgetedMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
               </p>
             </div>
             <div className="rounded-xl bg-white/5 p-4 text-center">
               <p className="text-xs text-white/50 mb-1">Actual</p>
               <p className="text-lg font-bold text-white">
-                {formatCurrency(budget.totalActualMinor, budget.currency)}
+                {formatCurrency(budget.totalActualMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
               </p>
             </div>
             <div
@@ -246,7 +239,7 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
                 )}
               >
                 {budget.totalVarianceMinor >= 0 ? "+" : ""}
-                {formatCurrency(budget.totalVarianceMinor, budget.currency)}
+                {formatCurrency(budget.totalVarianceMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
               </p>
             </div>
           </div>
@@ -322,14 +315,14 @@ function BudgetDetailModal({ budgetId, open, onOpenChange }: BudgetDetailModalPr
                   </div>
                   <div className="flex justify-between text-xs text-white/50">
                     <span>
-                      {formatCurrency(item.actualAmountMinor, budget.currency)} /{" "}
-                      {formatCurrency(item.budgetedAmountMinor, budget.currency)}
+                      {formatCurrency(item.actualAmountMinor, { currency: budget.currency, maximumFractionDigits: 0 })} /{" "}
+                      {formatCurrency(item.budgetedAmountMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
                     </span>
                     <span
                       className={item.varianceMinor >= 0 ? "text-emerald-400" : "text-red-400"}
                     >
                       {item.varianceMinor >= 0 ? "+" : ""}
-                      {formatCurrency(item.varianceMinor, budget.currency)}
+                      {formatCurrency(item.varianceMinor, { currency: budget.currency, maximumFractionDigits: 0 })}
                     </span>
                   </div>
                 </div>

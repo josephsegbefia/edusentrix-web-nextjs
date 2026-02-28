@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatCurrency } from "@/lib/fees/money";
 import {
   type ReminderHistoryItem,
   useFeeReminderHistory,
@@ -61,14 +62,6 @@ const TONES: Array<{ key: ReminderTemplateTone; label: string; hint: string }> =
   { key: "firm", label: "Firm", hint: "Clear and formal payment prompt." },
   { key: "urgent", label: "Urgent", hint: "Escalation tone for overdue balances." },
 ];
-
-function formatMinorCurrency(minor: number) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format((minor || 0) / 100);
-}
 
 function formatDateTime(iso: string) {
   const parsed = new Date(iso);
@@ -534,7 +527,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                 <div className="rounded-lg border border-white/10 bg-white/5 p-3">
                   <p className="text-xs text-white/50">Outstanding</p>
                   <p className="text-base font-semibold text-white">
-                    {formatMinorCurrency(preview.data?.summary.totalOutstandingMinor || 0)}
+                    {formatCurrency(preview.data?.summary.totalOutstandingMinor || 0)}
                   </p>
                 </div>
               </div>
@@ -610,7 +603,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                     </Badge>
                   )}
                   <p className="text-xs text-white/60">
-                    {formatMinorCurrency(recipient.totalOutstandingMinor)}
+                    {formatCurrency(recipient.totalOutstandingMinor)}
                   </p>
                 </div>
               </div>
@@ -625,7 +618,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                       {student.classGroupName ? ` • ${student.classGroupName}` : ""}
                     </p>
                     <p className="text-xs text-white/65">
-                      {formatMinorCurrency(student.outstandingMinor)}
+                      {formatCurrency(student.outstandingMinor)}
                       {student.overdueInvoiceCount > 0
                         ? ` • ${student.overdueInvoiceCount} overdue`
                         : ""}
@@ -713,7 +706,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                 ) : null}
                 <p className="mt-1 text-xs text-white/65">
                   {delivery.students.length} ward(s) •{" "}
-                  {formatMinorCurrency(delivery.totalOutstandingMinor)}
+                  {formatCurrency(delivery.totalOutstandingMinor)}
                 </p>
                 <p className="mt-1 text-[11px] text-white/55">
                   {summarizeDeliveryStudents(delivery.students)}
@@ -795,7 +788,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                         ) : null}
                         <p className="mt-1 text-[11px] text-white/60">
                           {delivery.students.length} ward(s) •{" "}
-                          {formatMinorCurrency(delivery.totalOutstandingMinor)}
+                          {formatCurrency(delivery.totalOutstandingMinor)}
                         </p>
                         <p className="mt-1 text-[11px] text-white/55">
                           {summarizeDeliveryStudents(delivery.students)}
@@ -922,7 +915,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                     ) : null}
                     <p className="mt-2 text-xs text-white/65">
                       {delivery.students.length} ward(s) •{" "}
-                      {formatMinorCurrency(delivery.totalOutstandingMinor)}
+                      {formatCurrency(delivery.totalOutstandingMinor)}
                     </p>
                     <div className="mt-2 space-y-1.5">
                       {delivery.students.map((student) => (
@@ -935,7 +928,7 @@ export function DraftReminderModal({ onClose, initialChannel = "email" }: DraftR
                             {student.classGroupName ? ` • ${student.classGroupName}` : ""}
                           </p>
                           <p className="text-xs text-white/65">
-                            {formatMinorCurrency(student.outstandingMinor)}
+                            {formatCurrency(student.outstandingMinor)}
                           </p>
                         </div>
                       ))}

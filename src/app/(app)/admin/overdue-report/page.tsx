@@ -13,14 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOverdueRisk } from "@/hooks/admin/useOverdueRisk";
 import { useBusyToast } from "@/hooks/useBusyToast";
-
-function formatMoneyMinor(value: number) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format((value || 0) / 100);
-}
+import { formatCurrency } from "@/lib/fees/money";
 
 function formatDate(value: string | null) {
   if (!value) return "N/A";
@@ -155,7 +148,7 @@ export default function OverdueReportPage() {
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                   <div className="text-xs text-white/55">Total Overdue</div>
                   <div className="mt-1 text-lg font-semibold text-rose-200">
-                    {formatMoneyMinor(summary?.totalOutstandingMinor ?? 0)}
+                    {formatCurrency(summary?.totalOutstandingMinor ?? 0)}
                   </div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -236,7 +229,7 @@ export default function OverdueReportPage() {
                             <td className="px-4 py-3">{row.oldestDaysOverdue}</td>
                             <td className="px-4 py-3">{row.overdueInvoiceCount}</td>
                             <td className="px-4 py-3 text-right font-semibold text-rose-200">
-                              {formatMoneyMinor(row.totalOutstandingMinor)}
+                              {formatCurrency(row.totalOutstandingMinor)}
                             </td>
                           </tr>
                         ))

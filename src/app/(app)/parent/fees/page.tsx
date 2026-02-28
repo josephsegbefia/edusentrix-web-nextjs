@@ -43,9 +43,7 @@ function initialsFromName(fullName: string) {
   );
 }
 
-function formatCurrency(amount: number): string {
-  return `GH₵ ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatCurrencyFromMajor } from "@/lib/fees/money";
 
 function getStatusColor(status: FeeStatus): string {
   const colors: Record<FeeStatus, string> = {
@@ -211,10 +209,10 @@ function WardFeeCard({
         {/* Amount & Progress */}
         <div className="text-right shrink-0">
           <div className={cn("text-xl font-bold", ward.balanceDue > 0 ? "text-red-300" : "text-emerald-300")}>
-            {formatCurrency(ward.balanceDue)}
+            {formatCurrencyFromMajor(ward.balanceDue)}
           </div>
           <p className="text-xs text-white/50 mt-1">
-            of {formatCurrency(ward.totalFees)}
+            of {formatCurrencyFromMajor(ward.totalFees)}
           </p>
           <div className="mt-2 w-24">
             <Progress value={ward.paymentProgress} className="h-1.5" />
@@ -261,7 +259,7 @@ function InvoiceCard({ invoice, onClick }: { invoice: PendingInvoice; onClick: (
       </div>
       <div className="text-right ml-3">
         <p className={cn("text-lg font-bold", invoice.isOverdue ? "text-red-200" : "text-white")}>
-          {formatCurrency(invoice.balanceDue)}
+          {formatCurrencyFromMajor(invoice.balanceDue)}
         </p>
         <Badge
           variant="outline"
@@ -292,7 +290,7 @@ function PaymentCard({ payment }: { payment: RecentPayment }) {
           <CreditCard className="h-4 w-4 text-emerald-300" />
         </div>
         <div>
-          <p className="text-sm font-medium text-white">{formatCurrency(payment.amount)}</p>
+          <p className="text-sm font-medium text-white">{formatCurrencyFromMajor(payment.amount)}</p>
           <p className="text-xs text-white/50">{payment.wardName}</p>
         </div>
       </div>
@@ -418,21 +416,21 @@ function FeesPageContent() {
             <SummaryCard
               icon={DollarSign}
               label="Total Fees"
-              value={formatCurrency(overallSummary?.totalFees || 0)}
+              value={formatCurrencyFromMajor(overallSummary?.totalFees || 0)}
               subLabel="Across all children"
               tone="blue"
             />
             <SummaryCard
               icon={CheckCircle2}
               label="Total Paid"
-              value={formatCurrency(overallSummary?.totalPaid || 0)}
+              value={formatCurrencyFromMajor(overallSummary?.totalPaid || 0)}
               subLabel={`${overallSummary?.paymentProgress?.toFixed(0) || 0}% complete`}
               tone="emerald"
             />
             <SummaryCard
               icon={Wallet}
               label="Outstanding"
-              value={formatCurrency(overallSummary?.totalBalance || 0)}
+              value={formatCurrencyFromMajor(overallSummary?.totalBalance || 0)}
               subLabel={`${overallSummary?.pendingCount || 0} pending invoices`}
               tone={overallSummary?.totalBalance && overallSummary.totalBalance > 0 ? "red" : "emerald"}
             />
@@ -551,7 +549,7 @@ function FeesPageContent() {
                 <div className="flex-1">
                   <h4 className="font-medium text-amber-200">Outstanding Balance</h4>
                   <p className="text-sm text-amber-200/70 mt-1">
-                    You have an outstanding balance of <span className="font-semibold">{formatCurrency(overallSummary.totalBalance)}</span>.
+                    You have an outstanding balance of <span className="font-semibold">{formatCurrencyFromMajor(overallSummary.totalBalance)}</span>.
                     Please contact the school for payment options.
                   </p>
                 </div>

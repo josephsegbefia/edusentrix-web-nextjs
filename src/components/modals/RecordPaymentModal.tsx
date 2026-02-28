@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatMoney, toMajorUnits } from "@/lib/fees/money";
+import { formatMoney, formatCurrencyFromMajor, toMajorUnits } from "@/lib/fees/money";
 
 type Props = {
   onClose: () => void;
@@ -240,7 +240,7 @@ export default function RecordPaymentModal({
                             <SelectItem key={invoice._id} value={invoice._id}>
                               {invoice.invoiceNumber} •{" "}
                               {invoice.studentName} •{" "}
-                              GHS {toMajorUnits(invoice.totalOutstandingMinor).toFixed(2)} outstanding
+                              {formatMoney(invoice.totalOutstandingMinor)} outstanding
                             </SelectItem>
                           ))}
                       </SelectContent>
@@ -265,7 +265,7 @@ export default function RecordPaymentModal({
                       Total Outstanding
                     </span>
                     <span className="text-lg font-bold text-white">
-                      GHS {toMajorUnits(selectedInvoice.totalOutstandingMinor).toFixed(2)}
+                      {formatMoney(selectedInvoice.totalOutstandingMinor)}
                     </span>
                   </div>
                 </motion.div>
@@ -389,7 +389,7 @@ export default function RecordPaymentModal({
                       Payment Amount
                     </span>
                     <span className="text-lg font-bold text-white">
-                      GHS {amount.toFixed(2)}
+                      {formatCurrencyFromMajor(amount)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -397,7 +397,7 @@ export default function RecordPaymentModal({
                       Total Allocated
                     </span>
                     <span className="text-lg font-bold text-white">
-                      GHS {totalAllocated.toFixed(2)}
+                      {formatCurrencyFromMajor(totalAllocated)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between pt-2 border-t border-white/10">
@@ -413,7 +413,7 @@ export default function RecordPaymentModal({
                           : "text-rose-300"
                       }`}
                     >
-                      GHS {remainingAmount.toFixed(2)}
+                      {formatCurrencyFromMajor(remainingAmount)}
                     </span>
                   </div>
                 </div>
@@ -468,7 +468,7 @@ export default function RecordPaymentModal({
                                   .map((item: any) => (
                                     <SelectItem key={item._id} value={item._id}>
                                       {item.name} • Outstanding: GHS{" "}
-                                      {toMajorUnits(item.amountOutstandingMinor).toFixed(2)}
+                                      {formatMoney(item.amountOutstandingMinor)}
                                     </SelectItem>
                                   ))}
                               </SelectContent>
@@ -484,7 +484,7 @@ export default function RecordPaymentModal({
 
                       <div className="space-y-2">
                         <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                          Amount (GHS) * (Max: {maxAmount.toFixed(2)})
+                          Amount (GHS) * (Max: {formatCurrencyFromMajor(maxAmount)})
                         </Label>
                         <Input
                           type="number"
@@ -547,7 +547,7 @@ export default function RecordPaymentModal({
                     Payment Amount
                   </p>
                   <p className="text-2xl font-bold text-white">
-                    GHS {amount.toFixed(2)}
+                    {formatCurrencyFromMajor(amount)}
                   </p>
                 </div>
 
@@ -578,7 +578,7 @@ export default function RecordPaymentModal({
                             {lineItem?.name || "Unknown"}
                           </span>
                           <span className="text-white font-medium">
-                            GHS {allocation.amount.toFixed(2)}
+                            {formatCurrencyFromMajor(allocation.amount)}
                           </span>
                         </div>
                       );

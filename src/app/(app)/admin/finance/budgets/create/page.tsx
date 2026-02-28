@@ -36,6 +36,7 @@ import { useCreateBudget, BudgetPeriodType } from "@/hooks/admin/useBudgets";
 import { useExpenseCategories } from "@/hooks/admin/useExpenses";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatCurrencyFromMajor } from "@/lib/fees/money";
 
 // ========================
 // Form Schema
@@ -56,19 +57,6 @@ interface LineItemInput {
   categoryId: string;
   budgetedAmount: number;
   notes: string;
-}
-
-// ========================
-// Helper Functions
-// ========================
-
-function formatCurrency(amount: number, currency = "GHS") {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
 }
 
 // ========================
@@ -329,7 +317,7 @@ export default function CreateBudgetPage() {
               <div className="text-right">
                 <p className="text-xs text-white/50">Total Budgeted</p>
                 <p className="text-lg font-bold text-white">
-                  {formatCurrency(totalBudgeted, form.watch("currency") || "GHS")}
+                  {formatCurrencyFromMajor(totalBudgeted, { currency: form.watch("currency") || "GHS", maximumFractionDigits: 0 })}
                 </p>
               </div>
             </div>

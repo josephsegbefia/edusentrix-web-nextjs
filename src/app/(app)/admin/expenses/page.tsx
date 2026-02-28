@@ -45,19 +45,12 @@ import {
 } from "@/components/ui/premium-dropdown-menu";
 import { useExpenses, useExpenseCategories, useSeedDefaultCategories, ExpenseDTO, ExpenseStatus } from "@/hooks/admin/useExpenses";
 import { CreateExpenseModal } from "@/components/modals/CreateExpenseModal";
+import { formatCurrency } from "@/lib/fees/money";
 import { toast } from "sonner";
 
 // ========================
 // Helper Functions
 // ========================
-
-function formatCurrency(amountMinor: number, currency = "GHS") {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amountMinor / 100);
-}
 
 function getStatusBadge(status: ExpenseStatus) {
   const config: Record<
@@ -216,7 +209,7 @@ function ExpenseRow({
       {/* Amount */}
       <div className="text-right">
         <p className="font-semibold text-white">
-          {formatCurrency(expense.amountMinor, expense.currency)}
+          {formatCurrency(expense.amountMinor, { currency: expense.currency })}
         </p>
       </div>
 
@@ -391,7 +384,7 @@ export default function ExpensesListPage() {
         />
         <KPICard
           title="Paid This View"
-          value={formatCurrency(kpis.totalAmountPaid)}
+          value={formatCurrency(kpis.totalAmountPaid, { currency: "GHS" })}
           subValue={`${kpis.paid} expenses`}
           icon={DollarSign}
           loading={expensesLoading}

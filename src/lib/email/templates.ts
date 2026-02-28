@@ -68,12 +68,10 @@ const stripHtml = (html: string) =>
     .replace(/&amp;/g, "&")
     .trim();
 
+import { formatCurrency } from "@/lib/fees/money";
+
 function formatMinorCurrency(minor: number, currency = "GHS") {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format((minor || 0) / 100);
+  return formatCurrency(minor ?? 0, { currency });
 }
 
 export const EmailTemplates: {

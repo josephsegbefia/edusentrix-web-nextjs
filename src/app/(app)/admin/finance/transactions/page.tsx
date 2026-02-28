@@ -7,6 +7,7 @@ import {
   Search,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowLeft,
   DollarSign,
   RefreshCw,
   Eye,
@@ -37,6 +38,7 @@ import {
   PremiumDropdownMenuItem,
   PremiumDropdownMenuTrigger,
 } from "@/components/ui/premium-dropdown-menu";
+import { formatCurrency } from "@/lib/fees/money";
 import {
   useFinancialTransactions,
   TransactionDTO,
@@ -47,14 +49,6 @@ import {
 // ========================
 // Helper Functions
 // ========================
-
-function formatCurrency(amountMinor: number, currency = "GHS") {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amountMinor / 100);
-}
 
 function getStatusBadge(status: TransactionStatus) {
   const config: Record<
@@ -251,11 +245,11 @@ function TransactionRow({
       <div className="text-right min-w-[100px]">
         <p className={`font-semibold ${isInflow ? "text-emerald-400" : "text-red-400"}`}>
           {isInflow ? "+" : "-"}
-          {formatCurrency(transaction.netAmountMinor, transaction.currency)}
+          {formatCurrency(transaction.netAmountMinor, { currency: transaction.currency })}
         </p>
         {transaction.feeAmountMinor > 0 && (
           <p className="text-xs text-white/40">
-            Fee: {formatCurrency(transaction.feeAmountMinor, transaction.currency)}
+            Fee: {formatCurrency(transaction.feeAmountMinor, { currency: transaction.currency })}
           </p>
         )}
       </div>
@@ -395,11 +389,22 @@ export default function TransactionsLedgerPage() {
     <div className="min-h-screen p-6 md:p-8">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white md:text-3xl">Transactions Ledger</h1>
-          <p className="mt-1 text-sm text-white/50">
-            Complete record of all financial transactions
-          </p>
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/admin/finance")}
+            className="h-9 w-9 cursor-pointer border border-white/10 bg-white/5 transition-all duration-200 hover:scale-105 hover:border-white/20 hover:bg-white/10 hover:shadow-md hover:shadow-black/20 active:scale-95"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-white md:text-3xl">Transactions Ledger</h1>
+            <p className="mt-1 text-sm text-white/50">
+              Complete record of all financial transactions
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Button

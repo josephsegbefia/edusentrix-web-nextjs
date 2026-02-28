@@ -27,6 +27,7 @@ import {
   useIngestReconciliationData,
   type ReconciliationSourceType,
 } from "@/hooks/admin/useReconciliation";
+import { formatCurrency } from "@/lib/fees/money";
 
 type ParsedEntry = {
   externalTxnId: string;
@@ -219,14 +220,6 @@ const BANK_MAPPING_GUIDE_ROWS: Array<{
     aliases: HEADER_ALIASES.notes,
   },
 ];
-
-function formatMinorCurrency(amountMinor: number) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format((amountMinor || 0) / 100);
-}
 
 function confidenceBadgeClass(level: HeaderMappingConfidence["level"]) {
   if (level === "high") {
@@ -1132,7 +1125,7 @@ export function ReconciliationIngestionModal(props: {
                       >
                         <p className="font-medium text-white">{entry.externalTxnId}</p>
                         <p className="mt-0.5 text-white/60">
-                          {formatMinorCurrency(entry.amountMinor)} •{" "}
+                          {formatCurrency(entry.amountMinor)} •{" "}
                           {new Date(entry.transactionDate).toLocaleDateString("en-GH")}
                           {entry.reference ? ` • ${entry.reference}` : ""}
                         </p>

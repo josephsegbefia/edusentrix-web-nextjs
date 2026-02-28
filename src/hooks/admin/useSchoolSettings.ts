@@ -8,11 +8,37 @@ export type BreakPeriodDTO = {
   isLunch?: boolean;
 };
 
+export type BreakDailyOverrideDTO = {
+  dayOfWeek: number;
+  breakName: string;
+  startTime?: string;
+  endTime?: string;
+};
+
+export type BreakGradeOverrideDTO = {
+  gradeId: string;
+  breakName: string;
+  startTime?: string;
+  endTime?: string;
+};
+
 export type AssemblyConfigDTO = {
   days: number[];
   startTime: string;
   duration: number;
   location?: string;
+};
+
+export type AssemblyDailyOverrideDTO = {
+  dayOfWeek: number;
+  startTime?: string;
+  duration?: number;
+};
+
+export type AssemblyGradeOverrideDTO = {
+  gradeId: string;
+  startTime?: string;
+  duration?: number;
 };
 
 export type PeriodSlotDTO = {
@@ -22,6 +48,19 @@ export type PeriodSlotDTO = {
   label?: string;
 };
 
+export type DailyScheduleOverrideDTO = {
+  dayOfWeek: number;
+  startTime?: string;
+  endTime?: string;
+};
+
+export type GradeScheduleOverrideDTO = {
+  gradeId: string;
+  periodsPerDay?: number;
+  periodDuration?: number;
+  periodSlots?: PeriodSlotDTO[];
+};
+
 export type SchoolSettingsDTO = {
   id: string;
   schoolStartTime: string;
@@ -29,8 +68,14 @@ export type SchoolSettingsDTO = {
   periodDuration: number;
   periodsPerDay: number;
   periodSlots: PeriodSlotDTO[];
+  dailyScheduleOverrides: DailyScheduleOverrideDTO[];
+  gradeScheduleOverrides: GradeScheduleOverrideDTO[];
   breaks: BreakPeriodDTO[];
+  breakDailyOverrides: BreakDailyOverrideDTO[];
+  breakGradeOverrides: BreakGradeOverrideDTO[];
   assembly: AssemblyConfigDTO | null;
+  assemblyDailyOverrides: AssemblyDailyOverrideDTO[];
+  assemblyGradeOverrides: AssemblyGradeOverrideDTO[];
   lateArrivalCutoff: string | null;
   minimumAttendancePercent: number;
   defaultExamWeekDuration: number;

@@ -327,6 +327,7 @@ function ClassDetailContent() {
           <ClassScheduleTab
             classId={classData.id}
             className={classData.fullLabel}
+            gradeId={classData.grade?.id}
           />
         ) : activeTab === "roles" ? (
           <ClassRolesTab

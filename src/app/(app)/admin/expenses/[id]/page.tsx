@@ -54,20 +54,13 @@ import {
   ExpensePaymentMethod,
 } from "@/hooks/admin/useExpenses";
 import { CreateExpenseModal } from "@/components/modals/CreateExpenseModal";
+import { formatCurrency } from "@/lib/fees/money";
 import { toast } from "sonner";
 import Link from "next/link";
 
 // ========================
 // Helper Functions
 // ========================
-
-function formatCurrency(amountMinor: number, currency = "GHS") {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amountMinor / 100);
-}
 
 function getStatusConfig(status: ExpenseStatus) {
   const config: Record<
@@ -473,7 +466,7 @@ export default function ExpenseDetailPage() {
                 <div className="text-right">
                   <p className="text-sm text-white/50">Amount</p>
                   <p className="text-2xl font-bold text-white">
-                    {formatCurrency(expense.amountMinor, expense.currency)}
+                    {formatCurrency(expense.amountMinor, { currency: expense.currency })}
                   </p>
                 </div>
               </div>
@@ -830,7 +823,7 @@ export default function ExpenseDetailPage() {
           <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
             <p className="text-sm text-blue-300">
               This will create a ledger entry in the Financial Center for{" "}
-              <strong>{formatCurrency(expense.amountMinor, expense.currency)}</strong>
+              <strong>{formatCurrency(expense.amountMinor, { currency: expense.currency })}</strong>
             </p>
           </div>
 

@@ -16,11 +16,59 @@ const BreakPeriodSchema = z.object({
   isLunch: z.boolean().optional(),
 });
 
+const DailyScheduleOverrideSchema = z.object({
+  dayOfWeek: z.number().min(0).max(6),
+  startTime: z.string().regex(TimeRegex).optional(),
+  endTime: z.string().regex(TimeRegex).optional(),
+});
+
+const BreakDailyOverrideSchema = z.object({
+  dayOfWeek: z.number().min(0).max(6),
+  breakName: z.string().min(1).max(100),
+  startTime: z.string().regex(TimeRegex).optional(),
+  endTime: z.string().regex(TimeRegex).optional(),
+});
+
+const BreakGradeOverrideSchema = z.object({
+  gradeId: z.string().min(1),
+  breakName: z.string().min(1).max(100),
+  startTime: z.string().regex(TimeRegex).optional(),
+  endTime: z.string().regex(TimeRegex).optional(),
+});
+
+const GradeScheduleOverrideSchema = z.object({
+  gradeId: z.string().min(1),
+  periodsPerDay: z.number().min(1).max(15).optional(),
+  periodDuration: z.number().min(15).max(120).optional(),
+  periodSlots: z
+    .array(
+      z.object({
+        periodNumber: z.number().min(1),
+        startTime: z.string().regex(TimeRegex),
+        endTime: z.string().regex(TimeRegex),
+        label: z.string().optional(),
+      })
+    )
+    .optional(),
+});
+
 const AssemblyConfigSchema = z.object({
   days: z.array(z.number().min(0).max(6)),
   startTime: z.string().regex(TimeRegex, "Invalid time format (HH:MM)"),
   duration: z.number().min(1).max(180),
   location: z.string().max(200).optional(),
+});
+
+const AssemblyDailyOverrideSchema = z.object({
+  dayOfWeek: z.number().min(0).max(6),
+  startTime: z.string().regex(TimeRegex).optional(),
+  duration: z.number().min(1).max(180).optional(),
+});
+
+const AssemblyGradeOverrideSchema = z.object({
+  gradeId: z.string().min(1),
+  startTime: z.string().regex(TimeRegex).optional(),
+  duration: z.number().min(1).max(180).optional(),
 });
 
 const TeacherStudioSchema = z.object({
@@ -48,12 +96,18 @@ const UpdateSettingsSchema = z.object({
   periodDuration: z.number().min(15).max(120).optional(),
   periodsPerDay: z.number().min(1).max(15).optional(),
   breaks: z.array(BreakPeriodSchema).optional(),
+  breakDailyOverrides: z.array(BreakDailyOverrideSchema).optional(),
+  breakGradeOverrides: z.array(BreakGradeOverrideSchema).optional(),
   assembly: AssemblyConfigSchema.nullable().optional(),
+  assemblyDailyOverrides: z.array(AssemblyDailyOverrideSchema).optional(),
+  assemblyGradeOverrides: z.array(AssemblyGradeOverrideSchema).optional(),
   lateArrivalCutoff: z.string().regex(TimeRegex).nullable().optional(),
   minimumAttendancePercent: z.number().min(0).max(100).optional(),
   defaultExamWeekDuration: z.number().min(1).max(21).optional(),
   defaultRevisionWeekDuration: z.number().min(1).max(14).optional(),
   workingDays: z.array(z.number().min(0).max(6)).optional(),
+  dailyScheduleOverrides: z.array(DailyScheduleOverrideSchema).optional(),
+  gradeScheduleOverrides: z.array(GradeScheduleOverrideSchema).optional(),
   teacherStudio: TeacherStudioSchema.optional(),
   attendanceNotifications: AttendanceNotificationsSchema.optional(),
   offlineMode: OfflineModeSchema.optional(),
@@ -113,8 +167,34 @@ export async function GET() {
       periodDuration: s.periodDuration,
       periodsPerDay: s.periodsPerDay,
       periodSlots: s.periodSlots || [],
+      dailyScheduleOverrides: s.dailyScheduleOverrides || [],
+      gradeScheduleOverrides: (s.gradeScheduleOverrides || []).map(
+        (g: { gradeId: unknown; periodsPerDay?: number; periodDuration?: number; periodSlots?: unknown[] }) => ({
+          gradeId: String(g.gradeId),
+          periodsPerDay: g.periodsPerDay,
+          periodDuration: g.periodDuration,
+          periodSlots: g.periodSlots || [],
+        })
+      ),
       breaks: s.breaks || [],
+      breakDailyOverrides: s.breakDailyOverrides || [],
+      breakGradeOverrides: (s.breakGradeOverrides || []).map(
+        (g: { gradeId: unknown; breakName: string; startTime?: string; endTime?: string }) => ({
+          gradeId: String(g.gradeId),
+          breakName: g.breakName,
+          startTime: g.startTime,
+          endTime: g.endTime,
+        })
+      ),
       assembly: s.assembly || null,
+      assemblyDailyOverrides: s.assemblyDailyOverrides || [],
+      assemblyGradeOverrides: (s.assemblyGradeOverrides || []).map(
+        (g: { gradeId: unknown; startTime?: string; duration?: number }) => ({
+          gradeId: String(g.gradeId),
+          startTime: g.startTime,
+          duration: g.duration,
+        })
+      ),
       lateArrivalCutoff: s.lateArrivalCutoff || null,
       minimumAttendancePercent: s.minimumAttendancePercent ?? 75,
       defaultExamWeekDuration: s.defaultExamWeekDuration ?? 5,
@@ -164,10 +244,40 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const updateData = {
+    const updateData: Record<string, unknown> = {
       ...parsed.data,
       updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
     };
+
+    // Convert gradeId strings to ObjectId in gradeScheduleOverrides
+    if (updateData.gradeScheduleOverrides && Array.isArray(updateData.gradeScheduleOverrides)) {
+      updateData.gradeScheduleOverrides = (
+        updateData.gradeScheduleOverrides as Array<{ gradeId: string; periodsPerDay?: number; periodDuration?: number; periodSlots?: unknown[] }>
+      ).map((g) => ({
+        ...g,
+        gradeId: new mongoose.Types.ObjectId(g.gradeId),
+      }));
+    }
+
+    // Convert gradeId strings to ObjectId in breakGradeOverrides
+    if (updateData.breakGradeOverrides && Array.isArray(updateData.breakGradeOverrides)) {
+      updateData.breakGradeOverrides = (
+        updateData.breakGradeOverrides as Array<{ gradeId: string; breakName: string; startTime?: string; endTime?: string }>
+      ).map((g) => ({
+        ...g,
+        gradeId: new mongoose.Types.ObjectId(g.gradeId),
+      }));
+    }
+
+    // Convert gradeId strings to ObjectId in assemblyGradeOverrides
+    if (updateData.assemblyGradeOverrides && Array.isArray(updateData.assemblyGradeOverrides)) {
+      updateData.assemblyGradeOverrides = (
+        updateData.assemblyGradeOverrides as Array<{ gradeId: string; startTime?: string; duration?: number }>
+      ).map((g) => ({
+        ...g,
+        gradeId: new mongoose.Types.ObjectId(g.gradeId),
+      }));
+    }
 
     // Upsert settings
     const settings = await SchoolSettings.findOneAndUpdate(
@@ -183,8 +293,34 @@ export async function PATCH(req: NextRequest) {
       periodDuration: settings.periodDuration,
       periodsPerDay: settings.periodsPerDay,
       periodSlots: settings.periodSlots || [],
+      dailyScheduleOverrides: settings.dailyScheduleOverrides || [],
+      gradeScheduleOverrides: (
+        (settings.gradeScheduleOverrides as Array<{ gradeId: unknown; periodsPerDay?: number; periodDuration?: number; periodSlots?: unknown[] }>) || []
+      ).map((g) => ({
+        gradeId: String(g.gradeId),
+        periodsPerDay: g.periodsPerDay,
+        periodDuration: g.periodDuration,
+        periodSlots: g.periodSlots || [],
+      })),
       breaks: settings.breaks || [],
+      breakDailyOverrides: settings.breakDailyOverrides || [],
+      breakGradeOverrides: (
+        (settings.breakGradeOverrides as Array<{ gradeId: unknown; breakName: string; startTime?: string; endTime?: string }>) || []
+      ).map((g) => ({
+        gradeId: String(g.gradeId),
+        breakName: g.breakName,
+        startTime: g.startTime,
+        endTime: g.endTime,
+      })),
       assembly: settings.assembly || null,
+      assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
+      assemblyGradeOverrides: (
+        (settings.assemblyGradeOverrides as Array<{ gradeId: unknown; startTime?: string; duration?: number }>) || []
+      ).map((g) => ({
+        gradeId: String(g.gradeId),
+        startTime: g.startTime,
+        duration: g.duration,
+      })),
       lateArrivalCutoff: settings.lateArrivalCutoff || null,
       minimumAttendancePercent: settings.minimumAttendancePercent ?? 75,
       defaultExamWeekDuration: settings.defaultExamWeekDuration ?? 5,

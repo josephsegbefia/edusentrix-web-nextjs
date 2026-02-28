@@ -20,6 +20,12 @@ import {
   Wallet,
   BarChart3,
   UserPlus,
+  Plus,
+  Shield,
+  FileSearch,
+  ArrowLeftRight,
+  Users,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,21 +42,19 @@ import {
   RangeType,
   TransactionDTO,
 } from "@/hooks/admin/useFinancialCenter";
+import {
+  useReconciliationIngestions,
+  useReconciliationAlerts,
+  useReconciliationRuns,
+} from "@/hooks/admin/useReconciliation";
+import { useFeeSummary, type DefaulterItem } from "@/hooks/admin/useFeeSummary";
+import { useExpenses, type ExpenseDTO } from "@/hooks/admin/useExpenses";
 import { RecordTransactionModal } from "@/components/modals/RecordTransactionModal";
-import { Plus } from "lucide-react";
+import { formatMoney, formatCurrency } from "@/lib/fees/money";
 
 // ========================
 // Helper Functions
 // ========================
-
-function formatCurrency(amountMinor: number, currency = "GHS") {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amountMinor / 100);
-}
 
 function getCategoryIcon(category: string) {
   const icons: Record<string, React.ReactNode> = {
@@ -169,7 +173,6 @@ function TransactionRow({ transaction }: { transaction: TransactionDTO }) {
       href={`/admin/finance/transactions/${transaction._id}`}
       className="group flex items-center gap-4 rounded-xl border border-white/5 bg-white/2 p-4 transition-all duration-200 hover:border-white/10 hover:bg-white/4"
     >
-      {/* Direction Icon */}
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
           isInflow
@@ -183,8 +186,6 @@ function TransactionRow({ transaction }: { transaction: TransactionDTO }) {
           <ArrowUpRight className="h-5 w-5" />
         )}
       </div>
-
-      {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="font-medium text-white truncate">
           {transaction.description || transaction.reference || getCategoryLabel(transaction.category)}
@@ -195,17 +196,14 @@ function TransactionRow({ transaction }: { transaction: TransactionDTO }) {
           <span>{format(new Date(transaction.occurredAt), "MMM d, h:mm a")}</span>
         </div>
       </div>
-
-      {/* Amount */}
       <p
         className={`font-semibold ${
           isInflow ? "text-emerald-400" : "text-red-400"
         }`}
       >
         {isInflow ? "+" : "-"}
-        {formatCurrency(transaction.netAmountMinor, transaction.currency)}
+        {formatCurrency(transaction.netAmountMinor, { currency: transaction.currency })}
       </p>
-
       <ChevronRight className="h-4 w-4 text-white/20 group-hover:text-white/40 transition-colors" />
     </Link>
   );
@@ -268,7 +266,7 @@ function CategoryBreakdownCard({
                       </span>
                     </div>
                     <span className="text-sm font-medium text-white">
-                      {formatCurrency(values.total)}
+                      {formatCurrency(values.total, { maximumFractionDigits: 0 })}
                     </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
@@ -290,6 +288,12 @@ function CategoryBreakdownCard({
 }
 
 // ========================
+// Tab Types
+// ========================
+
+type FinanceTab = "overview" | "transactions" | "fees" | "expenses";
+
+// ========================
 // Main Page Component
 // ========================
 
@@ -297,17 +301,46 @@ export default function FinancialCenterPage() {
   const [range, setRange] = React.useState<RangeType>("this_month");
   const [compare, setCompare] = React.useState(true);
   const [recordModalOpen, setRecordModalOpen] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<FinanceTab>("overview");
 
   const { data, isLoading, refetch } = useFinancialOverview({
     range,
     compare,
   });
 
+  const reconciliationIngestions = useReconciliationIngestions({
+    status: "all",
+    page: 1,
+    limit: 1,
+  });
+  const reconciliationAlerts = useReconciliationAlerts(true, true);
+  const reconciliationRuns = useReconciliationRuns(1, true);
+
+  const feeSummary = useFeeSummary();
+  const expensesPending = useExpenses({ status: "submitted", limit: 5 });
+  const expensesRecent = useExpenses({ limit: 5, sortBy: "updatedAt", sortOrder: "desc" });
+
   const rangeOptions: { value: RangeType; label: string }[] = [
     { value: "today", label: "Today" },
     { value: "this_week", label: "This Week" },
     { value: "this_month", label: "This Month" },
     { value: "last_30_days", label: "Last 30 Days" },
+  ];
+
+  const reconSummary = reconciliationIngestions.data?.summary || {
+    unmatched: 0,
+    matched: 0,
+    ambiguous: 0,
+    ignored: 0,
+  };
+  const activeAlerts = reconciliationAlerts.data?.active || [];
+  const lastRun = reconciliationRuns.data?.[0];
+
+  const tabs: { key: FinanceTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { key: "overview", label: "Overview", icon: Landmark },
+    { key: "transactions", label: "Transactions", icon: ArrowLeftRight },
+    { key: "fees", label: "Fees", icon: DollarSign },
+    { key: "expenses", label: "Expenses", icon: Receipt },
   ];
 
   return (
@@ -365,155 +398,317 @@ export default function FinancialCenterPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          title="Total Inflow"
-          value={formatCurrency(data?.kpis.totalInflow || 0)}
-          subValue={`${data?.kpis.inflowCount || 0} transactions`}
-          icon={ArrowDownRight}
-          trend={
-            compare
-              ? { value: data?.kpis.inflowChange ?? null, label: "vs previous" }
-              : undefined
-          }
-          loading={isLoading}
-          color="green"
-        />
-        <KPICard
-          title="Total Outflow"
-          value={formatCurrency(data?.kpis.totalOutflow || 0)}
-          subValue={`${data?.kpis.outflowCount || 0} transactions`}
-          icon={ArrowUpRight}
-          trend={
-            compare
-              ? { value: data?.kpis.outflowChange ?? null, label: "vs previous" }
-              : undefined
-          }
-          loading={isLoading}
-          color="red"
-        />
-        <KPICard
-          title="Net Position"
-          value={formatCurrency(data?.kpis.netPosition || 0)}
-          subValue={data?.kpis.netPosition || 0 >= 0 ? "Positive" : "Deficit"}
-          icon={BarChart3}
-          loading={isLoading}
-          color={(data?.kpis.netPosition || 0) >= 0 ? "blue" : "red"}
-        />
-        <KPICard
-          title="Pending"
-          value={String(data?.kpis.pendingCount || 0)}
-          subValue={formatCurrency(data?.kpis.pendingAmount || 0)}
-          icon={Clock}
-          loading={isLoading}
-          color="amber"
-        />
+      {/* Tabs */}
+      <div className="mb-6 flex items-center gap-1 overflow-x-auto rounded-xl border border-white/10 bg-white/3 p-1">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all ${
+              activeTab === tab.key
+                ? "bg-white/10 text-white shadow-sm"
+                : "text-white/50 hover:text-white/80 hover:bg-white/5"
+            }`}
+          >
+            <tab.icon className="h-4 w-4" />
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Alerts (if any) */}
-      {(data?.kpis.failedCount || 0) > 0 && (
-        <Card className="mb-6 overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/5">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-400">
-                {data?.kpis.failedCount} Failed Transaction{data?.kpis.failedCount !== 1 ? "s" : ""}
-              </p>
-              <p className="text-xs text-red-400/70">
-                Total: {formatCurrency(data?.kpis.failedAmount || 0)} - Review and take action
-              </p>
-            </div>
-            <Link href="/admin/finance/transactions?status=failed">
-              <Button variant="outline" size="sm" className="border-red-500/20 text-red-400 hover:bg-red-500/10">
-                View
-              </Button>
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
+        <>
+          {/* KPI Cards */}
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KPICard
+              title="Total Inflow"
+              value={formatCurrency(data?.kpis.totalInflow || 0, { maximumFractionDigits: 0 })}
+              subValue={`${data?.kpis.inflowCount || 0} transactions`}
+              icon={ArrowDownRight}
+              trend={
+                compare
+                  ? { value: data?.kpis.inflowChange ?? null, label: "vs previous" }
+                  : undefined
+              }
+              loading={isLoading}
+              color="green"
+            />
+            <KPICard
+              title="Total Outflow"
+              value={formatCurrency(data?.kpis.totalOutflow || 0, { maximumFractionDigits: 0 })}
+              subValue={`${data?.kpis.outflowCount || 0} transactions`}
+              icon={ArrowUpRight}
+              trend={
+                compare
+                  ? { value: data?.kpis.outflowChange ?? null, label: "vs previous" }
+                  : undefined
+              }
+              loading={isLoading}
+              color="red"
+            />
+            <KPICard
+              title="Net Position"
+              value={formatCurrency(data?.kpis.netPosition || 0, { maximumFractionDigits: 0 })}
+              subValue={(data?.kpis.netPosition || 0) >= 0 ? "Positive" : "Deficit"}
+              icon={BarChart3}
+              loading={isLoading}
+              color={(data?.kpis.netPosition || 0) >= 0 ? "blue" : "red"}
+            />
+            <KPICard
+              title="Pending"
+              value={String(data?.kpis.pendingCount || 0)}
+              subValue={formatCurrency(data?.kpis.pendingAmount || 0, { maximumFractionDigits: 0 })}
+              icon={Clock}
+              loading={isLoading}
+              color="amber"
+            />
+          </div>
+
+          {/* Reconciliation Summary Card */}
+          <div className="mb-6">
+            <Link href="/admin/finance/reconciliation" className="block">
+              <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-indigo-900/20 via-violet-950/20 to-black/60 transition-all hover:border-indigo-500/30 hover:bg-indigo-500/5">
+                <CardContent className="p-4">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
+                        <Shield className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">Reconciliation</p>
+                        <p className="text-xs text-white/50">
+                          Match payments against bank/gateway evidence
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-white/40">Unmatched</span>
+                        <span className={`font-semibold ${reconSummary.unmatched > 0 ? "text-rose-400" : "text-white/60"}`}>
+                          {reconciliationIngestions.isLoading ? "—" : reconSummary.unmatched}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-white/40">Needs review</span>
+                        <span className={`font-semibold ${reconSummary.ambiguous > 0 ? "text-amber-400" : "text-white/60"}`}>
+                          {reconciliationIngestions.isLoading ? "—" : reconSummary.ambiguous}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-white/40">Alerts</span>
+                        <span className={`font-semibold ${activeAlerts.length > 0 ? "text-amber-400" : "text-white/60"}`}>
+                          {reconciliationAlerts.isLoading ? "—" : activeAlerts.length}
+                        </span>
+                      </div>
+                      {lastRun && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-white/40">Last run</span>
+                          <span className="text-xs text-white/60">
+                            {format(new Date(lastRun.startedAt), "MMM d, h:mm a")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="ml-auto flex items-center gap-1 text-sm text-indigo-300">
+                      Open Reconciliation
+                      <ChevronRight className="h-4 w-4" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Alerts */}
+          {(data?.kpis.failedCount || 0) > 0 && (
+            <Card className="mb-6 overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/5">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-400">
+                    {data?.kpis.failedCount} Failed Transaction{data?.kpis.failedCount !== 1 ? "s" : ""}
+                  </p>
+                  <p className="text-xs text-red-400/70">
+                    Total: {formatCurrency(data?.kpis.failedAmount || 0, { maximumFractionDigits: 0 })} - Review and take action
+                  </p>
+                </div>
+                <Link href="/admin/finance/transactions?status=failed">
+                  <Button variant="outline" size="sm" className="border-red-500/20 text-red-400 hover:bg-red-500/10">
+                    View
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeAlerts.some((a) => a.severity === "critical") && (
+            <Card className="mb-6 overflow-hidden rounded-2xl border border-rose-500/20 bg-rose-500/5">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10">
+                  <AlertTriangle className="h-5 w-5 text-rose-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-rose-400">
+                    Critical reconciliation alerts require attention
+                  </p>
+                  <p className="text-xs text-rose-400/70">
+                    {activeAlerts.filter((a) => a.severity === "critical").length} critical alert(s) in the reconciliation queue
+                  </p>
+                </div>
+                <Link href="/admin/finance/reconciliation">
+                  <Button variant="outline" size="sm" className="border-rose-500/20 text-rose-400 hover:bg-red-500/10">
+                    View
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Main Grid */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <CategoryBreakdownCard
+                  title="Income by Category"
+                  data={data?.breakdowns.inflowByCategory || {}}
+                  type="inflow"
+                  loading={isLoading}
+                />
+                <CategoryBreakdownCard
+                  title="Spending by Category"
+                  data={data?.breakdowns.outflowByCategory || {}}
+                  type="outflow"
+                  loading={isLoading}
+                />
+              </div>
+
+              {/* Quick Links - 4 cards including Reconciliation */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Link href="/admin/finance/transactions" className="block">
+                  <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
+                        <ArrowLeftRight className="h-5 w-5 text-white/60" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">All Transactions</p>
+                        <p className="text-xs text-white/40">View ledger</p>
+                      </div>
+                      <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Link href="/admin/fees" className="block">
+                  <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
+                        <DollarSign className="h-5 w-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">Fees & Payments</p>
+                        <p className="text-xs text-white/40">Collect payments</p>
+                      </div>
+                      <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Link href="/admin/expenses" className="block">
+                  <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
+                        <Receipt className="h-5 w-5 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">Expenses</p>
+                        <p className="text-xs text-white/40">Manage spending</p>
+                      </div>
+                      <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Link href="/admin/finance/reconciliation" className="block">
+                  <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-indigo-500/20 hover:bg-indigo-500/5">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
+                        <FileSearch className="h-5 w-5 text-indigo-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">Reconciliation</p>
+                        <p className="text-xs text-white/40">Match bank/gateway data</p>
+                      </div>
+                      <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
+            </div>
+
+            <div>
+              <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+                <CardHeader className="border-b border-white/5 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold text-white">
+                      Recent Transactions
+                    </CardTitle>
+                    <Link
+                      href="/admin/finance/transactions"
+                      className="text-xs text-white/50 hover:text-white transition-colors"
+                    >
+                      View all
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  {isLoading ? (
+                    <div className="space-y-3">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex items-center gap-4 p-3">
+                          <Skeleton className="h-10 w-10 rounded-xl" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (data?.recentTransactions.length || 0) === 0 ? (
+                    <div className="py-8 text-center">
+                      <DollarSign className="mx-auto h-8 w-8 text-white/20" />
+                      <p className="mt-2 text-sm text-white/40">No transactions yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {data?.recentTransactions.slice(0, 8).map((tx) => (
+                        <TransactionRow key={tx._id} transaction={tx} />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Main Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column - Breakdowns */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <CategoryBreakdownCard
-              title="Income by Category"
-              data={data?.breakdowns.inflowByCategory || {}}
-              type="inflow"
-              loading={isLoading}
-            />
-            <CategoryBreakdownCard
-              title="Spending by Category"
-              data={data?.breakdowns.outflowByCategory || {}}
-              type="outflow"
-              loading={isLoading}
-            />
-          </div>
-
-          {/* Quick Links */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Link href="/admin/finance/transactions" className="block">
-              <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
-                    <DollarSign className="h-5 w-5 text-white/60" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">All Transactions</p>
-                    <p className="text-xs text-white/40">View ledger</p>
-                  </div>
-                  <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/admin/expenses" className="block">
-              <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
-                    <Receipt className="h-5 w-5 text-amber-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">Expenses</p>
-                    <p className="text-xs text-white/40">Manage spending</p>
-                  </div>
-                  <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
-                </CardContent>
-              </Card>
-            </Link>
-            <Link href="/admin/fees" className="block">
-              <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-                    <DollarSign className="h-5 w-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">Fees & Payments</p>
-                    <p className="text-xs text-white/40">Collect payments</p>
-                  </div>
-                  <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
-
-        {/* Right Column - Recent Transactions */}
-        <div>
+      {/* Transactions Tab */}
+      {activeTab === "transactions" && (
+        <div className="space-y-6">
           <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
             <CardHeader className="border-b border-white/5 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold text-white">
                   Recent Transactions
                 </CardTitle>
-                <Link
-                  href="/admin/finance/transactions"
-                  className="text-xs text-white/50 hover:text-white transition-colors"
-                >
-                  View all
+                <Link href="/admin/finance/transactions">
+                  <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-white hover:bg-white/10">
+                    View full ledger
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </Link>
               </div>
             </CardHeader>
@@ -532,21 +727,262 @@ export default function FinancialCenterPage() {
                   ))}
                 </div>
               ) : (data?.recentTransactions.length || 0) === 0 ? (
-                <div className="py-8 text-center">
-                  <DollarSign className="mx-auto h-8 w-8 text-white/20" />
+                <div className="py-12 text-center">
+                  <ArrowLeftRight className="mx-auto h-10 w-10 text-white/20" />
                   <p className="mt-2 text-sm text-white/40">No transactions yet</p>
+                  <Link href="/admin/finance/transactions">
+                    <Button variant="outline" size="sm" className="mt-4 border-white/10 text-white/70 hover:bg-white/5">
+                      View ledger
+                    </Button>
+                  </Link>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {data?.recentTransactions.slice(0, 8).map((tx) => (
+                  {data?.recentTransactions.slice(0, 10).map((tx) => (
                     <TransactionRow key={tx._id} transaction={tx} />
                   ))}
                 </div>
               )}
             </CardContent>
           </Card>
+          <Link href="/admin/finance/reconciliation" className="block">
+            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-indigo-900/20 via-violet-950/20 to-black/60 transition-all hover:border-indigo-500/30 hover:bg-indigo-500/5">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
+                  <Shield className="h-5 w-5 text-indigo-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">Reconciliation</p>
+                  <p className="text-xs text-white/50">
+                    Filter transactions by reconciliation status and match bank/gateway evidence
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-indigo-400" />
+              </CardContent>
+            </Card>
+          </Link>
         </div>
-      </div>
+      )}
+
+      {/* Fees Tab */}
+      {activeTab === "fees" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KPICard
+              title="Total Outstanding"
+              value={formatMoney(feeSummary.data?.summary.totalOutstandingMinor ?? 0)}
+              icon={DollarSign}
+              loading={feeSummary.isLoading}
+              color="amber"
+            />
+            <KPICard
+              title="Collection Rate"
+              value={feeSummary.isLoading ? "—" : `${Math.round(feeSummary.data?.summary.collectionRate ?? 0)}%`}
+              icon={BarChart3}
+              loading={feeSummary.isLoading}
+              color="blue"
+            />
+            <KPICard
+              title="Overdue"
+              value={String(feeSummary.data?.summary.overdueCount ?? 0)}
+              icon={AlertCircle}
+              loading={feeSummary.isLoading}
+              color="red"
+            />
+            <KPICard
+              title="Total Billed"
+              value={formatMoney(feeSummary.data?.summary.totalBilledMinor ?? 0)}
+              icon={Receipt}
+              loading={feeSummary.isLoading}
+              color="green"
+            />
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+              <CardHeader className="border-b border-white/5 pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold text-white">
+                    Top Defaulters
+                  </CardTitle>
+                  <Link href="/admin/fees">
+                    <span className="text-xs text-white/50 hover:text-white transition-colors"
+                    >View all</span>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4">
+                {feeSummary.isLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} className="h-12 rounded-lg" />
+                    ))}
+                  </div>
+                ) : (feeSummary.data?.defaulters?.length || 0) === 0 ? (
+                  <p className="text-sm text-white/40 text-center py-6">No defaulters</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(feeSummary.data?.defaulters || []).slice(0, 5).map((d: DefaulterItem) => (
+                      <Link
+                        key={d.studentId}
+                        href={`/admin/students/${d.studentId}`}
+                        className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 p-3 hover:bg-white/5 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-white/40" />
+                          <span className="text-sm font-medium text-white">
+                            {d.firstName} {d.lastName}
+                            {d.admissionNo && (
+                              <span className="ml-2 text-xs text-white/40">({d.admissionNo})</span>
+                            )}
+                          </span>
+                        </div>
+                        <span className="text-sm font-semibold text-amber-400">
+                          {formatMoney(d.totalOutstandingMinor)}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+              <CardHeader className="border-b border-white/5 pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold text-white">
+                    Upcoming Due
+                  </CardTitle>
+                  <Link href="/admin/fees">
+                    <span className="text-xs text-white/50 hover:text-white transition-colors"
+                    >View all</span>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4">
+                {feeSummary.isLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} className="h-12 rounded-lg" />
+                    ))}
+                  </div>
+                ) : (feeSummary.data?.upcomingDue?.length || 0) === 0 ? (
+                  <p className="text-sm text-white/40 text-center py-6">No upcoming due</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(feeSummary.data?.upcomingDue || []).slice(0, 5).map((item: { _id: string; invoiceNumber: string; dueDate: string; totalOutstandingMinor: number; studentId: { firstName: string; lastName: string } }) => (
+                      <div
+                        key={item._id}
+                        className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 p-3"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-white">
+                            {item.studentId.firstName} {item.studentId.lastName}
+                          </p>
+                          <p className="text-xs text-white/40">
+                            {item.invoiceNumber} • Due {format(new Date(item.dueDate), "MMM d")}
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold text-white">
+                          {formatMoney(item.totalOutstandingMinor)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          <Link href="/admin/fees">
+            <Button
+              variant="outline"
+              className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              <DollarSign className="mr-2 h-4 w-4" />
+              Go to Fees & Payments
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Expenses Tab */}
+      {activeTab === "expenses" && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <KPICard
+              title="Pending Approvals"
+              value={String(expensesPending.data?.pagination?.total ?? 0)}
+              subValue="Awaiting approval"
+              icon={Clock}
+              loading={expensesPending.isLoading}
+              color="amber"
+            />
+            <KPICard
+              title="Recent Expenses"
+              value={formatCurrency(
+                (expensesRecent.data?.data || []).reduce((s, e) => s + e.amountMinor, 0)
+              )}
+              subValue={`${expensesRecent.data?.data?.length || 0} in list`}
+              icon={Receipt}
+              loading={expensesRecent.isLoading}
+              color="blue"
+            />
+          </div>
+          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
+            <CardHeader className="border-b border-white/5 pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold text-white">
+                  Recent Expenses
+                </CardTitle>
+                <Link href="/admin/expenses">
+                  <span className="text-xs text-white/50 hover:text-white transition-colors"
+                  >View all</span>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              {expensesRecent.isLoading ? (
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-12 rounded-lg" />
+                  ))}
+                </div>
+              ) : (expensesRecent.data?.data?.length || 0) === 0 ? (
+                <p className="text-sm text-white/40 text-center py-6">No expenses yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {(expensesRecent.data?.data || []).slice(0, 5).map((exp: ExpenseDTO) => (
+                    <Link
+                      key={exp._id}
+                      href={`/admin/expenses/${exp._id}`}
+                      className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 p-3 hover:bg-white/5 transition-colors"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-white">{exp.title}</p>
+                        <p className="text-xs text-white/40">
+                          {exp.expenseNumber} • {format(new Date(exp.expenseDate), "MMM d")}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-white">
+                        {formatCurrency(exp.amountMinor, { maximumFractionDigits: 0 })} • {exp.status}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Link href="/admin/expenses">
+            <Button
+              variant="outline"
+              className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              <Receipt className="mr-2 h-4 w-4" />
+              Go to Expenses
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Record Transaction Modal */}
       <RecordTransactionModal

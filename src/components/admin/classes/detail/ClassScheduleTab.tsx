@@ -5,6 +5,7 @@ import { ClassTimetableEditor } from "./ClassTimetableEditor";
 type ClassScheduleTabProps = {
   classId: string;
   className: string;
+  gradeId?: string | null;
 };
 
 /**
@@ -12,6 +13,16 @@ type ClassScheduleTabProps = {
  * Build the timetable per class (day + period + subject + teacher).
  * This is the source of truth for the master timetable.
  */
-export function ClassScheduleTab({ classId, className }: ClassScheduleTabProps) {
-  return <ClassTimetableEditor classId={classId} className={className} />;
+export function ClassScheduleTab({
+  classId,
+  className,
+  gradeId,
+}: ClassScheduleTabProps) {
+  return (
+    <ClassTimetableEditor
+      classId={classId}
+      className={className}
+      gradeId={gradeId}
+    />
+  );
 }

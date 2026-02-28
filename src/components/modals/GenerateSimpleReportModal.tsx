@@ -32,12 +32,10 @@ type IssueSimpleReportVerificationResponse = {
   verificationPath: string;
 };
 
+import { formatCurrency } from "@/lib/fees/money";
+
 function formatCurrencyMinor(minor: number) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format((minor || 0) / 100);
+  return formatCurrency(minor ?? 0);
 }
 
 function formatNumber(value: number) {

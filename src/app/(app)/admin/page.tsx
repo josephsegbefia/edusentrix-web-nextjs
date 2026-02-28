@@ -75,6 +75,7 @@ import { PeriodWarningBanner } from "@/components/dashboard/PeriodWarningBanner"
 import { PeriodExpiryModal } from "@/components/dashboard/PeriodExpiryModal";
 import { usePeriodStatus } from "@/hooks/admin/usePeriodStatus";
 import { useAcademicPeriodOverview } from "@/hooks/admin/useAcademicPeriodOverview";
+import { formatCurrency } from "@/lib/fees/money";
 import { useOverdueRisk } from "@/hooks/admin/useOverdueRisk";
 import { useFeeSummary } from "@/hooks/admin/useFeeSummary";
 import { useFinancialTransactions, useFinancialOverview } from "@/hooks/admin/useFinancialCenter";
@@ -135,14 +136,6 @@ function formatEventWhen(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Date not available";
   return format(date, "EEE, dd MMM • p");
-}
-
-function formatMoneyMinor(value: number) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format((value || 0) / 100);
 }
 
 function getPeriodStateBadge(status?: string, fallback = "Not Set") {
@@ -1496,13 +1489,13 @@ export default function SchoolAdminOverviewPage() {
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                     <div className="text-xs text-white/60 mb-1">Collected</div>
                     <div className="text-lg font-semibold text-emerald-200">
-                      {formatMoneyMinor(collections.collectedMinor)}
+                      {formatCurrency(collections.collectedMinor)}
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                     <div className="text-xs text-white/60 mb-1">Outstanding</div>
                     <div className="text-lg font-semibold text-white">
-                      {formatMoneyMinor(collections.outstandingMinor)}
+                      {formatCurrency(collections.outstandingMinor)}
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -1517,7 +1510,7 @@ export default function SchoolAdminOverviewPage() {
                   <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
                     <div className="text-[11px] text-white/55">This Month</div>
                     <div className="text-sm font-medium text-white/90">
-                      {formatMoneyMinor(collections.monthlyMinor)}
+                      {formatCurrency(collections.monthlyMinor)}
                     </div>
                   </div>
                   <div className="rounded-lg border border-white/10 bg-black/10 px-3 py-2">
@@ -1716,19 +1709,19 @@ export default function SchoolAdminOverviewPage() {
                   <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                     <div className="text-[11px] text-white/55">Inflow</div>
                     <div className="mt-1 text-sm font-semibold text-emerald-200">
-                      {formatMoneyMinor(financialOverviewQuery.data?.kpis.totalInflow ?? 0)}
+                      {formatCurrency(financialOverviewQuery.data?.kpis.totalInflow ?? 0)}
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                     <div className="text-[11px] text-white/55">Outflow</div>
                     <div className="mt-1 text-sm font-semibold text-rose-200">
-                      {formatMoneyMinor(financialOverviewQuery.data?.kpis.totalOutflow ?? 0)}
+                      {formatCurrency(financialOverviewQuery.data?.kpis.totalOutflow ?? 0)}
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                     <div className="text-[11px] text-white/55">Net Position</div>
                     <div className={`mt-1 text-sm font-semibold ${(financialOverviewQuery.data?.kpis.netPosition ?? 0) >= 0 ? "text-emerald-200" : "text-rose-200"}`}>
-                      {formatMoneyMinor(financialOverviewQuery.data?.kpis.netPosition ?? 0)}
+                      {formatCurrency(financialOverviewQuery.data?.kpis.netPosition ?? 0)}
                     </div>
                   </div>
                 </div>
@@ -2018,7 +2011,7 @@ export default function SchoolAdminOverviewPage() {
                   </div>
                   <div>
                     <div className="text-lg font-semibold text-emerald-200">
-                      {formatMoneyMinor(m?.community?.campaigns?.totalRaisedMinor ?? 0)}
+                      {formatCurrency(m?.community?.campaigns?.totalRaisedMinor ?? 0)}
                     </div>
                     <div className="text-[10px] text-white/40">Raised</div>
                   </div>
@@ -2075,7 +2068,7 @@ export default function SchoolAdminOverviewPage() {
                   <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                     <div className="text-[11px] text-white/55">Overdue Amount</div>
                     <div className="mt-1 text-sm font-semibold text-rose-200">
-                      {formatMoneyMinor(overdueAmountMinor)}
+                      {formatCurrency(overdueAmountMinor)}
                     </div>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-white/5 p-3">
@@ -2109,7 +2102,7 @@ export default function SchoolAdminOverviewPage() {
                           </div>
                         </div>
                         <div className="font-semibold text-rose-200">
-                          {formatMoneyMinor(student.totalOutstandingMinor)}
+                          {formatCurrency(student.totalOutstandingMinor)}
                         </div>
                       </div>
                     ))}
@@ -2335,7 +2328,7 @@ export default function SchoolAdminOverviewPage() {
                       </div>
                     </div>
                     <div className="font-semibold text-orange-200 shrink-0">
-                      {formatMoneyMinor(inv.totalOutstandingMinor)}
+                      {formatCurrency(inv.totalOutstandingMinor)}
                     </div>
                   </div>
                 ))}

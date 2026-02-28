@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { AlertCircle, CheckCircle2, Copy, ShieldCheck, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/fees/money";
 
 type VerificationPayload = {
   verificationId: string;
@@ -55,11 +56,7 @@ function labelizeReportType(type: string) {
 
 function formatMoneyMinor(value: number | null) {
   if (typeof value !== "number" || !Number.isFinite(value)) return "N/A";
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format(value / 100);
+  return formatCurrency(value);
 }
 
 export default function ReportVerificationPage() {

@@ -30,13 +30,7 @@ function formatDateRange(start?: string | Date, end?: string | Date) {
   return `${format(s, "dd MMM yyyy")} – ${format(e, "dd MMM yyyy")}`;
 }
 
-function formatMoneyMinor(minor: number) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format((minor || 0) / 100);
-}
+import { formatCurrency } from "@/lib/fees/money";
 
 function MetricStatCard({
   icon: Icon,
@@ -195,7 +189,7 @@ export function PeriodDetailHeader({
           <MetricStatCard
             icon={Receipt}
             label="Revenue"
-            value={formatMoneyMinor(revenueMinor)}
+            value={formatCurrency(revenueMinor)}
             tone="emerald"
           />
         </div>

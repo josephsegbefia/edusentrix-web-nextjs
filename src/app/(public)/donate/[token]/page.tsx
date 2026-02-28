@@ -80,12 +80,7 @@ interface CampaignData {
 // Helpers
 // ============================================================================
 
-function formatMoney(amountMinor: number, currency: string = "GHS"): string {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency,
-  }).format(amountMinor / 100);
-}
+import { formatMoney } from "@/lib/fees/money";
 
 const SUGGESTED_AMOUNTS = [1000, 2000, 5000, 10000, 20000, 50000]; // In minor units
 

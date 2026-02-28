@@ -100,13 +100,7 @@ function OverviewStatCard({
   );
 }
 
-function formatMoneyMinor(minor: number) {
-  return new Intl.NumberFormat("en-GH", {
-    style: "currency",
-    currency: "GHS",
-    minimumFractionDigits: 2,
-  }).format((minor || 0) / 100);
-}
+import { formatCurrency } from "@/lib/fees/money";
 
 export function PeriodOverviewTab({ data }: PeriodOverviewTabProps) {
   const { period, counts, revenueMinor } = data;
@@ -131,7 +125,7 @@ export function PeriodOverviewTab({ data }: PeriodOverviewTabProps) {
         <OverviewStatCard
           icon={TrendingUp}
           label="Revenue"
-          value={formatMoneyMinor(revenueMinor)}
+          value={formatCurrency(revenueMinor)}
           description="Fees collected"
           tone="emerald"
         />
@@ -184,7 +178,7 @@ export function PeriodOverviewTab({ data }: PeriodOverviewTabProps) {
               <p className="mt-2 text-sm text-white/80">
                 {counts.invoices} invoices issued. Total revenue collected:{" "}
                 <span className="font-semibold text-emerald-300">
-                  {formatMoneyMinor(revenueMinor)}
+                  {formatCurrency(revenueMinor)}
                 </span>
               </p>
             </div>

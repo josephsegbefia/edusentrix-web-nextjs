@@ -21,18 +21,21 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const daysAhead = Math.max(1, parseInt(searchParams.get("daysAhead") || "30", 10));
+  const includeExpired = searchParams.get("includeExpired") === "true";
 
   const now = new Date();
   const futureDate = new Date(now);
   futureDate.setDate(futureDate.getDate() + daysAhead);
 
-  // Find documents expiring within the specified days
+  // Build query: expiring within window, optionally include already expired
+  const expiryQuery: Record<string, unknown> = includeExpired
+    ? { expiryDate: { $lte: futureDate } } // expired or expiring soon
+    : { expiryDate: { $gte: now, $lte: futureDate } }; // expiring soon only
+
   const documents = await TeacherDocument.find({
     schoolId: schoolIdObj,
-    expiryDate: {
-      $gte: now,
-      $lte: futureDate,
-    },
+    expiryDate: { $exists: true, $ne: null },
+    ...expiryQuery,
   })
     .populate("teacherId", "userId")
     .populate({
@@ -48,6 +51,10 @@ export async function GET(req: NextRequest) {
     const user = teacher?.userId;
     const expiryDate = new Date(doc.expiryDate);
 
+    const daysUntilExpiry = Math.ceil(
+      (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
     return {
       id: String(doc._id),
       name: String(doc.name),
@@ -55,9 +62,8 @@ export async function GET(req: NextRequest) {
       category: doc.category || null,
       fileUrl: String(doc.fileUrl),
       expiryDate: expiryDate.toISOString(),
-      daysUntilExpiry: Math.ceil(
-        (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      ),
+      daysUntilExpiry,
+      expiryStatus: daysUntilExpiry < 0 ? "expired" : daysUntilExpiry <= 30 ? "expiring_soon" : "valid",
       teacher: user
         ? {
             id: String(teacher._id),
@@ -74,6 +80,7 @@ export async function GET(req: NextRequest) {
     data,
     meta: {
       daysAhead,
+      includeExpired,
       count: data.length,
     },
   });

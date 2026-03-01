@@ -93,6 +93,7 @@ export type ExpiringDocumentDTO = {
   fileUrl: string;
   expiryDate: string;
   daysUntilExpiry: number;
+  expiryStatus?: "expired" | "expiring_soon" | "valid";
   teacher: {
     id: string;
     name: string;
@@ -249,12 +250,67 @@ export function useDocumentDownload(
 /**
  * useExpiringDocuments - Query hook for fetching expiring documents
  */
-export function useExpiringDocuments(daysAhead = 30) {
+export type SchoolTeacherDocumentDTO = {
+  id: string;
+  name: string;
+  type: TeacherDocumentType;
+  category: string | null;
+  fileUrl: string;
+  expiryDate: string | null;
+  expiryStatus: "expired" | "expiring_soon" | "valid" | null;
+  teacher: { id: string; name: string; email: string | null } | null;
+  createdAt: string;
+};
+
+export type SchoolTeacherDocumentsResponse = {
+  success: boolean;
+  data: SchoolTeacherDocumentDTO[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+};
+
+/**
+ * useSchoolTeacherDocuments - Query hook for school-wide teacher documents
+ */
+export function useSchoolTeacherDocuments(filters?: {
+  type?: TeacherDocumentType;
+  teacherId?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: "expiryDate" | "createdAt";
+  sortOrder?: "asc" | "desc";
+}) {
+  return useQuery<SchoolTeacherDocumentsResponse>({
+    queryKey: ["documents", "teachers", filters || {}],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filters?.type) params.set("type", filters.type);
+      if (filters?.teacherId) params.set("teacherId", filters.teacherId);
+      if (filters?.page) params.set("page", String(filters.page));
+      if (filters?.limit) params.set("limit", String(filters.limit));
+      if (filters?.sortBy) params.set("sortBy", filters.sortBy);
+      if (filters?.sortOrder) params.set("sortOrder", filters.sortOrder);
+
+      const res = await fetch(
+        `/api/admin/documents/teachers?${params.toString()}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) throw new Error("Failed to fetch teacher documents");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * useExpiringDocuments - Query hook for fetching expiring documents
+ */
+export function useExpiringDocuments(daysAhead = 30, includeExpired = false) {
   return useQuery<ExpiringDocumentsResponse>({
-    queryKey: ["teachers", "documents", "expiring", daysAhead],
+    queryKey: ["teachers", "documents", "expiring", daysAhead, includeExpired],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("daysAhead", String(daysAhead));
+      if (includeExpired) params.set("includeExpired", "true");
 
       const res = await fetch(
         `/api/admin/teachers/documents/expiring?${params.toString()}`,

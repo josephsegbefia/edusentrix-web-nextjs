@@ -52,10 +52,16 @@ export function formatCurrency(
   const {
     currency = "GHS",
     locale = "en-GH",
-    minimumFractionDigits = 2,
-    maximumFractionDigits = 2,
+    minimumFractionDigits: minFrac = 2,
+    maximumFractionDigits: maxFrac = 2,
     compact = false,
   } = options;
+
+  // Intl.NumberFormat requires: 0 <= minimumFractionDigits <= maximumFractionDigits <= 20
+  const min = Math.max(0, Math.min(20, minFrac));
+  const max = Math.max(0, Math.min(20, maxFrac));
+  const minimumFractionDigits = Math.min(min, max);
+  const maximumFractionDigits = max;
 
   const major = toMajorUnits(minorUnits);
 

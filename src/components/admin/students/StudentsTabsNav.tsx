@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { STUDENT_TABS, type StudentsTabId } from "@/constants/students";
-import { Users, Grid3X3, AlertCircle, Star, Clock } from "lucide-react";
+import { Users, Grid3X3, AlertCircle, Star, Clock, GraduationCap } from "lucide-react";
 
 const tabIcons: Record<
   StudentsTabId,
@@ -14,6 +14,7 @@ const tabIcons: Record<
   "fee-defaulters": AlertCircle,
   "top-performers": Star,
   recent: Clock,
+  alumni: GraduationCap,
 };
 
 const tabColors: Record<StudentsTabId, { active: string; icon: string }> = {
@@ -36,6 +37,10 @@ const tabColors: Record<StudentsTabId, { active: string; icon: string }> = {
   recent: {
     active: "border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-emerald-500/20",
     icon: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  },
+  alumni: {
+    active: "border-slate-500/40 bg-slate-500/15 text-slate-200 shadow-slate-500/20",
+    icon: "bg-slate-500/20 text-slate-300 border-slate-500/30",
   },
 };
 

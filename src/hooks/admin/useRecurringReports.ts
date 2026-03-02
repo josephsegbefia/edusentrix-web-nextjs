@@ -2,6 +2,24 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type RecurringReportType = "weekly" | "biweekly" | "monthly";
 
+export type RecurringReportSection = {
+  title: string;
+  content: string;
+  highlights?: string[];
+};
+
+export type RecurringReportSuggestion = {
+  text: string;
+  category?: string;
+  status?: "pending" | "in_progress" | "done" | "deferred";
+};
+
+export type RecurringReportContent = {
+  summary: string;
+  sections: RecurringReportSection[];
+  suggestions: RecurringReportSuggestion[];
+};
+
 export type RecurringReportItem = {
   id: string;
   periodId: string;
@@ -12,6 +30,19 @@ export type RecurringReportItem = {
   } | null;
   summary: string;
   generatedAt: string;
+};
+
+export type GeneratedRecurringReport = {
+  id: string;
+  periodId: string;
+  reportType: RecurringReportType;
+  dateRange: {
+    startDate: string;
+    endDate: string;
+  } | null;
+  content: RecurringReportContent;
+  generatedAt: string;
+  source: "cache" | "generated";
 };
 
 export function useRecurringReports(periodId: string | null) {
@@ -36,7 +67,16 @@ export function useRecurringReports(periodId: string | null) {
 
 export function useGenerateRecurringReport(periodId: string | null) {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useMutation<
+    GeneratedRecurringReport,
+    Error,
+    {
+      startDate: string;
+      endDate: string;
+      reportType: RecurringReportType;
+      force?: boolean;
+    }
+  >({
     mutationFn: async (payload: {
       startDate: string;
       endDate: string;
@@ -56,7 +96,10 @@ export function useGenerateRecurringReport(periodId: string | null) {
       if (!res.ok) {
         throw new Error(json.error ?? "Failed to generate report");
       }
-      return json.data as { id: string; reportType: string; dateRange: unknown; content: unknown; generatedAt: string };
+      return {
+        ...(json.data as Omit<GeneratedRecurringReport, "source">),
+        source: json.source === "cache" ? "cache" : "generated",
+      };
     },
     onSuccess: (_, variables) => {
       if (periodId) {

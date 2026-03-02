@@ -6,12 +6,17 @@ import { format } from "date-fns/format";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import {
   Activity as ActivityIcon,
+  ArrowRight,
   ArrowUpRight,
   BarChart3,
   BookOpen,
   CalendarClock,
   ClipboardCheck,
+  Clock3,
   DownloadCloud,
+  FileText,
+  Lightbulb,
+  Loader2,
   Mail,
   RefreshCw,
   TrendingUp,
@@ -40,6 +45,11 @@ import {
 } from "@/components/ui/select";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import {
+  useGenerateRecurringReport,
+  type GeneratedRecurringReport,
+  type RecurringReportType,
+} from "@/hooks/admin/useRecurringReports";
+import {
   useCreateReportExport,
   useReportExports,
   useReportsCharts,
@@ -47,6 +57,7 @@ import {
   type CreateReportExportInput,
   type ReportExportItem,
 } from "@/hooks/admin/useReports";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
@@ -1084,6 +1095,14 @@ function buildExportPayload(
   return payload;
 }
 
+function getSuggestedRecurringType(
+  days: number | null | undefined
+): RecurringReportType {
+  if (!days || days <= 9) return "weekly";
+  if (days <= 18) return "biweekly";
+  return "monthly";
+}
+
 function ExportDialog({
   selectedReport,
   selectedTone,
@@ -1180,6 +1199,337 @@ function ExportDialog({
   );
 }
 
+function LeoExecutiveBriefCard({
+  scope,
+  periodId,
+  periodLabel,
+  rangeStart,
+  rangeEnd,
+  rangeLabel,
+  rangeDays,
+}: {
+  scope: ReportScope;
+  periodId: string | null;
+  periodLabel: string | null;
+  rangeStart: string | null;
+  rangeEnd: string | null;
+  rangeLabel: string;
+  rangeDays: number | null;
+}) {
+  const {
+    mutateAsync: generateLeoBrief,
+    isPending: isGeneratingLeo,
+    isError: isLeoError,
+    error: leoError,
+    reset: resetLeo,
+  } = useGenerateRecurringReport(periodId);
+  const suggestedType = React.useMemo(
+    () => getSuggestedRecurringType(rangeDays),
+    [rangeDays]
+  );
+  const [reportType, setReportType] =
+    React.useState<RecurringReportType>(suggestedType);
+  const [brief, setBrief] = React.useState<GeneratedRecurringReport | null>(null);
+  const [downloadingPdf, setDownloadingPdf] = React.useState(false);
+  const [pdfError, setPdfError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setReportType(suggestedType);
+  }, [suggestedType]);
+
+  React.useEffect(() => {
+    setBrief(null);
+    setPdfError(null);
+    resetLeo();
+  }, [periodId, rangeStart, rangeEnd, reportType, resetLeo]);
+
+  const canGenerate = Boolean(periodId && rangeStart && rangeEnd);
+  const helperText = !periodId
+    ? "Leo needs an academic period context before it can generate a report brief."
+    : scope === "range"
+      ? `Leo will analyze ${rangeLabel} using ${periodLabel ?? "the current academic period"} as academic context.`
+      : `Leo will analyze the selected period window for ${periodLabel ?? "this academic period"}.`;
+
+  const handleGenerate = async (force = false) => {
+    if (!periodId || !rangeStart || !rangeEnd) return;
+    try {
+      const data = await generateLeoBrief({
+        startDate: rangeStart,
+        endDate: rangeEnd,
+        reportType,
+        force,
+      });
+      setBrief(data);
+    } catch {
+      // The mutation state renders the error message.
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!brief?.id) return;
+    setDownloadingPdf(true);
+    setPdfError(null);
+    try {
+      const res = await fetch(`/api/admin/reports/${brief.id}/pdf`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Failed to generate PDF");
+      }
+      const blob = await res.blob();
+      const disp = res.headers.get("Content-Disposition");
+      const match = /filename=\"?([^\"]+)\"?/i.exec(disp || "");
+      const name = match?.[1] ?? `leo-report-${brief.id}.pdf`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setPdfError(
+        error instanceof Error ? error.message : "Failed to generate PDF"
+      );
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-purple-500/20 bg-linear-to-r from-purple-500/10 via-indigo-500/5 to-transparent p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="rounded-lg border border-purple-400/30 bg-purple-500/20 p-1.5">
+            <LeoIcon className="h-4 w-4 text-purple-200" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-white">Leo Executive Brief</p>
+            <p className="text-xs text-white/60">
+              AI-generated summary and next actions for {rangeLabel}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge className="border border-purple-400/30 bg-purple-500/10 text-[10px] uppercase tracking-[0.2em] text-purple-100">
+            {reportType}
+          </Badge>
+          <Badge className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70">
+            Recommended {suggestedType}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-end">
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+            Leo Context
+          </p>
+          <p className="text-sm text-white/80">{helperText}</p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+            Brief Cadence
+          </p>
+          <Select
+            value={reportType}
+            onValueChange={(value) => setReportType(value as RecurringReportType)}
+            disabled={!periodId}
+          >
+            <SelectTrigger className="w-full border-white/10 bg-white/5 text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="start">
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="biweekly">Biweekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button
+          onClick={() => void handleGenerate(Boolean(brief))}
+          disabled={!canGenerate || isGeneratingLeo}
+          className="gap-2 rounded-xl bg-purple-600 hover:bg-purple-700"
+        >
+          {isGeneratingLeo ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <LeoIcon className="h-4 w-4" />
+          )}
+          {brief ? "Regenerate with Leo" : "Generate with Leo"}
+        </Button>
+      </div>
+
+      {isLeoError ? (
+        <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-100">
+          {leoError.message}
+        </div>
+      ) : null}
+      {pdfError ? (
+        <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-100">
+          {pdfError}
+        </div>
+      ) : null}
+
+      <div className="mt-4">
+        {!periodId ? (
+          <div className="rounded-xl border border-dashed border-amber-500/30 bg-amber-500/10 px-6 py-8 text-center">
+            <p className="text-sm text-amber-100">
+              No academic periods are available yet.
+            </p>
+            <p className="mt-2 text-xs text-amber-100/70">
+              Leo uses an academic period as the school context for this report window.
+            </p>
+          </div>
+        ) : isGeneratingLeo && !brief ? (
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
+            <span className="text-sm text-white/60">Leo is analyzing this window...</span>
+          </div>
+        ) : !brief ? (
+          <div className="rounded-xl border border-dashed border-purple-400/30 bg-purple-500/5 px-6 py-8 text-center">
+            <div className="mb-3 flex justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/20">
+                <LeoIcon className="h-6 w-6 text-purple-300" />
+              </div>
+            </div>
+            <p className="text-sm text-white/70">
+              Generate an operator-ready brief that explains what changed, what matters, and what to do next.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-purple-400/20 bg-purple-500/10 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="flex items-center gap-1.5 text-xs text-white/60">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  Generated {formatDistanceToNow(new Date(brief.generatedAt), { addSuffix: true })}
+                </span>
+                <Badge className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70">
+                  {brief.source === "cache" ? "Saved Brief" : "Fresh Run"}
+                </Badge>
+                {periodLabel ? (
+                  <Badge className="border border-white/10 bg-white/10 text-[10px] uppercase tracking-[0.2em] text-white/70">
+                    {periodLabel}
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void handleGenerate(true)}
+                  disabled={isGeneratingLeo}
+                  className="h-8 gap-1 text-xs text-purple-200 hover:bg-purple-500/20"
+                >
+                  {isGeneratingLeo ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  Refresh Brief
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleDownloadPdf()}
+                  disabled={downloadingPdf}
+                  className="h-8 gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10"
+                >
+                  {downloadingPdf ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <DownloadCloud className="h-3.5 w-3.5" />
+                  )}
+                  Download PDF
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-4 rounded-xl border border-white/10 bg-black/20 p-5">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-purple-300" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                    Executive Summary
+                  </p>
+                </div>
+                <p className="text-sm leading-relaxed text-white/90">
+                  {brief.content.summary}
+                </p>
+              </div>
+
+              {brief.content.sections.length > 0 ? (
+                <div className="grid gap-4 xl:grid-cols-3">
+                  {brief.content.sections.map((section, index) => (
+                    <div
+                      key={`${section.title}-${index}`}
+                      className="rounded-xl border border-white/10 bg-white/5 p-4"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                        {section.title}
+                      </p>
+                      <p className="mt-2 text-sm leading-relaxed text-white/80">
+                        {section.content}
+                      </p>
+                      {section.highlights?.length ? (
+                        <ul className="mt-3 space-y-1.5">
+                          {section.highlights.map((highlight, highlightIndex) => (
+                            <li
+                              key={`${section.title}-${highlightIndex}`}
+                              className="flex items-start gap-2 text-xs text-white/65"
+                            >
+                              <span className="mt-0.5 text-purple-300">•</span>
+                              <span>{highlight}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {brief.content.suggestions.length > 0 ? (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4 text-amber-300" />
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-100/80">
+                      Recommended Actions
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {brief.content.suggestions.map((suggestion, index) => (
+                      <div
+                        key={`${suggestion.text}-${index}`}
+                        className="flex items-start gap-2 text-sm text-white/80"
+                      >
+                        <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+                        <div className="min-w-0">
+                          <p>{suggestion.text}</p>
+                          {suggestion.category ? (
+                            <p className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/40">
+                              {humanizeLabel(suggestion.category)}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function ReportsPage() {
   const busy = useBusyToast();
   const [scope, setScope] = React.useState<ReportScope>("range");
@@ -1200,6 +1550,12 @@ export default function ReportsPage() {
 
   const activePeriodId =
     scope === "period" ? periodId ?? currentPeriod?._id ?? null : null;
+  const leoContextPeriod = React.useMemo(() => {
+    if (activePeriodId) {
+      return periods.find((period) => period._id === activePeriodId) ?? null;
+    }
+    return currentPeriod ?? periods[0] ?? null;
+  }, [activePeriodId, currentPeriod, periods]);
 
   const summaryQuery = useReportsSummary({
     periodId: activePeriodId,
@@ -1230,6 +1586,17 @@ export default function ReportsPage() {
   const fallbackRangeLabel = getFallbackRangeLabel(scope, currentPeriod, startDate, endDate);
 
   const rangeLabel = getRangeLabel(range, fallbackRangeLabel);
+  const selectedRangeDays =
+    range?.days ??
+    (rangeStart && rangeEnd
+      ? Math.max(
+          1,
+          Math.floor(
+            (new Date(rangeEnd).getTime() - new Date(rangeStart).getTime()) /
+              DAY_MS
+          ) + 1
+        )
+      : null);
 
   const reportGroups = groupReportDefinitions(REPORT_DEFINITION_LIST);
 
@@ -1459,6 +1826,20 @@ export default function ReportsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <LeoExecutiveBriefCard
+        scope={scope}
+        periodId={leoContextPeriod?._id ?? null}
+        periodLabel={
+          leoContextPeriod
+            ? `${leoContextPeriod.term} ${leoContextPeriod.yearLabel}`
+            : null
+        }
+        rangeStart={rangeStart}
+        rangeEnd={rangeEnd}
+        rangeLabel={rangeLabel}
+        rangeDays={selectedRangeDays}
+      />
 
       <Card className="relative overflow-hidden border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <div

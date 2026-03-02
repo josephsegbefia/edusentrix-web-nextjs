@@ -4,6 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { format } from "date-fns/format";
 import {
+  InviteBursarModal,
+  type InviteBursarInput,
+} from "@/components/modals/InviteBursarModal";
+import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
+import {
   TrendingUp,
   TrendingDown,
   DollarSign,
@@ -49,6 +54,8 @@ import {
 } from "@/hooks/admin/useReconciliation";
 import { useFeeSummary, type DefaulterItem } from "@/hooks/admin/useFeeSummary";
 import { useExpenses, type ExpenseDTO } from "@/hooks/admin/useExpenses";
+import { useCreateInvitation } from "@/hooks/admin/useInvitations";
+import { useBusyToast } from "@/hooks/useBusyToast";
 import { RecordTransactionModal } from "@/components/modals/RecordTransactionModal";
 import { formatMoney, formatCurrency } from "@/lib/fees/money";
 
@@ -301,7 +308,11 @@ export default function FinancialCenterPage() {
   const [range, setRange] = React.useState<RangeType>("this_month");
   const [compare, setCompare] = React.useState(true);
   const [recordModalOpen, setRecordModalOpen] = React.useState(false);
+  const [inviteBursarOpen, setInviteBursarOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<FinanceTab>("overview");
+
+  const createInvitation = useCreateInvitation();
+  const busy = useBusyToast();
 
   const { data, isLoading, refetch } = useFinancialOverview({
     range,
@@ -343,6 +354,26 @@ export default function FinancialCenterPage() {
     { key: "expenses", label: "Expenses", icon: Receipt },
   ];
 
+  async function handleInviteBursar(payload: InviteBursarInput) {
+    const invitePromise = createInvitation.mutateAsync({
+      email: payload.email,
+      role: "bursar",
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      phone: payload.phone || undefined,
+      photoUrl: payload.photoUrl || undefined,
+    });
+
+    await busy.promise(invitePromise, {
+      loading: "Sending bursar invitation…",
+      success: "Bursar invitation sent",
+      error: (error: Error) =>
+        error.message || "Failed to send bursar invitation",
+    });
+
+    setInviteBursarOpen(false);
+  }
+
   return (
     <div className="min-h-screen p-6 md:p-8">
       {/* Header */}
@@ -379,15 +410,14 @@ export default function FinancialCenterPage() {
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Link href="/admin/invitations?role=bursar">
-            <Button
-              variant="outline"
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Invite Bursar
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            onClick={() => setInviteBursarOpen(true)}
+          >
+            <UserPlus className="mr-2 h-4 w-4" />
+            Invite Bursar
+          </Button>
           <Button
             onClick={() => setRecordModalOpen(true)}
             className="group bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
@@ -990,6 +1020,19 @@ export default function FinancialCenterPage() {
         onOpenChange={setRecordModalOpen}
         onSuccess={() => refetch()}
       />
+
+      {/* Invite Bursar Modal */}
+      <ResponsiveModal
+        open={inviteBursarOpen}
+        onClose={() => setInviteBursarOpen(false)}
+        title="Invite Bursar"
+      >
+        <InviteBursarModal
+          onClose={() => setInviteBursarOpen(false)}
+          onSubmit={handleInviteBursar}
+          isLoading={createInvitation.isPending}
+        />
+      </ResponsiveModal>
     </div>
   );
 }

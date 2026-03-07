@@ -8,6 +8,8 @@ import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Subject, type ISubject } from "@/models/Subject";
 import mongoose from "mongoose";
+import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
+import { trackUsage } from "@/lib/billing/trackUsage";
 
 type Body = {
   firstName: string;
@@ -28,6 +30,11 @@ type Body = {
 export async function POST(req: NextRequest) {
   try {
     const { schoolId } = await requireSchoolAdmin();
+    await enforceSchoolLimit({
+      schoolId,
+      limitKey: "maxStudents",
+      message: "The student limit for this subscription has been reached.",
+    });
     await connectToDatabase();
 
     const body = (await req.json()) as Body;
@@ -137,6 +144,16 @@ export async function POST(req: NextRequest) {
     });
 
     await student.save();
+    await trackUsage({
+      schoolId,
+      provider: "internal",
+      metricKey: "student_records_created",
+      quantity: 1,
+      unitLabel: "students",
+      allocationMethod: "manual",
+      sourceType: "manual",
+      notes: "Student created through admin workflow.",
+    });
 
     // No manual emit: SSE route watches Student and will push `students.updated`
     return Response.json(
@@ -151,6 +168,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (e: unknown) {
+    if (e instanceof Response) return e;
     console.error("Student creation error:", e);
     const message =
       e instanceof Error ? e.message : "Failed to create student";

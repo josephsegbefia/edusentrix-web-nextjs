@@ -4,6 +4,8 @@ import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import OpenAI from "openai";
+import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
+import { trackUsage } from "@/lib/billing/trackUsage";
 
 // ============================================================================
 // Validation Schema
@@ -322,6 +324,11 @@ export async function POST(req: Request) {
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+    await enforceSchoolLimit({
+      schoolId: context.schoolId,
+      limitKey: "maxAICallsPerMonth",
+      message: "The monthly AI generation limit has been reached for this school.",
+    });
 
     // Check permission
     if (!can(context.permissions, PERMISSIONS.journalWrite)) {
@@ -413,6 +420,27 @@ export async function POST(req: Request) {
         throw new Error("Failed to parse AI response");
       }
     }
+
+    await trackUsage({
+      schoolId: context.schoolId,
+      provider: "openai",
+      metricKey: "ai_calls",
+      quantity: 1,
+      unitLabel: "calls",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: "Teacher lesson-notes AI generation request.",
+    });
+    await trackUsage({
+      schoolId: context.schoolId,
+      provider: "openai",
+      metricKey: "total_tokens",
+      quantity: Math.max(0, Number(completion.usage?.total_tokens || 0)),
+      unitLabel: "tokens",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: "Teacher lesson-notes AI token usage.",
+    });
 
     return Response.json({
       success: true,

@@ -62,13 +62,16 @@ export async function computeAcademicEvidence(
   academicPeriodId: Types.ObjectId,
   classGroupId: Types.ObjectId
 ): Promise<{ overallAverage: number | null; subjectsPassedPercent: number | null }> {
-  const termResult = await TermResult.findOne({
+  const termResultRaw = await TermResult.findOne({
     studentId,
     academicPeriodId,
     classGroupId,
   })
     .select("averageScore totalSubjects")
     .lean();
+  const termResult = Array.isArray(termResultRaw)
+    ? termResultRaw[0] || null
+    : termResultRaw;
 
   if (termResult) {
     const avg = termResult.averageScore ?? null;

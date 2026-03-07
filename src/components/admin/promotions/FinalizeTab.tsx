@@ -206,7 +206,9 @@ export function FinalizeTab() {
             <span className="flex items-center text-sm text-amber-200">Previous run failed</span>
           )}
         </div>
-        {(isFinalizing || isRollingBack) && cycle?.progress && typeof cycle.progress === "object" && (
+        {(isFinalizing || isRollingBack) &&
+          cycle?.progress != null &&
+          typeof cycle.progress === "object" && (
           <div className="mt-4 space-y-1">
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div

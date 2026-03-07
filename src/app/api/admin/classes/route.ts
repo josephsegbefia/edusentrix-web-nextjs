@@ -86,8 +86,31 @@ export async function POST(req: NextRequest) {
       .populate("subjectIds", "name code")
       .lean();
 
-    const gradePop = populated?.gradeId as { _id: string; name: string; code?: string; stage?: string; order?: number } | null;
-    const subjectPop = (populated?.subjectIds || []) as Array<{ _id: string; name: string; code?: string }>;
+    const gradeCandidate = populated?.gradeId;
+    const gradePop =
+      gradeCandidate &&
+      typeof gradeCandidate === "object" &&
+      "name" in gradeCandidate
+        ? (gradeCandidate as unknown as {
+            _id: mongoose.Types.ObjectId | string;
+            name: string;
+            code?: string;
+            stage?: string;
+            order?: number;
+          })
+        : null;
+
+    const subjectCandidates: Array<
+      mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId | string; name?: string; code?: string }
+    > = Array.isArray(populated?.subjectIds) ? populated.subjectIds : [];
+    const subjectPop = subjectCandidates
+      .filter(
+        (subject): subject is { _id: mongoose.Types.ObjectId | string; name: string; code?: string } =>
+          !!subject &&
+          typeof subject === "object" &&
+          "name" in subject &&
+          typeof subject.name === "string"
+      );
     return NextResponse.json({
       success: true,
       data: {

@@ -66,6 +66,14 @@ const DAYS_OF_WEEK = [
   { value: 6, label: "Sat" },
 ];
 
+function getGradeOptionId(grade: { _id: string }) {
+  return grade._id;
+}
+
+function getGradeOptionLabel(grade: { name?: string; _id: string }) {
+  return grade.name || grade._id;
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = React.useState<SettingsTab>("schedule");
   const [dailyOverridesExpanded, setDailyOverridesExpanded] =
@@ -229,9 +237,9 @@ export default function SettingsPage() {
     const grades = gradesData ?? [];
     const existing = formData.gradeScheduleOverrides || [];
     const usedGrades = new Set(existing.map((o) => o.gradeId));
-    const firstFree = grades.find((g) => !usedGrades.has(g.id || g._id));
+    const firstFree = grades.find((g) => !usedGrades.has(getGradeOptionId(g)));
     if (!firstFree) return;
-    const gradeId = "id" in firstFree ? firstFree.id : firstFree._id;
+    const gradeId = getGradeOptionId(firstFree);
     setFormData({
       ...formData,
       gradeScheduleOverrides: [
@@ -322,11 +330,11 @@ export default function SettingsPage() {
       existing.map((o) => `${o.gradeId}:${o.breakName}`)
     );
     const firstFree = grades.find((g) => {
-      const gradeId = ("id" in g ? g.id : g._id) ?? "";
+      const gradeId = getGradeOptionId(g);
       return breaks.some((b) => !usedKeys.has(`${gradeId}:${b.name}`));
     });
     if (!firstFree) return;
-    const gradeId = ("id" in firstFree ? firstFree.id : firstFree._id) ?? "";
+    const gradeId = getGradeOptionId(firstFree);
     const breakForGrade = breaks.find((b) => !usedKeys.has(`${gradeId}:${b.name}`));
     if (!breakForGrade) return;
     setFormData({
@@ -407,9 +415,9 @@ export default function SettingsPage() {
     const grades = gradesData ?? [];
     const existing = formData.assemblyGradeOverrides || [];
     const usedGrades = new Set(existing.map((o) => o.gradeId));
-    const firstFree = grades.find((g) => !usedGrades.has(("id" in g ? g.id : g._id) ?? ""));
+    const firstFree = grades.find((g) => !usedGrades.has(getGradeOptionId(g)));
     if (!firstFree) return;
-    const gradeId = ("id" in firstFree ? firstFree.id : firstFree._id) ?? "";
+    const gradeId = getGradeOptionId(firstFree);
     setFormData({
       ...formData,
       assemblyGradeOverrides: [
@@ -834,14 +842,14 @@ export default function SettingsPage() {
                                     className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
                                   >
                                     {(gradesData ?? []).map((g) => {
-                                      const id = "id" in g ? g.id : g._id;
+                                      const id = getGradeOptionId(g);
                                       return (
                                         <option
                                           key={id}
                                           value={id}
                                           className="bg-slate-900 text-white"
                                         >
-                                          {g.name}
+                                          {getGradeOptionLabel(g)}
                                         </option>
                                       );
                                     })}
@@ -1173,8 +1181,8 @@ export default function SettingsPage() {
                                     className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
                                   >
                                     {(gradesData ?? []).map((g) => {
-                                      const id = "id" in g ? g.id : g._id;
-                                      const label = "label" in g ? g.label : "name" in g ? g.name : String(id);
+                                      const id = getGradeOptionId(g);
+                                      const label = getGradeOptionLabel(g);
                                       return (
                                         <option
                                           key={id}
@@ -1524,8 +1532,8 @@ export default function SettingsPage() {
                                   className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white"
                                 >
                                   {(gradesData ?? []).map((g) => {
-                                    const id = "id" in g ? g.id : g._id;
-                                    const label = "label" in g ? g.label : "name" in g ? g.name : String(id);
+                                    const id = getGradeOptionId(g);
+                                    const label = getGradeOptionLabel(g);
                                     return (
                                       <option
                                         key={id}

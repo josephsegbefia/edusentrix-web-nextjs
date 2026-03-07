@@ -9,6 +9,8 @@ import { sendEmail } from "@/lib/email/brevo";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 import mongoose from "mongoose";
+import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
+import { trackUsage } from "@/lib/billing/trackUsage";
 
 const createInvitationSchema = z.object({
   email: z.string().email(),
@@ -132,6 +134,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { schoolId, userId } = await requireSchoolAdmin();
+    await enforceSchoolLimit({
+      schoolId,
+      limitKey: "maxInvitationsPerMonth",
+      message: "The monthly invitation limit has been reached for this subscription.",
+    });
     await connectToDatabase();
 
     if (!schoolId) {
@@ -215,6 +222,16 @@ export async function POST(req: NextRequest) {
         schoolName,
         setupLink: `${APP_URL}/sign-in`,
       });
+      await trackUsage({
+        schoolId,
+        provider: "email",
+        metricKey: "transactional_emails_sent",
+        quantity: 1,
+        unitLabel: "emails",
+        allocationMethod: "direct",
+        sourceType: "manual",
+        notes: "Bursar invitation email sent.",
+      });
     } catch (inviteError: unknown) {
       console.error("Bursar invitation error:", inviteError);
       invitationStatus = "failed";
@@ -258,6 +275,16 @@ export async function POST(req: NextRequest) {
         status: invitationStatus,
       },
     });
+    await trackUsage({
+      schoolId,
+      provider: "internal",
+      metricKey: "invitations_sent",
+      quantity: 1,
+      unitLabel: "invites",
+      allocationMethod: "manual",
+      sourceType: "manual",
+      notes: "Bursar invitation issued.",
+    });
 
     if (invitationStatus === "failed") {
       return new Response(
@@ -285,6 +312,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (e: unknown) {
+    if (e instanceof Response) return e;
     console.error("Failed to create invitation:", e);
     const message =
       e instanceof Error ? e.message : "Failed to create invitation";

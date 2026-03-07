@@ -12,6 +12,7 @@ import {
   Receipt,
   FileText,
   FileSearch,
+  Send,
   Menu,
   X,
 } from "lucide-react";
@@ -28,6 +29,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SchoolBrand } from "@/components/brand/SchoolBrand";
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasTierFeature, type SubscriptionFeatureKey } from "@/lib/billing/feature-access";
 
 type NavSection = {
   title: string;
@@ -36,6 +39,7 @@ type NavSection = {
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
+    feature?: SubscriptionFeatureKey;
   }>;
 };
 
@@ -59,6 +63,7 @@ const navSections: NavSection[] = [
         href: "/admin/finance",
         icon: Landmark,
         exact: true,
+        feature: "fees",
       },
       {
         label: "Transactions",
@@ -69,11 +74,18 @@ const navSections: NavSection[] = [
         label: "Fees & Payments",
         href: "/admin/fees",
         icon: DollarSign,
+        feature: "fees",
       },
       {
         label: "Expenses",
         href: "/admin/expenses",
         icon: Receipt,
+      },
+      {
+        label: "Disbursements",
+        href: "/admin/finance/disbursements",
+        icon: Send,
+        feature: "disbursements",
       },
     ],
   },
@@ -96,10 +108,21 @@ const navSections: NavSection[] = [
 
 function NavContent({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname();
+  const { data: subscription } = useSubscription();
+  const enabledFeatures = React.useMemo(
+    () => (Array.isArray(subscription?.features) ? subscription.features : []),
+    [subscription]
+  );
 
   return (
     <nav className="space-y-6">
-      {navSections.map((section, sectionIdx) => (
+      {navSections.map((section, sectionIdx) => {
+        const items = section.items.filter(
+          (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
+        );
+        if (items.length === 0) return null;
+
+        return (
         <div key={section.title}>
           <div className="mb-2.5 px-3">
             <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
@@ -108,7 +131,7 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
           </div>
 
           <div className="space-y-1">
-            {section.items.map(({ label, href, icon: Icon, exact }) => {
+            {items.map(({ label, href, icon: Icon, exact }) => {
               const active = exact
                 ? pathname === href
                 : pathname === href || pathname.startsWith(`${href}/`);
@@ -135,7 +158,8 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
             <Separator className="mt-6 bg-white/5" />
           )}
         </div>
-      ))}
+      );
+      })}
     </nav>
   );
 }

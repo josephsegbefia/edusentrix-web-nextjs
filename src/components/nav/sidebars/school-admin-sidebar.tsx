@@ -25,8 +25,10 @@ import {
   Vote,
   Heart,
   Landmark,
+  Wallet,
   Receipt,
   FileSearch,
+  Send,
   ChevronLeft,
   ChevronRight,
   TrendingUp,
@@ -180,6 +182,11 @@ const navSections: NavSection[] = [
         exact: true,
       },
       {
+        label: "Subscription",
+        href: "/admin/billing",
+        icon: Wallet,
+      },
+      {
         label: "Reconciliation Queue",
         href: "/admin/finance/reconciliation",
         icon: FileSearch,
@@ -193,6 +200,11 @@ const navSections: NavSection[] = [
         label: "Expenses",
         href: "/admin/expenses",
         icon: Receipt,
+      },
+      {
+        label: "Disbursements",
+        href: "/admin/finance/disbursements",
+        icon: Send,
       },
       {
         label: "Reports",

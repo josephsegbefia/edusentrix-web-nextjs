@@ -186,11 +186,6 @@ export async function POST(
             $set: {
               score: record.score,
               percentage,
-              assessmentType: assessment.assessmentType,
-              title: assessment.title,
-              maxScore: assessment.maxScore,
-              weight,
-              teacherId: context.teacherId,
             },
             $setOnInsert: {
               schoolId: context.schoolId,

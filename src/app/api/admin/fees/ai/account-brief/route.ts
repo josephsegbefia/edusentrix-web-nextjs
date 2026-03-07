@@ -15,6 +15,8 @@ import {
   isCacheFresh,
   recordAIFeatureUsage,
 } from "@/lib/ai/feature-budget";
+import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
+import { trackUsage } from "@/lib/billing/trackUsage";
 
 const FEATURE_KEY = "fees_account_brief";
 const PROMPT_VERSION = 1;
@@ -541,6 +543,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    await enforceSchoolLimit({
+      schoolId,
+      limitKey: "maxAICallsPerMonth",
+      message:
+        "The monthly AI account-brief limit has been reached for this school.",
+    });
+
     if (!budget.canGenerate) {
       return NextResponse.json(
         {
@@ -566,6 +575,26 @@ export async function POST(req: NextRequest) {
       generatedBy: userId || null,
       modelUsed: generated.modelUsed,
       tokenUsage: generated.tokenUsage,
+    });
+    await trackUsage({
+      schoolId,
+      provider: "openai",
+      metricKey: "ai_calls",
+      quantity: 1,
+      unitLabel: "calls",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: "Fees account-brief AI generation.",
+    });
+    await trackUsage({
+      schoolId,
+      provider: "openai",
+      metricKey: "total_tokens",
+      quantity: Math.max(0, Number(generated.tokenUsage?.totalTokens || 0)),
+      unitLabel: "tokens",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: "Fees account-brief AI token usage.",
     });
 
     await AIFeatureCache.findOneAndUpdate(
@@ -612,7 +641,7 @@ export async function POST(req: NextRequest) {
       dataFingerprint,
     });
   } catch (error: any) {
-    if (error instanceof NextResponse) return error;
+    if (error instanceof Response) return error;
     const message = String(error?.message || "");
     const status =
       message === "Student not found"

@@ -12,10 +12,18 @@ import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { User } from "@/models/User";
 
+const AttachmentSchema = z.object({
+  name: z.string().min(1).max(240),
+  url: z.string().url().max(2000),
+  type: z.string().min(1).max(120),
+  size: z.number().nonnegative().optional(),
+});
+
 const ThreadCreateSchema = z.object({
   studentId: z.string().min(1),
   subject: z.string().max(160).optional(),
   message: z.string().min(1).max(5000),
+  attachments: z.array(AttachmentSchema).max(6).optional(),
 });
 
 function toObjectIdOrNull(id: string) {
@@ -267,7 +275,7 @@ export async function POST(req: Request) {
       schoolId: context.schoolId,
       senderId: context.userId,
       body: parsed.data.message,
-      attachments: [],
+      attachments: parsed.data.attachments || [],
       readBy: [{ userId: context.userId, readAt: now }],
     });
 

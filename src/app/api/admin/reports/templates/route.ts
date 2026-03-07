@@ -28,7 +28,6 @@ export async function GET() {
         data: [
           {
             _id: null,
-            name: preset.name,
             curriculumCode: code,
             isDefault: true,
             isPreset: true,
@@ -54,7 +53,7 @@ const SectionSchema = z.object({
   label: z.string(),
   enabled: z.boolean(),
   order: z.number(),
-  config: z.record(z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
 });
 
 const CreateSchema = z.object({

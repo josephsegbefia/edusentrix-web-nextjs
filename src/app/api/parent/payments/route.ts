@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent } from "@/lib/auth/requireParent";
+import { toMajorUnits } from "@/lib/fees/money";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { Payment } from "@/models/Payment";
@@ -21,21 +22,23 @@ type StudentRow = {
 type PaymentRow = {
   _id: mongoose.Types.ObjectId;
   studentId: mongoose.Types.ObjectId;
-  amount?: number;
+  amountMinor?: number;
   paymentDate?: Date;
   paymentMethod?: string;
-  reference?: string;
+  paystackReference?: string | null;
+  externalReference?: string | null;
+  receiptNumber?: string | null;
   invoiceId?: mongoose.Types.ObjectId | null;
   notes?: string;
 };
 
 type InvoiceTitleRow = {
   _id: mongoose.Types.ObjectId;
-  title?: string;
+  invoiceNumber?: string;
 };
 
 type PaymentSummaryRow = {
-  amount?: number;
+  amountMinor?: number;
   paymentDate?: Date;
 };
 
@@ -71,6 +74,7 @@ export async function GET(req: NextRequest) {
         success: true,
         data: {
           payments: [],
+          wards: [],
           summary: {
             totalPayments: 0,
             totalAmount: 0,
@@ -130,7 +134,9 @@ export async function GET(req: NextRequest) {
 
     // Fetch payments
     const payments = await Payment.find(filter)
-      .select("studentId amount paymentDate paymentMethod reference invoiceId notes")
+      .select(
+        "studentId amountMinor paymentDate paymentMethod paystackReference externalReference receiptNumber invoiceId notes"
+      )
       .sort({ paymentDate: -1 })
       .skip(offset)
       .limit(limit)
@@ -141,10 +147,10 @@ export async function GET(req: NextRequest) {
       .map((p) => p.invoiceId)
       .filter((invoiceId): invoiceId is mongoose.Types.ObjectId => Boolean(invoiceId));
     const invoices = await Invoice.find({ _id: { $in: invoiceIds } })
-      .select("_id title")
+      .select("_id invoiceNumber")
       .lean<InvoiceTitleRow[]>();
     const invoiceMap = new Map(
-      invoices.map((inv) => [String(inv._id), inv.title || "School Fees"])
+      invoices.map((inv) => [String(inv._id), inv.invoiceNumber || "School Fees"])
     );
 
     // Format payments
@@ -152,11 +158,14 @@ export async function GET(req: NextRequest) {
       id: String(p._id),
       wardId: String(p.studentId),
       wardName: studentMap.get(String(p.studentId)) || "Unknown",
-      amount: p.amount || 0,
+      amount: toMajorUnits(Number(p.amountMinor || 0)),
       date: p.paymentDate?.toISOString() || "",
       method: p.paymentMethod || "cash",
-      reference: p.reference || "",
-      invoiceTitle: p.invoiceId ? invoiceMap.get(String(p.invoiceId)) || "School Fees" : "School Fees",
+      reference:
+        p.paystackReference || p.externalReference || p.receiptNumber || "",
+      invoiceTitle: p.invoiceId
+        ? invoiceMap.get(String(p.invoiceId)) || "School Fees"
+        : "School Fees",
       notes: p.notes || "",
     }));
 
@@ -170,7 +179,7 @@ export async function GET(req: NextRequest) {
       schoolId: context.schoolId,
       status: "completed",
     })
-      .select("amount paymentDate")
+      .select("amountMinor paymentDate")
       .lean<PaymentSummaryRow[]>();
 
     let totalAmount = 0;
@@ -178,7 +187,7 @@ export async function GET(req: NextRequest) {
     let thisYearAmount = 0;
 
     allPayments.forEach((p) => {
-      const amount = p.amount || 0;
+      const amount = toMajorUnits(Number(p.amountMinor || 0));
       totalAmount += amount;
       if (!p.paymentDate) return;
       const date = new Date(p.paymentDate);

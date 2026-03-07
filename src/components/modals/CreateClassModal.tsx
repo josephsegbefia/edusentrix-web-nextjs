@@ -20,11 +20,8 @@ import {
 const CreateClassSchema = z.object({
   gradeId: z.string().min(1, "Grade is required"),
   name: z.string().min(1, "Class name is required").max(50),
-  subjectIds: z.array(z.string()).optional().default([]),
-  capacity: z.preprocess(
-    (v) => (v === "" || v == null ? undefined : Number(v)),
-    z.number().int().positive().optional()
-  ),
+  subjectIds: z.array(z.string()),
+  capacity: z.number().int().positive().optional(),
 });
 
 export type CreateClassInput = z.infer<typeof CreateClassSchema>;
@@ -59,7 +56,7 @@ export default function CreateClassModal({
       gradeId,
       name: "",
       subjectIds: [],
-      capacity: null,
+      capacity: undefined,
     },
     mode: "onChange",
   });
@@ -88,7 +85,7 @@ export default function CreateClassModal({
     );
   }
 
-  const selectedSubjects = subjects.filter((s) => subjectIds.includes(s.id));
+  const selectedSubjects = subjects.filter((s) => subjectIds.includes(s._id));
 
   return (
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-6">
@@ -158,9 +155,9 @@ export default function CreateClassModal({
             ) : (
               subjects.map((subject) => (
                 <PremiumDropdownMenuCheckboxItem
-                  key={subject.id}
-                  checked={subjectIds.includes(subject.id)}
-                  onCheckedChange={() => toggleSubject(subject.id)}
+                  key={subject._id}
+                  checked={subjectIds.includes(subject._id)}
+                  onCheckedChange={() => toggleSubject(subject._id)}
                   className="text-xs"
                 >
                   {subject.name}
@@ -191,7 +188,12 @@ export default function CreateClassModal({
               value={field.value === null || field.value === undefined ? "" : field.value}
               onChange={(e) => {
                 const v = e.target.value;
-                field.onChange(v === "" ? null : Number(v));
+                if (v === "") {
+                  field.onChange(undefined);
+                  return;
+                }
+                const parsed = Number(v);
+                field.onChange(Number.isFinite(parsed) ? parsed : undefined);
               }}
               className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
             />

@@ -4,6 +4,8 @@ import { School } from "@/models/School";
 import { User } from "@/models/User";
 import { createUploadthing, type FileRouter, UTFiles } from "uploadthing/next";
 import { z } from "zod";
+import { checkLimit } from "@/lib/billing/entitlements";
+import { trackUsage } from "@/lib/billing/trackUsage";
 
 const f = createUploadthing();
 const RouteInput = z.object({
@@ -90,11 +92,24 @@ async function getUploaderContext(requestedSchoolId?: string) {
 
 async function buildMetadata(
   folder: string,
-  files: ReadonlyArray<{ name: string }>,
+  files: ReadonlyArray<{ name: string; size?: number }>,
   requestedSchoolId?: string
 ) {
   const context = await getUploaderContext(requestedSchoolId);
   const timestamp = Date.now();
+  const incomingBytes = files.reduce(
+    (sum, file) => sum + Math.max(0, Number(file.size || 0)),
+    0
+  );
+
+  const storageLimit = await checkLimit(
+    context.schoolId,
+    "maxStorageBytes",
+    incomingBytes
+  );
+  if (!storageLimit.allowed) {
+    throw new Error("Storage limit reached for this subscription.");
+  }
 
   const filesWithCustomIds = files.map((file, index) => ({
     ...file,
@@ -111,7 +126,7 @@ async function buildMetadata(
   };
 }
 
-function buildUploadResponse(metadata: UploadMetadata, file: {
+async function buildUploadResponse(metadata: UploadMetadata, file: {
   key: string;
   name: string;
   size: number;
@@ -120,6 +135,31 @@ function buildUploadResponse(metadata: UploadMetadata, file: {
   ufsUrl?: string;
   customId: string | null;
 }) {
+  try {
+    await trackUsage({
+      schoolId: metadata.schoolId,
+      provider: "uploadthing",
+      metricKey: "uploaded_assets",
+      quantity: 1,
+      unitLabel: "assets",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: `UploadThing asset stored in ${metadata.folder}.`,
+    });
+    await trackUsage({
+      schoolId: metadata.schoolId,
+      provider: "uploadthing",
+      metricKey: "uploaded_bytes",
+      quantity: Math.max(0, Number(file.size || 0)),
+      unitLabel: "bytes",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: `UploadThing byte usage in ${metadata.folder}.`,
+    });
+  } catch (error) {
+    console.error("UploadThing billing usage tracking failed:", error);
+  }
+
   return {
     url: file.ufsUrl || file.url,
     key: file.key,

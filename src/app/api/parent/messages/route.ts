@@ -8,6 +8,7 @@ import { Message } from "@/models/Message";
 import { User } from "@/models/User";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
+import { UserMembership } from "@/models/UserMembership";
 
 type ThreadParticipant = {
   userId: mongoose.Types.ObjectId;
@@ -48,7 +49,130 @@ type CreateMessageBody = {
   studentId?: string;
   subject?: string;
   message?: string;
+  attachments?: unknown;
 };
+
+type MessageAttachmentInput = {
+  name?: unknown;
+  url?: unknown;
+  type?: unknown;
+  size?: unknown;
+  key?: unknown;
+  customId?: unknown;
+};
+
+type RecipientRole = "teacher" | "school_admin" | "bursar" | "staff";
+
+type RecipientMembershipRow = {
+  roles?: string[];
+};
+
+type RecipientUserRow = {
+  _id: mongoose.Types.ObjectId;
+  schoolId?: mongoose.Types.ObjectId | null;
+  role?: string;
+};
+
+const recipientRolePriority: RecipientRole[] = [
+  "teacher",
+  "school_admin",
+  "bursar",
+  "staff",
+];
+
+function normalizeRecipientRole(value: unknown): RecipientRole | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized === "teacher" ||
+    normalized === "school_admin" ||
+    normalized === "bursar" ||
+    normalized === "staff"
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function buildPreview(value: string, limit = 100) {
+  const trimmed = value.trim();
+  if (trimmed.length <= limit) return trimmed;
+  return `${trimmed.slice(0, limit)}...`;
+}
+
+function normalizeAttachment(
+  value: MessageAttachmentInput
+): {
+  name: string;
+  url: string;
+  type: string;
+  size?: number;
+  key?: string;
+  customId?: string | null;
+} | null {
+  const name = typeof value.name === "string" ? value.name.trim() : "";
+  const url = typeof value.url === "string" ? value.url.trim() : "";
+  const type = typeof value.type === "string" ? value.type.trim() : "";
+
+  if (!name || !url || !type) return null;
+
+  let size: number | undefined;
+  if (typeof value.size === "number" && Number.isFinite(value.size) && value.size >= 0) {
+    size = value.size;
+  } else if (typeof value.size === "string") {
+    const parsed = Number(value.size);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      size = parsed;
+    }
+  }
+
+  const key = typeof value.key === "string" && value.key.trim().length > 0 ? value.key.trim() : undefined;
+  const customId =
+    typeof value.customId === "string"
+      ? value.customId.trim() || null
+      : value.customId === null
+      ? null
+      : undefined;
+
+  return {
+    name,
+    url,
+    type,
+    ...(typeof size === "number" ? { size } : {}),
+    ...(key ? { key } : {}),
+    ...(customId !== undefined ? { customId } : {}),
+  };
+}
+
+function sanitizeAttachments(value: unknown) {
+  if (!Array.isArray(value)) return [];
+
+  const sanitized = value
+    .map((item) => (item && typeof item === "object" ? normalizeAttachment(item as MessageAttachmentInput) : null))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  return sanitized.slice(0, 6);
+}
+
+function chooseRecipientRole(
+  requestedRole: RecipientRole | null,
+  membership: RecipientMembershipRow | null,
+  user: RecipientUserRow
+): RecipientRole | null {
+  const roleSet = new Set<string>();
+  membership?.roles?.forEach((role) => roleSet.add(role));
+  if (typeof user.role === "string") roleSet.add(user.role);
+
+  if (requestedRole && roleSet.has(requestedRole)) {
+    return requestedRole;
+  }
+
+  for (const role of recipientRolePriority) {
+    if (roleSet.has(role)) return role;
+  }
+
+  return null;
+}
 
 export async function GET() {
   try {
@@ -165,8 +289,11 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json()) as CreateMessageBody;
     const { recipientId, recipientRole, studentId, subject, message } = body;
+    const trimmedMessage = typeof message === "string" ? message.trim() : "";
+    const normalizedRecipientRole = normalizeRecipientRole(recipientRole);
+    const attachments = sanitizeAttachments(body.attachments);
 
-    if (!recipientId || !message) {
+    if (!recipientId || !trimmedMessage) {
       return NextResponse.json(
         { success: false, error: "Recipient and message are required" },
         { status: 400 }
@@ -181,8 +308,46 @@ export async function POST(req: NextRequest) {
     }
 
     const recipientObjectId = new mongoose.Types.ObjectId(recipientId);
+    const recipientUser = await User.findOne({
+      _id: recipientObjectId,
+      schoolId: context.schoolId,
+    })
+      .select("_id schoolId role")
+      .lean<RecipientUserRow | null>();
+
+    if (!recipientUser) {
+      return NextResponse.json(
+        { success: false, error: "Recipient not found in your school" },
+        { status: 404 }
+      );
+    }
+
+    const recipientMembership = await UserMembership.findOne({
+      userId: recipientObjectId,
+      schoolId: context.schoolId,
+      status: "active",
+    })
+      .select("roles")
+      .lean<RecipientMembershipRow | null>();
+
+    const finalRecipientRole = chooseRecipientRole(
+      normalizedRecipientRole,
+      recipientMembership,
+      recipientUser
+    );
+
+    if (!finalRecipientRole) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Recipient must be a teacher, school admin, bursar, or staff member",
+        },
+        { status: 400 }
+      );
+    }
 
     // Verify the parent has access to the student if specified
+    let studentObjectId: mongoose.Types.ObjectId | undefined;
     if (studentId) {
       if (!mongoose.Types.ObjectId.isValid(studentId)) {
         return NextResponse.json(
@@ -191,9 +356,11 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      studentObjectId = new mongoose.Types.ObjectId(studentId);
+
       const guardian = await Guardian.findOne({
         userId: context.userId,
-        studentId: new mongoose.Types.ObjectId(studentId),
+        studentId: studentObjectId,
       })
         .select("_id")
         .lean<{ _id: mongoose.Types.ObjectId } | null>();
@@ -207,10 +374,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for existing thread with same participants
-    const thread = await MessageThread.findOne({
+    const threadQuery: Record<string, unknown> = {
       schoolId: context.schoolId,
       "participants.userId": { $all: [context.userId, recipientObjectId] },
-      studentId: studentId ? new mongoose.Types.ObjectId(studentId) : { $exists: false },
+    };
+    if (studentObjectId) {
+      threadQuery.studentId = studentObjectId;
+    } else {
+      threadQuery.$or = [{ studentId: { $exists: false } }, { studentId: null }];
+    }
+
+    const thread = await MessageThread.findOne({
+      ...threadQuery,
     }).lean<MessageThreadRow | null>();
 
     let threadId: mongoose.Types.ObjectId;
@@ -219,15 +394,15 @@ export async function POST(req: NextRequest) {
       // Create new thread
       const newThread = await MessageThread.create({
         schoolId: context.schoolId,
-        studentId: studentId ? new mongoose.Types.ObjectId(studentId) : undefined,
-        subject: subject || "New Conversation",
+        studentId: studentObjectId,
+        subject: typeof subject === "string" && subject.trim().length > 0 ? subject.trim() : "New Conversation",
         participants: [
           { userId: context.userId, role: "parent" },
-          { userId: recipientObjectId, role: recipientRole || "teacher" },
+          { userId: recipientObjectId, role: finalRecipientRole },
         ],
         createdBy: context.userId,
         lastMessageAt: new Date(),
-        lastMessagePreview: message.substring(0, 100),
+        lastMessagePreview: buildPreview(trimmedMessage),
       });
       threadId = newThread._id;
     } else {
@@ -239,14 +414,15 @@ export async function POST(req: NextRequest) {
       threadId,
       schoolId: context.schoolId,
       senderId: context.userId,
-      body: message,
+      body: trimmedMessage,
+      attachments,
       readBy: [{ userId: context.userId, readAt: new Date() }],
     });
 
     // Update thread
     await MessageThread.findByIdAndUpdate(threadId, {
       lastMessageAt: new Date(),
-      lastMessagePreview: message.substring(0, 100),
+      lastMessagePreview: buildPreview(trimmedMessage),
     });
 
     return NextResponse.json({

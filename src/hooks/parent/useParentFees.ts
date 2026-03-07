@@ -24,12 +24,16 @@ export interface PendingInvoice {
   id: string;
   wardId: string;
   wardName: string;
+  invoiceNumber: string;
   title: string;
   amount: number;
+  amountMinor: number;
   balanceDue: number;
+  balanceDueMinor: number;
   dueDate: string;
   status: InvoiceStatus;
   isOverdue: boolean;
+  canPayOnline: boolean;
 }
 
 export interface RecentPayment {

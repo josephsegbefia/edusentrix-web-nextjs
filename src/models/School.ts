@@ -9,6 +9,8 @@ export interface ISchool {
   logo?: string;
   type: SchoolType;
   curriculumCode: CurriculumCode;
+  pendingCurriculumCode?: CurriculumCode | null;
+  pendingCurriculumEffective?: string | null;
   address?: string;
   email?: string;
   city?: string;
@@ -32,6 +34,14 @@ export interface ISchool {
       subaccountCode?: string | null;
       subaccountId?: string | null;
       lastError?: string | null;
+    };
+    transactionFees?: {
+      mode?: "platform_default" | "custom" | "disabled";
+      percent?: number | null;
+      capMinor?: number | null;
+      notes?: string | null;
+      updatedAt?: Date | null;
+      updatedBy?: Types.ObjectId | null;
     };
   };
   createdAt: Date;
@@ -101,6 +111,18 @@ const schoolSchema = new Schema<ISchool>(
         subaccountCode: { type: String, default: null },
         subaccountId: { type: String, default: null },
         lastError: { type: String, default: null },
+      },
+      transactionFees: {
+        mode: {
+          type: String,
+          enum: ["platform_default", "custom", "disabled"],
+          default: "platform_default",
+        },
+        percent: { type: Number, default: null },
+        capMinor: { type: Number, default: null },
+        notes: { type: String, default: null, trim: true },
+        updatedAt: { type: Date, default: null },
+        updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
       },
     },
   },

@@ -1,7 +1,8 @@
 // src/app/api/webhooks/paystack/route.ts
 /**
  * Paystack webhook handler for payment events.
- * Handles: (1) school fee payments, (2) donation completions for fundraising campaigns.
+ * Handles: (1) school fee payments, (2) donation completions for fundraising campaigns,
+ * (3) payout transfer status updates.
  */
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
@@ -21,12 +22,16 @@ import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { Student } from "@/models/Student";
 import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
 import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice";
+import { applySuccessfulSubscriptionCheckoutIntent } from "@/lib/billing/subscription-checkout";
 import { formatMoney } from "@/lib/fees/money";
+import { buildTransferReconciliationUpdate } from "@/lib/finance/disbursements";
 import { recordFeePaymentInLedger } from "@/lib/finance/writeLedgerEntry";
 import {
   generatePaymentInternalReference,
   type PaymentMethodForRef,
 } from "@/models/PaymentReferenceCounter";
+import { PaymentIntent } from "@/models/PaymentIntent";
+import { SchoolDisbursement } from "@/models/SchoolDisbursement";
 
 // ============================================================================
 // Types
@@ -38,10 +43,13 @@ interface PaystackEvent {
     id?: number;
     reference: string;
     amount: number;
+    fees?: number;
+    fee_charged?: number;
     currency: string;
     status: string;
     gateway_response: string;
     channel: string;
+    transfer_code?: string;
     metadata?: {
       donationId?: string;
       campaignId?: string;
@@ -49,6 +57,11 @@ interface PaystackEvent {
       invoiceId?: string;
       studentId?: string;
       paymentIntentId?: string;
+      subscriptionCheckoutIntentId?: string;
+      tierId?: string;
+      edusentrixTransactionFeeMinor?: number | string | null;
+      edusentrixTransactionFeePercent?: number | string | null;
+      edusentrixTransactionFeeCapMinor?: number | string | null;
       type?: string;
       custom_fields?: Array<{
         display_name: string;
@@ -110,11 +123,24 @@ export async function POST(req: NextRequest) {
     // Handle charge.success event
     if (event.event === "charge.success") {
       const { metadata } = event.data;
+      if (metadata?.type === "subscription_upgrade") {
+        await handleSubscriptionUpgradeSuccess(event);
+        return NextResponse.json({ received: true });
+      }
       if (metadata?.invoiceId && metadata?.studentId && metadata?.schoolId) {
         await handleFeePaymentSuccess(event);
         return NextResponse.json({ received: true });
       }
       await handleChargeSuccess(event);
+    }
+
+    if (
+      event.event === "transfer.success" ||
+      event.event === "transfer.failed" ||
+      event.event === "transfer.reversed"
+    ) {
+      await handleTransferUpdate(event);
+      return NextResponse.json({ received: true });
     }
 
     // Acknowledge receipt
@@ -138,6 +164,15 @@ async function handleFeePaymentSuccess(event: PaystackEvent) {
   const schoolId = metadata?.schoolId;
   const invoiceId = metadata?.invoiceId;
   const studentId = metadata?.studentId;
+  const paymentIntentId =
+    metadata?.paymentIntentId &&
+    mongoose.Types.ObjectId.isValid(metadata.paymentIntentId)
+      ? new mongoose.Types.ObjectId(metadata.paymentIntentId)
+      : null;
+  const platformFeeMinor = Math.max(
+    0,
+    Math.round(Number(metadata?.edusentrixTransactionFeeMinor || 0))
+  );
 
   if (
     !schoolId ||
@@ -156,15 +191,40 @@ async function handleFeePaymentSuccess(event: PaystackEvent) {
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
   const invoiceIdObj = new mongoose.Types.ObjectId(invoiceId);
   const studentIdObj = new mongoose.Types.ObjectId(studentId);
+  const amountMinor = Math.round(amount);
+  const processorFeeMinor = Math.max(0, Math.round(Number(data.fees || 0)));
+  const netSchoolAmountMinor = Math.max(
+    0,
+    amountMinor - platformFeeMinor - processorFeeMinor
+  );
 
   // Idempotency: payment already exists for this Paystack reference
-  const existingPayment = await Payment.findOne({
+  const existingPaymentRaw = await Payment.findOne({
     schoolId: schoolIdObj,
     paystackReference: reference,
     status: { $nin: ["reversed", "failed"] },
-  }).lean();
+  })
+    .select("_id")
+    .lean<{ _id: mongoose.Types.ObjectId } | null>();
+  const existingPayment = Array.isArray(existingPaymentRaw)
+    ? existingPaymentRaw[0]
+    : existingPaymentRaw;
 
   if (existingPayment) {
+    if (paymentIntentId) {
+      await PaymentIntent.findByIdAndUpdate(paymentIntentId, {
+        $set: {
+          status: "succeeded",
+          paymentId: existingPayment._id,
+          paystackReference: reference,
+          platformFeeMinor,
+          processorFeeMinor,
+          netSchoolAmountMinor,
+          failureReason: null,
+          expiresAt: null,
+        },
+      }).catch(() => undefined);
+    }
     console.log(`Paystack webhook: Fee payment already recorded: ${reference}`);
     return;
   }
@@ -180,7 +240,6 @@ async function handleFeePaymentSuccess(event: PaystackEvent) {
     return;
   }
 
-  const amountMinor = Math.round(amount);
   const lineItems = await InvoiceLineItem.find({ invoiceId: invoice._id })
     .sort({ displayOrder: 1 })
     .lean();
@@ -276,6 +335,9 @@ async function handleFeePaymentSuccess(event: PaystackEvent) {
     metadata: {
       paymentId,
       amountMinor,
+      platformFeeMinor,
+      processorFeeMinor,
+      netSchoolAmountMinor,
       allocatedMinor,
       unallocatedMinor,
       paymentMethod: "paystack",
@@ -295,18 +357,49 @@ async function handleFeePaymentSuccess(event: PaystackEvent) {
     schoolId: schoolIdObj,
     studentId: studentIdObj,
     invoiceId: invoice._id,
+    paymentIntentId,
     amountMinor,
+    platformFeeMinor,
+    processorFeeMinor,
+    netSchoolAmountMinor,
     paymentDate,
     paymentMethod: "paystack",
     paystackReference: reference,
     paystackTransactionId: data.id ? String(data.id) : null,
     reconciliationStatus: "gateway_verified",
     gatewayVerifiedAt: now,
+    gatewayResponse: {
+      id: data.id ?? null,
+      status: data.status,
+      channel: data.channel || null,
+      gatewayResponse: data.gateway_response || null,
+      currency: data.currency || null,
+      fees: processorFeeMinor,
+      paidAt: data.paid_at || null,
+      createdAt: data.created_at || null,
+      edusentrixTransactionFeeMinor: platformFeeMinor,
+      netSchoolAmountMinor,
+    },
     internalReference,
     status: "completed",
     approvalStatus: "not_required",
     receivedBy: null,
   });
+
+  if (paymentIntentId) {
+    await PaymentIntent.findByIdAndUpdate(paymentIntentId, {
+      $set: {
+        status: "succeeded",
+        paymentId,
+        paystackReference: reference,
+        platformFeeMinor,
+        processorFeeMinor,
+        netSchoolAmountMinor,
+        failureReason: null,
+        expiresAt: null,
+      },
+    }).catch(() => undefined);
+  }
 
   if (allocations.length > 0) {
     await PaymentAllocation.insertMany(
@@ -332,6 +425,9 @@ async function handleFeePaymentSuccess(event: PaystackEvent) {
     actorId: null,
     metadata: {
       paystackReference: reference,
+      platformFeeMinor,
+      processorFeeMinor,
+      netSchoolAmountMinor,
       allocatedMinor,
       unallocatedMinor,
       automated: true,
@@ -371,6 +467,100 @@ async function handleFeePaymentSuccess(event: PaystackEvent) {
   }
 
   console.log(`Paystack webhook: Fee payment recorded for invoice ${invoiceId}, ref ${reference}`);
+}
+
+async function handleSubscriptionUpgradeSuccess(event: PaystackEvent) {
+  const { data } = event;
+
+  if (data.status !== "success") return;
+
+  const checkoutIntentId = data.metadata?.subscriptionCheckoutIntentId;
+  if (!checkoutIntentId) {
+    console.error("Paystack webhook: Missing subscription checkout metadata");
+    return;
+  }
+
+  await connectToDatabase();
+
+  const applied = await applySuccessfulSubscriptionCheckoutIntent({
+    checkoutIntentId,
+    paystackReference: data.reference,
+    paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
+  });
+
+  if (!applied) {
+    console.error("Paystack webhook: Failed to apply subscription checkout", {
+      reference: data.reference,
+      checkoutIntentId,
+    });
+    return;
+  }
+
+  console.log(
+    `Paystack webhook: Subscription checkout applied for ref ${data.reference}`
+  );
+}
+
+async function handleTransferUpdate(event: PaystackEvent) {
+  const reference = event.data?.reference;
+  if (!reference) return;
+
+  await connectToDatabase();
+
+  const statusUpdate =
+    event.event === "transfer.success"
+      ? "completed"
+      : event.event === "transfer.reversed"
+        ? "cancelled"
+        : "failed";
+
+  const existing = await SchoolDisbursement.findOne({ reference })
+    .select("_id amountMinor platformFeeMinor processorFeeMinor")
+    .lean<{
+      _id: mongoose.Types.ObjectId;
+      amountMinor: number;
+      platformFeeMinor: number;
+      processorFeeMinor: number;
+    } | null>();
+
+  if (!existing) {
+    return;
+  }
+
+  const update = buildTransferReconciliationUpdate({
+    amountMinor: existing.amountMinor,
+    platformFeeMinor: existing.platformFeeMinor,
+    existingProcessorFeeMinor: existing.processorFeeMinor,
+    transfer: {
+      id: event.data?.id,
+      transfer_code: event.data?.transfer_code,
+      status: event.data?.status || event.event.replace("transfer.", ""),
+      reason: event.data?.gateway_response || null,
+      fee_charged: event.data?.fee_charged,
+      reference,
+      gateway_response: event.data?.gateway_response || null,
+    },
+  });
+
+  await SchoolDisbursement.findByIdAndUpdate(
+    existing._id,
+    {
+      $set: {
+        status: statusUpdate,
+        processedAt: update.processedAt,
+        processorFeeMinor: update.processorFeeMinor,
+        totalDebitMinor: update.totalDebitMinor,
+        "gateway.transferCode": update.gateway.transferCode,
+        "gateway.transferId": update.gateway.transferId,
+        "gateway.transferStatus": update.gateway.transferStatus,
+        "gateway.response": event.data,
+        "gateway.lastError":
+          event.event === "transfer.success"
+            ? null
+            : update.gateway.lastError,
+      },
+    }
+  );
 }
 
 async function handleChargeSuccess(event: PaystackEvent) {

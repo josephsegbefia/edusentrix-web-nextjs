@@ -23,6 +23,7 @@ export type TeacherGradebookAssessmentsResponse = {
   data: {
     assessmentTypes: GradebookAssessmentType[];
     gradingScale: GradebookGradingScale;
+    assessmentModel?: string;
   };
 };
 

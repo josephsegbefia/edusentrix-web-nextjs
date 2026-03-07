@@ -41,6 +41,75 @@ type StudentRow = {
   lastName?: string;
 };
 
+type MessageAttachmentInput = {
+  name?: unknown;
+  url?: unknown;
+  type?: unknown;
+  size?: unknown;
+  key?: unknown;
+  customId?: unknown;
+};
+
+function buildPreview(value: string, limit = 100) {
+  const trimmed = value.trim();
+  if (trimmed.length <= limit) return trimmed;
+  return `${trimmed.slice(0, limit)}...`;
+}
+
+function normalizeAttachment(
+  value: MessageAttachmentInput
+): {
+  name: string;
+  url: string;
+  type: string;
+  size?: number;
+  key?: string;
+  customId?: string | null;
+} | null {
+  const name = typeof value.name === "string" ? value.name.trim() : "";
+  const url = typeof value.url === "string" ? value.url.trim() : "";
+  const type = typeof value.type === "string" ? value.type.trim() : "";
+
+  if (!name || !url || !type) return null;
+
+  let size: number | undefined;
+  if (typeof value.size === "number" && Number.isFinite(value.size) && value.size >= 0) {
+    size = value.size;
+  } else if (typeof value.size === "string") {
+    const parsed = Number(value.size);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      size = parsed;
+    }
+  }
+
+  const key = typeof value.key === "string" && value.key.trim().length > 0 ? value.key.trim() : undefined;
+  const customId =
+    typeof value.customId === "string"
+      ? value.customId.trim() || null
+      : value.customId === null
+      ? null
+      : undefined;
+
+  return {
+    name,
+    url,
+    type,
+    ...(typeof size === "number" ? { size } : {}),
+    ...(key ? { key } : {}),
+    ...(customId !== undefined ? { customId } : {}),
+  };
+}
+
+function sanitizeAttachments(value: unknown) {
+  if (!Array.isArray(value)) return [];
+
+  const sanitized = value
+    .map((item) => (item && typeof item === "object" ? normalizeAttachment(item as MessageAttachmentInput) : null))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  return sanitized.slice(0, 6);
+}
+
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ threadId: string }> }
@@ -170,9 +239,10 @@ export async function POST(
 
     const { threadId } = await ctx.params;
     const body = await req.json();
-    const { message } = body;
+    const message = typeof body?.message === "string" ? body.message.trim() : "";
+    const attachments = sanitizeAttachments(body?.attachments);
 
-    if (!message?.trim()) {
+    if (!message) {
       return NextResponse.json(
         { success: false, error: "Message is required" },
         { status: 400 }
@@ -205,14 +275,15 @@ export async function POST(
       threadId: thread._id,
       schoolId: context.schoolId,
       senderId: context.userId,
-      body: message.trim(),
+      body: message,
+      attachments,
       readBy: [{ userId: context.userId, readAt: new Date() }],
     });
 
     // Update thread
     await MessageThread.findByIdAndUpdate(thread._id, {
       lastMessageAt: new Date(),
-      lastMessagePreview: message.substring(0, 100),
+      lastMessagePreview: buildPreview(message),
     });
 
     return NextResponse.json({
@@ -221,6 +292,7 @@ export async function POST(
         id: String(newMessage._id),
         senderId: String(context.userId),
         body: newMessage.body,
+        attachments: newMessage.attachments || [],
         createdAt: newMessage.createdAt?.toISOString() || "",
       },
     });

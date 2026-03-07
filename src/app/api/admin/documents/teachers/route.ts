@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
   const sortBy = searchParams.get("sortBy") || "expiryDate";
-  const sortOrder = searchParams.get("sortOrder") === "desc" ? -1 : 1;
+  const sortOrder: 1 | -1 = searchParams.get("sortOrder") === "desc" ? -1 : 1;
 
   const query: Record<string, unknown> = { schoolId: schoolIdObj };
 
@@ -51,7 +51,10 @@ export async function GET(req: NextRequest) {
 
   const total = await TeacherDocument.countDocuments(query);
 
-  const sortField = sortBy === "createdAt" ? { createdAt: sortOrder } : { expiryDate: sortOrder, createdAt: -1 };
+  const sortField: Record<string, mongoose.SortOrder> =
+    sortBy === "createdAt"
+      ? { createdAt: sortOrder }
+      : { expiryDate: sortOrder, createdAt: -1 };
 
   const documents = await TeacherDocument.find(query)
     .populate("teacherId", "userId")

@@ -14,6 +14,7 @@ import { User } from "@/models/User";
 import { Invitation } from "@/models/Invitation";
 import { UserMembership } from "@/models/UserMembership";
 import mongoose from "mongoose";
+import { trackUsage } from "@/lib/billing/trackUsage";
 
 // ============================================================================
 // Types
@@ -112,6 +113,7 @@ async function handleUserCreated(data: ClerkUserData) {
     firstName?: string;
     lastName?: string;
     avatarUrl?: string;
+    schoolId?: mongoose.Types.ObjectId;
   }
   const existingUser = await User.findOne({ email }).lean() as ExistingUserLean | null;
 
@@ -129,6 +131,19 @@ async function handleUserCreated(data: ClerkUserData) {
       }
     );
     console.log(`Clerk webhook: Linked existing user ${email} to Clerk ID ${data.id}`);
+
+    if (existingUser.schoolId) {
+      await trackUsage({
+        schoolId: existingUser.schoolId,
+        provider: "clerk",
+        metricKey: "user_created_events",
+        quantity: 1,
+        unitLabel: "events",
+        allocationMethod: "direct",
+        sourceType: "system_estimate",
+        notes: "Clerk user.created webhook processed for an existing linked user.",
+      });
+    }
   } else {
     // Create new user from Clerk data
     const role = (data.public_metadata?.role as string) || undefined;
@@ -152,6 +167,17 @@ async function handleUserCreated(data: ClerkUserData) {
         { $addToSet: { roles: role }, $set: { status: "active" } },
         { upsert: true }
       );
+
+      await trackUsage({
+        schoolId,
+        provider: "clerk",
+        metricKey: "user_created_events",
+        quantity: 1,
+        unitLabel: "events",
+        allocationMethod: "direct",
+        sourceType: "system_estimate",
+        notes: "Clerk user.created webhook created a new linked user.",
+      });
     }
 
     console.log(`Clerk webhook: Created new user ${email} from Clerk ID ${data.id}`);
@@ -205,15 +231,29 @@ async function handleInvitationAccepted(data: ClerkInvitationData) {
   await connectToDatabase();
 
   // Mark invitation as accepted by clerkInvitationId
-  await Invitation.updateOne(
+  const invitation = await Invitation.findOneAndUpdate(
     { clerkInvitationId: data.id },
     {
       $set: {
         status: "accepted",
         acceptedAt: new Date(),
       },
-    }
+    },
+    { new: true }
   );
+
+  if (invitation?.schoolId) {
+    await trackUsage({
+      schoolId: invitation.schoolId,
+      provider: "clerk",
+      metricKey: "invitation_acceptances",
+      quantity: 1,
+      unitLabel: "events",
+      allocationMethod: "direct",
+      sourceType: "system_estimate",
+      notes: "Clerk invitation.accepted webhook processed successfully.",
+    });
+  }
 
   console.log(`Clerk webhook: Marked invitation ${data.id} as accepted`);
 }

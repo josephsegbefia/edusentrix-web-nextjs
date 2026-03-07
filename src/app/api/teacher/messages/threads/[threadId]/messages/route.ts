@@ -8,8 +8,16 @@ import { Message } from "@/models/Message";
 import { MessageThread } from "@/models/MessageThread";
 import { User } from "@/models/User";
 
+const AttachmentSchema = z.object({
+  name: z.string().min(1).max(240),
+  url: z.string().url().max(2000),
+  type: z.string().min(1).max(120),
+  size: z.number().nonnegative().optional(),
+});
+
 const MessageCreateSchema = z.object({
   body: z.string().min(1).max(5000),
+  attachments: z.array(AttachmentSchema).max(6).optional(),
 });
 
 function toObjectIdOrNull(id: string) {
@@ -106,6 +114,7 @@ export async function GET(
           senderName: userMap.get(String(msg.senderId)) || "Unknown",
           createdAt: msg.createdAt ? msg.createdAt.toISOString() : null,
           isMine: String(msg.senderId) === String(context.userId),
+          attachments: msg.attachments || [],
         })),
       },
     });
@@ -163,7 +172,7 @@ export async function POST(
       schoolId: context.schoolId,
       senderId: context.userId,
       body: parsed.data.body,
-      attachments: [],
+      attachments: parsed.data.attachments || [],
       readBy: [{ userId: context.userId, readAt: now }],
     });
 
@@ -177,6 +186,7 @@ export async function POST(
       data: {
         messageId: String(message._id),
         createdAt: message.createdAt ? message.createdAt.toISOString() : null,
+        attachments: message.attachments || [],
       },
     });
   } catch (e: unknown) {

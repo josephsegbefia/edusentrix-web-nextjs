@@ -15,6 +15,8 @@ import { sendEmail } from "@/lib/email/brevo";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import mongoose from "mongoose";
 import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
+import { trackUsage } from "@/lib/billing/trackUsage";
 
 type Body = {
   firstName: string;
@@ -30,6 +32,11 @@ type Body = {
 export async function POST(req: NextRequest) {
   try {
     const { schoolId, userId } = await requireSchoolAdmin();
+    await enforceSchoolLimit({
+      schoolId,
+      limitKey: "maxTeachers",
+      message: "The teacher limit for this subscription has been reached.",
+    });
     await connectToDatabase();
 
     const body = (await req.json()) as Body;
@@ -253,6 +260,16 @@ export async function POST(req: NextRequest) {
         schoolName,
         setupLink: `${APP_URL}/sign-in`,
       });
+      await trackUsage({
+        schoolId,
+        provider: "email",
+        metricKey: "transactional_emails_sent",
+        quantity: 1,
+        unitLabel: "emails",
+        allocationMethod: "direct",
+        sourceType: "manual",
+        notes: "Teacher invitation email sent.",
+      });
     } catch (inviteError) {
       console.error("Clerk invitation error:", inviteError);
       invitationStatus = "failed";
@@ -303,6 +320,26 @@ export async function POST(req: NextRequest) {
         invitationSent: invitationStatus === "pending",
       },
     });
+    await trackUsage({
+      schoolId,
+      provider: "internal",
+      metricKey: "teacher_records_created",
+      quantity: 1,
+      unitLabel: "teachers",
+      allocationMethod: "manual",
+      sourceType: "manual",
+      notes: "Teacher created through admin workflow.",
+    });
+    await trackUsage({
+      schoolId,
+      provider: "internal",
+      metricKey: "invitations_sent",
+      quantity: 1,
+      unitLabel: "invites",
+      allocationMethod: "manual",
+      sourceType: "manual",
+      notes: "Teacher invitation issued during teacher creation.",
+    });
 
     return Response.json(
       {
@@ -320,6 +357,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (e: any) {
+    if (e instanceof Response) return e;
     console.error("Teacher creation error:", e);
     const message = e instanceof Error ? e.message : "Failed to create teacher";
 

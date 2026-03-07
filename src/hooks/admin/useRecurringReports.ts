@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export type RecurringReportType = "weekly" | "biweekly" | "monthly";
+export type RecurringReportType = "term" | "weekly" | "biweekly" | "monthly";
 
 export type RecurringReportSection = {
   title: string;

@@ -31,6 +31,7 @@ import {
   ArrowLeftRight,
   Users,
   AlertTriangle,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -320,7 +321,6 @@ export default function FinancialCenterPage() {
   });
 
   const reconciliationIngestions = useReconciliationIngestions({
-    status: "all",
     page: 1,
     limit: 1,
   });
@@ -409,6 +409,16 @@ export default function FinancialCenterPage() {
             className="border-white/10 bg-white/5 hover:bg-white/10"
           >
             <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            asChild
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+          >
+            <Link href="/admin/finance/disbursements">
+              <Send className="mr-2 h-4 w-4" />
+              Disbursements
+            </Link>
           </Button>
           <Button
             variant="outline"

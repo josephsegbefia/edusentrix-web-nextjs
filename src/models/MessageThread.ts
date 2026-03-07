@@ -5,6 +5,7 @@ export type MessageParticipantRole =
   | "parent"
   | "student"
   | "school_admin"
+  | "bursar"
   | "staff";
 
 export interface IMessageParticipant {
@@ -30,7 +31,7 @@ const ParticipantSchema = new Schema<IMessageParticipant>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     role: {
       type: String,
-      enum: ["teacher", "parent", "student", "school_admin", "staff"],
+      enum: ["teacher", "parent", "student", "school_admin", "bursar", "staff"],
       required: true,
     },
   },

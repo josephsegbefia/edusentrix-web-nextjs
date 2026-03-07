@@ -33,6 +33,8 @@ import { Separator } from "@/components/ui/separator";
 import { SchoolBrand } from "@/components/brand/SchoolBrand";
 import { useUnreadNotificationCount } from "@/hooks/parent/useParentNotifications";
 import { useUnreadMessageCount } from "@/hooks/parent/useParentMessages";
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasTierFeature, type SubscriptionFeatureKey } from "@/lib/billing/feature-access";
 
 // Navigation structure with sections
 type NavSection = {
@@ -43,6 +45,7 @@ type NavSection = {
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
     badgeCount?: number; // For unread notifications/messages count
+    feature?: SubscriptionFeatureKey;
   }>;
 };
 
@@ -92,11 +95,13 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           label: "Fees & Payments",
           href: "/parent/fees",
           icon: DollarSign,
+          feature: "parent_payments",
         },
         {
           label: "Payment History",
           href: "/parent/payments",
           icon: FileText,
+          feature: "parent_payments",
         },
       ],
     },
@@ -129,6 +134,7 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           label: "Reports",
           href: "/parent/reports",
           icon: TrendingUp,
+          feature: "reports",
         },
       ],
     },
@@ -142,6 +148,7 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
     useUnreadNotificationCount();
   const { data: unreadMessages, isError: unreadMessagesError } =
     useUnreadMessageCount();
+  const { data: subscription } = useSubscription();
 
   const navSections = React.useMemo(
     () =>
@@ -156,10 +163,20 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
       unreadNotificationsError,
     ]
   );
+  const enabledFeatures = React.useMemo(
+    () => (Array.isArray(subscription?.features) ? subscription.features : []),
+    [subscription]
+  );
 
   return (
     <nav className="space-y-6">
-      {navSections.map((section, sectionIdx) => (
+      {navSections.map((section, sectionIdx) => {
+        const items = section.items.filter(
+          (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
+        );
+        if (items.length === 0) return null;
+
+        return (
         <div key={section.title}>
           {/* Section Header */}
           <div className="mb-2.5 px-3">
@@ -170,7 +187,7 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
 
           {/* Section Items */}
           <div className="space-y-1">
-            {section.items.map(({ label, href, icon: Icon, exact, badgeCount }) => {
+            {items.map(({ label, href, icon: Icon, exact, badgeCount }) => {
               const active =
                 exact
                   ? pathname === href
@@ -206,7 +223,8 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
             <Separator className="mt-6 bg-white/5" />
           )}
         </div>
-      ))}
+      );
+      })}
     </nav>
   );
 }

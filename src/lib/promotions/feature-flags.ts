@@ -3,7 +3,7 @@
 // Set via env: NEXT_PUBLIC_PROMOTION_ENABLED, etc.
 
 const getEnv = (key: string, defaultVal: string): string =>
-  (typeof process !== "undefined" && process.env?.[key]) ?? defaultVal;
+  typeof process !== "undefined" ? process.env?.[key] ?? defaultVal : defaultVal;
 
 export const promotionFeatureFlags = {
   /** Master switch - when false, promotions UI/APIs can be disabled */

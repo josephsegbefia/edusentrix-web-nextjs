@@ -13,8 +13,9 @@ import {
 import { CURRICULUM_GRADE_TEMPLATES } from "@/constants/curriculum-grade-templates";
 import { CURRICULUM_SUBJECT_TEMPLATES } from "@/constants/curriculum-subject-templates";
 import { GRADING_PRESETS } from "@/constants/curriculum-grading-presets";
+import mongoose from "mongoose";
 
-async function getAcademicDataStatus(schoolId: string) {
+async function getAcademicDataStatus(schoolId: string | mongoose.Types.ObjectId) {
   const [assessmentCount, publishedGradeCount] = await Promise.all([
     Assessment.countDocuments({ schoolId }),
     SubjectGrade.countDocuments({ schoolId }),

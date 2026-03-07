@@ -50,7 +50,8 @@ export type GradeOverviewDTO = {
   classDistribution: Array<{
     classGroupId: string;
     classGroupName: string;
-    gradeName: string;
+    gradeId: string | null;
+    gradeName: string | null;
     count: number;
   }>;
   currentPeriod: { yearLabel: string; term: string } | null;

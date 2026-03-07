@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent } from "@/lib/auth/requireParent";
+import { toMajorUnits } from "@/lib/fees/money";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -30,10 +31,10 @@ type ClassGroupRow = {
 type InvoiceRow = {
   _id: mongoose.Types.ObjectId;
   studentId: mongoose.Types.ObjectId;
-  title?: string;
-  totalAmount?: number;
-  amountPaid?: number;
-  balanceDue?: number;
+  invoiceNumber?: string;
+  totalAmountMinor?: number;
+  totalPaidMinor?: number;
+  totalOutstandingMinor?: number;
   dueDate?: Date | null;
   status?: string;
 };
@@ -41,10 +42,12 @@ type InvoiceRow = {
 type RecentPaymentRow = {
   _id: mongoose.Types.ObjectId;
   studentId: mongoose.Types.ObjectId;
-  amount?: number;
+  amountMinor?: number;
   paymentDate?: Date;
   paymentMethod?: string;
-  reference?: string;
+  paystackReference?: string | null;
+  externalReference?: string | null;
+  receiptNumber?: string | null;
 };
 
 interface WardFeeSummary {
@@ -67,12 +70,16 @@ interface PendingInvoice {
   id: string;
   wardId: string;
   wardName: string;
+  invoiceNumber: string;
   title: string;
   amount: number;
+  amountMinor: number;
   balanceDue: number;
+  balanceDueMinor: number;
   dueDate: string;
   status: "pending" | "partial" | "overdue";
   isOverdue: boolean;
+  canPayOnline: boolean;
 }
 
 export async function GET() {
@@ -130,7 +137,9 @@ export async function GET() {
       studentId: { $in: studentIds },
       schoolId: context.schoolId,
     })
-      .select("studentId title totalAmount amountPaid balanceDue dueDate status")
+      .select(
+        "studentId invoiceNumber totalAmountMinor totalPaidMinor totalOutstandingMinor dueDate status"
+      )
       .sort({ dueDate: 1 })
       .lean<InvoiceRow[]>();
 
@@ -150,7 +159,9 @@ export async function GET() {
       schoolId: context.schoolId,
       status: "completed",
     })
-      .select("studentId amount paymentDate paymentMethod reference")
+      .select(
+        "studentId amountMinor paymentDate paymentMethod paystackReference externalReference receiptNumber"
+      )
       .sort({ paymentDate: -1 })
       .limit(10)
       .lean<RecentPaymentRow[]>();
@@ -175,11 +186,20 @@ export async function GET() {
       let overdueCount = 0;
 
       studentInvoices.forEach((inv) => {
-        totalFees += inv.totalAmount || 0;
-        amountPaid += inv.amountPaid || 0;
+        const invoiceStatus = String(inv.status || "draft");
+        if (invoiceStatus === "draft" || invoiceStatus === "cancelled") {
+          return;
+        }
 
-        const invoiceStatus = inv.status || "pending";
-        if (invoiceStatus !== "paid" && invoiceStatus !== "cancelled") {
+        const totalAmountMajor = toMajorUnits(Number(inv.totalAmountMinor || 0));
+        const totalPaidMajor = toMajorUnits(Number(inv.totalPaidMinor || 0));
+        const outstandingMinor = Number(inv.totalOutstandingMinor || 0);
+        const outstandingMajor = toMajorUnits(outstandingMinor);
+
+        totalFees += totalAmountMajor;
+        amountPaid += totalPaidMajor;
+
+        if (outstandingMinor > 0) {
           const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
           const isOverdue = dueDate ? dueDate < now : false;
           pendingCount++;
@@ -189,12 +209,21 @@ export async function GET() {
             id: String(inv._id),
             wardId: studentId,
             wardName,
-            title: inv.title || "School Fees",
-            amount: inv.totalAmount || 0,
-            balanceDue: inv.balanceDue || 0,
-            dueDate: inv.dueDate?.toISOString() || "",
-            status: isOverdue ? "overdue" : invoiceStatus === "partial" ? "partial" : "pending",
+            invoiceNumber: inv.invoiceNumber || "School Fees",
+            title: inv.invoiceNumber || "School Fees",
+            amount: totalAmountMajor,
+            amountMinor: Number(inv.totalAmountMinor || 0),
+            balanceDue: outstandingMajor,
+            balanceDueMinor: outstandingMinor,
+            dueDate: dueDate?.toISOString() || new Date().toISOString(),
+            status:
+              isOverdue || invoiceStatus === "overdue"
+                ? "overdue"
+                : invoiceStatus === "partially_paid"
+                  ? "partial"
+                  : "pending",
             isOverdue,
+            canPayOnline: true,
           });
         }
       });
@@ -242,10 +271,11 @@ export async function GET() {
         wardName: student
           ? `${student.firstName || ""} ${student.lastName || ""}`.trim()
           : "Unknown",
-        amount: p.amount || 0,
+        amount: toMajorUnits(Number(p.amountMinor || 0)),
         date: p.paymentDate?.toISOString() || "",
         method: p.paymentMethod || "cash",
-        reference: p.reference || "",
+        reference:
+          p.paystackReference || p.externalReference || p.receiptNumber || "",
       };
     });
 

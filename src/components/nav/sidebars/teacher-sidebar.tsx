@@ -40,6 +40,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SchoolBrand } from "@/components/brand/SchoolBrand";
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasTierFeature, type SubscriptionFeatureKey } from "@/lib/billing/feature-access";
 
 type NavSection = {
   title: string;
@@ -48,6 +50,7 @@ type NavSection = {
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
+    feature?: SubscriptionFeatureKey;
   }>;
 };
 
@@ -161,6 +164,7 @@ const navSections: NavSection[] = [
         href: "/teacher/analytics",
         icon: BarChart3,
         exact: true,
+        feature: "reports",
       },
       {
         label: "At-Risk List",
@@ -181,6 +185,7 @@ const navSections: NavSection[] = [
         label: "Lesson Notes",
         href: "/teacher/lesson-notes",
         icon: FileText,
+        feature: "ai_lesson_notes",
       },
     ],
   },
@@ -199,17 +204,30 @@ const navSections: NavSection[] = [
 function NavContent({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname();
   const { data } = useTeacherContext();
+  const { data: subscription } = useSubscription();
   const permissions = data?.data.permissions as Permission[] | undefined;
   const studioEnabled = data?.data.features?.teacherStudioEnabled ?? true;
   const canViewStudio = can(permissions, PERMISSIONS.assignmentsView);
   const showStudio = studioEnabled && canViewStudio;
+  const enabledFeatures = React.useMemo(
+    () => (Array.isArray(subscription?.features) ? subscription.features : []),
+    [subscription]
+  );
 
   const sections = React.useMemo(
     () =>
-      navSections.filter((section) =>
-        section.title === "Teacher Studio" ? showStudio : true
-      ),
-    [showStudio]
+      navSections
+        .filter((section) =>
+          section.title === "Teacher Studio" ? showStudio : true
+        )
+        .map((section) => ({
+          ...section,
+          items: section.items.filter(
+            (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
+          ),
+        }))
+        .filter((section) => section.items.length > 0),
+    [enabledFeatures, showStudio]
   );
 
   return (

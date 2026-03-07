@@ -10,7 +10,12 @@ function legacyRoleToArray(role?: string) {
   return ["staff"];
 }
 
-export async function requireSchoolAdmin() {
+type SchoolAdminContext = {
+  userId: NonNullable<IUser["_id"]>;
+  schoolId: NonNullable<IUser["schoolId"]>;
+};
+
+export async function requireSchoolAdmin(): Promise<SchoolAdminContext> {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId)
     throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -44,6 +49,13 @@ export async function requireSchoolAdmin() {
   const isAdmin = roles.includes("school_admin");
   if (!isAdmin)
     throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!user.schoolId) {
+    throw NextResponse.json(
+      { error: "School context is missing for this account" },
+      { status: 400 }
+    );
+  }
 
   return { userId: user._id, schoolId: user.schoolId };
 }

@@ -9,6 +9,9 @@ export interface IPaymentIntent {
 
   // Intent details
   amountMinor: number; // Intended payment amount (pesewas)
+  platformFeeMinor?: number;
+  processorFeeMinor?: number;
+  netSchoolAmountMinor?: number;
   proposedAllocations?: Array<{
     invoiceLineItemId: Types.ObjectId;
     amountMinor: number;
@@ -56,6 +59,9 @@ const paymentIntentSchema = new Schema<IPaymentIntent>(
       index: true,
     },
     amountMinor: { type: Number, required: true },
+    platformFeeMinor: { type: Number, default: 0 },
+    processorFeeMinor: { type: Number, default: 0 },
+    netSchoolAmountMinor: { type: Number, default: 0 },
     proposedAllocations: [
       {
         invoiceLineItemId: { type: Schema.Types.ObjectId, ref: "InvoiceLineItem" },

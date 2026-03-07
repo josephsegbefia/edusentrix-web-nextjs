@@ -8,6 +8,8 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { PeriodReport } from "@/models/PeriodReport";
 import { buildReportContextForDateRange } from "@/lib/periods/buildPeriodReportContext";
 import { computeDataFingerprint } from "@/lib/ai/dataFingerprint";
+import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
+import { trackUsage } from "@/lib/billing/trackUsage";
 
 export type RecurringReportType = "weekly" | "biweekly" | "monthly";
 
@@ -135,6 +137,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    await enforceSchoolLimit({
+      schoolId,
+      limitKey: "maxAICallsPerMonth",
+      message:
+        "The monthly AI report generation limit has been reached for this school.",
+    });
+
     const reportLabel =
       reportType === "weekly"
         ? "Weekly"
@@ -251,6 +260,27 @@ Be professional and data-driven.`;
       { upsert: true, new: true }
     );
 
+    await trackUsage({
+      schoolId,
+      provider: "openai",
+      metricKey: "ai_calls",
+      quantity: 1,
+      unitLabel: "calls",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: "Recurring AI report generation.",
+    });
+    await trackUsage({
+      schoolId,
+      provider: "openai",
+      metricKey: "total_tokens",
+      quantity: Math.max(0, Number(completion.usage?.total_tokens || 0)),
+      unitLabel: "tokens",
+      allocationMethod: "direct",
+      sourceType: "manual",
+      notes: "Recurring AI report token usage.",
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -271,6 +301,7 @@ Be professional and data-driven.`;
         : undefined,
     });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Error generating recurring report:", error);
     return NextResponse.json(
       {

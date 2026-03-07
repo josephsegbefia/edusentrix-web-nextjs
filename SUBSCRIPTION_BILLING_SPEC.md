@@ -36,7 +36,13 @@ Add a configurable subscription tier system to EduSentrix that:
 - Provides a **1-month free trial** for all new schools
 - Is fully configurable from the **Platform Admin** dashboard (`/platform`)
 - Tracks resource consumption per school for cost analysis (critical for pilot phase)
-- Enables the platform admin to manually set tiers, suspend accounts, and view cost breakdowns
+- Enables the platform admin to manually set and change subscriptions, offer discounts, and manage per-school transaction fee rules
+- Treats transaction fees as a percentage charged on money movements processed through EduSentrix:
+  - parent-to-school collections
+  - school-to-teacher disbursements
+  - school-to-vendor disbursements
+- Tracks third-party and platform-native usage by school with attributable cost estimates and margin analysis
+- Automatically produces pilot closeout pricing intelligence before final tier pricing is locked
 - Ensures profitability at scale by pricing above infrastructure cost
 
 ### Key Principles
@@ -45,7 +51,75 @@ Add a configurable subscription tier system to EduSentrix that:
 2. **Configurable** — tiers, features, limits, and prices are editable from the admin UI, NOT hardcoded
 3. **Pilot-first** — the system tracks real usage before we lock in pricing
 4. **Graceful degradation** — when a school hits a limit, show a clear upgrade prompt, don't crash
-5. **Ghana-local payments** — use Paystack (already integrated) for subscription billing
+5. **Ghana-local payments** — use Paystack (already partially integrated for subaccounts and webhook-based capture) for subscription billing and school payment rails
+6. **Commercial flexibility** — platform admin can negotiate school-specific pricing, discounts, and transaction fees
+7. **Measured pricing** — final public tier pricing is approved only after pilot closeout usage and cost analysis
+8. **Fee separation** — subscription fees, EduSentrix transaction fees, and processor fees are tracked as distinct financial streams
+9. **Secure payout routing** — payout account changes are high-risk settings and require phone-based 2FA before they are saved
+
+### 1.1 Operational Gaps for "World-Class" Standard
+
+These are the practical admin capabilities missing if the goal is a serious SaaS billing console:
+
+- **No revenue intelligence**
+  - No MRR/ARR, churn, trial conversion, expansion/downgrade, overdue risk, gross margin, or tier-mix reporting.
+  - This spec must therefore require a full revenue analytics surface, not just payment status.
+- **No cost-to-serve visibility**
+  - No actual service cost ledger or infrastructure cost tracking by school.
+  - This spec must therefore require provider cost tracking plus school-level cost allocation.
+- **No billing history or audit trail**
+  - No subscription event timeline exists yet.
+  - This spec must therefore treat audit-grade subscription events as a first-class requirement.
+- **No pilot-to-paid operating workflow**
+  - Pilot oversight without closeout analysis is insufficient.
+  - This spec must therefore include pilot closeout automation, repricing recommendations, and review workflows.
+- **No customer-facing subscription state surface**
+  - School-facing subscription visibility is part of an end-to-end billing system.
+  - This spec must therefore include current plan, pricing visibility, and self-service surfaces for schools.
+
+### 1.2 Most Important Bottom Line
+
+Right now, the platform admin account is essentially:
+
+- a valid restricted shell
+- an applications review area
+- a sidebar with future destinations
+
+It is **not yet** a subscription billing control center. This specification closes that gap by defining the operational, financial, and analytical systems needed for platform-grade billing.
+
+### 1.3 Immediate Priorities
+
+In delivery order, prioritize:
+
+1. Establish the billing domain models.
+2. Build the platform billing APIs.
+3. Add the school subscription detail workflow.
+4. Add the billing and revenue dashboards.
+5. Add usage metering, cost attribution, and entitlements enforcement.
+
+### 1.4 Locked Billing Rules
+
+These rules are fixed and should drive implementation:
+
+1. **Discounts apply to subscription charges only**
+   - Discounts do **not** reduce transaction fees.
+2. **Transaction fees are the school's responsibility**
+   - They are charged on:
+     - parent payments to the school processed via EduSentrix
+     - school payments to teachers processed via EduSentrix
+     - school payments to vendors processed via EduSentrix
+3. **Custom base price and discount may coexist**
+   - Billing order:
+     - tier price
+     - manual custom price override (if present)
+     - discount on the subscription portion only
+     - EduSentrix transaction fee calculated separately
+     - processor fee tracked separately as gateway cost
+4. **EduSentrix transaction fee is platform revenue**
+   - It is not the same as the processor fee (for example, Paystack's fee).
+5. **Pricing recommendations may be generated automatically, but never auto-applied**
+   - AI creates the recommendation draft.
+   - Platform admin must approve before any pricing change is adopted.
 
 ---
 
@@ -105,7 +179,7 @@ These are the services EduSentrix currently depends on. The platform admin dashb
 
 ### 4.1 Default Tier Configuration
 
-> **IMPORTANT**: These are DEFAULT values. The platform admin must be able to edit all of these from the UI. Store them in the database, not hardcoded.
+> **IMPORTANT**: These are DEFAULT and TEMPORARY pilot-era values. The platform admin must be able to edit all of these from the UI. Store them in the database, not hardcoded. Final public pricing is subject to review after the pilot program closes and cost analysis is complete.
 
 | | Starter | Standard | Premium | Enterprise |
 |---|---------|----------|---------|------------|
@@ -183,6 +257,13 @@ ENTERPRISE ONLY:
 | `pilot` | Pilot program schools | All features unlocked, full usage metering, no billing |
 | `custom` | Manually configured schools | Platform admin sets features/limits individually |
 | `suspended` | Suspended accounts | No access, data preserved, show "Account Suspended" screen |
+
+### 4.4 Temporary Tier Policy During Pilot
+
+- `starter`, `standard`, `premium`, and `enterprise` are provisional until the pilot program is reviewed.
+- Platform admin must be able to change prices, limits, and included features without schema changes.
+- Early paid schools may require negotiated exceptions while the pricing model is still being calibrated.
+- The pilot closeout process should produce pricing and limit recommendations before these tiers are treated as final public offers.
 
 ---
 
@@ -285,6 +366,25 @@ SchoolSubscription {
     note?: string                    // Admin note for why override exists
   }
   
+  // Manual commercial controls (platform admin can negotiate per school)
+  commercial: {
+    customPriceMonthly?: number | null
+    customPriceAnnual?: number | null
+    discountType?: "percentage" | "fixed" | "waiver" | null
+    discountValue?: number | null
+    discountReason?: string | null
+    discountStartsAt?: Date | null
+    discountEndsAt?: Date | null
+    // Discounts apply to subscription only; they do not modify transaction fees.
+    transactionFeeMode?: "school_pays_default" | "school_pays_custom"
+    transactionFeeAppliesTo?: Array<"parent_to_school" | "school_to_teacher" | "school_to_vendor">
+    transactionFeePercent?: number | null
+    transactionFeeFlat?: number | null
+    transactionFeeCap?: number | null
+    transactionFeeNotes?: string | null
+    manualBillingNotes?: string | null
+  }
+  
   // Payment
   paymentMethod: "paystack" | "bank_transfer" | "manual" | null
   paystackSubscriptionCode: string | null
@@ -335,10 +435,17 @@ UsageMetric {
   
   // What was consumed
   metricType: string             // See metric types below
-  category: string               // Module/feature area
+  category: string               // Module/feature area or billing dimension
+  provider: string | null        // "clerk" | "mongodb" | "vercel" | "paystack" | "platform" | etc.
   
   // How much
   value: number                  // Count, bytes, tokens, etc.
+  unit: string                   // "count" | "bytes" | "tokens" | "ghs" | "requests" | etc.
+  
+  // Estimated cost attribution
+  estimatedCost: number | null   // Cost attributed to this usage record
+  currency: string | null        // "USD" | "GHS"
+  attributionMethod: "direct" | "allocated" | "estimated"
   
   // Context
   metadata: Mixed                // Extra info (endpoint, userId, model, etc.)
@@ -350,9 +457,11 @@ UsageMetric {
 }
 
 Metric Types:
+  "auth_mau"         — Monthly active users attributable to a school
   "api_request"      — API call count (category = endpoint group)
   "db_read"          — Database read operations
   "db_write"         — Database write operations
+  "db_storage_bytes" — Database storage footprint estimate
   "storage_bytes"    — File storage consumed (value = bytes)
   "ai_tokens_input"  — OpenAI input tokens (category = "lesson_notes" | "student_insights")
   "ai_tokens_output" — OpenAI output tokens
@@ -364,6 +473,11 @@ Metric Types:
   "report_export"    — Report/CSV exports
   "feature_use"      — Feature access (category = feature key)
   "paystack_txn"     — Paystack transactions (value = amount in pesewas)
+  "edusentrix_txn_fee_revenue" — EduSentrix transaction fee charged to the school
+  "processor_fee_cost" — Payment processor fee charged by the gateway
+  "hosting_request"  — Vercel/edge request volume
+  "hosting_bandwidth_bytes" — Vercel bandwidth attributable to the school
+  "platform_job_run" — Internal background job usage attributable to the school
 
 Indexes:
   - { schoolId: 1, metricType: 1, date: 1 }  // Primary query pattern
@@ -389,6 +503,10 @@ SubscriptionEvent {
     // | "payment_received" | "payment_failed"
     // | "suspended" | "reactivated" | "cancelled"
     // | "override_added" | "override_removed"
+    // | "discount_set" | "discount_updated" | "discount_removed"
+    // | "transaction_fee_set" | "transaction_fee_updated" | "transaction_fee_removed"
+    // | "manual_price_set"
+    // | "payout_destination_change_requested" | "payout_destination_changed"
     // | "limit_reached" | "limit_warning"
   
   actorId: ObjectId | null       // ref: "User" (who triggered this, null = system)
@@ -398,6 +516,9 @@ SubscriptionEvent {
     // For tier_changed: { fromTier, toTier, reason }
     // For payment_received: { amount, currency, method, reference }
     // For suspended: { reason }
+    // For discount_set: { type, value, startsAt, endsAt, reason }
+    // For transaction_fee_updated: { mode, percent, flat, cap, note }
+    // For payout_destination_changed: { destinationType, channel, maskedAccount, changedBy }
     // For limit_reached: { metricType, currentValue, limit }
   
   createdAt: Date
@@ -418,7 +539,7 @@ File: src/models/ServiceCostEntry.ts
 ServiceCostEntry {
   _id: ObjectId
   
-  service: string                // "clerk" | "mongodb" | "uploadthing" | "openai" | "brevo" | "paystack" | "svix" | "vercel" | "cloudinary"
+  service: string                // "clerk" | "mongodb" | "uploadthing" | "openai" | "brevo" | "paystack" | "svix" | "vercel" | "cloudinary" | "platform_internal"
   
   // Period
   month: number                  // 1-12
@@ -433,7 +554,22 @@ ServiceCostEntry {
     // For Clerk: { totalMAU, freeMAU, paidMAU, baseFee, perUserFee }
     // For MongoDB: { clusterTier, storageGB, opsPerSecond }
     // For OpenAI: { totalTokens, inputTokens, outputTokens }
+    // For Paystack: { totalVolumeMinor, processorFeesMinor, settlementCount }
     // etc.
+  
+  // Allocation
+  allocation: {
+    method: "direct" | "weighted_usage" | "per_school_flat" | "manual"
+    driver: string | null        // "mau" | "storage_bytes" | "request_count" | etc.
+    schoolBreakdown?: Array<{
+      schoolId: ObjectId
+      usageAmount: number
+      allocatedCost: number
+      note?: string
+    }>
+  }
+  
+  sourceReference: string | null // Provider invoice ID, statement reference, or import batch ID
   
   // Entry method
   entryMethod: "manual" | "auto" // Did platform admin enter this or was it auto-fetched?
@@ -446,6 +582,55 @@ ServiceCostEntry {
 Indexes:
   - { service: 1, year: 1, month: 1 } (unique compound)
   - { year: 1, month: 1 }
+```
+
+### 5.6 `PlatformPayoutConfig` (New Model)
+
+Stores the platform-level destinations where money should be routed. This is separate from school settlement configuration.
+
+```
+File: src/models/PlatformPayoutConfig.ts
+
+PlatformPayoutConfig {
+  _id: ObjectId
+
+  // Subscription fee revenue goes here
+  subscriptionRevenueDestination: {
+    channel: "bank_account" | "mobile_money"
+    accountName: string
+    bankCode?: string | null
+    bankName?: string | null
+    accountNumber?: string | null
+    phoneNumber?: string | null
+    provider?: string | null
+    metadata?: Mixed
+  }
+
+  // EduSentrix transaction fee revenue goes here
+  transactionFeeRevenueDestination: {
+    channel: "bank_account" | "mobile_money"
+    accountName: string
+    bankCode?: string | null
+    bankName?: string | null
+    accountNumber?: string | null
+    phoneNumber?: string | null
+    provider?: string | null
+    metadata?: Mixed
+  }
+
+  // Security and audit
+  lastChangedAt: Date | null
+  lastChangedBy: ObjectId | null   // ref: "User"
+  lastVerifiedAt: Date | null      // successful 2FA verification time
+  lastVerificationMethod: "sms_otp" | "voice_otp" | null
+  changeReason: string | null
+
+  createdAt: Date
+  updatedAt: Date
+}
+
+Indexes:
+  - { updatedAt: -1 }
 ```
 
 ---
@@ -622,6 +807,13 @@ Add `trackUsage()` calls at these points in the codebase:
 | `report_export` | `src/app/api/admin/reports/export/route.ts` | report category |
 | `feature_use` | Each feature's main page/API (first access per day) | feature key |
 | `paystack_txn` | `src/app/api/webhooks/paystack/route.ts` | transaction type |
+| `payment_fee` | `src/app/api/webhooks/paystack/route.ts` | fee type / settlement channel |
+| `auth_mau` | Monthly aggregation job from Clerk users/events | billing month |
+| `db_read` / `db_write` | DB-heavy route groups or repository wrappers | model/route group |
+| `db_storage_bytes` | Daily aggregation job (document/file ownership estimate) | collection or feature |
+| `hosting_request` | Request middleware or Vercel analytics import | route group |
+| `hosting_bandwidth_bytes` | Vercel analytics import job | route group / asset group |
+| `platform_job_run` | Internal cron/job wrappers | job key |
 
 ### 7.2 Usage Aggregation
 
@@ -644,20 +836,59 @@ Returns:
     logins: { admin: 120, teacher: 450, student: 890, parent: 320 },
     invitations_sent: 12,
     report_exports: 8,
-    paystack_transactions: { count: 45, volume_ghs: 125000 }
-  },
-  estimatedCost: {
-    clerk: 5.32,       // Based on MAU
-    mongodb: 0.45,     // Based on storage estimate
-    uploadthing: 0.05, // Based on storage
-    openai: 0.02,      // Based on tokens
-    brevo: 0.15,       // Based on emails
-    total: 6.00
-  }
-}
-```
+	    paystack_transactions: { count: 45, volume_ghs: 125000 }
+	  },
+	  estimatedCost: {
+	    clerk: 5.32,       // Based on MAU allocation
+	    mongodb: 0.45,     // Based on storage + DB ops estimate
+	    vercel: 0.20,      // Based on hosting requests + bandwidth
+	    uploadthing: 0.05, // Based on storage
+	    openai: 0.02,      // Based on tokens
+	    brevo: 0.15,       // Based on emails
+	    paystackProcessor: 1.40,    // Processor fee cost only
+	    platformInternal: 0.55, // Shared internal overhead allocation
+	    total: 8.14
+	  },
+	  revenueSignals: {
+	    subscriptionRevenue: 637.5,
+	    edusentrixTransactionFeeRevenue: 94.5,
+	    netAfterProcessorFees: 730.6
+	  }
+	}
+	```
 
-### 7.3 Limit Enforcement Points
+### 7.3 Cost Attribution Rules
+
+To make pricing decisions safely, usage tracking must support both **direct attribution** and **shared-cost allocation**:
+
+- **Direct attribution**
+  - Use when a provider cost is already attributable to one school's actions.
+  - Examples: Paystack processor fees, OpenAI token usage, file storage attached to a school's assets.
+- **Allocated shared costs**
+  - Use when the cost is shared and must be distributed by a rational driver.
+  - Examples: Clerk MAU, MongoDB cluster cost, Vercel hosting, internal platform overhead.
+- **Allocation output**
+  - Every monthly cost run should produce:
+    - per-school usage totals by provider
+    - per-school allocated cost by provider
+    - total estimated cost-to-serve per school
+    - margin estimate against the school's effective subscription revenue
+
+Recommended default allocation drivers:
+
+| Service | Default Driver | Notes |
+|---------|----------------|-------|
+| Clerk | `auth_mau` | Allocate by attributable monthly active users |
+| MongoDB | `db_storage_bytes` + weighted `db_read/db_write` | Combine storage share and operation weight |
+| Vercel | `hosting_request` + `hosting_bandwidth_bytes` | Blend request volume and egress |
+| UploadThing / Cloudinary | `storage_bytes` | Direct or near-direct by owned assets |
+| OpenAI | `ai_tokens_input` + `ai_tokens_output` | Direct attribution |
+| Brevo | `email_sent` | Direct attribution |
+| Paystack processor cost | `processor_fee_cost` / `paystack_txn` | Direct attribution |
+| EduSentrix transaction fee revenue | `edusentrix_txn_fee_revenue` | Direct attribution |
+| Platform internal overhead | Active school count or weighted usage score | Manual/admin-defined if needed |
+
+### 7.4 Limit Enforcement Points
 
 When tracking usage, also enforce per-month limits:
 
@@ -691,6 +922,14 @@ When tracking usage, also enforce per-month limits:
 /platform/pilot                    — Pilot program dashboard (NEW)
 ```
 
+`/platform/billing` should act as the operations landing page for:
+
+- global default transaction fee policy
+- subscription fee payout destination
+- EduSentrix transaction fee payout destination
+- payout account verification status
+- links to tiers, cost tracking, and revenue analytics
+
 ### 8.2 Platform Overview Page (`/platform`) — UPDATE
 
 Add to the existing placeholder:
@@ -709,6 +948,9 @@ Quick Actions:
   - View Schools Needing Attention (payment failed, trial expiring, limit warnings)
   - Record Service Cost
   - View Pilot Insights
+  - Review Margin Alerts
+  - Run / Re-run Pilot Closeout Analysis
+  - Update Payout Accounts
 
 Charts:
   - School growth over time (line)
@@ -742,6 +984,8 @@ Filters:
 Actions per row:
   - View Details
   - Change Tier
+  - Set Discount
+  - Configure Transaction Fees
   - Suspend / Reactivate
   - Override Limits
 ```
@@ -755,23 +999,29 @@ Tabs:
      - Current subscription card (tier, status, dates, payment info)
      - Resource usage summary (students, teachers, storage, AI calls)
      
-  2. Subscription
-     - Current tier details
-     - Tier change history (SubscriptionEvent timeline)
-     - Manual tier change form
-     - Override editor (set custom limits, add/remove features)
-     - Suspend / Reactivate buttons
-     - Cancel subscription
+	 2. Subscription
+	     - Current tier details
+	     - Tier change history (SubscriptionEvent timeline)
+	     - Manual tier change form
+	     - Manual pricing controls (custom monthly/annual amount if negotiated)
+	     - Discount editor (set, adjust, remove)
+	     - Transaction fee policy editor (set, adjust, remove)
+	     - Show fee scope explicitly: parent collections, teacher payouts, vendor payouts
+	     - Override editor (set custom limits, add/remove features)
+	     - Suspend / Reactivate buttons
+	     - Cancel subscription
      
   3. Usage
      - Usage metrics charts (per metric type, filterable by date range)
      - Daily/weekly/monthly aggregation toggle
-     - Estimated cost breakdown
+     - Estimated cost breakdown by provider (Clerk, MongoDB, Vercel, Paystack, platform, etc.)
+     - Usage amount + cost allocation method per provider
      - Usage vs. limit indicators
      
   4. Billing History
      - Payment history from SubscriptionEvent (payment_received, payment_failed)
      - Manual payment recording form
+     - Commercial adjustment history (discounts, fee changes, manual price changes)
      
   5. Activity
      - Full SubscriptionEvent timeline for this school
@@ -781,6 +1031,7 @@ Tabs:
 
 ```
 Layout:
+  - Banner: "Current tier prices are provisional until pilot closeout review is approved."
   - Card grid showing all tiers (sortable by sortOrder)
   - Each card shows: name, price, student limit, feature count, status (active/inactive)
   - "Create New Tier" button
@@ -814,16 +1065,21 @@ Edit Page (/platform/billing/tiers/[id]):
 ```
 Layout:
   - Month/Year selector
-  - Table: Service | Amount (USD) | Details | Entry Method | Entered By | Actions
+  - Table: Service | Amount (USD) | Allocation Method | Details | Entry Method | Entered By | Actions
   - "Add Cost Entry" button → modal with:
     - Service dropdown
     - Month/Year
     - Amount
     - Currency
     - Details (JSON editor or structured form per service)
+    - Allocation method
+    - Allocation driver
+    - Optional invoice / reference ID
+  - "Sync Provider Costs" action (where provider APIs or manual imports are supported)
   - Summary row: Total infrastructure cost for the month
   - Chart: Monthly cost trend per service (stacked area chart)
   - Per-school cost calculation: Total cost / active schools
+  - Per-school allocated cost breakdown drawer (which schools consumed what)
 ```
 
 ### 8.7 Revenue Dashboard (`/platform/billing/revenue`)
@@ -831,23 +1087,33 @@ Layout:
 ```
 KPI Cards:
   - MRR (Monthly Recurring Revenue)
+  - Realized MRR (after discounts and waivers)
+  - EduSentrix Transaction Fee Revenue
   - ARR (Annual Recurring Revenue = MRR × 12)
   - ARPS (Average Revenue Per School = MRR / active paying schools)
   - Gross Margin (%)
   - Net Revenue (MRR - Infrastructure Cost)
   - Churn Rate (cancelled in last 30 days / total at start)
+  - Discount Exposure (total revenue reduced by active discounts)
+  - Processor Fee Cost
+  - Net Payment Margin (EduSentrix transaction fee revenue minus processor cost)
 
 Charts:
   - Revenue trend (line, monthly)
   - Revenue by tier (stacked bar)
+  - Margin by tier (bar)
   - Trial → Paid conversion rate (funnel)
   - Infrastructure cost vs. revenue (dual axis)
   - Projected breakeven analysis
+  - Expansion vs. downgrade trend
   
 Tables:
   - Revenue breakdown by tier (count, MRR, percentage)
   - Top 10 schools by revenue
+  - Top 10 schools by EduSentrix transaction fee revenue
+  - Bottom 10 schools by margin (highest loss risk)
   - Schools with payment failures
+  - Schools with active discounts / custom fee rules
 ```
 
 ### 8.8 Pilot Dashboard (`/platform/pilot`)
@@ -860,17 +1126,25 @@ KPI Cards:
   - Total Pilot Users
   - Average Resource Usage Per School
   - Estimated Monthly Cost Per School (if they were paying)
+  - Schools Below Price Floor (estimated cost > proposed revenue)
 
 Per-School Comparison Table:
-  - School Name | Students | Teachers | MAU | Storage | AI Calls | Emails | Est. Cost | Suggested Tier
+  - School Name | Students | Teachers | MAU | Storage | AI Calls | Emails | Est. Cost | Proposed Revenue | Margin | Suggested Tier
 
 Charts:
   - Resource usage heatmap by school (rows) × metric (columns)
   - Feature adoption chart (which features are used most/least)
   - Cost projection: "If these schools were on [Tier], revenue would be X"
+  - Price floor recommendation by school
 
 Export:
   - CSV export of pilot data for analysis
+
+Closeout Actions:
+  - Run closeout analysis
+  - Save closeout snapshot
+  - Generate recommended pricing adjustments
+  - Generate list of schools needing manual commercial review
 ```
 
 ---
@@ -897,6 +1171,10 @@ GET    /api/platform/schools/[id]/subscription        — Get school's subscript
 PATCH  /api/platform/schools/[id]/subscription        — Update subscription (change tier, status, cycle)
 POST   /api/platform/schools/[id]/subscription/override — Set custom overrides
 DELETE /api/platform/schools/[id]/subscription/override — Remove overrides
+POST   /api/platform/schools/[id]/subscription/discount — Set or update school-specific discount
+DELETE /api/platform/schools/[id]/subscription/discount — Remove school-specific discount
+POST   /api/platform/schools/[id]/subscription/transaction-fees — Set or update school-specific fee policy
+DELETE /api/platform/schools/[id]/subscription/transaction-fees — Remove school-specific fee policy
 POST   /api/platform/schools/[id]/subscription/suspend  — Suspend school
 POST   /api/platform/schools/[id]/subscription/reactivate — Reactivate school
 POST   /api/platform/schools/[id]/subscription/cancel   — Cancel subscription
@@ -907,6 +1185,7 @@ PATCH /api/platform/schools/[id]/subscription
 {
   "tierKey": "premium",
   "billingCycle": "annual",
+  "customPriceAnnual": 12000,
   "reason": "Upgraded during sales call"
 }
 
@@ -915,6 +1194,25 @@ POST /api/platform/schools/[id]/subscription/override
   "maxStudents": 200,               // Override starter limit of 150
   "additionalFeatures": ["fees"],   // Grant fees to a starter school
   "note": "Special arrangement with school owner"
+}
+
+POST /api/platform/schools/[id]/subscription/discount
+{
+  "discountType": "percentage",
+  "discountValue": 15,
+  "startsAt": "2026-03-01",
+  "endsAt": "2026-06-30",
+  "reason": "Pilot conversion incentive"
+}
+
+POST /api/platform/schools/[id]/subscription/transaction-fees
+{
+  "transactionFeeMode": "school_pays_custom",
+  "transactionFeeAppliesTo": ["parent_to_school", "school_to_teacher", "school_to_vendor"],
+  "transactionFeePercent": 1.25,
+  "transactionFeeFlat": 0,
+  "transactionFeeCap": 30,
+  "note": "Preferred payment processing terms"
 }
 
 POST /api/platform/schools/[id]/subscription/suspend
@@ -948,6 +1246,15 @@ GET /api/platform/usage/revenue
   Query: period (monthly), year, month
   Returns: Revenue analytics (MRR, tier breakdown, trends)
 
+POST /api/platform/usage/costs/sync
+  Body: { year, month, services?: ["clerk", "mongodb", "vercel", ...] }
+  Action: Pull provider usage/cost data where possible, then store ServiceCostEntry records
+
+POST /api/platform/pilot/closeout
+  Body: { periodStart, periodEnd, normalizeToMonthly?: true }
+  Action: Generate pilot closeout cost, margin, and pricing recommendations
+  Returns: Saved closeout snapshot + recommended tier/price actions
+
 Auth: requirePlatformAdmin()
 ```
 
@@ -965,7 +1272,7 @@ Auth: requirePlatformAdmin()
 
 ```
 GET /api/subscription/current
-  Returns: Current school's subscription + tier details + effective limits + features
+  Returns: Current school's subscription + tier details + effective limits + features + commercial adjustments
   Auth: Any authenticated school member
   Cache: 5 minutes stale time
 
@@ -985,6 +1292,23 @@ GET /api/subscription/current
       storageGB: 1.2,
       aiCallsThisMonth: 0,
       ...
+    },
+    effectiveBilling: {
+      standardPrice: 750,
+      effectivePrice: 637.5,
+      currency: "GHS"
+    },
+    discount: {
+      type: "percentage",
+      value: 15,
+      endsAt: "2026-06-30"
+    },
+    transactionFeePolicy: {
+      mode: "school_pays_custom",
+      appliesTo: ["parent_to_school", "school_to_teacher", "school_to_vendor"],
+      percent: 1.25,
+      flat: 0,
+      cap: 30
     },
     isTrialing: true,
     trialDaysRemaining: 15,
@@ -1015,6 +1339,42 @@ POST /api/subscription/cancel
   Auth: requireSchoolMember({ roles: ["school_admin"] })
 ```
 
+### 9.8 Platform Payout Configuration (Platform Admin Only)
+
+```
+GET /api/platform/billing/payouts
+  Returns: Current subscription-fee and transaction-fee payout destinations
+
+PATCH /api/platform/billing/payouts
+  Body: {
+    destinationType: "subscription_revenue" | "transaction_fee_revenue",
+    destination: {
+      channel: "bank_account" | "mobile_money",
+      accountName: "...",
+      bankCode?: "...",
+      accountNumber?: "...",
+      phoneNumber?: "..."
+    },
+    changeReason: "..."
+  }
+  Action:
+    1. Initiate payout destination change
+    2. Send OTP to the platform admin's phone number
+    3. Store change as pending until verification succeeds
+
+POST /api/platform/billing/payouts/verify
+  Body: {
+    destinationType: "subscription_revenue" | "transaction_fee_revenue",
+    otpCode: "123456"
+  }
+  Action:
+    1. Verify OTP
+    2. Commit the payout destination change
+    3. Create SubscriptionEvent: "payout_destination_changed"
+
+Auth: requirePlatformAdmin()
+```
+
 ---
 
 ## 10. Frontend Components
@@ -1037,12 +1397,20 @@ src/components/platform/
   ├── TierConfigCard.tsx           — Tier card for the config grid
   ├── TierConfigForm.tsx           — Full tier edit form
   ├── SchoolSubscriptionCard.tsx   — Subscription info on school detail
+  ├── SchoolCommercialProfileCard.tsx — Effective price, discount, fee policy
   ├── SubscriptionOverrideForm.tsx — Override limits/features form
+  ├── DiscountEditorForm.tsx       — Set/update/remove school discount
+  ├── TransactionFeePolicyForm.tsx — Set/update/remove per-school payment fee rules
+  ├── PlatformPayoutAccountForm.tsx — Configure where subscription vs fee revenue is routed
+  ├── PayoutDestinationCard.tsx    — Masked payout account summary card
+  ├── TwoFactorChallengeModal.tsx  — OTP confirmation before sensitive payout changes
   ├── ServiceCostForm.tsx          — Add/edit service cost entry modal
   ├── ServiceCostChart.tsx         — Service cost trend chart
   ├── RevenueChart.tsx             — Revenue analytics charts
+  ├── MarginBreakdownCard.tsx      — Revenue vs cost breakdown for a school/tier
   ├── UsageHeatmap.tsx             — Per-school usage heatmap
   ├── PilotComparisonTable.tsx     — Pilot schools comparison
+  ├── PilotCloseoutReportCard.tsx  — Snapshot of closeout recommendations
   ├── SubscriptionTimeline.tsx     — Event timeline for a school
   └── SchoolSubscriptionActions.tsx — Suspend/reactivate/change tier buttons
 ```
@@ -1057,9 +1425,12 @@ src/hooks/
       ├── useSubscriptionTierMutations.ts — CRUD tiers (admin)
       ├── useSchoolSubscription.ts    — Fetch school subscription (admin)
       ├── useSchoolSubscriptionActions.ts — Suspend/reactivate/override (admin)
+      ├── useSchoolCommercialControls.ts — Discount + fee policy mutations (admin)
+      ├── usePlatformPayoutSettings.ts — Fetch/update payout destinations with 2FA
       ├── useUsageMetrics.ts          — Fetch usage metrics (admin)
       ├── useServiceCosts.ts          — Fetch/record service costs (admin)
-      └── useRevenueAnalytics.ts      — Revenue data (admin)
+      ├── useRevenueAnalytics.ts      — Revenue data (admin)
+      └── usePilotCloseoutAnalysis.ts — Pilot closeout snapshots + reruns
 ```
 
 ---
@@ -1109,9 +1480,15 @@ Add a new page: `/admin/settings/subscription` (or `/admin/billing`)
 ```
 Sections:
   1. Current Plan
-     - Tier name, price, billing cycle
+     - Tier name, standard price, effective billed price, billing cycle
      - Status badge
      - Trial info (if trialing)
+     - Active discount (if any)
+     - Transaction fee policy disclosure
+     - Explain that transaction fees apply to:
+       - parent payments to the school via EduSentrix
+       - school payments to teachers via EduSentrix
+       - school payments to vendors via EduSentrix
      
   2. Usage Summary
      - Students: 142 / 150 (progress bar)
@@ -1220,6 +1597,68 @@ After creating the School document:
   3. Create SubscriptionEvent: "trial_started"
 ```
 
+### 12.4 Monthly Provider Cost Sync
+
+```
+File: src/lib/jobs/providerCostSync.ts
+Schedule: Monthly (or manual re-run from platform admin)
+
+Logic:
+  1. Pull provider usage/cost statements where APIs are available, or ingest admin-uploaded statements.
+     Providers in scope:
+       - Clerk
+       - MongoDB
+       - Vercel
+       - OpenAI
+       - UploadThing
+       - Paystack
+       - any other billable service added to the stack
+  2. Create or update ServiceCostEntry for each provider and billing month.
+  3. Apply allocation rules:
+     - direct attribution where possible
+     - weighted shared-cost allocation where costs are pooled
+     - all allocation must be computed server-side and persisted; no frontend-only estimates
+  4. Persist per-school allocated costs inside ServiceCostEntry.allocation.schoolBreakdown.
+  5. Write summarized UsageMetric cost attribution records if needed for fast school-level queries.
+  6. Flag providers that still require manual review.
+```
+
+### 12.5 Pilot Closeout Automation
+
+```
+File: src/lib/jobs/pilotCloseout.ts
+Trigger:
+  - Automatically when the pilot program end date is reached, OR
+  - Manually from /platform/pilot "Run closeout analysis"
+
+Logic:
+  1. Select the pilot measurement window (for example, trailing 30/60/90 days).
+  2. Aggregate per-school usage across:
+     - Clerk
+     - MongoDB
+     - Vercel
+     - UploadThing / Cloudinary
+     - OpenAI
+     - Brevo
+     - Paystack
+     - Internal platform overhead
+  3. Normalize the observed usage to a monthly cost-to-serve estimate.
+  4. Compare estimated cost to:
+     - provisional tier pricing
+     - active discounts
+     - school-specific transaction fee rules
+  5. Compute:
+     - proposed revenue
+     - estimated margin
+     - suggested tier
+     - minimum recommended price floor
+  6. Generate an AI-written pricing recommendation draft using the closeout data.
+  7. Generate a closeout snapshot for platform admin review.
+  8. Flag schools requiring manual commercial review before final rollout.
+  9. Do not apply any recommendation until platform admin explicitly approves it.
+  10. Notify platform admin that pricing recommendations are ready.
+```
+
 ---
 
 ## 13. Migration Plan for Existing Schools
@@ -1258,6 +1697,7 @@ Files to create:
   - src/models/UsageMetric.ts
   - src/models/SubscriptionEvent.ts
   - src/models/ServiceCostEntry.ts
+  - src/models/PlatformPayoutConfig.ts
   - src/lib/auth/requireFeature.ts
   - src/lib/auth/checkLimit.ts
   - src/lib/billing/trackUsage.ts
@@ -1296,18 +1736,25 @@ Testing:
 Files to create:
   - API routes: /api/platform/schools/[id]/subscription (GET, PATCH)
   - API routes: /api/platform/schools/[id]/subscription/override
+  - API routes: /api/platform/schools/[id]/subscription/discount
+  - API routes: /api/platform/schools/[id]/subscription/transaction-fees
+  - API routes: /api/platform/billing/payouts
+  - API routes: /api/platform/billing/payouts/verify
   - API routes: /api/platform/schools/[id]/subscription/suspend
   - API routes: /api/platform/schools/[id]/subscription/reactivate
   - API routes: /api/platform/schools/[id]/subscription/events
   - Pages: /platform/schools/[id], /platform/schools/[id]/subscription, /platform/schools/[id]/usage
-  - Components: SchoolSubscriptionCard, SubscriptionOverrideForm, SchoolSubscriptionActions, SubscriptionTimeline
-  - Hooks: useSchoolSubscription, useSchoolSubscriptionActions
+  - Components: SchoolSubscriptionCard, SchoolCommercialProfileCard, SubscriptionOverrideForm, DiscountEditorForm, TransactionFeePolicyForm, PlatformPayoutAccountForm, PayoutDestinationCard, TwoFactorChallengeModal, SchoolSubscriptionActions, SubscriptionTimeline
+  - Hooks: useSchoolSubscription, useSchoolSubscriptionActions, useSchoolCommercialControls, usePlatformPayoutSettings
 
 Files to update:
   - /platform/schools page — add subscription columns to table
   
 Testing:
   - Change school tier from UI
+  - Set, update, and remove a school discount
+  - Set, update, and remove school-specific transaction fee rules
+  - Change payout destination only after successful OTP verification
   - Suspend and reactivate a school
   - Add overrides and verify they take effect
   - View event timeline
@@ -1355,6 +1802,7 @@ Files to create:
   - API routes: /api/platform/usage/schools
   - Hooks: useUsageMetrics
   - Components: UsageCard, UsageHeatmap
+  - Optional helper: src/lib/billing/costAllocation.ts
 
 Files to update:
   - AI generation routes — add trackUsage for tokens
@@ -1363,12 +1811,14 @@ Files to update:
   - Invitation route — add trackUsage for invitations
   - Report export route — add trackUsage for exports
   - Clerk webhook — add trackUsage for logins
+  - Monthly provider reconciliation job — add auth_mau / hosting / DB / shared-cost import
 
 Testing:
   - Create a student → verify api_request and feature_use metrics recorded
   - Generate AI content → verify ai_call and ai_tokens metrics
   - Upload file → verify storage_bytes metric
   - Check aggregation in usage summary API
+  - Verify provider-attributed cost estimates roll up per school
 ```
 
 ### Phase 6: Cost Tracking & Revenue Dashboard (2–3 days)
@@ -1376,17 +1826,21 @@ Testing:
 ```
 Files to create:
   - API routes: /api/platform/usage/costs (GET, POST)
+  - API routes: /api/platform/usage/costs/sync
   - API routes: /api/platform/usage/revenue
   - Pages: /platform/billing/costs, /platform/billing/revenue
-  - Components: ServiceCostForm, ServiceCostChart, RevenueChart
+  - Components: ServiceCostForm, ServiceCostChart, RevenueChart, MarginBreakdownCard
   - Hooks: useServiceCosts, useRevenueAnalytics
   - Page update: /platform page — add KPI cards
 
 Testing:
   - Record service costs manually
+  - Sync provider costs automatically where supported
   - View cost trends over months
   - View revenue breakdown by tier
   - Verify gross margin calculation
+  - Verify discount exposure and fee policy effects on realized revenue
+  - Verify EduSentrix transaction fee revenue and processor fee cost are reported separately
 ```
 
 ### Phase 7: School-Facing UI & Self-Service (2–3 days)
@@ -1415,9 +1869,12 @@ Testing:
 ```
 Files to create:
   - Pages: /platform/pilot
-  - Components: PilotComparisonTable
+  - Components: PilotComparisonTable, PilotCloseoutReportCard
   - Jobs: src/lib/jobs/trialExpiry.ts
+  - Jobs: src/lib/jobs/providerCostSync.ts
+  - Jobs: src/lib/jobs/pilotCloseout.ts
   - API route: /api/cron/trial-expiry (called by Vercel Cron or external)
+  - API route: /api/platform/pilot/closeout
 
 Files to update:
   - Paystack webhook — handle subscription payment events
@@ -1428,6 +1885,7 @@ Testing:
   - Trial expires → verify status change and email
   - Payment webhook → verify status updates
   - Pilot dashboard shows correct data
+  - Pilot closeout analysis generates pricing recommendations automatically
 ```
 
 ### Phase 9: Migration & Polish (1–2 days)
@@ -1458,6 +1916,29 @@ Estimated Total: 20–28 days
 - [ ] Pilot school can access all features
 - [ ] Override `additionalFeatures: ["fees"]` on starter → can access /admin/fees
 - [ ] Override `removedFeatures: ["teachers"]` on premium → cannot access teachers (edge case)
+
+### Commercial Controls Tests
+
+- [ ] Platform admin can manually assign a tier to a school
+- [ ] Platform admin can set, update, and remove a discount for a school
+- [ ] Platform admin can set, adjust, and remove transaction fee rules for a school
+- [ ] Discount and fee changes create SubscriptionEvent records
+- [ ] Payout destination changes require OTP verification via admin phone
+- [ ] Subscription revenue and EduSentrix transaction fee revenue can route to different accounts
+
+### Cost Intelligence Tests
+
+- [ ] Usage is attributed by school for Clerk, MongoDB, Vercel, and platform-native activity
+- [ ] Usage is attributed by school for OpenAI and UploadThing
+- [ ] Shared provider costs are allocated by the configured driver
+- [ ] Revenue dashboard shows realized MRR after discounts
+- [ ] Pilot closeout analysis flags schools below the recommended price floor
+- [ ] EduSentrix transaction fee revenue is tracked separately from processor fee cost
+
+### Approval Workflow Tests
+
+- [ ] Pilot closeout generates AI pricing recommendations automatically
+- [ ] Pricing recommendations remain draft until platform admin approves them
 
 ### Limit Enforcement Tests
 

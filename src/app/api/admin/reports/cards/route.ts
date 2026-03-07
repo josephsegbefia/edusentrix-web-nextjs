@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 
     const [
       subjectGrades,
-      termResult,
+      termResultRaw,
       grade,
       classGroup,
       gradingScale,
@@ -74,6 +74,9 @@ export async function GET(req: NextRequest) {
       GradingScale.findOne({ schoolId, isDefault: true }).lean(),
       ReportTemplate.findOne({ schoolId, isDefault: true }).lean(),
     ]);
+    const termResult = Array.isArray(termResultRaw)
+      ? termResultRaw[0] || null
+      : termResultRaw;
 
     const templatePreset = getReportTemplatePreset(curriculumCode);
 

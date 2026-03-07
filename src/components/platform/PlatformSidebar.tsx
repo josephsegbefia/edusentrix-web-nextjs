@@ -15,6 +15,7 @@ import {
   Settings,
   Building2,
   Landmark,
+  FlaskConical,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -31,6 +32,7 @@ const nav = [
   { label: "Schools", href: "/platform/schools", icon: Building2 },
   { label: "Users", href: "/platform/users", icon: Users },
   { label: "Billing", href: "/platform/billing", icon: Banknote },
+  { label: "Pilot", href: "/platform/pilot", icon: FlaskConical },
   { label: "Reconciliation", href: "/platform/reconciliation", icon: Landmark },
   { label: "Webhooks", href: "/platform/webhooks", icon: Webhook },
   { label: "Email Templates", href: "/platform/emails", icon: Mail },

@@ -5,6 +5,8 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AcademicPeriod, type IAcademicPeriod } from "@/models/AcademicPeriod";
 import { ReportExport } from "@/models/ReportExport";
+import { hasFeature } from "@/lib/billing/entitlements";
+import { trackUsage } from "@/lib/billing/trackUsage";
 import {
   REPORT_DEFINITIONS,
   type ReportKey,
@@ -155,6 +157,13 @@ export async function GET(req: NextRequest) {
     schoolId instanceof mongoose.Types.ObjectId
       ? schoolId
       : new mongoose.Types.ObjectId(String(schoolId));
+
+  if (!(await hasFeature(schoolIdObj, "reports"))) {
+    return NextResponse.json(
+      { error: "Your subscription does not include reports." },
+      { status: 403 }
+    );
+  }
 
   const { searchParams } = new URL(req.url);
   const limit = Math.min(
@@ -320,6 +329,20 @@ export async function POST(req: NextRequest) {
       range.startDate,
       range.endDate
     ),
+  });
+
+  await trackUsage({
+    schoolId: schoolIdObj,
+    provider: "internal",
+    metricKey: "report_exports_requested",
+    quantity: 1,
+    unitLabel: "exports",
+    unitCostMinor: 0,
+    estimatedCostMinor: 0,
+    allocationMethod: "direct",
+    sourceType: "system_estimate",
+    notes: `Report export queued for ${reportKey}.`,
+    actorId: userId,
   });
 
   return NextResponse.json({

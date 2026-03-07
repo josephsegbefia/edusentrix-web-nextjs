@@ -10,6 +10,9 @@ export interface IPayment {
 
   // Payment details (minor units)
   amountMinor: number; // Total payment amount (pesewas)
+  platformFeeMinor?: number;
+  processorFeeMinor?: number;
+  netSchoolAmountMinor?: number;
   paymentDate: Date;
   paymentMethod: "cash" | "bank_transfer" | "mobile_money" | "paystack" | "cheque" | "other";
 
@@ -85,6 +88,9 @@ const paymentSchema = new Schema<IPayment>(
       default: null,
     },
     amountMinor: { type: Number, required: true },
+    platformFeeMinor: { type: Number, required: true, default: 0 },
+    processorFeeMinor: { type: Number, required: true, default: 0 },
+    netSchoolAmountMinor: { type: Number, required: true, default: 0 },
     paymentDate: { type: Date, required: true, default: Date.now },
     paymentMethod: {
       type: String,

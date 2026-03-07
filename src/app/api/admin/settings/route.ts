@@ -113,6 +113,10 @@ const UpdateSettingsSchema = z.object({
   offlineMode: OfflineModeSchema.optional(),
 });
 
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
 /**
  * GET /api/admin/settings
  * Fetch school settings (creates default if not exists)
@@ -168,7 +172,12 @@ export async function GET() {
       periodsPerDay: s.periodsPerDay,
       periodSlots: s.periodSlots || [],
       dailyScheduleOverrides: s.dailyScheduleOverrides || [],
-      gradeScheduleOverrides: (s.gradeScheduleOverrides || []).map(
+      gradeScheduleOverrides: asArray<{
+        gradeId: unknown;
+        periodsPerDay?: number;
+        periodDuration?: number;
+        periodSlots?: unknown[];
+      }>(s.gradeScheduleOverrides).map(
         (g: { gradeId: unknown; periodsPerDay?: number; periodDuration?: number; periodSlots?: unknown[] }) => ({
           gradeId: String(g.gradeId),
           periodsPerDay: g.periodsPerDay,
@@ -178,7 +187,12 @@ export async function GET() {
       ),
       breaks: s.breaks || [],
       breakDailyOverrides: s.breakDailyOverrides || [],
-      breakGradeOverrides: (s.breakGradeOverrides || []).map(
+      breakGradeOverrides: asArray<{
+        gradeId: unknown;
+        breakName: string;
+        startTime?: string;
+        endTime?: string;
+      }>(s.breakGradeOverrides).map(
         (g: { gradeId: unknown; breakName: string; startTime?: string; endTime?: string }) => ({
           gradeId: String(g.gradeId),
           breakName: g.breakName,
@@ -188,7 +202,11 @@ export async function GET() {
       ),
       assembly: s.assembly || null,
       assemblyDailyOverrides: s.assemblyDailyOverrides || [],
-      assemblyGradeOverrides: (s.assemblyGradeOverrides || []).map(
+      assemblyGradeOverrides: asArray<{
+        gradeId: unknown;
+        startTime?: string;
+        duration?: number;
+      }>(s.assemblyGradeOverrides).map(
         (g: { gradeId: unknown; startTime?: string; duration?: number }) => ({
           gradeId: String(g.gradeId),
           startTime: g.startTime,

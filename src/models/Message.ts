@@ -5,6 +5,8 @@ export interface IMessageAttachment {
   url: string;
   type: string;
   size?: number;
+  key?: string;
+  customId?: string | null;
 }
 
 export interface IMessageReadReceipt {
@@ -30,6 +32,8 @@ const AttachmentSchema = new Schema<IMessageAttachment>(
     url: { type: String, required: true, trim: true },
     type: { type: String, required: true, trim: true },
     size: { type: Number, min: 0 },
+    key: { type: String, trim: true },
+    customId: { type: String, trim: true, default: null },
   },
   { _id: false }
 );

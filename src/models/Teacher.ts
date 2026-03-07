@@ -26,6 +26,36 @@ const EmergencyContactSchema = new Schema(
   { _id: false }
 );
 
+const PayoutDestinationSchema = new Schema(
+  {
+    method: {
+      type: String,
+      enum: ["bank", "mobile_money"],
+      required: true,
+    },
+    accountName: { type: String, required: true, trim: true },
+    accountNumber: { type: String, required: true, trim: true },
+    bankName: { type: String, default: null, trim: true },
+    bankCode: { type: String, default: null, trim: true },
+    providerName: { type: String, default: null, trim: true },
+    notes: { type: String, default: null, trim: true },
+  },
+  { _id: false }
+);
+
+const TeacherPayoutProfileSchema = new Schema(
+  {
+    destination: { type: PayoutDestinationSchema, default: null },
+    updatedAt: { type: Date, default: null },
+    updatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+  },
+  { _id: false }
+);
+
 const TeacherSchema = new Schema(
   {
     schoolId: {
@@ -74,6 +104,7 @@ const TeacherSchema = new Schema(
 
     // Emergency / Internal contacts
     emergencyContact: { type: EmergencyContactSchema, default: null },
+    payoutProfile: { type: TeacherPayoutProfileSchema, default: null },
     notes: { type: String, trim: true },
     tags: { type: [String], default: [], index: true },
     // Permission bundles applied to this teacher (kept for backward compatibility)

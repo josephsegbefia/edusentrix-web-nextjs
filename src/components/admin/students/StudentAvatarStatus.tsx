@@ -24,6 +24,7 @@ const statusClasses: Record<StudentStatus, string> = {
   active: "bg-emerald-400",
   inactive: "bg-slate-400",
   withdrawn: "bg-red-400",
+  graduated: "bg-sky-400",
 };
 
 export function StudentAvatarStatus({

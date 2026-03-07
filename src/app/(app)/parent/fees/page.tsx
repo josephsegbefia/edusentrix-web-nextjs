@@ -3,12 +3,20 @@
 
 import * as React from "react";
 import { Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -29,6 +37,8 @@ import {
 import { useParentFees } from "@/hooks/parent/useParentFees";
 import type { WardFeeSummary, PendingInvoice, RecentPayment, FeeStatus } from "@/hooks/parent/useParentFees";
 import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
+import { formatCurrencyFromMajor, formatMoney } from "@/lib/fees/money";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -42,9 +52,6 @@ function initialsFromName(fullName: string) {
     (parts[parts.length - 1]?.charAt(0)?.toUpperCase() ?? "")
   );
 }
-
-import { formatCurrencyFromMajor } from "@/lib/fees/money";
-
 function getStatusColor(status: FeeStatus): string {
   const colors: Record<FeeStatus, string> = {
     clear: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
@@ -228,54 +235,106 @@ function WardFeeCard({
 /* --------------------------------------------------------------------------------
    Pending Invoice Card
 -------------------------------------------------------------------------------- */
-function InvoiceCard({ invoice, onClick }: { invoice: PendingInvoice; onClick: () => void }) {
+function InvoiceCard({
+  invoice,
+  onView,
+  onPay,
+  isPaying,
+}: {
+  invoice: PendingInvoice;
+  onView: () => void;
+  onPay: () => void;
+  isPaying: boolean;
+}) {
   return (
-    <button
-      onClick={onClick}
+    <div
       className={cn(
-        "w-full flex items-center justify-between rounded-lg border px-3 py-3 text-left transition-all hover:shadow-md",
+        "w-full rounded-lg border px-3 py-3 transition-all hover:shadow-md",
         invoice.isOverdue
           ? "border-red-500/30 bg-red-500/10 hover:bg-red-500/15"
           : "border-white/10 bg-white/5 hover:bg-white/10"
       )}
     >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-            invoice.isOverdue ? "bg-red-500/30" : "bg-amber-500/20"
-          )}
-        >
-          <Receipt className={cn("h-5 w-5", invoice.isOverdue ? "text-red-300" : "text-amber-300")} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+              invoice.isOverdue ? "bg-red-500/30" : "bg-amber-500/20"
+            )}
+          >
+            <Receipt
+              className={cn(
+                "h-5 w-5",
+                invoice.isOverdue ? "text-red-300" : "text-amber-300"
+              )}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-white truncate">
+              {invoice.title}
+            </p>
+            <p className="text-xs text-white/50 truncate">{invoice.wardName}</p>
+            <p
+              className={cn(
+                "text-xs mt-0.5",
+                invoice.isOverdue ? "text-red-300" : "text-white/50"
+              )}
+            >
+              Due: {format(parseISO(invoice.dueDate), "MMM d, yyyy")}
+              {invoice.isOverdue && " (Overdue)"}
+            </p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">{invoice.title}</p>
-          <p className="text-xs text-white/50 truncate">{invoice.wardName}</p>
-          <p className={cn("text-xs mt-0.5", invoice.isOverdue ? "text-red-300" : "text-white/50")}>
-            Due: {format(parseISO(invoice.dueDate), "MMM d, yyyy")}
-            {invoice.isOverdue && " (Overdue)"}
-          </p>
+
+        <div className="flex items-center justify-between gap-3 sm:justify-end">
+          <div className="text-right">
+            <p
+              className={cn(
+                "text-lg font-bold",
+                invoice.isOverdue ? "text-red-200" : "text-white"
+              )}
+            >
+              {formatCurrencyFromMajor(invoice.balanceDue)}
+            </p>
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-[10px] mt-1",
+                invoice.isOverdue
+                  ? "border-red-500/50 bg-red-500/20 text-red-200"
+                  : invoice.status === "partial"
+                    ? "border-amber-500/50 bg-amber-500/20 text-amber-200"
+                    : "border-blue-500/50 bg-blue-500/20 text-blue-200"
+              )}
+            >
+              {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+            </Badge>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:items-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3 text-xs text-white/70 hover:text-white"
+              onClick={onView}
+            >
+              View Child
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 px-3 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700"
+              onClick={onPay}
+              disabled={!invoice.canPayOnline || isPaying}
+            >
+              {isPaying ? "Opening..." : "Pay Now"}
+            </Button>
+          </div>
         </div>
       </div>
-      <div className="text-right ml-3">
-        <p className={cn("text-lg font-bold", invoice.isOverdue ? "text-red-200" : "text-white")}>
-          {formatCurrencyFromMajor(invoice.balanceDue)}
-        </p>
-        <Badge
-          variant="outline"
-          className={cn(
-            "text-[10px] mt-1",
-            invoice.isOverdue
-              ? "border-red-500/50 bg-red-500/20 text-red-200"
-              : invoice.status === "partial"
-              ? "border-amber-500/50 bg-amber-500/20 text-amber-200"
-              : "border-blue-500/50 bg-blue-500/20 text-blue-200"
-          )}
-        >
-          {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-        </Badge>
-      </div>
-    </button>
+    </div>
   );
 }
 
@@ -304,16 +363,220 @@ function PaymentCard({ payment }: { payment: RecentPayment }) {
   );
 }
 
+type CheckoutPreview = {
+  invoiceId: string;
+  invoiceNumber: string;
+  title: string;
+  wardName: string;
+  amountMinor: number;
+  parentPayableMinor: number;
+  platformFeeMinor: number;
+  estimatedSchoolNetMinor: number;
+  processorFeeNote: string;
+};
+
 /* --------------------------------------------------------------------------------
    Main Content
 -------------------------------------------------------------------------------- */
 function FeesPageContent() {
   const router = useRouter();
-  const { data, isLoading, error } = useParentFees();
+  const searchParams = useSearchParams();
+  const { data, isLoading, error, refetch } = useParentFees();
+  const [payingInvoiceId, setPayingInvoiceId] = React.useState<string | null>(null);
+  const [checkoutBanner, setCheckoutBanner] = React.useState<{
+    tone: "blue" | "emerald" | "amber" | "red";
+    title: string;
+    message: string;
+  } | null>(null);
+  const [checkoutPreview, setCheckoutPreview] =
+    React.useState<CheckoutPreview | null>(null);
+  const [checkoutSubmitting, setCheckoutSubmitting] = React.useState(false);
+
+  const checkoutReference =
+    searchParams.get("reference") || searchParams.get("trxref");
+
+  React.useEffect(() => {
+    if (!checkoutReference) {
+      return;
+    }
+
+    let cancelled = false;
+    setCheckoutBanner({
+      tone: "blue",
+      title: "Confirming Payment",
+      message: "We are checking the status of your recent payment.",
+    });
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/parent/payments/checkout-status?reference=${encodeURIComponent(
+            checkoutReference
+          )}`,
+          { cache: "no-store" }
+        );
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error || "Unable to confirm payment status");
+        }
+
+        if (cancelled) return;
+
+        const status = String(json.data?.status || "not_found");
+        const message =
+          String(json.data?.message || "").trim() ||
+          "Your payment status is being updated.";
+
+        if (status === "completed") {
+          setCheckoutBanner({
+            tone: "emerald",
+            title: "Payment Confirmed",
+            message:
+              "Your payment was received successfully. The fees summary will refresh now.",
+          });
+          void refetch();
+          return;
+        }
+
+        if (status === "failed") {
+          setCheckoutBanner({
+            tone: "red",
+            title: "Payment Not Completed",
+            message,
+          });
+          return;
+        }
+
+        setCheckoutBanner({
+          tone: status === "pending" ? "amber" : "blue",
+          title:
+            status === "pending" ? "Payment Pending Confirmation" : "Awaiting Confirmation",
+          message,
+        });
+      } catch (statusError) {
+        if (cancelled) return;
+        setCheckoutBanner({
+          tone: "red",
+          title: "Unable to Confirm Payment",
+          message:
+            statusError instanceof Error
+              ? statusError.message
+              : "We could not confirm your payment yet.",
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checkoutReference, refetch]);
 
   const handleWardClick = (wardId: string) => {
     router.push(`/parent/wards/${wardId}?tab=fees`);
   };
+
+  const handlePayInvoice = React.useCallback(async (invoice: PendingInvoice) => {
+    try {
+      setPayingInvoiceId(invoice.id);
+      setCheckoutBanner(null);
+      setCheckoutPreview(null);
+
+      const res = await fetch("/api/parent/payments/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          invoiceId: invoice.id,
+          preview: true,
+        }),
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to load checkout details");
+      }
+
+      setCheckoutPreview({
+        invoiceId: String(json.data?.invoiceId || invoice.id),
+        invoiceNumber: String(
+          json.data?.invoiceNumber || invoice.invoiceNumber || "School Fees"
+        ),
+        title: invoice.title,
+        wardName: invoice.wardName,
+        amountMinor: Number(json.data?.amountMinor || invoice.balanceDueMinor || 0),
+        parentPayableMinor: Number(
+          json.data?.parentPayableMinor || invoice.balanceDueMinor || 0
+        ),
+        platformFeeMinor: Number(json.data?.platformFeeMinor || 0),
+        estimatedSchoolNetMinor: Number(
+          json.data?.estimatedSchoolNetMinor || invoice.balanceDueMinor || 0
+        ),
+        processorFeeNote: String(json.data?.processorFeeNote || ""),
+      });
+    } catch (checkoutError) {
+      const message =
+        checkoutError instanceof Error
+          ? checkoutError.message
+          : "Unable to load checkout details";
+      toast.error(message);
+      setCheckoutBanner({
+        tone: "red",
+        title: "Checkout Unavailable",
+        message,
+      });
+    } finally {
+      setPayingInvoiceId(null);
+    }
+  }, []);
+
+  const handleConfirmCheckout = React.useCallback(async () => {
+    if (!checkoutPreview) return;
+
+    try {
+      setCheckoutSubmitting(true);
+      setCheckoutBanner({
+        tone: "blue",
+        title: "Opening Secure Checkout",
+        message: "Redirecting you to Paystack to complete this payment.",
+      });
+
+      const res = await fetch("/api/parent/payments/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          invoiceId: checkoutPreview.invoiceId,
+        }),
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to start checkout");
+      }
+
+      const authorizationUrl = String(json.data?.authorizationUrl || "");
+      if (!authorizationUrl) {
+        throw new Error("Missing Paystack authorization URL");
+      }
+
+      window.location.assign(authorizationUrl);
+    } catch (checkoutError) {
+      const message =
+        checkoutError instanceof Error
+          ? checkoutError.message
+          : "Unable to start checkout";
+      toast.error(message);
+      setCheckoutBanner({
+        tone: "red",
+        title: "Checkout Unavailable",
+        message,
+      });
+    } finally {
+      setCheckoutSubmitting(false);
+    }
+  }, [checkoutPreview]);
 
   if (isLoading) {
     return (
@@ -351,6 +614,102 @@ function FeesPageContent() {
 
   return (
     <div className="space-y-6">
+      <Dialog
+        open={Boolean(checkoutPreview)}
+        onOpenChange={(open) => {
+          if (!open && !checkoutSubmitting) {
+            setCheckoutPreview(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-xl border border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black text-white shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Review Checkout</DialogTitle>
+            <DialogDescription className="text-white/60">
+              Confirm the payment breakdown before you continue to the secure Paystack page.
+            </DialogDescription>
+          </DialogHeader>
+
+          {checkoutPreview && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-sm font-medium text-white">
+                  {checkoutPreview.title}
+                </p>
+                <p className="mt-1 text-xs text-white/50">
+                  {checkoutPreview.wardName} • {checkoutPreview.invoiceNumber}
+                </p>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between gap-4 text-sm">
+                  <span className="text-white/60">Parent payment amount</span>
+                  <span className="font-semibold text-white">
+                    {formatMoney(checkoutPreview.parentPayableMinor)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4 text-sm">
+                  <span className="text-white/60">
+                    EduSentrix fee (deducted from school)
+                  </span>
+                  <span className="font-medium text-amber-200">
+                    {formatMoney(checkoutPreview.platformFeeMinor)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-sm">
+                  <span className="text-white/60">
+                    Estimated school settlement before processor fee
+                  </span>
+                  <span className="font-medium text-emerald-200">
+                    {formatMoney(checkoutPreview.estimatedSchoolNetMinor)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
+                    <AlertCircle className="h-4 w-4 text-amber-300" />
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <p className="font-medium text-amber-200">
+                      The school bears this service fee
+                    </p>
+                    <p className="text-amber-100/75">
+                      You will be charged only the invoice amount. The Edusentrix
+                      transaction fee is deducted from the school&apos;s settlement.
+                    </p>
+                    <p className="text-amber-100/65">
+                      {checkoutPreview.processorFeeNote}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              onClick={() => setCheckoutPreview(null)}
+              disabled={checkoutSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={handleConfirmCheckout}
+              disabled={checkoutSubmitting}
+            >
+              {checkoutSubmitting ? "Opening..." : "Continue to Paystack"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Page Header */}
       <div className="relative">
         <div
@@ -362,7 +721,7 @@ function FeesPageContent() {
           aria-hidden="true"
         />
 
-        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+	      <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
               <h1 className="bg-linear-to-r from-emerald-200 via-teal-200 to-cyan-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
@@ -389,7 +748,7 @@ function FeesPageContent() {
         </div>
       </div>
 
-      {!hasData ? (
+	      {!hasData ? (
         <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 to-black shadow-2xl p-12 text-center">
           <div className="relative z-10 flex flex-col items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-emerald-500/20 to-teal-500/20">
@@ -409,10 +768,65 @@ function FeesPageContent() {
             </Button>
           </div>
         </Card>
-      ) : (
-        <>
-          {/* Summary Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+	      ) : (
+	        <>
+	          {checkoutBanner && (
+	            <Card
+	              className={cn(
+	                "relative overflow-hidden rounded-xl border p-4",
+	                checkoutBanner.tone === "emerald" &&
+	                  "border-emerald-500/30 bg-emerald-500/10",
+	                checkoutBanner.tone === "blue" &&
+	                  "border-blue-500/30 bg-blue-500/10",
+	                checkoutBanner.tone === "amber" &&
+	                  "border-amber-500/30 bg-amber-500/10",
+	                checkoutBanner.tone === "red" &&
+	                  "border-red-500/30 bg-red-500/10"
+	              )}
+	            >
+	              <div className="flex items-start gap-3">
+	                <div
+	                  className={cn(
+	                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
+	                    checkoutBanner.tone === "emerald" &&
+	                      "border-emerald-500/30 bg-emerald-500/20",
+	                    checkoutBanner.tone === "blue" &&
+	                      "border-blue-500/30 bg-blue-500/20",
+	                    checkoutBanner.tone === "amber" &&
+	                      "border-amber-500/30 bg-amber-500/20",
+	                    checkoutBanner.tone === "red" &&
+	                      "border-red-500/30 bg-red-500/20"
+	                  )}
+	                >
+	                  {checkoutBanner.tone === "emerald" ? (
+	                    <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+	                  ) : checkoutBanner.tone === "red" ? (
+	                    <AlertTriangle className="h-5 w-5 text-red-300" />
+	                  ) : (
+	                    <Clock
+	                      className={cn(
+	                        "h-5 w-5",
+	                        checkoutBanner.tone === "amber"
+	                          ? "text-amber-300"
+	                          : "text-blue-300"
+	                      )}
+	                    />
+	                  )}
+	                </div>
+	                <div className="flex-1">
+	                  <h4 className="font-medium text-white">
+	                    {checkoutBanner.title}
+	                  </h4>
+	                  <p className="mt-1 text-sm text-white/70">
+	                    {checkoutBanner.message}
+	                  </p>
+	                </div>
+	              </div>
+	            </Card>
+	          )}
+
+	          {/* Summary Cards */}
+	          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
               icon={DollarSign}
               label="Total Fees"
@@ -495,14 +909,16 @@ function FeesPageContent() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="relative z-10 space-y-2">
-                    {pendingInvoices.map((invoice) => (
-                      <InvoiceCard
-                        key={invoice.id}
-                        invoice={invoice}
-                        onClick={() => handleWardClick(invoice.wardId)}
-                      />
-                    ))}
-                  </CardContent>
+	                    {pendingInvoices.map((invoice) => (
+	                      <InvoiceCard
+	                        key={invoice.id}
+	                        invoice={invoice}
+	                        onView={() => handleWardClick(invoice.wardId)}
+	                        onPay={() => handlePayInvoice(invoice)}
+	                        isPaying={payingInvoiceId === invoice.id}
+	                      />
+	                    ))}
+	                  </CardContent>
                 </Card>
               )}
             </div>
@@ -548,12 +964,17 @@ function FeesPageContent() {
                 </div>
                 <div className="flex-1">
                   <h4 className="font-medium text-amber-200">Outstanding Balance</h4>
-                  <p className="text-sm text-amber-200/70 mt-1">
-                    You have an outstanding balance of <span className="font-semibold">{formatCurrencyFromMajor(overallSummary.totalBalance)}</span>.
-                    Please contact the school for payment options.
-                  </p>
-                </div>
-              </div>
+	                  <p className="text-sm text-amber-200/70 mt-1">
+	                    You have an outstanding balance of{" "}
+	                    <span className="font-semibold">
+	                      {formatCurrencyFromMajor(overallSummary.totalBalance)}
+	                    </span>
+	                    . You can pay eligible invoices online from the pending
+	                    invoice list below, or contact the school for offline
+	                    payment options.
+	                  </p>
+	                </div>
+	              </div>
             </Card>
           )}
         </>

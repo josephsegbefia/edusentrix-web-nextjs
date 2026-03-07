@@ -15,6 +15,8 @@ import { SubjectGrade } from "@/models/SubjectGrade";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { TeacherAttendance } from "@/models/TeacherAttendance";
+import { hasFeature } from "@/lib/billing/entitlements";
+import { trackUsage } from "@/lib/billing/trackUsage";
 import {
   REPORT_DEFINITIONS,
   type ReportKey,
@@ -766,6 +768,13 @@ export async function GET(req: NextRequest) {
       ? schoolId
       : new mongoose.Types.ObjectId(String(schoolId));
 
+  if (!(await hasFeature(schoolIdObj, "reports"))) {
+    return NextResponse.json(
+      { error: "Your subscription does not include reports." },
+      { status: 403 }
+    );
+  }
+
   const exportDoc = await ReportExport.findOne({
     _id: exportId,
     schoolId: schoolIdObj,
@@ -849,6 +858,20 @@ export async function GET(req: NextRequest) {
             : null,
         },
       },
+    });
+
+    await trackUsage({
+      schoolId: schoolIdObj,
+      provider: "internal",
+      metricKey: "report_exports_downloaded",
+      quantity: 1,
+      unitLabel: "exports",
+      unitCostMinor: 0,
+      estimatedCostMinor: 0,
+      allocationMethod: "direct",
+      sourceType: "system_estimate",
+      notes: `Report export downloaded for ${exportDoc.reportKey}.`,
+      actorId: userId,
     });
 
     return new Response(csv, {

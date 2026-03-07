@@ -12,7 +12,13 @@ function legacyRoleToArray(role?: string) {
   return ["staff"];
 }
 
-export async function requireFinanceStaff() {
+type FinanceStaffContext = {
+  userId: NonNullable<IUser["_id"]>;
+  schoolId: NonNullable<IUser["schoolId"]>;
+  roles: string[];
+};
+
+export async function requireFinanceStaff(): Promise<FinanceStaffContext> {
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -49,6 +55,13 @@ export async function requireFinanceStaff() {
 
   if (!allowed) {
     throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!user.schoolId) {
+    throw NextResponse.json(
+      { error: "School context is missing for this account" },
+      { status: 400 }
+    );
   }
 
   return { userId: user._id, schoolId: user.schoolId, roles };

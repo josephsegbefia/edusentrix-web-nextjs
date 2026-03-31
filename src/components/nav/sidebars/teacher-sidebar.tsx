@@ -185,7 +185,6 @@ const navSections: NavSection[] = [
         label: "Lesson Notes",
         href: "/teacher/lesson-notes",
         icon: FileText,
-        feature: "ai_lesson_notes",
       },
     ],
   },

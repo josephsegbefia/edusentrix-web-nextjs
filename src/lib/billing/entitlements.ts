@@ -256,13 +256,6 @@ export async function trackUsage(input: TrackUsageInput) {
         quantity,
         estimatedCostMinor,
       },
-      $setOnInsert: {
-        unitLabel: input.unitLabel || "units",
-        unitCostMinor,
-        allocationMethod: input.allocationMethod || "manual",
-        sourceType: input.sourceType || "manual",
-        notes: input.notes || null,
-      },
       $set: {
         unitLabel: input.unitLabel || "units",
         unitCostMinor,

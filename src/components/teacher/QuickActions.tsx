@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarCheck2, RefreshCcw, Plus, Megaphone, ClipboardCheck } from "lucide-react";
+import {
+  BookOpen,
+  CalendarCheck2,
+  RefreshCcw,
+  Plus,
+  Megaphone,
+  ClipboardCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { can } from "@/lib/auth/can";
@@ -26,6 +33,7 @@ export function QuickActions({ onRefresh, refreshing }: QuickActionsProps) {
   const hasHomeroom = Boolean(data?.data.teacher.homeroomClassGroupId);
   const canCreateAssignment = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPostNotice = can(permissions, PERMISSIONS.noticesPublish);
+  const canWriteLessonNotes = can(permissions, PERMISSIONS.journalWrite);
   const showCreateAssignment = studioEnabled && canCreateAssignment;
   const attendanceHref = hasHomeroom
     ? "/teacher/attendance"
@@ -66,6 +74,15 @@ export function QuickActions({ onRefresh, refreshing }: QuickActionsProps) {
           {showCreateAssignment && (
             <PremiumDropdownMenuItem asChild icon={<ClipboardCheck className="h-4 w-4" />}>
               <Link href="/teacher/studio/assignments/new">Create Assignment</Link>
+            </PremiumDropdownMenuItem>
+          )}
+          {canWriteLessonNotes ? (
+            <PremiumDropdownMenuItem asChild icon={<BookOpen className="h-4 w-4" />}>
+              <Link href="/teacher/lesson-notes">Create Lesson Note</Link>
+            </PremiumDropdownMenuItem>
+          ) : (
+            <PremiumDropdownMenuItem disabled icon={<BookOpen className="h-4 w-4" />}>
+              Create Lesson Note (locked)
             </PremiumDropdownMenuItem>
           )}
           {canPostNotice ? (

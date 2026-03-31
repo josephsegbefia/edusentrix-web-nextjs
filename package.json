@@ -24,6 +24,7 @@
   "dependencies": {
     "@clerk/backend": "^2.29.0",
     "@clerk/clerk-sdk-node": "^4.13.23",
+    "@clerk/elements": "^0.24.14",
     "@clerk/nextjs": "^6.35.1",
     "@hookform/resolvers": "^5.2.2",
     "@imgly/background-removal": "^1.7.0",

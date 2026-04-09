@@ -4,9 +4,18 @@
 import * as React from "react";
 import { Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +43,7 @@ import {
 } from "lucide-react";
 import { useWardDetail, useWardAcademics, useWardFees, useWardAttendance } from "@/hooks/parent";
 import type { FeeStatus, TrendDirection } from "@/hooks/parent/useParentDashboard";
+import type { WardFeesData } from "@/hooks/parent/useWardDetail";
 import {
   AcademicSummaryCards,
   TermSelector,
@@ -44,7 +54,9 @@ import {
   TeacherCommentsSection,
 } from "@/components/parent/academics";
 import { WardTimetable } from "@/components/parent/timetable/WardTimetable";
+import { formatMoney } from "@/lib/fees/money";
 import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
+import { toast } from "sonner";
 
 /* --------------------------------------------------------------------------------
    Types
@@ -117,6 +129,25 @@ const TABS: TabConfig[] = [
     },
   },
 ];
+
+function formatCurrencyAmount(value: number | null | undefined) {
+  const amount = typeof value === "number" && Number.isFinite(value) ? value : 0;
+  return `GH₵ ${amount.toLocaleString()}`;
+}
+
+type WardFeeInvoice = WardFeesData["invoices"][number];
+
+type CheckoutPreview = {
+  invoiceId: string;
+  invoiceNumber: string;
+  title: string;
+  wardName: string;
+  amountMinor: number;
+  parentPayableMinor: number;
+  platformFeeMinor: number;
+  estimatedSchoolNetMinor: number;
+  processorFeeNote: string;
+};
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -408,7 +439,7 @@ function WardDetailHeader({
               label="Fees"
               value={
                 fees
-                  ? `GH₵ ${fees.totalOutstanding.toLocaleString()}`
+                  ? formatCurrencyAmount(fees.totalOutstanding)
                   : "--"
               }
               subLabel={
@@ -587,7 +618,7 @@ function OverviewTab({ wardId }: { wardId: string }) {
           icon={Wallet}
           label="Fees Paid"
           value={`${feesProgress}%`}
-          subLabel={fees ? `GH₵ ${fees.balanceDue.toLocaleString()} due` : "No fee data"}
+          subLabel={fees ? `${formatCurrencyAmount(fees.balanceDue)} due` : "No fee data"}
           tone={feesProgress >= 100 ? "emerald" : feesProgress >= 50 ? "amber" : "red"}
         />
       </div>
@@ -863,7 +894,226 @@ function AcademicsTab({ wardId }: { wardId: string }) {
    Fees Tab
 -------------------------------------------------------------------------------- */
 function FeesTab({ wardId }: { wardId: string }) {
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useWardFees(wardId);
+  const [payingInvoiceId, setPayingInvoiceId] = React.useState<string | null>(null);
+  const [checkoutBanner, setCheckoutBanner] = React.useState<{
+    tone: "blue" | "emerald" | "amber" | "red";
+    title: string;
+    message: string;
+  } | null>(null);
+  const [checkoutPreview, setCheckoutPreview] =
+    React.useState<CheckoutPreview | null>(null);
+  const [checkoutSubmitting, setCheckoutSubmitting] = React.useState(false);
+
+  const checkoutReference =
+    searchParams.get("reference") || searchParams.get("trxref");
+  const returnPath = React.useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("reference");
+    params.delete("trxref");
+    params.delete("checkout");
+    params.set("tab", "fees");
+    const qs = params.toString();
+    return qs
+      ? `/parent/wards/${encodeURIComponent(wardId)}?${qs}`
+      : `/parent/wards/${encodeURIComponent(wardId)}?tab=fees`;
+  }, [searchParams, wardId]);
+
+  React.useEffect(() => {
+    if (!checkoutReference) {
+      return;
+    }
+
+    let cancelled = false;
+    setCheckoutBanner({
+      tone: "blue",
+      title: "Confirming Payment",
+      message: "We are checking the status of your recent payment.",
+    });
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/parent/payments/checkout-status?reference=${encodeURIComponent(
+            checkoutReference
+          )}`,
+          { cache: "no-store" }
+        );
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error || "Unable to confirm payment status");
+        }
+
+        if (cancelled) return;
+
+        const status = String(json.data?.status || "not_found");
+        const message =
+          String(json.data?.message || "").trim() ||
+          "Your payment status is being updated.";
+
+        if (status === "completed") {
+          setCheckoutBanner({
+            tone: "emerald",
+            title: "Payment Confirmed",
+            message:
+              "Your payment was received successfully. The student fee summary will refresh now.",
+          });
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: ["parent", "ward", wardId, "fees"],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["parent", "fees"],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["parent", "payments"],
+            }),
+          ]);
+          return;
+        }
+
+        if (status === "failed") {
+          setCheckoutBanner({
+            tone: "red",
+            title: "Payment Not Completed",
+            message,
+          });
+          return;
+        }
+
+        setCheckoutBanner({
+          tone: status === "pending" ? "amber" : "blue",
+          title:
+            status === "pending" ? "Payment Pending Confirmation" : "Awaiting Confirmation",
+          message,
+        });
+      } catch (statusError) {
+        if (cancelled) return;
+        setCheckoutBanner({
+          tone: "red",
+          title: "Unable to Confirm Payment",
+          message:
+            statusError instanceof Error
+              ? statusError.message
+              : "We could not confirm your payment yet.",
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checkoutReference, queryClient, wardId]);
+
+  const handlePayInvoice = React.useCallback(
+    async (invoice: WardFeeInvoice) => {
+      try {
+        setPayingInvoiceId(invoice.id);
+        setCheckoutBanner(null);
+        setCheckoutPreview(null);
+
+        const res = await fetch("/api/parent/payments/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            invoiceId: invoice.id,
+            preview: true,
+            returnPath,
+          }),
+        });
+
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error || "Failed to load checkout details");
+        }
+
+        setCheckoutPreview({
+          invoiceId: String(json.data?.invoiceId || invoice.id),
+          invoiceNumber: String(
+            json.data?.invoiceNumber || invoice.invoiceNumber || "School Fees"
+          ),
+          title: invoice.title,
+          wardName: "This student",
+          amountMinor: Number(json.data?.amountMinor || invoice.balanceDueMinor || 0),
+          parentPayableMinor: Number(
+            json.data?.parentPayableMinor || invoice.balanceDueMinor || 0
+          ),
+          platformFeeMinor: Number(json.data?.platformFeeMinor || 0),
+          estimatedSchoolNetMinor: Number(
+            json.data?.estimatedSchoolNetMinor || invoice.balanceDueMinor || 0
+          ),
+          processorFeeNote: String(json.data?.processorFeeNote || ""),
+        });
+      } catch (checkoutError) {
+        const message =
+          checkoutError instanceof Error
+            ? checkoutError.message
+            : "Unable to load checkout details";
+        toast.error(message);
+        setCheckoutBanner({
+          tone: "red",
+          title: "Checkout Unavailable",
+          message,
+        });
+      } finally {
+        setPayingInvoiceId(null);
+      }
+    },
+    [returnPath]
+  );
+
+  const handleConfirmCheckout = React.useCallback(async () => {
+    if (!checkoutPreview) return;
+
+    try {
+      setCheckoutSubmitting(true);
+      setCheckoutBanner({
+        tone: "blue",
+        title: "Opening Secure Checkout",
+        message: "Redirecting you to Paystack to complete this payment.",
+      });
+
+      const res = await fetch("/api/parent/payments/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          invoiceId: checkoutPreview.invoiceId,
+          returnPath,
+        }),
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to start checkout");
+      }
+
+      const authorizationUrl = String(json.data?.authorizationUrl || "");
+      if (!authorizationUrl) {
+        throw new Error("Missing Paystack authorization URL");
+      }
+
+      window.location.assign(authorizationUrl);
+    } catch (checkoutError) {
+      const message =
+        checkoutError instanceof Error
+          ? checkoutError.message
+          : "Unable to start checkout";
+      toast.error(message);
+      setCheckoutBanner({
+        tone: "red",
+        title: "Checkout Unavailable",
+        message,
+      });
+    } finally {
+      setCheckoutSubmitting(false);
+    }
+  }, [checkoutPreview, returnPath]);
 
   if (isLoading) {
     return (
@@ -888,24 +1138,175 @@ function FeesTab({ wardId }: { wardId: string }) {
 
   return (
     <div className="space-y-6">
+      <Dialog
+        open={Boolean(checkoutPreview)}
+        onOpenChange={(open) => {
+          if (!open && !checkoutSubmitting) {
+            setCheckoutPreview(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-xl border border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black text-white shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>Review Checkout</DialogTitle>
+            <DialogDescription className="text-white/60">
+              Confirm the payment breakdown before you continue to the secure Paystack page.
+            </DialogDescription>
+          </DialogHeader>
+
+          {checkoutPreview && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-sm font-medium text-white">
+                  {checkoutPreview.title}
+                </p>
+                <p className="mt-1 text-xs text-white/50">
+                  {checkoutPreview.wardName} • {checkoutPreview.invoiceNumber}
+                </p>
+              </div>
+
+              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between gap-4 text-sm">
+                  <span className="text-white/60">Parent payment amount</span>
+                  <span className="font-semibold text-white">
+                    {formatMoney(checkoutPreview.parentPayableMinor)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4 text-sm">
+                  <span className="text-white/60">
+                    EduSentrix fee (deducted from school)
+                  </span>
+                  <span className="font-medium text-amber-200">
+                    {formatMoney(checkoutPreview.platformFeeMinor)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-sm">
+                  <span className="text-white/60">
+                    Estimated school settlement before processor fee
+                  </span>
+                  <span className="font-medium text-emerald-200">
+                    {formatMoney(checkoutPreview.estimatedSchoolNetMinor)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
+                    <AlertCircle className="h-4 w-4 text-amber-300" />
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <p className="font-medium text-amber-200">
+                      The school bears this service fee
+                    </p>
+                    <p className="text-amber-100/75">
+                      You will be charged only the invoice amount. The Edusentrix
+                      transaction fee is deducted from the school&apos;s settlement.
+                    </p>
+                    <p className="text-amber-100/65">
+                      {checkoutPreview.processorFeeNote}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+              onClick={() => setCheckoutPreview(null)}
+              disabled={checkoutSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={handleConfirmCheckout}
+              disabled={checkoutSubmitting}
+            >
+              {checkoutSubmitting ? "Opening..." : "Continue to Paystack"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {checkoutBanner && (
+        <Card
+          className={cn(
+            "relative overflow-hidden rounded-xl border p-4",
+            checkoutBanner.tone === "emerald" &&
+              "border-emerald-500/30 bg-emerald-500/10",
+            checkoutBanner.tone === "blue" &&
+              "border-blue-500/30 bg-blue-500/10",
+            checkoutBanner.tone === "amber" &&
+              "border-amber-500/30 bg-amber-500/10",
+            checkoutBanner.tone === "red" &&
+              "border-red-500/30 bg-red-500/10"
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
+                checkoutBanner.tone === "emerald" &&
+                  "border-emerald-500/30 bg-emerald-500/20",
+                checkoutBanner.tone === "blue" &&
+                  "border-blue-500/30 bg-blue-500/20",
+                checkoutBanner.tone === "amber" &&
+                  "border-amber-500/30 bg-amber-500/20",
+                checkoutBanner.tone === "red" &&
+                  "border-red-500/30 bg-red-500/20"
+              )}
+            >
+              {checkoutBanner.tone === "emerald" ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+              ) : checkoutBanner.tone === "red" ? (
+                <AlertTriangle className="h-5 w-5 text-red-300" />
+              ) : (
+                <Clock
+                  className={cn(
+                    "h-5 w-5",
+                    checkoutBanner.tone === "amber"
+                      ? "text-amber-300"
+                      : "text-blue-300"
+                  )}
+                />
+              )}
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-white">
+                {checkoutBanner.title}
+              </h4>
+              <p className="mt-1 text-sm text-white/70">
+                {checkoutBanner.message}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricStatCard
           icon={DollarSign}
           label="Total Fees"
-          value={`GH₵ ${data.totalFees.toLocaleString()}`}
+          value={formatCurrencyAmount(data.totalFees)}
           tone="blue"
         />
         <MetricStatCard
           icon={CheckCircle2}
           label="Amount Paid"
-          value={`GH₵ ${data.amountPaid.toLocaleString()}`}
+          value={formatCurrencyAmount(data.amountPaid)}
           tone="emerald"
         />
         <MetricStatCard
           icon={AlertCircle}
           label="Balance Due"
-          value={`GH₵ ${data.balanceDue.toLocaleString()}`}
+          value={formatCurrencyAmount(data.balanceDue)}
           tone={data.balanceDue > 0 ? "red" : "emerald"}
         />
         <MetricStatCard
@@ -933,6 +1334,25 @@ function FeesTab({ wardId }: { wardId: string }) {
         </CardContent>
       </Card>
 
+      {data.balanceDue > 0 && !data.invoices.some((invoice) => invoice.canPayOnline) && (
+        <Card className="relative overflow-hidden rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
+              <AlertCircle className="h-5 w-5 text-amber-300" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-amber-200">
+                Online payment is not available yet
+              </h4>
+              <p className="mt-1 text-sm text-amber-100/75">
+                This school has not finished setting up online checkout. Contact
+                the school for offline payment options.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Pending Invoices */}
       {data.invoices.length > 0 && (
         <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg">
@@ -945,21 +1365,49 @@ function FeesTab({ wardId }: { wardId: string }) {
               {data.invoices.map((invoice) => (
                 <div
                   key={invoice.id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/5"
+                  className="rounded-xl border border-white/10 bg-white/5 p-4"
                 >
-                  <div>
-                    <h4 className="font-medium text-white">{invoice.title}</h4>
-                    <p className="text-xs text-white/50 flex items-center gap-1.5 mt-1">
-                      <Clock className="h-3 w-3" />
-                      Due: {new Date(invoice.dueDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-lg font-bold text-white">
-                      GH₵ {invoice.balanceDue.toLocaleString()}
-                    </span>
-                    <div className="mt-1">
-                      <FeeStatusBadge status={invoice.status === "paid" ? "clear" : invoice.status === "partial" ? "partial" : "owing"} />
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h4 className="font-medium text-white">{invoice.title}</h4>
+                      <p className="mt-1 text-xs text-white/50">
+                        {invoice.invoiceNumber}
+                      </p>
+                      <p className="text-xs text-white/50 flex items-center gap-1.5 mt-1">
+                        <Clock className="h-3 w-3" />
+                        Due: {new Date(invoice.dueDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:items-end">
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-white">
+                          {formatCurrencyAmount(invoice.balanceDue)}
+                        </span>
+                        <div className="mt-1">
+                          <FeeStatusBadge
+                            status={
+                              invoice.status === "paid"
+                                ? "clear"
+                                : invoice.status === "partial"
+                                  ? "partial"
+                                  : "owing"
+                            }
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                        onClick={() => handlePayInvoice(invoice)}
+                        disabled={!invoice.canPayOnline || payingInvoiceId === invoice.id}
+                      >
+                        {invoice.canPayOnline
+                          ? payingInvoiceId === invoice.id
+                            ? "Opening..."
+                            : "Pay Now"
+                          : "Offline Only"}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -988,7 +1436,7 @@ function FeesTab({ wardId }: { wardId: string }) {
                       <CreditCard className="h-5 w-5 text-emerald-300" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-white">GH₵ {payment.amount.toLocaleString()}</h4>
+                      <h4 className="font-medium text-white">{formatCurrencyAmount(payment.amount)}</h4>
                       <p className="text-xs text-white/50">{payment.method} • {payment.reference}</p>
                     </div>
                   </div>

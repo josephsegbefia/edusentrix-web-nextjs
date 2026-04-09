@@ -22,6 +22,7 @@ type RequireParentOptions = {
 
 function legacyRoleToArray(role?: string): MembershipRole[] {
   if (role === "school_admin") return ["school_admin"];
+  if (role === "billing_owner") return ["billing_owner"];
   if (role === "bursar") return ["bursar"];
   if (role === "teacher") return ["teacher"];
   if (role === "parent") return ["parent"];

@@ -27,5 +27,5 @@ export async function beginOnboarding() {
     );
   }
 
-  redirect("/onboard");
+  redirect("/launch");
 }

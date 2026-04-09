@@ -1,22 +1,56 @@
 import mongoose from "mongoose";
 import { computeSubscriptionPricing } from "@/lib/platform-billing/subscription-pricing";
 import { resolveTransactionFeeConfigForSchool } from "@/lib/billing/transaction-fees";
+import { maskAccountNumber } from "@/lib/platform-billing/payout-security";
 import { School } from "@/models/School";
 import { SchoolSubscription } from "@/models/SchoolSubscription";
 import { SubscriptionEvent } from "@/models/SubscriptionEvent";
 import { UsageMetric } from "@/models/UsageMetric";
+import {
+  deriveSchoolPaymentSetupStatus,
+  getSchoolPaymentSetupMeta,
+  isSchoolPaymentReady,
+} from "@/lib/school-payments/payment-setup";
 
 export async function getPlatformSchoolList() {
   const [schools, subscriptions, usageMetrics] = await Promise.all([
     School.find({})
-      .select("name status billing.transactionFees billing.paystack.subaccountCode")
+      .select("name status createdBy bank billing")
       .sort({ name: 1 })
       .lean<Array<{
         _id: mongoose.Types.ObjectId;
         name?: string;
         status?: string;
+        createdBy?: mongoose.Types.ObjectId | null;
+        bank?: {
+          bankName?: string | null;
+          branchName?: string | null;
+          sortCode?: string | null;
+          accountName?: string | null;
+          accountNumber?: string | null;
+        } | null;
         billing?: {
-          paystack?: { subaccountCode?: string | null };
+          status?: "unprovisioned" | "provisioned" | "failed" | null;
+          paymentSetup?: {
+            status?:
+              | "not_started"
+              | "awaiting_billing_owner"
+              | "details_submitted"
+              | "pending_provisioning"
+              | "review_required"
+              | "provisioned"
+              | "failed"
+              | null;
+            ownerUserId?: mongoose.Types.ObjectId | null;
+            ownerName?: string | null;
+            ownerEmail?: string | null;
+            reviewReason?: string | null;
+          } | null;
+          paystack?: {
+            subaccountCode?: string | null;
+            subaccountId?: string | null;
+            lastError?: string | null;
+          } | null;
           transactionFees?: {
             mode?: "platform_default" | "custom" | "disabled";
             percent?: number | null;
@@ -70,6 +104,7 @@ export async function getPlatformSchoolList() {
     const feeConfig = resolveTransactionFeeConfigForSchool(
       school.billing?.transactionFees || null
     );
+    const paymentSetupStatus = deriveSchoolPaymentSetupStatus(school);
     const pricing = subscription
       ? computeSubscriptionPricing({
           basePriceMinor: subscription.basePriceMinor || 0,
@@ -83,7 +118,8 @@ export async function getPlatformSchoolList() {
       id: schoolId,
       name: school.name || "Unnamed School",
       status: school.status || "pending",
-      paymentReady: Boolean(school.billing?.paystack?.subaccountCode),
+      paymentReady: isSchoolPaymentReady(school),
+      paymentSetupStatus,
       transactionFeePolicy: {
         mode: school.billing?.transactionFees?.mode || "platform_default",
         percent: school.billing?.transactionFees?.percent ?? null,
@@ -123,7 +159,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
   const [school, subscription, usageMetrics, subscriptionEvents] = await Promise.all([
     School.findById(schoolIdObj)
-      .select("name status billing.transactionFees billing.paystack.subaccountCode city region email")
+      .select("name status createdBy bank billing city region email")
       .lean<{
         _id: mongoose.Types.ObjectId;
         name?: string;
@@ -131,8 +167,36 @@ export async function getPlatformSchoolDetail(schoolId: string) {
         city?: string;
         region?: string;
         email?: string;
+        createdBy?: mongoose.Types.ObjectId | null;
+        bank?: {
+          bankName?: string | null;
+          branchName?: string | null;
+          sortCode?: string | null;
+          accountName?: string | null;
+          accountNumber?: string | null;
+        } | null;
         billing?: {
-          paystack?: { subaccountCode?: string | null };
+          status?: "unprovisioned" | "provisioned" | "failed" | null;
+          paymentSetup?: {
+            status?:
+              | "not_started"
+              | "awaiting_billing_owner"
+              | "details_submitted"
+              | "pending_provisioning"
+              | "review_required"
+              | "provisioned"
+              | "failed"
+              | null;
+            ownerUserId?: mongoose.Types.ObjectId | null;
+            ownerName?: string | null;
+            ownerEmail?: string | null;
+            reviewReason?: string | null;
+          } | null;
+          paystack?: {
+            subaccountCode?: string | null;
+            subaccountId?: string | null;
+            lastError?: string | null;
+          } | null;
           transactionFees?: {
             mode?: "platform_default" | "custom" | "disabled";
             percent?: number | null;
@@ -194,6 +258,8 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   const feeConfig = resolveTransactionFeeConfigForSchool(
     school.billing?.transactionFees || null
   );
+  const paymentSetupStatus = deriveSchoolPaymentSetupStatus(school);
+  const paymentSetupMeta = getSchoolPaymentSetupMeta(paymentSetupStatus);
   const totalEstimatedCostMinor = usageMetrics.reduce(
     (sum, metric) => sum + Math.max(0, Math.round(Number(metric.estimatedCostMinor || 0))),
     0
@@ -214,7 +280,29 @@ export async function getPlatformSchoolDetail(schoolId: string) {
     city: school.city || null,
     region: school.region || null,
     email: school.email || null,
-    paymentReady: Boolean(school.billing?.paystack?.subaccountCode),
+    paymentReady: isSchoolPaymentReady(school),
+    paymentSetup: {
+      status: paymentSetupStatus,
+      statusLabel: paymentSetupMeta.label,
+      statusTone: paymentSetupMeta.tone,
+      reviewReason: school.billing?.paymentSetup?.reviewReason || null,
+      billingOwner: {
+        name: school.billing?.paymentSetup?.ownerName || null,
+        email: school.billing?.paymentSetup?.ownerEmail || null,
+      },
+      bank: {
+        bankName: school.bank?.bankName || null,
+        branchName: school.bank?.branchName || null,
+        accountName: school.bank?.accountName || null,
+        maskedAccountNumber: school.bank?.accountNumber
+          ? maskAccountNumber(school.bank.accountNumber)
+          : null,
+      },
+      paystack: {
+        subaccountCode: school.billing?.paystack?.subaccountCode || null,
+        lastError: school.billing?.paystack?.lastError || null,
+      },
+    },
     transactionFeePolicy: {
       mode: school.billing?.transactionFees?.mode || "platform_default",
       percent: school.billing?.transactionFees?.percent ?? null,

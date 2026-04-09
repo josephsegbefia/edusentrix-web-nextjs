@@ -3,9 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent, verifyGuardianAccess } from "@/lib/auth/requireParent";
+import { toMajorUnits } from "@/lib/fees/money";
+import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { School } from "@/models/School";
 
 type AcademicPeriodRow = {
   _id: mongoose.Types.ObjectId;
@@ -13,30 +16,64 @@ type AcademicPeriodRow = {
 };
 
 type InvoiceSummaryRow = {
-  totalBilled?: number;
-  totalPaid?: number;
-  outstanding?: number;
+  totalBilledMinor?: number;
+  totalPaidMinor?: number;
+  outstandingMinor?: number;
   nextDueDate?: Date | null;
 };
 
 type PendingInvoiceRow = {
   _id: mongoose.Types.ObjectId;
-  invoiceNumber: string;
-  totalAmount: number;
-  amountPaid: number;
-  balanceDue: number;
+  invoiceNumber?: string;
+  totalAmountMinor?: number;
+  totalPaidMinor?: number;
+  totalOutstandingMinor?: number;
   dueDate: Date | null;
-  status: string;
-  description?: string;
+  status?: string;
+  notes?: string | null;
 };
 
 type RecentPaymentRow = {
   _id: mongoose.Types.ObjectId;
-  amount: number;
-  paymentMethod: string;
-  paymentDate: Date;
-  internalReference?: string;
-  receiptNumber?: string;
+  amountMinor?: number;
+  paymentMethod?: string;
+  paymentDate?: Date;
+  paystackReference?: string | null;
+  externalReference?: string | null;
+  internalReference?: string | null;
+  receiptNumber?: string | null;
+};
+
+type SchoolPaymentRow = {
+  bank?: {
+    bankName?: string | null;
+    branchName?: string | null;
+    sortCode?: string | null;
+    accountName?: string | null;
+    accountNumber?: string | null;
+  } | null;
+  billing?: {
+    status?: "unprovisioned" | "provisioned" | "failed" | null;
+    paymentSetup?: {
+      status?:
+        | "not_started"
+        | "awaiting_billing_owner"
+        | "details_submitted"
+        | "pending_provisioning"
+        | "review_required"
+        | "provisioned"
+        | "failed"
+        | null;
+      ownerUserId?: mongoose.Types.ObjectId | null;
+      ownerName?: string | null;
+      ownerEmail?: string | null;
+    } | null;
+    paystack?: {
+      subaccountCode?: string | null;
+      subaccountId?: string | null;
+      lastError?: string | null;
+    } | null;
+  } | null;
 };
 
 export async function GET(
@@ -67,6 +104,10 @@ export async function GET(
     })
       .select("_id name")
       .lean<AcademicPeriodRow | null>();
+    const school = await School.findById(context.schoolId)
+      .select("bank billing")
+      .lean<SchoolPaymentRow | null>();
+    const canPayOnline = school ? isSchoolPaymentReady(school) : false;
 
     // Get overall summary
     const overallSummary = await Invoice.aggregate<InvoiceSummaryRow>([
@@ -74,15 +115,18 @@ export async function GET(
         $match: {
           studentId,
           schoolId: context.schoolId,
+          status: { $nin: ["draft", "cancelled"] },
         },
       },
       {
         $group: {
           _id: null,
-          totalBilled: { $sum: "$totalAmount" },
-          totalPaid: { $sum: "$amountPaid" },
-          outstanding: { $sum: "$balanceDue" },
-          nextDueDate: { $min: { $cond: [{ $gt: ["$balanceDue", 0] }, "$dueDate", null] } },
+          totalBilledMinor: { $sum: "$totalAmountMinor" },
+          totalPaidMinor: { $sum: "$totalPaidMinor" },
+          outstandingMinor: { $sum: "$totalOutstandingMinor" },
+          nextDueDate: {
+            $min: { $cond: [{ $gt: ["$totalOutstandingMinor", 0] }, "$dueDate", null] },
+          },
         },
       },
     ]);
@@ -91,9 +135,10 @@ export async function GET(
     const pendingInvoices = await Invoice.find({
       studentId,
       schoolId: context.schoolId,
-      status: { $in: ["pending", "partial", "overdue"] },
+      status: { $nin: ["draft", "cancelled"] },
+      totalOutstandingMinor: { $gt: 0 },
     })
-      .select("_id invoiceNumber totalAmount amountPaid balanceDue dueDate status description")
+      .select("_id invoiceNumber totalAmountMinor totalPaidMinor totalOutstandingMinor dueDate status notes")
       .sort({ dueDate: 1 })
       .limit(10)
       .lean<PendingInvoiceRow[]>();
@@ -104,16 +149,18 @@ export async function GET(
       schoolId: context.schoolId,
       status: "completed",
     })
-      .select("_id amount paymentMethod paymentDate internalReference receiptNumber")
+      .select(
+        "_id amountMinor paymentMethod paymentDate paystackReference externalReference internalReference receiptNumber"
+      )
       .sort({ paymentDate: -1 })
       .limit(10)
       .lean<RecentPaymentRow[]>();
 
     const overallRow = overallSummary[0];
     const overall = {
-      totalBilled: overallRow?.totalBilled ?? 0,
-      totalPaid: overallRow?.totalPaid ?? 0,
-      outstanding: overallRow?.outstanding ?? 0,
+      totalBilled: toMajorUnits(Number(overallRow?.totalBilledMinor || 0)),
+      totalPaid: toMajorUnits(Number(overallRow?.totalPaidMinor || 0)),
+      outstanding: toMajorUnits(Number(overallRow?.outstandingMinor || 0)),
       nextDueDate: overallRow?.nextDueDate ?? null,
     };
 
@@ -129,22 +176,46 @@ export async function GET(
       : 100;
 
     // Map invoices to expected format
-    const invoices = pendingInvoices.map((inv) => ({
-      id: String(inv._id),
-      title: inv.description || `Invoice ${inv.invoiceNumber}`,
-      amount: inv.totalAmount,
-      balanceDue: inv.balanceDue,
-      dueDate: inv.dueDate ? inv.dueDate.toISOString() : new Date().toISOString(),
-      status: inv.status as "pending" | "partial" | "paid" | "overdue",
-    }));
+    const invoices = pendingInvoices.map((inv) => {
+      const invoiceStatus = String(inv.status || "issued");
+      const amount = toMajorUnits(Number(inv.totalAmountMinor || 0));
+      const balanceDue = toMajorUnits(Number(inv.totalOutstandingMinor || 0));
+
+      const status: "pending" | "partial" | "paid" | "overdue" =
+        balanceDue <= 0
+          ? "paid"
+          : invoiceStatus === "overdue"
+            ? "overdue"
+            : invoiceStatus === "partially_paid"
+              ? "partial"
+              : "pending";
+
+      return {
+        id: String(inv._id),
+        invoiceNumber: inv.invoiceNumber || "School Fees",
+        title: inv.invoiceNumber || "School Fees",
+        amount,
+        amountMinor: Number(inv.totalAmountMinor || 0),
+        balanceDue,
+        balanceDueMinor: Number(inv.totalOutstandingMinor || 0),
+        dueDate: inv.dueDate ? inv.dueDate.toISOString() : new Date().toISOString(),
+        status,
+        canPayOnline,
+      };
+    });
 
     // Map payments to expected format
     const payments = recentPayments.map((pay) => ({
       id: String(pay._id),
-      amount: pay.amount,
-      date: pay.paymentDate.toISOString(),
-      method: pay.paymentMethod,
-      reference: pay.internalReference || pay.receiptNumber || `PAY-${String(pay._id).slice(-6).toUpperCase()}`,
+      amount: toMajorUnits(Number(pay.amountMinor || 0)),
+      date: pay.paymentDate?.toISOString() || new Date().toISOString(),
+      method: pay.paymentMethod || "other",
+      reference:
+        pay.paystackReference ||
+        pay.externalReference ||
+        pay.internalReference ||
+        pay.receiptNumber ||
+        `PAY-${String(pay._id).slice(-6).toUpperCase()}`,
     }));
 
     return NextResponse.json({

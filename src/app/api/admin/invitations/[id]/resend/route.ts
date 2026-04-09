@@ -8,6 +8,10 @@ import { recordActivity } from "@/lib/audit/recordActivity";
 import { School } from "@/models/School";
 import mongoose from "mongoose";
 import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  assignPendingBillingOwnerInvitation,
+  assignPendingPaymentSetupDelegate,
+} from "@/lib/school-payments/billing-owner-lifecycle";
 
 export async function POST(
   req: NextRequest,
@@ -66,7 +70,14 @@ export async function POST(
 
     // Resend via Clerk
     const APP_URL = getAppUrl();
-    const redirectUrl = getInvitationRedirectUrl();
+    const redirectUrl =
+      invitation.role === "billing_owner" ||
+      (invitation.role === "bursar" &&
+        invitation.metadata?.accessSurface === "payment_setup_delegate")
+        ? `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
+            "/admin/settings/payment-setup"
+          )}`
+        : getInvitationRedirectUrl();
 
     try {
       const clerk = await clerkClient();
@@ -91,7 +102,13 @@ export async function POST(
         name: invitation.metadata?.firstName && invitation.metadata?.lastName
           ? `${invitation.metadata.firstName} ${invitation.metadata.lastName}`
           : invitation.email,
-        role: invitation.role,
+        role:
+          invitation.role === "billing_owner"
+            ? "billing owner"
+            : invitation.role === "bursar" &&
+                invitation.metadata?.accessSurface === "payment_setup_delegate"
+              ? "finance delegate"
+              : invitation.role,
         schoolName,
         setupLink: `${APP_URL}/sign-in`,
       });
@@ -109,6 +126,36 @@ export async function POST(
           $inc: { resendCount: 1 },
         }
       );
+
+      if (
+        invitation.role === "billing_owner" &&
+        invitation.metadata?.paymentAuthorityMode !== "owner_replacement"
+      ) {
+        await assignPendingBillingOwnerInvitation({
+          schoolId: schoolIdObj,
+          ownerEmail: invitation.email,
+          ownerName:
+            invitation.metadata?.firstName && invitation.metadata?.lastName
+              ? `${invitation.metadata.firstName} ${invitation.metadata.lastName}`.trim()
+              : invitation.metadata?.firstName || null,
+          updatedBy: userId,
+        });
+      }
+
+      if (
+        invitation.role === "bursar" &&
+        invitation.metadata?.accessSurface === "payment_setup_delegate"
+      ) {
+        await assignPendingPaymentSetupDelegate({
+          schoolId: schoolIdObj,
+          delegateEmail: invitation.email,
+          delegateName:
+            invitation.metadata?.firstName && invitation.metadata?.lastName
+              ? `${invitation.metadata.firstName} ${invitation.metadata.lastName}`.trim()
+              : invitation.metadata?.firstName || null,
+          updatedBy: userId,
+        });
+      }
 
       // Record activity
       await recordActivity({

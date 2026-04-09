@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 
 function routeFor(user: { role?: string | null; pendingOnboarding?: boolean }) {
-  if (user.pendingOnboarding) return "/onboarding";
+  if (user.pendingOnboarding) return "/launch";
 
   const r = (user.role || "").toLowerCase();
 
@@ -15,6 +15,9 @@ function routeFor(user: { role?: string | null; pendingOnboarding?: boolean }) {
   if (r === "school_admin" || r === "schooladmin" || r === "admin") {
     return "/admin";
   }
+  if (r === "billing_owner" || r === "billingowner") {
+    return "/admin/settings/payment-setup";
+  }
 
   // Other roles -> their respective routes
   if (r === "teacher") return "/teacher";
@@ -23,7 +26,7 @@ function routeFor(user: { role?: string | null; pendingOnboarding?: boolean }) {
   if (r === "bursar") return "/bursar";
 
   // Default to onboarding if role is unknown
-  return "/onboarding";
+  return "/launch";
 }
 
 export default async function DashboardHub() {

@@ -16,7 +16,14 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns/format";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
+import {
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import {
@@ -52,6 +59,18 @@ type Bootstrap = {
       accountName?: string;
       accountNumber?: string;
     };
+    paymentSetup?: {
+      status?:
+        | "not_started"
+        | "awaiting_billing_owner"
+        | "details_submitted"
+        | "pending_provisioning"
+        | "review_required"
+        | "provisioned"
+        | "failed";
+      ownerName?: string;
+      ownerEmail?: string;
+    };
     status: "pending" | "active";
   } | null;
   subjectSuggestions: string[];
@@ -68,11 +87,12 @@ type Period = {
 const STEPS = [
   { id: 1, title: "Profile", description: "Your information" },
   { id: 2, title: "School Details", description: "School information" },
-  { id: 3, title: "Banking", description: "Payment details" },
+  { id: 3, title: "Payment Setup", description: "Billing authority" },
   { id: 4, title: "Curriculum", description: "Subjects & periods" },
 ] as const;
 
 type Step = (typeof STEPS)[number]["id"];
+type PaymentAuthorityMode = "self" | "owner_invite";
 
 export default function OnboardPage() {
   const [loading, setLoading] = useState(true);
@@ -107,6 +127,11 @@ export default function OnboardPage() {
   const [sortCode, setSortCode] = useState("");
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [paymentAuthorityMode, setPaymentAuthorityMode] =
+    useState<PaymentAuthorityMode>("self");
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerInviteLocked, setOwnerInviteLocked] = useState(false);
 
   const [subjectPool, setSubjectPool] = useState<string[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
@@ -160,6 +185,21 @@ export default function OnboardPage() {
           setSortCode(payload.school.bank?.sortCode || "");
           setAccountName(payload.school.bank?.accountName || "");
           setAccountNumber(payload.school.bank?.accountNumber || "");
+          setOwnerName(payload.school.paymentSetup?.ownerName || "");
+          setOwnerEmail(payload.school.paymentSetup?.ownerEmail || "");
+
+          const normalizedUserEmail = payload.user.email.toLowerCase().trim();
+          const normalizedOwnerEmail =
+            payload.school.paymentSetup?.ownerEmail?.toLowerCase().trim() || "";
+          const ownerIsDifferentUser =
+            Boolean(normalizedOwnerEmail) &&
+            normalizedOwnerEmail !== normalizedUserEmail;
+
+          setPaymentAuthorityMode(ownerIsDifferentUser ? "owner_invite" : "self");
+          setOwnerInviteLocked(
+            ownerIsDifferentUser &&
+              payload.school.paymentSetup?.status === "awaiting_billing_owner"
+          );
 
           setBankPick((prev) => {
             const b = payload.school?.bank;
@@ -208,6 +248,58 @@ export default function OnboardPage() {
     [selectedSubjects.length, periods.length]
   );
 
+  async function persistSchoolProfile(options?: {
+    bank?: {
+      bankName?: string;
+      branchName?: string;
+      sortCode?: string;
+      accountName?: string;
+      accountNumber?: string;
+    };
+  }) {
+    if (!data?.school) {
+      throw new Error("No school bound to your account");
+    }
+
+    const bankPayload = options?.bank ?? {
+      bankName: bankName.trim() || undefined,
+      branchName: branchName.trim() || undefined,
+      sortCode: sortCode.trim() || undefined,
+      accountName: accountName.trim() || undefined,
+      accountNumber: accountNumber.trim() || undefined,
+    };
+
+    const res = await fetch("/api/onboarding/school", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        schoolId: data.school.id,
+        name: schoolName.trim(),
+        type: schoolType,
+        curriculumCode,
+        address: schoolAddress.trim() || undefined,
+        city: city.trim() || undefined,
+        region: region.trim() || undefined,
+        bank: bankPayload,
+      }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(error?.error || "Failed to save school profile");
+    }
+
+    return (await res.json().catch(() => null)) as
+      | {
+          success?: boolean;
+          data?: {
+            paymentSetupStatus?: string;
+            reviewReason?: string | null;
+          };
+        }
+      | null;
+  }
+
   async function saveStep1() {
     setSaving(true);
     try {
@@ -239,37 +331,9 @@ export default function OnboardPage() {
   }
 
   async function saveStep2() {
-    if (!data?.school) {
-      toast.error("No school bound to your account");
-      return;
-    }
     setSaving(true);
     try {
-      const res = await fetch("/api/onboarding/school", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schoolId: data.school.id,
-          name: schoolName.trim(),
-          type: schoolType,
-          curriculumCode,
-          address: schoolAddress.trim() || undefined,
-          city: city.trim() || undefined,
-          region: region.trim() || undefined,
-          bank: {
-            bankName: bankName.trim() || undefined,
-            branchName: branchName.trim() || undefined,
-            sortCode: sortCode.trim() || undefined,
-            accountName: accountName.trim() || undefined,
-            accountNumber: accountNumber.trim() || undefined,
-          },
-        }),
-      });
-      if (!res.ok) {
-        const error = await res.json().catch(() => null);
-        toast.error(error?.error || "Failed to save school profile");
-        return;
-      }
+      await persistSchoolProfile();
 
       const newSubjects = getSubjectNamesForCurriculum(
         curriculumCode,
@@ -295,51 +359,84 @@ export default function OnboardPage() {
 
       toast.success("School profile saved");
       setCurrentStep(3);
-    } catch {
-      toast.error("Failed to save school profile");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save school profile"
+      );
     } finally {
       setSaving(false);
     }
   }
 
   async function saveStep3() {
-    // Step 3 is banking, which is part of school details
-    // Save the school data (including banking) and progress to step 4
-    if (!data?.school) {
-      toast.error("No school bound to your account");
-      return;
-    }
     setSaving(true);
     try {
-      const res = await fetch("/api/onboarding/school", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schoolId: data.school.id,
-          name: schoolName.trim(),
-          type: schoolType,
-          curriculumCode,
-          address: schoolAddress.trim() || undefined,
-          city: city.trim() || undefined,
-          region: region.trim() || undefined,
+      if (paymentAuthorityMode === "owner_invite") {
+        if (ownerInviteLocked) {
+          toast.success("Billing owner invitation already in progress");
+          setCurrentStep(4);
+          return;
+        }
+
+        if (ownerName.trim().length < 2) {
+          toast.error("Please enter the billing owner's name");
+          return;
+        }
+
+        if (!/\S+@\S+\.\S+/.test(ownerEmail.trim())) {
+          toast.error("Please enter a valid billing owner email");
+          return;
+        }
+
+        await persistSchoolProfile({
           bank: {
-            bankName: bankName.trim() || undefined,
-            branchName: branchName.trim() || undefined,
-            sortCode: sortCode.trim() || undefined,
-            accountName: accountName.trim() || undefined,
-            accountNumber: accountNumber.trim() || undefined,
+            bankName: undefined,
+            branchName: undefined,
+            sortCode: undefined,
+            accountName: undefined,
+            accountNumber: undefined,
           },
-        }),
-      });
-      if (!res.ok) {
-        const error = await res.json().catch(() => null);
-        toast.error(error?.error || "Failed to save bank details");
+        });
+
+        const inviteRes = await fetch(
+          "/api/admin/settings/payment-setup/owner-invite",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ownerName: ownerName.trim(),
+              ownerEmail: ownerEmail.trim(),
+            }),
+          }
+        );
+
+        const invitePayload = await inviteRes.json().catch(() => null);
+        if (!inviteRes.ok || !invitePayload?.success) {
+          toast.error(
+            invitePayload?.error || "Failed to invite the billing owner"
+          );
+          return;
+        }
+
+        setOwnerInviteLocked(true);
+        toast.success("Billing owner invitation sent");
+        setCurrentStep(4);
         return;
       }
+
+      const result = await persistSchoolProfile();
       toast.success("Bank details saved");
+      if (result?.data?.paymentSetupStatus === "review_required") {
+        toast.warning(
+          result.data.reviewReason ||
+            "These payout details need manual review before online payments can be activated."
+        );
+      }
       setCurrentStep(4);
-    } catch {
-      toast.error("Failed to save bank details");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save bank details"
+      );
     } finally {
       setSaving(false);
     }
@@ -389,7 +486,7 @@ export default function OnboardPage() {
         window.location.href = "/admin";
       }, 1500);
     } catch {
-      toast.error("Failed to finalize onboarding");
+      toast.error("Failed to finalize school launch");
     } finally {
       setSaving(false);
     }
@@ -404,7 +501,7 @@ export default function OnboardPage() {
           className="flex flex-col items-center gap-4"
         >
           <div className="size-12 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-          <p className="text-muted">Loading onboarding data…</p>
+          <p className="text-muted">Loading launch data…</p>
         </motion.div>
       </div>
     );
@@ -466,7 +563,7 @@ export default function OnboardPage() {
             <span className="text-sm font-medium text-brand">School Setup</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-linear-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
-            Welcome to EduSentrix
+            Launch Your School
           </h1>
           <p className="text-lg text-muted max-w-2xl mx-auto">
             Complete your school setup in a few simple steps. Let&apos;s get you
@@ -863,74 +960,181 @@ export default function OnboardPage() {
                 >
                   <div className="space-y-2">
                     <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
-                      Bank Details
+                      Payment Setup
                     </h2>
                     <p className="text-muted text-base">
-                      Payment and banking information for transactions
+                      Choose whether you will add the payout account now or hand payment setup to the school's billing owner
                     </p>
                   </div>
 
                   <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold">
-                        Bank & Branch
-                      </Label>
-                      <BankBranchCombo
-                        value={bankPick}
-                        onChange={(v) => {
-                          setBankPick(v);
-                          setBankName(v?.bankName || "");
-                          setBranchName(v?.branchName || "");
-                          setSortCode(v?.sortCode || "");
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (ownerInviteLocked) return;
+                          setPaymentAuthorityMode("self");
                         }}
-                        nameHiddenSortCode="sortCode"
-                      />
-                      {bankPick && (
-                        <motion.p
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="text-xs text-muted mt-2 px-3 py-2 rounded-lg bg-brand/10 border border-brand/20"
-                        >
-                          Selected:{" "}
-                          <strong className="text-brand">
-                            {bankPick.bankName}
-                          </strong>{" "}
-                          - {bankPick.branchName} (sort: {bankPick.sortCode})
-                        </motion.p>
-                      )}
+                        className={`rounded-2xl border p-5 text-left transition ${
+                          paymentAuthorityMode === "self"
+                            ? "border-brand/40 bg-brand/10 shadow-lg shadow-brand/10"
+                            : "border-border/70 bg-background/40 hover:border-border"
+                        } ${ownerInviteLocked ? "cursor-not-allowed opacity-60" : ""}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-xl border border-brand/20 bg-brand/10 p-2">
+                            <ShieldCheck className="size-5 text-brand" />
+                          </div>
+                          <div className="space-y-2">
+                            <p className="font-semibold text-white">
+                              I am authorized
+                            </p>
+                            <p className="text-sm text-muted">
+                              Add the school's payout bank details now and keep payment setup moving.
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPaymentAuthorityMode("owner_invite")}
+                        className={`rounded-2xl border p-5 text-left transition ${
+                          paymentAuthorityMode === "owner_invite"
+                            ? "border-brand/40 bg-brand/10 shadow-lg shadow-brand/10"
+                            : "border-border/70 bg-background/40 hover:border-border"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="rounded-xl border border-brand/20 bg-brand/10 p-2">
+                            <Mail className="size-5 text-brand" />
+                          </div>
+                          <div className="space-y-2">
+                            <p className="font-semibold text-white">
+                              Invite the billing owner
+                            </p>
+                            <p className="text-sm text-muted">
+                              Send a secure setup link to the person authorized to control the school's payout account.
+                            </p>
+                          </div>
+                        </div>
+                      </button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="accountName"
-                          className="text-sm font-semibold"
-                        >
-                          Account Name
-                        </Label>
-                        <Input
-                          id="accountName"
-                          value={accountName}
-                          onChange={(e) => setAccountName(e.target.value)}
-                          className="bg-background/50 border-border h-11"
-                          placeholder="Account holder name"
-                        />
+
+                    {paymentAuthorityMode === "self" ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-semibold">
+                            Bank & Branch
+                          </Label>
+                          <BankBranchCombo
+                            value={bankPick}
+                            onChange={(v) => {
+                              setBankPick(v);
+                              setBankName(v?.bankName || "");
+                              setBranchName(v?.branchName || "");
+                              setSortCode(v?.sortCode || "");
+                            }}
+                            nameHiddenSortCode="sortCode"
+                          />
+                          {bankPick && (
+                            <motion.p
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="text-xs text-muted mt-2 px-3 py-2 rounded-lg bg-brand/10 border border-brand/20"
+                            >
+                              Selected:{" "}
+                              <strong className="text-brand">
+                                {bankPick.bankName}
+                              </strong>{" "}
+                              - {bankPick.branchName} (sort: {bankPick.sortCode})
+                            </motion.p>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="accountName"
+                              className="text-sm font-semibold"
+                            >
+                              Account Name
+                            </Label>
+                            <Input
+                              id="accountName"
+                              value={accountName}
+                              onChange={(e) => setAccountName(e.target.value)}
+                              className="bg-background/50 border-border h-11"
+                              placeholder="Account holder name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="accountNumber"
+                              className="text-sm font-semibold"
+                            >
+                              Account Number
+                            </Label>
+                            <Input
+                              id="accountNumber"
+                              value={accountNumber}
+                              onChange={(e) => setAccountNumber(e.target.value)}
+                              className="bg-background/50 border-border h-11"
+                              placeholder="Account number"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-4 rounded-2xl border border-brand/20 bg-brand/5 p-5">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-white">
+                            Billing owner handoff
+                          </p>
+                          <p className="text-sm text-muted">
+                            The invited billing owner will receive a secure sign-in path and land directly in Payment Setup.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="billingOwnerName"
+                              className="text-sm font-semibold"
+                            >
+                              Billing owner name
+                            </Label>
+                            <Input
+                              id="billingOwnerName"
+                              value={ownerName}
+                              onChange={(e) => setOwnerName(e.target.value)}
+                              className="bg-background/50 border-border h-11"
+                              placeholder="Owner or finance authority"
+                              disabled={ownerInviteLocked}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="billingOwnerEmail"
+                              className="text-sm font-semibold"
+                            >
+                              Billing owner email
+                            </Label>
+                            <Input
+                              id="billingOwnerEmail"
+                              value={ownerEmail}
+                              onChange={(e) => setOwnerEmail(e.target.value)}
+                              className="bg-background/50 border-border h-11"
+                              placeholder="owner@school.edu.gh"
+                              disabled={ownerInviteLocked}
+                            />
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/75">
+                          {ownerInviteLocked
+                            ? `Billing owner invitation already sent to ${ownerEmail}. You can continue setup while they complete payment setup later.`
+                            : "If you are not authorized to add payout details, send the setup link to the billing owner and continue with the rest of school launch."}
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="accountNumber"
-                          className="text-sm font-semibold"
-                        >
-                          Account Number
-                        </Label>
-                        <Input
-                          id="accountNumber"
-                          value={accountNumber}
-                          onChange={(e) => setAccountNumber(e.target.value)}
-                          className="bg-background/50 border-border h-11"
-                          placeholder="Account number"
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   <div className="flex justify-between pt-6 border-t border-border/50">
@@ -949,7 +1153,12 @@ export default function OnboardPage() {
                       size="lg"
                       className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[140px]"
                     >
-                      {saving ? "Saving..." : "Continue"}
+                      {saving
+                        ? "Saving..."
+                        : paymentAuthorityMode === "owner_invite" &&
+                            !ownerInviteLocked
+                          ? "Send Invite"
+                          : "Continue"}
                       <ArrowRight className="ml-2 size-4" />
                     </Button>
                   </div>

@@ -7,6 +7,10 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import { School } from "@/models/School";
 import { resolveBankCode } from "@/lib/banks/banks";
+import {
+  assessSchoolPaymentSetupReview,
+  hasCompleteSchoolBankDetails,
+} from "@/lib/school-payments/payment-setup";
 
 const BodySchema = z.object({
   schoolId: z.string().min(1),
@@ -97,6 +101,8 @@ export async function POST(req: NextRequest) {
     school.city = parsed.data.city ?? undefined;
     school.region = parsed.data.region ?? undefined;
 
+    const existingBank = school.bank || {};
+
     school.bank = {
       bankName: bankReq?.bankName || undefined,
       branchName: bankReq?.branchName || undefined,
@@ -105,11 +111,64 @@ export async function POST(req: NextRequest) {
       accountNumber: bankReq?.accountNumber || undefined,
     };
 
+    const paymentDetailsReady = hasCompleteSchoolBankDetails({
+      bank: school.bank,
+      billing: school.billing,
+    });
+    const bankChanged =
+      (existingBank.bankName || "") !== (bankReq?.bankName || "") ||
+      (existingBank.branchName || "") !== (bankReq?.branchName || "") ||
+      (existingBank.accountName || "") !== (bankReq?.accountName || "") ||
+      (existingBank.accountNumber || "") !== (bankReq?.accountNumber || "");
+    const review = paymentDetailsReady
+      ? assessSchoolPaymentSetupReview({
+          schoolName: school.name,
+          accountName: bankReq?.accountName || null,
+          hadProvisionedRail: Boolean(
+            school.billing?.paystack?.subaccountCode ||
+              school.billing?.paystack?.subaccountId
+          ),
+          bankChanged,
+        })
+      : { requiresReview: false, reason: null };
+    const billing = school.billing || (school.billing = {});
+    const existingPaymentSetup = billing.paymentSetup || {};
+    const paymentSetupUpdatedAt = new Date();
+
+    billing.paymentSetup = {
+      ...existingPaymentSetup,
+      ownerUserId: existingPaymentSetup.ownerUserId || me._id,
+      ownerName:
+        existingPaymentSetup.ownerName ||
+        me.name ||
+        [me.firstName, me.lastName].filter(Boolean).join(" ") ||
+        undefined,
+      ownerEmail: existingPaymentSetup.ownerEmail || me.email,
+      ownerAssignedAt: existingPaymentSetup.ownerAssignedAt || paymentSetupUpdatedAt,
+      ownerAssignedBy: existingPaymentSetup.ownerAssignedBy || me._id,
+      status: paymentDetailsReady
+        ? review.requiresReview
+          ? "review_required"
+          : "details_submitted"
+        : "not_started",
+      submittedAt: paymentDetailsReady ? paymentSetupUpdatedAt : null,
+      submittedBy: paymentDetailsReady ? me._id : null,
+      reviewReason: paymentDetailsReady ? review.reason : null,
+      lastUpdatedAt: paymentSetupUpdatedAt,
+      lastUpdatedBy: me._id,
+    };
+
     // Do NOT call Paystack here; just persist. Provisioning will be enqueued on /finish
     await school.save({ session });
 
     await session.commitTransaction();
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      data: {
+        paymentSetupStatus: school.billing?.paymentSetup?.status || "not_started",
+        reviewReason: school.billing?.paymentSetup?.reviewReason || null,
+      },
+    });
   } catch (e: any) {
     await session.abortTransaction();
     return NextResponse.json(

@@ -15,7 +15,7 @@ export async function requirePlatformAdmin() {
 
   await connectToDatabase();
   const meRaw = await User.findOne({ clerkUserId: userId })
-    .select("_id role")
+    .select("_id role email")
     .lean();
 
   // Normalize to ensure it's a single document, not an array

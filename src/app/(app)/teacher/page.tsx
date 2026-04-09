@@ -20,9 +20,9 @@ export default function TeacherPage() {
         return result;
       }),
       {
-      loading: "Refreshing teacher dashboard...",
-      success: "Dashboard refreshed",
-      error: "Failed to refresh dashboard",
+        loading: "Refreshing teacher dashboard...",
+        success: "Dashboard refreshed",
+        error: "Failed to refresh dashboard",
       }
     );
   }, [busyToast, refetch]);
@@ -32,15 +32,17 @@ export default function TeacherPage() {
       <TeacherHeader />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="text-sm text-white/60">
-          Track your classes, upcoming lessons, and priority tasks in one place.
+        <div>
+          <p className="text-sm text-white/55">
+            Track your classes, upcoming lessons, and priority tasks in one place.
+          </p>
         </div>
         <QuickActions onRefresh={handleRefresh} refreshing={isFetching} />
       </div>
 
       <DashboardStats stats={data?.data.stats} loading={isLoading} />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <TodaySchedule
           date={data?.data.today.date}
           schedule={data?.data.today.schedule}

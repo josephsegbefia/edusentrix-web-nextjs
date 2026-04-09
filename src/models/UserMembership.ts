@@ -18,7 +18,15 @@ const membershipSchema = new Schema<IUserMembership>(
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true },
     roles: {
       type: [String],
-      enum: ["school_admin", "bursar", "staff", "teacher", "parent", "student"],
+      enum: [
+        "school_admin",
+        "billing_owner",
+        "bursar",
+        "staff",
+        "teacher",
+        "parent",
+        "student",
+      ],
       default: [],
       index: true,
     },

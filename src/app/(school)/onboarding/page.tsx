@@ -32,12 +32,12 @@ export default async function OnboardingKickoffPage() {
               School setup
             </div>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-              Welcome! Let’s set up your school
+              Welcome! Let’s launch your school
             </h1>
             <p className="mt-3 max-w-xl text-sm text-muted">
-              We’ll guide you through a quick onboarding—school profile, grades,
-              class groups, and initial admin access. You can finish in a few
-              minutes.
+              We’ll guide you through the launch wizard: school profile,
+              payment authority, curriculum, and initial admin access. You can
+              finish in a few minutes.
             </p>
           </div>
 
@@ -47,7 +47,7 @@ export default async function OnboardingKickoffPage() {
                 type="submit"
                 className="w-full rounded-xl bg-brand px-6 py-4 text-sm font-semibold text-black shadow-lg shadow-brand/20 transition hover:opacity-90"
               >
-                Start school onboarding
+                Start launch wizard
               </Button>
               <p className="text-center text-[11px] uppercase tracking-[0.24em] text-muted">
                 You can finish later—your progress will be saved.

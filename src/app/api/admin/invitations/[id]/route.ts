@@ -4,13 +4,17 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { clerkClient } from "@clerk/nextjs/server";
 import mongoose from "mongoose";
+import {
+  releasePendingBillingOwnerInvitation,
+  releasePendingPaymentSetupDelegate,
+} from "@/lib/school-payments/billing-owner-lifecycle";
 
 export async function DELETE(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdmin();
     await connectToDatabase();
 
     if (!schoolId) {
@@ -61,6 +65,28 @@ export async function DELETE(
         // Log but don't fail - invitation might already be revoked in Clerk
         console.warn("Clerk revoke error (may be already revoked):", clerkError);
       }
+    }
+
+    if (
+      invitation.role === "billing_owner" &&
+      invitation.metadata?.paymentAuthorityMode !== "owner_replacement"
+    ) {
+      await releasePendingBillingOwnerInvitation({
+        schoolId: schoolIdObj,
+        ownerEmail: invitation.email,
+        updatedBy: userId,
+      });
+    }
+
+    if (
+      invitation.role === "bursar" &&
+      invitation.metadata?.accessSurface === "payment_setup_delegate"
+    ) {
+      await releasePendingPaymentSetupDelegate({
+        schoolId: schoolIdObj,
+        delegateEmail: invitation.email,
+        updatedBy: userId,
+      });
     }
 
     // Delete invitation

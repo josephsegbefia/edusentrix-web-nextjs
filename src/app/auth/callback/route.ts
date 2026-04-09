@@ -4,13 +4,18 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import { Invitation } from "@/models/Invitation";
+import {
+  bindBillingOwnerToSchool,
+  bindPaymentSetupDelegateToSchool,
+  replaceBillingOwnerOnSchool,
+} from "@/lib/school-payments/billing-owner-lifecycle";
 
 /** Role-based landing */
 function decideNextPath(u: {
   role?: string;
   pendingOnboarding?: boolean;
 }): string {
-  if (u.role === "school_admin" && u.pendingOnboarding) return "/onboarding";
+  if (u.role === "school_admin" && u.pendingOnboarding) return "/launch";
   switch (u.role) {
     case "platform_admin":
     case "platformAdmin":
@@ -18,6 +23,8 @@ function decideNextPath(u: {
     case "school_admin":
     case "schoolAdmin":
       return "/admin";
+    case "billing_owner":
+      return "/admin/settings/payment-setup";
     case "teacher":
       return "/teacher";
     case "parent":
@@ -58,6 +65,9 @@ export async function GET(req: NextRequest) {
   const role =
     (cUser.publicMetadata?.role as string | undefined) ||
     (cUser.privateMetadata?.role as string | undefined);
+  const schoolIdFromMetadata =
+    (cUser.publicMetadata?.schoolId as string | undefined) ||
+    (cUser.privateMetadata?.schoolId as string | undefined);
 
   await connectToDatabase();
 
@@ -70,9 +80,24 @@ export async function GET(req: NextRequest) {
     if (byEmail) {
       await User.updateOne(
         { _id: byEmail._id },
-        { $set: { clerkUserId: userId } }
+        {
+          $set: {
+            clerkUserId: userId,
+            ...(role ? { role } : {}),
+            ...(schoolIdFromMetadata
+              ? { schoolId: schoolIdFromMetadata }
+              : {}),
+          },
+        }
       );
-      appUser = { ...byEmail, clerkUserId: userId };
+      appUser = {
+        ...byEmail,
+        clerkUserId: userId,
+        role: (role as IUser["role"]) || byEmail.role,
+        schoolId: schoolIdFromMetadata
+          ? ((schoolIdFromMetadata as unknown) as IUser["schoolId"])
+          : byEmail.schoolId,
+      };
     }
   }
   // Soft-create if still not found (unscoped user)
@@ -82,6 +107,7 @@ export async function GET(req: NextRequest) {
       email,
       role: role ?? undefined,
       pendingOnboarding: role === "school_admin" ? true : false,
+      schoolId: schoolIdFromMetadata || undefined,
     });
     appUser = created.toObject() as IUser;
   }
@@ -90,6 +116,13 @@ export async function GET(req: NextRequest) {
   if (!appUser.role && role) {
     await User.updateOne({ _id: appUser._id }, { $set: { role } });
     appUser.role = role as IUser["role"];
+  }
+  if (!appUser.schoolId && schoolIdFromMetadata) {
+    await User.updateOne(
+      { _id: appUser._id },
+      { $set: { schoolId: schoolIdFromMetadata } }
+    );
+    appUser.schoolId = schoolIdFromMetadata as unknown as IUser["schoolId"];
   }
 
   // Mark any pending invitations for this email as accepted
@@ -112,6 +145,52 @@ export async function GET(req: NextRequest) {
       // Don't fail the callback if invitation update fails
       console.error("Failed to update invitation status:", invitationError);
     }
+  }
+
+  const effectiveSchoolId = appUser.schoolId || schoolIdFromMetadata;
+  if (appUser.role === "billing_owner" && effectiveSchoolId && email) {
+    const ownerInvitation = await Invitation.findOne({
+      email,
+      schoolId: effectiveSchoolId,
+      role: "billing_owner",
+      status: { $in: ["accepted", "pending"] },
+    })
+      .sort({ acceptedAt: -1, sentAt: -1 })
+      .lean<{ metadata?: { paymentAuthorityMode?: string } | null } | null>();
+
+    if (ownerInvitation?.metadata?.paymentAuthorityMode === "owner_replacement") {
+      await replaceBillingOwnerOnSchool({
+        schoolId: String(effectiveSchoolId),
+        userId: String(appUser._id),
+        email,
+        name:
+          appUser.name ||
+          [appUser.firstName, appUser.lastName].filter(Boolean).join(" ") ||
+          null,
+      });
+    } else {
+      await bindBillingOwnerToSchool({
+        schoolId: String(effectiveSchoolId),
+        userId: String(appUser._id),
+        email,
+        name:
+          appUser.name ||
+          [appUser.firstName, appUser.lastName].filter(Boolean).join(" ") ||
+          null,
+      });
+    }
+  }
+
+  if (appUser.role === "bursar" && effectiveSchoolId && email) {
+    await bindPaymentSetupDelegateToSchool({
+      schoolId: String(effectiveSchoolId),
+      userId: String(appUser._id),
+      email,
+      name:
+        appUser.name ||
+        [appUser.firstName, appUser.lastName].filter(Boolean).join(" ") ||
+        null,
+    });
   }
 
   const dest =

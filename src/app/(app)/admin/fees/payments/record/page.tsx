@@ -4,7 +4,6 @@
 
 import React, { useState, useEffect, useRef, startTransition } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +17,44 @@ import {
 import { useInvoice } from "@/hooks/admin/useInvoices";
 import { useRecordPayment } from "@/hooks/admin/usePayments";
 import { formatMoney, toMajorUnits } from "@/lib/fees/money";
-import { ArrowLeft, Plus, Minus, Check } from "lucide-react";
+import {
+  ArrowLeft,
+  Banknote,
+  Check,
+  FileText,
+  Layers,
+  Loader2,
+  Minus,
+  Plus,
+  Receipt,
+  Shield,
+} from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { useFeesSSE } from "@/hooks/admin/useFeesSSE";
+import { cn } from "@/lib/utils";
+
+const inputClasses =
+  "h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder:text-white/25 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20";
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="h-px flex-1 bg-white/6" />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+        {children}
+      </span>
+      <span className="h-px flex-1 bg-white/6" />
+    </div>
+  );
+}
+
+function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <Label htmlFor={htmlFor} className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40">
+      {children}
+    </Label>
+  );
+}
 
 interface Allocation {
   invoiceLineItemId: string;
@@ -60,9 +94,7 @@ export default function RecordPaymentPage() {
 
   const invoice = invoiceData?.invoice;
 
-  // Initialize allocations when invoice loads
   useEffect(() => {
-    // Reset if invoiceId changed
     if (initializedInvoiceIdRef.current !== invoiceId) {
       initializedInvoiceIdRef.current = null;
       startTransition(() => {
@@ -204,312 +236,403 @@ export default function RecordPaymentPage() {
     return item?.installments || [];
   };
 
+  const totalAllocated = allocations.reduce((sum, a) => sum + a.amount, 0);
+  const paymentAmount = parseFloat(amount || "0");
+  const allocationMismatch = Math.abs(totalAllocated - paymentAmount) > 0.01;
+
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Record Payment</h1>
-          <p className="text-muted-foreground">
-            Record a payment for an invoice
-          </p>
+    <div className="mx-auto max-w-3xl space-y-6 pb-12">
+      {/* Header */}
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-white/5 via-white/5 to-transparent p-6 shadow-2xl shadow-black/30 backdrop-blur">
+        <div
+          className="pointer-events-none absolute inset-0 bg-linear-to-br from-emerald-500/15 via-emerald-500/5 to-transparent"
+          aria-hidden
+        />
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-inner">
+              <Receipt className="h-6 w-6 text-emerald-300" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/50">
+                Fee Management
+              </p>
+              <h1 className="text-2xl font-semibold text-white">
+                Record Payment
+              </h1>
+              <p className="mt-0.5 text-sm text-white/45">
+                Record and allocate a payment against an invoice.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            className="gap-2 border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
         </div>
-        <Button variant="ghost" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-      </div>
+      </section>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Invoice Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="invoiceId">Invoice ID</Label>
-              <Input
-                id="invoiceId"
-                value={invoiceId}
-                onChange={(e) => setInvoiceId(e.target.value)}
-                placeholder="Enter invoice ID"
-                required
-              />
-            </div>
-            {invoice && (
-              <div className="p-4 rounded-lg border border-border bg-muted/50">
-                <p className="font-semibold">{invoice.invoiceNumber}</p>
-                <p className="text-sm text-muted-foreground">
-                  {invoice.studentId?.firstName} {invoice.studentId?.lastName}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Outstanding: {formatMoney(invoice.totalOutstandingMinor)}
-                </p>
-              </div>
-            )}
-            {invoiceLoading && (
-              <p className="text-sm text-muted-foreground">
-                Loading invoice...
-              </p>
-            )}
-          </CardContent>
-        </Card>
+      {/* Form card */}
+      <div className="relative">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-px rounded-4xl bg-linear-to-br from-emerald-500/10 via-transparent to-brand/10"
+        />
 
-        {/* Payment Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label htmlFor="amount">Amount (GHS)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="paymentMethod">Payment Method</Label>
-                <Select
-                  value={paymentMethod}
-                  onValueChange={(v: any) => setPaymentMethod(v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                    <SelectItem value="paystack">Paystack</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="paymentDate">Payment Date</Label>
-              <Input
-                id="paymentDate"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Input
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Additional notes..."
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="relative overflow-hidden rounded-4xl border border-white/8 bg-card/80 shadow-2xl shadow-black/50 backdrop-blur-2xl">
+          <form onSubmit={handleSubmit}>
+            {/* Invoice section */}
+            <div className="px-6 py-7 sm:px-8 sm:py-8">
+              <div className="space-y-5">
+                <SectionLabel>Invoice Details</SectionLabel>
 
-        {/* Payment Allocation */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Payment Allocation</CardTitle>
-              {invoice &&
-                invoice.lineItems &&
-                allocations.length <
-                  invoice.lineItems.filter((li: any) => !li.isAdjustment)
-                    .length && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddAllocation}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Line Item
-                  </Button>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="invoiceId">Invoice ID *</FieldLabel>
+                  <Input
+                    id="invoiceId"
+                    value={invoiceId}
+                    onChange={(e) => setInvoiceId(e.target.value)}
+                    placeholder="Enter or paste invoice ID"
+                    required
+                    className={inputClasses}
+                  />
+                </div>
+
+                {invoiceLoading && (
+                  <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/5 p-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-white/40" />
+                    <span className="text-sm text-white/40">Loading invoice...</span>
+                  </div>
                 )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {allocations.length === 0 ? (
-              <p className="text-center text-muted-foreground py-4">
-                No allocations. Add a line item to allocate payment.
-              </p>
-            ) : (
-              <>
-                {allocations.map((allocation, index) => (
-                  <div
-                    key={index}
-                    className="p-4 rounded-lg border border-border space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
+
+                {invoice && (
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15">
+                        <FileText className="h-4 w-4 text-emerald-300" />
+                      </div>
                       <div className="flex-1">
-                        <p className="font-medium">
-                          {getLineItemName(allocation.invoiceLineItemId)}
+                        <p className="text-sm font-semibold text-white">
+                          {invoice.invoiceNumber}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          Outstanding:{" "}
-                          {formatMoney(
-                            invoice?.lineItems?.find(
-                              (li: any) =>
-                                li._id === allocation.invoiceLineItemId
-                            )?.amountOutstandingMinor || 0
-                          )}
+                        <p className="text-xs text-white/45">
+                          {invoice.studentId?.firstName} {invoice.studentId?.lastName}
                         </p>
                       </div>
+                      <div className="text-right">
+                        <p className="text-[11px] uppercase tracking-wide text-white/35">Outstanding</p>
+                        <p className="text-sm font-bold text-emerald-300">
+                          {formatMoney(invoice.totalOutstandingMinor)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Payment details section */}
+            <div className="border-t border-white/6 px-6 py-7 sm:px-8 sm:py-8">
+              <div className="space-y-5">
+                <SectionLabel>Payment Details</SectionLabel>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor="amount">Amount (GHS) *</FieldLabel>
+                    <Input
+                      id="amount"
+                      type="number"
+                      step="0.01"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.00"
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel>Payment Method *</FieldLabel>
+                    <Select
+                      value={paymentMethod}
+                      onValueChange={(v: any) => setPaymentMethod(v)}
+                    >
+                      <SelectTrigger className="h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border border-white/10 bg-card text-white">
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                        <SelectItem value="paystack">Paystack</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor="paymentDate">Payment Date *</FieldLabel>
+                    <Input
+                      id="paymentDate"
+                      type="date"
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                      required
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <FieldLabel htmlFor="notes">Notes (optional)</FieldLabel>
+                    <Input
+                      id="notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Additional notes..."
+                      className={inputClasses}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Allocation section */}
+            <div className="border-t border-white/6 px-6 py-7 sm:px-8 sm:py-8">
+              <div className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <SectionLabel>Payment Allocation</SectionLabel>
+                  {invoice &&
+                    invoice.lineItems &&
+                    allocations.length <
+                      invoice.lineItems.filter((li: any) => !li.isAdjustment)
+                        .length && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveAllocation(index)}
+                        onClick={handleAddAllocation}
+                        className="gap-1.5 text-[11px] text-brand hover:text-brand"
                       >
-                        <Minus className="h-4 w-4" />
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Line Item
                       </Button>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div>
-                        <Label>Amount (GHS)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={allocation.amount}
-                          onChange={(e) =>
-                            handleAllocationChange(
-                              index,
-                              "amount",
-                              parseFloat(e.target.value) || 0
-                            )
-                          }
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Installment (optional)</Label>
-                        <Select
-                          value={allocation.installmentScheduleId || "lineitem"}
-                          onValueChange={(v) => {
-                            const installments = getInstallmentsForItem(
-                              allocation.invoiceLineItemId
-                            );
-                            if (v === "lineitem") {
-                              const updated = allocations.map((a, i) =>
-                                i === index
-                                  ? {
-                                      ...a,
-                                      installmentScheduleId: undefined,
-                                      installmentNumber: undefined,
-                                      amount: getLineItemOutstanding(
-                                        allocation.invoiceLineItemId
-                                      ),
-                                    }
-                                  : a
-                              );
-                              updateAllocationsWithTotal(updated);
-                              return;
-                            }
-                            const selected = installments.find(
-                              (inst: any) => inst._id === v
-                            );
-                            const updated = allocations.map((a, i) =>
-                              i === index
-                                ? {
-                                    ...a,
-                                    installmentScheduleId: v,
-                                    installmentNumber:
-                                      selected?.installmentNumber,
-                                    amount: selected
-                                      ? toMajorUnits(
-                                          selected.amountOutstandingMinor
-                                        )
-                                      : a.amount,
-                                  }
-                                : a
-                            );
-                            updateAllocationsWithTotal(updated);
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select installment" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="lineitem">
-                              Apply to line item
-                            </SelectItem>
-                            {getInstallmentsForItem(
-                              allocation.invoiceLineItemId
-                            ).map((inst: any) => (
-                              <SelectItem key={inst._id} value={inst._id}>
-                                Inst {inst.installmentNumber} • Due{" "}
-                                {new Date(inst.dueDate).toLocaleDateString()} •{" "}
-                                {formatMoney(inst.amountOutstandingMinor)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Notes (Optional)</Label>
-                      <Input
-                        value={allocation.notes || ""}
-                        onChange={(e) =>
-                          handleAllocationChange(index, "notes", e.target.value)
-                        }
-                        placeholder="Notes for this allocation..."
-                      />
-                    </div>
-                  </div>
-                ))}
-                <div className="pt-4 border-t">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold">Total Allocated:</p>
-                    <p className="font-bold text-lg">
-                      GHS{" "}
-                      {allocations
-                        .reduce((sum, a) => sum + a.amount, 0)
-                        .toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm text-muted-foreground">
-                      Payment Amount:
-                    </p>
-                    <p className="text-sm font-semibold">
-                      GHS {parseFloat(amount || "0").toFixed(2)}
-                    </p>
-                  </div>
-                  {Math.abs(
-                    allocations.reduce((sum, a) => sum + a.amount, 0) -
-                      parseFloat(amount || "0")
-                  ) > 0.01 && (
-                    <p className="text-sm text-destructive mt-2">
-                      Allocation amounts must match payment amount
-                    </p>
-                  )}
+                    )}
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Submit */}
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={recordPayment.isPending}>
-            <Check className="h-4 w-4 mr-2" />
-            Record Payment
-          </Button>
+                {allocations.length === 0 ? (
+                  <div className="rounded-2xl border border-white/8 bg-white/5 p-8 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                      <Layers className="h-6 w-6 text-white/25" />
+                    </div>
+                    <p className="text-sm text-white/45">
+                      No allocations yet. Select an invoice to auto-allocate line items.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {allocations.map((allocation, index) => (
+                      <div
+                        key={index}
+                        className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/3 p-4 transition-all duration-200 hover:border-white/15 hover:bg-white/5"
+                      >
+                        {/* Line item header */}
+                        <div className="mb-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10">
+                              <Banknote className="h-4 w-4 text-brand" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-white">
+                                {getLineItemName(allocation.invoiceLineItemId)}
+                              </p>
+                              <p className="text-[11px] text-white/35">
+                                Outstanding:{" "}
+                                {formatMoney(
+                                  invoice?.lineItems?.find(
+                                    (li: any) =>
+                                      li._id === allocation.invoiceLineItemId
+                                  )?.amountOutstandingMinor || 0
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveAllocation(index)}
+                            className="h-8 w-8 rounded-lg border border-white/10 bg-white/5 p-0 text-white/40 hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-300"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+
+                        {/* Allocation fields */}
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <FieldLabel>Amount (GHS)</FieldLabel>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={allocation.amount}
+                              onChange={(e) =>
+                                handleAllocationChange(
+                                  index,
+                                  "amount",
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                              required
+                              className={inputClasses}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <FieldLabel>Installment</FieldLabel>
+                            <Select
+                              value={allocation.installmentScheduleId || "lineitem"}
+                              onValueChange={(v) => {
+                                const installments = getInstallmentsForItem(
+                                  allocation.invoiceLineItemId
+                                );
+                                if (v === "lineitem") {
+                                  const updated = allocations.map((a, i) =>
+                                    i === index
+                                      ? {
+                                          ...a,
+                                          installmentScheduleId: undefined,
+                                          installmentNumber: undefined,
+                                          amount: getLineItemOutstanding(
+                                            allocation.invoiceLineItemId
+                                          ),
+                                        }
+                                      : a
+                                  );
+                                  updateAllocationsWithTotal(updated);
+                                  return;
+                                }
+                                const selected = installments.find(
+                                  (inst: any) => inst._id === v
+                                );
+                                const updated = allocations.map((a, i) =>
+                                  i === index
+                                    ? {
+                                        ...a,
+                                        installmentScheduleId: v,
+                                        installmentNumber:
+                                          selected?.installmentNumber,
+                                        amount: selected
+                                          ? toMajorUnits(
+                                              selected.amountOutstandingMinor
+                                            )
+                                          : a.amount,
+                                      }
+                                    : a
+                                );
+                                updateAllocationsWithTotal(updated);
+                              }}
+                            >
+                              <SelectTrigger className="h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/20">
+                                <SelectValue placeholder="Select installment" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl border border-white/10 bg-card text-white">
+                                <SelectItem value="lineitem">
+                                  Apply to line item
+                                </SelectItem>
+                                {getInstallmentsForItem(
+                                  allocation.invoiceLineItemId
+                                ).map((inst: any) => (
+                                  <SelectItem key={inst._id} value={inst._id}>
+                                    Inst {inst.installmentNumber} • Due{" "}
+                                    {new Date(inst.dueDate).toLocaleDateString()} •{" "}
+                                    {formatMoney(inst.amountOutstandingMinor)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 space-y-1.5">
+                          <FieldLabel>Notes (optional)</FieldLabel>
+                          <Input
+                            value={allocation.notes || ""}
+                            onChange={(e) =>
+                              handleAllocationChange(index, "notes", e.target.value)
+                            }
+                            placeholder="Notes for this allocation..."
+                            className={inputClasses}
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Allocation summary */}
+                    <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-white">Total Allocated</span>
+                        <span className="text-lg font-bold text-white">
+                          GHS {totalAllocated.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between">
+                        <span className="text-[11px] text-white/35">Payment Amount</span>
+                        <span className="text-sm font-semibold text-white/60">
+                          GHS {paymentAmount.toFixed(2)}
+                        </span>
+                      </div>
+                      {allocationMismatch && (
+                        <p className="mt-2 text-xs text-rose-300">
+                          Allocation amounts must match payment amount
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Submit area */}
+            <div className="border-t border-white/6 px-6 py-5 sm:px-8">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-1.5 text-[11px] text-white/25">
+                  <Shield className="h-3.5 w-3.5" />
+                  <span>Payment will be recorded securely</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => router.back()}
+                    className="border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={recordPayment.isPending}
+                    className={cn(
+                      "gap-2 rounded-2xl bg-brand px-6 text-sm font-semibold text-black shadow-lg shadow-brand/25 transition-all duration-200 hover:bg-sky-300 hover:shadow-brand/40 hover:scale-[1.01] active:scale-[0.99]",
+                      recordPayment.isPending && "opacity-50"
+                    )}
+                  >
+                    {recordPayment.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                    Record Payment
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

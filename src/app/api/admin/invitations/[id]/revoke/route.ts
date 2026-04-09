@@ -5,6 +5,10 @@ import { Invitation } from "@/models/Invitation";
 import { clerkClient } from "@clerk/nextjs/server";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import mongoose from "mongoose";
+import {
+  releasePendingBillingOwnerInvitation,
+  releasePendingPaymentSetupDelegate,
+} from "@/lib/school-payments/billing-owner-lifecycle";
 
 export async function POST(
   _req: NextRequest,
@@ -91,6 +95,28 @@ export async function POST(
         },
       }
     );
+
+    if (
+      invitation.role === "billing_owner" &&
+      invitation.metadata?.paymentAuthorityMode !== "owner_replacement"
+    ) {
+      await releasePendingBillingOwnerInvitation({
+        schoolId: schoolIdObj,
+        ownerEmail: invitation.email,
+        updatedBy: userId,
+      });
+    }
+
+    if (
+      invitation.role === "bursar" &&
+      invitation.metadata?.accessSurface === "payment_setup_delegate"
+    ) {
+      await releasePendingPaymentSetupDelegate({
+        schoolId: schoolIdObj,
+        delegateEmail: invitation.email,
+        updatedBy: userId,
+      });
+    }
 
     // Record activity
     await recordActivity({

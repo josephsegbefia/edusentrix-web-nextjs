@@ -11,7 +11,14 @@ import { UserMembership, IUserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
 
-export type MemberRole = "school_admin" | "teacher" | "staff" | "parent" | "student" | "bursar";
+export type MemberRole =
+  | "school_admin"
+  | "billing_owner"
+  | "teacher"
+  | "staff"
+  | "parent"
+  | "student"
+  | "bursar";
 
 export interface SchoolMemberContext {
   userId: Types.ObjectId;
@@ -29,6 +36,7 @@ export interface RequireSchoolMemberOptions {
 
 function legacyRoleToArray(role?: string): MemberRole[] {
   if (role === "school_admin") return ["school_admin"];
+  if (role === "billing_owner") return ["billing_owner"];
   if (role === "teacher") return ["teacher"];
   if (role === "parent") return ["parent"];
   if (role === "student") return ["student"];

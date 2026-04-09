@@ -38,6 +38,7 @@ export async function GET() {
       teacher: 0,
       staff: 0,
       school_admin: 0,
+      billing_owner: 0,
       parent: 0,
       bursar: 0,
     };

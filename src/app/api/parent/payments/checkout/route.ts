@@ -15,10 +15,15 @@ import { Invoice } from "@/models/Invoice";
 import { PaymentIntent } from "@/models/PaymentIntent";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
+import {
+  deriveSchoolPaymentSetupStatus,
+  isSchoolPaymentReady,
+} from "@/lib/school-payments/payment-setup";
 
 const BodySchema = z.object({
   invoiceId: z.string().min(1),
   preview: z.boolean().optional().default(false),
+  returnPath: z.string().trim().optional(),
 });
 
 type InvoiceRow = {
@@ -33,9 +38,33 @@ type InvoiceRow = {
 type SchoolRow = {
   _id: mongoose.Types.ObjectId;
   name?: string;
+  bank?: {
+    bankName?: string | null;
+    branchName?: string | null;
+    sortCode?: string | null;
+    accountName?: string | null;
+    accountNumber?: string | null;
+  } | null;
   billing?: {
+    status?: "unprovisioned" | "provisioned" | "failed" | null;
+    paymentSetup?: {
+      status?:
+        | "not_started"
+        | "awaiting_billing_owner"
+        | "details_submitted"
+        | "pending_provisioning"
+        | "review_required"
+        | "provisioned"
+        | "failed"
+        | null;
+      ownerUserId?: mongoose.Types.ObjectId | null;
+      ownerName?: string | null;
+      ownerEmail?: string | null;
+    } | null;
     paystack?: {
       subaccountCode?: string | null;
+      subaccountId?: string | null;
+      lastError?: string | null;
     };
     transactionFees?: {
       mode?: "platform_default" | "custom" | "disabled" | null;
@@ -46,6 +75,22 @@ type SchoolRow = {
 };
 
 const PAYABLE_STATUSES = new Set(["issued", "partially_paid", "overdue"]);
+
+function normalizeParentReturnPath(value: string | undefined) {
+  if (!value) return null;
+  if (!value.startsWith("/") || value.startsWith("//")) return null;
+
+  try {
+    const url = new URL(value, "http://localhost");
+    const pathWithSearch = `${url.pathname}${url.search}`;
+    if (url.pathname !== "/parent" && !url.pathname.startsWith("/parent/")) {
+      return null;
+    }
+    return pathWithSearch;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(req: NextRequest) {
   let paymentIntentId: mongoose.Types.ObjectId | null = null;
@@ -111,7 +156,7 @@ export async function POST(req: NextRequest) {
 
     const school = await School.findById(context.schoolId)
       .select(
-        "name billing.paystack.subaccountCode billing.transactionFees.mode billing.transactionFees.percent billing.transactionFees.capMinor"
+        "name bank billing.status billing.paymentSetup billing.paystack.subaccountCode billing.paystack.subaccountId billing.paystack.lastError billing.transactionFees.mode billing.transactionFees.percent billing.transactionFees.capMinor"
       )
       .lean<SchoolRow | null>();
     const subaccountCode = school?.billing?.paystack?.subaccountCode ?? null;
@@ -120,12 +165,17 @@ export async function POST(req: NextRequest) {
       resolveTransactionFeeConfigForSchool(school?.billing?.transactionFees || null)
     );
 
-    if (!subaccountCode) {
+    if (!school || !isSchoolPaymentReady(school) || !subaccountCode) {
+      const paymentSetupStatus = school
+        ? deriveSchoolPaymentSetupStatus(school)
+        : "not_started";
       return NextResponse.json(
         {
           success: false,
           error:
             "Online payments are not configured for this school yet. Please contact the school for payment options.",
+          code: "school_payment_setup_incomplete",
+          paymentSetupStatus,
         },
         { status: 409 }
       );
@@ -175,9 +225,13 @@ export async function POST(req: NextRequest) {
     });
     paymentIntentId = paymentIntent._id as mongoose.Types.ObjectId;
 
-    const reference = `EDSX-FEE-${String(paymentIntent._id)}-${Date.now()}`;
     const appUrl = getAppUrl().replace(/\/$/, "");
-    const callbackUrl = `${appUrl}/parent/fees?checkout=paystack`;
+    const callbackPath =
+      normalizeParentReturnPath(body.returnPath) || "/parent/fees";
+    const callbackUrlObject = new URL(callbackPath, appUrl);
+    callbackUrlObject.searchParams.set("checkout", "paystack");
+    const callbackUrl = callbackUrlObject.toString();
+    const reference = `EDSX-FEE-${String(paymentIntent._id)}-${Date.now()}`;
 
     try {
       const init = await initializeTransaction({

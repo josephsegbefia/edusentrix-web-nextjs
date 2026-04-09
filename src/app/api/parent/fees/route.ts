@@ -9,6 +9,8 @@ import { Guardian } from "@/models/Guardian";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
+import { School } from "@/models/School";
+import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 
 type GuardianLink = {
   studentId: mongoose.Types.ObjectId;
@@ -48,6 +50,38 @@ type RecentPaymentRow = {
   paystackReference?: string | null;
   externalReference?: string | null;
   receiptNumber?: string | null;
+};
+
+type SchoolPaymentRow = {
+  bank?: {
+    bankName?: string | null;
+    branchName?: string | null;
+    sortCode?: string | null;
+    accountName?: string | null;
+    accountNumber?: string | null;
+  } | null;
+  billing?: {
+    status?: "unprovisioned" | "provisioned" | "failed" | null;
+    paymentSetup?: {
+      status?:
+        | "not_started"
+        | "awaiting_billing_owner"
+        | "details_submitted"
+        | "pending_provisioning"
+        | "review_required"
+        | "provisioned"
+        | "failed"
+        | null;
+      ownerUserId?: mongoose.Types.ObjectId | null;
+      ownerName?: string | null;
+      ownerEmail?: string | null;
+    } | null;
+    paystack?: {
+      subaccountCode?: string | null;
+      subaccountId?: string | null;
+      lastError?: string | null;
+    } | null;
+  } | null;
 };
 
 interface WardFeeSummary {
@@ -112,6 +146,10 @@ export async function GET() {
     }
 
     const studentIds = guardians.map((g) => g.studentId);
+    const school = await School.findById(context.schoolId)
+      .select("bank billing")
+      .lean<SchoolPaymentRow | null>();
+    const canPayOnline = school ? isSchoolPaymentReady(school) : false;
 
     // Fetch students
     const students = await Student.find({
@@ -223,7 +261,7 @@ export async function GET() {
                   ? "partial"
                   : "pending",
             isOverdue,
-            canPayOnline: true,
+            canPayOnline,
           });
         }
       });

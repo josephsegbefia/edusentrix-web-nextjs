@@ -6,6 +6,7 @@
 export type AppRole =
   | "platform_admin"
   | "school_admin"
+  | "billing_owner"
   | "bursar"
   | "staff"
   | "teacher"
@@ -20,6 +21,7 @@ export type InvitationRole =
   | "teacher"
   | "staff"
   | "school_admin"
+  | "billing_owner"
   | "parent"
   | "bursar";
 
@@ -29,6 +31,7 @@ export type InvitationRole =
  */
 export type MembershipRole =
   | "school_admin"
+  | "billing_owner"
   | "bursar"
   | "staff"
   | "teacher"
@@ -39,7 +42,7 @@ export type MembershipRole =
  * Check if a role is an invitation role
  */
 export function isInvitationRole(role: string): role is InvitationRole {
-  return ["teacher", "staff", "school_admin", "parent", "bursar"].includes(
+  return ["teacher", "staff", "school_admin", "billing_owner", "parent", "bursar"].includes(
     role
   );
 }
@@ -48,7 +51,7 @@ export function isInvitationRole(role: string): role is InvitationRole {
  * Check if a role is a membership role
  */
 export function isMembershipRole(role: string): role is MembershipRole {
-  return ["school_admin", "bursar", "staff", "teacher", "parent", "student"].includes(
+  return ["school_admin", "billing_owner", "bursar", "staff", "teacher", "parent", "student"].includes(
     role
   );
 }
@@ -59,7 +62,8 @@ export function isMembershipRole(role: string): role is MembershipRole {
 export function routeForRoles(roles: AppRole[], pendingOnboarding: boolean) {
   if (roles.includes("platform_admin")) return "/platform";
   if (roles.includes("school_admin"))
-    return pendingOnboarding ? "/onboard" : "/dashboard";
+    return pendingOnboarding ? "/launch" : "/dashboard";
+  if (roles.includes("billing_owner")) return "/admin/settings/payment-setup";
   if (roles.includes("bursar")) return "/bursar";
   if (roles.includes("teacher")) return "/teacher";
   if (roles.includes("parent")) return "/parent";

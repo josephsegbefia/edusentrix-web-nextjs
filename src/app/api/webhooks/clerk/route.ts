@@ -15,6 +15,12 @@ import { Invitation } from "@/models/Invitation";
 import { UserMembership } from "@/models/UserMembership";
 import mongoose from "mongoose";
 import { trackUsage } from "@/lib/billing/trackUsage";
+import { isMembershipRole } from "@/lib/roles";
+import {
+  bindBillingOwnerToSchool,
+  bindPaymentSetupDelegateToSchool,
+  replaceBillingOwnerOnSchool,
+} from "@/lib/school-payments/billing-owner-lifecycle";
 
 // ============================================================================
 // Types
@@ -108,12 +114,20 @@ async function handleUserCreated(data: ClerkUserData) {
   await connectToDatabase();
 
   // Check if user already exists (created during teacher/staff invitation)
+  const role = (data.public_metadata?.role as string) || undefined;
+  const schoolId = data.public_metadata?.schoolId as string | undefined;
+  let resolvedUserId: mongoose.Types.ObjectId | null = null;
+  let resolvedSchoolId: mongoose.Types.ObjectId | null = null;
+  const resolvedName =
+    [data.first_name, data.last_name].filter(Boolean).join(" ").trim() || null;
+
   interface ExistingUserLean {
     _id: mongoose.Types.ObjectId;
     firstName?: string;
     lastName?: string;
     avatarUrl?: string;
     schoolId?: mongoose.Types.ObjectId;
+    role?: string;
   }
   const existingUser = await User.findOne({ email }).lean() as ExistingUserLean | null;
 
@@ -127,10 +141,28 @@ async function handleUserCreated(data: ClerkUserData) {
           firstName: data.first_name || existingUser.firstName,
           lastName: data.last_name || existingUser.lastName,
           avatarUrl: data.image_url || existingUser.avatarUrl,
+          ...(role ? { role } : {}),
+          ...(schoolId ? { schoolId: new mongoose.Types.ObjectId(schoolId) } : {}),
         },
       }
     );
     console.log(`Clerk webhook: Linked existing user ${email} to Clerk ID ${data.id}`);
+
+    if (schoolId && role && isMembershipRole(role)) {
+      resolvedSchoolId = new mongoose.Types.ObjectId(schoolId);
+      await UserMembership.findOneAndUpdate(
+        {
+          userId: existingUser._id,
+          schoolId: resolvedSchoolId,
+        },
+        { $addToSet: { roles: role }, $set: { status: "active" } },
+        { upsert: true }
+      );
+    }
+    resolvedUserId = existingUser._id;
+    if (!resolvedSchoolId && existingUser.schoolId) {
+      resolvedSchoolId = existingUser.schoolId;
+    }
 
     if (existingUser.schoolId) {
       await trackUsage({
@@ -146,9 +178,6 @@ async function handleUserCreated(data: ClerkUserData) {
     }
   } else {
     // Create new user from Clerk data
-    const role = (data.public_metadata?.role as string) || undefined;
-    const schoolId = data.public_metadata?.schoolId as string | undefined;
-
     const newUser = await User.create({
       clerkUserId: data.id,
       email,
@@ -159,11 +188,13 @@ async function handleUserCreated(data: ClerkUserData) {
       schoolId: schoolId ? new mongoose.Types.ObjectId(schoolId) : undefined,
       pendingOnboarding: role === "school_admin",
     });
+    resolvedUserId = newUser._id;
+    resolvedSchoolId = schoolId ? new mongoose.Types.ObjectId(schoolId) : null;
 
     // If schoolId is set, create UserMembership
-    if (schoolId) {
+    if (schoolId && role && isMembershipRole(role)) {
       await UserMembership.findOneAndUpdate(
-        { userId: newUser._id, schoolId: new mongoose.Types.ObjectId(schoolId) },
+        { userId: newUser._id, schoolId: resolvedSchoolId },
         { $addToSet: { roles: role }, $set: { status: "active" } },
         { upsert: true }
       );
@@ -196,6 +227,42 @@ async function handleUserCreated(data: ClerkUserData) {
 
   if (updateResult.modifiedCount > 0) {
     console.log(`Clerk webhook: Marked ${updateResult.modifiedCount} invitation(s) as accepted for ${email}`);
+  }
+
+  if (role === "billing_owner" && resolvedUserId && resolvedSchoolId) {
+    const ownerInvitation = await Invitation.findOne({
+      email,
+      schoolId: resolvedSchoolId,
+      role: "billing_owner",
+      status: { $in: ["accepted", "pending"] },
+    })
+      .sort({ acceptedAt: -1, sentAt: -1 })
+      .lean<{ metadata?: { paymentAuthorityMode?: string } | null } | null>();
+
+    if (ownerInvitation?.metadata?.paymentAuthorityMode === "owner_replacement") {
+      await replaceBillingOwnerOnSchool({
+        schoolId: resolvedSchoolId,
+        userId: resolvedUserId,
+        email,
+        name: resolvedName,
+      });
+    } else {
+      await bindBillingOwnerToSchool({
+        schoolId: resolvedSchoolId,
+        userId: resolvedUserId,
+        email,
+        name: resolvedName,
+      });
+    }
+  }
+
+  if (role === "bursar" && resolvedUserId && resolvedSchoolId) {
+    await bindPaymentSetupDelegateToSchool({
+      schoolId: resolvedSchoolId,
+      userId: resolvedUserId,
+      email,
+      name: resolvedName,
+    });
   }
 }
 

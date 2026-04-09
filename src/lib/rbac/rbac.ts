@@ -11,6 +11,9 @@ export const TEACHER_SUBROLES = [
 export type TeacherSubrole = (typeof TEACHER_SUBROLES)[number];
 
 export const PERMISSIONS = {
+  paymentsView: "payments.view",
+  paymentsManage: "payments.manage",
+  paymentsApprovePayoutChange: "payments.approve_payout_change",
   dashboardView: "teacher.dashboard.view",
   classesView: "teacher.classes.view",
   scheduleView: "teacher.schedule.view",
@@ -68,6 +71,11 @@ const BASE_ROLE_PERMISSIONS: Record<MembershipRole, Permission[]> = {
     PERMISSIONS.journalWrite, // All teachers can create lesson notes
   ],
   school_admin: ALL_PERMISSIONS,
+  billing_owner: [
+    PERMISSIONS.paymentsView,
+    PERMISSIONS.paymentsManage,
+    PERMISSIONS.paymentsApprovePayoutChange,
+  ],
   bursar: [],
   staff: [],
   parent: [],

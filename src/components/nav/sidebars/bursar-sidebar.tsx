@@ -15,6 +15,7 @@ import {
   Send,
   Menu,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -31,6 +32,7 @@ import { Separator } from "@/components/ui/separator";
 import { SchoolBrand } from "@/components/brand/SchoolBrand";
 import { useSubscription } from "@/hooks/useSubscription";
 import { hasTierFeature, type SubscriptionFeatureKey } from "@/lib/billing/feature-access";
+import { useSchoolPaymentSetup } from "@/hooks/admin/useSchoolPaymentSetup";
 
 type NavSection = {
   title: string;
@@ -109,15 +111,34 @@ const navSections: NavSection[] = [
 function NavContent({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname();
   const { data: subscription } = useSubscription();
+  const { data: paymentSetup } = useSchoolPaymentSetup({ allowForbidden: true });
   const enabledFeatures = React.useMemo(
     () => (Array.isArray(subscription?.features) ? subscription.features : []),
     [subscription]
   );
+  const paymentSetupItems = React.useMemo(() => {
+    if (!paymentSetup || paymentSetup.accessMode !== "finance_delegate") {
+      return [] as NavSection["items"];
+    }
+
+    return [
+      {
+        label: "Payment Setup",
+        href: "/admin/settings/payment-setup",
+        icon: ShieldCheck,
+        exact: false,
+      },
+    ] as NavSection["items"];
+  }, [paymentSetup]);
 
   return (
     <nav className="space-y-6">
       {navSections.map((section, sectionIdx) => {
-        const items = section.items.filter(
+        const mergedItems =
+          section.title === "Finance Operations"
+            ? [...section.items, ...paymentSetupItems]
+            : section.items;
+        const items = mergedItems.filter(
           (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
         );
         if (items.length === 0) return null;

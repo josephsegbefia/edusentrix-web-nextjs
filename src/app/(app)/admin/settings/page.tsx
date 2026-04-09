@@ -29,6 +29,8 @@ import {
   Sparkles,
   ClipboardCheck,
   Wifi,
+  Landmark,
+  ArrowRight,
 } from "lucide-react";
 import {
   useSchoolSettings,
@@ -45,6 +47,7 @@ import {
   type GradeScheduleOverrideDTO,
 } from "@/hooks/admin/useSchoolSettings";
 import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
+import { useSchoolPaymentSetup } from "@/hooks/admin/useSchoolPaymentSetup";
 import { useBusyToast } from "@/hooks/useBusyToast";
 
 type SettingsTab = "schedule" | "attendance" | "academic" | "features";
@@ -72,6 +75,72 @@ function getGradeOptionId(grade: { _id: string }) {
 
 function getGradeOptionLabel(grade: { name?: string; _id: string }) {
   return grade.name || grade._id;
+}
+
+function PaymentSetupEntryCard() {
+  const { data, isLoading } = useSchoolPaymentSetup({ allowForbidden: true });
+
+  if (isLoading) {
+    return (
+      <div className="h-32 rounded-2xl border border-white/10 bg-white/5 animate-pulse" />
+    );
+  }
+
+  if (
+    !data ||
+    !data.capabilities.canManage ||
+    !["school_creator", "admin_fallback", "billing_owner"].includes(data.accessMode)
+  ) {
+    return null;
+  }
+
+  const toneClass =
+    data.statusTone === "emerald"
+      ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-200"
+      : data.statusTone === "amber"
+        ? "border-amber-500/30 bg-amber-500/15 text-amber-200"
+        : data.statusTone === "blue"
+          ? "border-cyan-500/30 bg-cyan-500/15 text-cyan-200"
+          : data.statusTone === "red"
+            ? "border-rose-500/30 bg-rose-500/15 text-rose-200"
+            : "border-white/15 bg-white/5 text-white/70";
+
+  return (
+    <Link
+      href="/admin/settings/payment-setup"
+      className="group block rounded-2xl border border-white/10 bg-linear-to-br from-emerald-500/10 via-transparent to-cyan-500/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-xl hover:shadow-emerald-900/10"
+    >
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10">
+              <Landmark className="h-5 w-5 text-emerald-200" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-semibold text-white">Payment Setup</h3>
+                <Badge variant="outline" className={cn("text-[11px]", toneClass)}>
+                  {data.statusLabel}
+                </Badge>
+              </div>
+              <p className="mt-1 text-sm text-white/60">
+                Manage the school's payout account and online payments readiness.
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-white/35 transition-transform group-hover:translate-x-0.5" />
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-white/50">
+          <span>
+            {data.bank.maskedAccountNumber
+              ? `${data.bank.bankName} • ${data.bank.maskedAccountNumber}`
+              : "Payout account not configured"}
+          </span>
+          <span>{data.paymentReady ? "Parents can pay online" : "Online payments pending"}</span>
+        </div>
+      </div>
+    </Link>
+  );
 }
 
 export default function SettingsPage() {
@@ -565,7 +634,7 @@ export default function SettingsPage() {
           </Button>
         </div>
       </div>
-
+      <PaymentSetupEntryCard />
       {/* Tabs Navigation */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {TABS.map((tab) => {

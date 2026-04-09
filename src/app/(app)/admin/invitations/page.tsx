@@ -94,7 +94,13 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
   );
 }
 
-function RoleBadge({ role }: { role: InvitationRole }) {
+function RoleBadge({
+  role,
+  metadata,
+}: {
+  role: InvitationRole;
+  metadata?: Record<string, unknown>;
+}) {
   const config: Record<
     InvitationRole,
     { label: string; className: string }
@@ -111,6 +117,10 @@ function RoleBadge({ role }: { role: InvitationRole }) {
       label: "School Admin",
       className: "border-brand/30 bg-brand/20 text-brand",
     },
+    billing_owner: {
+      label: "Billing Owner",
+      className: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+    },
     parent: {
       label: "Parent",
       className: "border-green-500/30 bg-green-500/10 text-green-300",
@@ -120,6 +130,14 @@ function RoleBadge({ role }: { role: InvitationRole }) {
       className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
     },
   };
+
+  if (role === "bursar" && metadata?.accessSurface === "payment_setup_delegate") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-medium text-cyan-300">
+        Finance Delegate
+      </span>
+    );
+  }
 
   return (
     <span
@@ -221,6 +239,11 @@ export default function InvitationsPage() {
           role: "school_admin",
           label: "School Admins",
           count: stats?.byRole.school_admin || 0,
+        },
+        {
+          role: "billing_owner",
+          label: "Billing Owners",
+          count: stats?.byRole.billing_owner || 0,
         },
         { role: "parent", label: "Parents", count: stats?.byRole.parent || 0 },
         { role: "bursar", label: "Bursars", count: stats?.byRole.bursar || 0 },
@@ -493,6 +516,7 @@ export default function InvitationsPage() {
                 <SelectItem value="teacher">Teacher</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="school_admin">School Admin</SelectItem>
+                <SelectItem value="billing_owner">Billing Owner</SelectItem>
                 <SelectItem value="parent">Parent</SelectItem>
                 <SelectItem value="bursar">Bursar</SelectItem>
               </SelectContent>
@@ -579,7 +603,7 @@ export default function InvitationsPage() {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
-                        <RoleBadge role={invitation.role} />
+                                  <RoleBadge role={invitation.role} metadata={invitation.metadata} />
                         <StatusBadge status={invitation.status} />
                       </div>
 

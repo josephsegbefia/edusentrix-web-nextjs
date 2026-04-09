@@ -26,8 +26,9 @@ function computeRedirect(me: Awaited<ReturnType<typeof getCurrentUser>>) {
   if (!me) return null;
 
   // Example logic — tweak to match your app:
-  if (me.pendingOnboarding) return "/onboarding";
+  if (me.pendingOnboarding) return "/launch";
   if (me.role === "school_admin") return "/admin";
+  if (me.role === "billing_owner") return "/admin/settings/payment-setup";
   if (me.role === "platform_admin") return "/platform";
   if (me.role === "teacher") return "/teacher";
   if (me.role === "parent") return "/parent";

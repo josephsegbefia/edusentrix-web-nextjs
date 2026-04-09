@@ -9,6 +9,7 @@ import { Student } from "@/models/Student";
 import { Teacher } from "@/models/Teacher";
 import { UsageMetric } from "@/models/UsageMetric";
 import type { PlatformBillingProvider } from "@/lib/platform-billing/providers";
+import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 import {
   hasTierFeature,
   resolveTierLimits,
@@ -79,12 +80,41 @@ export async function getSchoolSubscriptionSnapshot(
   const schoolIdObj = normalizeSchoolId(schoolId);
   const [school, subscription, students, teachers] = await Promise.all([
     School.findById(schoolIdObj)
-      .select("name status billing.paystack.subaccountCode")
+      .select("name status createdBy bank billing")
       .lean<{
         _id: mongoose.Types.ObjectId;
         name?: string;
         status?: string;
-        billing?: { paystack?: { subaccountCode?: string | null } };
+        createdBy?: mongoose.Types.ObjectId | null;
+        bank?: {
+          bankName?: string | null;
+          branchName?: string | null;
+          sortCode?: string | null;
+          accountName?: string | null;
+          accountNumber?: string | null;
+        } | null;
+        billing?: {
+          status?: "unprovisioned" | "provisioned" | "failed" | null;
+          paymentSetup?: {
+            status?:
+              | "not_started"
+              | "awaiting_billing_owner"
+              | "details_submitted"
+              | "pending_provisioning"
+              | "review_required"
+              | "provisioned"
+              | "failed"
+              | null;
+            ownerUserId?: mongoose.Types.ObjectId | null;
+            ownerName?: string | null;
+            ownerEmail?: string | null;
+          } | null;
+          paystack?: {
+            subaccountCode?: string | null;
+            subaccountId?: string | null;
+            lastError?: string | null;
+          } | null;
+        };
       } | null>(),
     SchoolSubscription.findOne({ schoolId: schoolIdObj })
       .select(
@@ -135,7 +165,7 @@ export async function getSchoolSubscriptionSnapshot(
     schoolId: String(school._id),
     schoolName: school.name || "Unnamed School",
     schoolStatus: school.status || "pending",
-    paymentReady: Boolean(school.billing?.paystack?.subaccountCode),
+    paymentReady: isSchoolPaymentReady(school),
     subscription: {
       id: subscription ? String(subscription._id) : null,
       status: subscription?.status || "draft",

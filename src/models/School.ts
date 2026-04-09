@@ -30,6 +30,34 @@ export interface ISchool {
   };
   billing?: {
     status?: "unprovisioned" | "provisioned" | "failed";
+    paymentSetup?: {
+      status?:
+        | "not_started"
+        | "awaiting_billing_owner"
+        | "details_submitted"
+        | "pending_provisioning"
+        | "review_required"
+        | "provisioned"
+        | "failed";
+      ownerUserId?: Types.ObjectId | null;
+      ownerName?: string | null;
+      ownerEmail?: string | null;
+      ownerAssignedAt?: Date | null;
+      ownerAssignedBy?: Types.ObjectId | null;
+      delegateUserId?: Types.ObjectId | null;
+      delegateName?: string | null;
+      delegateEmail?: string | null;
+      delegateAssignedAt?: Date | null;
+      delegateAssignedBy?: Types.ObjectId | null;
+      submittedAt?: Date | null;
+      submittedBy?: Types.ObjectId | null;
+      approvedAt?: Date | null;
+      approvedBy?: Types.ObjectId | null;
+      approvedByEmail?: string | null;
+      reviewReason?: string | null;
+      lastUpdatedAt?: Date | null;
+      lastUpdatedBy?: Types.ObjectId | null;
+    };
     paystack?: {
       subaccountCode?: string | null;
       subaccountId?: string | null;
@@ -106,6 +134,67 @@ const schoolSchema = new Schema<ISchool>(
         type: String,
         enum: ["unprovisioned", "provisioned", "failed"],
         default: "unprovisioned",
+      },
+      paymentSetup: {
+        status: {
+          type: String,
+          enum: [
+            "not_started",
+            "awaiting_billing_owner",
+            "details_submitted",
+            "pending_provisioning",
+            "review_required",
+            "provisioned",
+            "failed",
+          ],
+          default: "not_started",
+        },
+        ownerUserId: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+        ownerName: { type: String, default: null, trim: true },
+        ownerEmail: { type: String, default: null, trim: true, lowercase: true },
+        ownerAssignedAt: { type: Date, default: null },
+        ownerAssignedBy: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+        delegateUserId: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+        delegateName: { type: String, default: null, trim: true },
+        delegateEmail: { type: String, default: null, trim: true, lowercase: true },
+        delegateAssignedAt: { type: Date, default: null },
+        delegateAssignedBy: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+        submittedAt: { type: Date, default: null },
+        submittedBy: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+        approvedAt: { type: Date, default: null },
+        approvedBy: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+        approvedByEmail: { type: String, default: null, trim: true, lowercase: true },
+        reviewReason: { type: String, default: null, trim: true },
+        lastUpdatedAt: { type: Date, default: null },
+        lastUpdatedBy: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
       },
       paystack: {
         subaccountCode: { type: String, default: null },

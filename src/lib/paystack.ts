@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
 
+import { isLikelyPaystackSubaccountCode } from "@/lib/school-payments/paystack-subaccount-code";
+
 const PAYSTACK_BASE = "https://api.paystack.co";
 
 const { PAYSTACK_SECRET_KEY } = process.env;
@@ -11,6 +13,16 @@ function headers() {
     Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
     "Content-Type": "application/json",
   };
+}
+
+export type PaystackKeyMode = "test" | "live" | "unset";
+
+/** Inferred from secret key prefix — subaccounts only appear in the matching Paystack dashboard mode. */
+export function getPaystackKeyMode(): PaystackKeyMode {
+  const k = process.env.PAYSTACK_SECRET_KEY || "";
+  if (k.startsWith("sk_test_")) return "test";
+  if (k.startsWith("sk_live_")) return "live";
+  return "unset";
 }
 
 /** GET /bank?country=ghana to retrieve bank list and codes (Paystack docs) */
@@ -26,6 +38,77 @@ export async function listGhanaBanks() {
   return j?.data as Array<{ name: string; code: string }>;
 }
 
+let ghanaBanksCache: {
+  fetchedAt: number;
+  banks: Array<{ name: string; code: string }>;
+} | null = null;
+const GHANA_BANKS_TTL_MS = 60 * 60 * 1000;
+
+/** Cached Paystack Ghana bank list (codes are settlement_bank values, not domestic sort codes). */
+export async function listGhanaBanksCached() {
+  const now = Date.now();
+  if (
+    ghanaBanksCache &&
+    now - ghanaBanksCache.fetchedAt < GHANA_BANKS_TTL_MS
+  ) {
+    return ghanaBanksCache.banks;
+  }
+  const banks = await listGhanaBanks();
+  ghanaBanksCache = { fetchedAt: now, banks };
+  return banks;
+}
+
+function normalizeBankLabel(s: string) {
+  return s
+    .toUpperCase()
+    .replace(/[.,'"]/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/\b(LIMITED|LTD|PLC|GHANA|G\.H\.)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Maps a school bank display name to Paystack's `settlement_bank` code.
+ * Do not use Ghana 6-digit sort codes here — Paystack validates against GET /bank?country=ghana.
+ */
+export async function resolvePaystackSettlementBankCode(
+  bankName: string | null | undefined
+): Promise<string> {
+  const raw = (bankName || "").trim();
+  if (!raw) {
+    throw new Error("Bank name is required to resolve Paystack settlement bank");
+  }
+
+  const banks = await listGhanaBanksCached();
+  const norm = normalizeBankLabel(raw);
+
+  const exact = banks.find((b) => normalizeBankLabel(b.name) === norm);
+  if (exact) return String(exact.code);
+
+  const loose = banks.find((b) => {
+    const bn = normalizeBankLabel(b.name);
+    return bn === norm || bn.includes(norm) || norm.includes(bn);
+  });
+  if (loose) return String(loose.code);
+
+  const words = norm.split(/\s+/).filter((w) => w.length >= 4);
+  for (const w of words) {
+    const hit = banks.find((b) => normalizeBankLabel(b.name).includes(w));
+    if (hit) return String(hit.code);
+  }
+
+  const shortWords = norm.split(/\s+/).filter((w) => w.length >= 3);
+  for (const w of shortWords) {
+    const hits = banks.filter((b) => normalizeBankLabel(b.name).includes(w));
+    if (hits.length === 1) return String(hits[0].code);
+  }
+
+  throw new Error(
+    `Could not match "${raw}" to Paystack's Ghana bank list. Re-open payout details, pick the bank from search again, save, and retry.`
+  );
+}
+
 /**
  * Create subaccount for a school (GHS).
  * Paystack docs show POST /subaccount with fields like:
@@ -39,7 +122,8 @@ export async function listGhanaBanks() {
 
 type CreateSubaccountInput = {
   businessName: string;
-  bankCode: string; // our seeded "sortCode"
+  /** Paystack settlement bank code from GET /bank?country=ghana — not Ghana domestic sort code */
+  bankCode: string;
   accountNumber: string;
   percentageCharge?: number; // defaults to 0
   contactEmail?: string;
@@ -145,7 +229,28 @@ export async function createSubaccount(
   if (!json?.status || !json?.data) {
     throw new Error(`Unexpected Paystack response: ${JSON.stringify(json)}`);
   }
-  return json.data as PaystackSubaccount;
+  const data = json.data as Record<string, unknown>;
+  const rawCode =
+    (typeof data.subaccount_code === "string" && data.subaccount_code) ||
+    (typeof data.subaccountCode === "string" && data.subaccountCode) ||
+    "";
+  const trimmed = rawCode.trim();
+  if (!isLikelyPaystackSubaccountCode(trimmed)) {
+    throw new Error(
+      `Paystack returned success but no usable subaccount_code in data: ${JSON.stringify(json)}`
+    );
+  }
+  const rawId = data.id;
+  const idNum =
+    typeof rawId === "number"
+      ? rawId
+      : typeof rawId === "string"
+        ? Number(rawId)
+        : NaN;
+  return {
+    subaccount_code: trimmed,
+    id: Number.isFinite(idNum) ? idNum : 0,
+  };
 }
 
 export async function initializeTransaction(

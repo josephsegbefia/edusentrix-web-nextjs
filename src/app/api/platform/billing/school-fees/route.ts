@@ -1,18 +1,45 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import {
   getTransactionFeeConfig,
   resolveTransactionFeeConfigForSchool,
 } from "@/lib/billing/transaction-fees";
 import { School } from "@/models/School";
+import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 
 type SchoolFeeRow = {
-  _id: { toString(): string };
+  _id: mongoose.Types.ObjectId;
   name?: string;
   status?: string;
+  createdBy?: mongoose.Types.ObjectId | null;
+  bank?: {
+    bankName?: string | null;
+    branchName?: string | null;
+    sortCode?: string | null;
+    accountName?: string | null;
+    accountNumber?: string | null;
+  } | null;
   billing?: {
+    status?: "unprovisioned" | "provisioned" | "failed" | null;
+    paymentSetup?: {
+      status?:
+        | "not_started"
+        | "awaiting_billing_owner"
+        | "details_submitted"
+        | "pending_provisioning"
+        | "review_required"
+        | "provisioned"
+        | "failed"
+        | null;
+      ownerUserId?: mongoose.Types.ObjectId | null;
+      ownerName?: string | null;
+      ownerEmail?: string | null;
+    } | null;
     paystack?: {
       subaccountCode?: string | null;
+      subaccountId?: string | null;
+      lastError?: string | null;
     };
     transactionFees?: {
       mode?: "platform_default" | "custom" | "disabled" | null;
@@ -32,7 +59,7 @@ export async function GET() {
     const platformDefault = getTransactionFeeConfig();
     const schools = await School.find({})
       .select(
-        "name status billing.paystack.subaccountCode billing.transactionFees.mode billing.transactionFees.percent billing.transactionFees.capMinor billing.transactionFees.notes billing.transactionFees.updatedAt"
+        "name status createdBy bank billing.status billing.paymentSetup billing.paystack.subaccountCode billing.paystack.subaccountId billing.paystack.lastError billing.transactionFees.mode billing.transactionFees.percent billing.transactionFees.capMinor billing.transactionFees.notes billing.transactionFees.updatedAt"
       )
       .sort({ name: 1 })
       .lean<SchoolFeeRow[]>();
@@ -48,7 +75,7 @@ export async function GET() {
             id: String(school._id),
             name: school.name || "Unnamed School",
             status: school.status || "pending",
-            paymentReady: Boolean(school.billing?.paystack?.subaccountCode),
+            paymentReady: isSchoolPaymentReady(school),
             transactionFeePolicy: {
               mode: policy?.mode || "platform_default",
               percent: policy?.percent ?? null,

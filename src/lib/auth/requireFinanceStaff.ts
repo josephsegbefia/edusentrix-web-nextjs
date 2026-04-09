@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
+  if (role === "billing_owner") return ["billing_owner"];
   if (role === "bursar") return ["bursar"];
   if (role === "teacher") return ["teacher"];
   return ["staff"];

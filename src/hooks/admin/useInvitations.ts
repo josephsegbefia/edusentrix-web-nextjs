@@ -54,6 +54,7 @@ export type InvitationStats = {
     teacher: number;
     staff: number;
     school_admin: number;
+    billing_owner: number;
     parent: number;
     bursar: number;
   };

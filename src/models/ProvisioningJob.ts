@@ -34,9 +34,11 @@ const provisioningJobSchema = new Schema<IProvisioningJob>(
   },
   {
     timestamps: true,
+    // Legacy collection from the old typo model name "ProvisioningJpb" → provisioningjpbs
+    collection: "provisioningjpbs",
   }
 );
 
 export const ProvisioningJob =
   models.ProvisioningJob ||
-  model<IProvisioningJob>("ProvisioningJpb", provisioningJobSchema);
+  model<IProvisioningJob>("ProvisioningJob", provisioningJobSchema);

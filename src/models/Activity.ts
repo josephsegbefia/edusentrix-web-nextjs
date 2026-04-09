@@ -48,6 +48,7 @@ export type ActivityType =
   | "poll.exported"
   | "campaign.exported"
   | "payout.approved"
+  | "payout.rejected"
   // Expenses
   | "expense.created"
   | "expense.updated"

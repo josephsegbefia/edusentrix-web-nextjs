@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
       | "teacher"
       | "staff"
       | "school_admin"
+      | "billing_owner"
       | "parent"
       | "bursar"
       | null;

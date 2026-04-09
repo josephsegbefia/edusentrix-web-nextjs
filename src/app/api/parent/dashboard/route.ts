@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent } from "@/lib/auth/requireParent";
+import { toMajorUnits } from "@/lib/fees/money";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { Invoice } from "@/models/Invoice";
@@ -31,8 +32,8 @@ type ClassGroupRow = {
 
 type InvoiceSummaryRow = {
   _id: mongoose.Types.ObjectId;
-  totalPaid?: number;
-  outstanding?: number;
+  totalPaidMinor?: number;
+  outstandingMinor?: number;
   pendingInvoices?: number;
 };
 
@@ -89,18 +90,18 @@ export async function GET() {
         $match: {
           studentId: { $in: studentIds },
           schoolId: context.schoolId,
-          status: { $ne: "cancelled" },
+          status: { $nin: ["draft", "cancelled"] },
         },
       },
       {
         $group: {
           _id: "$studentId",
-          totalPaid: { $sum: "$amountPaid" },
-          outstanding: { $sum: "$balanceDue" },
+          totalPaidMinor: { $sum: "$totalPaidMinor" },
+          outstandingMinor: { $sum: "$totalOutstandingMinor" },
           pendingInvoices: {
             $sum: {
               $cond: [
-                { $in: ["$status", ["pending", "partial", "overdue"]] },
+                { $gt: ["$totalOutstandingMinor", 0] },
                 1,
                 0,
               ],
@@ -114,8 +115,8 @@ export async function GET() {
       invoiceSummary.map((s) => [
         String(s._id),
         {
-          totalPaid: s.totalPaid || 0,
-          outstanding: s.outstanding || 0,
+          totalPaid: toMajorUnits(Number(s.totalPaidMinor || 0)),
+          outstanding: toMajorUnits(Number(s.outstandingMinor || 0)),
           pendingInvoices: s.pendingInvoices || 0,
         },
       ])

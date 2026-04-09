@@ -42,6 +42,7 @@ const userSchema = new Schema<IUser>(
       enum: [
         "platform_admin",
         "school_admin",
+        "billing_owner",
         "bursar",
         "staff",
         "teacher",

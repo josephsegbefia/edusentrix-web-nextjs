@@ -96,11 +96,15 @@ export interface WardFeesData {
   nextDueDate: string | null;
   invoices: Array<{
     id: string;
+    invoiceNumber: string;
     title: string;
     amount: number;
+    amountMinor: number;
     balanceDue: number;
+    balanceDueMinor: number;
     dueDate: string;
     status: "pending" | "partial" | "paid" | "overdue";
+    canPayOnline: boolean;
   }>;
   payments: Array<{
     id: string;

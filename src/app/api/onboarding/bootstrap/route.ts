@@ -108,6 +108,11 @@ export async function GET() {
           city: school.city ?? "",
           region: school.region ?? "",
           bank: school.bank ?? {},
+          paymentSetup: {
+            status: school.billing?.paymentSetup?.status ?? "not_started",
+            ownerName: school.billing?.paymentSetup?.ownerName ?? "",
+            ownerEmail: school.billing?.paymentSetup?.ownerEmail ?? "",
+          },
           status: school.status,
         }
       : null,

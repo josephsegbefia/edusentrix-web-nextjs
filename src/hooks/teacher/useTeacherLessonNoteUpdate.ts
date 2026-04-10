@@ -37,6 +37,7 @@ export function useTeacherLessonNoteUpdate() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["teacher-lesson-notes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-lesson-note"] });
     },
   });
 }

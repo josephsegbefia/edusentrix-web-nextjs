@@ -14,15 +14,57 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
+import type { FieldSuggestionsGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
 import type { UnitPlannerSection, CurriculumMetadataField } from "@/constants/curriculum-lesson-templates";
+import {
+  buildAIFieldBlueprint,
+  normalizeAISuggestedFieldValue,
+} from "@/lib/lesson-notes/ai-field-suggestions";
 
 type UnitPlannerSectionStepProps = {
   section: UnitPlannerSection;
   data: Record<string, unknown>;
   onUpdate: (updates: Record<string, unknown>) => void;
+  aiContext: LessonNoteAIContext;
 };
 
-export function UnitPlannerSectionStep({ section, data, onUpdate }: UnitPlannerSectionStepProps) {
+function summarizeSectionData(section: UnitPlannerSection, data: Record<string, unknown>) {
+  return section.fields
+    .map((field) => {
+      const value = data[field.key];
+      if (typeof value === "string" && value.trim()) {
+        return `${field.label}: ${value.trim()}`;
+      }
+      if (Array.isArray(value) && value.length) {
+        const summary = value
+          .map((item) => {
+            if (typeof item === "string") {
+              return item.trim();
+            }
+            if (item && typeof item === "object" && "text" in item && typeof item.text === "string") {
+              return item.text.trim();
+            }
+            return "";
+          })
+          .filter(Boolean)
+          .join("; ");
+        if (summary) {
+          return `${field.label}: ${summary}`;
+        }
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function UnitPlannerSectionStep({
+  section,
+  data,
+  onUpdate,
+  aiContext,
+}: UnitPlannerSectionStepProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -31,6 +73,37 @@ export function UnitPlannerSectionStep({ section, data, onUpdate }: UnitPlannerS
           <p className="text-sm text-white/60">{section.description}</p>
         )}
       </div>
+
+      <AISectionAssistant
+        context={aiContext}
+        action="suggest_field_values"
+        section={section.label}
+        title={`Draft ${section.label}`}
+        description="Ask AI to help with this planner section only. Earlier tabs are used as context, but only the current fields will be updated."
+        buttonLabel="Draft This Section"
+        existingContent={summarizeSectionData(section, data)}
+        fieldBlueprint={buildAIFieldBlueprint(section.fields)}
+        promptPlaceholder='What do you want help with on this section? e.g. "Suggest stronger inquiry questions and learning goals here."'
+        onGenerated={(generated) => {
+          if (!("fieldSuggestions" in generated)) {
+            return;
+          }
+          const suggestions = (generated as FieldSuggestionsGenerated).fieldSuggestions || {};
+          const updates: Record<string, unknown> = {};
+          section.fields.forEach((field) => {
+            if (!(field.key in suggestions)) {
+              return;
+            }
+            const normalized = normalizeAISuggestedFieldValue(field, suggestions[field.key]);
+            if (normalized !== undefined) {
+              updates[field.key] = normalized;
+            }
+          });
+          if (Object.keys(updates).length > 0) {
+            onUpdate(updates);
+          }
+        }}
+      />
 
       {section.fields.map((field) => (
         <DynamicField

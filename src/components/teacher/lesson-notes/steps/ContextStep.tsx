@@ -13,11 +13,10 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { TemplatePicker } from "../TemplatePicker";
-import { AIGenerateButton } from "../AIAssistant";
+import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
 import type { LessonNoteFormData, LessonNoteTemplateType } from "@/types/lesson-notes";
-import { getDefaultBodyForTemplate } from "@/types/lesson-notes";
 import type { ClassOption } from "../LessonNoteWizard";
-import type { NaCCA3PhaseGenerated, ClassicJHSGenerated, SimpleGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
+import type { RefinedContextGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
 import type { CurriculumCode } from "@/constants/curriculum-profiles";
 
 type ContextStepProps = {
@@ -26,7 +25,7 @@ type ContextStepProps = {
   onUpdate: (updates: Partial<LessonNoteFormData>) => void;
   onTemplateChange: (templateType: LessonNoteTemplateType) => void;
   curriculumCode?: CurriculumCode;
-  onAIGenerated?: (body: Record<string, unknown>, tlms?: string[]) => void;
+  aiContext: LessonNoteAIContext;
 };
 
 const DURATION_OPTIONS = [
@@ -45,7 +44,7 @@ export function ContextStep({
   onUpdate,
   onTemplateChange,
   curriculumCode = "ghana_nacca",
-  onAIGenerated,
+  aiContext,
 }: ContextStepProps) {
   // Get subjects for selected class
   const selectedClass = classOptions.find((c) => c.id === formData.classGroupId);
@@ -57,41 +56,6 @@ export function ContextStep({
       onUpdate({ subjectId: subjects[0]?.id || undefined });
     }
   }, [formData.classGroupId, formData.subjectId, subjects, onUpdate]);
-
-  // Handle AI generated content
-  const handleAIGenerated = (data: NaCCA3PhaseGenerated | ClassicJHSGenerated | SimpleGenerated) => {
-    const tlms = (data as { suggestedTLMs?: string[] }).suggestedTLMs;
-    
-    // Extract body based on template type
-    if (formData.templateType === "NACCA_3_PHASE" && "starter" in data) {
-      const body = {
-        starter: data.starter,
-        main: data.main,
-        plenary: data.plenary,
-      };
-      onAIGenerated?.(body, tlms);
-    } else if (formData.templateType === "CLASSIC_JHS" && "objectives" in data && "rpk" in data) {
-      const body = {
-        objectives: data.objectives,
-        rpk: data.rpk,
-        introduction: data.introduction,
-        presentationSteps: data.presentationSteps,
-        corePoints: data.corePoints,
-        evaluation: data.evaluation,
-        remarks: data.remarks,
-      };
-      onAIGenerated?.(body, tlms);
-    } else if ("content" in data && "objectives" in data) {
-      const body = {
-        objectives: data.objectives,
-        content: data.content,
-      };
-      onAIGenerated?.(body, tlms);
-    }
-  };
-
-  // Get subject name for AI context
-  const subjectName = subjects.find((s) => s.id === formData.subjectId)?.name;
 
   return (
     <div className="space-y-6">
@@ -147,37 +111,48 @@ export function ContextStep({
       {/* Topic */}
       <div className="space-y-2">
         <Label className="text-white/70">Topic *</Label>
-        <div className="flex gap-2">
-          <Input
-            value={formData.topic}
-            onChange={(e) => onUpdate({ topic: e.target.value })}
-            placeholder="Enter lesson topic"
-            className="flex-1 border-white/10 bg-white/5 text-white"
-          />
-          {onAIGenerated && (
-            <AIGenerateButton
-              context={{
-                templateType: formData.templateType,
-                topic: formData.topic,
-                subject: subjectName,
-                gradeLevel: selectedClass?.label,
-                duration: formData.durationMinutes,
-                strand: formData.curriculum?.strand,
-                subStrand: formData.curriculum?.subStrand,
-                contentStandard: formData.curriculum?.contentStandard,
-                indicators: formData.curriculum?.indicators?.map((i) => i.text),
-              }}
-              onGenerated={handleAIGenerated}
-              variant="compact"
-            />
-          )}
-        </div>
-        {onAIGenerated && (
-          <p className="text-xs text-white/40">
-            Enter a topic and click AI to generate lesson content automatically
-          </p>
-        )}
+        <Input
+          value={formData.topic}
+          onChange={(e) => onUpdate({ topic: e.target.value })}
+          placeholder="Enter lesson topic"
+          className="border-white/10 bg-white/5 text-white"
+        />
       </div>
+
+      <AISectionAssistant
+        context={aiContext}
+        action="refine_context"
+        section="Context"
+        title="Shape This Lesson Context"
+        description="Use AI to tighten the topic, suggest a reference, and refine the lesson timing without touching later tabs."
+        buttonLabel="Refine Context"
+        existingContent={[
+          formData.topic && `Topic: ${formData.topic}`,
+          formData.references[0] && `Reference: ${formData.references[0]}`,
+          formData.durationMinutes && `Duration: ${formData.durationMinutes} minutes`,
+        ]
+          .filter(Boolean)
+          .join("\n")}
+        promptPlaceholder='What do you want help with on this section? e.g. "Make the topic clearer for Basic 4 and suggest a strong textbook reference."'
+        onGenerated={(data) => {
+          if (!("topic" in data)) {
+            return;
+          }
+          const generated = data as RefinedContextGenerated;
+          onUpdate({
+            topic: generated.topic || formData.topic,
+            references:
+              generated.reference?.trim()
+                ? [generated.reference.trim()]
+                : formData.references,
+            durationMinutes:
+              typeof generated.durationMinutes === "number" &&
+              Number.isFinite(generated.durationMinutes)
+                ? generated.durationMinutes
+                : formData.durationMinutes,
+          });
+        }}
+      />
 
       {/* Week & Date */}
       <div className="grid gap-4 sm:grid-cols-2">

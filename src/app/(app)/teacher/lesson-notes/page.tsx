@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
   Plus,
@@ -110,6 +111,7 @@ function formatWeekLabel(value?: string | null) {
 // ============================================================================
 
 export default function TeacherLessonNotesPage() {
+  const router = useRouter();
   const busyToast = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: contextData } = useTeacherContext();
@@ -553,7 +555,8 @@ export default function TeacherLessonNotesPage() {
           {notes.map((note) => (
             <Card
               key={note.id}
-              className="group border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition-all hover:border-white/20"
+              className="group cursor-pointer border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition-all hover:border-white/20"
+              onClick={() => router.push(`/teacher/lesson-notes/${note.id}`)}
             >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
@@ -578,6 +581,7 @@ export default function TeacherLessonNotesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={(event) => event.stopPropagation()}
                         className="h-8 w-8 rounded-full border border-white/10 bg-white/5 p-0 text-white/70 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
                       >
                         <span className="sr-only">Actions</span>
@@ -617,10 +621,7 @@ export default function TeacherLessonNotesPage() {
 
               <CardContent className="space-y-3">
                 <div>
-                  <CardTitle
-                    className="line-clamp-2 text-base text-white cursor-pointer hover:text-indigo-200 transition-colors"
-                    onClick={() => handleEdit(note.id)}
-                  >
+                  <CardTitle className="line-clamp-2 text-base text-white transition-colors group-hover:text-indigo-200">
                     {note.topic}
                   </CardTitle>
                   <p className="mt-1 text-xs text-white/50">

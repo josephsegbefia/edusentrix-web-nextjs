@@ -1,19 +1,22 @@
 "use client";
 
-import * as React from "react";
 import { Plus, X, CheckCircle, Home, ClipboardCheck } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CompactRichText } from "@/components/ui/rich-text-editor";
+import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
+import type { AssessmentSectionGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
+import { summarizeAssessmentForAI } from "@/lib/lesson-notes/ai-context";
 import type { LessonNoteFormData } from "@/types/lesson-notes";
 
 type AssessmentStepProps = {
   formData: LessonNoteFormData;
   onUpdate: (updates: Partial<LessonNoteFormData>) => void;
+  aiContext: LessonNoteAIContext;
 };
 
-export function AssessmentStep({ formData, onUpdate }: AssessmentStepProps) {
+export function AssessmentStep({ formData, onUpdate, aiContext }: AssessmentStepProps) {
   const assessment = formData.assessment;
   const reflections = formData.reflections;
 
@@ -67,6 +70,47 @@ export function AssessmentStep({ formData, onUpdate }: AssessmentStepProps) {
           Plan how you'll check understanding and reflect on the lesson
         </p>
       </div>
+
+      <AISectionAssistant
+        context={aiContext}
+        action="generate_assessment_section"
+        section="Assessment"
+        title="Strengthen Assessment And Reflection"
+        description="Use AI to suggest checks for understanding, an exit ticket, and follow-up reflections without changing the lesson body."
+        buttonLabel="Draft Assessment"
+        existingContent={summarizeAssessmentForAI(formData)}
+        promptPlaceholder='What do you want help with on this section? e.g. "Create stronger in-class checks and a practical homework task."'
+        onGenerated={(data) => {
+          const generated = data as AssessmentSectionGenerated;
+          updateAssessment({
+            inClassChecks: Array.isArray(generated.inClassChecks)
+              ? generated.inClassChecks.filter((item): item is string => typeof item === "string")
+              : assessment.inClassChecks,
+            exitTicket:
+              typeof generated.exitTicket === "string"
+                ? generated.exitTicket
+                : assessment.exitTicket,
+            homework:
+              typeof generated.homework === "string"
+                ? generated.homework
+                : assessment.homework,
+          });
+          updateReflections({
+            learner:
+              typeof generated.learnerReflection === "string"
+                ? generated.learnerReflection
+                : reflections.learner,
+            teacher:
+              typeof generated.teacherReflection === "string"
+                ? generated.teacherReflection
+                : reflections.teacher,
+            nextLessonLink:
+              typeof generated.nextLessonLink === "string"
+                ? generated.nextLessonLink
+                : reflections.nextLessonLink,
+          });
+        }}
+      />
 
       {/* In-class Checks */}
       <div className="space-y-3">

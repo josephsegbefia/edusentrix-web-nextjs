@@ -233,7 +233,7 @@ export interface ILessonNote {
 const ResourceSchema = new Schema<ILessonNoteResource>(
   {
     title: { type: String, required: true, trim: true },
-    url: { type: String, required: true, trim: true },
+    url: { type: String, default: "", trim: true },
     type: { type: String, trim: true },
   },
   { _id: false }

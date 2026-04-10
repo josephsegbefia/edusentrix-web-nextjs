@@ -442,6 +442,73 @@ export interface LessonNoteResponse {
   data: LessonNote;
 }
 
+export type LessonNoteReviewCommentType =
+  | "required_change"
+  | "suggestion"
+  | "question"
+  | "commendation";
+
+export type LessonNoteReviewCommentStatus = "open" | "addressed" | "resolved";
+
+export interface LessonNoteReviewComment {
+  id: string;
+  lessonNoteId: string;
+  sectionKey: string;
+  sectionLabel: string;
+  commentType: LessonNoteReviewCommentType;
+  comment: string;
+  status: LessonNoteReviewCommentStatus;
+  authorId: string;
+  authorName?: string;
+  createdAt: string;
+  updatedAt: string;
+  addressedAt?: string | null;
+  addressedBy?: string | null;
+  addressedByName?: string | null;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+  resolvedByName?: string | null;
+}
+
+export interface LessonNoteDetail extends LessonNote {
+  teacherName?: string | null;
+  reviewComments: LessonNoteReviewComment[];
+  openCommentCount: number;
+}
+
+export interface LessonNoteDetailResponse {
+  success: boolean;
+  data: LessonNoteDetail;
+}
+
+export interface LessonNoteReviewCommentResponse {
+  success: boolean;
+  data: LessonNoteReviewComment;
+}
+
+export interface AdminLessonNoteFilters extends LessonNoteFilters {
+  teacherId?: string;
+}
+
+export interface AdminLessonNote extends LessonNote {
+  teacherName?: string | null;
+  reviewComments?: LessonNoteReviewComment[];
+  openCommentCount: number;
+  totalCommentCount: number;
+}
+
+export interface AdminLessonNotesResponse {
+  success: boolean;
+  data: {
+    entries: AdminLessonNote[];
+    summary: {
+      total: number;
+      byStatus: Partial<Record<LessonNoteStatus, number>>;
+      openComments: number;
+    };
+  };
+}
+
 // ============================================================================
 // Wizard Step Types
 // ============================================================================

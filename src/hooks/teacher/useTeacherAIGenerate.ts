@@ -6,12 +6,30 @@ import type { LessonNoteTemplateType } from "@/types/lesson-notes";
 // ============================================================================
 
 export type AIGenerateAction =
-  | "full_lesson"
+  | "refine_context"
+  | "suggest_field_values"
+  | "suggest_resources"
+  | "generate_body"
+  | "generate_assessment_section"
   | "expand_section"
   | "suggest_activities"
   | "improve_content"
   | "generate_assessment"
   | "generate_objectives";
+
+export interface AIFieldBlueprint {
+  key: string;
+  label: string;
+  type:
+    | "text"
+    | "richtext"
+    | "indicator_list"
+    | "outcome_list"
+    | "tag_list"
+    | "select";
+  required?: boolean;
+  options?: Array<{ value: string; label: string }>;
+}
 
 export interface AIGenerateRequest {
   action: AIGenerateAction;
@@ -28,6 +46,9 @@ export interface AIGenerateRequest {
   existingContent?: string;
   learnerBackground?: string;
   classSize?: number;
+  teacherIntent?: string;
+  contextSummary?: string;
+  fieldBlueprint?: AIFieldBlueprint[];
 }
 
 // Response types for different actions
@@ -57,6 +78,39 @@ export interface NaCCA3PhaseGenerated {
   };
   suggestedTLMs?: string[];
   suggestedObjectives?: string[];
+}
+
+export interface RefinedContextGenerated {
+  topic: string;
+  reference?: string;
+  durationMinutes?: number;
+  rationale?: string;
+}
+
+export interface FieldSuggestionsGenerated {
+  fieldSuggestions: Record<string, unknown>;
+}
+
+export interface ResourceSuggestionsGenerated {
+  tlms?: string[];
+  resources?: Array<{
+    title: string;
+    type?: string;
+    url?: string;
+  }>;
+}
+
+export interface GeneratedBodyResponse {
+  body: Record<string, unknown>;
+}
+
+export interface AssessmentSectionGenerated {
+  inClassChecks?: string[];
+  exitTicket?: string;
+  homework?: string;
+  learnerReflection?: string;
+  teacherReflection?: string;
+  nextLessonLink?: string;
 }
 
 export interface ClassicJHSGenerated {
@@ -131,6 +185,11 @@ export interface ImprovedContent {
 }
 
 export type AIGenerateResponse = 
+  | RefinedContextGenerated
+  | FieldSuggestionsGenerated
+  | ResourceSuggestionsGenerated
+  | GeneratedBodyResponse
+  | AssessmentSectionGenerated
   | NaCCA3PhaseGenerated
   | ClassicJHSGenerated
   | SimpleGenerated
@@ -176,16 +235,6 @@ export function useAIGenerate() {
 // ============================================================================
 // Convenience hooks for specific actions
 // ============================================================================
-
-export function useGenerateFullLesson() {
-  const mutation = useAIGenerate();
-
-  return {
-    ...mutation,
-    generate: (params: Omit<AIGenerateRequest, "action">) =>
-      mutation.mutateAsync({ ...params, action: "full_lesson" }),
-  };
-}
 
 export function useExpandSection() {
   const mutation = useAIGenerate();

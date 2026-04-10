@@ -14,16 +14,49 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
+import type { FieldSuggestionsGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
 import type { LessonNoteFormData, CurriculumIndicator } from "@/types/lesson-notes";
 import type { CurriculumMetadataField } from "@/constants/curriculum-lesson-templates";
 import { getTemplateDefinition } from "@/constants/curriculum-lesson-templates";
+import {
+  buildAIFieldBlueprint,
+  normalizeAISuggestedFieldValue,
+} from "@/lib/lesson-notes/ai-field-suggestions";
 
 type CurriculumStepProps = {
   formData: LessonNoteFormData;
   onUpdate: (updates: Partial<LessonNoteFormData>) => void;
+  aiContext: LessonNoteAIContext;
 };
 
-export function CurriculumStep({ formData, onUpdate }: CurriculumStepProps) {
+function formatFieldValueSummary(field: CurriculumMetadataField, value: unknown) {
+  if (typeof value === "string" && value.trim()) {
+    return `${field.label}: ${value.trim()}`;
+  }
+
+  if (Array.isArray(value) && value.length) {
+    const entries = value
+      .map((item) => {
+        if (typeof item === "string") {
+          return item.trim();
+        }
+        if (item && typeof item === "object" && "text" in item && typeof item.text === "string") {
+          return item.text.trim();
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join("; ");
+    if (entries) {
+      return `${field.label}: ${entries}`;
+    }
+  }
+
+  return "";
+}
+
+export function CurriculumStep({ formData, onUpdate, aiContext }: CurriculumStepProps) {
   const templateDef = getTemplateDefinition(formData.templateType);
   const fields = templateDef?.curriculumFields || [];
   const stepLabel = templateDef?.wizardSteps.find((s) => s.id === "curriculum")?.label || "Curriculum";
@@ -46,8 +79,83 @@ export function CurriculumStep({ formData, onUpdate }: CurriculumStepProps) {
     formData.templateType === "NACCA_3_PHASE" ||
     formData.templateType === "CLASSIC_JHS";
 
+  const fieldBlueprint = buildAIFieldBlueprint(fields);
+  const existingContent = fields
+    .map((field) =>
+      formatFieldValueSummary(
+        field,
+        isNaCCAStyle ? curriculum[field.key as keyof typeof curriculum] : metadata[field.key]
+      )
+    )
+    .filter(Boolean)
+    .join("\n");
+
+  const applySuggestions = (data: FieldSuggestionsGenerated) => {
+    const suggestions = data.fieldSuggestions || {};
+    if (isNaCCAStyle) {
+      const updates: Partial<typeof curriculum> = {};
+      fields.forEach((field) => {
+        if (!(field.key in suggestions)) {
+          return;
+        }
+        const normalized = normalizeAISuggestedFieldValue(field, suggestions[field.key]);
+        if (normalized !== undefined) {
+          (updates as Record<string, unknown>)[field.key] = normalized;
+        }
+      });
+      if (Object.keys(updates).length > 0) {
+        updateCurriculum(updates);
+      }
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    fields.forEach((field) => {
+      if (!(field.key in suggestions)) {
+        return;
+      }
+      const normalized = normalizeAISuggestedFieldValue(field, suggestions[field.key]);
+      if (normalized !== undefined) {
+        updates[field.key] = normalized;
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      onUpdate({
+        curriculumMetadata: { ...metadata, ...updates },
+      });
+    }
+  };
+
   if (isNaCCAStyle) {
-    return <NaCCACurriculumFields curriculum={curriculum} updateCurriculum={updateCurriculum} />;
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold text-white">{stepLabel}</h2>
+          <p className="text-sm text-white/60">
+            Align your lesson to curriculum standards and objectives
+          </p>
+        </div>
+
+        <AISectionAssistant
+          context={aiContext}
+          action="suggest_field_values"
+          section={stepLabel}
+          title="Build The Curriculum Alignment"
+          description="Ask AI to draft the strand, indicators, and learning outcomes for this curriculum section only."
+          buttonLabel="Draft Curriculum"
+          existingContent={existingContent}
+          fieldBlueprint={fieldBlueprint}
+          promptPlaceholder='What do you want help with on this section? e.g. "Suggest strong indicators and learning outcomes for this topic in Basic 5."'
+          onGenerated={(data) => {
+            if ("fieldSuggestions" in data) {
+              applySuggestions(data as FieldSuggestionsGenerated);
+            }
+          }}
+        />
+
+        <NaCCACurriculumFields curriculum={curriculum} updateCurriculum={updateCurriculum} />
+      </div>
+    );
   }
 
   return (
@@ -58,6 +166,23 @@ export function CurriculumStep({ formData, onUpdate }: CurriculumStepProps) {
           Align your lesson to curriculum standards and objectives
         </p>
       </div>
+
+      <AISectionAssistant
+        context={aiContext}
+        action="suggest_field_values"
+        section={stepLabel}
+        title="Shape This Curriculum Section"
+        description="Use AI to complete the learning-objective fields for this tab while keeping the rest of the lesson untouched."
+        buttonLabel="Draft Curriculum"
+        existingContent={existingContent}
+        fieldBlueprint={fieldBlueprint}
+        promptPlaceholder='What do you want help with on this section? e.g. "Write success criteria and prior knowledge for this lesson."'
+        onGenerated={(data) => {
+          if ("fieldSuggestions" in data) {
+            applySuggestions(data as FieldSuggestionsGenerated);
+          }
+        }}
+      />
 
       {fields.map((field) => (
         <DynamicField

@@ -13,6 +13,8 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { AISectionAssistant, type LessonNoteAIContext } from "../AIAssistant";
+import type { ResourceSuggestionsGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
 import { cn } from "@/lib/utils";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useUploadThing } from "@/lib/uploadthing/react";
@@ -25,9 +27,25 @@ const FILE_UPLOAD_TYPES = ["pdf", "image", "doc", "slides", "other"];
 type ResourcesStepProps = {
   formData: LessonNoteFormData;
   onUpdate: (updates: Partial<LessonNoteFormData>) => void;
+  aiContext: LessonNoteAIContext;
 };
 
-export function ResourcesStep({ formData, onUpdate }: ResourcesStepProps) {
+const ALLOWED_RESOURCE_TYPES = new Set<string>(RESOURCE_TYPES.map((type) => type.value));
+
+function summarizeResourcesForAI(formData: LessonNoteFormData) {
+  return [
+    formData.tlms.length ? `Selected TLMs: ${formData.tlms.join(", ")}` : "",
+    formData.resources.length
+      ? `External resources: ${formData.resources
+          .map((resource) => `${resource.title || "Untitled"}${resource.type ? ` (${resource.type})` : ""}`)
+          .join(", ")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function ResourcesStep({ formData, onUpdate, aiContext }: ResourcesStepProps) {
   const [customTlm, setCustomTlm] = React.useState("");
   const { data: contextData } = useTeacherContext();
   const schoolId = contextData?.data?.school?._id;
@@ -70,6 +88,50 @@ export function ResourcesStep({ formData, onUpdate }: ResourcesStepProps) {
     onUpdate({ resources: formData.resources.filter((_, i) => i !== index) });
   };
 
+  const applyAISuggestions = (data: ResourceSuggestionsGenerated) => {
+    const mergedTlms = Array.from(
+      new Set(
+        [...formData.tlms, ...(data.tlms || [])]
+          .map((item) => item.trim())
+          .filter(Boolean)
+      )
+    );
+
+    const seenResources = new Set(
+      formData.resources.map((resource) =>
+        `${resource.title.trim().toLowerCase()}::${(resource.type || "link").trim().toLowerCase()}`
+      )
+    );
+    const suggestedResources = (data.resources || []).reduce<LessonNoteResource[]>(
+      (accumulator, resource) => {
+        const title = resource.title?.trim();
+        if (!title) {
+          return accumulator;
+        }
+        const type = resource.type && ALLOWED_RESOURCE_TYPES.has(resource.type)
+          ? resource.type
+          : "link";
+        const signature = `${title.toLowerCase()}::${type.toLowerCase()}`;
+        if (seenResources.has(signature)) {
+          return accumulator;
+        }
+        seenResources.add(signature);
+        accumulator.push({
+          title,
+          type,
+          url: resource.url?.trim() || "",
+        });
+        return accumulator;
+      },
+      []
+    );
+
+    onUpdate({
+      tlms: mergedTlms,
+      resources: [...formData.resources, ...suggestedResources],
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -79,6 +141,22 @@ export function ResourcesStep({ formData, onUpdate }: ResourcesStepProps) {
           Select materials and add external resources for your lesson
         </p>
       </div>
+
+      <AISectionAssistant
+        context={aiContext}
+        action="suggest_resources"
+        section="Resources"
+        title="Plan The Materials"
+        description="Ask AI for realistic teaching materials and supporting resources for this lesson without changing other tabs."
+        buttonLabel="Suggest Resources"
+        existingContent={summarizeResourcesForAI(formData)}
+        promptPlaceholder='What do you want help with on this section? e.g. "Suggest low-cost classroom materials and one strong video idea for this topic."'
+        onGenerated={(data) => {
+          if ("tlms" in data || "resources" in data) {
+            applyAISuggestions(data as ResourceSuggestionsGenerated);
+          }
+        }}
+      />
 
       {/* TLMs (Teaching Learning Materials) */}
       <div className="space-y-3">

@@ -10,15 +10,16 @@ import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { normalizeLessonNoteRequestBody } from "@/lib/lesson-notes/normalize-payload";
 
 // ============================================================================
 // Zod Schemas
 // ============================================================================
 
 const ResourceSchema = z.object({
-  title: z.string().min(1).max(200),
-  url: z.string().min(1).max(1000),
-  type: z.string().max(40).optional().nullable(),
+  title: z.string().trim().min(1).max(200),
+  url: z.string().trim().max(1000).optional().default(""),
+  type: z.string().trim().max(40).optional().nullable(),
 });
 
 const CurriculumIndicatorSchema = z.object({
@@ -463,7 +464,7 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => null);
+    const body = normalizeLessonNoteRequestBody(await req.json().catch(() => null));
     
     // Debug logging - remove in production
     console.log("[LessonNote POST] Received body:", JSON.stringify({

@@ -29,7 +29,7 @@ export {
 
 // AI Assistant
 export {
-  AIGenerateButton,
+  AISectionAssistant,
   AIQuickActions,
   AIExpandButton,
   AIGeneratedPreview,

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Check, Sparkles, Save, Printer } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Save, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ import {
   getDefaultBodyForTemplate,
 } from "@/types/lesson-notes";
 import { calculateQualityScore } from "@/lib/lesson-notes/quality-score";
+import { buildLessonNoteAIContextSummary } from "@/lib/lesson-notes/ai-context";
 import { MiniQualityIndicator } from "./QualityIndicator";
 import { PrintPreviewModal } from "./PrintPreviewModal";
 import {
@@ -59,12 +60,6 @@ type LessonNoteWizardProps = {
 };
 
 // ============================================================================
-// Step Configuration
-// ============================================================================
-
-const DEFAULT_STEP_IDS: WizardStep[] = ["context", "curriculum", "resources", "body", "assessment", "review"];
-
-// ============================================================================
 // Component
 // ============================================================================
 
@@ -103,6 +98,9 @@ export function LessonNoteWizard({
   const templateDef = getTemplateDefinition(formData.templateType);
   const wizardStepDefs = templateDef?.wizardSteps || defaultTemplate.wizardSteps;
   const stepIds = wizardStepDefs.map((s) => s.id) as WizardStep[];
+  const selectedClass = classOptions.find((option) => option.id === formData.classGroupId);
+  const selectedSubjectName =
+    selectedClass?.subjects.find((subject) => subject.id === formData.subjectId)?.name;
 
   // Current step
   const [currentStep, setCurrentStep] = React.useState<WizardStep>("context");
@@ -238,6 +236,30 @@ export function LessonNoteWizard({
     }
   };
 
+  const buildAIContext = React.useCallback(
+    (stepId: string) => ({
+      templateType: formData.templateType,
+      topic: formData.topic,
+      subject: selectedSubjectName,
+      gradeLevel: selectedClass?.label,
+      duration: formData.durationMinutes,
+      strand: formData.curriculum?.strand,
+      subStrand: formData.curriculum?.subStrand,
+      contentStandard: formData.curriculum?.contentStandard,
+      indicators: formData.curriculum?.indicators
+        ?.map((indicator) => indicator.text)
+        .filter(Boolean),
+      contextSummary: buildLessonNoteAIContextSummary({
+        formData,
+        classOptions,
+        stepIds,
+        currentStep: stepId,
+        unitSections: templateDef?.unitSections,
+      }),
+    }),
+    [classOptions, formData, selectedClass?.label, selectedSubjectName, stepIds, templateDef?.unitSections]
+  );
+
   // Render current step content
   const renderStepContent = () => {
     switch (currentStep) {
@@ -249,18 +271,18 @@ export function LessonNoteWizard({
             onUpdate={updateForm}
             onTemplateChange={handleTemplateChange}
             curriculumCode={curriculumCode}
-            onAIGenerated={(body, tlms) => {
-              updateForm({
-                body: body as unknown as LessonNoteFormData["body"],
-                ...(tlms?.length ? { tlms } : {}),
-              });
-              goNext();
-            }}
+            aiContext={buildAIContext("context")}
           />
         );
 
       case "curriculum":
-        return <CurriculumStep formData={formData} onUpdate={updateForm} />;
+        return (
+          <CurriculumStep
+            formData={formData}
+            onUpdate={updateForm}
+            aiContext={buildAIContext("curriculum")}
+          />
+        );
 
       case "resources": {
         const resourceSection = templateDef?.unitSections?.find((s) => s.key === "resources");
@@ -272,17 +294,36 @@ export function LessonNoteWizard({
               onUpdate={(updates) => {
                 updateForm({ unitPlannerData: { ...formData.unitPlannerData, ...updates } });
               }}
+              aiContext={buildAIContext("resources")}
             />
           );
         }
-        return <ResourcesStep formData={formData} onUpdate={updateForm} />;
+        return (
+          <ResourcesStep
+            formData={formData}
+            onUpdate={updateForm}
+            aiContext={buildAIContext("resources")}
+          />
+        );
       }
 
       case "body":
-        return <BodyStep formData={formData} onUpdate={updateForm} />;
+        return (
+          <BodyStep
+            formData={formData}
+            onUpdate={updateForm}
+            aiContext={buildAIContext("body")}
+          />
+        );
 
       case "assessment":
-        return <AssessmentStep formData={formData} onUpdate={updateForm} />;
+        return (
+          <AssessmentStep
+            formData={formData}
+            onUpdate={updateForm}
+            aiContext={buildAIContext("assessment")}
+          />
+        );
 
       case "review":
         return (
@@ -306,6 +347,7 @@ export function LessonNoteWizard({
                   unitPlannerData: { ...formData.unitPlannerData, ...updates },
                 });
               }}
+              aiContext={buildAIContext(section.key)}
             />
           );
         }
@@ -495,13 +537,9 @@ export function LessonNoteWizard({
         onOpenChange={setShowPrintPreview}
         formData={formData}
         className={
-          classOptions.find((c) => c.id === formData.classGroupId)?.label
+          selectedClass?.label
         }
-        subjectName={
-          classOptions
-            .find((c) => c.id === formData.classGroupId)
-            ?.subjects.find((s) => s.id === formData.subjectId)?.name
-        }
+        subjectName={selectedSubjectName}
         schoolName={schoolName}
         schoolLogo={schoolLogo}
         teacherName={teacherName}

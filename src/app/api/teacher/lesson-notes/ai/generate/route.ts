@@ -1,324 +1,419 @@
 import { z } from "zod";
+import OpenAI from "openai";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
-import { PERMISSIONS } from "@/lib/rbac";
-import OpenAI from "openai";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
-
-// ============================================================================
-// Validation Schema
-// ============================================================================
+import { PERMISSIONS } from "@/lib/rbac";
+import { getTemplateDefinition } from "@/constants/curriculum-lesson-templates";
 
 const GenerateRequestSchema = z.object({
-  // What to generate
   action: z.enum([
-    "full_lesson", // Generate a complete lesson note
-    "expand_section", // Expand a specific section
-    "suggest_activities", // Suggest activities for a phase
-    "improve_content", // Improve existing content
-    "generate_assessment", // Generate assessment questions
-    "generate_objectives", // Generate objectives from topic
+    "refine_context",
+    "suggest_field_values",
+    "suggest_resources",
+    "generate_body",
+    "generate_assessment_section",
+    "expand_section",
+    "suggest_activities",
+    "improve_content",
+    "generate_assessment",
+    "generate_objectives",
   ]),
-
-  // Context
-  templateType: z.enum(["NACCA_3_PHASE", "CLASSIC_JHS", "SIMPLE"]),
+  templateType: z.enum([
+    "NACCA_3_PHASE",
+    "CLASSIC_JHS",
+    "SIMPLE",
+    "CAMBRIDGE_3_PART",
+    "BRITISH_3_PART",
+    "AMERICAN_STANDARDS",
+    "IB_PYP_UNIT_PLANNER",
+    "IB_MYP_UNIT_PLANNER",
+  ]),
   gradeLevel: z.string().max(50).optional(),
   subject: z.string().max(100).optional(),
   topic: z.string().min(1).max(200),
   duration: z.number().min(5).max(180).optional(),
-
-  // Curriculum alignment
   strand: z.string().max(200).optional(),
   subStrand: z.string().max(200).optional(),
   contentStandard: z.string().max(500).optional(),
   indicators: z.array(z.string().max(200)).optional(),
-
-  // Section-specific context for expand/improve
   section: z.string().max(100).optional(),
-  existingContent: z.string().max(4000).optional(),
-
-  // Additional context
+  existingContent: z.string().max(6000).optional(),
   learnerBackground: z.string().max(500).optional(),
   classSize: z.number().min(1).max(100).optional(),
+  teacherIntent: z.string().max(600).optional(),
+  contextSummary: z.string().max(6000).optional(),
+  fieldBlueprint: z
+    .array(
+      z.object({
+        key: z.string().max(120),
+        label: z.string().max(120),
+        type: z.enum([
+          "text",
+          "richtext",
+          "indicator_list",
+          "outcome_list",
+          "tag_list",
+          "select",
+        ]),
+        required: z.boolean().optional(),
+        options: z
+          .array(
+            z.object({
+              value: z.string().max(100),
+              label: z.string().max(120),
+            })
+          )
+          .optional(),
+      })
+    )
+    .max(40)
+    .optional(),
 });
 
 type GenerateRequest = z.infer<typeof GenerateRequestSchema>;
 
-// ============================================================================
-// Prompt Templates
-// ============================================================================
-
 function buildSystemPrompt(templateType: string): string {
-  const basePrompt = `You are an experienced Ghanaian teacher and curriculum specialist helping to create high-quality lesson notes. 
+  const basePrompt = `You are an experienced curriculum-aware teacher helping to create high-quality lesson notes.
 Your responses should:
-- Be aligned with the Ghana Education Service (GES) standards
-- Follow the NaCCA curriculum framework where applicable
-- Use clear, professional language appropriate for educators
-- Be practical and classroom-ready
-- Include specific, actionable activities
+- stay tightly scoped to the requested section only
+- be practical, classroom-ready, and teacher-friendly
+- use clear professional language
+- respect the selected curriculum or lesson-planning template
+- avoid inventing facts when the context is thin
 
 Always respond with valid JSON only, no markdown formatting.`;
 
   if (templateType === "NACCA_3_PHASE") {
     return `${basePrompt}
 
-You are specifically creating content for the NaCCA 3-Phase lesson format:
-- STARTER: Engagement hook, RPK activation, setting expectations (5-10 mins)
-- MAIN: Teacher and learner activities, embedded assessment, differentiation (25-40 mins)
-- PLENARY: Summary, reflection, homework assignment (5-10 mins)`;
+This lesson uses the NaCCA 3-phase structure:
+- starter
+- main activity
+- plenary`;
   }
 
   if (templateType === "CLASSIC_JHS") {
     return `${basePrompt}
 
-You are specifically creating content for the Classic JHS lesson format:
-- General and Specific Objectives (using behavioral verbs)
-- Relevant Previous Knowledge (RPK)
-- Introduction
-- Presentation Steps (teacher and learner activities)
-- Core Points
-- Evaluation Questions
-- Remarks`;
+This lesson uses the Classic JHS structure:
+- objectives
+- relevant previous knowledge
+- introduction
+- presentation steps
+- core points
+- evaluation
+- remarks`;
   }
 
   return basePrompt;
 }
 
-function buildFullLessonPrompt(data: GenerateRequest): string {
-  const { templateType, topic, subject, gradeLevel, duration, strand, subStrand, contentStandard, indicators, learnerBackground, classSize } = data;
+function buildContextBlock(data: GenerateRequest): string {
+  const parts = [
+    `Topic: ${data.topic}`,
+    data.subject && `Subject: ${data.subject}`,
+    data.gradeLevel && `Grade Level: ${data.gradeLevel}`,
+    data.duration && `Duration: ${data.duration} minutes`,
+    data.classSize && `Class Size: ${data.classSize} students`,
+    data.learnerBackground && `Learner Background: ${data.learnerBackground}`,
+    data.strand && `Strand: ${data.strand}`,
+    data.subStrand && `Sub-strand: ${data.subStrand}`,
+    data.contentStandard && `Content Standard: ${data.contentStandard}`,
+    data.indicators?.length && `Indicators: ${data.indicators.join(", ")}`,
+    data.teacherIntent && `Teacher Request: ${data.teacherIntent}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  const contextParts = [
-    `Topic: ${topic}`,
-    subject && `Subject: ${subject}`,
-    gradeLevel && `Grade Level: ${gradeLevel}`,
-    duration && `Duration: ${duration} minutes`,
-    classSize && `Class Size: ${classSize} students`,
-    learnerBackground && `Learner Context: ${learnerBackground}`,
-    strand && `Strand: ${strand}`,
-    subStrand && `Sub-strand: ${subStrand}`,
-    contentStandard && `Content Standard: ${contentStandard}`,
-    indicators?.length && `Indicators: ${indicators.join(", ")}`,
-  ].filter(Boolean).join("\n");
-
-  if (templateType === "NACCA_3_PHASE") {
-    return `Generate a complete NaCCA 3-Phase lesson note for:
-
-${contextParts}
-
-Respond with this JSON structure:
-{
-  "starter": {
-    "activities": "Detailed starter activities (HTML formatted with <p>, <ul>, <li>)",
-    "rpkPrompt": "Questions to activate prior knowledge",
-    "engagementHook": "Engaging opening activity or question",
-    "timeMins": 10
-  },
-  "main": {
-    "teacherActivities": "Detailed teacher activities (HTML formatted)",
-    "learnerActivities": "Detailed learner activities (HTML formatted)",
-    "resourcesUsed": "List of resources/TLMs to use",
-    "embeddedAssessment": "How to check understanding during lesson",
-    "differentiation": "Strategies for different learner levels",
-    "groupingStrategy": "Suggested grouping approach",
-    "timeMins": 30
-  },
-  "plenary": {
-    "summaryPoints": "Key points to summarize (HTML formatted)",
-    "learnerReflection": "Questions for learner reflection",
-    "teacherReflection": "Notes for teacher reflection",
-    "exitTicket": "Exit ticket question or activity",
-    "homework": "Homework assignment",
-    "timeMins": 10
-  },
-  "suggestedTLMs": ["List of teaching/learning materials"],
-  "suggestedObjectives": ["List of learning objectives/outcomes"]
-}`;
+  if (!data.contextSummary) {
+    return parts;
   }
 
-  if (templateType === "CLASSIC_JHS") {
-    return `Generate a complete Classic JHS lesson note for:
+  return `${parts}
 
-${contextParts}
+Earlier completed lesson context:
+${data.contextSummary}`;
+}
 
-Respond with this JSON structure:
+function buildRefineContextPrompt(data: GenerateRequest): string {
+  return `Refine the context details for this lesson note without generating curriculum, resources, body, or assessment content.
+
+${buildContextBlock(data)}
+
+Respond with:
 {
-  "objectives": {
-    "general": "General objective using behavioral verb",
-    "specific": ["At least 3 specific objectives with behavioral verbs"]
-  },
-  "rpk": "Relevant previous knowledge to connect to (HTML formatted)",
-  "introduction": "How to introduce the lesson (HTML formatted)",
-  "presentationSteps": [
+  "topic": "A clearer, teacher-friendly topic title",
+  "reference": "Optional reference or textbook suggestion",
+  "durationMinutes": 40,
+  "rationale": "Short explanation"
+}`;
+}
+
+function buildSuggestFieldValuesPrompt(data: GenerateRequest): string {
+  const fields = data.fieldBlueprint || [];
+  const fieldSpec = fields
+    .map((field) => {
+      const options =
+        field.type === "select" && field.options?.length
+          ? ` Allowed values: ${field.options.map((opt) => opt.value).join(", ")}.`
+          : "";
+      return `- ${field.key}: ${field.label} (${field.type})${field.required ? " [required]" : ""}.${options}`;
+    })
+    .join("\n");
+
+  return `Help complete the "${data.section || "current"}" section of a lesson note.
+
+${buildContextBlock(data)}
+
+Fill only these fields:
+${fieldSpec}
+
+Respond with:
+{
+  "fieldSuggestions": {
+    "fieldKey": "value"
+  }
+}
+
+Rules:
+- Only include keys from the provided list.
+- For "text" fields return a plain string.
+- For "richtext" fields return HTML using <p>, <ul>, and <li> where useful.
+- For "outcome_list" and "tag_list" return arrays of strings.
+- For "indicator_list" return an array of objects with "refNo" and "text".
+- For "select" return one allowed value exactly.`;
+}
+
+function buildSuggestResourcesPrompt(data: GenerateRequest): string {
+  return `Suggest realistic teaching materials and resource ideas for this lesson note.
+
+${buildContextBlock(data)}
+
+Current resources snapshot:
+${data.existingContent || "None yet"}
+
+Respond with:
+{
+  "tlms": ["Teaching and learning material"],
+  "resources": [
     {
-      "stepTitle": "Step name (e.g., Step 1: Introduction to concept)",
-      "teacherActivity": "What the teacher does (HTML formatted)",
-      "learnerActivity": "What learners do (HTML formatted)",
-      "boardWork": "What to write on the board",
-      "keyQuestions": ["Questions to ask during this step"],
-      "timeMins": 10
+      "title": "Resource title",
+      "type": "link|pdf|video|image|doc|slides|other"
     }
-  ],
-  "corePoints": ["Key points learners should remember"],
-  "evaluation": {
-    "questions": ["At least 5 evaluation questions"],
-    "answers": ["Corresponding answers"],
-    "markingNotes": "Notes for marking/grading"
-  },
-  "remarks": "Placeholder for post-lesson remarks",
-  "suggestedTLMs": ["List of teaching/learning materials"]
+  ]
+}
+
+Rules:
+- Keep the suggestions classroom-realistic.
+- Do not invent external URLs.
+- Limit yourself to resources and materials only.`;
+}
+
+function buildBodyPrompt(data: GenerateRequest): string {
+  const contextBlock = buildContextBlock(data);
+  const currentDraft = data.existingContent
+    ? `Current body draft summary:\n${data.existingContent}\n\n`
+    : "";
+
+  if (data.templateType === "CLASSIC_JHS") {
+    return `Generate only the lesson BODY for this Classic JHS note.
+
+${contextBlock}
+
+${currentDraft}Respond with:
+{
+  "body": {
+    "objectives": {
+      "general": "General objective",
+      "specific": ["Specific objective"]
+    },
+    "rpk": "Relevant previous knowledge (HTML formatted)",
+    "introduction": "Lesson introduction (HTML formatted)",
+    "presentationSteps": [
+      {
+        "stepTitle": "Step title",
+        "teacherActivity": "Teacher activity (HTML formatted)",
+        "learnerActivity": "Learner activity (HTML formatted)",
+        "boardWork": "Board work",
+        "keyQuestions": ["Question"],
+        "timeMins": 10
+      }
+    ],
+    "corePoints": ["Key point"],
+    "evaluation": {
+      "questions": ["Question"],
+      "answers": ["Answer"],
+      "markingNotes": "Marking notes"
+    },
+    "remarks": "Optional remarks placeholder"
+  }
 }`;
   }
 
-  // Simple template
-  return `Generate a simple lesson note for:
+  if (data.templateType === "SIMPLE") {
+    return `Generate only the lesson BODY for this quick note.
 
-${contextParts}
+${contextBlock}
 
-Respond with this JSON structure:
+${currentDraft}Respond with:
 {
-  "objectives": "Clear learning objectives (HTML formatted with list)",
-  "content": "Lesson content with key points, activities, and assessment (HTML formatted)",
-  "suggestedTLMs": ["List of teaching/learning materials"]
+  "body": {
+    "objectives": "Learning objectives (HTML formatted)",
+    "content": "Lesson content and activities (HTML formatted)"
+  }
+}`;
+  }
+
+  const templateDef = getTemplateDefinition(data.templateType);
+  const phases = templateDef?.phases || [];
+  const phaseKeys = ["starter", "main", "plenary"] as const;
+  const phaseSkeleton = phases
+    .slice(0, phaseKeys.length)
+    .map((phase, index) => {
+      const fields = phase.fields
+        .map((field) => {
+          if (field.type === "number") {
+            return `      "${field.key}": ${phase.defaultTimeMins}`;
+          }
+          return `      "${field.key}": "${field.label}"`;
+        })
+        .join(",\n");
+      return `    "${phaseKeys[index]}": {\n${fields},\n      "timeMins": ${phase.defaultTimeMins}\n    }`;
+    })
+    .join(",\n");
+
+  return `Generate only the lesson BODY for this note.
+
+${contextBlock}
+
+${currentDraft}Respond with:
+{
+  "body": {
+${phaseSkeleton}
+  }
+}
+
+Rules:
+- Use HTML for rich-text fields.
+- Keep the response limited to the body structure only.`;
+}
+
+function buildAssessmentSectionPrompt(data: GenerateRequest): string {
+  return `Generate only the assessment and reflection fields for this lesson note.
+
+${buildContextBlock(data)}
+
+Current assessment draft:
+${data.existingContent || "None yet"}
+
+Respond with:
+{
+  "inClassChecks": ["Short formative check"],
+  "exitTicket": "Short exit ticket prompt",
+  "homework": "Homework or follow-up task (HTML formatted)",
+  "learnerReflection": "Learner reflection prompt (HTML formatted)",
+  "teacherReflection": "Teacher reflection prompt (HTML formatted)",
+  "nextLessonLink": "How this lesson connects to the next one"
 }`;
 }
 
 function buildExpandSectionPrompt(data: GenerateRequest): string {
-  const { section, existingContent, topic, subject, templateType } = data;
+  return `Expand and improve the following section of a lesson note.
 
-  return `Expand and improve the following section of a lesson note:
-
-Topic: ${topic}
-Subject: ${subject || "Not specified"}
-Template: ${templateType}
-Section: ${section}
+${buildContextBlock(data)}
+Section: ${data.section || "General"}
 
 Current content:
-${existingContent || "(Empty - generate new content)"}
-
-Provide an expanded, more detailed version. Use HTML formatting (<p>, <ul>, <li>, <strong>, <em>) for structure.
+${data.existingContent || "(Empty - generate fresh content)"}
 
 Respond with:
 {
-  "expandedContent": "The expanded content (HTML formatted)",
-  "suggestions": ["Optional improvement suggestions"]
+  "expandedContent": "Expanded content (HTML formatted)",
+  "suggestions": ["Optional improvement suggestion"]
 }`;
 }
 
 function buildSuggestActivitiesPrompt(data: GenerateRequest): string {
-  const { section, topic, subject, gradeLevel, classSize, templateType } = data;
+  return `Suggest engaging classroom activities for this lesson note.
 
-  return `Suggest engaging activities for a ${templateType} lesson:
-
-Topic: ${topic}
-Subject: ${subject || "Not specified"}
-Grade: ${gradeLevel || "Not specified"}
-Class Size: ${classSize || "Average"}
-Phase/Section: ${section || "General"}
-
-Provide practical, culturally appropriate activities for Ghanaian classrooms.
+${buildContextBlock(data)}
+Section: ${data.section || "General"}
 
 Respond with:
 {
   "activities": [
     {
       "name": "Activity name",
-      "description": "How to conduct the activity",
-      "duration": "Estimated time (e.g., '5-10 minutes')",
-      "materials": ["Required materials"],
-      "groupSize": "Individual/Pairs/Small groups/Whole class",
-      "objectives": "What this activity achieves"
+      "description": "How to run it",
+      "duration": "Estimated time",
+      "materials": ["Material"],
+      "groupSize": "Whole class|Pairs|Small groups|Individual",
+      "objectives": "Why this activity helps"
     }
   ]
 }`;
 }
 
 function buildGenerateAssessmentPrompt(data: GenerateRequest): string {
-  const { topic, subject, gradeLevel, templateType, existingContent } = data;
+  return `Generate assessment items for this lesson.
 
-  return `Generate assessment items for a lesson on:
+${buildContextBlock(data)}
 
-Topic: ${topic}
-Subject: ${subject || "Not specified"}
-Grade: ${gradeLevel || "Not specified"}
-Template: ${templateType}
-
-${existingContent ? `Lesson content summary:\n${existingContent}` : ""}
-
-Provide a mix of question types appropriate for Ghanaian education.
+Lesson content summary:
+${data.existingContent || "No summary provided"}
 
 Respond with:
 {
-  "exitTicket": "Quick end-of-lesson check question",
+  "exitTicket": "Quick end-of-lesson check",
   "evaluationQuestions": [
     {
       "question": "The question",
       "type": "multiple-choice|short-answer|true-false|fill-in-blank",
-      "answer": "The correct answer",
+      "answer": "Correct answer",
       "difficulty": "easy|medium|hard"
     }
   ],
-  "homeworkSuggestions": [
-    "Suggested homework tasks"
-  ],
-  "embeddedChecks": [
-    "Questions to ask during the lesson"
-  ]
+  "homeworkSuggestions": ["Homework suggestion"],
+  "embeddedChecks": ["Question to ask during the lesson"]
 }`;
 }
 
 function buildGenerateObjectivesPrompt(data: GenerateRequest): string {
-  const { topic, subject, gradeLevel, strand, subStrand, contentStandard } = data;
+  return `Generate learning objectives for this lesson.
 
-  return `Generate learning objectives for:
-
-Topic: ${topic}
-Subject: ${subject || "Not specified"}
-Grade: ${gradeLevel || "Not specified"}
-${strand ? `Strand: ${strand}` : ""}
-${subStrand ? `Sub-strand: ${subStrand}` : ""}
-${contentStandard ? `Content Standard: ${contentStandard}` : ""}
-
-Create objectives using Bloom's taxonomy action verbs.
+${buildContextBlock(data)}
 
 Respond with:
 {
   "generalObjective": "One overarching objective",
   "specificObjectives": [
-    "3-5 specific, measurable objectives using action verbs"
+    "3-5 measurable specific objectives"
   ],
   "learningOutcomes": [
-    "Expected learning outcomes for students"
+    "Expected learning outcome"
   ]
 }`;
 }
 
 function buildImproveContentPrompt(data: GenerateRequest): string {
-  const { existingContent, section, templateType, topic } = data;
+  return `Improve the following lesson content.
 
-  return `Improve the following lesson content:
-
-Topic: ${topic}
-Template: ${templateType}
-Section: ${section || "General"}
+${buildContextBlock(data)}
+Section: ${data.section || "General"}
 
 Current content:
-${existingContent || "(No content provided)"}
-
-Improve clarity, add detail, ensure pedagogical soundness, and format properly.
+${data.existingContent || "(No content provided)"}
 
 Respond with:
 {
-  "improvedContent": "The improved content (HTML formatted)",
-  "changes": ["List of improvements made"],
-  "suggestions": ["Additional suggestions for the author"]
+  "improvedContent": "Improved content (HTML formatted)",
+  "changes": ["Improvement made"],
+  "suggestions": ["Optional suggestion"]
 }`;
 }
-
-// ============================================================================
-// POST Handler
-// ============================================================================
 
 export async function POST(req: Request) {
   try {
@@ -330,12 +425,10 @@ export async function POST(req: Request) {
       message: "The monthly AI generation limit has been reached for this school.",
     });
 
-    // Check permission
     if (!can(context.permissions, PERMISSIONS.journalWrite)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    // Check OpenAI API key
     if (!process.env.OPENAI_API_KEY) {
       return Response.json(
         { success: false, error: "AI service not configured" },
@@ -343,11 +436,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Parse and validate request
     const body = await req.json().catch(() => null);
     const parsed = GenerateRequestSchema.safeParse(body);
     if (!parsed.success) {
-      const errorMessages = parsed.error.issues?.map((issue) => issue.message).join(", ") || "Invalid data";
+      const errorMessages =
+        parsed.error.issues?.map((issue) => issue.message).join(", ") ||
+        "Invalid data";
       return Response.json(
         { success: false, error: `Validation failed: ${errorMessages}` },
         { status: 400 }
@@ -355,14 +449,24 @@ export async function POST(req: Request) {
     }
 
     const data = parsed.data;
-
-    // Build prompts based on action
     const systemPrompt = buildSystemPrompt(data.templateType);
     let userPrompt: string;
 
     switch (data.action) {
-      case "full_lesson":
-        userPrompt = buildFullLessonPrompt(data);
+      case "refine_context":
+        userPrompt = buildRefineContextPrompt(data);
+        break;
+      case "suggest_field_values":
+        userPrompt = buildSuggestFieldValuesPrompt(data);
+        break;
+      case "suggest_resources":
+        userPrompt = buildSuggestResourcesPrompt(data);
+        break;
+      case "generate_body":
+        userPrompt = buildBodyPrompt(data);
+        break;
+      case "generate_assessment_section":
+        userPrompt = buildAssessmentSectionPrompt(data);
         break;
       case "expand_section":
         userPrompt = buildExpandSectionPrompt(data);
@@ -386,7 +490,6 @@ export async function POST(req: Request) {
         );
     }
 
-    // Call OpenAI
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
@@ -407,12 +510,10 @@ export async function POST(req: Request) {
       throw new Error("No response from AI service");
     }
 
-    // Parse JSON response
     let aiResponse;
     try {
       aiResponse = JSON.parse(responseText);
     } catch {
-      // Fallback: try to extract JSON from markdown if present
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         aiResponse = JSON.parse(jsonMatch[0]);

@@ -9,15 +9,23 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { User } from "@/models/User";
+import { LessonNoteReviewComment, type ILessonNoteReviewComment } from "@/models/LessonNoteReviewComment";
+import { normalizeLessonNoteRequestBody } from "@/lib/lesson-notes/normalize-payload";
+import {
+  countOpenReviewComments,
+  formatUserDisplayName,
+  getLessonNoteReviewSections,
+} from "@/lib/lesson-notes/review";
 
 // ============================================================================
 // Zod Schemas (same as in route.ts, but all optional for PATCH)
 // ============================================================================
 
 const ResourceSchema = z.object({
-  title: z.string().min(1).max(200),
-  url: z.string().min(1).max(1000),
-  type: z.string().max(40).optional().nullable(),
+  title: z.string().trim().min(1).max(200),
+  url: z.string().trim().max(1000).optional().default(""),
+  type: z.string().trim().max(40).optional().nullable(),
 });
 
 const CurriculumIndicatorSchema = z.object({
@@ -200,10 +208,15 @@ function normalizeWeekOf(date: Date) {
 function formatLessonNoteResponse(
   entry: ILessonNote,
   className: string,
-  subjectName: string | null
+  subjectName: string | null,
+  teacherName: string | null,
+  reviewComments: Array<Record<string, unknown>> = []
 ) {
   return {
     id: String(entry._id),
+    schoolId: String(entry.schoolId),
+    teacherId: String(entry.teacherId),
+    teacherName,
     classGroupId: String(entry.classGroupId),
     className,
     subjectId: entry.subjectId ? String(entry.subjectId) : null,
@@ -261,7 +274,44 @@ function formatLessonNoteResponse(
     // Timestamps
     createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
     updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
+    reviewComments,
+    openCommentCount: countOpenReviewComments(reviewComments as never[]),
   };
+}
+
+function serializeReviewComments(
+  comments: ILessonNoteReviewComment[],
+  userMap: Map<
+    string,
+    { name?: string | null; firstName?: string | null; lastName?: string | null; email?: string | null }
+  >
+) {
+  return comments.map((comment) => ({
+    id: String(comment._id),
+    lessonNoteId: String(comment.lessonNoteId),
+    sectionKey: comment.sectionKey,
+    sectionLabel: comment.sectionLabel,
+    commentType: comment.commentType,
+    comment: comment.comment,
+    status: comment.status,
+    authorId: String(comment.authorId),
+    authorName: formatUserDisplayName(
+      userMap.get(String(comment.authorId)),
+      "Reviewer"
+    ),
+    addressedAt: comment.addressedAt ? new Date(comment.addressedAt).toISOString() : null,
+    addressedBy: comment.addressedBy ? String(comment.addressedBy) : null,
+    addressedByName: comment.addressedBy
+      ? formatUserDisplayName(userMap.get(String(comment.addressedBy)), "Teacher")
+      : null,
+    resolvedAt: comment.resolvedAt ? new Date(comment.resolvedAt).toISOString() : null,
+    resolvedBy: comment.resolvedBy ? String(comment.resolvedBy) : null,
+    resolvedByName: comment.resolvedBy
+      ? formatUserDisplayName(userMap.get(String(comment.resolvedBy)), "Reviewer")
+      : null,
+    createdAt: new Date(comment.createdAt).toISOString(),
+    updatedAt: new Date(comment.updatedAt).toISOString(),
+  }));
 }
 
 // ============================================================================
@@ -317,9 +367,62 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       subjectName = subject?.name || null;
     }
 
+    const [comments, teacherUser] = await Promise.all([
+      LessonNoteReviewComment.find({
+        schoolId: context.schoolId,
+        lessonNoteId: noteId,
+      })
+        .sort({ createdAt: -1 })
+        .lean() as Promise<ILessonNoteReviewComment[]>,
+      User.findById(context.userId)
+        .select("_id name firstName lastName email")
+        .lean(),
+    ]);
+
+    const commentUserIds = Array.from(
+      new Set(
+        [
+          String(context.userId),
+          ...comments.map((comment) => String(comment.authorId)),
+          ...comments
+            .map((comment) => comment.addressedBy)
+            .filter(Boolean)
+            .map((value) => String(value)),
+          ...comments
+            .map((comment) => comment.resolvedBy)
+            .filter(Boolean)
+            .map((value) => String(value)),
+        ]
+      )
+    ).map((value) => new mongoose.Types.ObjectId(value));
+
+    const commentUsers = commentUserIds.length
+      ? await User.find({ _id: { $in: commentUserIds } })
+          .select("_id name firstName lastName email")
+          .lean()
+      : [];
+
+    const userMap = new Map(
+      commentUsers.map(
+        (user: {
+          _id: mongoose.Types.ObjectId;
+          name?: string;
+          firstName?: string;
+          lastName?: string;
+          email?: string;
+        }) => [String(user._id), user]
+      )
+    );
+
     return Response.json({
       success: true,
-      data: formatLessonNoteResponse(entry, className, subjectName),
+      data: formatLessonNoteResponse(
+        entry,
+        className,
+        subjectName,
+        formatUserDisplayName(teacherUser, "Teacher"),
+        serializeReviewComments(comments, userMap)
+      ),
     });
   } catch (e: unknown) {
     if (e instanceof Response) return e;
@@ -348,7 +451,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return Response.json({ success: false, error: "Invalid lesson note ID" }, { status: 400 });
     }
 
-    const body = await req.json().catch(() => null);
+    const body = normalizeLessonNoteRequestBody(await req.json().catch(() => null));
     const parsed = UpdateLessonNoteSchema.safeParse(body);
     if (!parsed.success) {
       const errorMessages = parsed.error.issues?.map((issue) => issue.message).join(", ") || "Invalid data";
@@ -363,8 +466,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       schoolId: context.schoolId,
       teacherId: context.teacherId,
     })
-      .select("classGroupId subjectId status")
-      .lean() as Pick<ILessonNote, "classGroupId" | "subjectId" | "status"> | null;
+      .select("classGroupId subjectId status templateType")
+      .lean() as Pick<ILessonNote, "classGroupId" | "subjectId" | "status" | "templateType"> | null;
 
     if (!existing) {
       return Response.json({ success: false, error: "Lesson note not found" }, { status: 404 });
@@ -380,6 +483,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const updateData: Record<string, unknown> = {};
     const unsetData: Record<string, unknown> = {};
+    const touchedSectionKeys = new Set<string>();
 
     let classGroupObjId = existing.classGroupId as mongoose.Types.ObjectId;
     if (parsed.data.classGroupId) {
@@ -437,10 +541,48 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         updateData.durationMinutes = parsed.data.durationMinutes;
       }
     }
-    if (parsed.data.references) updateData.references = parsed.data.references;
-    if (parsed.data.tlms) updateData.tlms = parsed.data.tlms;
-    if (parsed.data.resources) updateData.resources = parsed.data.resources;
-    if (parsed.data.tags) updateData.tags = parsed.data.tags;
+    if ("references" in parsed.data) updateData.references = parsed.data.references;
+    if ("tlms" in parsed.data) updateData.tlms = parsed.data.tlms;
+    if ("resources" in parsed.data) updateData.resources = parsed.data.resources;
+    if ("tags" in parsed.data) updateData.tags = parsed.data.tags;
+
+    if (
+      parsed.data.classGroupId ||
+      "subjectId" in parsed.data ||
+      parsed.data.templateType ||
+      parsed.data.curriculumCode !== undefined ||
+      parsed.data.topic ||
+      parsed.data.durationMinutes !== undefined ||
+      "weekOf" in parsed.data ||
+      "date" in parsed.data ||
+      "references" in parsed.data
+    ) {
+      touchedSectionKeys.add("context");
+    }
+    if ("curriculum" in parsed.data || parsed.data.curriculumMetadata !== undefined) {
+      touchedSectionKeys.add("curriculum");
+    }
+    if ("tlms" in parsed.data || "resources" in parsed.data) {
+      touchedSectionKeys.add("resources");
+    }
+    if ("body" in parsed.data) {
+      touchedSectionKeys.add("body");
+    }
+    if ("assessment" in parsed.data) {
+      touchedSectionKeys.add("assessment");
+    }
+    if ("reflections" in parsed.data) {
+      touchedSectionKeys.add("reflections");
+    }
+    if (parsed.data.unitPlannerData !== undefined) {
+      for (const section of getLessonNoteReviewSections({
+        templateType: existing.templateType || "SIMPLE",
+      })) {
+        if (!["context", "curriculum", "resources", "body", "assessment", "reflections"].includes(section.key)) {
+          touchedSectionKeys.add(section.key);
+        }
+      }
+    }
 
     // Week of
     if (parsed.data.weekOf) {
@@ -544,6 +686,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     await LessonNote.updateOne({ _id: noteId }, updatePayload);
+
+    if (touchedSectionKeys.size > 0) {
+      await LessonNoteReviewComment.updateMany(
+        {
+          schoolId: context.schoolId,
+          lessonNoteId: noteId,
+          sectionKey: { $in: Array.from(touchedSectionKeys) },
+          status: "open",
+        },
+        {
+          $set: {
+            status: "addressed",
+            addressedAt: new Date(),
+            addressedBy: context.userId,
+          },
+        }
+      );
+    }
 
     return Response.json({ success: true });
   } catch (e: unknown) {

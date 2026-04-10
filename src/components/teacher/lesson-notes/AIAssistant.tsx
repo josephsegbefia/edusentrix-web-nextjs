@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Sparkles,
   Wand2,
@@ -12,20 +12,12 @@ import {
   Check,
   RefreshCw,
   Lightbulb,
-  BookOpen,
   ClipboardList,
   Target,
   Maximize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,19 +29,16 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/useToast";
 import {
   useAIGenerate,
-  useGenerateFullLesson,
   type AIGenerateRequest,
+  type AIGenerateResponse,
   type NaCCA3PhaseGenerated,
   type ClassicJHSGenerated,
   type SimpleGenerated,
+  type AIFieldBlueprint,
 } from "@/hooks/teacher/useTeacherAIGenerate";
-import type { LessonNoteFormData, LessonNoteTemplateType } from "@/types/lesson-notes";
+import type { LessonNoteTemplateType } from "@/types/lesson-notes";
 
-// ============================================================================
-// Types
-// ============================================================================
-
-type AIContext = {
+export type LessonNoteAIContext = {
   templateType: LessonNoteTemplateType;
   topic: string;
   subject?: string;
@@ -59,43 +48,60 @@ type AIContext = {
   subStrand?: string;
   contentStandard?: string;
   indicators?: string[];
+  contextSummary?: string;
 };
 
-// ============================================================================
-// AIGenerateButton - Main button to trigger AI generation
-// ============================================================================
+type ScopedSectionAction =
+  | "refine_context"
+  | "suggest_field_values"
+  | "suggest_resources"
+  | "generate_body"
+  | "generate_assessment_section";
 
-type AIGenerateButtonProps = {
-  context: AIContext;
-  onGenerated: (data: NaCCA3PhaseGenerated | ClassicJHSGenerated | SimpleGenerated) => void;
+type AISectionAssistantProps = {
+  context: LessonNoteAIContext;
+  action: ScopedSectionAction;
+  section: string;
+  title?: string;
+  description?: string;
+  buttonLabel?: string;
+  existingContent?: string;
+  fieldBlueprint?: AIFieldBlueprint[];
+  promptPlaceholder?: string;
   disabled?: boolean;
   className?: string;
-  variant?: "default" | "compact";
+  onGenerated: (data: AIGenerateResponse) => void;
 };
 
-export function AIGenerateButton({
+export function AISectionAssistant({
   context,
-  onGenerated,
+  action,
+  section,
+  title = "AI Support",
+  description = "Ask for focused help on this section only.",
+  buttonLabel = "Generate Suggestions",
+  existingContent,
+  fieldBlueprint,
+  promptPlaceholder = "What do you want help with on this section?",
   disabled,
   className,
-  variant = "default",
-}: AIGenerateButtonProps) {
+  onGenerated,
+}: AISectionAssistantProps) {
   const toast = useToast();
-  const [showConfirm, setShowConfirm] = React.useState(false);
-  const generateMutation = useGenerateFullLesson();
+  const aiMutation = useAIGenerate();
+  const [teacherIntent, setTeacherIntent] = React.useState("");
 
   const handleGenerate = async () => {
-    if (!context.topic) {
+    if (!context.topic.trim()) {
       toast.warning("Topic Required", {
-        description: "Please enter a topic before generating content.",
+        description: "Add at least a rough topic before asking AI for help.",
       });
       return;
     }
 
-    setShowConfirm(false);
-
     try {
-      const result = await generateMutation.generate({
+      const result = await aiMutation.mutateAsync({
+        action,
         templateType: context.templateType,
         topic: context.topic,
         subject: context.subject,
@@ -105,116 +111,81 @@ export function AIGenerateButton({
         subStrand: context.subStrand,
         contentStandard: context.contentStandard,
         indicators: context.indicators,
+        section,
+        existingContent,
+        teacherIntent: teacherIntent.trim() || undefined,
+        contextSummary: context.contextSummary,
+        fieldBlueprint,
       });
 
-      if (result.data) {
-        onGenerated(result.data as NaCCA3PhaseGenerated | ClassicJHSGenerated | SimpleGenerated);
-        toast.success("Content Generated", {
-          description: "AI has generated lesson content. Review and adjust as needed.",
-        });
+      if (!result.data) {
+        return;
       }
+
+      onGenerated(result.data);
+      setTeacherIntent("");
+      toast.success("AI Suggestions Applied", {
+        description: `Updated ${section.toLowerCase()} only. Review and adjust as needed.`,
+      });
     } catch (error) {
       toast.error("Generation Failed", {
-        description: error instanceof Error ? error.message : "Failed to generate content",
+        description: error instanceof Error ? error.message : "Failed to generate suggestions",
       });
     }
   };
 
   return (
-    <>
-      <Button
-        type="button"
-        onClick={() => setShowConfirm(true)}
-        disabled={disabled || generateMutation.isPending || !context.topic}
-        className={cn(
-          "bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30",
-          "text-violet-100 hover:from-violet-500/40 hover:to-fuchsia-500/40",
-          "border border-violet-400/30",
-          className
-        )}
-      >
-        {generateMutation.isPending ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Sparkles className="mr-2 h-4 w-4" />
-        )}
-        {variant === "compact" ? "AI" : "Generate with AI"}
-      </Button>
-
-      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent className="sm:max-w-md bg-[#1a1d24] border-white/10">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-white">
-              <Sparkles className="h-5 w-5 text-violet-400" />
-              Generate Lesson Content
-            </DialogTitle>
-            <DialogDescription className="text-white/60">
-              AI will generate a complete lesson note based on your topic and template.
-              You can review and edit the content afterwards.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 rounded-lg bg-white/5 p-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-white/60">Topic</span>
-              <span className="text-white font-medium">{context.topic || "Not set"}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-white/60">Template</span>
-              <span className="text-white font-medium">
-                {context.templateType === "NACCA_3_PHASE"
-                  ? "NaCCA 3-Phase"
-                  : context.templateType === "CLASSIC_JHS"
-                  ? "Classic JHS"
-                  : "Simple"}
-              </span>
-            </div>
-            {context.subject && (
-              <div className="flex justify-between text-sm">
-                <span className="text-white/60">Subject</span>
-                <span className="text-white">{context.subject}</span>
-              </div>
-            )}
+    <div
+      className={cn(
+        "rounded-2xl border border-violet-500/20 bg-violet-500/5 p-4 space-y-3",
+        className
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-violet-100">
+            <Sparkles className="h-4 w-4 text-violet-300" />
+            <h3 className="text-sm font-semibold">{title}</h3>
           </div>
+          <p className="text-xs text-white/60">{description}</p>
+        </div>
+        <div className="rounded-full border border-violet-400/20 bg-violet-500/10 px-2.5 py-1 text-[11px] font-medium text-violet-200">
+          {section}
+        </div>
+      </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setShowConfirm(false)}
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleGenerate}
-              disabled={generateMutation.isPending}
-              className="bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 text-violet-100"
-            >
-              {generateMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Generate
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+      <Textarea
+        value={teacherIntent}
+        onChange={(event) => setTeacherIntent(event.target.value)}
+        placeholder={promptPlaceholder}
+        className="min-h-24 border-violet-400/20 bg-black/20 text-white placeholder:text-white/35 focus-visible:border-violet-400/40 focus-visible:ring-violet-400/20"
+      />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1 text-xs text-white/45">
+          <p>AI reads earlier completed tabs for context and only writes to this section.</p>
+          {!context.topic.trim() && <p>Add a topic first so the suggestions stay on target.</p>}
+        </div>
+        <Button
+          type="button"
+          onClick={handleGenerate}
+          disabled={disabled || aiMutation.isPending}
+          className="bg-violet-500/20 text-violet-100 hover:bg-violet-500/30"
+        >
+          {aiMutation.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-4 w-4" />
+          )}
+          {buttonLabel}
+        </Button>
+      </div>
+    </div>
   );
 }
 
-// ============================================================================
-// AIQuickActions - Dropdown menu with AI quick actions
-// ============================================================================
-
 type AIQuickActionsProps = {
-  context: AIContext;
+  context: LessonNoteAIContext;
   section?: string;
   existingContent?: string;
   onContentGenerated?: (content: string) => void;
@@ -258,6 +229,7 @@ export function AIQuickActions({
         subStrand: context.subStrand,
         contentStandard: context.contentStandard,
         indicators: context.indicators,
+        contextSummary: context.contextSummary,
       });
 
       if (!result.data) return;
@@ -373,12 +345,8 @@ export function AIQuickActions({
   );
 }
 
-// ============================================================================
-// AIExpandButton - Inline button to expand content
-// ============================================================================
-
 type AIExpandButtonProps = {
-  context: AIContext;
+  context: LessonNoteAIContext;
   section: string;
   existingContent: string;
   onExpanded: (content: string) => void;
@@ -407,6 +375,7 @@ export function AIExpandButton({
         existingContent,
         subject: context.subject,
         gradeLevel: context.gradeLevel,
+        contextSummary: context.contextSummary,
       });
 
       if (result.data && "expandedContent" in result.data) {
@@ -444,10 +413,6 @@ export function AIExpandButton({
   );
 }
 
-// ============================================================================
-// AIGeneratedPreview - Preview of AI generated content with copy/apply
-// ============================================================================
-
 type AIGeneratedPreviewProps = {
   content: string;
   onApply: () => void;
@@ -468,21 +433,20 @@ export function AIGeneratedPreview({
 
   const handleCopy = async () => {
     try {
-      // Strip HTML tags for plain text copy
       const plainText = content.replace(/<[^>]*>/g, "");
       await navigator.clipboard.writeText(plainText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
+      // Ignore clipboard failures.
     }
   };
 
   const preview = expanded
     ? content
     : content.length > 200
-    ? content.slice(0, 200) + "..."
-    : content;
+      ? `${content.slice(0, 200)}...`
+      : content;
 
   return (
     <motion.div
@@ -576,10 +540,6 @@ export function AIGeneratedPreview({
   );
 }
 
-// ============================================================================
-// AISuggestedActivities - Display suggested activities
-// ============================================================================
-
 type Activity = {
   name: string;
   description: string;
@@ -661,3 +621,8 @@ export function AISuggestedActivities({
     </motion.div>
   );
 }
+
+export type GeneratedLessonBody =
+  | NaCCA3PhaseGenerated
+  | ClassicJHSGenerated
+  | SimpleGenerated;

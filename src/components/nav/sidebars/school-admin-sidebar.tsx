@@ -131,6 +131,11 @@ const navSections: NavSection[] = [
         icon: BookOpen,
       },
       {
+        label: "Lesson Notes",
+        href: "/admin/lesson-notes",
+        icon: FileText,
+      },
+      {
         label: "Curriculum",
         href: "/admin/settings/curriculum",
         icon: GraduationCap,

@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent, verifyGuardianAccess } from "@/lib/auth/requireParent";
 import { toMajorUnits } from "@/lib/fees/money";
+import { getPaystackKeyMode } from "@/lib/paystack";
 import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
@@ -108,6 +109,8 @@ export async function GET(
       .select("bank billing")
       .lean<SchoolPaymentRow | null>();
     const canPayOnline = school ? isSchoolPaymentReady(school) : false;
+    const paystackKeyMode = getPaystackKeyMode();
+    const onlinePaymentsReady = canPayOnline;
 
     // Get overall summary
     const overallSummary = await Invoice.aggregate<InvoiceSummaryRow>([
@@ -237,6 +240,8 @@ export async function GET(
               periodName: currentPeriod.name,
             }
           : null,
+        paystackKeyMode,
+        onlinePaymentsReady,
       },
     });
   } catch (error) {

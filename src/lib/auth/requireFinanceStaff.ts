@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
+import { gateFinanceStaffRoles } from "@/lib/auth/role-gates";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -52,10 +53,9 @@ export async function requireFinanceStaff(): Promise<FinanceStaffContext> {
   }
 
   const roles = membership?.roles || [];
-  const allowed = roles.includes("school_admin") || roles.includes("bursar");
-
-  if (!allowed) {
-    throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const financeGate = gateFinanceStaffRoles(roles);
+  if (!financeGate.ok) {
+    throw NextResponse.json({ error: financeGate.error }, { status: financeGate.status });
   }
 
   if (!user.schoolId) {

@@ -72,6 +72,7 @@ import { ShimmerHighlight } from "@/components/onboarding/ShimmerHighlight";
 import { OnboardingProgressIndicator } from "@/components/onboarding/OnboardingProgressIndicator";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { PeriodWarningBanner } from "@/components/dashboard/PeriodWarningBanner";
+import { SchoolShsContextHint } from "@/components/dashboard/SchoolShsContextHint";
 import { PeriodExpiryModal } from "@/components/dashboard/PeriodExpiryModal";
 import { usePeriodStatus } from "@/hooks/admin/usePeriodStatus";
 import { useAcademicPeriodOverview } from "@/hooks/admin/useAcademicPeriodOverview";
@@ -82,6 +83,7 @@ import { useFinancialTransactions, useFinancialOverview } from "@/hooks/admin/us
 import { useReportsSummary, useReportsCharts } from "@/hooks/admin/useReports";
 import { useStudentStats } from "@/hooks/admin/useStudentStats";
 import { useTeacherStats } from "@/hooks/admin/useTeacherStats";
+import { useSchool } from "@/hooks/admin/useSchool";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -475,6 +477,13 @@ export default function SchoolAdminOverviewPage() {
   const financialOverviewQuery = useFinancialOverview({ range: "this_month" });
   const studentStatsQuery = useStudentStats();
   const teacherStatsQuery = useTeacherStats();
+  const { data: schoolPayload } = useSchool();
+  const schoolLevelForPeriodBanner: "Basic" | "SHS" | null =
+    schoolPayload?.data?.type === "SHS"
+      ? "SHS"
+      : schoolPayload?.data?.type === "Basic"
+        ? "Basic"
+        : null;
 
   /* Mapped metrics (keep UI) */
   const students = m?.students.total ?? 0;
@@ -1035,7 +1044,10 @@ export default function SchoolAdminOverviewPage() {
       {/* Period Warning Banner */}
       <PeriodWarningBanner
         onCreatePeriod={() => setShowCreatePeriod(true)}
+        schoolLevel={schoolLevelForPeriodBanner}
       />
+
+      <SchoolShsContextHint variant="admin" />
 
       {/* Onboarding Progress Indicator */}
       {!onboarding.isLoading && onboarding.step !== "complete" && (

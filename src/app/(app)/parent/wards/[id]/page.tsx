@@ -54,6 +54,10 @@ import {
   TeacherCommentsSection,
 } from "@/components/parent/academics";
 import { WardTimetable } from "@/components/parent/timetable/WardTimetable";
+import { SchoolShsContextHint } from "@/components/dashboard/SchoolShsContextHint";
+import { ParentPaystackTestModeBanner } from "@/components/parent/ParentPaystackTestModeBanner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { PaystackKeyMode } from "@/types/paystack-key-mode";
 import { formatMoney } from "@/lib/fees/money";
 import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
 import { toast } from "sonner";
@@ -147,6 +151,7 @@ type CheckoutPreview = {
   platformFeeMinor: number;
   estimatedSchoolNetMinor: number;
   processorFeeNote: string;
+  paystackKeyMode: PaystackKeyMode;
 };
 
 /* --------------------------------------------------------------------------------
@@ -782,6 +787,7 @@ function AcademicsTab({ wardId }: { wardId: string }) {
     subjects,
     comments,
     selectedTermLabel,
+    schoolLevel,
     multiTermHistory,
     subjectHistory,
     riskLevel,
@@ -797,6 +803,8 @@ function AcademicsTab({ wardId }: { wardId: string }) {
 
   return (
     <div className="space-y-6">
+      <SchoolShsContextHint variant="parent" />
+
       {/* Summary Cards */}
       <AcademicSummaryCards
         summary={summary}
@@ -854,6 +862,7 @@ function AcademicsTab({ wardId }: { wardId: string }) {
             terms={terms}
             currentTermId={selectedTermId}
             onChange={handleTermChange}
+            schoolLevel={schoolLevel}
           />
         </CardHeader>
 
@@ -871,6 +880,13 @@ function AcademicsTab({ wardId }: { wardId: string }) {
                   <p className="text-sm text-white/50">
                     Once teachers start recording grades and term results,
                     they&apos;ll appear here.
+                    {schoolLevel === "SHS" ? (
+                      <>
+                        {" "}
+                        For Senior High, term averages here reflect school progress;
+                        national certificates are awarded by WAEC when eligible.
+                      </>
+                    ) : null}
                   </p>
                 </div>
               </div>
@@ -1047,6 +1063,7 @@ function FeesTab({ wardId }: { wardId: string }) {
             json.data?.estimatedSchoolNetMinor || invoice.balanceDueMinor || 0
           ),
           processorFeeNote: String(json.data?.processorFeeNote || ""),
+          paystackKeyMode: (json.data?.paystackKeyMode || "unset") as PaystackKeyMode,
         });
       } catch (checkoutError) {
         const message =
@@ -1136,8 +1153,16 @@ function FeesTab({ wardId }: { wardId: string }) {
     );
   }
 
+  const paystackKeyMode = data.paystackKeyMode ?? "unset";
+  const onlinePaymentsReady = data.onlinePaymentsReady ?? false;
+
   return (
     <div className="space-y-6">
+      <ParentPaystackTestModeBanner
+        paystackKeyMode={paystackKeyMode}
+        onlinePaymentsReady={onlinePaymentsReady}
+      />
+
       <Dialog
         open={Boolean(checkoutPreview)}
         onOpenChange={(open) => {
@@ -1153,6 +1178,17 @@ function FeesTab({ wardId }: { wardId: string }) {
               Confirm the payment breakdown before you continue to the secure Paystack page.
             </DialogDescription>
           </DialogHeader>
+
+          {checkoutPreview?.paystackKeyMode === "test" && (
+            <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-100">
+              <AlertCircle className="h-4 w-4 text-amber-200" />
+              <AlertTitle>Test checkout</AlertTitle>
+              <AlertDescription className="text-amber-100/90">
+                Complete payment in Paystack with Test mode on to see this transaction in your
+                dashboard.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {checkoutPreview && (
             <div className="space-y-4">

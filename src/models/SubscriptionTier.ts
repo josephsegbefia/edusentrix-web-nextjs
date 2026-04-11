@@ -37,7 +37,6 @@ const subscriptionTierSchema = new Schema<ISubscriptionTier>(
   { timestamps: true }
 );
 
-subscriptionTierSchema.index({ code: 1 }, { unique: true });
 subscriptionTierSchema.index({ active: 1, sortOrder: 1 });
 
 export const SubscriptionTier: Model<ISubscriptionTier> =

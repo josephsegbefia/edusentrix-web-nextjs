@@ -10,6 +10,7 @@ import { ClassGroup } from "@/models/ClassGroup";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { School } from "@/models/School";
+import { getPaystackKeyMode } from "@/lib/paystack";
 import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 
 type GuardianLink = {
@@ -141,6 +142,8 @@ export async function GET() {
             overdueCount: 0,
           },
           recentPayments: [],
+          paystackKeyMode: getPaystackKeyMode(),
+          onlinePaymentsReady: false,
         },
       });
     }
@@ -150,6 +153,8 @@ export async function GET() {
       .select("bank billing")
       .lean<SchoolPaymentRow | null>();
     const canPayOnline = school ? isSchoolPaymentReady(school) : false;
+    const paystackKeyMode = getPaystackKeyMode();
+    const onlinePaymentsReady = canPayOnline;
 
     // Fetch students
     const students = await Student.find({
@@ -334,6 +339,8 @@ export async function GET() {
           overdueCount: overallOverdueCount,
         },
         recentPayments: formattedPayments,
+        paystackKeyMode,
+        onlinePaymentsReady,
       },
     });
   } catch (error) {

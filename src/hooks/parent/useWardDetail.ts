@@ -1,7 +1,12 @@
 // src/hooks/parent/useWardDetail.ts
 import { useQuery } from "@tanstack/react-query";
+import type { PaystackKeyMode } from "@/types/paystack-key-mode";
 import type { FeeStatus, TrendDirection } from "./useParentDashboard";
-import type { RiskLevel, StudentTermPerformanceTier } from "@/types/admin/student-academics";
+import type {
+  RiskLevel,
+  SchoolLevelForAcademics,
+  StudentTermPerformanceTier,
+} from "@/types/admin/student-academics";
 
 export interface WardDetail {
   id: string;
@@ -46,6 +51,7 @@ export interface StudentTermOverview {
 
 export interface WardAcademicsData {
   studentId: string;
+  schoolLevel: SchoolLevelForAcademics | null;
   selectedTermId: string | null;
   selectedTermLabel: string | null;
   summary: {
@@ -113,6 +119,8 @@ export interface WardFeesData {
     method: string;
     reference: string;
   }>;
+  paystackKeyMode: PaystackKeyMode;
+  onlinePaymentsReady: boolean;
 }
 
 export interface WardAttendanceData {

@@ -1,5 +1,6 @@
 // src/hooks/parent/useParentFees.ts
 import { useQuery } from "@tanstack/react-query";
+import type { PaystackKeyMode } from "@/types/paystack-key-mode";
 
 export type FeeStatus = "clear" | "partial" | "owing";
 export type InvoiceStatus = "pending" | "partial" | "overdue";
@@ -60,6 +61,10 @@ export interface ParentFeesDTO {
   pendingInvoices: PendingInvoice[];
   overallSummary: OverallFeeSummary;
   recentPayments: RecentPayment[];
+  /** Server Paystack API key mode — test payments only appear in Paystack test dashboard. */
+  paystackKeyMode: PaystackKeyMode;
+  /** School has live online checkout (Paystack rail ready). */
+  onlinePaymentsReady: boolean;
 }
 
 /**

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { format } from "date-fns";
 import {
   AlertCircle,
@@ -21,12 +22,15 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { TermSelectorHelpButton } from "@/components/academics/TermSelectorHelpButton";
+import { StudentParityNavLinks } from "@/components/student/StudentParityNavLinks";
 
 type Trend = "up" | "down" | "stable";
 type PerformanceTier = "top" | "above_average" | "average" | "at_risk";
 type RiskLevel = "low" | "medium" | "high";
 
 interface StudentResultsData {
+  schoolLevel?: "Basic" | "SHS" | null;
   selectedTermId: string | null;
   selectedTermLabel: string | null;
   summary: {
@@ -185,20 +189,26 @@ export default function StudentResultsPage() {
                 View your term performance and subject-by-subject breakdown.
               </p>
             </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <PremiumSelect value={selectedTermId} onValueChange={onChangeTerm}>
-                <PremiumSelectTrigger className="w-full sm:w-72">
-                  <PremiumSelectValue placeholder="Select term" />
-                </PremiumSelectTrigger>
-                <PremiumSelectContent>
-                  <PremiumSelectItem value="none">Current term</PremiumSelectItem>
-                  {(data?.term || []).map((term) => (
-                    <PremiumSelectItem key={term.termId} value={term.termId}>
-                      {term.label}
-                    </PremiumSelectItem>
-                  ))}
-                </PremiumSelectContent>
-              </PremiumSelect>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <div className="flex items-center gap-1">
+                <TermSelectorHelpButton
+                  schoolLevel={data?.schoolLevel}
+                  noTermsAvailable={Boolean(data && data.term.length === 0)}
+                />
+                <PremiumSelect value={selectedTermId} onValueChange={onChangeTerm}>
+                  <PremiumSelectTrigger className="w-full min-w-48 sm:w-72">
+                    <PremiumSelectValue placeholder="Select term" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
+                    <PremiumSelectItem value="none">Current term</PremiumSelectItem>
+                    {(data?.term || []).map((term) => (
+                      <PremiumSelectItem key={term.termId} value={term.termId}>
+                        {term.label}
+                      </PremiumSelectItem>
+                    ))}
+                  </PremiumSelectContent>
+                </PremiumSelect>
+              </div>
               <Button
                 variant="outline"
                 onClick={() =>
@@ -221,17 +231,82 @@ export default function StudentResultsPage() {
           </div>
         ) : error ? (
           <Card className="rounded-2xl border border-red-500/25 bg-red-500/10">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-2 text-red-200">
-                <AlertCircle className="h-5 w-5" />
-                <p>{error}</p>
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10">
+                  <AlertCircle className="h-7 w-7 text-red-300" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-base font-semibold text-white">
+                    Couldn&apos;t load results
+                  </p>
+                  <p className="max-w-md text-sm text-white/65">{error}</p>
+                </div>
+                <StudentParityNavLinks />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/15 bg-white/5 hover:bg-white/10"
+                  onClick={() =>
+                    void loadResults(selectedTermId === "none" ? undefined : selectedTermId)
+                  }
+                >
+                  Try again
+                </Button>
               </div>
             </CardContent>
           </Card>
         ) : !data ? (
           <Card className="rounded-2xl border border-white/10 bg-white/5">
-            <CardContent className="p-6 text-sm text-white/60">
-              No result data found.
+            <CardContent className="p-8">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                  <BarChart3 className="h-7 w-7 text-white/40" />
+                </div>
+                <p className="text-base font-semibold text-white">
+                  Results unavailable
+                </p>
+                <p className="max-w-md text-sm text-white/60">
+                  We couldn&apos;t load your report. Refresh the page or try again in a moment.
+                </p>
+                <StudentParityNavLinks />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/15 bg-white/5 hover:bg-white/10"
+                  onClick={() => void loadResults()}
+                >
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : data.term.length === 0 ? (
+          <Card className="rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/50 via-slate-950/50 to-black/50">
+            <CardContent className="p-6 sm:p-10">
+              <div className="mx-auto flex max-w-lg flex-col items-center gap-4 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                  <BarChart3 className="h-7 w-7 text-white/40" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold text-white">
+                    No academic terms yet
+                  </p>
+                  <p className="text-sm leading-relaxed text-white/65">
+                    Your school hasn&apos;t added academic periods to the calendar. When
+                    terms are set up and teachers publish grades, they will appear here.
+                  </p>
+                  {data.schoolLevel === "SHS" ? (
+                    <p className="text-xs leading-relaxed text-white/50">
+                      Senior High: school results in this app track term-by-term progress;
+                      WASSCE and other national certificates follow WAEC rules separately.
+                    </p>
+                  ) : null}
+                  <div className="mt-4 w-full">
+                    <StudentParityNavLinks />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : (
@@ -308,9 +383,26 @@ export default function StudentResultsPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {data.subjects.length === 0 ? (
-                    <p className="text-sm text-white/60">
-                      No subject grades recorded for this term yet.
-                    </p>
+                    <div className="space-y-2 text-sm text-white/60">
+                      <p>
+                        No subject grades for this term yet.
+                        {data.schoolLevel === "SHS"
+                          ? " WASSCE and other national awards are separate from these school grades."
+                          : ""}
+                      </p>
+                      <p>
+                        <Link
+                          href="/student/assignments"
+                          className="text-sky-300 underline underline-offset-2 hover:text-sky-200"
+                        >
+                          Open assignments
+                        </Link>{" "}
+                        to see class work while grades are published.
+                      </p>
+                      <div className="pt-2">
+                        <StudentParityNavLinks />
+                      </div>
+                    </div>
                   ) : (
                     data.subjects.map((subject) => (
                       <div

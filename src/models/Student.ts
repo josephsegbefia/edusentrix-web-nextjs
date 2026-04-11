@@ -6,6 +6,8 @@ import type { IGrade } from "./Grade";
 export interface IStudent {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
+  /** Set when created from platform application enrollment (CRM-lite). */
+  platformApplicationId?: Types.ObjectId | null;
   userId?: Types.ObjectId | null; // optional link to User (Clerk-backed)
   admissionNo?: string | null;
   firstName: string;
@@ -48,6 +50,13 @@ const studentSchema = new Schema<IStudent>(
       ref: "School",
       required: true,
       index: true,
+    },
+    platformApplicationId: {
+      type: Schema.Types.ObjectId,
+      ref: "Application",
+      default: null,
+      index: true,
+      sparse: true,
     },
     userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
 

@@ -101,8 +101,12 @@ export type TeacherCommentDTO = {
 
 export type RiskLevel = "low" | "medium" | "high";
 
+export type SchoolLevelForAcademics = "Basic" | "SHS";
+
 export type StudentAcademicsDTO = {
   studentId: string;
+  /** From School.type — same value for parent, admin, and student results surfaces. */
+  schoolLevel: SchoolLevelForAcademics | null;
   selectedTermId: string | null;
   selectedTermLabel: string | null;
   summary: StudentAcademicsSummaryDTO;

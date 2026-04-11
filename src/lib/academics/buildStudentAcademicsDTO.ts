@@ -17,6 +17,8 @@ import { calculateTrend } from "@/lib/academics/calculateGrades";
 import { calculateRiskLevel } from "@/lib/academics/calculateRiskLevel";
 import { calculateClassAverages } from "@/lib/academics/calculateClassAverages";
 import { Student } from "@/models/Student";
+import { School } from "@/models/School";
+import type { SchoolLevelForAcademics } from "@/types/admin/student-academics";
 
 import type {
   StudentAcademicsDTO,
@@ -73,6 +75,13 @@ export async function buildStudentAcademicsDTO(params: {
   if (!schoolKey || !studentKey) {
     throw new Error("Missing schoolId or studentId");
   }
+
+  const schoolDoc = await School.findById(schoolKey).select("type").lean();
+  const schoolLevel: SchoolLevelForAcademics | null = schoolDoc
+    ? (schoolDoc as { type?: SchoolLevelForAcademics }).type === "SHS"
+      ? "SHS"
+      : "Basic"
+    : null;
 
   // 1) Fetch ALL academic periods for this school (for full term history)
   const allPeriods = (await AcademicPeriod.find({
@@ -142,6 +151,7 @@ export async function buildStudentAcademicsDTO(params: {
   if (!selectedPeriod && allPeriods.length === 0) {
     const emptyDto: StudentAcademicsDTO = {
       studentId: studentKey,
+      schoolLevel,
       selectedTermId: null,
       selectedTermLabel: null,
       summary: {
@@ -548,6 +558,7 @@ export async function buildStudentAcademicsDTO(params: {
   // 10) Final DTO for the student academics tab / gradebook
   const dto: StudentAcademicsDTO = {
     studentId: studentKey,
+    schoolLevel,
     selectedTermId,
     selectedTermLabel,
     summary,

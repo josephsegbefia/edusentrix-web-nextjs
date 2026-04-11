@@ -8,6 +8,11 @@ import { z } from "zod";
 import { Types } from "mongoose";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
 import { GhanaRegionSchema } from "@/constants/ghanaRegions";
+import {
+  buildPipelineStageMongoFilter,
+  PIPELINE_STAGE_LABELS,
+  resolveEffectivePipelineStage,
+} from "@/constants/application-pipeline";
 
 // Optional: ensure useful indexes in your model file (shown below).
 // applicationSchema.index({ status: 1, createdAt: -1 });
@@ -44,12 +49,12 @@ export async function GET(req: NextRequest) {
   const type = url.searchParams.get("type"); // Basic|Secondary|all
   const q = url.searchParams.get("q")?.trim();
   const range = url.searchParams.get("range"); // 7d|30d|90d
+  const pipelineStage = url.searchParams.get("pipelineStage"); // pipeline stage filter
   const limit = Math.min(Number(url.searchParams.get("limit") ?? 20), 100);
   const cursor = url.searchParams.get("cursor"); // last _id string
 
   // Auth + role enforcement (API side)
   const guard = await requirePlatformAdmin();
-  console.log("guard", guard);
   if (!guard.ok) return guard.res;
 
   await connectToDatabase();
@@ -61,35 +66,45 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Build Mongo filter
-  const filter: any = {};
+  const filter: Record<string, unknown> = {};
+  const clauses: Record<string, unknown>[] = [];
+
   const statusFilter = buildStatusFilter(status);
-  if (statusFilter) filter.status = statusFilter;
-  if (type && type !== "all") filter.schoolType = type;
+  if (statusFilter) clauses.push({ status: statusFilter });
+  if (type && type !== "all") clauses.push({ schoolType: type });
 
-  // Date range
   const from = daysAgoToDate(range);
-  filter.createdAt = { $gte: from };
+  clauses.push({ createdAt: { $gte: from } });
 
-  // Text search
   if (q) {
     const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-    filter.$or = [
-      { schoolName: rx },
-      { adminEmail: rx },
-      { adminFirstName: rx },
-      { adminLastName: rx },
-      { city: rx },
-      { region: rx },
-    ];
+    clauses.push({
+      $or: [
+        { schoolName: rx },
+        { adminEmail: rx },
+        { adminFirstName: rx },
+        { adminLastName: rx },
+        { city: rx },
+        { region: rx },
+      ],
+    });
   }
 
-  // Cursor (by _id desc)
+  const pipelineFilter = buildPipelineStageMongoFilter(pipelineStage);
+  if (pipelineFilter) clauses.push(pipelineFilter);
+
+  if (clauses.length === 1) {
+    Object.assign(filter, clauses[0]);
+  } else {
+    filter.$and = clauses;
+  }
+
   if (cursor && Types.ObjectId.isValid(cursor)) {
     filter._id = { $lt: new Types.ObjectId(cursor) };
   }
 
   const docs = await Application.find(filter)
+    .populate("ownerUserId", "firstName lastName email name")
     .sort({ _id: -1 })
     .limit(limit + 1)
     .lean();
@@ -99,25 +114,53 @@ export async function GET(req: NextRequest) {
   const nextCursor = hasMore ? String(items[items.length - 1]._id) : null;
 
   // Shape to UI type and normalize status
-  const dataOut = items.map((d) => ({
-    _id: String(d._id),
-    schoolName: d.schoolName,
-    schoolType: d.schoolType,
-    city: d.city,
-    region: d.region,
-    admin: {
-      name:
-        [d.adminFirstName, d.adminLastName].filter(Boolean).join(" ") ||
-        undefined,
-      email: d.adminEmail,
-      phone: d.adminPhone,
-    },
-    status:
-      d.status === "submitted" || d.status === "reviewed"
-        ? "pending"
-        : d.status, // normalize
-    createdAt: d.createdAt.toISOString(),
-  }));
+  const dataOut = items.map((d) => {
+    const effectiveStage = resolveEffectivePipelineStage({
+      stage: d.stage,
+      status: d.status,
+    });
+    const owner =
+      d.ownerUserId && typeof d.ownerUserId === "object"
+        ? {
+            _id: String((d.ownerUserId as { _id: Types.ObjectId })._id),
+            name:
+              (d.ownerUserId as { name?: string }).name ||
+              [
+                (d.ownerUserId as { firstName?: string }).firstName,
+                (d.ownerUserId as { lastName?: string }).lastName,
+              ]
+                .filter(Boolean)
+                .join(" ") ||
+              (d.ownerUserId as { email?: string }).email,
+            email: (d.ownerUserId as { email?: string }).email,
+          }
+        : null;
+    return {
+      _id: String(d._id),
+      schoolName: d.schoolName,
+      schoolType: d.schoolType,
+      city: d.city,
+      region: d.region,
+      admin: {
+        name:
+          [d.adminFirstName, d.adminLastName].filter(Boolean).join(" ") ||
+          undefined,
+        email: d.adminEmail,
+        phone: d.adminPhone,
+      },
+      status:
+        d.status === "submitted" || d.status === "reviewed"
+          ? "pending"
+          : d.status, // normalize
+      createdAt: d.createdAt.toISOString(),
+      pipelineStage: effectiveStage,
+      pipelineStageLabel: PIPELINE_STAGE_LABELS[effectiveStage],
+      nextActionAt: d.nextActionAt
+        ? new Date(d.nextActionAt).toISOString()
+        : null,
+      owner,
+    };
+  });
 
   return NextResponse.json<
     Ok<{ items: typeof dataOut; nextCursor: string | null }>

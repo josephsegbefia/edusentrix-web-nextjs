@@ -31,7 +31,6 @@ const schoolSubscriptionSchema = new Schema<ISchoolSubscription>(
       ref: "School",
       required: true,
       unique: true,
-      index: true,
     },
     tierId: { type: Schema.Types.ObjectId, ref: "SubscriptionTier", default: null },
     tierCode: { type: String, default: null, trim: true },
@@ -60,7 +59,6 @@ const schoolSubscriptionSchema = new Schema<ISchoolSubscription>(
   { timestamps: true }
 );
 
-schoolSubscriptionSchema.index({ schoolId: 1 }, { unique: true });
 schoolSubscriptionSchema.index({ status: 1 });
 
 export const SchoolSubscription: Model<ISchoolSubscription> =

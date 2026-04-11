@@ -8,7 +8,7 @@ import {
   computeTransactionFee,
   resolveTransactionFeeConfigForSchool,
 } from "@/lib/billing/transaction-fees";
-import { initializeTransaction } from "@/lib/paystack";
+import { getPaystackKeyMode, initializeTransaction } from "@/lib/paystack";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
 import { Guardian } from "@/models/Guardian";
 import { Invoice } from "@/models/Invoice";
@@ -182,6 +182,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.preview) {
+      const paystackKeyMode = getPaystackKeyMode();
       return NextResponse.json({
         success: true,
         data: {
@@ -194,6 +195,7 @@ export async function POST(req: NextRequest) {
           processorFeeNote:
             "Payment processor charges are calculated by the gateway at payment time and are deducted from the school's settlement.",
           feeResponsibility: "school",
+          paystackKeyMode,
         },
       });
     }
@@ -278,6 +280,7 @@ export async function POST(req: NextRequest) {
           invoiceId: String(invoice._id),
           invoiceNumber: invoice.invoiceNumber || "School Fees",
           expiresAt: expiresAt.toISOString(),
+          paystackKeyMode: getPaystackKeyMode(),
         },
       });
     } catch (initError) {

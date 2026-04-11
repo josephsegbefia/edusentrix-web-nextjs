@@ -12,6 +12,11 @@ import { ApplicationAudit } from "@/models/ApplicationAudit";
 import { School } from "@/models/School";
 import mongoose from "mongoose";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
+import {
+  APPLICATION_PIPELINE_STAGES,
+  PIPELINE_STAGE_LABELS,
+  resolveEffectivePipelineStage,
+} from "@/constants/application-pipeline";
 
 function forbidden(msg = "Forbidden") {
   return NextResponse.json({ error: msg }, { status: 403 });
@@ -47,6 +52,8 @@ export async function GET(
   const doc = await Application.findById(id)
     .populate("linkedSchoolId", "name type status city region")
     .populate("processedBy", "firstName lastName email name")
+    .populate("ownerUserId", "firstName lastName email name")
+    .populate("enrolledStudentId", "firstName lastName admissionNo")
     .lean();
 
   if (!doc || Array.isArray(doc)) return notFound("Application not found");
@@ -87,6 +94,35 @@ export async function GET(
         }
       : null;
 
+  const ownerUser =
+    doc.ownerUserId && typeof doc.ownerUserId === "object"
+      ? {
+          _id: String(doc.ownerUserId._id),
+          name:
+            doc.ownerUserId.name ||
+            [doc.ownerUserId.firstName, doc.ownerUserId.lastName]
+              .filter(Boolean)
+              .join(" ") ||
+            doc.ownerUserId.email,
+          email: doc.ownerUserId.email,
+        }
+      : null;
+
+  const effectiveStage = resolveEffectivePipelineStage({
+    stage: doc.stage,
+    status: doc.status,
+  });
+
+  const enrolledStudent =
+    doc.enrolledStudentId && typeof doc.enrolledStudentId === "object"
+      ? {
+          _id: String(doc.enrolledStudentId._id),
+          firstName: doc.enrolledStudentId.firstName,
+          lastName: doc.enrolledStudentId.lastName,
+          admissionNo: doc.enrolledStudentId.admissionNo ?? null,
+        }
+      : null;
+
   const payload = {
     _id: String(doc._id),
     schoolName: doc.schoolName,
@@ -94,6 +130,18 @@ export async function GET(
     city: doc.city,
     region: doc.region,
     status: doc.status,
+    pipelineStage: effectiveStage,
+    pipelineStageLabel: PIPELINE_STAGE_LABELS[effectiveStage],
+    stagePersisted: Boolean(doc.stage),
+    nextActionAt: doc.nextActionAt
+      ? new Date(doc.nextActionAt).toISOString()
+      : null,
+    owner: ownerUser,
+    ownerUserId: doc.ownerUserId
+      ? typeof doc.ownerUserId === "object"
+        ? String(doc.ownerUserId._id)
+        : String(doc.ownerUserId)
+      : null,
     admin: {
       firstName: doc.adminFirstName,
       lastName: doc.adminLastName,
@@ -103,6 +151,12 @@ export async function GET(
     },
     linkedSchool: linkedSchool,
     linkedSchoolId: doc.linkedSchoolId ? String(doc.linkedSchoolId) : null,
+    enrolledStudentId: doc.enrolledStudentId
+      ? typeof doc.enrolledStudentId === "object"
+        ? String(doc.enrolledStudentId._id)
+        : String(doc.enrolledStudentId)
+      : null,
+    enrolledStudent,
     processedBy: processedByUser,
     processedById: doc.processedBy ? String(doc.processedBy) : null,
     createdAt: doc.createdAt?.toISOString?.(),
@@ -123,21 +177,39 @@ export async function GET(
           : undefined,
       at: a.createdAt.toISOString(),
       note: a.note,
+      meta: a.meta ?? null,
     })),
   };
 
   return NextResponse.json(payload);
 }
 
-const PatchSchema = z.object({
-  status: z.enum(["submitted", "reviewed", "approved", "rejected"]),
-  note: z
-    .string()
-    .trim()
-    .max(500)
-    .optional()
-    .transform((val) => (val ? val : undefined)),
+const PipelinePatchSchema = z.object({
+  stage: z.enum(APPLICATION_PIPELINE_STAGES).optional(),
+  nextActionAt: z.union([z.string().datetime(), z.null()]).optional(),
+  ownerUserId: z.union([z.string(), z.null()]).optional(),
 });
+
+const PatchSchema = z
+  .object({
+    status: z.enum(["submitted", "reviewed", "approved", "rejected"]).optional(),
+    note: z
+      .string()
+      .trim()
+      .max(500)
+      .optional()
+      .transform((val) => (val ? val : undefined)),
+    pipeline: PipelinePatchSchema.optional(),
+  })
+  .refine(
+    (d) =>
+      d.status !== undefined ||
+      (d.pipeline !== undefined &&
+        (d.pipeline.stage !== undefined ||
+          d.pipeline.nextActionAt !== undefined ||
+          d.pipeline.ownerUserId !== undefined)),
+    { message: "Provide status or pipeline fields" }
+  );
 
 const ALLOWED_TRANSITIONS: Record<
   "submitted" | "reviewed" | "approved" | "rejected",
@@ -175,64 +247,140 @@ export async function PATCH(
   const doc = await Application.findById(id);
   if (!doc) return notFound("Application not found");
 
-  const nextStatus = parsed.data.status;
-  const currentStatus = doc.status as
-    | "submitted"
-    | "reviewed"
-    | "approved"
-    | "rejected";
+  const meId = (me as any)._id as mongoose.Types.ObjectId;
 
-  if (nextStatus === currentStatus) {
-    return NextResponse.json({
-      success: true,
-      status: currentStatus,
-    });
-  }
+  // --- status workflow (optional) ---
+  if (parsed.data.status !== undefined) {
+    const nextStatus = parsed.data.status;
+    const currentStatus = doc.status as
+      | "submitted"
+      | "reviewed"
+      | "approved"
+      | "rejected";
 
-  const allowed = ALLOWED_TRANSITIONS[currentStatus];
-  if (!allowed || !allowed.includes(nextStatus)) {
-    return NextResponse.json(
-      {
-        error: `Transition from '${currentStatus}' to '${nextStatus}' is not allowed.`,
-      },
-      { status: 400 }
-    );
-  }
-
-  // Handle school status updates when changing approved applications
-  if (currentStatus === "approved" && doc.linkedSchoolId) {
-    const school = await School.findById(doc.linkedSchoolId);
-    if (school) {
-      if (nextStatus === "submitted" || nextStatus === "rejected") {
-        // Update school to deactivated when application is rejected or returned to submitted
-        school.status = "deactivated";
-        await school.save();
-      } else if (nextStatus === "reviewed") {
-        // Keep school as pending when moving to reviewed
-        school.status = "pending";
-        await school.save();
+    if (nextStatus !== currentStatus) {
+      const allowed = ALLOWED_TRANSITIONS[currentStatus];
+      if (!allowed || !allowed.includes(nextStatus)) {
+        return NextResponse.json(
+          {
+            error: `Transition from '${currentStatus}' to '${nextStatus}' is not allowed.`,
+          },
+          { status: 400 }
+        );
       }
+
+      if (currentStatus === "approved" && doc.linkedSchoolId) {
+        const school = await School.findById(doc.linkedSchoolId);
+        if (school) {
+          if (nextStatus === "submitted" || nextStatus === "rejected") {
+            school.status = "deactivated";
+            await school.save();
+          } else if (nextStatus === "reviewed") {
+            school.status = "pending";
+            await school.save();
+          }
+        }
+      }
+
+      doc.status = nextStatus;
+      if (
+        nextStatus === "reviewed" ||
+        nextStatus === "approved" ||
+        nextStatus === "rejected"
+      ) {
+        doc.processedBy = meId;
+      } else if (nextStatus === "submitted") {
+        doc.processedBy = null;
+      }
+
+      await doc.save();
+
+      await recordApplicationAudit({
+        applicationId: doc._id,
+        action: nextStatus,
+        by: meId,
+        note: parsed.data.note,
+      });
     }
   }
 
-  doc.status = nextStatus;
-  if (
-    nextStatus === "reviewed" ||
-    nextStatus === "approved" ||
-    nextStatus === "rejected"
-  ) {
-    doc.processedBy = (me as any)._id;
-  } else if (nextStatus === "submitted") {
-    doc.processedBy = null;
-  }
-  await doc.save();
+  // --- pipeline (optional) ---
+  if (parsed.data.pipeline) {
+    const p = parsed.data.pipeline;
+    const changes: Array<{
+      field: string;
+      from: unknown;
+      to: unknown;
+    }> = [];
 
-  await recordApplicationAudit({
-    applicationId: doc._id,
-    action: nextStatus,
-    by: (me as any)._id,
-    note: parsed.data.note,
-  });
+    if (p.stage !== undefined) {
+      const prev = doc.stage ?? null;
+      if (prev !== p.stage) {
+        changes.push({ field: "stage", from: prev, to: p.stage });
+        doc.stage = p.stage;
+      }
+    }
+
+    if (p.nextActionAt !== undefined) {
+      const prevIso = doc.nextActionAt
+        ? new Date(doc.nextActionAt).toISOString()
+        : null;
+      const nextVal =
+        p.nextActionAt === null ? null : new Date(p.nextActionAt);
+      const nextIso = nextVal ? nextVal.toISOString() : null;
+      if (prevIso !== nextIso) {
+        changes.push({
+          field: "nextActionAt",
+          from: prevIso,
+          to: nextIso,
+        });
+        doc.nextActionAt = nextVal;
+      }
+    }
+
+    if (p.ownerUserId !== undefined) {
+      if (p.ownerUserId === null) {
+        if (doc.ownerUserId) {
+          changes.push({
+            field: "ownerUserId",
+            from: String(doc.ownerUserId),
+            to: null,
+          });
+          doc.ownerUserId = null;
+        }
+      } else {
+        if (!mongoose.isValidObjectId(p.ownerUserId)) {
+          return badRequest("Invalid owner user id");
+        }
+        const owner = await User.findById(p.ownerUserId).select("role").lean();
+        if (!owner || (owner as any).role !== "platform_admin") {
+          return NextResponse.json(
+            { error: "Owner must be a platform admin user." },
+            { status: 400 }
+          );
+        }
+        const nextOwner = new mongoose.Types.ObjectId(p.ownerUserId);
+        if (String(doc.ownerUserId ?? "") !== String(nextOwner)) {
+          changes.push({
+            field: "ownerUserId",
+            from: doc.ownerUserId ? String(doc.ownerUserId) : null,
+            to: String(nextOwner),
+          });
+          doc.ownerUserId = nextOwner as any;
+        }
+      }
+    }
+
+    if (changes.length > 0) {
+      await doc.save();
+      await recordApplicationAudit({
+        applicationId: doc._id,
+        action: "pipeline_updated",
+        by: meId,
+        meta: { changes },
+      });
+    }
+  }
 
   return NextResponse.json({
     success: true,

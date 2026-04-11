@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
+import { gatePlatformAdminUser } from "@/lib/auth/role-gates";
 
 export async function requirePlatformAdmin() {
   const { userId } = await auth();
@@ -23,10 +24,11 @@ export async function requirePlatformAdmin() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const meTyped = me as any;
-  if (!me || meTyped.role !== "platform_admin") {
+  const gate = gatePlatformAdminUser(meTyped);
+  if (!gate.ok) {
     return {
       ok: false as const,
-      res: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+      res: NextResponse.json({ error: gate.error }, { status: gate.status }),
     };
   }
 

@@ -145,9 +145,8 @@ function prettifyActivityType(raw: string) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
-function getInitialTab(sp: URLSearchParams | null): TeacherStudentTabId {
-  if (!sp) return "overview";
-  const raw = sp.get("tab");
+/** Parse tab from query string; URL is the source of truth (avoids useSearchParams ref churn in effects). */
+function parseTabQuery(raw: string | null): TeacherStudentTabId {
   if (
     raw === "overview" ||
     raw === "academics" ||
@@ -260,16 +259,9 @@ export default function TeacherStudentDetailPage() {
   );
 
   const student = data?.data;
-  const [activeTab, setActiveTab] = React.useState<TeacherStudentTabId>(() =>
-    getInitialTab(searchParams)
-  );
-
-  React.useEffect(() => {
-    setActiveTab(getInitialTab(searchParams));
-  }, [searchParams]);
+  const activeTab = parseTabQuery(searchParams.get("tab"));
 
   const handleTabChange = (tab: TeacherStudentTabId) => {
-    setActiveTab(tab);
     if (!studentId) return;
     const params = new URLSearchParams(searchParams?.toString() ?? "");
     params.set("tab", tab);

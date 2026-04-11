@@ -13,6 +13,7 @@ import {
   type Permission,
   type TeacherSubrole,
 } from "@/lib/rbac";
+import { gateTeacherApiAccess } from "@/lib/auth/role-gates";
 
 export interface TeacherContext {
   userId: Types.ObjectId;
@@ -97,10 +98,9 @@ export async function requireTeacher(
 
   const roles = (membership.roles || []) as MembershipRole[];
   const isAdmin = roles.includes("school_admin");
-  const isTeacher = roles.includes("teacher");
-
-  if (!isTeacher && !isAdmin) {
-    handleFailure(mode, 403, "Insufficient permissions");
+  const teacherGate = gateTeacherApiAccess(roles);
+  if (!teacherGate.ok) {
+    handleFailure(mode, teacherGate.status, teacherGate.error);
   }
 
   const teacher = await Teacher.findOne({

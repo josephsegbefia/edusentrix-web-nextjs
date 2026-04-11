@@ -1,20 +1,42 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { RejectionModal } from "./RejectionModal";
+import {
+  APPLICATION_PIPELINE_STAGES,
+  PIPELINE_STAGE_LABELS,
+} from "@/constants/application-pipeline";
+import { toast } from "sonner";
 
 type ApplicationDetail = {
   _id: string;
@@ -23,6 +45,23 @@ type ApplicationDetail = {
   city?: string;
   region?: string;
   status?: "submitted" | "reviewed" | "approved" | "rejected";
+  pipelineStage?: string;
+  pipelineStageLabel?: string;
+  stagePersisted?: boolean;
+  nextActionAt?: string | null;
+  owner?: {
+    _id: string;
+    name?: string;
+    email?: string;
+  } | null;
+  ownerUserId?: string | null;
+  enrolledStudentId?: string | null;
+  enrolledStudent?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    admissionNo?: string | null;
+  } | null;
   admin?: {
     name?: string;
     firstName?: string;
@@ -57,8 +96,33 @@ type ApplicationDetail = {
     };
     at: string;
     note?: string;
+    meta?: Record<string, unknown> | null;
   }>;
 };
+
+function toDatetimeLocalValue(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatAuditMeta(action: string, meta: Record<string, unknown> | null | undefined) {
+  if (!meta) return null;
+  if (action === "student_enrolled") {
+    const m = meta as { firstName?: string; lastName?: string; studentId?: string };
+    const name = [m.firstName, m.lastName].filter(Boolean).join(" ");
+    return name ? `Student: ${name} (${m.studentId ?? ""})` : JSON.stringify(meta);
+  }
+  if (action === "pipeline_updated" && Array.isArray((meta as { changes?: unknown }).changes)) {
+    const changes = (meta as { changes: Array<{ field: string; from: unknown; to: unknown }> }).changes;
+    return changes
+      .map((c) => `${c.field}: ${JSON.stringify(c.from)} → ${JSON.stringify(c.to)}`)
+      .join("; ");
+  }
+  return JSON.stringify(meta);
+}
 
 const getOrdinalSuffix = (day: number) => {
   const j = day % 10;
@@ -188,6 +252,14 @@ export default function ApplicationDrawer({
   const qc = useQueryClient();
   const { promise } = useBusyToast();
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [editStage, setEditStage] = useState<string>("lead");
+  const [editNextLocal, setEditNextLocal] = useState("");
+  const [editOwnerId, setEditOwnerId] = useState<string>("");
+  const [enFirstName, setEnFirstName] = useState("");
+  const [enLastName, setEnLastName] = useState("");
+  const [enGradeId, setEnGradeId] = useState("");
+  const [enClassId, setEnClassId] = useState("");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["applications:detail", id],
@@ -196,11 +268,136 @@ export default function ApplicationDrawer({
       const res = await fetch(`/api/platform/applications/${id}`, {
         cache: "no-store",
       });
-      console.log("RES===>", res);
       if (!res.ok) throw new Error("detail");
       return (await res.json()) as ApplicationDetail;
     },
   });
+
+  useEffect(() => {
+    if (!data) return;
+    setEditStage(data.pipelineStage ?? "lead");
+    setEditNextLocal(toDatetimeLocalValue(data.nextActionAt));
+    setEditOwnerId(data.ownerUserId ?? "");
+  }, [data?._id, data?.pipelineStage, data?.nextActionAt, data?.ownerUserId]);
+
+  const { data: platformAdmins } = useQuery({
+    queryKey: ["platform-admins"],
+    enabled: open,
+    queryFn: async () => {
+      const res = await fetch("/api/platform/users/platform-admins", {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("platform-admins");
+      const json = (await res.json()) as {
+        success: boolean;
+        data: Array<{ _id: string; name: string; email: string }>;
+      };
+      return json.data ?? [];
+    },
+  });
+
+  const { data: enrollmentCtx } = useQuery({
+    queryKey: ["enrollment-context", id],
+    enabled: open && enrollOpen && !!id,
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/platform/applications/${id}/enrollment-context`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) throw new Error("enrollment-context");
+      return (await res.json()) as {
+        success: boolean;
+        data: {
+          schoolId: string;
+          grades: Array<{
+            id: string;
+            name: string;
+            classGroups: Array<{ id: string; name: string }>;
+          }>;
+        };
+      };
+    },
+  });
+
+  const selectedGrade = enrollmentCtx?.data?.grades.find((g) => g.id === enGradeId);
+
+  const savePipeline = useMutation({
+    mutationFn: async () => {
+      const nextIso = editNextLocal
+        ? new Date(editNextLocal).toISOString()
+        : null;
+      const res = await fetch(`/api/platform/applications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pipeline: {
+            stage: editStage as (typeof APPLICATION_PIPELINE_STAGES)[number],
+            nextActionAt: editNextLocal ? nextIso : null,
+            ownerUserId: editOwnerId ? editOwnerId : null,
+          },
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as { error?: string }).error || "Save failed");
+    },
+    onSuccess: () => {
+      toast.success("Pipeline saved");
+      qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
+      qc.invalidateQueries({ queryKey: ["applications:detail", id] });
+    },
+    onError: (e) => {
+      toast.error(e instanceof Error ? e.message : "Save failed");
+    },
+  });
+
+  const enrollStudent = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(
+        `/api/platform/applications/${id}/enroll-student`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firstName: enFirstName.trim(),
+            lastName: enLastName.trim(),
+            gradeId: enGradeId,
+            classGroupId: enClassId,
+          }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((json as { error?: string }).error || "Enrollment failed");
+      }
+    },
+    onSuccess: () => {
+      toast.success("Student enrolled");
+      setEnrollOpen(false);
+      qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
+      qc.invalidateQueries({ queryKey: ["applications:detail", id] });
+    },
+    onError: (e) => {
+      toast.error(e instanceof Error ? e.message : "Enrollment failed");
+    },
+  });
+
+  useEffect(() => {
+    if (!enrollOpen || !enrollmentCtx?.data?.grades?.length) return;
+    setEnGradeId((prev) => prev || enrollmentCtx.data.grades[0].id);
+  }, [enrollOpen, enrollmentCtx?.data]);
+
+  useEffect(() => {
+    if (!enrollmentCtx?.data?.grades || !enGradeId) return;
+    const g = enrollmentCtx.data.grades.find((x) => x.id === enGradeId);
+    if (!g?.classGroups?.length) {
+      setEnClassId("");
+      return;
+    }
+    setEnClassId((prev) => {
+      const ok = g.classGroups.some((c) => c.id === prev);
+      return ok ? prev : g.classGroups[0].id;
+    });
+  }, [enGradeId, enrollmentCtx?.data]);
 
   const approve = useMutation({
     mutationFn: async () => {
@@ -298,6 +495,8 @@ export default function ApplicationDrawer({
         key === "linkedschoolid._id" ||
         key === "processedby._id" ||
         key === "processedby" ||
+        key === "owneruserid" ||
+        key === "owneruserid._id" ||
         (key.endsWith("._id") && key !== "_id")
       ) {
         return false;
@@ -306,12 +505,21 @@ export default function ApplicationDrawer({
       if (key.startsWith("processedby.")) {
         return false;
       }
+      if (key.startsWith("owneruserid.")) {
+        return false;
+      }
       // Filter out duplicate CITY and REGION (already shown in main section)
       if (key === "city" || key === "region") {
         return false;
       }
       // Filter out linkedSchoolId.city and linkedSchoolId.region (duplicates)
       if (key === "linkedschoolid.city" || key === "linkedschoolid.region") {
+        return false;
+      }
+      if (key === "stage" || key === "nextactionat") {
+        return false;
+      }
+      if (key === "enrolledstudentid") {
         return false;
       }
       return true;
@@ -378,12 +586,13 @@ export default function ApplicationDrawer({
   });
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={side}
         className={cn(
           "bg-card/95 backdrop-blur border-white/10 px-4 py-6",
-          isMobile ? "h-[90vh] rounded-t-2xl" : "w-full sm:max-w-md"
+          isMobile ? "h-[90vh] rounded-t-2xl" : "w-full sm:max-w-lg"
         )}
       >
         <SheetHeader>
@@ -467,6 +676,161 @@ export default function ApplicationDrawer({
                       ) : null}
                     </div>
                   </div>
+
+                  <div className="grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-xs uppercase tracking-[0.2em] text-white/50">
+                      Pipeline
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className="border-cyan-500/30 bg-cyan-500/10 text-cyan-100"
+                        >
+                          {data.pipelineStageLabel ?? data.pipelineStage ?? "—"}
+                        </Badge>
+                        {data.nextActionAt ? (
+                          <span className="text-sm text-white/70">
+                            Next action{" "}
+                            <span className="text-white/90">
+                              {formatDateHuman(data.nextActionAt)}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-sm text-white/45">
+                            No next action date
+                          </span>
+                        )}
+                      </div>
+                      {data.owner ? (
+                        <div className="text-right text-xs text-white/60 sm:text-left">
+                          <div className="uppercase tracking-wide text-white/40">
+                            Owner
+                          </div>
+                          <div className="text-sm text-white/85">
+                            {data.owner.name || data.owner.email || "—"}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-white/45">No owner</span>
+                      )}
+                    </div>
+                    {data.stagePersisted === false ? (
+                      <p className="text-xs text-white/45">
+                        Stage is inferred from application status until an explicit
+                        pipeline stage is stored.
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="grid gap-3 rounded-2xl border border-dashed border-cyan-500/20 bg-black/20 p-4">
+                    <div className="text-xs uppercase tracking-[0.2em] text-white/50">
+                      Update pipeline
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase tracking-wide text-white/45">
+                          Stage
+                        </Label>
+                        <Select value={editStage} onValueChange={setEditStage}>
+                          <SelectTrigger className="border-white/10 bg-black/30 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {APPLICATION_PIPELINE_STAGES.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {PIPELINE_STAGE_LABELS[s]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] uppercase tracking-wide text-white/45">
+                          Owner (platform)
+                        </Label>
+                        <Select
+                          value={editOwnerId || "__none__"}
+                          onValueChange={(v) =>
+                            setEditOwnerId(v === "__none__" ? "" : v)
+                          }
+                        >
+                          <SelectTrigger className="border-white/10 bg-black/30 text-white">
+                            <SelectValue placeholder="Unassigned" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Unassigned</SelectItem>
+                            {(platformAdmins ?? []).map((u) => (
+                              <SelectItem key={u._id} value={u._id}>
+                                {u.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase tracking-wide text-white/45">
+                        Next action (local time)
+                      </Label>
+                      <Input
+                        type="datetime-local"
+                        value={editNextLocal}
+                        onChange={(e) => setEditNextLocal(e.target.value)}
+                        className="border-white/10 bg-black/30 text-white"
+                      />
+                      <p className="text-[10px] text-white/40">
+                        Clear the field before save to remove the next-action date.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full border border-cyan-500/25 bg-cyan-500/10 text-cyan-50 hover:bg-cyan-500/20"
+                      disabled={savePipeline.isPending}
+                      onClick={() => savePipeline.mutate()}
+                    >
+                      {savePipeline.isPending ? "Saving…" : "Save pipeline"}
+                    </Button>
+                  </div>
+
+                  {data.status === "approved" && data.linkedSchoolId ? (
+                    data.enrolledStudent ? (
+                      <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4">
+                        <div className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">
+                          Enrolled student (CRM)
+                        </div>
+                        <div className="mt-1 text-sm font-medium text-white">
+                          {data.enrolledStudent.firstName}{" "}
+                          {data.enrolledStudent.lastName}
+                        </div>
+                        <div className="text-xs text-white/50">
+                          Student ID: {data.enrolledStudent._id}
+                          {data.enrolledStudent.admissionNo
+                            ? ` · Adm: ${data.enrolledStudent.admissionNo}`
+                            : ""}
+                        </div>
+                        <p className="mt-2 text-xs text-white/45">
+                          Add guardians and fee plans from the school admin workspace.
+                        </p>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full border border-emerald-500/30 bg-emerald-500/5 text-emerald-100 hover:bg-emerald-500/15"
+                        onClick={() => {
+                          setEnFirstName("");
+                          setEnLastName("");
+                          setEnGradeId("");
+                          setEnClassId("");
+                          setEnrollOpen(true);
+                        }}
+                      >
+                        Enroll first student…
+                      </Button>
+                    )
+                  ) : null}
 
                   <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
                     <div className="flex items-center justify-between gap-2">
@@ -763,6 +1127,11 @@ export default function ApplicationDrawer({
                             {a.note}
                           </div>
                         ) : null}
+                        {a.meta ? (
+                          <div className="mt-2 break-all text-xs text-white/50">
+                            {formatAuditMeta(a.action, a.meta)}
+                          </div>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -814,5 +1183,93 @@ export default function ApplicationDrawer({
         isPending={reject.isPending}
       />
     </Sheet>
+
+    <Dialog open={enrollOpen} onOpenChange={setEnrollOpen}>
+      <DialogContent className="border-white/10 bg-card text-white sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Enroll first student</DialogTitle>
+          <DialogDescription className="text-white/60">
+            Creates a learner on the approved school. Guardians and fees are
+            configured by the school admin after onboarding.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-3 py-2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>First name</Label>
+              <Input
+                value={enFirstName}
+                onChange={(e) => setEnFirstName(e.target.value)}
+                className="border-white/10 bg-black/30"
+                placeholder="Given name"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Last name</Label>
+              <Input
+                value={enLastName}
+                onChange={(e) => setEnLastName(e.target.value)}
+                className="border-white/10 bg-black/30"
+                placeholder="Family name"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Grade</Label>
+            <Select value={enGradeId} onValueChange={setEnGradeId}>
+              <SelectTrigger className="border-white/10 bg-black/30">
+                <SelectValue placeholder="Select grade" />
+              </SelectTrigger>
+              <SelectContent>
+                {(enrollmentCtx?.data?.grades ?? []).map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Class</Label>
+            <Select value={enClassId} onValueChange={setEnClassId}>
+              <SelectTrigger className="border-white/10 bg-black/30">
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                {(selectedGrade?.classGroups ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {!enrollmentCtx?.data?.grades?.length && enrollOpen ? (
+            <p className="text-xs text-amber-200/90">
+              No grades or classes found for this school yet. Complete school setup
+              (grades and classes) before enrolling.
+            </p>
+          ) : null}
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="ghost" onClick={() => setEnrollOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            disabled={
+              enrollStudent.isPending ||
+              !enFirstName.trim() ||
+              !enLastName.trim() ||
+              !enGradeId ||
+              !enClassId
+            }
+            onClick={() => enrollStudent.mutate()}
+          >
+            {enrollStudent.isPending ? "Enrolling…" : "Create student"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

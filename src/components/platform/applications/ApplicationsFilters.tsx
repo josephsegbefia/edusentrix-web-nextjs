@@ -12,6 +12,10 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { CalendarIcon } from "lucide-react";
+import {
+  APPLICATION_PIPELINE_STAGES,
+  PIPELINE_STAGE_LABELS,
+} from "@/constants/application-pipeline";
 
 // Allowed filters
 const STATUS = ["all", "pending", "approved", "rejected"] as const;
@@ -45,6 +49,7 @@ export default function ApplicationsFilters() {
   const status = search.get("status") ?? "all";
   const type = search.get("type") ?? "all";
   const range = search.get("range") ?? "30d";
+  const pipelineStage = search.get("pipelineStage") ?? "all";
   const [q, setQ] = useState<string>(search.get("q") ?? "");
 
   // Debounce search
@@ -70,7 +75,7 @@ export default function ApplicationsFilters() {
       {/* Status */}
       <div className="md:col-span-2 flex flex-col gap-1">
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
-          Application Status
+          Application status
         </span>
         <Select
           value={status}
@@ -119,6 +124,33 @@ export default function ApplicationsFilters() {
         </Select>
       </div>
 
+      {/* Pipeline (CRM-lite) */}
+      <div className="md:col-span-2 flex flex-col gap-1">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted">
+          Pipeline stage
+        </span>
+        <Select
+          value={pipelineStage}
+          onValueChange={(v) => {
+            set({ pipelineStage: v === "all" ? null : v });
+          }}
+        >
+          <SelectTrigger className="bg-card border border-white/10">
+            <SelectValue placeholder="All stages" />
+          </SelectTrigger>
+          <SelectContent className="premiumSelectContent">
+            <SelectItem value="all" className="cursor-pointer">
+              All stages
+            </SelectItem>
+            {APPLICATION_PIPELINE_STAGES.map((s) => (
+              <SelectItem key={s} value={s} className="cursor-pointer">
+                {PIPELINE_STAGE_LABELS[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Date range quick-picks */}
       <div className="md:col-span-2 flex flex-col gap-1">
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
@@ -147,7 +179,7 @@ export default function ApplicationsFilters() {
       </div>
 
       {/* Search */}
-      <div className="md:col-span-5 flex flex-col gap-1">
+      <div className="md:col-span-3 flex flex-col gap-1">
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
           Search
         </span>
@@ -169,7 +201,13 @@ export default function ApplicationsFilters() {
           className="w-full"
           onClick={() => {
             setQ("");
-            set({ status: null, type: null, q: null, range: "30d" });
+            set({
+              status: null,
+              type: null,
+              q: null,
+              range: "30d",
+              pipelineStage: null,
+            });
           }}
         >
           Reset

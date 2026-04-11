@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns/format";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import {
@@ -1572,6 +1573,21 @@ export default function ReportsPage() {
   const exportsQuery = useReportExports({ limit: 6 });
   const createExport = useCreateReportExport();
 
+  const curriculumQuery = useQuery({
+    queryKey: ["admin-curriculum"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/curriculum");
+      if (!res.ok) throw new Error("Failed to load curriculum");
+      return res.json() as Promise<{
+        success: boolean;
+        data?: { lighthouseExportAvailable?: boolean };
+      }>;
+    },
+    staleTime: 60_000,
+  });
+  const lighthouseExportAvailable =
+    curriculumQuery.data?.data?.lighthouseExportAvailable === true;
+
   const summary = summaryQuery.data?.categories;
   const range = summaryQuery.data?.range;
   const charts = chartsQuery.data?.charts;
@@ -1703,6 +1719,45 @@ export default function ReportsPage() {
       );
     } catch {
       // Errors are surfaced by toast.
+    }
+  };
+
+  const handleCurriculumSnapshotDownload = async () => {
+    try {
+      await busy.promise(
+        (async () => {
+          const res = await fetch("/api/admin/reports/curriculum-snapshot/export");
+          const contentType = res.headers.get("Content-Type") || "";
+          if (!res.ok) {
+            if (contentType.includes("application/json")) {
+              const j = (await res.json()) as { error?: string };
+              throw new Error(j.error || "Export not available");
+            }
+            throw new Error("Export not available");
+          }
+          const cd = res.headers.get("Content-Disposition");
+          let fileName = "cambridge-curriculum-snapshot.csv";
+          const m = cd?.match(/filename="([^"]+)"/);
+          if (m?.[1]) fileName = m[1];
+          const blob = await res.blob();
+          const objectUrl = globalThis.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          globalThis.URL.revokeObjectURL(objectUrl);
+        })(),
+        {
+          loading: "Preparing curriculum snapshot...",
+          success: "Curriculum snapshot downloaded",
+          error: (err) =>
+            err instanceof Error ? err.message : "Failed to download snapshot",
+        }
+      );
+    } catch {
+      // Errors surfaced by toast.
     }
   };
 
@@ -2825,6 +2880,39 @@ export default function ReportsPage() {
           </div>
         )}
       </section>
+
+      {lighthouseExportAvailable ? (
+        <section>
+          <Card className="border border-cyan-500/20 bg-linear-to-br from-cyan-500/10 to-transparent backdrop-blur">
+            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10">
+                  <Lightbulb className="h-5 w-5 text-cyan-200" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-cyan-50">
+                    Cambridge curriculum snapshot
+                  </h2>
+                  <p className="text-sm text-white/60">
+                    Read-only CSV: profile labels, report preset name, and your
+                    configured academic periods. Does not include learner grades or
+                    lesson content.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                className="shrink-0 gap-2 border border-cyan-500/30 bg-cyan-500/15 text-cyan-50 hover:bg-cyan-500/25"
+                onClick={() => void handleCurriculumSnapshotDownload()}
+              >
+                <DownloadCloud className="h-4 w-4" />
+                Download CSV
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
+      ) : null}
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="space-y-4">

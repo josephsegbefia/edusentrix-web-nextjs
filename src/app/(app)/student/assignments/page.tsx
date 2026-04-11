@@ -21,6 +21,7 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { StudentParityNavLinks } from "@/components/student/StudentParityNavLinks";
 
 type AssignmentStatus = "published" | "closed";
 
@@ -204,7 +205,25 @@ export default function StudentAssignmentsPage() {
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/5">
                 <ClipboardList className="h-7 w-7 text-white/30" />
               </div>
-              <p className="text-sm text-white/50">No assignments found.</p>
+              <p className="text-base font-medium text-white/90">
+                {assignments.length === 0
+                  ? "No assignments yet"
+                  : "No assignments match this filter"}
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-white/55">
+                {assignments.length === 0
+                  ? "When teachers publish tasks, they appear here. Published grades show under Results, not on this list."
+                  : "Try another status or clear the filter to see all assignments."}
+              </p>
+              {assignments.length === 0 ? (
+                <div className="mt-6 space-y-4">
+                  <StudentParityNavLinks layout="stack" />
+                  <p className="text-xs text-white/40">
+                    Need something urgent? Check Notices for school-wide messages;
+                    one-to-one chat with teachers is not available in the app yet.
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="space-y-2">

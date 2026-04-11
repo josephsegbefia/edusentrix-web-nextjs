@@ -28,15 +28,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en" className={inter.variable}>
-        <body>
+    <html lang="en" className={inter.variable}>
+      <body>
+        <ClerkProvider>
           <NetworkHealthWatcher />
           <NetworkAccessibilityAnnouncer />
           <ToastProvider />
           <AppProviders>{children}</AppProviders>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

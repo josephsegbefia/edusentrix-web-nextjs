@@ -18,6 +18,7 @@ function useFilters() {
       type: s.get("type") ?? undefined,
       q: s.get("q") ?? undefined,
       range: s.get("range") ?? "30d",
+      pipelineStage: s.get("pipelineStage") ?? "all",
     }),
     [s]
   );
@@ -51,6 +52,9 @@ export default function ApplicationsList() {
         params.set("type", filters.type);
       if (filters.q) params.set("q", filters.q);
       if (filters.range) params.set("range", filters.range);
+      if (filters.pipelineStage && filters.pipelineStage !== "all") {
+        params.set("pipelineStage", filters.pipelineStage);
+      }
       params.set("limit", "20");
 
       const res = await fetch(

@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EduSentrix — Market positioning &amp; roadmap pillars</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;background:#f6f7fb;color:#111827}
+    main{max-width:980px;margin:0 auto;padding:40px 48px 64px;background:#fff}
+    h1,h2,h3,h4{color:#0f172a;line-height:1.2}
+    h1{font-size:32px;margin:0 0 16px}
+    h2{font-size:22px;margin:32px 0 12px;padding-top:6px;border-top:1px solid #e5e7eb}
+    h3{font-size:17px;margin:24px 0 10px}
+    h4{font-size:15px;margin:18px 0 8px;color:#334155}
+    p,li{font-size:13px;line-height:1.55}
+    ul,ol{padding-left:20px}
+    table{width:100%;border-collapse:collapse;margin:16px 0 24px;table-layout:fixed}
+    th,td{border:1px solid #d1d5db;padding:8px 10px;vertical-align:top;font-size:11px;line-height:1.45;word-break:break-word}
+    th{background:#eff6ff;text-align:left;font-weight:700}
+    tr:nth-child(even) td{background:#fafafa}
+    code{background:#f3f4f6;padding:1px 4px;border-radius:4px;font-size:11px}
+    hr{border:none;border-top:1px solid #e5e7eb;margin:24px 0}
+    .meta{font-size:12px;color:#64748b;margin:0 0 24px}
+    .meta strong{color:#334155}
+    @page{size:A4;margin:16mm 12mm}
+    thead{display:table-header-group}
+    tfoot{display:table-footer-group}
+  </style>
+</head>
+<body>
+<main>
+  <h1>EduSentrix — Market positioning &amp; roadmap pillars</h1>
+  <p class="meta"><strong>Audience:</strong> Private basic schools, SHS, and international schools in Ghana<br />
+  <strong>Product:</strong> EduSentrix web app (multi-tenant school OS)<br />
+  <strong>Companion:</strong> Mobile app (<code>jedi-app</code>, separate repo — review in progress)<br />
+  <strong>Last updated:</strong> 2026-04-09</p>
+
+  <h2>Positioning (one sentence)</h2>
+  <p>EduSentrix is the <strong>Ghana-native school operations and fee rail</strong>—with <strong>curriculum-aware academics and parent-facing clarity</strong>—so private basic, SHS, and international schools run enrollment-to-cash-to-classroom on one system without importing a foreign SIS wholesale.</p>
+
+  <h2>Who we optimize for</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Segment</th>
+        <th>What “winning” looks like</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Private basic</strong></td>
+        <td>Low-friction fees, trusted balances/receipts, simple class and student setup, strong parent comms. One head often wears many hats—onboarding must be short.</td>
+      </tr>
+      <tr>
+        <td><strong>SHS</strong></td>
+        <td>Clear terms/semesters, credible <strong>progression and results</strong> storytelling toward national exams (WAEC-facing clarity), stronger <strong>student</strong> self-service over time.</td>
+      </tr>
+      <tr>
+        <td><strong>International (in Ghana)</strong></td>
+        <td>Curriculum labels and reporting language that match <strong>Cambridge / IB / British</strong> expectations; polished <strong>reports and calendar</strong>; fee and audit clarity for demanding parents.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>International schools here still pay and comply in the <strong>local context</strong>—a <strong>GHS-first fee core</strong> with room to grow (e.g. multi-currency later) is aligned with reality.</p>
+
+  <hr />
+
+  <h2>Product pillars (mapped to the app today)</h2>
+  <p>These are the strategic buckets; each is already represented in the codebase (routes are indicative—use the live nav as source of truth).</p>
+  <ol>
+    <li><strong>Money that schools can defend</strong><br />
+    School-side fees, invoices, recording payments, expenses, financial center, reconciliation, disbursements, subscription/billing, and <strong>payment setup</strong> (billing owner path). This is the wedge for Ghana private schools.</li>
+    <li><strong>Structure that scales from Primary 1 to SHS</strong><br />
+    Grades, class groups, subjects, curriculum settings, academic calendar, periods, promotions, timetable—so basic and SHS can share one product without duplicate code paths.</li>
+    <li><strong>Teaching and learning that teachers actually use</strong><br />
+    Teacher Studio (assignments, quizzes, resources, rubrics, submissions), gradebook, lesson notes, journals, attendance—aligned to how private schools market “quality.”</li>
+    <li><strong>Trust with families</strong><br />
+    Parent wards, fees, payments, attendance, academics, messages/notifications; student assignments, results, timetable (where enabled), notices. International segments lean hard on this pillar.</li>
+    <li><strong>Platform operations (you + growth)</strong><br />
+    Platform admin: schools, applications, billing/usage/tiers—how you onboard and retain schools at scale.</li>
+    <li><strong>Governance of sensitive money</strong><br />
+    Billing owner / bursar / finance delegate boundaries and payment setup—critical for proprietors and auditors as you move upmarket.</li>
+  </ol>
+
+  <hr />
+
+  <h2>Roadmap pillars (prioritized, not a feature list)</h2>
+  <h3>Near term (defend the wedge)</h3>
+  <ul>
+    <li>Harden <strong>end-to-end fee journeys</strong> (invoice → pay → record → parent truth) for <strong>GHS</strong> and real Paystack behaviour (test vs live clarity).</li>
+    <li><strong>SHS narrative</strong>: term/semester results and admin/parent/student surfaces tell one consistent story (even before exotic exam integrations).</li>
+    <li><strong>International polish</strong>: curriculum-facing labels, report exports, and calendar/report card expectations—pick one international profile and make it exemplary.</li>
+    <li>Close gaps that break trust: <strong>role boundaries</strong>, audit visibility on money, and <strong>student</strong> parity where older learners expect it (e.g. comms and clarity on work/results).</li>
+  </ul>
+  <h3>Medium term (deepen moat)</h3>
+  <ul>
+    <li>Deeper <strong>registrar</strong> story: transcripts, graduation rules, optional subject streams—only where schools will pay for compliance and time saved.</li>
+    <li><strong>Integrations</strong> that Ghana and international parents expect next: messaging channels, accounting exports, webhooks—after core workflows are boringly reliable.</li>
+    <li>Optional <strong>operational</strong> modules (transport, library, health) only when a paying cohort demands them—avoid diluting the fee + academics core.</li>
+  </ul>
+
+  <hr />
+
+  <h2>Must-haves vs nice-to-haves (Ghana launch)</h2>
+  <p><strong>Must-haves</strong> defend the wedge; <strong>nice-to-haves</strong> follow paying segments or post-wedge reliability.</p>
+
+  <h3>Must-haves (ship and defend in Ghana)</h3>
+  <p><strong>Product / trust</strong></p>
+  <ul>
+    <li><strong>Fee truth end-to-end</strong>: invoice → Paystack/offline record → parent sees the same numbers → audit trail.</li>
+    <li><strong>Role boundaries</strong>: school admin vs bursar vs billing owner; no silent access to payout data.</li>
+    <li><strong>Stable core journeys</strong> for admin, teacher, parent (and student where you promise it): login, class context, fees, key academics surfaces.</li>
+    <li><strong>Curriculum / stage honesty</strong>: NaCCA vs international profiles—labels, reports, and calendars must not contradict the school’s marketed programme.</li>
+    <li><strong>Data resilience</strong>: backups, export of critical records (at least students + money), supportable incident response.</li>
+  </ul>
+  <p><strong>Ghana reality</strong></p>
+  <ul>
+    <li><strong>GHS-first</strong> money UX; <strong>Paystack test vs live</strong> clarity for schools and internal ops.</li>
+    <li><strong>Clear SHS story</strong>: terms, progression, results surfaces aligned (even if WAEC registration stays manual).</li>
+    <li><strong>International-in-Ghana</strong>: at least one <strong>reference</strong> international profile polished for demos and pilots—not necessarily every standard on day one.</li>
+  </ul>
+  <p><strong>Go-to-market</strong></p>
+  <ul>
+    <li><strong>Onboarding playbooks</strong> (school + billing owner + first fee run).</li>
+    <li><strong>Support &amp; escalation</strong> when money or access breaks.</li>
+  </ul>
+
+  <h3>Nice-to-haves (after the wedge is boring, or pilots demand)</h3>
+  <ul>
+    <li>Deep <strong>registrar</strong> (transcripts, graduation rules, optional streams) beyond what parents already accept.</li>
+    <li><strong>Integration marketplace</strong> (webhooks, accounting exports, messaging providers) once core workflows are trusted.</li>
+    <li><strong>Operational modules</strong> (transport, library, cafeteria, multi-campus) as optional products—not blocking launch.</li>
+    <li><strong>Enterprise LMS</strong> extras: LTI, proctoring, granular competency engines—<strong>segment-driven</strong> (often international or exam-heavy SHS).</li>
+    <li><strong>Full HR/payroll</strong> as system of record—usually <strong>later</strong> or <strong>partner</strong> in Ghana unless you target large groups.</li>
+  </ul>
+
+  <hr />
+
+  <h2>Deep dives (scope themes)</h2>
+  <p>Expanded notes for roadmap and sales conversations.</p>
+
+  <h3>Transport</h3>
+  <p>Routes, vehicles, stops, rider lists, parent notifications (sometimes GPS). Common in larger urban private schools; high safety + ops expectations. Usually <strong>not a v1 must-have</strong> unless early paying schools insist. Phase <strong>lite</strong> (roster + notices) before fleet/GPS. <strong>Risk:</strong> large support surface; link transport fees to the <strong>fee core</strong> only after money is rock solid.</p>
+
+  <h3>Library</h3>
+  <p>Catalog, circulation, fines, inventory. Many Ghana schools are small; “library” is often informal. <strong>Rarely</strong> a national launch must-have unless accreditation demands it. <strong>Nice-to-have:</strong> reading lists / resources in Teacher Studio, or a simple asset list, before full circulation.</p>
+
+  <h3>Cafeteria</h3>
+  <p>Menus, ordering, dietary flags, POS, prepayment. Uptake varies; some schools outsource meals. <strong>Not</strong> a broad launch must-have. <strong>Nice-to-have:</strong> feedback channels you already have patterns for, or a <strong>simple prepaid lunch fee</strong> line item—plays to <strong>fee</strong> strength better than a full canteen OS early.</p>
+
+  <h3>Multi-campus</h3>
+  <p>One legal school, many sites—shared branding, split timetables, consolidated or split billing. Relevant for growing chains (e.g. Accra/Kumasi). <strong>Must-have</strong> only if enterprise deals are in the first 12 months; otherwise <strong>nice-to-have</strong>. Touches <strong>every</strong> module—prefer an explicit <strong>campus</strong> dimension in the data model before bolting on.</p>
+
+  <h3>Payroll &amp; HR (Ghana first)</h3>
+  <p>Schools need attendance, leave, performance, contracts; <strong>full payroll</strong> adds PAYE, SSNIT, Tier 2/3, payslips, statutory filings. <strong>Ghana reality:</strong> payroll is sensitive; many schools use accountants, specialist payroll, or spreadsheets. <strong>Full in-app payroll</strong> is a <strong>multi-year</strong> product, not a side module.</p>
+  <p><strong>v1:</strong> Usually <strong>no full payroll</strong>. <strong>HR-lite</strong> is enough: staff records, roles, leave, attendance, documents—aligned with what you already lean toward.</p>
+  <p><strong>Later / nice-to-have:</strong> Payroll engine or <strong>certified integration</strong> with a Ghana payroll provider.</p>
+  <p><strong>Positioning:</strong> “We run <strong>school operations</strong>; payroll can <strong>export</strong> to your accountant or partner.”</p>
+
+  <h3>Prospect → applicant → enrolled CRM</h3>
+  <p>International and premium private schools expect pipeline stages, tours, offers, deposits, enrolment contracts, re-enrolment. You have <strong>platform applications</strong>; many schools still use WhatsApp + forms. <strong>Segment-dependent must-have:</strong> credible funnel for <strong>international</strong> and <strong>tier-1 private</strong> becomes a <strong>sales</strong> requirement; <strong>mass basic</strong> may need a lighter funnel. <strong>Practical v1:</strong> structured pipeline + tasks + communication log + conversion to student record often beats a bloated CRM.</p>
+
+  <h3>LTI / deep integrations (Google Classroom, Teams, etc.)</h3>
+  <p>Matters most to <strong>international</strong> schools and teachers already on Google/Microsoft. <strong>Not a Ghana launch blocker</strong> unless a lighthouse school requires it. <strong>Nice-to-have path:</strong> CSV export, calendar feeds, then LTI/OAuth when a segment pays for ongoing maintenance. Integrations are <strong>long-term</strong> engineering + support—ship with <strong>named customers</strong>.</p>
+
+  <h3>Proctoring / secure high-stakes exams</h3>
+  <p>WAEC is <strong>external</strong>; the app supports <strong>internal</strong> assessments. Proctoring (locked browser, ID, AI invigilation) is <strong>expensive</strong> and <strong>niche</strong>—mostly international, university-style, or premium SHS internals. <strong>Not</strong> a broad Ghana must-have. <strong>Nice-to-have:</strong> strong quiz settings (time limits, question banks, attempt limits) first; <strong>proctoring partners</strong> later if revenue proves it.</p>
+
+  <h3>Competency (standards / mastery)</h3>
+  <p>NaCCA and international frameworks differ; mastery gradebooks are a <strong>curriculum product</strong>. <strong>Must-have:</strong> <strong>consistent grading + reporting</strong> for the profiles you claim. <strong>Nice-to-have:</strong> granular competency tagging, skills passports—after <strong>one</strong> curriculum track is exemplary.</p>
+
+  <h3>Wellbeing (safeguarding, counselling, nurse)</h3>
+  <p>International parents and accreditors increasingly want <strong>structured safeguarding</strong>; health modules carry consent and retention burden. <strong>Ghana first:</strong> pastoral care is often informal; <strong>digital safeguarding</strong> is an <strong>upsell</strong> to premium/international. <strong>Must-have:</strong> clear <strong>escalation / incident</strong> pathways if you expose child safety—keep them <strong>defensible</strong> and <strong>auditable</strong>. <strong>Nice-to-have:</strong> dedicated wellbeing module, nurse visits, counselling notes—phase with <strong>legal review</strong>.</p>
+
+  <hr />
+
+  <h2>Mobile companion app (<code>jedi-app</code>)</h2>
+  <p>Treat the mobile app as the <strong>companion</strong> to the wedge: fees visibility, notices, attendance, assignments—<strong>not</strong> every admin surface on day one. <strong>Launch must-have</strong> is <strong>parity with what marketing promises</strong> (e.g. parents can pay and see fees on mobile). Everything else is iterative.</p>
+
+  <hr />
+
+  <h2>How this connects to testing</h2>
+  <p>Use <code>docs/REAL_WORLD_UAT_GUIDE.html</code> (or your exported checklist) to prove each pillar in staging: at least one path per segment (basic vs SHS vs international profile) through <strong>fees → classroom → parent → money truth</strong>.</p>
+
+  <hr />
+
+  <h2>What we are not trying to be (by design)</h2>
+  <p>A full global “everything OS” (fleet transport, payroll, alumni CRM, LTI marketplace) in v1. Those belong on the roadmap <strong>after</strong> EduSentrix is the obvious choice for <strong>fee integrity + daily school run</strong> in Ghana’s private and international segment.</p>
+
+  <hr />
+
+  <h2>One-line summary (review)</h2>
+  <p><strong>Must-haves:</strong> Fee integrity + roles + core school run + honest curriculum story + Ghana payment reality + credible path for SHS and at least one international profile.<br />
+  <strong>Nice-to-haves:</strong> Transport, library, cafeteria, multi-campus, full payroll, deep CRM, LTI, proctoring, competency depth, wellbeing suite—<strong>prioritized by paying segment</strong>, not by feature count.</p>
+</main>
+</body>
+</html>

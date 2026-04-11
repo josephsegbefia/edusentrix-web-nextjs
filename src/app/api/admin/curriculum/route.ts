@@ -10,6 +10,7 @@ import {
   CURRICULUM_OPTIONS,
   type CurriculumCode,
 } from "@/constants/curriculum-profiles";
+import { isCambridgeLighthouseExportFeatureEnabled } from "@/lib/curriculum/cambridge-lighthouse";
 import { CURRICULUM_GRADE_TEMPLATES } from "@/constants/curriculum-grade-templates";
 import { CURRICULUM_SUBJECT_TEMPLATES } from "@/constants/curriculum-subject-templates";
 import { GRADING_PRESETS } from "@/constants/curriculum-grading-presets";
@@ -61,6 +62,9 @@ export async function GET() {
       subjectCount: CURRICULUM_SUBJECT_TEMPLATES[profile.code]?.length || 0,
     }));
 
+    const lighthouseExportAvailable =
+      isCambridgeLighthouseExportFeatureEnabled() && currentCode === "cambridge";
+
     return NextResponse.json({
       success: true,
       data: {
@@ -70,6 +74,7 @@ export async function GET() {
           subjects: CURRICULUM_SUBJECT_TEMPLATES[currentCode] || [],
           gradingPreset: GRADING_PRESETS[currentCode],
         },
+        lighthouseExportAvailable,
         availableCurricula: allOptions,
         academicData,
         pendingCurriculum: school.pendingCurriculumCode

@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, IUser } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
+import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -47,9 +48,10 @@ export async function requireSchoolAdmin(): Promise<SchoolAdminContext> {
   }
 
   const roles = membership?.roles || [];
-  const isAdmin = roles.includes("school_admin");
-  if (!isAdmin)
-    throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const adminGate = gateSchoolAdminRoles(roles);
+  if (!adminGate.ok) {
+    throw NextResponse.json({ error: adminGate.error }, { status: adminGate.status });
+  }
 
   if (!user.schoolId) {
     throw NextResponse.json(

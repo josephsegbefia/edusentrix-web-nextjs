@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { format } from "date-fns";
 import {
   AlertCircle,
@@ -29,6 +30,7 @@ import {
 } from "@/components/academic-calendar/CalendarViews";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StudentParityNavLinks } from "@/components/student/StudentParityNavLinks";
 
 type CalendarSummary = {
   id: string;
@@ -358,8 +360,22 @@ export default function StudentCalendarPage() {
                 </div>
               </div>
             ) : occurrences.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-sm text-white/60">
-                No events found for {monthLabel}.
+              <div className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-8 text-center">
+                <p className="text-sm text-white/70">
+                  No calendar events for {monthLabel}. Your school may not have
+                  published events yet, or none apply to your class.
+                </p>
+                <StudentParityNavLinks />
+                <p className="text-xs text-white/45">
+                  Assignment due dates are listed on{" "}
+                  <Link
+                    href="/student/assignments"
+                    className="text-sky-300 underline underline-offset-2 hover:text-sky-200"
+                  >
+                    Assignments
+                  </Link>
+                  .
+                </p>
               </div>
             ) : view === "month" ? (
               <MonthGrid
@@ -392,9 +408,12 @@ export default function StudentCalendarPage() {
                   {upcomingError}
                 </div>
               ) : upcomingOccurrences.length === 0 ? (
-                <p className="text-sm text-white/60">
-                  No upcoming events in the next {UPCOMING_WINDOW_DAYS} days.
-                </p>
+                <div className="space-y-3 text-sm text-white/60">
+                  <p>
+                    No upcoming events in the next {UPCOMING_WINDOW_DAYS} days.
+                  </p>
+                  <StudentParityNavLinks layout="stack" />
+                </div>
               ) : (
                 upcomingOccurrences.map((occurrence) => {
                   const event = eventById.get(occurrence.eventId);

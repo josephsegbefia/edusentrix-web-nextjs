@@ -8,6 +8,7 @@ import { User, type IUser } from "@/models/User";
 import { UserMembership, type IUserMembership } from "@/models/UserMembership";
 import { Guardian } from "@/models/Guardian";
 import type { MembershipRole } from "@/lib/roles";
+import { gateParentApiAccess } from "@/lib/auth/role-gates";
 
 export interface ParentContext {
   userId: Types.ObjectId;
@@ -92,10 +93,9 @@ export async function requireParent(
 
   const roles = (membership.roles || []) as MembershipRole[];
   const isAdmin = roles.includes("school_admin");
-  const isParent = roles.includes("parent");
-
-  if (!isParent && !isAdmin) {
-    handleFailure(mode, 403, "Parent role required");
+  const parentGate = gateParentApiAccess(roles);
+  if (!parentGate.ok) {
+    handleFailure(mode, parentGate.status, parentGate.error);
   }
 
   return {

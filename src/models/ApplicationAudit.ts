@@ -7,7 +7,9 @@ export type AuditAction =
   | "approved"
   | "rejected"
   | "note"
-  | "invite_email_sent";
+  | "invite_email_sent"
+  | "pipeline_updated"
+  | "student_enrolled";
 
 export interface IApplicationAudit {
   _id: Types.ObjectId;
@@ -29,7 +31,16 @@ const applicationAuditSchema = new Schema<IApplicationAudit>(
     },
     action: {
       type: String,
-      enum: ["submitted", "reviewed", "approved", "rejected", "note", "invite_email_sent"],
+      enum: [
+        "submitted",
+        "reviewed",
+        "approved",
+        "rejected",
+        "note",
+        "invite_email_sent",
+        "pipeline_updated",
+        "student_enrolled",
+      ],
       required: true,
       index: true,
     },

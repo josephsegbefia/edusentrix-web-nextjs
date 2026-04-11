@@ -39,6 +39,9 @@ import type { WardFeeSummary, PendingInvoice, RecentPayment, FeeStatus } from "@
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { formatCurrencyFromMajor, formatMoney } from "@/lib/fees/money";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ParentPaystackTestModeBanner } from "@/components/parent/ParentPaystackTestModeBanner";
+import type { PaystackKeyMode } from "@/types/paystack-key-mode";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -373,6 +376,7 @@ type CheckoutPreview = {
   platformFeeMinor: number;
   estimatedSchoolNetMinor: number;
   processorFeeNote: string;
+  paystackKeyMode: PaystackKeyMode;
 };
 
 /* --------------------------------------------------------------------------------
@@ -513,6 +517,7 @@ function FeesPageContent() {
           json.data?.estimatedSchoolNetMinor || invoice.balanceDueMinor || 0
         ),
         processorFeeNote: String(json.data?.processorFeeNote || ""),
+        paystackKeyMode: (json.data?.paystackKeyMode || "unset") as PaystackKeyMode,
       });
     } catch (checkoutError) {
       const message =
@@ -608,12 +613,19 @@ function FeesPageContent() {
     pendingInvoices = [],
     overallSummary,
     recentPayments = [],
+    paystackKeyMode = "unset",
+    onlinePaymentsReady = false,
   } = data || {};
 
   const hasData = wards.length > 0;
 
   return (
     <div className="space-y-6">
+      <ParentPaystackTestModeBanner
+        paystackKeyMode={paystackKeyMode}
+        onlinePaymentsReady={onlinePaymentsReady}
+      />
+
       <Dialog
         open={Boolean(checkoutPreview)}
         onOpenChange={(open) => {
@@ -629,6 +641,17 @@ function FeesPageContent() {
               Confirm the payment breakdown before you continue to the secure Paystack page.
             </DialogDescription>
           </DialogHeader>
+
+          {checkoutPreview?.paystackKeyMode === "test" && (
+            <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-100">
+              <AlertCircle className="h-4 w-4 text-amber-200" />
+              <AlertTitle>Test checkout</AlertTitle>
+              <AlertDescription className="text-amber-100/90">
+                Complete payment in Paystack with Test mode on to see this transaction in your
+                dashboard.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {checkoutPreview && (
             <div className="space-y-4">

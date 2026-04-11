@@ -143,6 +143,7 @@ export function StudentAcademicsTab({ studentId }: Props) {
     subjects,
     comments,
     selectedTermLabel,
+    schoolLevel,
     multiTermHistory,
     subjectHistory,
     riskLevel,
@@ -222,6 +223,7 @@ export function StudentAcademicsTab({ studentId }: Props) {
             terms={terms}
             currentTermId={selectedTermId}
             onChange={handleTermChange}
+            schoolLevel={schoolLevel}
           />
         </CardHeader>
 
@@ -239,6 +241,13 @@ export function StudentAcademicsTab({ studentId }: Props) {
                   <p className="text-sm text-white/50">
                     Once teachers start recording scored assessments and term
                     results, they&apos;ll appear here as a full gradebook.
+                    {schoolLevel === "SHS" ? (
+                      <>
+                        {" "}
+                        For SHS, keep periods aligned so term labels match reports
+                        and parent views.
+                      </>
+                    ) : null}
                   </p>
                 </div>
               </div>

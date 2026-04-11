@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
+import { StudentParityNavLinks } from "@/components/student/StudentParityNavLinks";
 import {
   ClipboardList,
   CalendarClock,
@@ -62,6 +63,21 @@ export default function StudentPage() {
         <p className="mt-1 text-sm text-white/50">
           Access your academics, tasks, and updates in one place.
         </p>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/45">
+          <span className="text-white/60">Assignments</span> are for work and
+          deadlines. <span className="text-white/60">Results</span> show published
+          grades. <span className="text-white/60">Notices</span> carry school-wide
+          messages. In-app messaging with teachers is not available yet.
+        </p>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 sm:px-5">
+        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">
+          Quick links
+        </p>
+        <div className="mt-2">
+          <StudentParityNavLinks />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

@@ -3,6 +3,10 @@ import {
   GHANA_REGIONS,
   type GhanaRegion,
 } from "@/constants/ghanaRegions";
+import {
+  APPLICATION_PIPELINE_STAGES,
+  type ApplicationPipelineStage,
+} from "@/constants/application-pipeline";
 
 export interface IApplication {
   _id: Types.ObjectId;
@@ -16,7 +20,13 @@ export interface IApplication {
   region: GhanaRegion;
   message?: string;
   status: "submitted" | "reviewed" | "approved" | "rejected";
+  /** Sales / pipeline stage (optional on legacy documents). */
+  stage?: ApplicationPipelineStage;
+  nextActionAt?: Date | null;
+  ownerUserId?: Types.ObjectId | null;
   linkedSchoolId?: Types.ObjectId | null;
+  /** First learner created from this application (platform enroll flow). */
+  enrolledStudentId?: Types.ObjectId | null;
   processedBy?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
@@ -43,7 +53,25 @@ const applicationSchema = new Schema<IApplication>(
       ref: "School",
       default: null,
     },
+    enrolledStudentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Student",
+      default: null,
+      index: true,
+    },
     processedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    stage: {
+      type: String,
+      enum: APPLICATION_PIPELINE_STAGES,
+      default: "lead",
+    },
+    nextActionAt: { type: Date, default: null, index: true },
+    ownerUserId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true }
 );
@@ -52,6 +80,7 @@ applicationSchema.index({ adminEmail: 1 });
 applicationSchema.index({ status: 1, createdAt: 1 });
 applicationSchema.index({ schoolType: 1 });
 applicationSchema.index({ schoolName: 1 });
+applicationSchema.index({ stage: 1, createdAt: -1 });
 
 export const Application =
   models.Application || model<IApplication>("Application", applicationSchema);

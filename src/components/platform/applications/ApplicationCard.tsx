@@ -26,6 +26,14 @@ export type Application = {
   admin: { name?: string; email: string; phone?: string };
   status: ApplicationStatus;
   createdAt: string; // ISO
+  pipelineStage?: string;
+  pipelineStageLabel?: string;
+  nextActionAt?: string | null;
+  owner?: {
+    _id: string;
+    name?: string;
+    email?: string;
+  } | null;
 };
 
 export default function ApplicationCard({
@@ -127,6 +135,9 @@ export default function ApplicationCard({
     rejected: "bg-rose-500/20 text-rose-300 border-rose-500/30",
   }[application.status];
 
+  const pipelineLabel =
+    application.pipelineStageLabel ?? application.pipelineStage;
+
   return (
     <Card className="group relative flex h-full flex-col justify-between overflow-hidden border border-white/10 bg-gradient-to-br from-white/3 via-transparent to-transparent p-6 shadow-lg shadow-black/15 transition hover:border-white/20">
       <div className="pointer-events-none absolute inset-0 opacity-0 transition group-hover:opacity-100">
@@ -143,9 +154,19 @@ export default function ApplicationCard({
               {application.schoolName}
             </div>
           </div>
-          <Badge className={`${statusColor} px-3 py-1 capitalize`} variant="outline">
-            {application.status}
-          </Badge>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <Badge className={`${statusColor} px-3 py-1 capitalize`} variant="outline">
+              {application.status}
+            </Badge>
+            {pipelineLabel ? (
+              <Badge
+                variant="outline"
+                className="border-cyan-500/25 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-cyan-100"
+              >
+                {pipelineLabel}
+              </Badge>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 rounded-xl bg-white/4 p-4 text-sm text-white/80 shadow-inner shadow-black/20 backdrop-blur">

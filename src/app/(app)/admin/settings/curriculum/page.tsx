@@ -27,6 +27,7 @@ import {
   X,
   Info,
   FileWarning,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -146,6 +147,8 @@ export default function CurriculumSettingsPage() {
     data?.data?.academicData || null;
   const pendingCurriculum: PendingCurriculum =
     data?.data?.pendingCurriculum || null;
+  const lighthouseExportAvailable =
+    data?.data?.lighthouseExportAvailable === true;
 
   React.useEffect(() => {
     if (curriculum?.code && !selectedCode) {
@@ -279,6 +282,34 @@ export default function CurriculumSettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {lighthouseExportAvailable && (
+        <Card className="border border-cyan-500/20 bg-linear-to-br from-cyan-500/10 to-transparent backdrop-blur">
+          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/10">
+                <Download className="h-5 w-5 text-cyan-300" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-cyan-100">
+                  Cambridge profile snapshot
+                </p>
+                <p className="text-xs text-white/60">
+                  Download a read-only CSV of your Cambridge profile labels and
+                  academic periods from{" "}
+                  <Link
+                    href="/admin/reports"
+                    className="text-cyan-300 underline underline-offset-2 hover:text-cyan-200"
+                  >
+                    Reports
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pending curriculum banner */}
       {pendingCurriculum && (

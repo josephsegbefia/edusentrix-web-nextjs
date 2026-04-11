@@ -9,6 +9,7 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { TermSelectorHelpButton } from "@/components/academics/TermSelectorHelpButton";
 
 type TermOverview = {
   termId: string;
@@ -20,13 +21,26 @@ type Props = {
   terms: TermOverview[];
   currentTermId: string | null;
   onChange: (termId: string) => void;
+  schoolLevel?: "Basic" | "SHS" | null;
 };
 
-export function TermSelector({ terms, currentTermId, onChange }: Props) {
-  if (!terms.length) return null;
+export function TermSelector({
+  terms,
+  currentTermId,
+  onChange,
+  schoolLevel,
+}: Props) {
+  if (!terms.length) {
+    return (
+      <div className="flex items-center justify-end">
+        <TermSelectorHelpButton schoolLevel={schoolLevel} noTermsAvailable />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex items-center justify-end">
+    <div className="flex items-center justify-end gap-1">
+      <TermSelectorHelpButton schoolLevel={schoolLevel} />
       <PremiumSelect
         value={currentTermId ?? undefined}
         onValueChange={(value) => onChange(value)}

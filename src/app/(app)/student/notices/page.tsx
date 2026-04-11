@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StudentParityNavLinks } from "@/components/student/StudentParityNavLinks";
 
 interface StudentNotice {
   id: string;
@@ -146,8 +147,20 @@ export default function StudentNoticesPage() {
           </Card>
         ) : notices.length === 0 ? (
           <Card className="rounded-2xl border border-white/10 bg-white/5">
-            <CardContent className="p-8 text-center text-sm text-white/60">
-              No notices available right now.
+            <CardContent className="space-y-4 p-8 text-center">
+              <p className="text-base font-medium text-white/90">
+                No notices right now
+              </p>
+              <p className="mx-auto max-w-md text-sm leading-relaxed text-white/55">
+                Your school hasn&apos;t published announcements to your class yet.
+                Class work and deadlines live under Assignments; grades appear under
+                Results when teachers publish them.
+              </p>
+              <StudentParityNavLinks />
+              <p className="text-xs text-white/40">
+                For direct questions, use channels your school provides outside this
+                app.
+              </p>
             </CardContent>
           </Card>
         ) : (

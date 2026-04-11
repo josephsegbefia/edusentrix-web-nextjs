@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 type PeriodWarningBannerProps = {
   onCreatePeriod: () => void;
   className?: string;
+  /** When SHS, copy references term alignment for Senior High. */
+  schoolLevel?: "Basic" | "SHS" | null;
 };
 
 const warningConfig: Record<
@@ -106,9 +108,15 @@ function getActionLabel(status: PeriodStatus): string {
   }
 }
 
-function getSubtitle(status: PeriodStatus): string | null {
+function getSubtitle(
+  status: PeriodStatus,
+  schoolLevel?: "Basic" | "SHS" | null
+): string | null {
   switch (status) {
     case "no_period":
+      if (schoolLevel === "SHS") {
+        return "Set up your school's academic calendar to start managing students, fees, and more. For Senior High, clear terms keep published results and reports aligned for families.";
+      }
       return "Set up your school's academic calendar to start managing students, fees, and more.";
     case "expired":
       return "Some operations are blocked. Create a new period to restore full functionality.";
@@ -124,6 +132,7 @@ function getSubtitle(status: PeriodStatus): string | null {
 export function PeriodWarningBanner({
   onCreatePeriod,
   className,
+  schoolLevel,
 }: PeriodWarningBannerProps) {
   const { data: periodStatus, isLoading } = usePeriodStatus();
   const [dismissed, setDismissed] = React.useState(false);
@@ -154,7 +163,7 @@ export function PeriodWarningBanner({
 
   const { Icon } = config;
   const actionLabel = getActionLabel(status);
-  const subtitle = getSubtitle(status);
+  const subtitle = getSubtitle(status, schoolLevel);
 
   // Determine urgency indicator
   const showPulse =

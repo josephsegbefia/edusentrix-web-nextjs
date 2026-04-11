@@ -17,8 +17,13 @@ export const metadata = {
   description: "Modern school management & payments",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/logo/edusentrix-logo.png",
-    apple: "/logo/edusentrix-logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 

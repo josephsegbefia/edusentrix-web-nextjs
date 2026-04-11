@@ -41,13 +41,29 @@ function SiteNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 bg-neutral-950/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="group inline-flex items-center gap-2.5">
-          <div className="grid size-9 place-items-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-            <span className="text-lg font-bold text-white">E</span>
+        <Link href="/" className="group inline-flex items-center gap-4">
+          <div className="relative flex h-12 w-[3.65rem] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/30 ring-1 ring-white/5 transition-all duration-200 group-hover:scale-[1.03] group-hover:border-cyan-400/25 group-hover:shadow-cyan-500/15 sm:h-14 sm:w-[4.35rem]">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
+            />
+            <Image
+              src="/logo/edusentrix-logo-transparent.png"
+              alt="EduSentrix"
+              fill
+              sizes="(min-width: 640px) 70px, 58px"
+              className="relative object-contain px-1.5 py-1"
+              priority
+            />
           </div>
-          <span className="text-lg font-semibold tracking-tight text-white transition-colors group-hover:text-violet-300">
-            EduSentrix
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xl font-semibold tracking-tight text-white transition-colors group-hover:text-violet-200 sm:text-[1.35rem]">
+              EduSentrix
+            </span>
+            <span className="hidden text-[11px] font-medium uppercase tracking-[0.24em] text-white/35 sm:block">
+              School OS for Africa
+            </span>
+          </div>
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-medium lg:flex">
           <a href="#features" className="text-white/60 transition-colors hover:text-white">Features</a>
@@ -813,9 +829,7 @@ function Footer() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 text-sm sm:grid-cols-2 sm:px-6 md:grid-cols-4 lg:px-8">
         <div>
           <div className="inline-flex items-center gap-2.5">
-            <div className="grid size-9 place-items-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-              <span className="text-lg font-bold text-white">E</span>
-            </div>
+            <Image src="/logo/edusentrix-logo.png" alt="EduSentrix" width={36} height={36} className="rounded-xl" />
             <span className="text-lg font-semibold tracking-tight text-white">EduSentrix</span>
           </div>
           <p className="mt-4 leading-relaxed text-white/50">

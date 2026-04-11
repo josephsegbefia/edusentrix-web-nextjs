@@ -4,6 +4,7 @@ import * as Clerk from "@clerk/elements/common";
 import * as SignIn from "@clerk/elements/sign-in";
 import { useSignIn } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -321,9 +322,19 @@ function BrandPanel() {
     <div className="relative flex flex-col justify-between gap-10 lg:gap-12">
       {/* Logo + badge */}
       <div className="space-y-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-            <span className="text-lg font-bold text-white">E</span>
+        <div className="flex items-center gap-3.5">
+          <div className="relative h-12 w-[3.65rem] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/30 ring-1 ring-white/5">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
+            />
+            <Image
+              src="/logo/edusentrix-logo-transparent.png"
+              alt="EduSentrix"
+              fill
+              sizes="58px"
+              className="object-contain px-1.5 py-1"
+            />
           </div>
           <span className="text-lg font-semibold tracking-tight text-white">
             EduSentrix
@@ -653,9 +664,19 @@ export default function SignInPage() {
 
                           {/* Mobile-only marketing summary */}
                           <div className="mt-2 space-y-3 lg:hidden">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-                                <span className="text-sm font-bold text-white">E</span>
+                            <div className="flex items-center gap-3.5">
+                              <div className="relative h-11 w-[3.3rem] shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/25 ring-1 ring-white/5">
+                                <div
+                                  aria-hidden
+                                  className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
+                                />
+                                <Image
+                                  src="/logo/edusentrix-logo-transparent.png"
+                                  alt="EduSentrix"
+                                  fill
+                                  sizes="53px"
+                                  className="object-contain px-1.5 py-1"
+                                />
                               </div>
                               <div>
                                 <p className="text-sm font-semibold text-white">EduSentrix</p>

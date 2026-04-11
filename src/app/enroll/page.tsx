@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,9 +174,7 @@ function MarketingPanel() {
     <div className="relative flex flex-col justify-between gap-10 lg:gap-10">
       {/* Logo */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-          <span className="text-lg font-bold text-white">E</span>
-        </div>
+        <Image src="/logo/edusentrix-logo.png" alt="EduSentrix" width={40} height={40} className="rounded-xl" />
         <span className="text-lg font-semibold tracking-tight text-white">
           EduSentrix
         </span>
@@ -573,9 +572,7 @@ export default function EnrollPage() {
             {/* Mobile-only marketing summary */}
             <div className="border-b border-white/6 bg-white/2 px-6 py-4 sm:px-8 lg:hidden">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
-                  <span className="text-sm font-bold text-white">E</span>
-                </div>
+                <Image src="/logo/edusentrix-logo.png" alt="EduSentrix" width={36} height={36} className="rounded-xl" />
                 <div>
                   <p className="text-sm font-semibold text-white">EduSentrix</p>
                   <p className="text-xs text-white/35">

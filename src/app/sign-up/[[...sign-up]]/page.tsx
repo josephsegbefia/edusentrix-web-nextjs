@@ -1,6 +1,7 @@
 "use client";
 
 import { SignUp } from "@clerk/nextjs";
+import Image from "next/image";
 
 export default function SignUpPage() {
   return (
@@ -25,9 +26,7 @@ export default function SignUpPage() {
           {/* Header section */}
           <div className="relative border-b border-white/10 bg-gradient-to-r from-white/10 via-white/5 to-transparent px-8 py-8">
             <div className="flex items-center gap-3 mb-2">
-              <div className="size-8 rounded-md bg-brand/15 grid place-items-center">
-                <span className="text-brand font-bold text-sm">E</span>
-              </div>
+              <Image src="/logo/edusentrix-logo.png" alt="EduSentrix" width={32} height={32} className="rounded-md" />
               <h1 className="text-3xl font-bold text-white">Create account</h1>
             </div>
             <p className="text-muted text-sm">

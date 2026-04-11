@@ -6,7 +6,8 @@ import { requireRole } from "@/lib/auth/guards";
 import { Invite } from "@/models/Invite";
 import { School } from "@/models/School";
 import { generateOnboardingMagicLink } from "@/lib/auth/generateOnboardingMagicLink";
-import { sendEmail } from "@/lib/email/brevo";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 
 const BodySchema = z.object({
   email: z.string().email(),
@@ -42,9 +43,23 @@ export async function POST(req: NextRequest) {
 
   const link = await generateOnboardingMagicLink(parse.data.email);
 
-  await sendEmail(parse.data.email, "SCHOOL_INVITE", {
+  const rendered = renderTemplate("SCHOOL_INVITE", {
     schoolName: `${school.name}`,
     setupLink: `${link}`,
+  });
+
+  await sendTrackedBrevoEmail({
+    to: parse.data.email,
+    subject: rendered.subject,
+    htmlContent: rendered.htmlContent,
+    textContent: rendered.textContent,
+    templateKey: "SCHOOL_ADMIN_INVITE",
+    schoolId: String(school._id),
+    schoolName: school.name,
+    actorId: String(staff._id),
+    actorRole: "platform_admin",
+    relatedEntityType: "invite",
+    relatedEntityId: String(invite._id),
   });
 
   return NextResponse.json({ success: true, inviteId: invite._id });

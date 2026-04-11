@@ -98,11 +98,13 @@ export async function POST(
           delegateEmail: school.billing?.paymentSetup?.delegateEmail || null,
         }),
         schoolName: school.name || "Your school",
+        schoolId: String(schoolId),
         subject: "Payment setup approved for continuation",
         title: "Payment setup review approved",
         message:
           "Your payout setup passed manual review. You can now return to Payment Setup and continue the online payments activation flow.",
         note,
+        templateKey: "PAYMENT_SETUP_SUCCESS",
       });
 
       await recordActivity({
@@ -154,11 +156,13 @@ export async function POST(
         delegateEmail: school.billing?.paymentSetup?.delegateEmail || null,
       }),
       schoolName: school.name || "Your school",
+      schoolId: String(schoolId),
       subject: "Payment setup needs attention",
       title: "Payment setup sent back",
       message:
         "The payout setup was sent back after manual review. Update the payout details and try again once the issue has been corrected.",
       note,
+      templateKey: "PAYMENT_SETUP_FAILURE",
     });
 
     await recordActivity({

@@ -227,6 +227,11 @@ const navSections: NavSection[] = [
     title: "System",
     items: [
       {
+        label: "Email",
+        href: "/admin/email",
+        icon: Mail,
+      },
+      {
         label: "Settings",
         href: "/admin/settings",
         icon: Settings,

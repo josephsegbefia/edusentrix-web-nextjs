@@ -18,7 +18,8 @@ export async function generateOnboardingMagicLink(email: string): Promise<string
   await clerk.invitations.createInvitation({
     emailAddress: email.toLowerCase().trim(),
     redirectUrl,
-    ignoreExisting: true, // Don't error if they were invited before
+    notify: false,
+    ignoreExisting: true,
   });
 
   // Return the sign-in URL - Clerk will send the magic link via email

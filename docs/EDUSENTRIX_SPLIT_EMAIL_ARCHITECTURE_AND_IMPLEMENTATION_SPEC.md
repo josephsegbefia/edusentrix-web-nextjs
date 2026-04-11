@@ -1,6 +1,6 @@
 # EduSentrix Split Email Architecture & Implementation Spec
 
-> **Version**: 1.0  
+> **Version**: 1.1  
 > **Date**: April 11, 2026  
 > **Status**: Ready for phased implementation  
 > **Audience**: Product, design, and engineering  
@@ -33,7 +33,8 @@
 EduSentrix needs a full split email architecture similar in spirit to the Dragonfly system:
 
 - **Brevo** handles automated and high-volume email.
-- **Spaceship / Spacemail** hosts real inboxes and handles manual one-to-one and inbound reply traffic.
+- **Brevo inbound parsing** on a dedicated reply subdomain handles primary app reply ingestion.
+- **Spaceship / Spacemail** hosts real inboxes and handles manual one-to-one human mail plus fallback mailbox continuity.
 - All outbound and inbound email is auditable.
 - The platform supports both **Edusentrix-branded** and **school-branded** email.
 - The platform can route replies back to the correct school or platform inbox without creating a real mailbox for every school in v1.
@@ -47,7 +48,7 @@ This must be implemented without breaking currently working invitation, payment,
 ### 2.1 Goals
 
 - Build a **platform-wide** email system for EduSentrix.
-- Self-deliver all **auth emails**.
+- Keep auth emails **Clerk-delivered**, but fully customized and branded.
 - Use **custom emails for all invitation flows**.
 - Support **transactional**, **operational**, **manual**, and **bulk** email.
 - Store **all outbound and inbound messages** plus provider events and delivery outcomes.
@@ -61,6 +62,7 @@ This must be implemented without breaking currently working invitation, payment,
 
 - EduSentrix will **not** provision a real mailbox account per school in v1.
 - EduSentrix will **not** become a mailbox hosting provider for school domains in v1.
+- EduSentrix will **not** take over delivery of authentication emails from Clerk.
 - EduSentrix will **not** expose raw student academic or disciplinary data directly in email bodies by default.
 - EduSentrix will **not** replace internal messaging; email complements it.
 
@@ -111,6 +113,9 @@ This is the standard SaaS pattern for a multi-tenant launch and avoids operation
 - No suppression or unsubscribe model
 - No generalized preference model across roles
 - No school email branding settings beyond logo/name
+- No email dispatch queue with retries, dead-letter handling, or fair scheduling
+- No explicit rate limiting or multi-tenant bulk governance
+- No sender-reputation isolation strategy for bulk versus transactional traffic
 - Current invitation flows can produce duplication if Clerk sends its own invite email and EduSentrix sends another branded email
 
 ### 3.3 Principle for this spec
@@ -123,11 +128,20 @@ Do not rip out the current invitation and reminder code first. Introduce a compa
 
 ### 4.1 Provider split
 
-- **Brevo** handles all automated/platform email.
+- **Brevo** handles:
+  - transactional school email
+  - automated platform email
+  - bulk and digest email
+  - outbound delivery event webhooks
+  - inbound parsing on the reply subdomain
 - **Spaceship / Spacemail** hosts the real inboxes:
   - `hello@tryedusentrix.app`
   - `support@tryedusentrix.app`
   - `billing@tryedusentrix.app`
+- **Spaceship / Spacemail** also handles:
+  - manual one-to-one SMTP sending when the app needs a human-mailbox identity
+  - direct mailbox continuity for operator mail
+  - fallback/recovery mailbox sync only, not primary app reply routing
 
 ### 4.2 Branding rules
 
@@ -156,14 +170,31 @@ This allows:
 - school-level inboxes
 - no separate mailbox provisioning per school
 
-### 4.4 Self-delivered auth email rule
+### 4.4 Clerk-delivered auth email rule
 
-EduSentrix will self-deliver all auth emails. Clerk remains the identity system, but EduSentrix becomes the delivery and branding layer for:
+EduSentrix will **not** self-deliver auth emails.
+
+Clerk remains both the identity provider and the delivery provider for:
 
 - verification code
 - sign-in code
 - password reset
-- invitation-adjacent auth steps
+- any other built-in auth template Clerk already supports
+
+EduSentrix still controls:
+
+- branding
+- copy
+- sender local part
+- reply-to behavior
+
+through Clerk template customization.
+
+Reason:
+
+- auth deliverability is the most operationally sensitive email path
+- moving auth mail onto Brevo would make EduSentrix responsible for critical sign-in availability
+- there is no product upside large enough to justify that reliability tradeoff in the first implementation
 
 ### 4.5 Invitation rule
 
@@ -203,8 +234,14 @@ Roles not allowed to send email in v1:
 The platform will not depend on one mailbox per school. Instead:
 
 - automated and manual emails carry a unique reply alias
-- inbound sync reads all mail from the shared mailbox
+- replies to app-generated email flow first through **Brevo inbound parsing** on `reply.tryedusentrix.app`
 - replies are matched back to school/thread/entity
+- Spacemail IMAP is used only for:
+  - direct emails that land in `hello@`, `support@`, or `billing@`
+  - operator continuity
+  - disaster recovery / replay support
+
+Primary inbound routing must therefore be webhook-based, not poll-based.
 
 ### 4.9 Sensitive data rule
 
@@ -226,6 +263,88 @@ Phase 1 includes:
 
 Transactional and safety-critical mail remains non-optional.
 
+### 4.11 Preference source-of-truth rule
+
+EduSentrix must not attempt a risky dual-write migration between `TeacherSettings` and `EmailPreference`.
+
+Instead:
+
+- `TeacherSettings` remains the authoritative persistence model for teachers in phase 1
+- `EmailPreference` becomes the authoritative persistence model for all other roles in scope
+- all send paths use a shared resolver that produces a single canonical **resolved preference** read model
+
+Implementation rule:
+
+- reads unify
+- writes stay role-native until a later migration
+
+This avoids data drift and preserves the existing teacher settings UI/API.
+
+### 4.12 Delivery resilience and retry rule
+
+Every email send and inbound routing operation must be classified as either:
+
+- retryable
+- non-retryable
+- dead-lettered after max attempts
+
+Transient provider failures such as:
+
+- `429`
+- `5xx`
+- timeouts
+- network errors
+- temporary attachment generation failures
+
+must be retried with exponential backoff and jitter.
+
+Permanent failures such as:
+
+- invalid recipient
+- invalid payload
+- hard policy rejection
+- unauthorized attachment request
+
+must fail immediately without retry loops.
+
+### 4.13 Rate limiting and fair scheduling rule
+
+The system must use two levels of protection:
+
+- **admission control** when a user schedules or sends email
+- **dispatch throttling** when the worker actually talks to providers
+
+Fairness rule:
+
+- transactional traffic always outranks bulk traffic
+- one school must not be able to monopolize the queue
+- bulk sends must be chunked and interleaved across schools
+
+### 4.14 Sender reputation and bulk governance rule
+
+EduSentrix is a multi-tenant sender, so bulk email cannot share the same operational posture as transactional email.
+
+Required rules:
+
+- bulk and transactional traffic must be logically isolated
+- bulk mail must be tagged and monitored per school
+- complaint, bounce, and unsubscribe spikes must auto-pause bulk sends for the affected school
+- newly enabled schools must start in a conservative **warm-up** bulk mode
+- high-volume schools must be eligible for sender-pool isolation or a dedicated IP strategy later
+- transactional billing and auth-related traffic must never be degraded by a school's poor bulk-email hygiene
+
+### 4.15 IMAP rule
+
+IMAP is not the primary app routing path.
+
+It is only a:
+
+- fallback continuity mechanism
+- recovery path for direct mailbox mail
+- operator support tool
+
+This prevents the app from depending on fragile polling latency for normal reply handling.
+
 ---
 
 ## 5. What the Operator Must Set Up Externally
@@ -243,6 +362,7 @@ Required DNS records:
 
 - Brevo SPF and DKIM
 - DMARC for the sending domain
+- MX delegation for `reply.tryedusentrix.app` to Brevo inbound parsing
 - MX records for Spacemail mailbox hosting
 - any Brevo webhook verification requirements
 
@@ -252,6 +372,7 @@ Configure:
 
 - transactional email API key
 - authenticated sender domain
+- inbound parsing webhook for `reply.tryedusentrix.app`
 - sender identities:
   - `hello@tryedusentrix.app`
   - `billing@tryedusentrix.app`
@@ -266,6 +387,12 @@ Configure:
   - complaint / spam
   - unsubscribed
   - error
+- tagging and custom-header strategy so each message carries:
+  - school identifier
+  - sender family
+  - traffic class
+  - template key
+- a dedicated IP or isolated sender pool plan for later high-volume bulk traffic
 
 ### 5.3 Spacemail / Spaceship
 
@@ -280,7 +407,12 @@ Enable:
 - SMTP
 - IMAP
 - aliases
-- catch-all or equivalent reply-routing support on the reply domain
+- mailbox rules or forwarding for operator convenience where needed
+
+Important:
+
+- the **reply subdomain is delegated to Brevo inbound parsing**
+- Spacemail does **not** own the primary app reply-routing domain
 
 ### 5.4 Clerk
 
@@ -288,7 +420,8 @@ Operator actions:
 
 - keep Clerk as the identity provider
 - add webhook endpoint for required user/invitation events
-- disable Clerk-delivered auth emails where applicable so EduSentrix self-delivers
+- customize Clerk email templates for EduSentrix branding
+- keep `Delivered by Clerk` enabled for auth templates
 - during implementation, switch invitation creation to custom delivery using `notify: false`
 
 ### 5.5 Environment variables to provide
@@ -305,6 +438,7 @@ BREVO_DEFAULT_FROM_NAME=Edusentrix
 BREVO_BILLING_FROM_EMAIL=billing@tryedusentrix.app
 BREVO_SUPPORT_REPLY_TO=support@tryedusentrix.app
 BREVO_WEBHOOK_SECRET=
+BREVO_INBOUND_PARSE_WEBHOOK_SECRET=
 
 SPACEMAIL_SMTP_HOST=
 SPACEMAIL_SMTP_PORT=
@@ -319,6 +453,8 @@ SPACEMAIL_IMAP_PASSWORD=
 EMAIL_REPLY_DOMAIN=reply.tryedusentrix.app
 EMAIL_AUDIT_ENABLED=true
 EMAIL_SYNC_ENABLED=true
+EMAIL_DISPATCH_CRON_SECRET=
+EMAIL_IMAP_RECOVERY_CRON_SECRET=
 
 CLERK_SECRET_KEY=
 CLERK_WEBHOOK_SECRET=
@@ -341,25 +477,37 @@ EduSentrix app action / scheduled job / webhook
 Email orchestration layer
         |
         +--> Brevo provider --------------> automated / template / bulk / transactional email
+        |        |
+        |        +--> outbound event webhooks
+        |        +--> inbound parse on reply subdomain
         |
         +--> Spacemail SMTP --------------> manual human email
         |
-        +--> Audit persistence -----------> EmailMessage / EmailEvent / EmailThread / EmailBatch
+        +--> Audit persistence -----------> EmailMessage / EmailEvent / EmailThread / EmailBatch / EmailDispatchJob
         |
         +--> Reply routing metadata -----> reply aliases + thread tokens
 
 Inbound replies
         |
         v
-Spacemail inbox / aliases
+reply.tryedusentrix.app
         |
-        +--> IMAP sync job
+        +--> Brevo inbound parsing webhook
         |
-        +--> message parser + router
+        +--> raw inbound persistence
         |
-        +--> EmailMessage(direction=inbound)
+        +--> routing worker / retry queue
         |
         +--> school inbox / platform inbox UI
+
+Direct mailbox continuity
+        |
+        v
+Spacemail inboxes (hello/support/billing)
+        |
+        +--> IMAP recovery sync only
+        |
+        +--> platform inbox / operator tools
 ```
 
 ### 6.2 Sender identities
@@ -379,7 +527,8 @@ School sender examples:
 Default mode:
 
 - all automated and school-branded emails use a generated reply alias under the Edusentrix reply domain
-- replies route back into Edusentrix inboxes
+- the reply subdomain is delegated to Brevo inbound parsing
+- replies route back into Edusentrix inboxes through webhook ingestion, not mailbox polling
 
 Example alias format:
 
@@ -431,7 +580,21 @@ Brevo webhook ingestion must update message status transitions:
 - unsubscribed
 - failed
 
-### 6.6 Quiet hours and digests
+### 6.6 Inbound ingestion strategy
+
+Primary path:
+
+- Brevo inbound parsing webhook receives all mail sent to `*@reply.tryedusentrix.app`
+- the webhook handler validates the request and persists the raw inbound payload first
+- a routing worker resolves thread, school, mailbox key, and entity context
+- if routing fails, the inbound item is retried from a durable job queue
+
+Fallback path:
+
+- Spacemail IMAP recovery sync is available only for direct mailbox traffic or operational replay
+- IMAP recovery is not required for normal reply processing
+
+### 6.7 Quiet hours and digests
 
 Email preferences support:
 
@@ -443,7 +606,7 @@ Email preferences support:
 
 Transactional mail ignores quiet hours if legally or operationally necessary. Optional mail should respect quiet hours and digest settings.
 
-### 6.7 Attachments and generated PDFs
+### 6.8 Attachments and generated PDFs
 
 Supported attachment classes in v1:
 
@@ -458,7 +621,7 @@ Generated files should be attached only when:
 - the template classification allows attachment
 - the data sensitivity checker permits it
 
-### 6.8 Suppression and opt-out model
+### 6.9 Suppression and opt-out model
 
 The system must distinguish:
 
@@ -467,6 +630,55 @@ The system must distinguish:
 - **channel-level pause**: quiet hours or digest
 
 Transactional flows should record attempted delivery even when optional delivery would have been skipped.
+
+### 6.10 Delivery resilience and dead-letter handling
+
+Outbound and inbound operations must use durable jobs with:
+
+- attempt count
+- next run time
+- max attempts
+- last error
+- terminal dead-letter state
+
+Rules:
+
+- retry transient provider and network errors
+- do not retry deterministic validation failures
+- preserve raw inbound payloads before routing
+- preserve unsent or failed outbound intent for operator retry where appropriate
+
+### 6.11 Multi-tenant sender reputation strategy
+
+The system must isolate traffic logically by:
+
+- sender family: `hello`, `billing`, `support`
+- traffic class: `transactional`, `manual`, `bulk`, `digest`
+- school ID
+- template key
+
+At scale:
+
+- bulk mail is never dispatched from the same queue priority as transactional mail
+- complaint and bounce thresholds auto-pause bulk traffic per school
+- schools with repeated issues can be downgraded to manual review only
+- high-volume bulk traffic is eligible for later dedicated-IP or sender-pool isolation
+
+### 6.12 Rate limiting and fair scheduling
+
+Required controls:
+
+- per-user manual-send hourly limits
+- per-school bulk-send hourly and daily limits
+- per-school concurrent dispatch caps
+- global provider throttle windows when Brevo returns `429`
+
+Dispatching must be:
+
+- priority aware
+- fair across schools
+- chunked for large batches
+- resumable after pauses or provider throttling
 
 ---
 
@@ -479,7 +691,7 @@ Transactional flows should record attempted delivery even when optional delivery
 ```ts
 {
   _id: ObjectId
-  provider: "brevo" | "spaceship" | "clerk_proxy" | "system"
+  provider: "brevo" | "spaceship" | "clerk" | "system"
   direction: "outbound" | "inbound"
 
   mailboxScope: "platform" | "school"
@@ -504,6 +716,7 @@ Transactional flows should record attempted delivery even when optional delivery
   status:
     | "draft"
     | "queued"
+    | "routing"
     | "sent"
     | "delivered"
     | "opened"
@@ -514,6 +727,7 @@ Transactional flows should record attempted delivery even when optional delivery
     | "complained"
     | "unsubscribed"
     | "failed"
+    | "dead_letter"
     | "received"
 
   messageClass:
@@ -529,6 +743,19 @@ Transactional flows should record attempted delivery even when optional delivery
     | "support"
     | "digest"
     | "system"
+
+  trafficClass:
+    | "transactional"
+    | "manual"
+    | "bulk"
+    | "digest"
+    | "system"
+
+  priority:
+    | "critical"
+    | "high"
+    | "normal"
+    | "low"
 
   templateKey?: string | null
   templateVersion?: string | null
@@ -573,6 +800,7 @@ Transactional flows should record attempted delivery even when optional delivery
   }>
 
   failureReason?: string | null
+  skipReason?: string | null
   sentAt?: Date | null
   deliveredAt?: Date | null
   openedAt?: Date | null
@@ -647,7 +875,7 @@ Transactional flows should record attempted delivery even when optional delivery
 
 ### 7.4 `EmailPreference`
 
-**Purpose**: unified preferences for roles beyond existing teacher settings.
+**Purpose**: generic preference store for roles other than teachers in phase 1. Teachers continue to use `TeacherSettings` as the write source of truth.
 
 ```ts
 {
@@ -693,6 +921,52 @@ Transactional flows should record attempted delivery even when optional delivery
 }
 ```
 
+### 7.4a Resolved preference read model
+
+This is a code-level read model, not a persisted Mongo collection.
+
+```ts
+type ResolvedEmailPreference = {
+  source:
+    | "teacher_settings"
+    | "email_preference"
+    | "school_default"
+    | "platform_default"
+  role: string
+  channels: {
+    email: boolean
+    inApp: boolean
+    whatsapp?: boolean
+    sms?: boolean
+  }
+  categories: {
+    attendance: boolean
+    academics: boolean
+    announcements: boolean
+    billingReminders: boolean
+    manualMessages: boolean
+    lessonNoteReview: boolean
+  }
+  digest: {
+    daily: boolean
+    weekly: boolean
+  }
+  urgentOnly: boolean
+  quietHours: {
+    enabled: boolean
+    startTime: string
+    endTime: string
+  }
+  optOutCategories: string[]
+}
+```
+
+Resolver rule:
+
+- for teachers, map from `TeacherSettings`
+- for all other supported roles, read from `EmailPreference`
+- then apply school defaults, platform defaults, and suppressions
+
 ### 7.5 `EmailSuppression`
 
 **Purpose**: enforce bounce/complaint safety and user opt-outs.
@@ -716,7 +990,66 @@ Transactional flows should record attempted delivery even when optional delivery
 }
 ```
 
-### 7.6 `EmailBatch`
+### 7.6 `EmailDispatchJob`
+
+**Purpose**: durable job queue for outbound dispatch, inbound routing retries, and recovery work. This should follow the same durable-Mongo pattern already used by `ProvisioningJob`.
+
+```ts
+{
+  _id: ObjectId
+  kind:
+    | "outbound_single"
+    | "batch_chunk"
+    | "digest_chunk"
+    | "inbound_route"
+    | "imap_recovery"
+
+  emailMessageId?: ObjectId | null
+  emailBatchId?: ObjectId | null
+  schoolId?: ObjectId | null
+
+  senderFamily?: "hello" | "billing" | "support" | null
+  trafficClass: "transactional" | "manual" | "bulk" | "digest" | "system"
+  priority: "critical" | "high" | "normal" | "low"
+
+  status: "pending" | "running" | "failed" | "done" | "dead_letter"
+  attempts: number
+  maxAttempts: number
+  nextRunAt?: Date | null
+  lastError?: string | null
+
+  rateScopeKey?: string | null
+  claimedBy?: string | null
+  lockedAt?: Date | null
+
+  payload?: Record<string, unknown>
+  createdAt: Date
+  updatedAt: Date
+}
+```
+
+### 7.7 `EmailRateWindow`
+
+**Purpose**: enforce multi-tenant rate limits and fairness without requiring Redis in the first implementation.
+
+```ts
+{
+  _id: ObjectId
+  scopeType: "global" | "school" | "user" | "sender_family"
+  scopeKey: string
+  trafficClass: "transactional" | "manual" | "bulk" | "digest"
+  windowStart: Date
+  windowMinutes: number
+  sentCount: number
+  deferredCount: number
+  bounceCount: number
+  complaintCount: number
+  createdAt: Date
+  updatedAt: Date
+}
+```
+
+### 7.8 `EmailBatch`
 
 **Purpose**: track bulk email campaigns and mass sends.
 
@@ -740,7 +1073,7 @@ Transactional flows should record attempted delivery even when optional delivery
 }
 ```
 
-### 7.7 School branding and school email settings
+### 7.9 School branding and school email settings
 
 Recommendation: add a dedicated email section to `SchoolSettings`, while keeping core identity in `School`.
 
@@ -764,6 +1097,7 @@ SchoolSettings.email = {
   }
   policy: {
     enableBulkEmail: boolean
+    bulkSendingMode: "disabled" | "warmup" | "normal" | "paused"
     defaultQuietHoursEnabled: boolean
     quietHoursStart?: string | null
     quietHoursEnd?: string | null
@@ -781,9 +1115,9 @@ Every message type below is mandatory per product direction.
 
 | Category | Message | Brand | Sender Family | Preference Class | Sensitivity |
 |---|---|---|---|---|---|
-| Auth | Verification code | Edusentrix | `hello` | transactional | moderate |
-| Auth | Sign-in code | Edusentrix | `hello` | transactional | moderate |
-| Auth | Password reset | Edusentrix | `hello` | transactional | moderate |
+| Auth | Verification code | Edusentrix via Clerk | `clerk` | transactional | moderate |
+| Auth | Sign-in code | Edusentrix via Clerk | `clerk` | transactional | moderate |
+| Auth | Password reset | Edusentrix via Clerk | `clerk` | transactional | moderate |
 | Invitations | School admin invite | school | `hello` | transactional | moderate |
 | Invitations | Teacher invite | school | `hello` | transactional | moderate |
 | Invitations | Parent invite | school | `hello` | transactional | moderate |
@@ -840,6 +1174,10 @@ src/lib/email/
   sensitivity.ts
   preferences.ts
   suppressions.ts
+  deliverability.ts
+  quotas.ts
+  adapters/
+    teacher-settings.ts
   renderers/
     platform.ts
     school.ts
@@ -849,12 +1187,11 @@ src/lib/email/
   services/
     send-brevo-email.ts
     send-manual-support-email.ts
+    receive-brevo-inbound.ts
     mailbox-sync.ts
     dispatch-batch.ts
-    send-auth-email.ts
     send-invitation-email.ts
   templates/
-    auth.ts
     invitations.ts
     billing.ts
     academics.ts
@@ -884,12 +1221,14 @@ Add:
 - `src/models/EmailEvent.ts`
 - `src/models/EmailPreference.ts`
 - `src/models/EmailSuppression.ts`
+- `src/models/EmailDispatchJob.ts`
+- `src/models/EmailRateWindow.ts`
 - `src/models/EmailBatch.ts`
 
 Extend:
 
 - `src/models/SchoolSettings.ts`
-- `src/models/TeacherSettings.ts` only by mapping to new generic preference rules, not by breaking current fields
+- `src/models/TeacherSettings.ts` only if a non-breaking adapter helper or metadata field is necessary
 
 ### 9.4 Provider services to add
 
@@ -899,10 +1238,13 @@ Extend:
 - `send-manual-support-email.ts`
   - SMTP-based manual support/human email
   - persists message records
+- `receive-brevo-inbound.ts`
+  - webhook-first inbound processing for reply aliases
+  - persists raw inbound payloads before routing
 - `mailbox-sync.ts`
-  - IMAP inbound sync
-  - routes inbound replies
-  - stores inbound messages
+  - IMAP recovery sync only
+  - imports direct mailbox mail for operator continuity or recovery
+  - not part of the normal reply path
 
 ### 9.5 Reply routing service
 
@@ -932,7 +1274,21 @@ Responsibilities:
 - update `EmailMessage.status`
 - apply suppression if bounce/complaint/unsubscribe requires it
 
-### 9.7 Mailbox sync route
+### 9.7 Brevo inbound parse route
+
+Add:
+
+- `src/app/api/webhooks/brevo-inbound/route.ts`
+
+Responsibilities:
+
+- verify inbound parse secret
+- persist raw inbound item immediately
+- enqueue routing work
+- dedupe by provider message ID / message-id / routing token
+- avoid expensive routing logic directly in the webhook request when possible
+
+### 9.8 IMAP recovery sync route
 
 Add:
 
@@ -940,13 +1296,12 @@ Add:
 
 Responsibilities:
 
-- poll IMAP inbox
-- fetch recent inbound mail
-- parse sender, recipients, subject, headers, text/html
-- route to school/platform inbox
-- dedupe by provider message ID / message-id
+- poll only the direct Spacemail mailboxes
+- import direct mailbox traffic not captured by the reply-domain webhook path
+- support operator continuity and recovery
+- remain idempotent and low-frequency
 
-### 9.8 Email dispatch queue route
+### 9.9 Email dispatch queue route
 
 Add:
 
@@ -955,11 +1310,14 @@ Add:
 Responsibilities:
 
 - process queued bulk/digest jobs
+- process retryable outbound single-message jobs
+- process inbound routing retries
 - honor preferences and quiet hours
+- honor quotas and fairness controls
 - create `EmailMessage` records
 - send via provider
 
-### 9.9 Admin APIs
+### 9.10 Admin APIs
 
 Add:
 
@@ -980,7 +1338,7 @@ Responsibilities:
 - bulk email composition and dispatch
 - entity-linked email history lookup
 
-### 9.10 Platform APIs
+### 9.11 Platform APIs
 
 Add:
 
@@ -996,7 +1354,7 @@ Responsibilities:
 - platform admin manual sends
 - suppression administration
 
-### 9.11 Existing routes to migrate carefully
+### 9.12 Existing routes to migrate carefully
 
 Do not break these. Migrate them in place:
 
@@ -1011,7 +1369,7 @@ Do not break these. Migrate them in place:
 - `src/lib/notifications/fee-reminders.ts`
 - `src/lib/school-payments/payment-setup-notifications.ts`
 
-### 9.12 Clerk integration changes
+### 9.13 Clerk integration changes
 
 Current code uses Clerk invitations and also sends branded invite emails manually. That should become:
 
@@ -1019,23 +1377,21 @@ Current code uses Clerk invitations and also sends branded invite emails manuall
 - store invitation metadata locally
 - send EduSentrix or school-branded invitation through the email service
 
-Current webhook file `src/app/api/webhooks/clerk/route.ts` should remain the identity linkage point. Extend only as needed for self-delivered auth and invite lifecycle alignment.
+Current webhook file `src/app/api/webhooks/clerk/route.ts` should remain the identity linkage point. Extend only as needed for invite lifecycle alignment and user linking.
 
-### 9.13 Auth email handling
+### 9.14 Auth email handling
 
-Add:
+Do **not** add a `send-auth-email.ts` service in the first implementation.
 
-- `src/lib/email/services/send-auth-email.ts`
+Instead:
 
-Use this for:
+- customize auth templates in Clerk Dashboard
+- keep `Delivered by Clerk` enabled for auth templates
+- treat auth mail as operationally outside the EduSentrix outbound pipeline
 
-- verification code
-- sign-in code
-- password reset
+Optional future work can add lightweight auth-email observability, but delivery remains Clerk-owned.
 
-Clerk remains the identity backend, but email delivery comes through EduSentrix branding and audit tracking.
-
-### 9.14 PDF generation and attachment services
+### 9.15 PDF generation and attachment services
 
 Add or reuse per-domain generators:
 
@@ -1044,6 +1400,102 @@ Add or reuse per-domain generators:
 - report card PDF from reports domain
 
 Do not duplicate PDF generation logic if the fees/reports domains already expose generation routes. Reuse shared builders where practical.
+
+### 9.16 Error handling, retry, and dead-letter policy
+
+Reuse the durable job pattern already present in the codebase around:
+
+- `src/models/ProvisioningJob.ts`
+- `src/lib/jobs/provisioning.ts`
+
+Email jobs must follow the same shape:
+
+- durable Mongo-backed queue
+- atomic claim
+- exponential backoff
+- terminal dead-letter state
+- best-effort status stamping on related entities
+
+Policy:
+
+- retry on provider `429`, `5xx`, timeouts, and connection failures
+- retry on transient PDF generation failures
+- do not retry invalid-recipient or invalid-payload failures
+- dead-letter after `maxAttempts`
+- expose operator retry from the UI only when the underlying issue is likely recoverable
+
+### 9.17 Rate limiting and fair scheduling
+
+Implement two layers:
+
+1. **API admission control**
+   - block or defer excessive manual and bulk send requests before queueing
+2. **worker throttling**
+   - enforce global, per-school, per-user, and per-sender-family limits while dispatching
+
+Baseline rules:
+
+- transactional: highest priority
+- manual: above bulk
+- bulk: chunked and scheduled
+- digest: lowest priority
+
+Fairness rules:
+
+- max one running bulk chunk per school at a time
+- round-robin between schools for bulk work
+- if Brevo returns `429`, set a global cooldown window and stop claiming additional outbound jobs briefly
+
+### 9.18 Sender reputation and suppression strategy
+
+Required controls:
+
+- per-school deliverability metrics
+- per-school complaint and bounce thresholds
+- automatic bulk pause on threshold breach
+- mandatory unsubscribe footer for optional bulk/digest mail
+- hard suppression on hard bounce or complaint
+- no bulk mail from schools with unresolved deliverability risk
+
+Operational strategy:
+
+- bulk sends use a separate traffic class from transactional mail
+- every outbound message carries school and traffic metadata in tags/custom headers
+- dashboards must allow filtering by school, sender family, and traffic class
+- new schools begin in `warmup` mode with conservative quotas before graduating to normal bulk mode
+- if total bulk volume becomes material, move bulk traffic to a dedicated IP or isolated sender pool without touching transactional flows
+
+### 9.19 Preference resolution adapter
+
+Do not dual-write `TeacherSettings` into `EmailPreference` in the initial rollout.
+
+Instead implement:
+
+- `resolveEmailPreference(userId, role, schoolId, category)`
+
+Resolution order:
+
+1. hard suppression
+2. role-native source
+   - teachers -> `TeacherSettings`
+   - others -> `EmailPreference`
+3. school defaults
+4. platform defaults
+5. message-class overrides for transactional traffic
+
+This preserves current teacher behavior while still giving the rest of the platform a generic preference model.
+
+### 9.20 Multi-tenant scaling strategy
+
+The system must be able to handle many schools without one school degrading others.
+
+Required design rules:
+
+- no synchronous N-recipient bulk sending inside request handlers
+- chunk large batches into deterministic slices
+- isolate queue priority by traffic class
+- capture per-school metrics and sender health
+- support later migration to dedicated IP or pool isolation without rewriting the model layer
 
 ---
 
@@ -1081,6 +1533,7 @@ Sections:
 - Sent
 - Failures / retries
 - Bulk sends
+- Delivery health
 - Templates
 
 Capabilities:
@@ -1167,6 +1620,11 @@ School admin and bursar bulk email UI should support:
 - draft preview
 - estimated send count
 - blocked/suppressed recipient count preview
+- school quota preview
+- expected send duration / throttling hint
+- mandatory unsubscribe / footer preview for optional mail
+- delivery health warnings before send
+- auto-pause explanation if school bulk mail is currently restricted
 
 ### 10.8 Design consistency rule
 
@@ -1225,7 +1683,17 @@ Optional suppression applies for:
 
 - unsubscribed optional categories
 
-### 11.4 Auditability
+### 11.4 Bulk email safety rules
+
+Bulk email must:
+
+- include a clear unsubscribe path for optional categories
+- exclude guardian-only or sensitive student detail from the body
+- respect school and platform quotas
+- auto-pause when complaint or bounce thresholds are exceeded
+- never outrank transactional traffic in the queue
+
+### 11.5 Auditability
 
 Every outbound and inbound message must capture:
 
@@ -1235,7 +1703,7 @@ Every outbound and inbound message must capture:
 - which provider handled it
 - final status and failure reason
 
-### 11.5 RBAC
+### 11.6 RBAC
 
 Platform admin:
 
@@ -1267,9 +1735,10 @@ Migration order:
 2. wrap current Brevo sender
 3. begin auditing messages without changing all call sites
 4. migrate invitation flows
-5. migrate fee reminders and payment setup notifications
-6. add inboxes and preferences
-7. add self-delivered auth emails
+5. add Brevo inbound parse and routing
+6. migrate fee reminders and payment setup notifications
+7. add inboxes and preferences
+8. leave auth with Clerk and only harden branding there
 
 ### 12.2 Existing invitations
 
@@ -1298,6 +1767,11 @@ Keep current template keys working:
 
 Then map them into the new registry so old callers do not break while migration is in progress.
 
+Important:
+
+- `PASSWORD_OTP` remains a compatibility template only
+- it must not become the primary auth delivery path while Clerk remains the auth email sender
+
 ### 12.4 Existing preferences
 
 Teacher settings already contain email prefs and quiet hours. Preserve them.
@@ -1305,8 +1779,11 @@ Teacher settings already contain email prefs and quiet hours. Preserve them.
 Migration approach:
 
 - keep `TeacherSettings.notifications.email.*`
-- introduce unified email preference reader
+- keep teacher writes inside `TeacherSettings`
+- introduce unified email preference resolver
 - derive missing defaults for other roles
+- store non-teacher preferences in `EmailPreference`
+- do not dual-write teachers in phase 1
 
 ### 12.5 Backfill
 
@@ -1321,17 +1798,19 @@ All items are mandatory. Phases define order, not optionality.
 ### Phase 1: Foundation and Compatibility
 
 - add email models
+- add email dispatch job and rate-window models
 - add Brevo and Spacemail provider services
 - add compatibility wrapper around current Brevo sender
 - add reply alias routing service
 - add email audit persistence
+- add Brevo outbound and inbound webhook endpoints
 
-### Phase 2: Invitations and Auth
+### Phase 2: Invitations and Inbound Routing
 
 - convert Clerk invitation flows to `notify: false`
 - move all invite emails onto the new email service
-- add self-delivered auth email support
-- add invite and auth templates
+- add primary inbound reply routing through Brevo inbound parsing
+- add invite templates
 
 ### Phase 3: Core Transactional School Email
 
@@ -1348,6 +1827,7 @@ All items are mandatory. Phases define order, not optionality.
 
 - add `EmailPreference`
 - add `EmailSuppression`
+- add `resolveEmailPreference()` adapter layer
 - add quiet hours
 - add digest scheduling
 - add guardian-only and summary-plus-link policy enforcement
@@ -1357,13 +1837,16 @@ All items are mandatory. Phases define order, not optionality.
 - add platform inbox
 - add school inbox
 - add manual compose
-- add reply handling via IMAP sync
+- add IMAP recovery sync
 - add entity-linked history
 
-### Phase 6: Bulk Email and Attachments
+### Phase 6: Bulk Email, Deliverability, and Attachments
 
 - bulk send UI and API
 - batch tracking
+- school quotas and fair scheduling
+- deliverability health dashboards
+- auto-pause on complaint/bounce thresholds
 - attachments and PDFs
 - retry flows and failure dashboards
 
@@ -1394,6 +1877,12 @@ The system is acceptable when all of the following are true.
 - EduSentrix sends the visible invitation email instead.
 - Invitation resend uses the same pattern.
 
+### 14.2a Auth behavior
+
+- Clerk continues to deliver auth emails.
+- Auth templates are branded for EduSentrix in Clerk.
+- The EduSentrix email pipeline does not become a critical dependency for sign-in or password reset.
+
 ### 14.3 School branding
 
 - School-originated messages show school branding.
@@ -1405,6 +1894,8 @@ The system is acceptable when all of the following are true.
 - Replies to platform messages reach the platform inbox.
 - Replies to school messages reach the correct school inbox.
 - Replies to billing messages route to the right school/platform billing context.
+- Primary reply routing works through Brevo inbound parsing on the reply subdomain.
+- IMAP recovery is not required for normal reply handling.
 
 ### 14.5 Preferences and policy
 
@@ -1412,6 +1903,13 @@ The system is acceptable when all of the following are true.
 - Transactional messages are still deliverable when appropriate.
 - Suppressed recipients are skipped safely.
 - Sensitive student data is not leaked in email bodies to unsafe recipients.
+- Teachers continue to honor existing `TeacherSettings` preferences without a breaking migration.
+
+### 14.5a Deliverability and scale
+
+- One school's bulk send cannot block another school's transactional mail.
+- Bulk traffic is quota-controlled and fair-scheduled.
+- Complaint or bounce spikes auto-pause bulk traffic for the affected school.
 
 ### 14.6 UI and operations
 
@@ -1435,6 +1933,8 @@ Create new models:
 - `EmailEvent`
 - `EmailPreference`
 - `EmailSuppression`
+- `EmailDispatchJob`
+- `EmailRateWindow`
 - `EmailBatch`
 
 ### Step 2
@@ -1447,7 +1947,7 @@ Refactor `src/lib/email/brevo.ts` so `sendEmail()` and `sendRawEmail()` delegate
 
 ### Step 4
 
-Add Brevo webhook route and Spacemail IMAP sync route.
+Add Brevo outbound webhook route and Brevo inbound parse route.
 
 ### Step 5
 
@@ -1488,7 +1988,7 @@ Add generic preferences and suppression logic, then wire teacher settings into t
 
 ### Step 11
 
-Add attachments, PDFs, secure-link unmask flows, and bulk send jobs.
+Add rate limits, fair scheduling, deliverability health, attachments, PDFs, secure-link unmask flows, and bulk send jobs.
 
 ### Step 12
 
@@ -1500,7 +2000,7 @@ Run a complete regression pass on:
 - platform application approval
 - fee reminder
 - payment setup notification
-- auth email flow
+- Clerk auth template flow
 - inbound reply routing
 
 ---
@@ -1509,8 +2009,11 @@ Run a complete regression pass on:
 
 - Clerk application invitations: <https://clerk.com/docs/guides/development/custom-flows/authentication/application-invitations>
 - Clerk invitation API with `notify`: <https://clerk.com/docs/reference/backend/invitations/create-invitation>
+- Clerk email and SMS templates: <https://clerk.com/docs/guides/customizing-clerk/email-sms-templates>
 - Clerk webhooks overview: <https://clerk.com/docs/guides/development/webhooks/overview>
 - Brevo transactional webhooks: <https://developers.brevo.com/docs/transactional-webhooks>
+- Brevo inbound parsing: <https://developers.brevo.com/docs/inbound-parse-webhooks>
+- Brevo webhook retry mechanism: <https://developers.brevo.com/docs/retry-mechanism>
 - Brevo domain authentication: <https://help.brevo.com/hc/en-us/articles/12163873383186--New-Authenticate-your-domain-to-improve-the-deliverability-of-your-emails-DKIM-and-Brevo-code->
+- Brevo dedicated IP guidance: <https://help.brevo.com/hc/en-us/articles/22135465350290-New-Admin-account-Set-up-a-dedicated-IP-for-your-sub-organizations>
 - Spacemail IMAP/SMTP setup: <https://www.spaceship.com/en-GB/knowledgebase/connect-spacemail-to-email-client/>
-

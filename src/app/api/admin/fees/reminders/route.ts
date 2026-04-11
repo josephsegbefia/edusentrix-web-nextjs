@@ -609,6 +609,9 @@ export async function POST(req: NextRequest) {
               channel: body.channel,
               email: recipient.email,
               phone: recipient.phone,
+              schoolId: String(schoolIdObj),
+              schoolName,
+              actorId: String(userId),
               emailPayload: {
                 schoolName,
                 guardianName: recipient.guardianName,

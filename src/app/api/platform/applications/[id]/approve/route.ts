@@ -196,7 +196,8 @@ import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { Application } from "@/models/Application";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
-import { sendEmail } from "@/lib/email/brevo";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
@@ -411,22 +412,35 @@ export async function POST(
       const clerk = await clerkClient();
       await clerk.invitations.createInvitation({
         emailAddress: approvedApp.adminEmail,
-        redirectUrl, // after accepting invitation, Clerk creates session and returns here
-        // Optionally stamp role so new session carries it
+        redirectUrl,
+        notify: false,
         publicMetadata: { role: "school_admin" },
+        ignoreExisting: true,
       });
 
-      // Optional: your branded FYI email
-      await sendEmail(approvedApp.adminEmail, "SCHOOL_INVITE", {
+      const rendered = renderTemplate("SCHOOL_INVITE", {
         schoolName: approvedApp.schoolName,
-        setupLink: `${APP_URL}/sign-in`, // safety link
+        setupLink: `${APP_URL}/sign-in`,
+      });
+
+      await sendTrackedBrevoEmail({
+        to: approvedApp.adminEmail,
+        subject: rendered.subject,
+        htmlContent: rendered.htmlContent,
+        textContent: rendered.textContent,
+        templateKey: "SCHOOL_ADMIN_INVITE",
+        schoolId: schoolIdCreated ? String(schoolIdCreated) : undefined,
+        schoolName: approvedApp.schoolName,
+        actorId: String(platformAdminId),
+        actorRole: "platform_admin",
+        relatedEntityType: "application",
+        relatedEntityId: id,
       });
     } catch (e) {
       console.error(
         "Clerk invitation error (ensure Email identifiers are enabled):",
         e
       );
-      // Not fatal; platform admin can re-send invite from dashboard if needed.
     }
 
     return NextResponse.json({ success: true, schoolId: schoolIdCreated });

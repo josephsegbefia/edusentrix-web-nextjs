@@ -3,7 +3,8 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { clerkClient } from "@clerk/nextjs/server";
-import { sendEmail } from "@/lib/email/brevo";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { School } from "@/models/School";
 import mongoose from "mongoose";
@@ -84,6 +85,7 @@ export async function POST(
       const clerkInvitation = await clerk.invitations.createInvitation({
         emailAddress: invitation.email,
         redirectUrl,
+        notify: false,
         publicMetadata: {
           role: invitation.role,
           schoolId: String(schoolId),
@@ -91,26 +93,52 @@ export async function POST(
         ignoreExisting: true,
       });
 
-      // Fetch school name for email
       const school = await School.findById(schoolIdObj)
         .select("name")
         .lean();
       const schoolName = school ? (school as any).name : "your school";
 
-      // Send branded email
-      await sendEmail(invitation.email, "USER_INVITE", {
-        name: invitation.metadata?.firstName && invitation.metadata?.lastName
+      const displayRole =
+        invitation.role === "billing_owner"
+          ? "billing owner"
+          : invitation.role === "bursar" &&
+              invitation.metadata?.accessSurface === "payment_setup_delegate"
+            ? "finance delegate"
+            : invitation.role;
+
+      const recipientName =
+        invitation.metadata?.firstName && invitation.metadata?.lastName
           ? `${invitation.metadata.firstName} ${invitation.metadata.lastName}`
-          : invitation.email,
-        role:
-          invitation.role === "billing_owner"
-            ? "billing owner"
-            : invitation.role === "bursar" &&
-                invitation.metadata?.accessSurface === "payment_setup_delegate"
-              ? "finance delegate"
-              : invitation.role,
+          : invitation.email;
+
+      const rendered = renderTemplate("USER_INVITE", {
+        name: recipientName,
+        role: displayRole,
         schoolName,
         setupLink: `${APP_URL}/sign-in`,
+      });
+
+      const templateKey =
+        invitation.role === "billing_owner"
+          ? "BILLING_OWNER_INVITE"
+          : invitation.role === "bursar"
+            ? "BURSAR_INVITE"
+            : invitation.role === "parent"
+              ? "PARENT_INVITE"
+              : "TEACHER_INVITE";
+
+      await sendTrackedBrevoEmail({
+        to: invitation.email,
+        subject: rendered.subject,
+        htmlContent: rendered.htmlContent,
+        textContent: rendered.textContent,
+        templateKey,
+        schoolId: String(schoolIdObj),
+        schoolName,
+        actorId: String(userId),
+        actorRole: "school_admin",
+        relatedEntityType: "invitation",
+        relatedEntityId: invitationId,
       });
 
       // Update invitation record

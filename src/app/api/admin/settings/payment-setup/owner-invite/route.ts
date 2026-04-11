@@ -4,7 +4,8 @@ import { z } from "zod";
 import { clerkClient } from "@clerk/nextjs/server";
 import { requirePaymentSetupAccess } from "@/lib/auth/requirePaymentSetupAccess";
 import { trackUsage } from "@/lib/billing/trackUsage";
-import { sendEmail } from "@/lib/email/brevo";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 import { assignPendingBillingOwnerInvitation } from "@/lib/school-payments/billing-owner-lifecycle";
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
       const clerkInvitation = await clerk.invitations.createInvitation({
         emailAddress: normalizedEmail,
         redirectUrl,
+        notify: false,
         publicMetadata: {
           role: "billing_owner",
           schoolId: String(access.schoolId),
@@ -133,11 +135,24 @@ export async function POST(req: NextRequest) {
 
     if (invitationStatus === "pending") {
       try {
-        await sendEmail(normalizedEmail, "USER_INVITE", {
+        const rendered = renderTemplate("USER_INVITE", {
           name: parsed.data.ownerName,
           role: "billing owner",
           schoolName: school.name || "your school",
           setupLink: `${getAppUrl()}/sign-in`,
+        });
+
+        await sendTrackedBrevoEmail({
+          to: normalizedEmail,
+          subject: rendered.subject,
+          htmlContent: rendered.htmlContent,
+          textContent: rendered.textContent,
+          templateKey: "BILLING_OWNER_INVITE",
+          schoolId: String(access.schoolId),
+          schoolName: school.name || undefined,
+          actorId: String(access.userId),
+          actorRole: "school_admin",
+          relatedEntityType: "invitation",
         });
       } catch (emailError: unknown) {
         console.error("Billing owner invite email error:", emailError);

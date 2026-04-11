@@ -5,7 +5,8 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
-import { sendEmail } from "@/lib/email/brevo";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 import mongoose from "mongoose";
@@ -200,6 +201,7 @@ export async function POST(req: NextRequest) {
       const clerkInvitation = await clerk.invitations.createInvitation({
         emailAddress: normalizedEmail,
         redirectUrl,
+        notify: false,
         publicMetadata: {
           role: "bursar",
           schoolId: String(schoolIdObj),
@@ -217,11 +219,24 @@ export async function POST(req: NextRequest) {
           ? `${parsed.data.firstName} ${parsed.data.lastName}`.trim()
           : normalizedEmail;
 
-      await sendEmail(normalizedEmail, "USER_INVITE", {
+      const rendered = renderTemplate("USER_INVITE", {
         name: inviteeName,
         role: "bursar",
         schoolName,
         setupLink: `${APP_URL}/sign-in`,
+      });
+
+      await sendTrackedBrevoEmail({
+        to: normalizedEmail,
+        subject: rendered.subject,
+        htmlContent: rendered.htmlContent,
+        textContent: rendered.textContent,
+        templateKey: "BURSAR_INVITE",
+        schoolId: String(schoolIdObj),
+        schoolName,
+        actorId: String(userId),
+        actorRole: "school_admin",
+        relatedEntityType: "invitation",
       });
       await trackUsage({
         schoolId,

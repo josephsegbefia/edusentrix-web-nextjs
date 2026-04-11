@@ -11,7 +11,8 @@ import { UserMembership } from "@/models/UserMembership";
 import { School } from "@/models/School";
 import { Invitation } from "@/models/Invitation";
 import { clerkClient } from "@clerk/nextjs/server";
-import { sendEmail } from "@/lib/email/brevo";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { parse } from "csv-parse/sync";
 import mongoose from "mongoose";
@@ -410,6 +411,7 @@ export async function POST(req: NextRequest) {
           const clerkInvitation = await clerk.invitations.createInvitation({
             emailAddress: normalizedEmail,
             redirectUrl,
+            notify: false,
             publicMetadata: {
               role: "teacher",
               schoolId: String(schoolIdObj),
@@ -418,12 +420,24 @@ export async function POST(req: NextRequest) {
           });
           clerkInvitationId = clerkInvitation.id;
 
-          // Send branded invitation email
-          await sendEmail(normalizedEmail, "USER_INVITE", {
+          const rendered = renderTemplate("USER_INVITE", {
             name: `${row.firstName} ${row.lastName}`,
             role: "teacher",
             schoolName,
             setupLink: `${APP_URL}/sign-in`,
+          });
+
+          await sendTrackedBrevoEmail({
+            to: normalizedEmail,
+            subject: rendered.subject,
+            htmlContent: rendered.htmlContent,
+            textContent: rendered.textContent,
+            templateKey: "TEACHER_INVITE",
+            schoolId: String(schoolIdObj),
+            schoolName,
+            actorId: String(adminUserId),
+            actorRole: "school_admin",
+            relatedEntityType: "invitation",
           });
         } catch (inviteError) {
           console.error(`Clerk invitation error for ${normalizedEmail}:`, inviteError);

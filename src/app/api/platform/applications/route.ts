@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { Application } from "@/models/Application";
-import { sendEmail } from "@/lib/email/brevo";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 import { z } from "zod";
 import { Types } from "mongoose";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
@@ -213,17 +214,25 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Fire and forget OK for UX (await to stface errors during hardening)
     try {
-      await sendEmail(`${app.adminEmail}`, "APPLICATION_RECEIVED", {
+      const rendered = renderTemplate("APPLICATION_RECEIVED", {
         name: `${app.adminFirstName}`,
+      });
+
+      await sendTrackedBrevoEmail({
+        to: `${app.adminEmail}`,
+        subject: rendered.subject,
+        htmlContent: rendered.htmlContent,
+        textContent: rendered.textContent,
+        templateKey: "APPLICATION_RECEIVED",
+        relatedEntityType: "application",
+        relatedEntityId: String(app._id),
       });
     } catch (emailError) {
       console.error(
         "POST /api/platform/applications - Email send failed:",
         emailError
       );
-      // Don't fail the request if email fails
     }
 
     return NextResponse.json({ success: true, id: app._id, app: app });

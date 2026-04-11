@@ -1,6 +1,7 @@
 import "server-only";
 
-import { sendEmail } from "@/lib/email/brevo";
+import { sendTrackedBrevoEmail } from "@/lib/email";
+import { renderTemplate } from "@/lib/email/templates";
 import { sendWhatsAppMessage } from "@/lib/notifications/whatsapp";
 import { normalizePhone } from "@/lib/notifications/teacher-whatsapp-policy";
 
@@ -29,6 +30,9 @@ export type FeeReminderDispatchInput = {
   email?: string | null;
   phone?: string | null;
   emailPayload: FeeReminderEmailPayload;
+  schoolId?: string | null;
+  schoolName?: string | null;
+  actorId?: string | null;
 };
 
 export type FeeReminderDispatchResult = {
@@ -45,7 +49,19 @@ export async function dispatchFeeReminder(
     if (!input.email) {
       return { success: false, channel: "email", reason: "missing_email" };
     }
-    await sendEmail(input.email, "FEE_REMINDER", input.emailPayload);
+    const rendered = renderTemplate("FEE_REMINDER", input.emailPayload);
+
+    await sendTrackedBrevoEmail({
+      to: input.email,
+      subject: rendered.subject,
+      htmlContent: rendered.htmlContent,
+      textContent: rendered.textContent,
+      templateKey: "FEE_REMINDER",
+      schoolId: input.schoolId,
+      schoolName: input.schoolName,
+      actorId: input.actorId,
+      relatedEntityType: "fee_reminder",
+    });
     return { success: true, channel: "email" };
   }
 

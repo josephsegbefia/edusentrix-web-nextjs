@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { SchoolBrand } from "@/components/brand/SchoolBrand";
+import { SidebarSchoolIdentity } from "@/components/nav/sidebars/SidebarSchoolIdentity";
+import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
 import { useUnreadNotificationCount } from "@/hooks/parent/useParentNotifications";
 import { useUnreadMessageCount } from "@/hooks/parent/useParentMessages";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -250,13 +251,15 @@ function DesktopSidebar() {
   }, []);
 
   return (
-    <aside className="sidebar-scroll hidden md:block fixed left-0 top-14 w-64 h-[calc(100vh-3.5rem)] shrink-0 border-r border-neutral-900 bg-card overflow-y-auto">
-      {/* School Brand Header */}
-      <div className="border-b border-neutral-900 px-4 py-4">
-        <SchoolBrand size="md" showName href="/parent" />
+    <aside className="sidebar-scroll hidden md:flex fixed left-0 top-14 w-72 h-[calc(100vh-3.5rem)] shrink-0 flex-col border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.97)_0%,rgba(10,14,26,0.99)_100%)] backdrop-blur-2xl">
+      <div className="border-b border-white/5 p-3">
+        <SidebarSchoolIdentity href="/parent" role="parent" />
       </div>
-      <div className="p-4">
+      <div className="flex-1 overflow-y-auto p-4 sidebar-scroll">
         <NavContent />
+      </div>
+      <div className="shrink-0 border-t border-white/5 px-4 pb-4 pt-3">
+        <SidebarFooterBranding />
       </div>
     </aside>
   );
@@ -274,13 +277,17 @@ function MobileSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[280px] border-r border-neutral-900 bg-card p-0 sm:w-[300px]"
+        className="w-[300px] border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.98)_0%,rgba(10,14,26,1)_100%)] p-0 sm:w-[320px]"
       >
         {/* Header */}
-        <SheetHeader className="border-b border-neutral-900 px-4 py-4">
+        <SheetHeader className="border-b border-white/5 px-4 py-4">
           <SheetTitle className="sr-only">Parent Navigation Menu</SheetTitle>
           <div className="flex items-center justify-between">
-            <SchoolBrand size="md" showName href="/parent" />
+            <SidebarSchoolIdentity
+              href="/parent"
+              role="parent"
+              className="min-w-0 flex-1"
+            />
             <Button
               variant="ghost"
               size="icon"
@@ -293,9 +300,11 @@ function MobileSidebar({
           </div>
         </SheetHeader>
 
-        {/* Navigation Content */}
         <div className="sidebar-scroll overflow-y-auto p-4">
           <NavContent onItemClick={() => onOpenChange(false)} />
+          <div className="mt-4 border-t border-white/5 pt-4">
+            <SidebarFooterBranding />
+          </div>
         </div>
       </SheetContent>
     </Sheet>

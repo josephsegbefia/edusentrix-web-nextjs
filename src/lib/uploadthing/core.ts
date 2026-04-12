@@ -17,6 +17,7 @@ type UploadMetadata = {
   schoolId: string;
   schoolSlug: string;
   folder: string;
+  role?: string;
 };
 
 function slugify(value: string): string {
@@ -87,6 +88,7 @@ async function getUploaderContext(requestedSchoolId?: string) {
     userId: user._id.toString(),
     schoolId: effectiveSchoolId,
     schoolSlug,
+    role: user.role || undefined,
   };
 }
 
@@ -235,6 +237,24 @@ export const ourFileRouter = {
     .middleware(async ({ files, input }) =>
       buildMetadata("bursars/avatars", files, input?.schoolId)
     )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  schoolBrandImage: f({
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) => {
+      const metadata = await buildMetadata("school/branding", files, input?.schoolId);
+      if (
+        metadata.role !== "school_admin" &&
+        metadata.role !== "platform_admin"
+      ) {
+        throw new Error("Only school admins can upload school branding");
+      }
+      return metadata;
+    })
     .onUploadComplete(async ({ metadata, file }) =>
       buildUploadResponse(metadata, file)
     ),

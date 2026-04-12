@@ -1,14 +1,16 @@
 // src/hooks/admin/useSchool.ts
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/providers/auth-provider";
 
 export type SchoolInfo = {
   id: string;
   name: string;
   logo: string | null;
+  motto: string | null;
   type: "Basic" | "SHS";
   status: "pending" | "active" | "deactivated";
-  curriculumCode?: string;
+  gesSchoolCode: string | null;
+  curriculumCode: string;
 };
 
 export type SchoolResponse = {
@@ -16,6 +18,10 @@ export type SchoolResponse = {
   data?: SchoolInfo;
   error?: string;
 };
+
+export type UpdateSchoolProfileInput = Partial<
+  Pick<SchoolInfo, "name" | "logo" | "motto" | "gesSchoolCode">
+>;
 
 type SchoolQueryError = Error & { status?: number };
 
@@ -68,7 +74,9 @@ export function useSchool() {
       return payload;
     },
     enabled: queryEnabled,
-    staleTime: 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     retry: (failureCount, error) => {
       const status = error?.status;
       if (status === 401) return failureCount < 2;
@@ -96,4 +104,28 @@ export function useSchool() {
     // Expose whether auth is still resolving
     isAuthLoading: authLoading,
   };
+}
+
+export function useUpdateSchool() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: UpdateSchoolProfileInput) => {
+      const res = await fetch("/api/school", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const payload = (await res.json().catch(() => null)) as SchoolResponse | null;
+      if (!res.ok || !payload?.success || !payload.data) {
+        throw new Error(payload?.error || "Failed to update school identity");
+      }
+
+      return payload.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school"], exact: false });
+    },
+  });
 }

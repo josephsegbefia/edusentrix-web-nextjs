@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { SchoolIdentitySettingsCard } from "@/components/admin/settings/SchoolIdentitySettingsCard";
 import {
   Settings,
   Clock,
@@ -634,6 +635,7 @@ export default function SettingsPage() {
           </Button>
         </div>
       </div>
+      <SchoolIdentitySettingsCard />
       <PaymentSetupEntryCard />
       {/* Tabs Navigation */}
       <div className="flex gap-2 overflow-x-auto pb-2">

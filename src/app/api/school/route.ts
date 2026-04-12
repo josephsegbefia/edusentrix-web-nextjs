@@ -5,6 +5,24 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { School, ISchool } from "@/models/School";
 import { User, IUser } from "@/models/User";
 import mongoose from "mongoose";
+import { z } from "zod";
+
+const UpdateSchoolProfileSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120).optional(),
+    motto: z
+      .union([z.string().trim().max(160), z.literal(""), z.null()])
+      .optional(),
+    logo: z
+      .union([z.string().trim().url(), z.literal(""), z.null()])
+      .optional(),
+    gesSchoolCode: z
+      .union([z.string().trim().max(50), z.literal(""), z.null()])
+      .optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "No valid fields to update",
+  });
 
 /**
  * GET /api/school
@@ -39,8 +57,13 @@ export async function GET(req: NextRequest) {
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(user.schoolId));
     const school = await School.findById(schoolIdObj)
-      .select("_id name logo type status gesSchoolCode curriculumCode")
-      .lean<Pick<ISchool, "_id" | "name" | "logo" | "type" | "status" | "gesSchoolCode" | "curriculumCode">>();
+      .select("_id name logo motto type status gesSchoolCode curriculumCode")
+      .lean<
+        Pick<
+          ISchool,
+          "_id" | "name" | "logo" | "motto" | "type" | "status" | "gesSchoolCode" | "curriculumCode"
+        >
+      >();
 
     if (!school) {
       return NextResponse.json(
@@ -55,6 +78,7 @@ export async function GET(req: NextRequest) {
         id: String(school._id),
         name: school.name,
         logo: school.logo || null,
+        motto: school.motto || null,
         type: school.type,
         status: school.status,
         gesSchoolCode: school.gesSchoolCode || null,
@@ -72,7 +96,7 @@ export async function GET(req: NextRequest) {
 
 /**
  * PATCH /api/school
- * Update school profile fields (currently: gesSchoolCode)
+ * Update school identity fields
  */
 export async function PATCH(req: NextRequest) {
   try {
@@ -101,23 +125,65 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const updates: Record<string, unknown> = {};
-
-    if (typeof body.gesSchoolCode === "string" || body.gesSchoolCode === null) {
-      updates.gesSchoolCode = body.gesSchoolCode?.trim() || null;
-    }
-
-    if (Object.keys(updates).length === 0) {
+    const parsed = UpdateSchoolProfileSchema.safeParse(await req.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "No valid fields to update" },
+        {
+          success: false,
+          error:
+            parsed.error.issues[0]?.message || "No valid fields to update",
+        },
         { status: 400 }
       );
     }
 
-    await School.findByIdAndUpdate(user.schoolId, { $set: updates });
+    const updates: Record<string, unknown> = {};
+    if (typeof parsed.data.name === "string") {
+      updates.name = parsed.data.name.trim();
+    }
+    if ("motto" in parsed.data) {
+      updates.motto = parsed.data.motto?.trim() || null;
+    }
+    if ("logo" in parsed.data) {
+      updates.logo = parsed.data.logo?.trim() || null;
+    }
+    if ("gesSchoolCode" in parsed.data) {
+      updates.gesSchoolCode = parsed.data.gesSchoolCode?.trim() || null;
+    }
 
-    return NextResponse.json({ success: true });
+    const updated = await School.findByIdAndUpdate(
+      user.schoolId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    )
+      .select("_id name logo motto type status gesSchoolCode curriculumCode")
+      .lean<
+        Pick<
+          ISchool,
+          "_id" | "name" | "logo" | "motto" | "type" | "status" | "gesSchoolCode" | "curriculumCode"
+        >
+      >();
+
+    if (!updated) {
+      return NextResponse.json(
+        { success: false, error: "School not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: String(updated._id),
+        name: updated.name,
+        logo: updated.logo || null,
+        motto: updated.motto || null,
+        type: updated.type,
+        status: updated.status,
+        gesSchoolCode: updated.gesSchoolCode || null,
+        curriculumCode: updated.curriculumCode || "ghana_nacca",
+      },
+    });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to update school";
     return NextResponse.json(

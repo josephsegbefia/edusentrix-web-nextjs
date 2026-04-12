@@ -11,7 +11,8 @@ type SubjectRole =
   | "school_admins"
   | "parents"
   | "staff"
-  | "bursars";
+  | "bursars"
+  | "schools";
 
 type ImageUploaderProps = {
   schoolId: string;
@@ -37,7 +38,8 @@ type AvatarEndpoint =
   | "parentAvatar"
   | "schoolAdminAvatar"
   | "staffAvatar"
-  | "bursarAvatar";
+  | "bursarAvatar"
+  | "schoolBrandImage";
 
 function endpointForRole(subjectRole: SubjectRole): AvatarEndpoint {
   switch (subjectRole) {
@@ -53,6 +55,8 @@ function endpointForRole(subjectRole: SubjectRole): AvatarEndpoint {
       return "staffAvatar";
     case "bursars":
       return "bursarAvatar";
+    case "schools":
+      return "schoolBrandImage";
     default:
       return "teacherAvatar";
   }

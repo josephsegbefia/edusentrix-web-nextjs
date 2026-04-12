@@ -51,7 +51,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { SchoolBrand } from "@/components/brand/SchoolBrand";
+import { SidebarSchoolIdentity } from "@/components/nav/sidebars/SidebarSchoolIdentity";
+import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { useSchool } from "@/hooks/admin/useSchool";
 
@@ -292,18 +293,18 @@ function NavContent({
   const pathname = usePathname();
 
   return (
-    <nav className={cn("space-y-6", collapsed && "space-y-4")}>
+    <nav className={cn("space-y-5", collapsed && "space-y-3")}>
       {navSections.map((section, sectionIdx) => (
         <div key={section.title}>
           {!collapsed && (
-            <div className="mb-2.5 px-3">
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
+            <div className="mb-2 px-3.5">
+              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
                 {section.title}
               </h3>
             </div>
           )}
 
-          <div className={cn("space-y-1", collapsed && "space-y-1.5")}>
+          <div className={cn("space-y-0.5", collapsed && "space-y-1.5")}>
             {section.items.map(({ label, href, icon: Icon, exact }) => {
               const active = exact
                 ? pathname === href
@@ -319,9 +320,9 @@ function NavContent({
                         onClick={onItemClick}
                         className={cn(
                           "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
-                          "text-white/60 hover:text-white hover:bg-white/8 transition-all duration-150",
+                          "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
                           active &&
-                            "bg-white/10 text-white ring-1 ring-white/10"
+                            "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
                         )}
                         activeClassName="nav-active"
                       >
@@ -347,7 +348,7 @@ function NavContent({
                   )}
                   activeClassName="nav-active"
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className={cn("h-4 w-4 shrink-0", active && "text-violet-400")} />
                   <span className="truncate">{label}</span>
                 </ActiveLink>
               );
@@ -356,7 +357,7 @@ function NavContent({
 
           {sectionIdx < navSections.length - 1 && (
             <Separator
-              className={cn("mt-6 bg-white/5", collapsed && "mt-4")}
+              className={cn("mt-5 bg-white/4", collapsed && "mt-3")}
             />
           )}
         </div>
@@ -390,15 +391,15 @@ function DesktopSidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          "sidebar-scroll hidden md:flex flex-col fixed left-0 top-14 h-[calc(100vh-3.5rem)] shrink-0 border-r border-neutral-900 bg-card transition-[width] duration-200 ease-in-out z-30",
-          collapsed ? "w-16" : "w-64"
+          "sidebar-scroll hidden md:flex flex-col fixed left-0 top-14 h-[calc(100vh-3.5rem)] shrink-0 border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.97)_0%,rgba(10,14,26,0.99)_100%)] backdrop-blur-2xl transition-[width] duration-200 ease-in-out z-30",
+          collapsed ? "w-16" : "w-72"
         )}
       >
-        {/* Brand header with dragonfly-style trigger placement */}
+        {/* Brand header */}
         <div
           className={cn(
-            "border-b border-neutral-900 shrink-0",
-            collapsed ? "px-2 py-4" : "px-4 py-4"
+            "border-b border-white/5 shrink-0",
+            collapsed ? "px-2 py-4" : "px-5 py-4"
           )}
         >
           <div className={cn("flex", collapsed ? "justify-center" : "justify-end")}>
@@ -417,24 +418,18 @@ function DesktopSidebar() {
           </div>
 
           <div className={cn("mt-2", collapsed ? "flex justify-center" : "min-w-0")}>
-            {collapsed ? (
-              <SchoolBrand size="sm" showName={false} href="/admin" />
-            ) : (
-              <div className="min-w-0">
-                <SchoolBrand
-                  size="md"
-                  showName
-                  href="/admin"
-                  className="min-w-0"
-                />
-              </div>
-            )}
+            <SidebarSchoolIdentity
+              href="/admin"
+              role="school_admin"
+              collapsed={collapsed}
+              className={cn(!collapsed && "min-w-0")}
+            />
           </div>
         </div>
 
         {/* Curriculum Badge */}
         <div
-          className={cn("shrink-0", collapsed ? "px-1 pt-3" : "px-4 pt-3")}
+          className={cn("shrink-0", collapsed ? "px-1 pt-3" : "px-5 pt-3")}
         >
           <CurriculumBadge collapsed={collapsed} />
         </div>
@@ -443,10 +438,19 @@ function DesktopSidebar() {
         <div
           className={cn(
             "flex-1 overflow-y-auto sidebar-scroll",
-            collapsed ? "px-1 py-3" : "p-4"
+            collapsed ? "px-1 py-3" : "px-3 py-4"
           )}
         >
           <NavContent collapsed={collapsed} />
+        </div>
+
+        <div
+          className={cn(
+            "shrink-0 border-t border-white/5",
+            collapsed ? "px-2 pb-3 pt-2" : "px-4 pb-4 pt-3"
+          )}
+        >
+          <SidebarFooterBranding collapsed={collapsed} />
         </div>
 
       </aside>
@@ -465,14 +469,18 @@ function MobileSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[280px] border-r border-neutral-900 bg-card p-0 sm:w-[300px]"
+        className="w-[300px] border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.98)_0%,rgba(10,14,26,1)_100%)] p-0 sm:w-[320px]"
       >
-        <SheetHeader className="border-b border-neutral-900 px-4 py-4">
+        <SheetHeader className="border-b border-white/5 px-5 py-4">
           <SheetTitle className="sr-only">
             School Admin Navigation Menu
           </SheetTitle>
           <div className="flex items-center justify-between">
-            <SchoolBrand size="md" showName href="/admin" />
+            <SidebarSchoolIdentity
+              href="/admin"
+              role="school_admin"
+              className="min-w-0 flex-1"
+            />
             <Button
               variant="ghost"
               size="icon"
@@ -494,6 +502,9 @@ function MobileSidebar({
             onItemClick={() => onOpenChange(false)}
             collapsed={false}
           />
+          <div className="mt-4 border-t border-white/5 pt-4">
+            <SidebarFooterBranding />
+          </div>
         </div>
       </SheetContent>
     </Sheet>

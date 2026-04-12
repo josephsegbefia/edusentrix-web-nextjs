@@ -89,13 +89,13 @@ export const premiumSelectScrollButton =
 // ============================================================================
 
 export const premiumSideItem =
-  "group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium " +
-  "text-white/60 hover:text-white " +
-  "hover:bg-white/8 " +
-  "transition-all duration-150";
+  "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium " +
+  "text-white/55 hover:text-white " +
+  "hover:bg-white/7 " +
+  "transition-all duration-200 ease-out";
 
 export const premiumSideItemActive =
-  "bg-white/10 text-white ring-1 ring-white/10";
+  "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_1px_3px_rgba(0,0,0,0.2)]";
 
 export const premiumTopLink =
   "rounded-lg px-3 py-2 text-sm font-medium text-white/60 hover:text-white " +

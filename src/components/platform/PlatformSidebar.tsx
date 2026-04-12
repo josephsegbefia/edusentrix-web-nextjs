@@ -46,11 +46,18 @@ const nav = [
 export default function PlatformSidebar() {
   const pathname = usePathname();
   return (
-    <aside className="hidden md:block fixed left-0 top-14 w-64 h-[calc(100vh-3.5rem)] shrink-0 border-r border-neutral-900 bg-card overflow-y-auto">
-      <div className="p-3">
-        <nav className="space-y-1">
+    <aside className="hidden md:flex flex-col fixed left-0 top-14 w-72 h-[calc(100vh-3.5rem)] shrink-0 border-r border-white/6 bg-[linear-gradient(180deg,rgba(15,21,36,0.97)_0%,rgba(10,14,26,0.99)_100%)] backdrop-blur-2xl overflow-y-auto">
+      <div className="px-3 py-4 flex-1">
+        <div className="mb-4 px-3.5">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+            Platform
+          </h3>
+        </div>
+        <nav className="space-y-0.5">
           {nav.map(({ label, href, icon: Icon, exact }) => {
-            const active = pathname === href || pathname.startsWith(href + "/");
+            const active = exact
+              ? pathname === href
+              : pathname === href || pathname.startsWith(href + "/");
             return (
               <ActiveLink
                 key={href}
@@ -59,7 +66,7 @@ export default function PlatformSidebar() {
                 className={cn(premiumSideItem, active && premiumSideItemActive)}
                 activeClassName="nav-active"
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={cn("h-4 w-4", active && "text-emerald-400")} />
                 <span>{label}</span>
               </ActiveLink>
             );

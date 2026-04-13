@@ -707,7 +707,7 @@ export default function PaymentSetupPage() {
               <div className="space-y-2">
                 <Label className="text-white/75">Account number</Label>
                 {data.bank.hasAccountNumberOnFile && !accountNumber.trim() ? (
-                  <div className="space-y-2 rounded-xl border border-white/10 bg-white/4 p-3">
+                  <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.04] p-3">
                     <p className="text-sm text-white/80">
                       On file:{" "}
                       <span className="font-mono text-white">
@@ -743,7 +743,7 @@ export default function PaymentSetupPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-white">Current readiness</p>
@@ -919,7 +919,7 @@ export default function PaymentSetupPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-white/40">Access mode</p>
                 <p className="mt-2 text-base font-semibold text-white">
                   {accessModeLabel(data.accessMode)}
@@ -936,19 +936,19 @@ export default function PaymentSetupPage() {
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last updated</p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {relativeTime(data.timestamps.lastUpdatedAt)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last submitted</p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {relativeTime(data.timestamps.submittedAt)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last approved</p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {relativeTime(data.timestamps.approvedAt)}
@@ -959,7 +959,7 @@ export default function PaymentSetupPage() {
                 </div>
               </div>
               {data.provisioning && (
-                <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/40">
                     Provisioning activity
                   </p>
@@ -995,7 +995,7 @@ export default function PaymentSetupPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {(data.financeDelegate.email || data.pendingInvitations.financeDelegate) && (
-                  <div className="rounded-2xl border border-white/10 bg-white/3 p-4 text-sm text-white/65">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/65">
                     <p className="font-medium text-white">
                       {data.financeDelegate.email
                         ? "Active finance delegate"

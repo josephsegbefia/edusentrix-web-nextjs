@@ -80,6 +80,16 @@ function SiteNav() {
           <Link href="/sign-in" className="hidden rounded-xl px-4 py-2.5 text-sm font-medium text-white/70 transition-all hover:bg-white/5 hover:text-white sm:inline-flex">
             Sign in
           </Link>
+          <a
+            href="https://demo.tryedusentrix.app"
+            className="hidden items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2.5 text-sm font-semibold text-cyan-300 backdrop-blur-sm transition-all hover:border-cyan-400/50 hover:bg-cyan-500/20 hover:text-cyan-200 md:inline-flex"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Explore live demo
+          </a>
           <Link href="/enroll" className="rounded-xl bg-linear-to-r from-violet-500 to-purple-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 transition-all hover:scale-[1.02] hover:shadow-violet-500/40">
             Enrol your school
           </Link>
@@ -156,16 +166,19 @@ function HeroSection() {
                   </svg>
                 </Link>
                 <a
-                  href="#how"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/20 hover:bg-white/10"
+                  href="https://demo.tryedusentrix.app"
+                  className="group flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-6 py-3.5 text-sm font-semibold text-cyan-300 backdrop-blur-sm transition-all hover:scale-[1.02] hover:border-cyan-400/50 hover:bg-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/15"
                 >
-                  <svg className="h-5 w-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  See how it works
+                  Explore live demo
                 </a>
               </div>
+              <p className="mt-3 text-center text-xs text-white/40 lg:text-left">
+                No sign-up needed. Try the full platform instantly.
+              </p>
             </HeroText>
 
             <HeroText delay={0.4}>
@@ -748,7 +761,7 @@ function FAQ() {
     { q: "How long is setup?", a: "Most schools go live in under one day. We help import your data and configure fee plans." },
     { q: "Do parents need to install an app?", a: "Parents can use web or mobile. OTP sign-in—no passwords needed." },
     { q: "Who owns the data?", a: "You do. We act as your processor and provide secure access and exports anytime." },
-    { q: "Is there a free trial?", a: "Contact us for more information about trial access and pricing options." },
+    { q: "Is there a free trial?", a: "Yes! Explore the live demo at demo.tryedusentrix.app — no sign-up required. For extended trial access or custom pricing, contact us." },
   ];
 
   return (
@@ -816,10 +829,20 @@ function FinalCTA() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </Link>
-              <Link href="/sign-in" className="rounded-xl border border-white/10 bg-white/5 px-8 py-4 font-semibold text-white transition-all hover:border-white/20 hover:bg-white/10">
-                Sign in
-              </Link>
+              <a
+                href="https://demo.tryedusentrix.app"
+                className="group flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-8 py-4 font-semibold text-cyan-300 backdrop-blur-sm transition-all hover:scale-[1.02] hover:border-cyan-400/50 hover:bg-cyan-500/20 hover:shadow-lg hover:shadow-cyan-500/15"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Explore live demo
+              </a>
             </div>
+            <p className="mt-3 text-sm text-white/40">
+              No sign-up needed — try the full platform in seconds.
+            </p>
           </div>
         </div>
       </ScrollReveal>
@@ -834,7 +857,7 @@ function Footer() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 text-sm sm:grid-cols-2 sm:px-6 md:grid-cols-4 lg:px-8">
         <div>
           <div className="inline-flex items-center gap-2.5">
-            <Image src="/logo/edusentrix-logo.png" alt="EduSentrix" width={36} height={36} className="rounded-xl" />
+            <Image src="/logo/edusentrix-logo-transparent.png" alt="EduSentrix" width={36} height={36} className="rounded-xl" />
             <span className="text-lg font-semibold tracking-tight text-white">EduSentrix</span>
           </div>
           <p className="mt-4 leading-relaxed text-white/50">

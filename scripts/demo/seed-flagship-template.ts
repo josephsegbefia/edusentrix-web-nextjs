@@ -8,9 +8,20 @@
  * Usage:
  *   npx tsx scripts/demo/seed-flagship-template.ts [--pool-size=5]
  *
- * Env:
- *   MONGODB_URI  — demo database connection string
+ * Loads env from `.env.demo` (then `.env.local` as fallback) so you
+ * don't need to pass MONGODB_URI manually.
  */
+
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+
+const __filename = typeof __dirname !== "undefined"
+  ? path.join(__dirname, "seed-flagship-template.ts")
+  : fileURLToPath(import.meta.url);
+const root = path.resolve(path.dirname(__filename), "../..");
+dotenv.config({ path: path.join(root, ".env.demo") });
+dotenv.config({ path: path.join(root, ".env.local") });
 
 import mongoose, { Types } from "mongoose";
 import crypto from "node:crypto";
@@ -50,7 +61,14 @@ const SUBJECTS_BASIC = [
   "Ghanaian Language (Twi)", "Physical Education", "French",
 ];
 
-const CLASS_NAMES = ["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6"];
+const GRADES = [
+  { name: "Grade 1", code: "G1", order: 1 },
+  { name: "Grade 2", code: "G2", order: 2 },
+  { name: "Grade 3", code: "G3", order: 3 },
+  { name: "Grade 4", code: "G4", order: 4 },
+  { name: "Grade 5", code: "G5", order: 5 },
+  { name: "Grade 6", code: "G6", order: 6 },
+];
 
 async function connectDB() {
   const uri = process.env.MONGODB_URI;
@@ -62,7 +80,8 @@ async function connectDB() {
 async function ensureModelsLoaded() {
   const modelFiles = [
     "@/models/School", "@/models/User", "@/models/UserMembership",
-    "@/models/Teacher", "@/models/Student", "@/models/ClassGroup",
+    "@/models/Teacher", "@/models/Student", "@/models/Grade",
+    "@/models/ClassGroup",
     "@/models/Subject", "@/models/GradingScale", "@/models/AcademicPeriod",
     "@/models/AcademicCalendar", "@/models/SchoolSettings",
     "@/models/FeeStructure", "@/models/TimetableVersion",
@@ -96,7 +115,7 @@ async function seedSchool(): Promise<SeedContext> {
     name: "Lighthouse Preparatory School",
     motto: "Illuminating futures through excellence",
     type: "Basic",
-    curriculumCode: "GH_BASIC",
+    curriculumCode: "ghana_nacca",
     address: "23 Independence Avenue, Osu",
     email: "admin@lighthouseprep.demo.tryedusentrix.app",
     city: "Accra",
@@ -168,22 +187,38 @@ async function seedSchool(): Promise<SeedContext> {
       email: teacherEmail,
       firstName: names.firstName,
       lastName: names.lastName,
+      employeeId: `DEMO-T${String(i + 1).padStart(3, "0")}`,
       subroles: i === 0 ? ["head_of_department"] : [],
       status: "active",
     });
     teacherUserIds.push(userId);
   }
 
+  const Grade = mongoose.model("Grade");
+  const gradeIds: Types.ObjectId[] = [];
+  for (const g of GRADES) {
+    const gId = oid();
+    await Grade.create({
+      _id: gId,
+      schoolId,
+      name: g.name,
+      code: g.code,
+      stage: "Basic",
+      order: g.order,
+      isActive: true,
+    });
+    gradeIds.push(gId);
+  }
+
   const ClassGroup = mongoose.model("ClassGroup");
   const classGroupIds: Types.ObjectId[] = [];
-  for (let i = 0; i < CLASS_NAMES.length; i++) {
+  for (let i = 0; i < GRADES.length; i++) {
     const cgId = oid();
     await ClassGroup.create({
       _id: cgId,
       schoolId,
-      name: CLASS_NAMES[i],
-      grade: `Grade ${i + 1}`,
-      section: "A",
+      gradeId: gradeIds[i],
+      name: "A",
       defaultRoomName: `Room ${100 + i}`,
     });
     classGroupIds.push(cgId);
@@ -234,11 +269,12 @@ async function seedSchool(): Promise<SeedContext> {
       await Student.create({
         userId: studentUserId,
         schoolId,
+        gradeId: gradeIds[c],
         classGroupId: classGroupIds[c],
         firstName: names.firstName,
         lastName: names.lastName,
-        email: studentEmail,
-        gender,
+        sex: gender,
+        admissionNo: `DEMO-S${String(c * 15 + s + 1).padStart(4, "0")}`,
         status: "active",
       });
       studentUserIds.push(studentUserId);
@@ -276,11 +312,11 @@ async function seedSchool(): Promise<SeedContext> {
   await AcademicPeriod.create({
     _id: periodId,
     schoolId,
-    name: "Term 1 2025/26",
-    label: "Term 1",
+    yearLabel: "2025/2026",
+    term: "Term 1",
     startDate: new Date("2025-09-01"),
     endDate: new Date("2025-12-20"),
-    status: "active",
+    isCurrent: true,
   });
 
   const GradingScale = mongoose.model("GradingScale");
@@ -288,24 +324,29 @@ async function seedSchool(): Promise<SeedContext> {
     schoolId,
     name: "Default Basic Scale",
     isDefault: true,
-    scale: [
-      { label: "A", minPercent: 80, maxPercent: 100, gpa: 4.0 },
-      { label: "B", minPercent: 70, maxPercent: 79, gpa: 3.0 },
-      { label: "C", minPercent: 60, maxPercent: 69, gpa: 2.5 },
-      { label: "D", minPercent: 50, maxPercent: 59, gpa: 2.0 },
-      { label: "E", minPercent: 40, maxPercent: 49, gpa: 1.5 },
-      { label: "F", minPercent: 0, maxPercent: 39, gpa: 0.0 },
+    gradeMappings: [
+      { letter: "A", minPercentage: 80, maxPercentage: 100, point: 4.0 },
+      { letter: "B", minPercentage: 70, maxPercentage: 79, point: 3.0 },
+      { letter: "C", minPercentage: 60, maxPercentage: 69, point: 2.5 },
+      { letter: "D", minPercentage: 50, maxPercentage: 59, point: 2.0 },
+      { letter: "E", minPercentage: 40, maxPercentage: 49, point: 1.5 },
+      { letter: "F", minPercentage: 0, maxPercentage: 39, point: 0.0 },
     ],
+    caWeight: 0.3,
+    examWeight: 0.7,
+    passThreshold: 50,
   });
 
   const FeeStructure = mongoose.model("FeeStructure");
   await FeeStructure.create({
     schoolId,
     name: "Term 1 Tuition",
-    academicPeriodId: periodId,
-    amountMinor: 250000,
-    currency: "GHS",
-    status: "active",
+    code: "TUITION",
+    category: "tuition",
+    defaultAmountMinor: 250000,
+    isActive: true,
+    allowsInstallments: true,
+    maxInstallments: 3,
   });
 
   console.log(
@@ -349,7 +390,7 @@ async function registerTemplateVersion() {
       version: TEMPLATE_VERSION,
       status: "active",
       schoolType: "Basic",
-      curriculumCode: "GH_BASIC",
+      curriculumCode: "ghana_nacca",
       seedScriptVersion: "1.0.0",
       manifestVersion: "1.0.0",
       manifest: {
@@ -364,14 +405,44 @@ async function registerTemplateVersion() {
   }
 }
 
+async function cleanPreviousRun() {
+  const db = mongoose.connection.db;
+  if (!db) return;
+  const collections = await db.listCollections().toArray();
+  const names = collections.map((c) => c.name);
+
+  const toClean = [
+    "schools", "users", "usermemberships", "teachers", "students",
+    "grades", "classgroups", "subjects", "gradingscales", "academicperiods",
+    "academiccalendars", "schoolsettings", "feestructures",
+    "timetableversions", "timetableslots",
+    "demosandboxes", "demotemplateversions", "demosessions",
+    "demoleads", "demoevents",
+  ];
+
+  for (const name of toClean) {
+    if (names.includes(name)) {
+      await db.collection(name).deleteMany({});
+      console.log(`[clean] Cleared ${name}`);
+    }
+  }
+}
+
 async function main() {
   const poolSize = Number(
     process.argv.find((a) => a.startsWith("--pool-size="))?.split("=")[1] ||
       DEFAULT_POOL_SIZE
   );
+  const shouldClean = process.argv.includes("--clean");
 
   await connectDB();
   await ensureModelsLoaded();
+
+  if (shouldClean) {
+    console.log("[seed] Cleaning previous demo data...");
+    await cleanPreviousRun();
+  }
+
   await registerTemplateVersion();
 
   for (let i = 0; i < poolSize; i++) {

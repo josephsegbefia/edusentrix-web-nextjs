@@ -2,6 +2,11 @@
 import { NextRequest } from "next/server";
 import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
+import { writeRetryableAuditEvent } from "@/lib/audit/writeRetryableAuditEvent";
+import {
+  buildFinanceStaffAuditContext,
+  resolveAuditIdempotencyKey,
+} from "@/lib/audit/fromApiRoute";
 import mongoose from "mongoose";
 import { Student } from "@/models/Student";
 import { Grade } from "@/models/Grade";
@@ -20,7 +25,7 @@ function escapeCsvField(value: string): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId, userId, roles } = await requireFinanceStaff();
     await connectToDatabase();
 
     if (!mongoose.models.Grade) {
@@ -153,6 +158,40 @@ export async function GET(req: NextRequest) {
 
     const timestamp = new Date().toISOString().slice(0, 10);
     const filename = `students-export-${timestamp}.csv`;
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const userIdObj = new mongoose.Types.ObjectId(String(userId));
+    try {
+      await writeRetryableAuditEvent({
+        actionCode: "export.generated",
+        scopeType: "school",
+        scopeId: String(schoolIdObj),
+        result: "succeeded",
+        target: {
+          targetEntityType: "School",
+          targetEntityId: schoolIdObj,
+        },
+        context: buildFinanceStaffAuditContext(req, {
+          userId: userIdObj,
+          schoolId: schoolIdObj,
+          roles,
+          idempotencyKey: resolveAuditIdempotencyKey(
+            req,
+            `export.students:${req.nextUrl.searchParams.toString()}`
+          ),
+        }),
+        payload: {
+          metadata: {
+            exportKind: "students_csv",
+            rowCount: items.length,
+            filename,
+          },
+        },
+        streamKey: `school:${String(schoolIdObj)}:exports`,
+      });
+    } catch (auditErr) {
+      console.error("export.generated audit failed:", auditErr);
+    }
 
     return new Response(csv, {
       status: 200,

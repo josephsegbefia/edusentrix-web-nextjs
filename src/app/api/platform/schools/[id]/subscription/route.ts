@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
+import mongoose, { type HydratedDocument } from "mongoose";
 import { z } from "zod";
+import { connectToDatabase } from "@/db/connectToDatabase";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
+import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
+import {
+  buildPlatformAdminAuditContext,
+  resolveAuditIdempotencyKey,
+} from "@/lib/audit/fromApiRoute";
 import { ensureDefaultSubscriptionTiers } from "@/lib/platform-billing/subscription-tiers";
 import { computeSubscriptionPricing } from "@/lib/platform-billing/subscription-pricing";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
-import { SchoolSubscription } from "@/models/SchoolSubscription";
+import { SchoolSubscription, type ISchoolSubscription } from "@/models/SchoolSubscription";
 import { SubscriptionEvent } from "@/models/SubscriptionEvent";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
@@ -65,6 +71,21 @@ function resolveEventType(input: {
   }
   if (input.nextStatus === "suspended") return "subscription_suspended" as const;
   return "subscription_updated" as const;
+}
+
+function subscriptionActionCode(eventType: ReturnType<typeof resolveEventType>): string {
+  switch (eventType) {
+    case "subscription_assigned":
+      return "subscription.assigned";
+    case "subscription_cancelled":
+      return "subscription.cancelled";
+    case "subscription_reactivated":
+      return "subscription.reactivated";
+    case "subscription_suspended":
+      return "subscription.suspended";
+    default:
+      return "subscription.updated";
+  }
 }
 
 export async function GET(
@@ -178,15 +199,23 @@ export async function PATCH(
       );
     }
 
+    await connectToDatabase();
+
     const schoolIdObj = new mongoose.Types.ObjectId(id);
-    const [school, tier, existing, actor] = await Promise.all([
+    const [school, tier, snapshotBefore, actor] = await Promise.all([
       School.findById(schoolIdObj).select("name"),
       SubscriptionTier.findById(new mongoose.Types.ObjectId(body.tierId)).select(
         "code name priceMinor"
       ),
       SchoolSubscription.findOne({ schoolId: schoolIdObj })
-        .select("status")
-        .lean<{ _id: mongoose.Types.ObjectId; status?: string } | null>(),
+        .select("status tierCode tierName effectivePriceMinor")
+        .lean<{
+          _id: mongoose.Types.ObjectId;
+          status?: string;
+          tierCode?: string | null;
+          tierName?: string | null;
+          effectivePriceMinor?: number | null;
+        } | null>(),
       User.findById(gate.me._id).select("email").lean<{ email?: string } | null>(),
     ]);
 
@@ -219,55 +248,126 @@ export async function PATCH(
       discountValue: body.discountValue,
     });
 
-    const updated = await SchoolSubscription.findOneAndUpdate(
-      { schoolId: schoolIdObj },
-      {
-        $set: {
-          tierId: tier._id,
-          tierCode: tier.code,
-          tierName: tier.name,
-          status: body.status,
-          basePriceMinor: tier.priceMinor,
-          manualPriceOverrideMinor: body.manualPriceOverrideMinor,
-          discountMode: body.discountMode,
-          discountValue: body.discountMode === "none" ? null : body.discountValue,
-          effectivePriceMinor: pricing.finalPriceMinor,
-          note: body.note,
-          pilotEndsAt,
-          updatedBy: gate.me._id,
-          updatedByEmail: actor?.email || null,
-        },
-      },
-      {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true,
-      }
-    );
+    const platformAdminId = new mongoose.Types.ObjectId(String(gate.me._id));
 
-    const eventType = resolveEventType({
-      existingStatus: existing?.status || null,
-      nextStatus: body.status,
-      hasExisting: Boolean(existing),
-    });
+    const session = await mongoose.startSession();
+    let updated!: HydratedDocument<ISchoolSubscription>;
+    let eventType!: ReturnType<typeof resolveEventType>;
 
-    await SubscriptionEvent.create({
-      schoolId: schoolIdObj,
-      subscriptionId: updated._id,
-      eventType,
-      actorId: gate.me._id,
-      actorEmail: actor?.email || null,
-      summary: `${school.name || "School"} moved to ${tier.name} (${body.status}).`,
-      metadata: {
-        tierId: String(tier._id),
-        tierCode: tier.code,
-        manualPriceOverrideMinor: body.manualPriceOverrideMinor,
-        discountMode: body.discountMode,
-        discountValue: body.discountMode === "none" ? null : body.discountValue,
-        effectivePriceMinor: pricing.finalPriceMinor,
-        pilotEndsAt: pilotEndsAt?.toISOString?.() || null,
-      },
-    });
+    try {
+      await session.withTransaction(async () => {
+        const sub = await SchoolSubscription.findOneAndUpdate(
+          { schoolId: schoolIdObj },
+          {
+            $set: {
+              tierId: tier._id,
+              tierCode: tier.code,
+              tierName: tier.name,
+              status: body.status,
+              basePriceMinor: tier.priceMinor,
+              manualPriceOverrideMinor: body.manualPriceOverrideMinor,
+              discountMode: body.discountMode,
+              discountValue: body.discountMode === "none" ? null : body.discountValue,
+              effectivePriceMinor: pricing.finalPriceMinor,
+              note: body.note,
+              pilotEndsAt,
+              updatedBy: gate.me._id,
+              updatedByEmail: actor?.email || null,
+            },
+          },
+          {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+            session,
+          }
+        );
+
+        if (!sub) throw new Error("SUBSCRIPTION_UPDATE_FAILED");
+
+        updated = sub as HydratedDocument<ISchoolSubscription>;
+        eventType = resolveEventType({
+          existingStatus: snapshotBefore?.status || null,
+          nextStatus: body.status,
+          hasExisting: Boolean(snapshotBefore),
+        });
+
+        await SubscriptionEvent.create(
+          [
+            {
+              schoolId: schoolIdObj,
+              subscriptionId: updated._id,
+              eventType,
+              actorId: gate.me._id,
+              actorEmail: actor?.email || null,
+              summary: `${school.name || "School"} moved to ${tier.name} (${body.status}).`,
+              metadata: {
+                tierId: String(tier._id),
+                tierCode: tier.code,
+                manualPriceOverrideMinor: body.manualPriceOverrideMinor,
+                discountMode: body.discountMode,
+                discountValue: body.discountMode === "none" ? null : body.discountValue,
+                effectivePriceMinor: pricing.finalPriceMinor,
+                pilotEndsAt: pilotEndsAt?.toISOString?.() || null,
+              },
+            },
+          ],
+          { session }
+        );
+
+        const actionCode = subscriptionActionCode(eventType);
+        const baseCtx = buildPlatformAdminAuditContext(req, {
+          platformAdminId,
+          actorEmail: actor?.email ?? null,
+          actorName: null,
+          idempotencyKey: resolveAuditIdempotencyKey(
+            req,
+            `subscription.patch:${id}:${String(updated._id)}`
+          ),
+        });
+
+        const reasonBlock =
+          actionCode === "subscription.cancelled"
+            ? {
+                reason: body.note?.trim() || "Subscription cancelled",
+              }
+            : undefined;
+
+        await writeTransactionalAuditEvent(session, {
+          actionCode,
+          scopeType: "school",
+          scopeId: String(schoolIdObj),
+          result: "succeeded",
+          target: {
+            targetEntityType: "SchoolSubscription",
+            targetEntityId: updated._id,
+            secondaryEntityType: "School",
+            secondaryEntityId: schoolIdObj,
+          },
+          context: baseCtx,
+          reason: reasonBlock,
+          payload: {
+            before: {
+              status: snapshotBefore?.status ?? null,
+              tierCode: snapshotBefore?.tierCode ?? null,
+              effectivePriceMinor: snapshotBefore?.effectivePriceMinor ?? null,
+            },
+            after: {
+              status: updated.status,
+              tierCode: tier.code,
+              effectivePriceMinor: pricing.finalPriceMinor,
+            },
+            metadata: {
+              eventType,
+              tierName: tier.name,
+            },
+          },
+          streamKey: `school:${String(schoolIdObj)}:billing`,
+        });
+      });
+    } finally {
+      await session.endSession();
+    }
 
     return NextResponse.json({
       success: true,

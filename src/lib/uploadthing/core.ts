@@ -6,6 +6,7 @@ import { createUploadthing, type FileRouter, UTFiles } from "uploadthing/next";
 import { z } from "zod";
 import { checkLimit } from "@/lib/billing/entitlements";
 import { trackUsage } from "@/lib/billing/trackUsage";
+import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 
 const f = createUploadthing();
 const RouteInput = z.object({
@@ -46,6 +47,8 @@ function sanitizeFileName(name: string): string {
 }
 
 async function getUploaderContext(requestedSchoolId?: string) {
+  enforceDemoPolicy("uploadthing", "upload");
+
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     throw new Error("Unauthorized");

@@ -19,7 +19,8 @@
     "seed:insights:dry": "tsx scripts/seed-insights-data.ts --dryRun",
     "admin:create": "tsx scripts/createPlatformAdmin.ts",
     "timetable:backfill": "tsx scripts/backfill-timetable-from-assignments.ts",
-    "timetable:parity": "tsx scripts/check-timetable-assignment-parity.ts"
+    "timetable:parity": "tsx scripts/check-timetable-assignment-parity.ts",
+    "audit:reconcile": "tsx scripts/audit-reconcile.ts"
   },
   "dependencies": {
     "@clerk/backend": "^2.29.0",

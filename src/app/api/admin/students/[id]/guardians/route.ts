@@ -13,6 +13,11 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { writeRetryableAuditEvent } from "@/lib/audit/writeRetryableAuditEvent";
+import {
+  buildSchoolUserAuditContext,
+  resolveAuditIdempotencyKey,
+} from "@/lib/audit/fromApiRoute";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
@@ -355,6 +360,39 @@ export async function POST(
     });
 
     await guardian.save();
+
+    try {
+      await writeRetryableAuditEvent({
+        actionCode: "guardian.linked",
+        scopeType: "school",
+        scopeId: String(schoolIdObj),
+        result: "succeeded",
+        target: {
+          targetEntityType: "Guardian",
+          targetEntityId: guardian._id,
+          secondaryEntityType: "Student",
+          secondaryEntityId: studentIdObj,
+        },
+        context: buildSchoolUserAuditContext(req, {
+          userId: new mongoose.Types.ObjectId(String(userId)),
+          schoolId: schoolIdObj,
+          actorRole: "school_admin",
+          idempotencyKey: resolveAuditIdempotencyKey(
+            req,
+            `guardian.linked:${String(guardian._id)}`
+          ),
+        }),
+        payload: {
+          metadata: {
+            relationship: validated.relationship,
+            isPrimary: validated.isPrimary,
+          },
+        },
+        streamKey: `school:${String(schoolIdObj)}:identity`,
+      });
+    } catch (auditErr) {
+      console.error("guardian.linked audit failed:", auditErr);
+    }
 
     // Record activity
     await recordActivity({

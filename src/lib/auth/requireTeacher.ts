@@ -14,6 +14,7 @@ import {
   type TeacherSubrole,
 } from "@/lib/rbac";
 import { gateTeacherApiAccess } from "@/lib/auth/role-gates";
+import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 
 export interface TeacherContext {
   userId: Types.ObjectId;
@@ -57,6 +58,35 @@ export async function requireTeacher(
   options: RequireTeacherOptions = {}
 ): Promise<TeacherContext> {
   const { mode = "api" } = options;
+
+  const demo = await tryResolveDemoGuard();
+  if (demo.isDemo && demo.user.schoolId) {
+    await connectToDatabase();
+    const teacher = await Teacher.findOne({
+      userId: demo.user._id,
+      schoolId: demo.user.schoolId,
+    })
+      .select("_id homeroomClassGroupId subroles")
+      .lean();
+    if (teacher) {
+      const roles = [...demo.membership.roles] as MembershipRole[];
+      const subroles = ((teacher as { subroles?: string[] }).subroles ||
+        []) as TeacherSubrole[];
+      return {
+        userId: demo.user._id as Types.ObjectId,
+        teacherId: (teacher as { _id: Types.ObjectId })._id,
+        schoolId: demo.user.schoolId as Types.ObjectId,
+        roles,
+        subroles,
+        permissions: resolvePermissions({ roles, subroles }),
+        homeroomClassGroupId: (
+          teacher as { homeroomClassGroupId?: Types.ObjectId | null }
+        ).homeroomClassGroupId,
+        isAdmin: roles.includes("school_admin"),
+      };
+    }
+  }
+
   const { userId: clerkUserId } = await auth();
 
   if (!clerkUserId) {

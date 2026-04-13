@@ -14,7 +14,13 @@ import {
 } from "@/lib/school-payments/payment-setup";
 import { Invitation } from "@/models/Invitation";
 import { ProvisioningJob } from "@/models/ProvisioningJob";
+import mongoose from "mongoose";
 import { School, type ISchool } from "@/models/School";
+import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
+import {
+  buildFinanceStaffAuditContext,
+  resolveAuditIdempotencyKey,
+} from "@/lib/audit/fromApiRoute";
 
 const UpdatePaymentSetupSchema = z.object({
   bankName: z.string().trim().min(1, "Bank is required"),
@@ -142,7 +148,15 @@ function serializePaymentSetup(
   const statusMeta = getSchoolPaymentSetupMeta(status);
   const paymentReady = isSchoolPaymentReady(school);
   const canManage = access.capabilities.canManage;
-  const accountNumber = canManage ? school.bank?.accountNumber || "" : "";
+  const storedAccountRaw = canManage
+    ? (school.bank?.accountNumber || "").trim()
+    : "";
+  /** Full account number is never returned from GET when a value exists — use POST …/unmask with a reason (audited). */
+  const accountNumber =
+    canManage && storedAccountRaw ? "" : canManage ? storedAccountRaw : "";
+  const maskedAccountNumber = storedAccountRaw
+    ? maskAccountNumber(storedAccountRaw)
+    : "";
 
   return {
     schoolId: String(school._id),
@@ -169,9 +183,8 @@ function serializePaymentSetup(
       sortCode: canManage ? school.bank?.sortCode || "" : "",
       accountName: canManage ? school.bank?.accountName || "" : "",
       accountNumber,
-      maskedAccountNumber: accountNumber
-        ? maskAccountNumber(accountNumber)
-        : "",
+      maskedAccountNumber,
+      hasAccountNumberOnFile: Boolean(canManage && storedAccountRaw),
     },
     missingFields: getMissingBankFields(school),
     billingOwner: {
@@ -336,14 +349,6 @@ export async function PATCH(req: NextRequest) {
       shouldBindDelegateUserId: access.shouldBindDelegateUserId,
     });
     const body = UpdatePaymentSetupSchema.parse(await req.json());
-    const school = await School.findById(access.schoolId);
-
-    if (!school) {
-      return NextResponse.json(
-        { success: false, error: "School not found" },
-        { status: 404 }
-      );
-    }
 
     const derivedSortCode = await resolveBankCode(body.bankName, body.branchName);
     if (!derivedSortCode) {
@@ -355,100 +360,171 @@ export async function PATCH(req: NextRequest) {
         { status: 400 }
       );
     }
-    const now = new Date();
-    const existingBank = school.bank || {};
-    const hadProvisionedRail = Boolean(
-      school.billing?.paystack?.subaccountCode || school.billing?.paystack?.subaccountId
-    );
-    const bankChanged =
-      (existingBank.bankName || "") !== body.bankName ||
-      (existingBank.branchName || "") !== body.branchName ||
-      (existingBank.accountName || "") !== body.accountName ||
-      (existingBank.accountNumber || "") !== body.accountNumber;
-    const review = assessSchoolPaymentSetupReview({
-      schoolName: school.name,
-      accountName: body.accountName,
-      hadProvisionedRail,
-      bankChanged,
-    });
 
-    if (bankChanged && hadProvisionedRail && !access.capabilities.canApprovePayoutChange) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Only the billing owner can approve payout destination changes for a live school.",
-        },
-        { status: 403 }
-      );
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        const school = await School.findById(access.schoolId).session(session);
+        if (!school) {
+          throw new Error("SCHOOL_NOT_FOUND");
+        }
+
+        const now = new Date();
+        const existingBank = school.bank || {};
+        const hadProvisionedRail = Boolean(
+          school.billing?.paystack?.subaccountCode || school.billing?.paystack?.subaccountId
+        );
+        const bankChanged =
+          (existingBank.bankName || "") !== body.bankName ||
+          (existingBank.branchName || "") !== body.branchName ||
+          (existingBank.accountName || "") !== body.accountName ||
+          (existingBank.accountNumber || "") !== body.accountNumber;
+        const review = assessSchoolPaymentSetupReview({
+          schoolName: school.name,
+          accountName: body.accountName,
+          hadProvisionedRail,
+          bankChanged,
+        });
+
+        if (bankChanged && hadProvisionedRail && !access.capabilities.canApprovePayoutChange) {
+          throw new Error("FORBIDDEN_PAYOUT");
+        }
+
+        school.bank = {
+          bankName: body.bankName,
+          branchName: body.branchName,
+          sortCode: derivedSortCode,
+          accountName: body.accountName,
+          accountNumber: body.accountNumber,
+        };
+
+        const billing = school.billing || (school.billing = {});
+        const existingPaymentSetup = billing.paymentSetup || {};
+        const existingPaystack = billing.paystack || {};
+        const hasRecordedOwner = Boolean(
+          existingPaymentSetup.ownerUserId ||
+            existingPaymentSetup.ownerEmail?.trim() ||
+            existingPaymentSetup.ownerName?.trim()
+        );
+        const defaultOwnerUserId =
+          access.accessMode === "billing_owner" ||
+          access.accessMode === "school_creator" ||
+          access.accessMode === "admin_fallback"
+            ? access.userId
+            : null;
+
+        billing.status = bankChanged ? "unprovisioned" : billing.status || "unprovisioned";
+        billing.paymentSetup = {
+          ...existingPaymentSetup,
+          ownerUserId: hasRecordedOwner
+            ? existingPaymentSetup.ownerUserId || null
+            : defaultOwnerUserId,
+          ownerName: hasRecordedOwner
+            ? existingPaymentSetup.ownerName || null
+            : access.userName || access.userEmail,
+          ownerEmail: hasRecordedOwner
+            ? existingPaymentSetup.ownerEmail || null
+            : access.userEmail.toLowerCase().trim(),
+          ownerAssignedAt: hasRecordedOwner
+            ? existingPaymentSetup.ownerAssignedAt || now
+            : now,
+          ownerAssignedBy: hasRecordedOwner
+            ? existingPaymentSetup.ownerAssignedBy || access.userId
+            : access.userId,
+          delegateUserId: existingPaymentSetup.delegateUserId || null,
+          delegateName: existingPaymentSetup.delegateName || null,
+          delegateEmail: existingPaymentSetup.delegateEmail || null,
+          delegateAssignedAt: existingPaymentSetup.delegateAssignedAt || null,
+          delegateAssignedBy: existingPaymentSetup.delegateAssignedBy || null,
+          status: review.requiresReview ? "review_required" : "details_submitted",
+          submittedAt: now,
+          submittedBy: access.userId,
+          approvedAt: bankChanged ? null : existingPaymentSetup.approvedAt || null,
+          approvedBy: bankChanged ? null : existingPaymentSetup.approvedBy || null,
+          approvedByEmail: bankChanged
+            ? null
+            : existingPaymentSetup.approvedByEmail || null,
+          reviewReason: review.reason,
+          lastUpdatedAt: now,
+          lastUpdatedBy: access.userId,
+        };
+        billing.paystack = {
+          ...existingPaystack,
+          subaccountCode: bankChanged ? null : existingPaystack.subaccountCode || null,
+          subaccountId: bankChanged ? null : existingPaystack.subaccountId || null,
+          lastError: null,
+        };
+
+        await school.save({ session });
+
+        const maskLast4 = (n?: string | null) =>
+          n && n.length >= 4 ? n.slice(-4) : null;
+
+        await writeTransactionalAuditEvent(session, {
+          actionCode: "billing.payout_account.updated",
+          scopeType: "school",
+          scopeId: String(access.schoolId),
+          result: "succeeded",
+          target: {
+            targetEntityType: "School",
+            targetEntityId: school._id,
+          },
+          context: buildFinanceStaffAuditContext(req, {
+            userId: access.userId as mongoose.Types.ObjectId,
+            schoolId: access.schoolId as mongoose.Types.ObjectId,
+            roles: access.roles,
+            actorEmail: access.userEmail,
+            actorName: access.userName,
+            idempotencyKey: resolveAuditIdempotencyKey(
+              req,
+              `billing.payout_account.updated:${String(access.schoolId)}`
+            ),
+          }),
+          reason: {
+            reasonCode: review.requiresReview ? "review_required" : "details_submitted",
+            reason: review.reason || "Bank details updated",
+          },
+          payload: {
+            before: {
+              bankName: existingBank.bankName,
+              branchName: existingBank.branchName,
+              accountName: existingBank.accountName,
+              accountLast4: maskLast4(existingBank.accountNumber),
+            },
+            after: {
+              bankName: body.bankName,
+              branchName: body.branchName,
+              accountName: body.accountName,
+              accountLast4: maskLast4(body.accountNumber),
+            },
+            metadata: {
+              reviewRequired: review.requiresReview,
+            },
+          },
+          streamKey: `school:${String(access.schoolId)}:finance`,
+        });
+      });
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message === "SCHOOL_NOT_FOUND") {
+        return NextResponse.json(
+          { success: false, error: "School not found" },
+          { status: 404 }
+        );
+      }
+      if (e instanceof Error && e.message === "FORBIDDEN_PAYOUT") {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Only the billing owner can approve payout destination changes for a live school.",
+          },
+          { status: 403 }
+        );
+      }
+      throw e;
+    } finally {
+      await session.endSession();
     }
-
-    school.bank = {
-      bankName: body.bankName,
-      branchName: body.branchName,
-      sortCode: derivedSortCode,
-      accountName: body.accountName,
-      accountNumber: body.accountNumber,
-    };
-
-    const billing = school.billing || (school.billing = {});
-    const existingPaymentSetup = billing.paymentSetup || {};
-    const existingPaystack = billing.paystack || {};
-    const hasRecordedOwner = Boolean(
-      existingPaymentSetup.ownerUserId ||
-        existingPaymentSetup.ownerEmail?.trim() ||
-        existingPaymentSetup.ownerName?.trim()
-    );
-    const defaultOwnerUserId =
-      access.accessMode === "billing_owner" ||
-      access.accessMode === "school_creator" ||
-      access.accessMode === "admin_fallback"
-        ? access.userId
-        : null;
-
-    billing.status = bankChanged ? "unprovisioned" : billing.status || "unprovisioned";
-    billing.paymentSetup = {
-      ...existingPaymentSetup,
-      ownerUserId: hasRecordedOwner
-        ? existingPaymentSetup.ownerUserId || null
-        : defaultOwnerUserId,
-      ownerName: hasRecordedOwner
-        ? existingPaymentSetup.ownerName || null
-        : access.userName || access.userEmail,
-      ownerEmail: hasRecordedOwner
-        ? existingPaymentSetup.ownerEmail || null
-        : access.userEmail.toLowerCase().trim(),
-      ownerAssignedAt: hasRecordedOwner
-        ? existingPaymentSetup.ownerAssignedAt || now
-        : now,
-      ownerAssignedBy: hasRecordedOwner
-        ? existingPaymentSetup.ownerAssignedBy || access.userId
-        : access.userId,
-      delegateUserId: existingPaymentSetup.delegateUserId || null,
-      delegateName: existingPaymentSetup.delegateName || null,
-      delegateEmail: existingPaymentSetup.delegateEmail || null,
-      delegateAssignedAt: existingPaymentSetup.delegateAssignedAt || null,
-      delegateAssignedBy: existingPaymentSetup.delegateAssignedBy || null,
-      status: review.requiresReview ? "review_required" : "details_submitted",
-      submittedAt: now,
-      submittedBy: access.userId,
-      approvedAt: bankChanged ? null : existingPaymentSetup.approvedAt || null,
-      approvedBy: bankChanged ? null : existingPaymentSetup.approvedBy || null,
-      approvedByEmail: bankChanged
-        ? null
-        : existingPaymentSetup.approvedByEmail || null,
-      reviewReason: review.reason,
-      lastUpdatedAt: now,
-      lastUpdatedBy: access.userId,
-    };
-    billing.paystack = {
-      ...existingPaystack,
-      subaccountCode: bankChanged ? null : existingPaystack.subaccountCode || null,
-      subaccountId: bankChanged ? null : existingPaystack.subaccountId || null,
-      lastError: null,
-    };
-
-    await school.save();
 
     const [updatedSchool, latestJob, pendingInvitations] = await Promise.all([
       loadSchoolPaymentSetup(String(access.schoolId)),

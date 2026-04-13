@@ -1,10 +1,16 @@
 import mongoose from "mongoose";
 import { z } from "zod";
+import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireTeacher } from "@/lib/auth/requireTeacher";
+import { requireTeacher, type TeacherContext } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import { LessonNote, type ILessonNote } from "@/models/LessonNote";
+import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
+import {
+  buildSchoolUserAuditContext,
+  resolveAuditIdempotencyKey,
+} from "@/lib/audit/fromApiRoute";
 
 // ============================================================================
 // Zod Schemas
@@ -49,12 +55,20 @@ function toObjectIdOrNull(id: string) {
   }
 }
 
+function lessonNoteAcademicsStream(schoolId: mongoose.Types.ObjectId) {
+  return `school:${String(schoolId)}:academics`;
+}
+
+function reviewerActorRole(context: TeacherContext): string {
+  return context.isAdmin ? "school_admin" : "journal_reviewer";
+}
+
 // ============================================================================
 // POST - Handle approval actions
 // ============================================================================
 
 export async function POST(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -113,199 +127,400 @@ export async function POST(
       context.isAdmin ||
       can(context.permissions, JOURNAL_APPROVE_PERMISSION);
 
-    // Handle each action
-    switch (action) {
-      case "submit": {
-        // Only the owner can submit their note
-        if (!isOwner) {
-          return Response.json(
-            { success: false, error: "Only the note owner can submit it" },
-            { status: 403 }
-          );
-        }
-
-        if (!can(context.permissions, PERMISSIONS.journalWrite)) {
-          return Response.json(
-            { success: false, error: "Forbidden" },
-            { status: 403 }
-          );
-        }
-
-        // Can only submit from draft or rejected status
-        if (!["draft", "rejected"].includes(note.status)) {
-          return Response.json(
-            {
-              success: false,
-              error: `Cannot submit a note with status: ${note.status}`,
-            },
-            { status: 400 }
-          );
-        }
-
-        await LessonNote.updateOne(
-          { _id: noteId },
-          {
-            $set: {
-              status: "submitted",
-              submittedAt: new Date(),
-            },
-            $unset: {
-              rejectionReason: "",
-            },
-          }
-        );
-
-        return Response.json({
-          success: true,
-          message: "Lesson note submitted for approval",
-          data: { status: "submitted" },
-        });
-      }
-
-      case "approve": {
-        // Only admins or users with journalApprove can approve
-        if (!canApprove) {
-          return Response.json(
-            { success: false, error: "You do not have permission to approve notes" },
-            { status: 403 }
-          );
-        }
-
-        // Can only approve from submitted status
-        if (note.status !== "submitted") {
-          return Response.json(
-            {
-              success: false,
-              error: `Cannot approve a note with status: ${note.status}`,
-            },
-            { status: 400 }
-          );
-        }
-
-        const feedback = (parsed.data as { feedback?: string }).feedback;
-
-        await LessonNote.updateOne(
-          { _id: noteId },
-          {
-            $set: {
-              status: "approved",
-              approvedAt: new Date(),
-              approvedBy: context.userId,
-              ...(feedback && { approvalFeedback: feedback }),
-            },
-            $unset: {
-              rejectionReason: "",
-            },
-          }
-        );
-
-        return Response.json({
-          success: true,
-          message: "Lesson note approved",
-          data: { status: "approved" },
-        });
-      }
-
-      case "reject": {
-        // Only admins or users with journalApprove can reject
-        if (!canApprove) {
-          return Response.json(
-            { success: false, error: "You do not have permission to reject notes" },
-            { status: 403 }
-          );
-        }
-
-        // Can only reject from submitted status
-        if (note.status !== "submitted") {
-          return Response.json(
-            {
-              success: false,
-              error: `Cannot reject a note with status: ${note.status}`,
-            },
-            { status: 400 }
-          );
-        }
-
-        const reason = (parsed.data as { reason: string }).reason;
-
-        await LessonNote.updateOne(
-          { _id: noteId },
-          {
-            $set: {
-              status: "rejected",
-              rejectionReason: reason,
-            },
-            $unset: {
-              approvedAt: "",
-              approvedBy: "",
-            },
-          }
-        );
-
-        return Response.json({
-          success: true,
-          message: "Lesson note rejected",
-          data: { status: "rejected", rejectionReason: reason },
-        });
-      }
-
-      case "return_to_draft": {
-        // Owner can return their own submitted/rejected note to draft
-        // Admins can return any note to draft
-        if (!isOwner && !context.isAdmin) {
-          return Response.json(
-            {
-              success: false,
-              error: "Only the note owner or admin can return it to draft",
-            },
-            { status: 403 }
-          );
-        }
-
-        if (!can(context.permissions, PERMISSIONS.journalWrite)) {
-          return Response.json(
-            { success: false, error: "Forbidden" },
-            { status: 403 }
-          );
-        }
-
-        // Can return from submitted or rejected
-        if (!["submitted", "rejected"].includes(note.status)) {
-          return Response.json(
-            {
-              success: false,
-              error: `Cannot return to draft from status: ${note.status}`,
-            },
-            { status: 400 }
-          );
-        }
-
-        await LessonNote.updateOne(
-          { _id: noteId },
-          {
-            $set: {
-              status: "draft",
-            },
-            $unset: {
-              submittedAt: "",
-              rejectionReason: "",
-            },
-          }
-        );
-
-        return Response.json({
-          success: true,
-          message: "Lesson note returned to draft",
-          data: { status: "draft" },
-        });
-      }
-
-      default:
+    if (action === "submit") {
+      if (!isOwner) {
         return Response.json(
-          { success: false, error: "Unknown action" },
+          { success: false, error: "Only the note owner can submit it" },
+          { status: 403 }
+        );
+      }
+
+      if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+        return Response.json(
+          { success: false, error: "Forbidden" },
+          { status: 403 }
+        );
+      }
+
+      if (!["draft", "rejected"].includes(note.status)) {
+        return Response.json(
+          {
+            success: false,
+            error: `Cannot submit a note with status: ${note.status}`,
+          },
           { status: 400 }
         );
+      }
+
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const beforeDoc = await LessonNote.findOne({
+            _id: noteId,
+            schoolId: context.schoolId,
+          })
+            .session(session)
+            .select("status")
+            .lean();
+          if (!beforeDoc) {
+            throw new Error("LESSON_NOTE_NOT_FOUND");
+          }
+
+          await LessonNote.updateOne(
+            { _id: noteId },
+            {
+              $set: {
+                status: "submitted",
+                submittedAt: new Date(),
+              },
+              $unset: {
+                rejectionReason: "",
+              },
+            },
+            { session }
+          );
+
+          await writeTransactionalAuditEvent(session, {
+            actionCode: "lesson_note.review_requested",
+            scopeType: "school",
+            scopeId: String(context.schoolId),
+            result: "succeeded",
+            target: {
+              targetEntityType: "LessonNote",
+              targetEntityId: noteId,
+            },
+            context: buildSchoolUserAuditContext(req, {
+              userId: context.userId,
+              schoolId: context.schoolId,
+              actorRole: "teacher",
+              idempotencyKey: resolveAuditIdempotencyKey(
+                req,
+                `lesson_note.submit:${id}`
+              ),
+            }),
+            payload: {
+              before: { status: beforeDoc.status },
+              after: { status: "submitted" },
+            },
+            streamKey: lessonNoteAcademicsStream(context.schoolId),
+          });
+        });
+      } catch (e) {
+        if (e instanceof Error && e.message === "LESSON_NOTE_NOT_FOUND") {
+          return Response.json(
+            { success: false, error: "Lesson note not found" },
+            { status: 404 }
+          );
+        }
+        throw e;
+      } finally {
+        await session.endSession();
+      }
+
+      return Response.json({
+        success: true,
+        message: "Lesson note submitted for approval",
+        data: { status: "submitted" },
+      });
     }
+
+    if (action === "approve") {
+      if (!canApprove) {
+        return Response.json(
+          { success: false, error: "You do not have permission to approve notes" },
+          { status: 403 }
+        );
+      }
+
+      if (note.status !== "submitted") {
+        return Response.json(
+          {
+            success: false,
+            error: `Cannot approve a note with status: ${note.status}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const feedback = (parsed.data as { feedback?: string }).feedback;
+
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const beforeDoc = await LessonNote.findOne({
+            _id: noteId,
+            schoolId: context.schoolId,
+          })
+            .session(session)
+            .select("status")
+            .lean();
+          if (!beforeDoc) {
+            throw new Error("LESSON_NOTE_NOT_FOUND");
+          }
+
+          await LessonNote.updateOne(
+            { _id: noteId },
+            {
+              $set: {
+                status: "approved",
+                approvedAt: new Date(),
+                approvedBy: context.userId,
+                ...(feedback && { approvalFeedback: feedback }),
+              },
+              $unset: {
+                rejectionReason: "",
+              },
+            },
+            { session }
+          );
+
+          await writeTransactionalAuditEvent(session, {
+            actionCode: "lesson_note.approved",
+            scopeType: "school",
+            scopeId: String(context.schoolId),
+            result: "succeeded",
+            target: {
+              targetEntityType: "LessonNote",
+              targetEntityId: noteId,
+            },
+            context: buildSchoolUserAuditContext(req, {
+              userId: context.userId,
+              schoolId: context.schoolId,
+              actorRole: reviewerActorRole(context),
+              idempotencyKey: resolveAuditIdempotencyKey(
+                req,
+                `lesson_note.approve:${id}`
+              ),
+            }),
+            payload: {
+              before: { status: beforeDoc.status },
+              after: { status: "approved" },
+              metadata: {
+                hasFeedback: Boolean(feedback?.trim()),
+              },
+            },
+            streamKey: lessonNoteAcademicsStream(context.schoolId),
+          });
+        });
+      } catch (e) {
+        if (e instanceof Error && e.message === "LESSON_NOTE_NOT_FOUND") {
+          return Response.json(
+            { success: false, error: "Lesson note not found" },
+            { status: 404 }
+          );
+        }
+        throw e;
+      } finally {
+        await session.endSession();
+      }
+
+      return Response.json({
+        success: true,
+        message: "Lesson note approved",
+        data: { status: "approved" },
+      });
+    }
+
+    if (action === "reject") {
+      if (!canApprove) {
+        return Response.json(
+          { success: false, error: "You do not have permission to reject notes" },
+          { status: 403 }
+        );
+      }
+
+      if (note.status !== "submitted") {
+        return Response.json(
+          {
+            success: false,
+            error: `Cannot reject a note with status: ${note.status}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const reason = (parsed.data as { reason: string }).reason;
+
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const beforeDoc = await LessonNote.findOne({
+            _id: noteId,
+            schoolId: context.schoolId,
+          })
+            .session(session)
+            .select("status")
+            .lean();
+          if (!beforeDoc) {
+            throw new Error("LESSON_NOTE_NOT_FOUND");
+          }
+
+          await LessonNote.updateOne(
+            { _id: noteId },
+            {
+              $set: {
+                status: "rejected",
+                rejectionReason: reason,
+              },
+              $unset: {
+                approvedAt: "",
+                approvedBy: "",
+              },
+            },
+            { session }
+          );
+
+          await writeTransactionalAuditEvent(session, {
+            actionCode: "lesson_note.rejected",
+            scopeType: "school",
+            scopeId: String(context.schoolId),
+            result: "succeeded",
+            target: {
+              targetEntityType: "LessonNote",
+              targetEntityId: noteId,
+            },
+            context: buildSchoolUserAuditContext(req, {
+              userId: context.userId,
+              schoolId: context.schoolId,
+              actorRole: reviewerActorRole(context),
+              idempotencyKey: resolveAuditIdempotencyKey(
+                req,
+                `lesson_note.reject:${id}`
+              ),
+            }),
+            reason: { reason },
+            payload: {
+              before: { status: beforeDoc.status },
+              after: { status: "rejected" },
+            },
+            streamKey: lessonNoteAcademicsStream(context.schoolId),
+          });
+        });
+      } catch (e) {
+        if (e instanceof Error && e.message === "LESSON_NOTE_NOT_FOUND") {
+          return Response.json(
+            { success: false, error: "Lesson note not found" },
+            { status: 404 }
+          );
+        }
+        throw e;
+      } finally {
+        await session.endSession();
+      }
+
+      return Response.json({
+        success: true,
+        message: "Lesson note rejected",
+        data: { status: "rejected", rejectionReason: reason },
+      });
+    }
+
+    if (action === "return_to_draft") {
+      if (!isOwner && !context.isAdmin) {
+        return Response.json(
+          {
+            success: false,
+            error: "Only the note owner or admin can return it to draft",
+          },
+          { status: 403 }
+        );
+      }
+
+      if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+        return Response.json(
+          { success: false, error: "Forbidden" },
+          { status: 403 }
+        );
+      }
+
+      if (!["submitted", "rejected"].includes(note.status)) {
+        return Response.json(
+          {
+            success: false,
+            error: `Cannot return to draft from status: ${note.status}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const returnActorRole = isOwner ? "teacher" : "school_admin";
+
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const beforeDoc = await LessonNote.findOne({
+            _id: noteId,
+            schoolId: context.schoolId,
+          })
+            .session(session)
+            .select("status")
+            .lean();
+          if (!beforeDoc) {
+            throw new Error("LESSON_NOTE_NOT_FOUND");
+          }
+
+          await LessonNote.updateOne(
+            { _id: noteId },
+            {
+              $set: {
+                status: "draft",
+              },
+              $unset: {
+                submittedAt: "",
+                rejectionReason: "",
+              },
+            },
+            { session }
+          );
+
+          await writeTransactionalAuditEvent(session, {
+            actionCode: "lesson_note.returned_to_draft",
+            scopeType: "school",
+            scopeId: String(context.schoolId),
+            result: "succeeded",
+            target: {
+              targetEntityType: "LessonNote",
+              targetEntityId: noteId,
+            },
+            context: buildSchoolUserAuditContext(req, {
+              userId: context.userId,
+              schoolId: context.schoolId,
+              actorRole: returnActorRole,
+              idempotencyKey: resolveAuditIdempotencyKey(
+                req,
+                `lesson_note.return_draft:${id}`
+              ),
+            }),
+            payload: {
+              before: { status: beforeDoc.status },
+              after: { status: "draft" },
+            },
+            streamKey: lessonNoteAcademicsStream(context.schoolId),
+          });
+        });
+      } catch (e) {
+        if (e instanceof Error && e.message === "LESSON_NOTE_NOT_FOUND") {
+          return Response.json(
+            { success: false, error: "Lesson note not found" },
+            { status: 404 }
+          );
+        }
+        throw e;
+      } finally {
+        await session.endSession();
+      }
+
+      return Response.json({
+        success: true,
+        message: "Lesson note returned to draft",
+        data: { status: "draft" },
+      });
+    }
+
+    return Response.json(
+      { success: false, error: "Unknown action" },
+      { status: 400 }
+    );
   } catch (e: unknown) {
     if (e instanceof Response) return e;
     console.error("Failed to process approval action:", e);

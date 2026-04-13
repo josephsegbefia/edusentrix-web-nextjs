@@ -28,9 +28,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   type SchoolPaymentSetupDTO,
   useSchoolPaymentSetup,
@@ -39,6 +48,7 @@ import {
   useInviteBillingOwner,
   useInviteFinanceDelegate,
   useRemoveFinanceDelegate,
+  useRevealPayoutAccount,
 } from "@/hooks/admin/useSchoolPaymentSetup";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
@@ -131,7 +141,7 @@ function ReadOnlyPaymentSetupView({ data }: { data: SchoolPaymentSetupDTO }) {
             </div>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="bg-gradient-to-r from-white via-cyan-100 to-emerald-100 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
+                <h1 className="bg-linear-to-r from-white via-cyan-100 to-emerald-100 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
                   Payment Setup
                 </h1>
                 <Badge variant="outline" className={cn("px-3 py-1 text-xs", statusBadgeClass)}>
@@ -235,24 +245,24 @@ function ReadOnlyPaymentSetupView({ data }: { data: SchoolPaymentSetupDTO }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
             <p className="text-sm font-medium text-white">Current state</p>
             <p className="mt-2 text-sm text-white/65">{readOnlyStatusSummary(data)}</p>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
               <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last submitted</p>
               <p className="mt-2 text-sm font-medium text-white">
                 {relativeTime(data.timestamps.submittedAt)}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
               <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last approved</p>
               <p className="mt-2 text-sm font-medium text-white">
                 {relativeTime(data.timestamps.approvedAt)}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
               <p className="text-xs uppercase tracking-[0.16em] text-white/40">Provisioning</p>
               <p className="mt-2 text-sm font-medium text-white capitalize">
                 {data.provisioning?.status.replace("_", " ") || "No active job"}
@@ -277,7 +287,11 @@ export default function PaymentSetupPage() {
   const inviteBillingOwner = useInviteBillingOwner();
   const inviteFinanceDelegate = useInviteFinanceDelegate();
   const removeFinanceDelegate = useRemoveFinanceDelegate();
+  const revealPayout = useRevealPayoutAccount();
   const busy = useBusyToast();
+
+  const [revealOpen, setRevealOpen] = React.useState(false);
+  const [revealReason, setRevealReason] = React.useState("");
 
   const [bankSelection, setBankSelection] = React.useState<{
     bankName: string;
@@ -337,6 +351,22 @@ export default function PaymentSetupPage() {
       !data.pendingInvitations.financeDelegate &&
       !data.financeDelegate.email
   );
+
+  async function handleRevealAccount() {
+    const reason = revealReason.trim();
+    if (reason.length < 3) return;
+
+    await busy.promise(revealPayout.mutateAsync({ reason }), {
+      loading: "Recording reveal…",
+      success: "Account number shown for this session.",
+      error: (revealError) =>
+        revealError instanceof Error
+          ? revealError.message
+          : "Could not reveal account number",
+    });
+    setRevealOpen(false);
+    setRevealReason("");
+  }
 
   async function handleSave() {
     if (!bankSelection || !canSave) return;
@@ -434,7 +464,7 @@ export default function PaymentSetupPage() {
           ))}
         </div>
         <div className="grid gap-6 xl:grid-cols-[1.45fr_1fr]">
-          <div className="h-[30rem] rounded-3xl border border-white/10 bg-white/5 animate-pulse" />
+          <div className="h-120 rounded-3xl border border-white/10 bg-white/5 animate-pulse" />
           <div className="space-y-6">
             <div className="h-64 rounded-3xl border border-white/10 bg-white/5 animate-pulse" />
             <div className="h-64 rounded-3xl border border-white/10 bg-white/5 animate-pulse" />
@@ -527,7 +557,7 @@ export default function PaymentSetupPage() {
             </div>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="bg-gradient-to-r from-white via-emerald-100 to-cyan-200 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
+                <h1 className="bg-linear-to-r from-white via-emerald-100 to-cyan-200 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
                   Payment Setup
                 </h1>
                 <Badge variant="outline" className={cn("px-3 py-1 text-xs", statusBadgeClass)}>
@@ -676,17 +706,44 @@ export default function PaymentSetupPage() {
 
               <div className="space-y-2">
                 <Label className="text-white/75">Account number</Label>
+                {data.bank.hasAccountNumberOnFile && !accountNumber.trim() ? (
+                  <div className="space-y-2 rounded-xl border border-white/10 bg-white/4 p-3">
+                    <p className="text-sm text-white/80">
+                      On file:{" "}
+                      <span className="font-mono text-white">
+                        {data.bank.maskedAccountNumber}
+                      </span>
+                    </p>
+                    <p className="text-xs text-white/45">
+                      Full digits are hidden until you reveal them (audited). You can also enter a
+                      new number to replace the stored account without revealing.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                      onClick={() => setRevealOpen(true)}
+                    >
+                      Reveal account number
+                    </Button>
+                  </div>
+                ) : null}
                 <Input
                   value={accountNumber}
                   onChange={(event) => setAccountNumber(event.target.value)}
                   inputMode="numeric"
-                  placeholder="Settlement account number"
+                  placeholder={
+                    data.bank.hasAccountNumberOnFile && !accountNumber.trim()
+                      ? "Or type a new settlement account"
+                      : "Settlement account number"
+                  }
                   className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                 />
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-white">Current readiness</p>
@@ -764,7 +821,7 @@ export default function PaymentSetupPage() {
                       Boolean(data.bank.bankName) &&
                       Boolean(data.bank.branchName) &&
                       Boolean(data.bank.accountName) &&
-                      Boolean(data.bank.accountNumber),
+                      data.bank.hasAccountNumberOnFile,
                   },
                   {
                     label: "Paystack subaccount",
@@ -862,7 +919,7 @@ export default function PaymentSetupPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-white/40">Access mode</p>
                 <p className="mt-2 text-base font-semibold text-white">
                   {accessModeLabel(data.accessMode)}
@@ -879,19 +936,19 @@ export default function PaymentSetupPage() {
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last updated</p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {relativeTime(data.timestamps.lastUpdatedAt)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last submitted</p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {relativeTime(data.timestamps.submittedAt)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/40">Last approved</p>
                   <p className="mt-2 text-sm font-medium text-white">
                     {relativeTime(data.timestamps.approvedAt)}
@@ -902,7 +959,7 @@ export default function PaymentSetupPage() {
                 </div>
               </div>
               {data.provisioning && (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
                   <p className="text-xs uppercase tracking-[0.16em] text-white/40">
                     Provisioning activity
                   </p>
@@ -938,7 +995,7 @@ export default function PaymentSetupPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {(data.financeDelegate.email || data.pendingInvitations.financeDelegate) && (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/65">
+                  <div className="rounded-2xl border border-white/10 bg-white/3 p-4 text-sm text-white/65">
                     <p className="font-medium text-white">
                       {data.financeDelegate.email
                         ? "Active finance delegate"
@@ -1097,6 +1154,52 @@ export default function PaymentSetupPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={revealOpen} onOpenChange={setRevealOpen}>
+        <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">Reveal account number</DialogTitle>
+            <DialogDescription className="text-white/65">
+              Showing full payout digits is logged as a sensitive disclosure. Enter a short reason
+              (for example, verifying details with the bank).
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={revealReason}
+            onChange={(e) => setRevealReason(e.target.value)}
+            placeholder="Reason for viewing full account number"
+            className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+          />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              onClick={() => {
+                setRevealOpen(false);
+                setRevealReason("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+              disabled={revealReason.trim().length < 3 || revealPayout.isPending}
+              onClick={() => void handleRevealAccount()}
+            >
+              {revealPayout.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Revealing
+                </>
+              ) : (
+                "Reveal"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

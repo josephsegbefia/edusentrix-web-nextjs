@@ -16,6 +16,12 @@ import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice"
 import { formatMoney } from "@/lib/fees/money";
 import { recordFeePaymentInLedger } from "@/lib/finance/writeLedgerEntry";
 import { Student } from "@/models/Student";
+import { User } from "@/models/User";
+import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
+import {
+  buildFinanceStaffAuditContext,
+  resolveAuditIdempotencyKey,
+} from "@/lib/audit/fromApiRoute";
 import {
   generatePaymentInternalReference,
   type PaymentMethodForRef,
@@ -110,7 +116,7 @@ function normalizeRef(value?: string | null) {
 }
 
 export async function POST(req: NextRequest) {
-  const { schoolId, userId } = await requireFinanceStaff();
+  const { schoolId, userId, roles } = await requireFinanceStaff();
   await connectToDatabase();
 
   if (!schoolId) {
@@ -129,6 +135,9 @@ export async function POST(req: NextRequest) {
   await fixPaystackReferenceIndex();
 
   const body = BodySchema.parse(await req.json());
+
+  const actorUser = await User.findById(userId).select("email name").lean();
+
   if (
     !mongoose.Types.ObjectId.isValid(body.studentId) ||
     !mongoose.Types.ObjectId.isValid(body.invoiceId)
@@ -526,6 +535,49 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  const financeAuditStreamKey = `school:${String(schoolId)}:finance`;
+  {
+    const auditSession = await mongoose.startSession();
+    try {
+      await auditSession.withTransaction(async () => {
+        await writeTransactionalAuditEvent(auditSession, {
+          actionCode: "payment.recorded",
+          scopeType: "school",
+          scopeId: String(schoolId),
+          result: "succeeded",
+          target: {
+            targetEntityType: "Payment",
+            targetEntityId: paymentDoc._id,
+            secondaryEntityType: "Invoice",
+            secondaryEntityId: invoice._id,
+          },
+          context: buildFinanceStaffAuditContext(req, {
+            userId: userId as mongoose.Types.ObjectId,
+            schoolId: schoolIdObj,
+            roles,
+            actorEmail: (actorUser as { email?: string } | null)?.email ?? null,
+            actorName: (actorUser as { name?: string } | null)?.name ?? null,
+            idempotencyKey: resolveAuditIdempotencyKey(
+              req,
+              idempotencyKey || `payment.recorded:${String(paymentDoc._id)}`
+            ),
+          }),
+          payload: {
+            metadata: {
+              internalReference,
+              status: body.status,
+              paymentMethod: body.paymentMethod,
+              amountMinor: body.amountMinor,
+            },
+          },
+          streamKey: financeAuditStreamKey,
+        });
+      });
+    } finally {
+      await auditSession.endSession();
+    }
+  }
+
   if (uniqueDuplicateCandidates.length > 0 && allowDuplicate) {
     await PaymentAuditEvent.create({
       schoolId: schoolIdObj,
@@ -543,6 +595,46 @@ export async function POST(req: NextRequest) {
         duplicates: uniqueDuplicateCandidates,
       },
     });
+
+    const dupAuditSession = await mongoose.startSession();
+    try {
+      await dupAuditSession.withTransaction(async () => {
+        await writeTransactionalAuditEvent(dupAuditSession, {
+          actionCode: "payment.duplicate_override.accepted",
+          scopeType: "school",
+          scopeId: String(schoolId),
+          result: "succeeded",
+          target: {
+            targetEntityType: "Payment",
+            targetEntityId: paymentDoc._id,
+            secondaryEntityType: "Invoice",
+            secondaryEntityId: invoice._id,
+          },
+          context: buildFinanceStaffAuditContext(req, {
+            userId: userId as mongoose.Types.ObjectId,
+            schoolId: schoolIdObj,
+            roles,
+            actorEmail: (actorUser as { email?: string } | null)?.email ?? null,
+            actorName: (actorUser as { name?: string } | null)?.name ?? null,
+            idempotencyKey: resolveAuditIdempotencyKey(
+              req,
+              `duplicate_override:${String(paymentDoc._id)}`
+            ),
+          }),
+          reason: {
+            reason: body.duplicateReason?.trim() || "Duplicate override acknowledged",
+          },
+          payload: {
+            metadata: {
+              duplicateCount: uniqueDuplicateCandidates.length,
+            },
+          },
+          streamKey: financeAuditStreamKey,
+        });
+      });
+    } finally {
+      await dupAuditSession.endSession();
+    }
   }
 
   await invoice.save();

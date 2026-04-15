@@ -5,7 +5,6 @@ import { User, type IUser } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
 import { School, type ISchool } from "@/models/School";
 import { normalizePaymentSetupEmail } from "@/lib/school-payments/payment-setup";
-import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -40,29 +39,14 @@ type PaymentSetupAccessContext = {
 };
 
 export async function requirePaymentSetupAccess(): Promise<PaymentSetupAccessContext> {
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) {
+    throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   await connectToDatabase();
 
-  let resolvedUserId: string | null = null;
-
-  const demo = await tryResolveDemoGuard();
-  if (demo.isDemo) {
-    resolvedUserId = "__demo__";
-  }
-
-  if (!resolvedUserId) {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
-      throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    resolvedUserId = clerkUserId;
-  }
-
-  let userRaw;
-  if (demo.isDemo) {
-    userRaw = await User.findById(demo.user._id).lean();
-  } else {
-    userRaw = await User.findOne({ clerkUserId: resolvedUserId }).lean();
-  }
+  const userRaw = await User.findOne({ clerkUserId }).lean();
   const user = (Array.isArray(userRaw) ? userRaw[0] : userRaw) as Pick<
     IUser,
     "_id" | "schoolId" | "role" | "email" | "name" | "firstName" | "lastName"

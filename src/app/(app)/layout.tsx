@@ -2,28 +2,21 @@ import AppTopbar from "@/components/app/AppTopbar";
 import { requireUser } from "@/lib/auth/get-current-user";
 import { NetworkStatusBanner } from "@/components/system/NetworkStatusBanner";
 import ServiceWorkerRegister from "@/components/system/ServiceWorkerRegister";
-import { isDemoMode } from "@/lib/demo/runtime";
-import { DemoBanner } from "@/components/demo/DemoBanner";
-import { DemoBlockedInterceptor } from "@/components/demo/DemoBlockedDialog";
 
+// add bg/text to ensure black base for all signed-in pages
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const isDemo = isDemoMode();
-
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
-      {isDemo && <DemoBanner />}
-      {isDemo && <DemoBlockedInterceptor />}
       <AppTopbar user={user} />
+      {/* Network status banner - appears below topbar when offline/degraded */}
       <NetworkStatusBanner />
       <ServiceWorkerRegister />
-      <main className={`flex-1 overflow-x-hidden ${isDemo ? "pt-20" : "pt-14"}`}>
-        {children}
-      </main>
+      <main className="flex-1 overflow-x-hidden pt-14">{children}</main>
     </div>
   );
 }

@@ -56,10 +56,6 @@ export async function sendWhatsAppMessage(
   templateId: string,
   params: Record<string, string>
 ): Promise<SendWhatsAppMessageResult> {
-  const { enforceDemoPolicy } = await import("@/lib/demo/action-policy");
-  const sim = enforceDemoPolicy<SendWhatsAppMessageResult>("whatsapp", "sendMessage");
-  if (sim) return sim;
-
   if (!phone) {
     return {
       success: false,

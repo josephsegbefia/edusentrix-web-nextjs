@@ -39,8 +39,6 @@ export type SchoolPaymentSetupDTO = {
     accountName: string;
     accountNumber: string;
     maskedAccountNumber: string;
-    /** True when a payout account exists in the database (full digits are not returned from GET until unmask). */
-    hasAccountNumberOnFile: boolean;
   };
   missingFields: string[];
   billingOwner: {
@@ -195,60 +193,10 @@ export function useUpdateSchoolPaymentSetup() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Failed to save payout details");
       }
-      const row = json.data as SchoolPaymentSetupDTO;
-      return {
-        ...row,
-        bank: {
-          ...row.bank,
-          accountNumber: input.accountNumber,
-          hasAccountNumberOnFile: true,
-        },
-      } satisfies SchoolPaymentSetupDTO;
+      return json.data as SchoolPaymentSetupDTO;
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData<SchoolPaymentSetupDTO | null>(
-        ["school-payment-setup", false],
-        data
-      );
-    },
-  });
-}
-
-export function useRevealPayoutAccount() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: { reason: string }) => {
-      const res = await fetch("/api/admin/settings/payment-setup/unmask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: input.reason }),
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) {
-        throw new Error(
-          typeof json?.error === "string"
-            ? json.error
-            : "Failed to reveal account number"
-        );
-      }
-      return json.data as { accountNumber: string; maskedAccountNumber: string };
-    },
-    onSuccess: (reveal) => {
-      queryClient.setQueryData<SchoolPaymentSetupDTO | null>(
-        ["school-payment-setup", false],
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            bank: {
-              ...old.bank,
-              accountNumber: reveal.accountNumber,
-              maskedAccountNumber: reveal.maskedAccountNumber,
-            },
-          };
-        }
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-payment-setup"] });
     },
   });
 }

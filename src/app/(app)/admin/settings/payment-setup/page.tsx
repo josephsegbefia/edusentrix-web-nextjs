@@ -28,18 +28,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import {
   type SchoolPaymentSetupDTO,
   useSchoolPaymentSetup,
@@ -48,7 +39,6 @@ import {
   useInviteBillingOwner,
   useInviteFinanceDelegate,
   useRemoveFinanceDelegate,
-  useRevealPayoutAccount,
 } from "@/hooks/admin/useSchoolPaymentSetup";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
@@ -287,11 +277,7 @@ export default function PaymentSetupPage() {
   const inviteBillingOwner = useInviteBillingOwner();
   const inviteFinanceDelegate = useInviteFinanceDelegate();
   const removeFinanceDelegate = useRemoveFinanceDelegate();
-  const revealPayout = useRevealPayoutAccount();
   const busy = useBusyToast();
-
-  const [revealOpen, setRevealOpen] = React.useState(false);
-  const [revealReason, setRevealReason] = React.useState("");
 
   const [bankSelection, setBankSelection] = React.useState<{
     bankName: string;
@@ -351,22 +337,6 @@ export default function PaymentSetupPage() {
       !data.pendingInvitations.financeDelegate &&
       !data.financeDelegate.email
   );
-
-  async function handleRevealAccount() {
-    const reason = revealReason.trim();
-    if (reason.length < 3) return;
-
-    await busy.promise(revealPayout.mutateAsync({ reason }), {
-      loading: "Recording reveal…",
-      success: "Account number shown for this session.",
-      error: (revealError) =>
-        revealError instanceof Error
-          ? revealError.message
-          : "Could not reveal account number",
-    });
-    setRevealOpen(false);
-    setRevealReason("");
-  }
 
   async function handleSave() {
     if (!bankSelection || !canSave) return;
@@ -706,35 +676,25 @@ export default function PaymentSetupPage() {
 
               <div className="space-y-2">
                 <Label className="text-white/75">Account number</Label>
-                {data.bank.hasAccountNumberOnFile && !accountNumber.trim() ? (
-                  <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                    <p className="text-sm text-white/80">
-                      On file:{" "}
-                      <span className="font-mono text-white">
-                        {data.bank.maskedAccountNumber}
-                      </span>
-                    </p>
-                    <p className="text-xs text-white/45">
-                      Full digits are hidden until you reveal them (audited). You can also enter a
-                      new number to replace the stored account without revealing.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-                      onClick={() => setRevealOpen(true)}
-                    >
-                      Reveal account number
-                    </Button>
-                  </div>
-                ) : null}
+                {data.bank.maskedAccountNumber ? (
+                  <p className="text-xs text-white/45">
+                    Current on file:{" "}
+                    <span className="font-mono text-white">
+                      {data.bank.maskedAccountNumber}
+                    </span>
+                    . Enter a new account number only if you need to replace it.
+                  </p>
+                ) : (
+                  <p className="text-xs text-white/45">
+                    Enter the school's settlement account number.
+                  </p>
+                )}
                 <Input
                   value={accountNumber}
                   onChange={(event) => setAccountNumber(event.target.value)}
                   inputMode="numeric"
                   placeholder={
-                    data.bank.hasAccountNumberOnFile && !accountNumber.trim()
+                    data.bank.maskedAccountNumber && !accountNumber.trim()
                       ? "Or type a new settlement account"
                       : "Settlement account number"
                   }
@@ -821,7 +781,9 @@ export default function PaymentSetupPage() {
                       Boolean(data.bank.bankName) &&
                       Boolean(data.bank.branchName) &&
                       Boolean(data.bank.accountName) &&
-                      data.bank.hasAccountNumberOnFile,
+                      Boolean(
+                        data.bank.accountNumber || data.bank.maskedAccountNumber
+                      ),
                   },
                   {
                     label: "Paystack subaccount",
@@ -1154,52 +1116,6 @@ export default function PaymentSetupPage() {
           )}
         </div>
       </div>
-
-      <Dialog open={revealOpen} onOpenChange={setRevealOpen}>
-        <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-white">Reveal account number</DialogTitle>
-            <DialogDescription className="text-white/65">
-              Showing full payout digits is logged as a sensitive disclosure. Enter a short reason
-              (for example, verifying details with the bank).
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={revealReason}
-            onChange={(e) => setRevealReason(e.target.value)}
-            placeholder="Reason for viewing full account number"
-            className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
-          />
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-              onClick={() => {
-                setRevealOpen(false);
-                setRevealReason("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-              disabled={revealReason.trim().length < 3 || revealPayout.isPending}
-              onClick={() => void handleRevealAccount()}
-            >
-              {revealPayout.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Revealing
-                </>
-              ) : (
-                "Reveal"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

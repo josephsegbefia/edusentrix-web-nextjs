@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "server-only";
 import * as SibApiV3Sdk from "@sendinblue/client";
-import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 
 const {
   BREVO_API_KEY,
@@ -56,9 +55,6 @@ export interface BrevoSendResult {
 export async function brevoSend(
   input: BrevoSendInput,
 ): Promise<BrevoSendResult> {
-  const sim = enforceDemoPolicy<BrevoSendResult>("email", "sendTransactional");
-  if (sim) return sim;
-
   const config = getConfig();
   const client = getClient();
 

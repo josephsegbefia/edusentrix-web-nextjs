@@ -8,11 +8,6 @@ import { renderTemplate } from "@/lib/email/templates";
 import { z } from "zod";
 import { Types } from "mongoose";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
-import { writeRetryableAuditEvent } from "@/lib/audit/writeRetryableAuditEvent";
-import {
-  buildPublicApplicationFormAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 import { GhanaRegionSchema } from "@/constants/ghanaRegions";
 import {
   buildPipelineStageMongoFilter,
@@ -216,31 +211,6 @@ export async function POST(req: NextRequest) {
       meta: {
         adminEmail: app.adminEmail,
         schoolName: app.schoolName,
-      },
-    });
-
-    await writeRetryableAuditEvent({
-      actionCode: "application.submitted",
-      scopeType: "platform",
-      scopeId: null,
-      result: "succeeded",
-      target: {
-        targetEntityType: "Application",
-        targetEntityId: app._id,
-      },
-      context: buildPublicApplicationFormAuditContext(req, {
-        idempotencyKey: resolveAuditIdempotencyKey(
-          req,
-          `application.submitted:${String(app._id)}`
-        ),
-        submitterEmail: app.adminEmail,
-      }),
-      payload: {
-        metadata: {
-          schoolName: app.schoolName,
-          schoolType: app.schoolType,
-          region: app.region,
-        },
       },
     });
 

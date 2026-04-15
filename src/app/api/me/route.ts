@@ -20,10 +20,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { verifyToken } from "@clerk/backend";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
-import { isDemoMode } from "@/lib/demo/runtime";
-import { resolveDemoSessionFromCookie } from "@/lib/demo/session";
-import { resolveDemoPersona } from "@/lib/demo/persona";
-import { connectToDatabase } from "@/db/connectToDatabase";
 
 function computeRedirect(me: Awaited<ReturnType<typeof getCurrentUser>>) {
   // Keep it consistent with your web routing rules.
@@ -42,24 +38,6 @@ function computeRedirect(me: Awaited<ReturnType<typeof getCurrentUser>>) {
 }
 
 export async function GET(req: NextRequest) {
-  // ─── Demo mode: resolve from demo session cookie ───
-  if (isDemoMode()) {
-    await connectToDatabase();
-    const session = await resolveDemoSessionFromCookie();
-    if (session) {
-      const persona = await resolveDemoPersona(session);
-      if (persona) {
-        const redirect = computeRedirect(persona);
-        return NextResponse.json({
-          ...persona,
-          ...(redirect ? { redirect } : {}),
-        });
-      }
-    }
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // ─── Production: Clerk auth ───
   const authz = req.headers.get("authorization");
   const hasBearer = !!authz?.toLowerCase().startsWith("bearer ");
 

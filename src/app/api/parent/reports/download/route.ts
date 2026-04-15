@@ -3,11 +3,6 @@ import mongoose from "mongoose";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent, verifyGuardianAccess } from "@/lib/auth/requireParent";
-import { writeRetryableAuditEvent } from "@/lib/audit/writeRetryableAuditEvent";
-import {
-  buildParentAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 import { buildStudentAcademicsDTO } from "@/lib/academics/buildStudentAcademicsDTO";
 import { Student } from "@/models/Student";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -417,38 +412,6 @@ export async function GET(req: NextRequest) {
     const fileTerm = sanitizeFilePart(academics.selectedTermLabel || "current-term");
     const fileType = sanitizeFilePart(reportType || "term-report");
     const fileName = `${fileStudent}-${fileTerm}-${fileType}.pdf`;
-
-    try {
-      await writeRetryableAuditEvent({
-        actionCode: "report.downloaded.secure",
-        scopeType: "school",
-        scopeId: String(context.schoolId),
-        result: "succeeded",
-        target: {
-          targetEntityType: "Student",
-          targetEntityId: student._id,
-        },
-        context: buildParentAuditContext(req, {
-          userId: context.userId,
-          schoolId: context.schoolId,
-          idempotencyKey: resolveAuditIdempotencyKey(
-            req,
-            `report.secure:${wardId}:${periodId || "current"}:${reportType}`
-          ),
-        }),
-        payload: {
-          metadata: {
-            reportType,
-            periodId: periodId || null,
-            wardId,
-            termLabel: academics.selectedTermLabel || null,
-          },
-        },
-        streamKey: `school:${String(context.schoolId)}:academics`,
-      });
-    } catch (auditErr) {
-      console.error("report.downloaded.secure audit failed:", auditErr);
-    }
 
     const pdfArrayBuffer = new ArrayBuffer(pdfBytes.length);
     new Uint8Array(pdfArrayBuffer).set(pdfBytes);

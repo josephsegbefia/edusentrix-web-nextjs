@@ -199,11 +199,6 @@ import { User } from "@/models/User";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
-import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
-import {
-  buildPlatformAdminAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 import { ensureDefaultSubscriptionTiers } from "@/lib/platform-billing/subscription-tiers";
@@ -234,10 +229,6 @@ export async function POST(
   const defaultTier = defaultTiers[0] || null;
   const session = await mongoose.connection.startSession();
   const { id } = await ctx.params;
-  const applicationAuditIdempotencyKey = resolveAuditIdempotencyKey(
-    req,
-    `application.approved:${id}`
-  );
 
   try {
     let schoolIdCreated: mongoose.Types.ObjectId | null = null;
@@ -409,30 +400,6 @@ export async function POST(
         },
         { session }
       );
-
-      await writeTransactionalAuditEvent(session, {
-        actionCode: "application.approved",
-        scopeType: "platform",
-        scopeId: null,
-        result: "succeeded",
-        target: {
-          targetEntityType: "Application",
-          targetEntityId: app._id,
-        },
-        context: buildPlatformAdminAuditContext(req, {
-          platformAdminId,
-          actorEmail: (guard.me as { email?: string } | undefined)?.email ?? null,
-          actorName: null,
-          idempotencyKey: applicationAuditIdempotencyKey,
-        }),
-        payload: {
-          metadata: {
-            linkedSchoolId: String(school._id),
-            note: parsed.data?.note ?? null,
-          },
-        },
-        streamKey: "platform:applications",
-      });
 
       approvedApp = app;
     });

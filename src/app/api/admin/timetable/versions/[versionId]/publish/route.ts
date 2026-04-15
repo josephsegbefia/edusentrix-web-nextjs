@@ -1,11 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
-import {
-  buildSchoolUserAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 import {
   TimetablePublishError,
   publishTimetableVersion,
@@ -28,7 +24,7 @@ function toObjectIdOrNull(value: string): mongoose.Types.ObjectId | null {
  * POST /api/admin/timetable/versions/:versionId/publish
  */
 export async function POST(
-  req: NextRequest,
+  _req: Request,
   ctx: { params: Promise<{ versionId: string }> }
 ) {
   try {
@@ -59,21 +55,10 @@ export async function POST(
       );
     }
 
-    const auditContext = buildSchoolUserAuditContext(req, {
-      userId: userIdObj,
-      schoolId: schoolIdObj,
-      actorRole: "school_admin",
-      idempotencyKey: resolveAuditIdempotencyKey(
-        req,
-        `timetable.publish:${String(versionObjId)}`
-      ),
-    });
-
     const summary = await publishTimetableVersion({
       schoolId: schoolIdObj,
       versionId: versionObjId,
       actorId: userIdObj,
-      auditContext,
     });
 
     await recordTimetableActivity({

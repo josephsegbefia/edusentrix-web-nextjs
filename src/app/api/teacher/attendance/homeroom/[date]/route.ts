@@ -1,13 +1,7 @@
 import mongoose from "mongoose";
 import { z } from "zod";
-import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
-import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
-import {
-  buildSchoolUserAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { ClassGroup } from "@/models/ClassGroup";
 import { SchoolSettings } from "@/models/SchoolSettings";
@@ -149,7 +143,7 @@ export async function GET(
 }
 
 export async function PATCH(
-  req: NextRequest,
+  req: Request,
   ctx: { params: Promise<{ date: string }> }
 ) {
   try {
@@ -245,98 +239,7 @@ export async function PATCH(
       );
     }
 
-    const studentObjIds = validOps.map(
-      (op) => op.updateOne.filter.studentId as mongoose.Types.ObjectId
-    );
-    const academicsStreamKey = `school:${String(context.schoolId)}:academics`;
-    const auditContext = buildSchoolUserAuditContext(req, {
-      userId: context.userId,
-      schoolId: context.schoolId,
-      actorRole: "teacher",
-      idempotencyKey: resolveAuditIdempotencyKey(
-        req,
-        `attendance.homeroom:${attendanceDate.toISOString().slice(0, 10)}:${String(classGroupId)}`
-      ),
-    });
-
-    const session = await mongoose.startSession();
-    try {
-      await session.withTransaction(async () => {
-        const existingRows = await StudentAttendance.find({
-          schoolId: context.schoolId,
-          classGroupId,
-          studentId: { $in: studentObjIds },
-          date: attendanceDate,
-          type: "homeroom",
-        })
-          .session(session)
-          .select("studentId status lateMinutes reason")
-          .lean();
-
-        const beforeByStudent = new Map(
-          existingRows.map((r) => [
-            String(r.studentId),
-            {
-              status: r.status,
-              lateMinutes: r.lateMinutes ?? null,
-              reason: r.reason ?? null,
-            },
-          ])
-        );
-
-        await StudentAttendance.bulkWrite(validOps, {
-          ordered: false,
-          session,
-        });
-
-        const beforeRecords = parsed.data.records.map((r) => {
-          const prev = beforeByStudent.get(r.studentId);
-          return {
-            studentId: r.studentId,
-            status: prev?.status ?? null,
-            lateMinutes: prev?.lateMinutes ?? null,
-            reason: prev?.reason ?? null,
-          };
-        });
-        const afterRecords = parsed.data.records.map((r) => ({
-          studentId: r.studentId,
-          status: r.status,
-          lateMinutes: r.lateMinutes ?? null,
-          reason: r.reason ?? null,
-        }));
-
-        await writeTransactionalAuditEvent(session, {
-          actionCode: "attendance.marked",
-          scopeType: "school",
-          scopeId: String(context.schoolId),
-          result: "succeeded",
-          target: {
-            targetEntityType: "ClassGroup",
-            targetEntityId: classGroupId,
-            secondaryEntityType: "AcademicPeriod",
-            secondaryEntityId: period._id,
-          },
-          context: auditContext,
-          payload: {
-            before: {
-              date: attendanceDate.toISOString(),
-              classGroupId: String(classGroupId),
-              type: "homeroom",
-              records: beforeRecords,
-            },
-            after: {
-              date: attendanceDate.toISOString(),
-              classGroupId: String(classGroupId),
-              type: "homeroom",
-              records: afterRecords,
-            },
-          },
-          streamKey: academicsStreamKey,
-        });
-      });
-    } finally {
-      await session.endSession();
-    }
+    await StudentAttendance.bulkWrite(validOps, { ordered: false });
 
     const canNotify = can(context.permissions, PERMISSIONS.attendanceNotify);
     let whatsappChannelEnabled = false;

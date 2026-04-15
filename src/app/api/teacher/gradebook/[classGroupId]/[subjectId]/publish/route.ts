@@ -1,12 +1,6 @@
 import mongoose from "mongoose";
-import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
-import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
-import {
-  buildSchoolUserAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
@@ -51,7 +45,7 @@ function getGradeMapping(
 }
 
 export async function POST(
-  req: NextRequest,
+  _req: Request,
   ctx: { params: Promise<{ classGroupId: string; subjectId: string }> }
 ) {
   try {
@@ -193,15 +187,10 @@ export async function POST(
         upsert: boolean;
       };
     }> = [];
-    const afterRecords: Array<{
-      studentId: string;
-      totalScore: number;
-      gradeLetter: string;
-    }> = [];
 
-    for (const student of students) {
+    students.forEach((student) => {
       const studentAssessments = byStudent.get(String(student._id));
-      if (!studentAssessments?.length) continue;
+      if (!studentAssessments?.length) return;
 
       const result = calculateGradeByStrategy(
         profile.assessmentModel,
@@ -212,8 +201,6 @@ export async function POST(
       const teacherId =
         studentAssessments[0]?.teacherId ?? context.teacherId;
 
-      const totalScore = Number(result.totalScore.toFixed(2));
-
       const $set: Record<string, unknown> = {
         caTotal: Number(result.caTotal.toFixed(2)),
         caMaxTotal: Number(result.caMaxTotal.toFixed(2)),
@@ -221,7 +208,7 @@ export async function POST(
         examScore: Number(result.examScore.toFixed(2)),
         examMaxScore: Number(result.examMaxScore.toFixed(2)),
         examPercentage: Number(result.examPercentage.toFixed(2)),
-        totalScore,
+        totalScore: Number(result.totalScore.toFixed(2)),
         gradeLetter: result.gradeLetter,
         gradePoint: result.gradePoint,
         isPassed: result.isPassed,
@@ -232,12 +219,6 @@ export async function POST(
       if (result.components) $set.components = result.components;
       if (result.descriptorLevel !== undefined)
         $set.descriptorLevel = result.descriptorLevel;
-
-      afterRecords.push({
-        studentId: String(student._id),
-        totalScore,
-        gradeLetter: result.gradeLetter,
-      });
 
       gradeOps.push({
         updateOne: {
@@ -260,98 +241,16 @@ export async function POST(
           upsert: true,
         },
       });
-    }
-
-    if (gradeOps.length === 0) {
-      return Response.json(
-        { success: false, error: "No assessments to publish" },
-        { status: 400 }
-      );
-    }
-
-    const schoolIdStr = String(context.schoolId);
-    const academicsStreamKey = `school:${schoolIdStr}:academics`;
-    const auditContext = buildSchoolUserAuditContext(req, {
-      userId: context.userId,
-      schoolId: context.schoolId,
-      actorRole: "teacher",
-      idempotencyKey: resolveAuditIdempotencyKey(
-        req,
-        `grade.publish:${classGroupId}:${subjectId}:${String(period._id)}`
-      ),
     });
 
-    const publishStudentIds = afterRecords.map(
-      (r) => new mongoose.Types.ObjectId(r.studentId)
-    );
-
-    const session = await mongoose.startSession();
-    try {
-      await session.withTransaction(async () => {
-        const existingBefore = await SubjectGrade.find({
-          schoolId: context.schoolId,
-          academicPeriodId: period._id,
-          subjectId: subjectObjId,
-          studentId: { $in: publishStudentIds },
-        })
-          .session(session)
-          .select("studentId totalScore gradeLetter")
-          .lean();
-
-        const beforeMap = new Map(
-          existingBefore.map((r) => [
-            String(r.studentId),
-            { totalScore: r.totalScore, gradeLetter: r.gradeLetter },
-          ])
-        );
-
-        await SubjectGrade.bulkWrite(gradeOps, { ordered: false, session });
-
-        await Assessment.updateMany(
-          { ...assessmentQuery, gradedAt: null },
-          { $set: { gradedAt: now } },
-          { session }
-        );
-
-        const beforeRecords = afterRecords.map((r) => {
-          const prev = beforeMap.get(r.studentId);
-          return {
-            studentId: r.studentId,
-            totalScore: prev?.totalScore ?? null,
-            gradeLetter: prev?.gradeLetter ?? null,
-          };
-        });
-
-        await writeTransactionalAuditEvent(session, {
-          actionCode: "grade.published",
-          scopeType: "school",
-          scopeId: schoolIdStr,
-          result: "succeeded",
-          target: {
-            targetEntityType: "ClassGroup",
-            targetEntityId: classGroupObjId,
-            secondaryEntityType: "Subject",
-            secondaryEntityId: subjectObjId,
-          },
-          context: auditContext,
-          payload: {
-            before: {
-              academicPeriodId: String(period._id),
-              subjectId: String(subjectObjId),
-              records: beforeRecords,
-            },
-            after: {
-              academicPeriodId: String(period._id),
-              subjectId: String(subjectObjId),
-              records: afterRecords,
-            },
-          },
-          streamKey: academicsStreamKey,
-        });
-      });
-    } finally {
-      await session.endSession();
+    if (gradeOps.length > 0) {
+      await SubjectGrade.bulkWrite(gradeOps, { ordered: false });
     }
+
+    await Assessment.updateMany(
+      { ...assessmentQuery, gradedAt: null },
+      { $set: { gradedAt: now } }
+    );
 
     return Response.json({
       success: true,

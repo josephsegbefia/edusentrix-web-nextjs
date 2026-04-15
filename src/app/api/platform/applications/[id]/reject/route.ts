@@ -6,11 +6,6 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { Application } from "@/models/Application";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
-import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
-import {
-  buildPlatformAdminAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 
 const BodySchema = z.object({
   reason: z.string().min(3),
@@ -31,10 +26,6 @@ export async function POST(
   const session = await mongoose.startSession();
 
   const { id } = await ctx.params;
-  const applicationRejectIdempotencyKey = resolveAuditIdempotencyKey(
-    req,
-    `application.rejected:${id}`
-  );
 
   try {
     await session.withTransaction(async () => {
@@ -67,28 +58,6 @@ export async function POST(
         },
         { session }
       );
-
-      await writeTransactionalAuditEvent(session, {
-        actionCode: "application.rejected",
-        scopeType: "platform",
-        scopeId: null,
-        result: "succeeded",
-        target: {
-          targetEntityType: "Application",
-          targetEntityId: app._id,
-        },
-        context: buildPlatformAdminAuditContext(req, {
-          platformAdminId: adminIdObj!,
-          actorEmail: (guard.me as { email?: string } | undefined)?.email ?? null,
-          actorName: null,
-          idempotencyKey: applicationRejectIdempotencyKey,
-        }),
-        reason: { reason: parsed.data.reason },
-        payload: {
-          metadata: { applicationId: String(app._id) },
-        },
-        streamKey: "platform:applications",
-      });
     });
 
     // (Optional) send rejection email here — non-fatal if it fails

@@ -4,7 +4,6 @@ import { User, IUser } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
 import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
-import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -19,14 +18,6 @@ type SchoolAdminContext = {
 };
 
 export async function requireSchoolAdmin(): Promise<SchoolAdminContext> {
-  const demo = await tryResolveDemoGuard();
-  if (demo.isDemo) {
-    return {
-      userId: demo.user._id,
-      schoolId: demo.user.schoolId!,
-    };
-  }
-
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId)
     throw NextResponse.json({ error: "Unauthorized" }, { status: 401 });

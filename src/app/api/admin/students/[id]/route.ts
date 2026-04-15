@@ -4,11 +4,6 @@ import { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
-import {
-  buildSchoolUserAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 import { Student } from "@/models/Student";
 import { Activity } from "@/models/Activity";
 import { Guardian } from "@/models/Guardian";
@@ -553,69 +548,14 @@ export async function PATCH(
       return new Response("No valid fields to update", { status: 400 });
     }
 
-    const studentObjId = new mongoose.Types.ObjectId(id);
-    const academicsStreamKey = `school:${String(schoolId)}:academics`;
-    const auditContext = buildSchoolUserAuditContext(req, {
-      userId,
-      schoolId,
-      actorRole: "school_admin",
-      idempotencyKey: resolveAuditIdempotencyKey(req, `student.record.updated:${id}`),
-    });
+    const result = await Student.findOneAndUpdate(
+      { _id: id, schoolId },
+      { $set: updates },
+      { new: true }
+    ).lean();
 
-    const session = await mongoose.startSession();
-    try {
-      await session.withTransaction(async () => {
-        const before = await Student.findOne({ _id: studentObjId, schoolId })
-          .session(session)
-          .select("gesIndexNumber gesSchoolCode")
-          .lean();
-        if (!before) {
-          throw new Error("STUDENT_NOT_FOUND");
-        }
-
-        const afterDoc = await Student.findOneAndUpdate(
-          { _id: studentObjId, schoolId },
-          { $set: updates },
-          { new: true, session }
-        )
-          .select("gesIndexNumber gesSchoolCode")
-          .lean();
-
-        if (!afterDoc) {
-          throw new Error("STUDENT_NOT_FOUND");
-        }
-
-        await writeTransactionalAuditEvent(session, {
-          actionCode: "student.record.updated",
-          scopeType: "school",
-          scopeId: String(schoolId),
-          result: "succeeded",
-          target: {
-            targetEntityType: "Student",
-            targetEntityId: studentObjId,
-          },
-          context: auditContext,
-          payload: {
-            before: {
-              gesIndexNumber: before.gesIndexNumber ?? null,
-              gesSchoolCode: before.gesSchoolCode ?? null,
-            },
-            after: {
-              gesIndexNumber: afterDoc.gesIndexNumber ?? null,
-              gesSchoolCode: afterDoc.gesSchoolCode ?? null,
-            },
-            metadata: { fields: Object.keys(updates) },
-          },
-          streamKey: academicsStreamKey,
-        });
-      });
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message === "STUDENT_NOT_FOUND") {
-        return new Response("Student not found", { status: 404 });
-      }
-      throw err;
-    } finally {
-      await session.endSession();
+    if (!result) {
+      return new Response("Student not found", { status: 404 });
     }
 
     return Response.json({ success: true });

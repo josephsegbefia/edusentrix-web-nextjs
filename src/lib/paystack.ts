@@ -2,7 +2,6 @@
 import "server-only";
 
 import { isLikelyPaystackSubaccountCode } from "@/lib/school-payments/paystack-subaccount-code";
-import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 
 const PAYSTACK_BASE = "https://api.paystack.co";
 
@@ -198,9 +197,6 @@ type PaystackTransferVerification = {
 export async function createSubaccount(
   input: CreateSubaccountInput
 ): Promise<PaystackSubaccount> {
-  const sim = enforceDemoPolicy<PaystackSubaccount>("paystack", "createSubaccount");
-  if (sim) return sim;
-
   // Paystack NG uses settlement_bank; GH integrations often accept bank_code.
   // We safely send both.
   const payload: Record<string, any> = {
@@ -260,9 +256,6 @@ export async function createSubaccount(
 export async function initializeTransaction(
   input: InitializeTransactionInput
 ): Promise<PaystackTransactionInit> {
-  const sim = enforceDemoPolicy<PaystackTransactionInit>("paystack", "initializeTransaction");
-  if (sim) return sim;
-
   const payload: Record<string, any> = {
     email: input.email,
     amount: Math.round(input.amountMinor),
@@ -307,9 +300,6 @@ export async function initializeTransaction(
 export async function createTransferRecipient(
   input: CreateTransferRecipientInput
 ): Promise<PaystackTransferRecipient> {
-  const sim = enforceDemoPolicy<PaystackTransferRecipient>("paystack", "createTransferRecipient");
-  if (sim) return sim;
-
   const payload: Record<string, any> = {
     type: input.method === "bank" ? "nuban" : "mobile_money",
     name: input.name,
@@ -347,8 +337,6 @@ export async function createTransferRecipient(
 export async function initiateTransfer(
   input: InitiateTransferInput
 ): Promise<PaystackTransfer> {
-  enforceDemoPolicy("paystack", "initiateTransfer");
-
   const payload: Record<string, any> = {
     source: input.source ?? "balance",
     amount: Math.round(input.amountMinor),

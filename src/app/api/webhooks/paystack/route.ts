@@ -32,11 +32,6 @@ import {
 } from "@/models/PaymentReferenceCounter";
 import { PaymentIntent } from "@/models/PaymentIntent";
 import { SchoolDisbursement } from "@/models/SchoolDisbursement";
-import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
-import {
-  buildPaystackWebhookAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 
 // ============================================================================
 // Types
@@ -133,7 +128,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true });
       }
       if (metadata?.invoiceId && metadata?.studentId && metadata?.schoolId) {
-        await handleFeePaymentSuccess(event, req);
+        await handleFeePaymentSuccess(event);
         return NextResponse.json({ received: true });
       }
       await handleChargeSuccess(event);
@@ -160,7 +155,7 @@ export async function POST(req: NextRequest) {
 // Event Handlers
 // ============================================================================
 
-async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
+async function handleFeePaymentSuccess(event: PaystackEvent) {
   const { data } = event;
   const { reference, amount, status, metadata } = data;
 
@@ -438,39 +433,6 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
       automated: true,
     },
   });
-
-  const financeAuditStreamKey = `school:${schoolId}:finance`;
-  const auditSession = await mongoose.startSession();
-  try {
-    await auditSession.withTransaction(async () => {
-      await writeTransactionalAuditEvent(auditSession, {
-        actionCode: "payment.recorded",
-        scopeType: "school",
-        scopeId: schoolId,
-        result: "succeeded",
-        target: {
-          targetEntityType: "Payment",
-          targetEntityId: paymentId,
-          secondaryEntityType: "Invoice",
-          secondaryEntityId: invoice._id,
-        },
-        context: buildPaystackWebhookAuditContext(req, {
-          schoolId: schoolIdObj,
-          idempotencyKey: resolveAuditIdempotencyKey(req, `paystack:${reference}`),
-        }),
-        payload: {
-          metadata: {
-            amountMinor,
-            netSchoolAmountMinor,
-            channel: data.channel,
-          },
-        },
-        streamKey: financeAuditStreamKey,
-      });
-    });
-  } finally {
-    await auditSession.endSession();
-  }
 
   invoice.paidDate = invoice.totalOutstandingMinor <= 0 ? now : undefined;
   await invoice.save();

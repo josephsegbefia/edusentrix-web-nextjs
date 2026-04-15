@@ -18,12 +18,6 @@ import {
 import { applyPaymentAllocations } from "@/lib/fees/applyPaymentAllocation";
 import { recordFeePaymentInLedger } from "@/lib/finance/writeLedgerEntry";
 import { Student } from "@/models/Student";
-import { User } from "@/models/User";
-import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
-import {
-  buildFinanceStaffAuditContext,
-  resolveAuditIdempotencyKey,
-} from "@/lib/audit/fromApiRoute";
 
 function buildActorName(actor: any) {
   if (!actor) return null;
@@ -95,10 +89,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId, userId, roles } = await requireFinanceStaff();
+  const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
-
-  const actorUser = await User.findById(userId).select("email name").lean();
 
   const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -112,17 +104,6 @@ export async function POST(
   if (!["approve_proof", "reject_proof", "reverse"].includes(action)) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
-
-  const auditStreamKey = `school:${String(schoolId)}:finance`;
-  const auditContext = (idempotencySuffix: string) =>
-    buildFinanceStaffAuditContext(req, {
-      userId: userId as mongoose.Types.ObjectId,
-      schoolId: schoolId as mongoose.Types.ObjectId,
-      roles,
-      actorEmail: (actorUser as { email?: string } | null)?.email ?? null,
-      actorName: (actorUser as { name?: string } | null)?.name ?? null,
-      idempotencyKey: resolveAuditIdempotencyKey(req, idempotencySuffix),
-    });
 
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -286,29 +267,6 @@ export async function POST(
         { session }
       );
 
-      await writeTransactionalAuditEvent(session, {
-        actionCode: "payment.proof_approved",
-        scopeType: "school",
-        scopeId: String(schoolId),
-        result: "succeeded",
-        target: {
-          targetEntityType: "Payment",
-          targetEntityId: payment._id,
-          secondaryEntityType: "Invoice",
-          secondaryEntityId: invoice._id,
-        },
-        context: auditContext(`payment.proof_approved:${id}`),
-        payload: {
-          metadata: {
-            amountMinor: payment.amountMinor,
-            receiptNumber: payment.receiptNumber ?? null,
-            approvalStatus: payment.approvalStatus,
-            paymentStatus: payment.status,
-          },
-        },
-        streamKey: auditStreamKey,
-      });
-
       await session.commitTransaction();
 
       // Write to Financial Center ledger
@@ -412,30 +370,6 @@ export async function POST(
         { session }
       );
 
-      await writeTransactionalAuditEvent(session, {
-        actionCode: "payment.proof_rejected",
-        scopeType: "school",
-        scopeId: String(schoolId),
-        result: "succeeded",
-        target: {
-          targetEntityType: "Payment",
-          targetEntityId: payment._id,
-          secondaryEntityType: "Invoice",
-          secondaryEntityId: invoice._id,
-        },
-        context: auditContext(`payment.proof_rejected:${id}`),
-        reason: {
-          reason: reviewNotes?.trim() || "Payment proof rejected",
-        },
-        payload: {
-          metadata: {
-            receiptNumber: payment.receiptNumber ?? null,
-            paymentStatus: payment.status,
-          },
-        },
-        streamKey: auditStreamKey,
-      });
-
       await session.commitTransaction();
       return NextResponse.json({ success: true });
     }
@@ -448,8 +382,6 @@ export async function POST(
           { status: 400 }
         );
       }
-
-      const beforePaymentStatusForAudit = payment.status;
 
       // Safety: if this payment created credit, don’t reverse yet (until you track credit source usage)
       const credit = await StudentCreditBalance.findOne({
@@ -581,31 +513,6 @@ export async function POST(
         ],
         { session }
       );
-
-      await writeTransactionalAuditEvent(session, {
-        actionCode: "payment.reversed",
-        scopeType: "school",
-        scopeId: String(schoolId),
-        result: "succeeded",
-        target: {
-          targetEntityType: "Payment",
-          targetEntityId: payment._id,
-          secondaryEntityType: "Invoice",
-          secondaryEntityId: invoice._id,
-        },
-        context: auditContext(`payment.reversed:${id}`),
-        reason: {
-          reason: reviewNotes?.trim() || "Payment reversed",
-        },
-        payload: {
-          before: { paymentStatus: beforePaymentStatusForAudit },
-          after: { paymentStatus: payment.status },
-          metadata: {
-            receiptNumber: payment.receiptNumber ?? null,
-          },
-        },
-        streamKey: auditStreamKey,
-      });
 
       await session.commitTransaction();
       return NextResponse.json({ success: true });

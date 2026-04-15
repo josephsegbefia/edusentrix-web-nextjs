@@ -9,7 +9,6 @@ import { UserMembership, type IUserMembership } from "@/models/UserMembership";
 import { Guardian } from "@/models/Guardian";
 import type { MembershipRole } from "@/lib/roles";
 import { gateParentApiAccess } from "@/lib/auth/role-gates";
-import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 
 export interface ParentContext {
   userId: Types.ObjectId;
@@ -53,18 +52,6 @@ export async function requireParent(
   options: RequireParentOptions = {}
 ): Promise<ParentContext> {
   const { mode = "api" } = options;
-
-  const demo = await tryResolveDemoGuard();
-  if (demo.isDemo && demo.user.schoolId) {
-    const roles = [...demo.membership.roles] as MembershipRole[];
-    return {
-      userId: demo.user._id as Types.ObjectId,
-      schoolId: demo.user.schoolId as Types.ObjectId,
-      roles,
-      isAdmin: roles.includes("school_admin"),
-    };
-  }
-
   const { userId: clerkUserId } = await auth();
 
   if (!clerkUserId) {

@@ -10,7 +10,6 @@ import { User, IUser } from "@/models/User";
 import { UserMembership, IUserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
-import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 
 export type MemberRole =
   | "school_admin"
@@ -59,34 +58,12 @@ export async function requireSchoolMember(
 ): Promise<SchoolMemberContext> {
   const { allowedRoles = [], allowPublic = false } = options;
 
-  const demo = await tryResolveDemoGuard();
-  if (demo.isDemo && demo.user.schoolId) {
-    const roles = [...demo.membership.roles] as MemberRole[];
-    const isAdmin = roles.includes("school_admin");
-    if (allowedRoles.length > 0) {
-      const hasAllowedRole = roles.some((r) =>
-        allowedRoles.includes(r as MemberRole)
-      );
-      if (!hasAllowedRole && !isAdmin) {
-        throw NextResponse.json(
-          { error: "Insufficient permissions" },
-          { status: 403 }
-        );
-      }
-    }
-    return {
-      userId: demo.user._id as Types.ObjectId,
-      schoolId: demo.user.schoolId as Types.ObjectId,
-      roles,
-      isAdmin,
-    };
-  }
-
   const { userId: clerkUserId } = await auth();
 
   // If not authenticated
   if (!clerkUserId) {
     if (allowPublic) {
+      // For public routes, we'll handle this differently in the route
       throw NextResponse.json(
         { error: "Authentication required", code: "AUTH_REQUIRED" },
         { status: 401 }

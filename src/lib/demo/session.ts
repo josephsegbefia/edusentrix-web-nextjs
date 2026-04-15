@@ -1,6 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { DEMO_CONFIG } from "./runtime";
+import { connectToDatabase } from "@/db/connectToDatabase";
 import { DemoSession, type IDemoSession } from "@/models/DemoSession";
 
 /**
@@ -60,6 +61,10 @@ export async function readDemoSessionCookie(): Promise<string | null> {
 export async function resolveDemoSessionFromCookie(): Promise<IDemoSession | null> {
   const raw = await readDemoSessionCookie();
   if (!raw) return null;
+
+  // Demo session resolution runs from server components, route handlers,
+  // and guard helpers, so it must establish Mongo connectivity itself.
+  await connectToDatabase();
 
   const tokenHash = hashSessionToken(raw);
   const now = new Date();

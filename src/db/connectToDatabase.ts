@@ -43,8 +43,13 @@ export async function connectToDatabase(uri?: string) {
       socketTimeoutMS: 30000,
     })
     .then((m) => {
+      const host = m.connection.host || "unknown-host";
+      const dbName =
+        m.connection.name || process.env.MONGO_DB_NAME || "unknown-db";
+      const runtimeMode = process.env.APP_RUNTIME_MODE || "standard";
+      const nodeEnv = process.env.NODE_ENV || "development";
       console.log(
-        `Connected to MongoDB (${process.env.NODE_ENV || "development"})`
+        `Connected to MongoDB host=${host} db=${dbName} runtime=${runtimeMode} nodeEnv=${nodeEnv}`
       );
       return m;
     })

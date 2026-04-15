@@ -46,7 +46,7 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  // ─── Demo host: skip Clerk, use demo session cookie ───
+  // ─── Demo host: skip Clerk entirely, use demo session cookie ───
   if (isDemoHostMiddleware(req)) {
     const pathname = req.nextUrl.pathname;
     const hasDemoCookie = !!req.cookies.get(DEMO_SESSION_COOKIE)?.value;
@@ -60,7 +60,11 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       return res;
     }
 
-    return NextResponse.redirect(new URL("/", req.url));
+    // No demo session — send back to the demo landing form.
+    // Append the original path so the form can redirect after creation.
+    const redirect = new URL("/", req.url);
+    redirect.searchParams.set("next", pathname);
+    return NextResponse.redirect(redirect);
   }
 
   // ─── Production / development host: existing Clerk flow ───
@@ -90,7 +94,6 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     ].some((p) => pathname === p || pathname.startsWith(p));
 
   if (!userId) {
-    // Unauthed users can hit public routes; Clerk will handle the rest.
     if (!isPublic) {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
@@ -106,17 +109,14 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     const user = await clerk.users.getUser(userId);
     const needsPassword = !user.passwordEnabled;
 
-    // Force password creation if missing (but let public routes pass)
     if (needsPassword && !isPublic) {
       const redirect = new URL("/account/set-password", req.url);
       return NextResponse.redirect(redirect);
     }
   } catch (error) {
-    // If Clerk lookup fails, log but don't block
     console.error("Middleware - Clerk user lookup failed:", error);
   }
 
-  // Otherwise proceed
   return;
 });
 

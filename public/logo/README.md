@@ -2,9 +2,15 @@
 
 ## Required Files
 
-Place your EduSentrix logo image in this directory with the following filename:
+The canonical EduSentrix logo lives at:
 
-- **`edusentrix-logo.png`** - Main logo file (recommended: 512x512px or larger, PNG with transparency)
+- **`/public/edusentrix-current-logo.png`** - Main logo file (recommended: 512x512px or larger, PNG with transparency)
+
+Compatibility copies are still published at:
+
+- **`/public/logo/edusentrix-logo.png`**
+- **`/public/logo/edusentrix-logo-transparent.png`**
+- **`/public/logo.png`**
 
 ## Logo Specifications
 
@@ -13,7 +19,7 @@ The logo component expects:
 - **Recommended Size**: 512x512px or larger (for high-DPI displays)
 - **Aspect Ratio**: Square (1:1) preferred
 - **Background**: Transparent
-- **File Location**: `/public/logo/edusentrix-logo.png`
+- **File Location**: `/public/edusentrix-current-logo.png`
 
 ## Usage
 

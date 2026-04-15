@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
 type SidebarFooterBrandingProps = {
@@ -24,8 +25,8 @@ export function SidebarFooterBranding({
         title="EduSentrix by Appsentrix"
       >
         <Image
-          src="/logo/edusentrix-logo-transparent.png"
-          alt="EduSentrix"
+          src={EDUSENTRIX_LOGO_PATH}
+          alt={EDUSENTRIX_LOGO_ALT}
           width={24}
           height={24}
           className="object-contain"
@@ -44,8 +45,8 @@ export function SidebarFooterBranding({
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-violet-500/10 to-cyan-500/10">
           <Image
-            src="/logo/edusentrix-logo-transparent.png"
-            alt="EduSentrix"
+            src={EDUSENTRIX_LOGO_PATH}
+            alt={EDUSENTRIX_LOGO_ALT}
             width={22}
             height={22}
             className="object-contain"

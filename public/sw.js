@@ -1,12 +1,12 @@
 /* eslint-disable no-restricted-globals */
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC_CACHE = `edusentrix-static-${VERSION}`;
 const API_CACHE = `edusentrix-api-${VERSION}`;
 const PAGE_CACHE = `edusentrix-pages-${VERSION}`;
 
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
-  "/logo/edusentrix-logo.png",
+  "/edusentrix-current-logo.png",
   "/pwa/icon-192.png",
   "/pwa/icon-512.png",
 ];

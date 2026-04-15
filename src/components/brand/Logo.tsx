@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
 type LogoProps = {
@@ -71,8 +72,8 @@ export function Logo({
         style={{ width: logoWidth, height: logoHeight }}
       >
         <Image
-          src="/logo/edusentrix-logo.png"
-          alt="EduSentrix Logo"
+          src={EDUSENTRIX_LOGO_PATH}
+          alt={`${EDUSENTRIX_LOGO_ALT} Logo`}
           width={logoWidth}
           height={logoHeight}
           priority

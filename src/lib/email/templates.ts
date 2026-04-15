@@ -1,6 +1,11 @@
 import "server-only";
+import { EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
+import { formatCurrency } from "@/lib/fees/money";
 
 const { APP_URL } = process.env;
+const EMAIL_LOGO_URL = APP_URL
+  ? `${APP_URL}${EDUSENTRIX_LOGO_PATH}`
+  : EDUSENTRIX_LOGO_PATH;
 
 export type TemplateKey =
   | "SCHOOL_INVITE"
@@ -68,8 +73,6 @@ const stripHtml = (html: string) =>
     .replace(/&amp;/g, "&")
     .trim();
 
-import { formatCurrency } from "@/lib/fees/money";
-
 function formatMinorCurrency(minor: number, currency = "GHS") {
   return formatCurrency(minor ?? 0, { currency });
 }
@@ -81,7 +84,7 @@ export const EmailTemplates: {
     subject: `You've been invited to create a school on Edusentrix`,
     htmlContent: `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+      <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
       <h2 style="color: #4361ee;">You're invited!</h2>
       <p>Hello,</p>
       <p>You’ve been invited to onboard your school, <strong>${
@@ -101,7 +104,7 @@ export const EmailTemplates: {
   APPLICATION_RECEIVED: (data) => {
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
         <h2 style="color: #4361ee;">Application Received</h2>
         <p>Hello ${data.name},</p>
         <p>Your application has been received. A customer service agent will get in touch with you soon.</p>
@@ -119,7 +122,7 @@ export const EmailTemplates: {
   SCHOOL_ONBOARDING: (data) => {
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
         <h2 style="color: #4361ee;">Your School is Ready!</h2>
         <p>Dear ${data.contactPerson},</p>
         <p>Welcome to Edusentrix! <strong>${
@@ -151,7 +154,7 @@ export const EmailTemplates: {
   ADMIN_CREATED: (data) => {
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
         <h2 style="color: #4361ee;">Admin Account Created</h2>
         <p>Hello ${data.name},</p>
         <p>An admin account has been created for you at <strong>${
@@ -184,7 +187,7 @@ export const EmailTemplates: {
   USER_INVITE: (data) => {
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
         <h2 style="color: #4361ee;">Welcome to ${data.schoolName}!</h2>
         <p>Hello ${data.name},</p>
         <p>You've been added as a <strong>${data.role}</strong> at ${
@@ -210,7 +213,7 @@ export const EmailTemplates: {
   REMINDER: (data) => {
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
         <h2 style="color: #4361ee;">${data.title}</h2>
         <p>Hello ${data.name},</p>
         <p>This is a reminder about:</p>
@@ -266,7 +269,7 @@ export const EmailTemplates: {
     const actionLink = data.actionLink || `${APP_URL}/parent/fees`;
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
-        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
         <h2 style="color: #4361ee;">Outstanding Fee Reminder</h2>
         <p>Hello ${data.guardianName},</p>
         <p>This is a reminder from <strong>${data.schoolName}</strong> about outstanding school fees.</p>
@@ -317,7 +320,7 @@ export const EmailTemplates: {
   PASSWORD_OTP: (data) => {
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${APP_URL}/logo.png" alt="Edusentrix" width="150">
+        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
         <h2 style="color: #4361ee;">Password Reset Code</h2>
         <p>Hello,</p>
         <p>You requested a password reset code. Use the code below to reset your password:</p>

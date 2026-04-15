@@ -2,6 +2,7 @@
 "use client";
 
 import Image from "next/image";
+import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
 type LogoIconProps = {
@@ -45,8 +46,8 @@ export function LogoIcon({
       style={{ width: iconSize, height: iconSize }}
     >
       <Image
-        src="/logo/edusentrix-logo.png"
-        alt="EduSentrix"
+        src={EDUSENTRIX_LOGO_PATH}
+        alt={EDUSENTRIX_LOGO_ALT}
         width={iconSize}
         height={iconSize}
         priority

@@ -5,6 +5,7 @@ import * as SignIn from "@clerk/elements/sign-in";
 import { useSignIn } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
+import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import {
   ArrowLeft,
   ArrowRight,
@@ -329,8 +330,8 @@ function BrandPanel() {
               className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
             />
             <Image
-              src="/logo/edusentrix-logo-transparent.png"
-              alt="EduSentrix"
+              src={EDUSENTRIX_LOGO_PATH}
+              alt={EDUSENTRIX_LOGO_ALT}
               fill
               sizes="58px"
               className="object-contain px-1.5 py-1"
@@ -671,8 +672,8 @@ export default function SignInPage() {
                                   className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
                                 />
                                 <Image
-                                  src="/logo/edusentrix-logo-transparent.png"
-                                  alt="EduSentrix"
+                                  src={EDUSENTRIX_LOGO_PATH}
+                                  alt={EDUSENTRIX_LOGO_ALT}
                                   fill
                                   sizes="53px"
                                   className="object-contain px-1.5 py-1"

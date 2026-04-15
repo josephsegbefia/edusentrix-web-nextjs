@@ -5,6 +5,7 @@ import { AppProviders } from "@/providers/app-providers";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NetworkHealthWatcher } from "@/components/system/NetworkHealthWatcher";
 import { NetworkAccessibilityAnnouncer } from "@/components/system/NetworkAccessibilityAnnouncer";
+import { EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -18,11 +19,11 @@ export const metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
+      { url: EDUSENTRIX_LOGO_PATH, type: "image/png" },
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
     ],
-    shortcut: "/favicon.ico",
+    shortcut: EDUSENTRIX_LOGO_PATH,
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };

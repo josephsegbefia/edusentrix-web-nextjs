@@ -10,6 +10,7 @@ import {
   HeroText,
   ParallaxFloat,
 } from "@/components/landing/scroll-animations";
+import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { isDemoMode } from "@/lib/demo/runtime";
 import { DemoLandingPage } from "@/components/demo/DemoLandingPage";
 
@@ -53,8 +54,8 @@ function SiteNav() {
               className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
             />
             <Image
-              src="/logo/edusentrix-logo-transparent.png"
-              alt="EduSentrix"
+              src={EDUSENTRIX_LOGO_PATH}
+              alt={EDUSENTRIX_LOGO_ALT}
               fill
               sizes="(min-width: 640px) 70px, 58px"
               className="relative object-contain px-1.5 py-1"
@@ -857,7 +858,7 @@ function Footer() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 text-sm sm:grid-cols-2 sm:px-6 md:grid-cols-4 lg:px-8">
         <div>
           <div className="inline-flex items-center gap-2.5">
-            <Image src="/logo/edusentrix-logo-transparent.png" alt="EduSentrix" width={36} height={36} className="rounded-xl" />
+            <Image src={EDUSENTRIX_LOGO_PATH} alt={EDUSENTRIX_LOGO_ALT} width={36} height={36} className="rounded-xl" />
             <span className="text-lg font-semibold tracking-tight text-white">EduSentrix</span>
           </div>
           <p className="mt-4 leading-relaxed text-white/50">

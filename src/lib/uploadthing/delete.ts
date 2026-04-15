@@ -1,4 +1,5 @@
 import { UTApi } from "uploadthing/server";
+import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 
 const utapi = new UTApi();
 
@@ -13,6 +14,9 @@ function extractKeyFromUrl(url: string): string | null {
 }
 
 export async function deleteUploadThingFile(keyOrUrl: string): Promise<boolean> {
+  const sim = enforceDemoPolicy<boolean>("uploadthing", "deleteFiles");
+  if (sim !== null) return sim;
+
   if (!keyOrUrl) {
     return true;
   }

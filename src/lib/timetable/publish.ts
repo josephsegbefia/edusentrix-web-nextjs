@@ -3,6 +3,8 @@ import { TimetableConflict } from "@/models/TimetableConflict";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { recomputeConflictsForVersion } from "@/lib/timetable/recompute-conflicts";
 import { recordTimetableChangeLog } from "@/lib/timetable/audit";
+import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
+import type { AuditRequestContext } from "@/lib/audit/types";
 
 export class TimetablePublishError extends Error {
   status: number;
@@ -20,6 +22,8 @@ export interface PublishTimetableVersionInput {
   schoolId: Types.ObjectId;
   versionId: Types.ObjectId;
   actorId: Types.ObjectId;
+  /** When set, dual-write normalized AuditEvent alongside TimetableChangeLog. */
+  auditContext?: AuditRequestContext;
 }
 
 export interface PublishTimetableVersionResult {
@@ -133,6 +137,32 @@ export async function publishTimetableVersion(
           after: { status: "archived" },
           session,
         });
+
+        if (input.auditContext) {
+          const ctx = {
+            ...input.auditContext,
+            idempotencyKey: `${input.auditContext.idempotencyKey}:archived:${String(previousPublished._id)}`,
+          };
+          await writeTransactionalAuditEvent(session, {
+            actionCode: "timetable.version.archived",
+            scopeType: "school",
+            scopeId: String(input.schoolId),
+            result: "succeeded",
+            target: {
+              targetEntityType: "TimetableVersion",
+              targetEntityId: previousPublished._id,
+            },
+            context: ctx,
+            payload: {
+              before: { status: previousStatusBefore },
+              after: { status: "archived" },
+              metadata: {
+                academicPeriodId: String(previousPublished.academicPeriodId),
+              },
+            },
+            streamKey: `school:${String(input.schoolId)}:timetable`,
+          });
+        }
       }
 
       const targetStatusBefore = versionInTxn.status;
@@ -153,6 +183,32 @@ export async function publishTimetableVersion(
         after: { status: "published", publishedAt: now.toISOString() },
         session,
       });
+
+      if (input.auditContext) {
+        const ctx = {
+          ...input.auditContext,
+          idempotencyKey: `${input.auditContext.idempotencyKey}:published:${String(versionInTxn._id)}`,
+        };
+        await writeTransactionalAuditEvent(session, {
+          actionCode: "timetable.version.published",
+          scopeType: "school",
+          scopeId: String(input.schoolId),
+          result: "succeeded",
+          target: {
+            targetEntityType: "TimetableVersion",
+            targetEntityId: versionInTxn._id,
+          },
+          context: ctx,
+          payload: {
+            before: { status: targetStatusBefore },
+            after: { status: "published", publishedAt: now.toISOString() },
+            metadata: {
+              academicPeriodId: String(versionInTxn.academicPeriodId),
+            },
+          },
+          streamKey: `school:${String(input.schoolId)}:timetable`,
+        });
+      }
     });
   } catch (error) {
     if (error instanceof TimetablePublishError) throw error;

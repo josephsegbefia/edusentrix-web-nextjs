@@ -4,6 +4,33 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// ─── Demo host detection (lightweight — no DB calls in middleware) ───
+function isDemoHostMiddleware(req: NextRequest): boolean {
+  const baseUrl = process.env.DEMO_BASE_URL ?? "";
+  if (!baseUrl) return false;
+  try {
+    const expected = new URL(
+      baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`
+    ).hostname.toLowerCase();
+    const incoming =
+      (req.headers.get("host") ?? req.headers.get("x-forwarded-host") ?? "")
+        .split(":")[0]
+        ?.toLowerCase()
+        .trim() ?? "";
+    return incoming === expected;
+  } catch {
+    return false;
+  }
+}
+
+const DEMO_SESSION_COOKIE = "edusentrix_demo_session";
+const DEMO_PUBLIC_PREFIXES = [
+  "/api/demo/",
+  "/favicon.ico",
+  "/_next",
+  "/api/banks/search",
+];
+
 // Define public routes (everything else is protected)
 const isPublicRoute = createRouteMatcher([
   "/", // landing/marketing
@@ -19,6 +46,24 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
+  // ─── Demo host: skip Clerk, use demo session cookie ───
+  if (isDemoHostMiddleware(req)) {
+    const pathname = req.nextUrl.pathname;
+    const hasDemoCookie = !!req.cookies.get(DEMO_SESSION_COOKIE)?.value;
+    const isDemoPublic =
+      pathname === "/" ||
+      DEMO_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+
+    if (hasDemoCookie || isDemoPublic) {
+      const res = NextResponse.next();
+      res.headers.set("X-Robots-Tag", "noindex");
+      return res;
+    }
+
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
+  // ─── Production / development host: existing Clerk flow ───
   // Allow POST to /api/platform/applications (public enrollment form)
   if (
     req.method === "POST" &&

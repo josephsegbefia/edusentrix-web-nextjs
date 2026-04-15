@@ -1,10 +1,16 @@
 import mongoose from "mongoose";
 import { z } from "zod";
+import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { LessonNoteReviewComment } from "@/models/LessonNoteReviewComment";
 import { User } from "@/models/User";
 import { formatUserDisplayName } from "@/lib/lesson-notes/review";
+import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
+import {
+  buildSchoolUserAuditContext,
+  resolveAuditIdempotencyKey,
+} from "@/lib/audit/fromApiRoute";
 
 const UpdateCommentSchema = z.object({
   status: z.enum(["open", "addressed", "resolved"]).optional(),
@@ -23,7 +29,7 @@ function toObjectIdOrNull(id: string) {
 }
 
 export async function PATCH(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
@@ -90,15 +96,88 @@ export async function PATCH(
       }
     }
 
-    const updated = await LessonNoteReviewComment.findOneAndUpdate(
-      {
-        _id: reviewCommentId,
-        schoolId: context.schoolId,
-        lessonNoteId: noteId,
-      },
-      { $set: updateData },
-      { new: true }
-    ).lean();
+    const becameResolved =
+      parsed.data.status === "resolved" && existing.status !== "resolved";
+
+    const session = await mongoose.startSession();
+    let updated: Awaited<
+      ReturnType<typeof LessonNoteReviewComment.findOneAndUpdate>
+    > | null = null;
+
+    try {
+      await session.withTransaction(async () => {
+        const beforeDoc = await LessonNoteReviewComment.findOne({
+          _id: reviewCommentId,
+          schoolId: context.schoolId,
+          lessonNoteId: noteId,
+        })
+          .session(session)
+          .lean();
+
+        if (!beforeDoc) {
+          throw new Error("COMMENT_NOT_FOUND");
+        }
+
+        updated = await LessonNoteReviewComment.findOneAndUpdate(
+          {
+            _id: reviewCommentId,
+            schoolId: context.schoolId,
+            lessonNoteId: noteId,
+          },
+          { $set: updateData },
+          { new: true, session }
+        ).lean();
+
+        if (!updated) {
+          throw new Error("COMMENT_NOT_FOUND");
+        }
+
+        if (becameResolved) {
+          await writeTransactionalAuditEvent(session, {
+            actionCode: "lesson_note.comment_resolved",
+            scopeType: "school",
+            scopeId: String(context.schoolId),
+            result: "succeeded",
+            target: {
+              targetEntityType: "LessonNoteReviewComment",
+              targetEntityId: reviewCommentId,
+              secondaryEntityType: "LessonNote",
+              secondaryEntityId: noteId,
+            },
+            context: buildSchoolUserAuditContext(req, {
+              userId: context.userId,
+              schoolId: context.schoolId,
+              actorRole: "school_admin",
+              idempotencyKey: resolveAuditIdempotencyKey(
+                req,
+                `lesson_note.comment_resolved:${commentId}`
+              ),
+            }),
+            payload: {
+              before: {
+                status: beforeDoc.status,
+                sectionKey: beforeDoc.sectionKey,
+              },
+              after: {
+                status: updated.status,
+                sectionKey: updated.sectionKey,
+              },
+            },
+            streamKey: `school:${String(context.schoolId)}:academics`,
+          });
+        }
+      });
+    } catch (e) {
+      if (e instanceof Error && e.message === "COMMENT_NOT_FOUND") {
+        return Response.json(
+          { success: false, error: "Review comment not found" },
+          { status: 404 }
+        );
+      }
+      throw e;
+    } finally {
+      await session.endSession();
+    }
 
     if (!updated) {
       return Response.json(

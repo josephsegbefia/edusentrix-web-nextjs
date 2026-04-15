@@ -6,6 +6,9 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import type { AppRole } from "@/lib/roles";
+import { isDemoMode } from "@/lib/demo/runtime";
+import { resolveDemoSessionFromCookie } from "@/lib/demo/session";
+import { resolveDemoPersona } from "@/lib/demo/persona";
 
 export type CurrentAppUser = {
   _id: string;
@@ -22,6 +25,11 @@ export type CurrentAppUser = {
 export async function getCurrentUser(
   clerkUserId?: string
 ): Promise<CurrentAppUser | null> {
+  if (!clerkUserId && isDemoMode()) {
+    const session = await resolveDemoSessionFromCookie();
+    if (session) return resolveDemoPersona(session);
+  }
+
   const resolvedUserId = clerkUserId ?? (await auth()).userId;
   if (!resolvedUserId) return null;
 

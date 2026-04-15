@@ -6,6 +6,11 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
 import { EmailBatch } from "@/models/EmailBatch";
 import { createEmailBatch, cancelBatch } from "@/lib/email";
+import { writeRetryableAuditEvent } from "@/lib/audit/writeRetryableAuditEvent";
+import {
+  buildSchoolUserAuditContext,
+  resolveAuditIdempotencyKey,
+} from "@/lib/audit/fromApiRoute";
 
 const BulkSendSchema = z.object({
   subject: z.string().trim().min(1).max(500),
@@ -99,6 +104,40 @@ export async function POST(req: NextRequest) {
       relatedEntityType: parsed.data.relatedEntityType,
       relatedEntityId: parsed.data.relatedEntityId,
     });
+
+    try {
+      await writeRetryableAuditEvent({
+        actionCode: "email.bulk.sent",
+        scopeType: "school",
+        scopeId: String(schoolIdObj),
+        result: "succeeded",
+        target: {
+          targetEntityType: "EmailBatch",
+          targetEntityId: new mongoose.Types.ObjectId(result.batchId),
+        },
+        context: buildSchoolUserAuditContext(req, {
+          userId: new mongoose.Types.ObjectId(String(userId)),
+          schoolId: schoolIdObj,
+          actorRole: "school_admin",
+          idempotencyKey: resolveAuditIdempotencyKey(
+            req,
+            `email.bulk:${result.batchId}`
+          ),
+        }),
+        payload: {
+          metadata: {
+            subject: parsed.data.subject.slice(0, 300),
+            recipientCount: result.recipientCount,
+            jobsCreated: result.jobsCreated,
+            suppressedCount: result.suppressedCount,
+            templateKey: "SCHOOL_BULK_EMAIL",
+          },
+        },
+        streamKey: `school:${String(schoolIdObj)}:communication`,
+      });
+    } catch (auditErr) {
+      console.error("email.bulk.sent audit failed:", auditErr);
+    }
 
     return Response.json({ success: true, data: result }, { status: 201 });
   } catch (e: unknown) {

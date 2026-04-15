@@ -10,6 +10,8 @@ import {
   HeroText,
   ParallaxFloat,
 } from "@/components/landing/scroll-animations";
+import { isDemoMode } from "@/lib/demo/runtime";
+import { DemoLandingPage } from "@/components/demo/DemoLandingPage";
 
 export const metadata: Metadata = {
   title: "EduSentrix — Collect fees, run operations, delight parents",
@@ -18,6 +20,9 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
+  if (isDemoMode()) {
+    return <DemoLandingPage />;
+  }
   return (
     <main className="min-h-dvh bg-neutral-950 text-white antialiased">
       <SiteNav />

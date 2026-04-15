@@ -19,6 +19,13 @@ export async function connectToDatabase(uri?: string) {
 
   if (mongoose.connection.readyState === 1) return mongoose;
 
+  // Reuse any in-flight connection attempt. This avoids a race where a
+  // concurrent request sees `readyState === 2`, disconnects that client,
+  // and leaves the original caller with a dead connection.
+  if (globalWithMongo._mongoosePromise) {
+    return globalWithMongo._mongoosePromise;
+  }
+
   // If the connection is stuck in a transitional state (connecting = 2,
   // disconnecting = 3) from a frozen/thawed serverless invocation, tear
   // it down so we can start fresh.
@@ -29,10 +36,6 @@ export async function connectToDatabase(uri?: string) {
       // ignore — we'll reconnect below
     }
     globalWithMongo._mongoosePromise = undefined;
-  }
-
-  if (globalWithMongo._mongoosePromise) {
-    return globalWithMongo._mongoosePromise;
   }
 
   globalWithMongo._mongoosePromise = mongoose

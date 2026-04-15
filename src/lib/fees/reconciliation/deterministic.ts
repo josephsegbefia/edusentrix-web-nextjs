@@ -9,8 +9,20 @@ import {
 } from "@/models/ReconciliationIngestion";
 import { ReconciliationRun } from "@/models/ReconciliationRun";
 
-export const RECONCILIATION_SLA_HOURS = 48;
-const AMOUNT_DATE_MATCH_WINDOW_DAYS = 2;
+export const RECONCILIATION_SLA_HOURS = (() => {
+  const parsed = Number(process.env.RECONCILIATION_SLA_HOURS);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 48;
+})();
+
+const AMOUNT_DATE_MATCH_WINDOW_DAYS = (() => {
+  const parsed = Number(process.env.RECONCILIATION_MATCH_WINDOW_DAYS);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
+})();
+
+const INGESTION_BATCH_LIMIT = (() => {
+  const parsed = Number(process.env.RECONCILIATION_INGESTION_BATCH_LIMIT);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1000;
+})();
 
 type PaymentStatusUpdate = {
   paymentId: mongoose.Types.ObjectId;
@@ -351,7 +363,7 @@ async function matchIngestionItems(params: {
       status: { $in: ["unmatched", "ambiguous"] },
     })
       .sort({ transactionDate: -1, createdAt: -1 })
-      .limit(1000)
+      .limit(INGESTION_BATCH_LIMIT)
       .lean(),
     Payment.find({
       schoolId: params.schoolId,

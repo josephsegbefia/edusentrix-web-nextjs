@@ -92,6 +92,7 @@ export const DEMO_SCOPED_COLLECTIONS: readonly CollectionRegistryEntry[] = [
   { modelName: "ReconciliationAlert",     schoolIdField: "schoolId", deleteOrder: 5,  seedOrder: 95, description: "Recon alerts" },
   { modelName: "ReconciliationIngestion", schoolIdField: "schoolId", deleteOrder: 5,  seedOrder: 95, description: "Recon ingestions" },
   { modelName: "ReconciliationRun",       schoolIdField: "schoolId", deleteOrder: 5,  seedOrder: 95, description: "Recon runs" },
+  { modelName: "ReconciliationSession",   schoolIdField: "schoolId", deleteOrder: 5,  seedOrder: 95, description: "Recon sessions" },
 
   // ── Tier 5: timetable ────────────────────────────────────────────
   { modelName: "TimetableSlot",           schoolIdField: "schoolId", deleteOrder: 8,  seedOrder: 55, description: "Timetable slots" },

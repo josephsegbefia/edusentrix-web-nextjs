@@ -84,7 +84,12 @@ export type ActivityType =
   | "promotion.cycle.rolled_back"
   | "promotion.cycle.rollback_failed"
   | "promotion.decision.override"
-  | "promotion.decision.placement";
+  | "promotion.decision.placement"
+  // Reconciliation Sessions
+  | "reconciliation.session_created"
+  | "reconciliation.session_locked"
+  | "reconciliation.session_reopened"
+  | "reconciliation.report_generated";
 
 export interface IActivity {
   _id: Types.ObjectId;

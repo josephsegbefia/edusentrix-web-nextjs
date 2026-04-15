@@ -508,7 +508,7 @@ export default function FinancialCenterPage() {
 
           {/* Reconciliation Summary Card */}
           <div className="mb-6">
-            <Link href="/admin/finance/reconciliation" className="block">
+            <Link href="/admin/finance/reconciliation/sessions" className="block">
               <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-indigo-900/20 via-violet-950/20 to-black/60 transition-all hover:border-indigo-500/30 hover:bg-indigo-500/5">
                 <CardContent className="p-4">
                   <div className="flex flex-wrap items-center gap-2 sm:gap-6">
@@ -599,7 +599,7 @@ export default function FinancialCenterPage() {
                     {activeAlerts.filter((a) => a.severity === "critical").length} critical alert(s) in the reconciliation queue
                   </p>
                 </div>
-                <Link href="/admin/finance/reconciliation">
+                <Link href="/admin/finance/reconciliation/sessions">
                   <Button variant="outline" size="sm" className="border-rose-500/20 text-rose-400 hover:bg-red-500/10">
                     View
                   </Button>
@@ -670,7 +670,7 @@ export default function FinancialCenterPage() {
                     </CardContent>
                   </Card>
                 </Link>
-                <Link href="/admin/finance/reconciliation" className="block">
+                <Link href="/admin/finance/reconciliation/sessions" className="block">
                   <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-indigo-500/20 hover:bg-indigo-500/5">
                     <CardContent className="p-4 flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
@@ -785,7 +785,7 @@ export default function FinancialCenterPage() {
               )}
             </CardContent>
           </Card>
-          <Link href="/admin/finance/reconciliation" className="block">
+          <Link href="/admin/finance/reconciliation/sessions" className="block">
             <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-indigo-900/20 via-violet-950/20 to-black/60 transition-all hover:border-indigo-500/30 hover:bg-indigo-500/5">
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">

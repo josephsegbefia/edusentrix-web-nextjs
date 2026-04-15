@@ -7,7 +7,8 @@ export type ReportVerificationType =
   | "term_report"
   | "weekly_report"
   | "monthly_report"
-  | "biweekly_report";
+  | "biweekly_report"
+  | "reconciliation_report";
 
 export interface IReportVerification {
   _id: Types.ObjectId;
@@ -55,6 +56,7 @@ const reportVerificationSchema = new Schema<IReportVerification>(
         "weekly_report",
         "monthly_report",
         "biweekly_report",
+        "reconciliation_report",
       ],
       required: true,
       default: "simple_snapshot",

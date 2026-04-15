@@ -193,8 +193,8 @@ const navSections: NavSection[] = [
         icon: Wallet,
       },
       {
-        label: "Reconciliation Queue",
-        href: "/admin/finance/reconciliation",
+        label: "Reconciliation",
+        href: "/admin/finance/reconciliation/sessions",
         icon: FileSearch,
       },
       {

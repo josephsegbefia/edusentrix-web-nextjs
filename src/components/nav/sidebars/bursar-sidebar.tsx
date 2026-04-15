@@ -96,8 +96,8 @@ const navSections: NavSection[] = [
     title: "Reconciliation",
     items: [
       {
-        label: "Queue",
-        href: "/admin/finance/reconciliation",
+        label: "Reconciliation",
+        href: "/admin/finance/reconciliation/sessions",
         icon: FileSearch,
       },
       {

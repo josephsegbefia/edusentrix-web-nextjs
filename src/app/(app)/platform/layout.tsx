@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/auth/get-current-user";
 import { assertRole } from "@/lib/auth/guards";
 import PlatformSidebar from "@/components/platform/PlatformSidebar";
 import { AuthRefreshHandler } from "@/components/auth/auth-refresh-handler";
+import { SidebarProvider } from "@/providers/sidebar-provider";
+import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
 
 export default async function PlatformLayout({
   children,
@@ -14,10 +16,12 @@ export default async function PlatformLayout({
   return (
     <>
       <AuthRefreshHandler />
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
-        <PlatformSidebar />
-        <main className="flex-1 p-4 md:ml-72">{children}</main>
-      </div>
+      <SidebarProvider>
+        <div className="flex min-h-[calc(100vh-3.5rem)]">
+          <PlatformSidebar />
+          <AdminMainContent isBursar={false}>{children}</AdminMainContent>
+        </div>
+      </SidebarProvider>
     </>
   );
 }

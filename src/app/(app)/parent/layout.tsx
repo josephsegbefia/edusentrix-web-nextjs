@@ -7,6 +7,8 @@ import { AuthRefreshHandler } from "@/components/auth/auth-refresh-handler";
 import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
 import TrialBanner from "@/components/billing/TrialBanner";
 import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
+import { SidebarProvider } from "@/providers/sidebar-provider";
+import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
 
 export default async function ParentLayout({
   children,
@@ -34,10 +36,12 @@ export default async function ParentLayout({
       {snapshot?.subscription.status === "trial" ? (
         <TrialBanner endsAt={snapshot.subscription.pilotEndsAt || null} />
       ) : null}
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
-        <ParentSidebar />
-        <main className="flex-1 p-4 pt-16 md:pt-4 md:ml-72">{children}</main>
-      </div>
+      <SidebarProvider>
+        <div className="flex min-h-[calc(100vh-3.5rem)]">
+          <ParentSidebar />
+          <AdminMainContent isBursar={false}>{children}</AdminMainContent>
+        </div>
+      </SidebarProvider>
     </>
   );
 }

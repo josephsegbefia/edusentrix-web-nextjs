@@ -3,7 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { AlertCircle, ArrowLeft, BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  BadgeCheck,
+  Loader2,
+  Rocket,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -160,7 +167,21 @@ export default function PlatformSchoolDetailPage() {
             Back to Schools
           </Link>
         </Button>
-        <h1 className="text-3xl font-semibold text-white">{data?.name || "School Overview"}</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl font-semibold text-white">{data?.name || "School Overview"}</h1>
+          {schoolId ? (
+            <Button
+              asChild
+              size="sm"
+              className="w-fit bg-brand text-black hover:bg-brand/90"
+            >
+              <Link href={`/platform/schools/${schoolId}/onboarding`}>
+                <Rocket className="mr-2 h-4 w-4" />
+                Assisted launch wizard
+              </Link>
+            </Button>
+          ) : null}
+        </div>
         {data ? (
           <p className="text-sm text-white/60">
             {data.status} • {data.city || "No city"}{data.region ? `, ${data.region}` : ""}

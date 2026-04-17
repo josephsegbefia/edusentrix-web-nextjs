@@ -21,9 +21,64 @@ export async function GET(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       const enc = new TextEncoder();
+      let closed = false;
+      let ping: ReturnType<typeof setInterval> | null = null;
+      const closeables: Array<{ close: () => Promise<unknown> | unknown }> = [];
+
+      const cleanup = (closeController = true) => {
+        if (closed) return;
+        closed = true;
+
+        if (ping) {
+          clearInterval(ping);
+          ping = null;
+        }
+
+        for (const closeable of closeables) {
+          Promise.resolve(closeable.close()).catch(() => undefined);
+        }
+
+        if (closeController) {
+          try {
+            controller.close();
+          } catch {
+            // Stream is already closed.
+          }
+        }
+      };
+
+      const enqueue = (chunk: string) => {
+        if (closed) return false;
+        try {
+          controller.enqueue(enc.encode(chunk));
+          return true;
+        } catch (error) {
+          if (
+            error instanceof TypeError &&
+            /already closed/i.test(error.message)
+          ) {
+            cleanup(false);
+            return false;
+          }
+          cleanup(false);
+          console.error("Failed to write admin metrics stream chunk:", error);
+          return false;
+        }
+      };
+
       const send = (event: string, data: any) => {
-        controller.enqueue(enc.encode(`event: ${event}\n`));
-        controller.enqueue(enc.encode(`data: ${JSON.stringify(data)}\n\n`));
+        if (!enqueue(`event: ${event}\n`)) return;
+        enqueue(`data: ${JSON.stringify(data)}\n\n`);
+      };
+
+      const runTask = (
+        label: string,
+        task: () => Promise<void>
+      ) => {
+        void task().catch((error) => {
+          if (closed) return;
+          console.error(`Admin metrics stream task failed: ${label}`, error);
+        });
       };
 
       // Initial push (optional): client already has some data to display
@@ -74,8 +129,8 @@ export async function GET(req: NextRequest) {
         send("period.updated", { period: p || null });
       };
 
-      const onChangeCounts = () => void pushCounts();
-      const onChangePeriod = () => void pushPeriod();
+      const onChangeCounts = () => runTask("pushCounts", pushCounts);
+      const onChangePeriod = () => runTask("pushPeriod", pushPeriod);
 
       studentWatch.on("change", onChangeCounts);
       teacherWatch.on("change", onChangeCounts);
@@ -123,6 +178,16 @@ export async function GET(req: NextRequest) {
       const invoiceWatch = Invoice.watch(pipeline, {
         fullDocument: "updateLookup",
       });
+      closeables.push(
+        studentWatch,
+        teacherWatch,
+        subjectWatch,
+        periodWatch,
+        guardianWatch,
+        attendanceWatch,
+        paymentWatch,
+        invoiceWatch
+      );
 
       const pushFeeSummary = async () => {
         if (!schoolId) {
@@ -168,6 +233,7 @@ export async function GET(req: NextRequest) {
         const totalRevenueMinor = totalRevenueResult[0]?.total || 0;
         const totalOutstandingMinor = totalOutstandingResult[0]?.total || 0;
 
+        if (closed) return;
         send("fees.updated", {
           totalRevenueMinor,
           totalOutstandingMinor,
@@ -176,7 +242,7 @@ export async function GET(req: NextRequest) {
       };
 
       paymentWatch.on("change", (change: any) => {
-        pushFeeSummary();
+        runTask("pushFeeSummary.payment", pushFeeSummary);
         const studentId = change?.fullDocument?.studentId
           ? String(change.fullDocument.studentId)
           : null;
@@ -187,7 +253,7 @@ export async function GET(req: NextRequest) {
       });
 
       invoiceWatch.on("change", (change: any) => {
-        pushFeeSummary();
+        runTask("pushFeeSummary.invoice", pushFeeSummary);
         const studentId = change?.fullDocument?.studentId
           ? String(change.fullDocument.studentId)
           : null;
@@ -198,7 +264,7 @@ export async function GET(req: NextRequest) {
       });
 
       // Initial fee summary push
-      pushFeeSummary();
+      runTask("pushFeeSummary.initial", pushFeeSummary);
 
       // TODO: Add document watching when Document model is created
       // const documentWatch = Document.watch([...], { fullDocument: "updateLookup" });
@@ -207,24 +273,16 @@ export async function GET(req: NextRequest) {
       // });
 
       const abort = req.signal;
-      abort.addEventListener("abort", () => {
-        studentWatch.close();
-        teacherWatch.close();
-        subjectWatch.close();
-        periodWatch.close();
-        guardianWatch.close();
-        attendanceWatch.close();
-        paymentWatch.close();
-        invoiceWatch.close();
-        controller.close();
-      });
+      if (abort.aborted) {
+        cleanup();
+        return;
+      }
+      abort.addEventListener("abort", () => cleanup(), { once: true });
 
       // Keep alive ping (30s)
-      const ping = setInterval(
-        () => controller.enqueue(enc.encode(`:\n\n`)),
-        30000
-      );
-      abort.addEventListener("abort", () => clearInterval(ping));
+      ping = setInterval(() => {
+        enqueue(`:\n\n`);
+      }, 30000);
     },
   });
 

@@ -1,10 +1,9 @@
-// src/app/api/onboarding/finish/route.ts
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import mongoose from "mongoose";
+import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import connectToDatabase from "@/db/connectToDatabase";
-import { User, IUser } from "@/models/User";
+import { User } from "@/models/User";
 import { School, type ISchool } from "@/models/School";
 import { enqueueSchoolPaymentProvisioning } from "@/lib/jobs/payment-provisioning";
 import {
@@ -12,6 +11,7 @@ import {
   hasCompleteSchoolBankDetails,
 } from "@/lib/school-payments/payment-setup";
 import { applyLaunchCurriculum } from "@/lib/onboarding/launch-curriculum";
+import { getOnboardingTargetSchoolAdmin } from "@/lib/onboarding/target-school-admin";
 
 const BodySchema = z
   .object({
@@ -30,10 +30,17 @@ const BodySchema = z
   })
   .optional();
 
-export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const gate = await requirePlatformAdmin();
+  if (!gate.ok) return gate.res;
+
+  const { id } = await context.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return NextResponse.json({ error: "Invalid school id" }, { status: 400 });
+  }
 
   const raw = await req.json().catch(() => ({}));
   const parsed = BodySchema.safeParse(raw);
@@ -46,20 +53,16 @@ export async function POST(req: Request) {
   const periodList = body?.periods;
 
   await connectToDatabase();
-  const meRaw = await User.findOne({ clerkUserId: userId })
-    .select("schoolId")
-    .lean();
-  const me = (Array.isArray(meRaw) ? meRaw[0] : meRaw) as Pick<
-    IUser,
-    "schoolId"
-  > | null;
-  if (!me?.schoolId)
-    return NextResponse.json({ error: "No linked school" }, { status: 400 });
 
-  const schoolIdObj =
-    me.schoolId instanceof mongoose.Types.ObjectId
-      ? me.schoolId
-      : new mongoose.Types.ObjectId(String(me.schoolId));
+  const schoolIdObj = new mongoose.Types.ObjectId(id);
+
+  const target = await getOnboardingTargetSchoolAdmin(schoolIdObj);
+  if (!target?._id) {
+    return NextResponse.json(
+      { error: "No school admin found for this school." },
+      { status: 409 }
+    );
+  }
 
   const session = await mongoose.startSession();
   try {
@@ -80,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     await User.updateOne(
-      { clerkUserId: userId },
+      { _id: target._id, schoolId: schoolIdObj },
       { $set: { pendingOnboarding: false } },
       { session }
     );
@@ -105,7 +108,7 @@ export async function POST(req: Request) {
     session.endSession();
   }
 
-  const school = await School.findById(me.schoolId)
+  const school = await School.findById(schoolIdObj)
     .select("bank billing")
     .lean<Pick<ISchool, "bank" | "billing"> | null>();
 
@@ -115,7 +118,7 @@ export async function POST(req: Request) {
     deriveSchoolPaymentSetupStatus(school) !== "review_required"
   ) {
     await enqueueSchoolPaymentProvisioning({
-      schoolId: me.schoolId,
+      schoolId: schoolIdObj,
     });
   }
 

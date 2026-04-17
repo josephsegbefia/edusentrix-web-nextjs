@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { z } from "zod";
 import mongoose from "mongoose";
+import { z } from "zod";
+import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { User, type IUser } from "@/models/User";
 import { School } from "@/models/School";
+import type { IUser } from "@/models/User";
 import { persistOnboardingSchoolProfile } from "@/lib/onboarding/persist-onboarding-school-profile";
+import { getOnboardingTargetSchoolAdmin } from "@/lib/onboarding/target-school-admin";
 
 const BodySchema = z.object({
-  schoolId: z.string().min(1),
   name: z.string().min(2),
   type: z.enum(["Basic", "Secondary"]),
   curriculumCode: z
@@ -32,17 +32,23 @@ const BodySchema = z.object({
       branchName: z.string().nullable().optional(),
       accountName: z.string().nullable().optional(),
       accountNumber: z.string().nullable().optional(),
-      // sortCode is IGNORED (derived on server)
       sortCode: z.string().optional().nullable(),
     })
     .nullable()
     .optional(),
 });
 
-export async function POST(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function POST(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const gate = await requirePlatformAdmin();
+  if (!gate.ok) return gate.res;
+
+  const { id } = await context.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return NextResponse.json({ error: "Invalid school id" }, { status: 400 });
+  }
 
   const parsed = BodySchema.safeParse(await req.json());
   if (!parsed.success)
@@ -50,16 +56,14 @@ export async function POST(req: NextRequest) {
 
   await connectToDatabase();
 
-  const meResult = (await User.findOne({
-    clerkUserId: userId,
-  }).lean()) as IUser | null;
-  const me = meResult;
-  if (!me?.schoolId)
-    return NextResponse.json({ error: "No school bound" }, { status: 409 });
-  if (String(me.schoolId) !== parsed.data.schoolId) {
+  const schoolId = new mongoose.Types.ObjectId(id);
+  const target = (await getOnboardingTargetSchoolAdmin(
+    schoolId
+  )) as IUser | null;
+  if (!target) {
     return NextResponse.json(
-      { error: "Forbidden for this school" },
-      { status: 403 }
+      { error: "No school admin found for this school." },
+      { status: 409 }
     );
   }
 
@@ -67,18 +71,17 @@ export async function POST(req: NextRequest) {
   try {
     session.startTransaction();
 
-    const school = await School.findById(me.schoolId).session(session);
+    const school = await School.findById(schoolId).session(session);
     if (!school) {
       await session.abortTransaction();
       return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
-    const { schoolId: _sid, ...form } = parsed.data;
     const result = await persistOnboardingSchoolProfile(
       school,
-      form,
-      me,
-      me._id,
+      parsed.data,
+      target,
+      gate.me._id as mongoose.Types.ObjectId,
       session
     );
 

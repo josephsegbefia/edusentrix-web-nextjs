@@ -49,9 +49,10 @@ type StudentAudienceRow = {
 };
 
 type CalendarEventAudience = {
-  scope?: "school" | "grades" | "classes";
+  scope?: "school" | "grades" | "classes" | "specific_users";
   gradeIds?: Array<mongoose.Types.ObjectId | string>;
   classGroupIds?: Array<mongoose.Types.ObjectId | string>;
+  userIds?: Array<mongoose.Types.ObjectId | string>;
   roles?: CalendarAudienceRole[];
 };
 
@@ -197,6 +198,7 @@ export async function GET(req: NextRequest) {
         classGroupIds: (event.audience?.classGroupIds || []).map((id) =>
           String(id)
         ),
+        userIds: (event.audience?.userIds || []).map((id) => String(id)),
         roles: event.audience?.roles || [],
       });
 
@@ -206,6 +208,7 @@ export async function GET(req: NextRequest) {
         audience,
         gradeIds,
         classGroupIds,
+        userId: String(context.userId),
       });
     });
 
@@ -383,6 +386,7 @@ export async function GET(req: NextRequest) {
               classGroupIds: (event.audience?.classGroupIds || []).map((id) =>
                 String(id)
               ),
+              userIds: (event.audience?.userIds || []).map((id) => String(id)),
               roles: event.audience?.roles || [],
             });
 

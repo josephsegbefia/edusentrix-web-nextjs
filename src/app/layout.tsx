@@ -1,5 +1,6 @@
 import { ToastProvider } from "@/providers/toast-provider";
 import "./globals.css";
+import "@livekit/components-styles";
 import { Inter } from "next/font/google";
 import { AppProviders } from "@/providers/app-providers";
 import { ClerkProvider } from "@clerk/nextjs";

@@ -13,12 +13,15 @@ import {
   Bell,
   MessageSquare,
   FileText,
+  Video,
   Menu,
   X,
   TrendingUp,
   ClipboardCheck,
   ChevronLeft,
   ChevronRight,
+  ShoppingBag,
+  ClipboardList,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -116,6 +119,18 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           icon: FileText,
           feature: "parent_payments",
         },
+        {
+          label: "School store",
+          href: "/parent/store",
+          icon: ShoppingBag,
+          feature: "parent_payments",
+        },
+        {
+          label: "Supply lists",
+          href: "/parent/supplies",
+          icon: ClipboardList,
+          feature: "parent_payments",
+        },
       ],
     },
     {
@@ -132,6 +147,11 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           href: "/parent/messages",
           icon: MessageSquare,
           badgeCount: unreadMessages,
+        },
+        {
+          label: "Meetings",
+          href: "/parent/meetings",
+          icon: Video,
         },
       ],
     },

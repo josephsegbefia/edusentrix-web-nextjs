@@ -35,9 +35,10 @@ const eventSchema = z.object({
   isNonTeachingDay: z.boolean().optional(),
   audience: z
     .object({
-      scope: z.enum(["school", "grades", "classes"]).optional(),
+      scope: z.enum(["school", "grades", "classes", "specific_users"]).optional(),
       gradeIds: z.array(z.string()).optional(),
       classGroupIds: z.array(z.string()).optional(),
+      userIds: z.array(z.string()).optional(),
       roles: z.array(z.string()).optional(),
     })
     .optional(),
@@ -198,6 +199,7 @@ export async function GET(
           scope: event.audience?.scope || "school",
           gradeIds: (event.audience?.gradeIds || []).map((id) => String(id)),
           classGroupIds: (event.audience?.classGroupIds || []).map((id) => String(id)),
+          userIds: (event.audience?.userIds || []).map((id) => String(id)),
           roles: event.audience?.roles && event.audience.roles.length > 0
             ? event.audience.roles
             : [...DEFAULT_AUDIENCE_ROLES],
@@ -314,6 +316,9 @@ export async function POST(
         (id) => new mongoose.Types.ObjectId(id)
       ),
       classGroupIds: (parsed.data.audience?.classGroupIds || []).map(
+        (id) => new mongoose.Types.ObjectId(id)
+      ),
+      userIds: (parsed.data.audience?.userIds || []).map(
         (id) => new mongoose.Types.ObjectId(id)
       ),
       roles: audienceRoles,

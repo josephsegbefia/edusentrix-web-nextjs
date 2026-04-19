@@ -71,6 +71,7 @@ const AUDIENCE_SCOPES = [
   { value: "school", label: "School-wide" },
   { value: "grades", label: "By grade" },
   { value: "classes", label: "By class" },
+  { value: "specific_users", label: "Specific people" },
 ] as const;
 
 const AUDIENCE_ROLES = [
@@ -290,6 +291,7 @@ const defaultAudience: CalendarAudience = {
   scope: "school",
   gradeIds: [],
   classGroupIds: [],
+  userIds: [],
   roles: ["teacher", "parent", "student", "staff", "bursar"],
 };
 
@@ -516,6 +518,7 @@ export default function AcademicCalendarPage() {
           scope: event.audience.scope || "school",
           gradeIds: event.audience.gradeIds || [],
           classGroupIds: event.audience.classGroupIds || [],
+          userIds: event.audience.userIds || [],
           roles: event.audience.roles || defaultAudience.roles,
         },
         recurrence: event.recurrence || { frequency: "none", interval: 1 },
@@ -1594,6 +1597,12 @@ export default function AcademicCalendarPage() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {eventForm.audience.scope === "specific_users" && (
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100/90">
+                  Invite-only events are managed from the meetings workflow. This calendar keeps them visible and editable, but participant selection lives outside this screen.
                 </div>
               )}
 

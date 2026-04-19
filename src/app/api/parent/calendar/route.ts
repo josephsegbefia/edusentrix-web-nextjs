@@ -139,6 +139,7 @@ export async function GET(req: NextRequest) {
         scope: event.audience?.scope || "school",
         gradeIds: (event.audience?.gradeIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
         classGroupIds: (event.audience?.classGroupIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
+        userIds: (event.audience?.userIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
         roles: (event.audience?.roles || []) as (
           | "teacher"
           | "parent"
@@ -154,6 +155,7 @@ export async function GET(req: NextRequest) {
         audience,
         gradeIds,
         classGroupIds,
+        userId: String(context.userId),
       });
     });
 
@@ -322,6 +324,7 @@ export async function GET(req: NextRequest) {
               scope: event.audience?.scope || "school",
               gradeIds: (event.audience?.gradeIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
               classGroupIds: (event.audience?.classGroupIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
+              userIds: (event.audience?.userIds || []).map((id: mongoose.Types.ObjectId | string) => String(id)),
               roles: (event.audience?.roles || []) as (
                 | "teacher"
                 | "parent"

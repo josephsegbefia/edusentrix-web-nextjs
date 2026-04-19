@@ -2,7 +2,7 @@
 /**
  * Paystack webhook handler for payment events.
  * Handles: (1) school fee payments, (2) donation completions for fundraising campaigns,
- * (3) payout transfer status updates.
+ * (3) school store orders, (4) payout transfer status updates.
  */
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
@@ -11,7 +11,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingDonation, IFundraisingDonation } from "@/models/FundraisingDonation";
 import { FundraisingCampaign } from "@/models/FundraisingCampaign";
 import { recordActivity } from "@/lib/audit/recordActivity";
-import { recordDonationInLedger } from "@/lib/finance/writeLedgerEntry";
+import { User } from "@/models/User";
 import { Payment } from "@/models/Payment";
 import { PaymentAllocation } from "@/models/PaymentAllocation";
 import { PaymentAuditEvent } from "@/models/PaymentAuditEvent";
@@ -25,12 +25,17 @@ import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice"
 import { applySuccessfulSubscriptionCheckoutIntent } from "@/lib/billing/subscription-checkout";
 import { formatMoney } from "@/lib/fees/money";
 import { buildTransferReconciliationUpdate } from "@/lib/finance/disbursements";
-import { recordFeePaymentInLedger } from "@/lib/finance/writeLedgerEntry";
+import {
+  recordDonationInLedger,
+  recordFeePaymentInLedger,
+  recordStoreSaleInLedger,
+} from "@/lib/finance/writeLedgerEntry";
 import {
   generatePaymentInternalReference,
   type PaymentMethodForRef,
 } from "@/models/PaymentReferenceCounter";
 import { PaymentIntent } from "@/models/PaymentIntent";
+import { StoreOrder } from "@/models/StoreOrder";
 import { SchoolDisbursement } from "@/models/SchoolDisbursement";
 import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
 import {
@@ -64,6 +69,8 @@ interface PaystackEvent {
       paymentIntentId?: string;
       subscriptionCheckoutIntentId?: string;
       tierId?: string;
+      storeOrderId?: string;
+      parentUserId?: string;
       edusentrixTransactionFeeMinor?: number | string | null;
       edusentrixTransactionFeePercent?: number | string | null;
       edusentrixTransactionFeeCapMinor?: number | string | null;
@@ -130,6 +137,14 @@ export async function POST(req: NextRequest) {
       const { metadata } = event.data;
       if (metadata?.type === "subscription_upgrade") {
         await handleSubscriptionUpgradeSuccess(event);
+        return NextResponse.json({ received: true });
+      }
+      if (
+        metadata?.type === "store_order" &&
+        metadata?.storeOrderId &&
+        metadata?.schoolId
+      ) {
+        await handleStoreOrderSuccess(event);
         return NextResponse.json({ received: true });
       }
       if (metadata?.invoiceId && metadata?.studentId && metadata?.schoolId) {
@@ -505,6 +520,125 @@ async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
   }
 
   console.log(`Paystack webhook: Fee payment recorded for invoice ${invoiceId}, ref ${reference}`);
+}
+
+async function handleStoreOrderSuccess(event: PaystackEvent) {
+  const { data } = event;
+  const { reference, amount, status, metadata } = data;
+
+  if (status !== "success") return;
+
+  const schoolId = metadata?.schoolId;
+  const storeOrderId = metadata?.storeOrderId;
+  if (
+    !schoolId ||
+    !storeOrderId ||
+    !mongoose.Types.ObjectId.isValid(schoolId) ||
+    !mongoose.Types.ObjectId.isValid(storeOrderId)
+  ) {
+    console.error("Paystack webhook: Invalid store order metadata");
+    return;
+  }
+
+  await connectToDatabase();
+
+  const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
+  const order = await StoreOrder.findOne({
+    _id: new mongoose.Types.ObjectId(storeOrderId),
+    schoolId: schoolIdObj,
+  }).lean();
+
+  if (!order) {
+    console.error("Paystack webhook: Store order not found", storeOrderId);
+    return;
+  }
+
+  if (order.status === "paid") {
+    console.log("Paystack webhook: Store order already paid", storeOrderId);
+    return;
+  }
+
+  if (order.status !== "pending_payment") {
+    console.error("Paystack webhook: Store order not pending", order.status);
+    return;
+  }
+
+  const amountMinor = Math.round(amount);
+  if (amountMinor !== order.totalMinor) {
+    console.error("Paystack webhook: Store order amount mismatch", {
+      amountMinor,
+      expected: order.totalMinor,
+    });
+    return;
+  }
+
+  const paidAt = data.paid_at ? new Date(data.paid_at) : new Date();
+  const platformFeeMinor = Math.max(
+    0,
+    Math.round(Number(metadata?.edusentrixTransactionFeeMinor || 0))
+  );
+
+  await StoreOrder.findByIdAndUpdate(order._id, {
+    $set: {
+      status: "paid",
+      paystackReference: reference,
+      paidAt,
+      failureReason: null,
+    },
+  });
+
+  const parentUser = await User.findById(order.parentUserId)
+    .select("email firstName lastName")
+    .lean<{ email?: string; firstName?: string; lastName?: string } | null>();
+  const stu = await Student.findById(order.studentId)
+    .select("firstName lastName")
+    .lean<{ firstName: string; lastName: string } | null>();
+  const studentName = stu ? `${stu.firstName} ${stu.lastName}` : null;
+  const parentName =
+    [parentUser?.firstName, parentUser?.lastName].filter(Boolean).join(" ") ||
+    null;
+
+  const lineSummary = order.lines
+    .map((l) => `${l.nameSnapshot} ×${l.quantity}`)
+    .join(", ");
+
+  try {
+    await recordStoreSaleInLedger({
+      schoolId: String(order.schoolId),
+      storeOrderId: String(order._id),
+      amountMinor,
+      feeAmountMinor: platformFeeMinor,
+      paymentMethod: "paystack",
+      gatewayReference: reference,
+      parentName,
+      parentEmail: parentUser?.email || null,
+      studentName,
+      studentId: String(order.studentId),
+      lineSummary,
+      occurredAt: paidAt,
+    });
+  } catch (ledgerError) {
+    console.error("Failed to record store sale in ledger:", ledgerError);
+  }
+
+  try {
+    await recordActivity({
+      schoolId: order.schoolId,
+      userId: order.parentUserId,
+      type: "store.order_paid",
+      entityType: "store_order",
+      entityId: order._id,
+      description: `Store purchase: ${formatMoney(amountMinor)} (${lineSummary})`,
+      metadata: {
+        paystackReference: reference,
+        studentId: String(order.studentId),
+      },
+    });
+  } catch (e) {
+    console.error("Store order activity log failed:", e);
+  }
+
+  console.log(`Paystack webhook: Store order paid ${storeOrderId}, ref ${reference}`);
 }
 
 async function handleSubscriptionUpgradeSuccess(event: PaystackEvent) {

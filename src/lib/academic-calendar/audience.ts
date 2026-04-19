@@ -5,6 +5,7 @@ export function normalizeAudience(input?: CalendarAudience | null): CalendarAudi
     scope: input?.scope || "school",
     gradeIds: input?.gradeIds || [],
     classGroupIds: input?.classGroupIds || [],
+    userIds: input?.userIds || [],
     roles: input?.roles && input.roles.length > 0 ? input.roles : [...DEFAULT_AUDIENCE_ROLES],
   };
 }
@@ -18,8 +19,9 @@ export function matchesAudienceScope(input: {
   audience: CalendarAudience;
   gradeIds: string[];
   classGroupIds: string[];
+  userId?: string | null;
 }) {
-  const { audience, gradeIds, classGroupIds } = input;
+  const { audience, gradeIds, classGroupIds, userId } = input;
 
   if (audience.scope === "school") return true;
   if (audience.scope === "grades") {
@@ -27,6 +29,10 @@ export function matchesAudienceScope(input: {
   }
   if (audience.scope === "classes") {
     return audience.classGroupIds?.some((id) => classGroupIds.includes(id)) ?? false;
+  }
+  if (audience.scope === "specific_users") {
+    if (!userId) return false;
+    return audience.userIds?.includes(userId) ?? false;
   }
   return false;
 }

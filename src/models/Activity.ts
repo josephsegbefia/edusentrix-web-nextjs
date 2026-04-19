@@ -89,7 +89,12 @@ export type ActivityType =
   | "reconciliation.session_created"
   | "reconciliation.session_locked"
   | "reconciliation.session_reopened"
-  | "reconciliation.report_generated";
+  | "reconciliation.report_generated"
+  // School store
+  | "store.order_paid"
+  // Meetings
+  | "meeting.created"
+  | "meeting.cancelled";
 
 export interface IActivity {
   _id: Types.ObjectId;

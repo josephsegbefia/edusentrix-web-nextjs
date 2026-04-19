@@ -309,3 +309,67 @@ export async function recordDonationInLedger(params: {
     finalizedReason: "donation_completed",
   });
 }
+
+/**
+ * Record a school store / marketplace sale (parent Paystack checkout) in the ledger.
+ */
+export async function recordStoreSaleInLedger(params: {
+  schoolId: string;
+  storeOrderId: string;
+  amountMinor: number;
+  feeAmountMinor?: number;
+  currency?: string;
+  paymentMethod: string;
+  gatewayReference?: string | null;
+  parentName?: string | null;
+  parentEmail?: string | null;
+  studentName?: string | null;
+  studentId?: string | null;
+  lineSummary?: string | null;
+  occurredAt?: Date;
+  createdBy?: string | null;
+}): Promise<LedgerEntryResult> {
+  const methodMap: Record<string, TransactionMethod> = {
+    cash: "cash",
+    bank_transfer: "bank_transfer",
+    mobile_money: "mobile_money",
+    paystack: "card",
+    cheque: "cheque",
+    other: "other",
+  };
+
+  return writeLedgerEntry({
+    schoolId: params.schoolId,
+    direction: "inflow",
+    status: "success",
+    grossAmountMinor: params.amountMinor,
+    feeAmountMinor: params.feeAmountMinor || 0,
+    currency: params.currency || "GHS",
+    occurredAt: params.occurredAt || new Date(),
+    category: "store",
+    sourceModule: "store",
+    sourceId: params.storeOrderId,
+    method: methodMap[params.paymentMethod] || "other",
+    channel: params.paymentMethod === "paystack" ? "web" : "in_app",
+    reference: params.gatewayReference || null,
+    description:
+      params.lineSummary ||
+      `Store purchase${params.studentName ? ` (${params.studentName})` : ""}`,
+    party: {
+      type: "guardian",
+      id: null,
+      name: params.parentName || params.parentEmail || "Parent",
+      contact: {
+        email: params.parentEmail || null,
+        phone: null,
+      },
+    },
+    meta: {
+      studentId: params.studentId,
+      studentName: params.studentName,
+    },
+    createdBy: params.createdBy || null,
+    finalizedAt: new Date(),
+    finalizedReason: "store_order_paid",
+  });
+}

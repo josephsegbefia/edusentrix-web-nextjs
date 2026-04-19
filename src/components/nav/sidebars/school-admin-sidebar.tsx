@@ -32,6 +32,9 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  ShoppingBag,
+  ClipboardList,
+  Video,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -167,6 +170,11 @@ const navSections: NavSection[] = [
     title: "Community",
     items: [
       {
+        label: "Meetings",
+        href: "/admin/meetings",
+        icon: Video,
+      },
+      {
         label: "Polls",
         href: "/admin/community/polls",
         icon: Vote,
@@ -201,6 +209,16 @@ const navSections: NavSection[] = [
         label: "Fees & Payments",
         href: "/admin/fees",
         icon: DollarSign,
+      },
+      {
+        label: "School store",
+        href: "/admin/store",
+        icon: ShoppingBag,
+      },
+      {
+        label: "Supply programs",
+        href: "/admin/supplies",
+        icon: ClipboardList,
       },
       {
         label: "Expenses",

@@ -55,7 +55,7 @@ type EventRecord = {
   eventType: string;
   isNonTeachingDay: boolean;
   audience: {
-    scope: "school" | "grades" | "classes";
+    scope: "school" | "grades" | "classes" | "specific_users";
     gradeIds: string[];
     classGroupIds: string[];
     gradeNames: string[];

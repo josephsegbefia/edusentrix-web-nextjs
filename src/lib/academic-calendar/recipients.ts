@@ -5,6 +5,7 @@ import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { UserMembership } from "@/models/UserMembership";
 import {
   type CalendarAudience,
   DEFAULT_AUDIENCE_ROLES,
@@ -13,7 +14,7 @@ import {
 export type CalendarRecipient = {
   userId: Types.ObjectId;
   wardId?: Types.ObjectId;
-  role: "parent" | "teacher";
+  role: "parent" | "teacher" | "student" | "staff" | "bursar";
 };
 
 const periodCache = new Map<string, Types.ObjectId | null>();
@@ -34,6 +35,49 @@ async function getCurrentPeriodId(schoolId: Types.ObjectId) {
 function normalizeRoles(roles?: string[]) {
   if (!roles || roles.length === 0) return [...DEFAULT_AUDIENCE_ROLES];
   return roles;
+}
+
+async function resolveSpecificUserRecipients(input: {
+  schoolId: Types.ObjectId;
+  audience: CalendarAudience;
+}) {
+  const { schoolId, audience } = input;
+  if (audience.scope !== "specific_users" || !audience.userIds?.length) {
+    return [] as CalendarRecipient[];
+  }
+
+  const userIds = Array.from(
+    new Set(
+      audience.userIds
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => String(id))
+    )
+  ).map((id) => new Types.ObjectId(id));
+
+  if (userIds.length === 0) return [] as CalendarRecipient[];
+
+  const memberships = await UserMembership.find({
+    schoolId,
+    userId: { $in: userIds },
+    status: "active",
+  })
+    .select("userId roles")
+    .lean();
+
+  return memberships.map((membership) => {
+    const roles = ((membership as { roles?: string[] }).roles || []).map(String);
+    let role: CalendarRecipient["role"] = "staff";
+
+    if (roles.includes("parent")) role = "parent";
+    else if (roles.includes("teacher")) role = "teacher";
+    else if (roles.includes("student")) role = "student";
+    else if (roles.includes("bursar")) role = "bursar";
+
+    return {
+      userId: (membership as { userId: Types.ObjectId }).userId,
+      role,
+    };
+  });
 }
 
 async function resolveParentRecipients(input: {
@@ -148,13 +192,24 @@ export async function resolveAudienceRecipients(input: {
 
   const recipients: CalendarRecipient[] = [];
 
-  if (roles.includes("parent")) {
+  if (audience.scope === "specific_users") {
+    recipients.push(
+      ...(
+        await resolveSpecificUserRecipients({
+          schoolId,
+          audience,
+        })
+      ).filter((recipient) => roles.includes(recipient.role))
+    );
+  }
+
+  if (audience.scope !== "specific_users" && roles.includes("parent")) {
     recipients.push(
       ...(await resolveParentRecipients({ schoolId, audience }))
     );
   }
 
-  if (roles.includes("teacher")) {
+  if (audience.scope !== "specific_users" && roles.includes("teacher")) {
     recipients.push(
       ...(await resolveTeacherRecipients({
         schoolId,

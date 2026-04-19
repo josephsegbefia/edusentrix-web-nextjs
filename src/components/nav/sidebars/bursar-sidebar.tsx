@@ -16,6 +16,9 @@ import {
   Menu,
   X,
   ShieldCheck,
+  ShoppingBag,
+  ClipboardList,
+  Video,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -78,6 +81,23 @@ const navSections: NavSection[] = [
         href: "/admin/fees",
         icon: DollarSign,
         feature: "fees",
+      },
+      {
+        label: "School store",
+        href: "/admin/store",
+        icon: ShoppingBag,
+        feature: "fees",
+      },
+      {
+        label: "Supply programs",
+        href: "/admin/supplies",
+        icon: ClipboardList,
+        feature: "fees",
+      },
+      {
+        label: "Meetings",
+        href: "/admin/finance/meetings",
+        icon: Video,
       },
       {
         label: "Expenses",

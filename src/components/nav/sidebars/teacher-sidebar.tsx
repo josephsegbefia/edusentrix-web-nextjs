@@ -23,11 +23,13 @@ import {
   Megaphone,
   AlertTriangle,
   BarChart3,
+  Video,
   Settings,
   Menu,
   X,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -160,6 +162,11 @@ const navSections: NavSection[] = [
         icon: MessageSquare,
       },
       {
+        label: "Meetings",
+        href: "/teacher/meetings",
+        icon: Video,
+      },
+      {
         label: "Escalations",
         href: "/teacher/communication/escalations",
         icon: AlertTriangle,
@@ -186,6 +193,11 @@ const navSections: NavSection[] = [
   {
     title: "Resources",
     items: [
+      {
+        label: "Supply lists",
+        href: "/teacher/supplies",
+        icon: ClipboardList,
+      },
       {
         label: "Class Journal",
         href: "/teacher/journal",

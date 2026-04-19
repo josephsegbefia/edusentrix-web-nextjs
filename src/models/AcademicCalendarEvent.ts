@@ -11,7 +11,11 @@ export type CalendarEventType =
   | "non_teaching_day"
   | "custom";
 
-export type CalendarAudienceScope = "school" | "grades" | "classes";
+export type CalendarAudienceScope =
+  | "school"
+  | "grades"
+  | "classes"
+  | "specific_users";
 
 export type CalendarRecurrenceFrequency =
   | "none"
@@ -26,6 +30,7 @@ export interface CalendarAudience {
   scope: CalendarAudienceScope;
   gradeIds?: Types.ObjectId[];
   classGroupIds?: Types.ObjectId[];
+  userIds?: Types.ObjectId[];
   roles?: string[];
 }
 
@@ -74,13 +79,14 @@ const audienceSchema = new Schema<CalendarAudience>(
   {
     scope: {
       type: String,
-      enum: ["school", "grades", "classes"],
+      enum: ["school", "grades", "classes", "specific_users"],
       default: "school",
     },
     gradeIds: [{ type: Schema.Types.ObjectId, ref: "Grade", default: [] }],
     classGroupIds: [
       { type: Schema.Types.ObjectId, ref: "ClassGroup", default: [] },
     ],
+    userIds: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
     roles: [{ type: String, default: [] }],
   },
   { _id: false }
@@ -177,6 +183,22 @@ const academicCalendarEventSchema = new Schema<IAcademicCalendarEvent>(
 
 academicCalendarEventSchema.index({ calendarId: 1, startDate: 1 });
 academicCalendarEventSchema.index({ schoolId: 1, status: 1, startDate: 1 });
+
+const existingAcademicCalendarEventModel = models.AcademicCalendarEvent as
+  | Model<IAcademicCalendarEvent>
+  | undefined;
+
+const existingAudienceScopePath = existingAcademicCalendarEventModel?.schema.path(
+  "audience.scope"
+) as { enumValues?: string[] } | undefined;
+
+const hasSpecificUsersScope = Boolean(
+  existingAudienceScopePath?.enumValues?.includes("specific_users")
+);
+
+if (existingAcademicCalendarEventModel && !hasSpecificUsersScope) {
+  delete models.AcademicCalendarEvent;
+}
 
 export const AcademicCalendarEvent: Model<IAcademicCalendarEvent> =
   (models.AcademicCalendarEvent as Model<IAcademicCalendarEvent>) ||

@@ -8,7 +8,11 @@ export const DEFAULT_AUDIENCE_ROLES = [
 
 export type CalendarAudienceRole = (typeof DEFAULT_AUDIENCE_ROLES)[number];
 
-export type CalendarAudienceScope = "school" | "grades" | "classes";
+export type CalendarAudienceScope =
+  | "school"
+  | "grades"
+  | "classes"
+  | "specific_users";
 
 export type CalendarEventStatus = "draft" | "published" | "cancelled";
 
@@ -35,6 +39,7 @@ export interface CalendarAudience {
   scope: CalendarAudienceScope;
   gradeIds?: string[];
   classGroupIds?: string[];
+  userIds?: string[];
   roles?: CalendarAudienceRole[];
 }
 

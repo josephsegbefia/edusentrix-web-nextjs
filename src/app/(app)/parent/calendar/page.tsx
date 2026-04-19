@@ -58,6 +58,7 @@ function toTitle(value: string) {
 function audienceScopeLabel(scope?: string) {
   if (scope === "grades") return "Selected grades";
   if (scope === "classes") return "Selected classes";
+  if (scope === "specific_users") return "Private invitation";
   return "School-wide";
 }
 
@@ -110,7 +111,7 @@ type EventRecord = {
   eventType: string;
   isNonTeachingDay: boolean;
   audience: {
-    scope: "school" | "grades" | "classes";
+    scope: "school" | "grades" | "classes" | "specific_users";
     gradeIds: string[];
     classGroupIds: string[];
     gradeNames: string[];

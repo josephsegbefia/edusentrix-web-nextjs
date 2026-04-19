@@ -34,9 +34,10 @@ const updateSchema = z.object({
   isNonTeachingDay: z.boolean().optional(),
   audience: z
     .object({
-      scope: z.enum(["school", "grades", "classes"]).optional(),
+      scope: z.enum(["school", "grades", "classes", "specific_users"]).optional(),
       gradeIds: z.array(z.string()).optional(),
       classGroupIds: z.array(z.string()).optional(),
+      userIds: z.array(z.string()).optional(),
       roles: z.array(z.string()).optional(),
     })
     .optional(),
@@ -183,6 +184,9 @@ export async function PATCH(
       ),
       classGroupIds: (
         parsed.data.audience.classGroupIds || event.audience?.classGroupIds || []
+      ).map((id) => new mongoose.Types.ObjectId(String(id))),
+      userIds: (
+        parsed.data.audience.userIds || event.audience?.userIds || []
       ).map((id) => new mongoose.Types.ObjectId(String(id))),
       roles: audienceRoles,
     };

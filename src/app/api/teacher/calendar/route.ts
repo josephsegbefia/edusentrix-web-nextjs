@@ -127,6 +127,7 @@ export async function GET(req: NextRequest) {
         scope: event.audience?.scope || "school",
         gradeIds: (event.audience?.gradeIds || []).map((id) => String(id)),
         classGroupIds: (event.audience?.classGroupIds || []).map((id) => String(id)),
+        userIds: (event.audience?.userIds || []).map((id) => String(id)),
         roles: (event.audience?.roles || []) as (
           | "teacher"
           | "parent"
@@ -142,6 +143,7 @@ export async function GET(req: NextRequest) {
         audience,
         gradeIds,
         classGroupIds: classGroupIdList,
+        userId: String(context.userId),
       });
     });
 

@@ -130,6 +130,7 @@ export async function POST(req: NextRequest) {
       scope: event.audience?.scope || "school",
       gradeIds: (event.audience?.gradeIds || []).map((id: any) => String(id)),
       classGroupIds: (event.audience?.classGroupIds || []).map((id: any) => String(id)),
+      userIds: (event.audience?.userIds || []).map((id: any) => String(id)),
       roles: (event.audience?.roles || []) as (
         | "teacher"
         | "parent"
@@ -161,9 +162,14 @@ export async function POST(req: NextRequest) {
           : `${formatted}`;
 
         for (const recipient of recipients) {
-          const actionUrl = recipient.role === "parent"
-            ? "/parent/calendar"
-            : "/teacher/calendar";
+          const actionUrl =
+            recipient.role === "parent"
+              ? "/parent/calendar"
+              : recipient.role === "student"
+              ? "/student/calendar"
+              : recipient.role === "teacher"
+              ? "/teacher/calendar"
+              : "/admin/academic-calendar";
 
           const created = await createCalendarReminderNotification({
             schoolId: calendar.schoolId as mongoose.Types.ObjectId,

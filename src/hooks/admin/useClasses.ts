@@ -30,6 +30,7 @@ export type ClassGroupDTO = {
   teacherCount: number;
   subjectCount: number;
   capacity: number | null;
+  defaultRoomName?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -69,6 +70,14 @@ export type AssignSubjectsResponse = {
       code: string | null;
     }>;
   };
+};
+
+export type UpdateClassPayload = {
+  classId: string;
+  name?: string;
+  capacity?: number | null;
+  defaultRoomName?: string | null;
+  isActive?: boolean;
 };
 
 export type ClassesFilters = {
@@ -253,6 +262,37 @@ export function useCreateClass() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["grades"] });
+    },
+  });
+}
+
+/**
+ * Hook to update class settings
+ */
+export function useUpdateClass() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ classId, ...payload }: UpdateClassPayload) => {
+      const res = await fetch(`/api/admin/classes/${classId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message =
+          typeof json.error === "string"
+            ? json.error
+            : "Failed to update class settings";
+        throw new Error(message);
+      }
+      return json;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class", variables.classId] });
+      queryClient.invalidateQueries({ queryKey: ["class"] });
     },
   });
 }

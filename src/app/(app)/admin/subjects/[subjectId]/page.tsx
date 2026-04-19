@@ -36,7 +36,8 @@ import {
 import { useSubjectDetail, useUnassignTeacher, type SubjectDTO } from "@/hooks/admin/useSubjects";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { AssignTeacherToSubjectModal } from "@/components/modals/AssignTeacherToSubjectModal";
-import { notifyComingSoon } from "@/lib/ui/feature-notices";
+import { AssignSubjectToClassesModal } from "@/components/modals/AssignSubjectToClassesModal";
+import { CreateSubjectModal } from "@/components/modals/CreateSubjectModal";
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -61,6 +62,8 @@ function SubjectDetailContent() {
   const busy = useBusyToast();
   const unassignTeacher = useUnassignTeacher(subjectId);
   const [assignTeacherModalOpen, setAssignTeacherModalOpen] = React.useState(false);
+  const [assignClassesModalOpen, setAssignClassesModalOpen] = React.useState(false);
+  const [editSubjectModalOpen, setEditSubjectModalOpen] = React.useState(false);
   const [editAssignment, setEditAssignment] = React.useState<{
     assignmentId: string;
     teacherId: string;
@@ -356,14 +359,14 @@ function SubjectDetailContent() {
                 </PremiumDropdownMenuItem>
                 <PremiumDropdownMenuItem
                   icon={<Edit className="h-3.5 w-3.5" />}
-                  onClick={() => notifyComingSoon("Edit subject")}
+                  onClick={() => setEditSubjectModalOpen(true)}
                 >
                   Edit subject
                 </PremiumDropdownMenuItem>
                 <PremiumDropdownMenuSeparator />
                 <PremiumDropdownMenuItem
                   icon={<School className="h-3.5 w-3.5" />}
-                  onClick={() => notifyComingSoon("Assign subject to classes")}
+                  onClick={() => setAssignClassesModalOpen(true)}
                 >
                   Assign to classes
                 </PremiumDropdownMenuItem>
@@ -428,7 +431,7 @@ function SubjectDetailContent() {
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => notifyComingSoon("Assign subject to classes")}
+                onClick={() => setAssignClassesModalOpen(true)}
                 className="gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10 hover:text-white"
               >
                 <School className="h-3.5 w-3.5" />
@@ -471,7 +474,7 @@ function SubjectDetailContent() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => notifyComingSoon("Assign subject to classes")}
+                    onClick={() => setAssignClassesModalOpen(true)}
                     className="mt-4 gap-2 rounded-xl border-white/10 bg-white/5 text-xs text-white/70 hover:bg-white/10"
                   >
                     <School className="h-3.5 w-3.5" />
@@ -673,6 +676,18 @@ function SubjectDetailContent() {
         }}
         subject={subjectForAssign}
         editAssignment={editAssignment ?? undefined}
+      />
+
+      <CreateSubjectModal
+        open={editSubjectModalOpen}
+        onOpenChange={setEditSubjectModalOpen}
+        subject={subjectForAssign}
+      />
+
+      <AssignSubjectToClassesModal
+        open={assignClassesModalOpen}
+        onOpenChange={setAssignClassesModalOpen}
+        subject={subjectForAssign}
       />
     </div>
   );

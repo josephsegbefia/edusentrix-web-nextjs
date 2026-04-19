@@ -26,12 +26,15 @@ import { ClassStudentsTab } from "@/components/admin/classes/detail/ClassStudent
 import { ClassSubjectsTeachersTab } from "@/components/admin/classes/detail/ClassSubjectsTeachersTab";
 import { ClassScheduleTab } from "@/components/admin/classes/detail/ClassScheduleTab";
 import { ClassRolesTab } from "@/components/admin/classes/detail/ClassRolesTab";
+import { ClassAttendanceTab } from "@/components/admin/classes/detail/ClassAttendanceTab";
+import { ClassPerformanceTab } from "@/components/admin/classes/detail/ClassPerformanceTab";
+import { ClassFeesTab } from "@/components/admin/classes/detail/ClassFeesTab";
+import { ClassSettingsTab } from "@/components/admin/classes/detail/ClassSettingsTab";
 import { AssignHomeroomModal } from "@/components/modals/AssignHomeroomModal";
 import { AssignSubjectsToClassModal } from "@/components/modals/AssignSubjectsToClassModal";
 import { SubjectTeacherAssignmentWizard } from "@/components/modals/SubjectTeacherAssignmentWizard";
 import { AddStudentToClassModal } from "@/components/modals/AddStudentToClassModal";
 import { AssignClassRoleModal } from "@/components/modals/AssignClassRoleModal";
-import { ComingSoonState } from "@/components/ui/coming-soon-state";
 
 function ClassDetailContent() {
   const params = useParams<{ classId: string }>();
@@ -336,13 +339,28 @@ function ClassDetailContent() {
             onAssignRole={() => setAssignRoleOpen(true)}
           />
         ) : activeTab === "attendance" ? (
-          <ComingSoonState feature="Attendance tab" className="border-white/10 bg-white/5 text-white" />
+          <ClassAttendanceTab
+            classId={classData.id}
+            className={classData.fullLabel}
+          />
         ) : activeTab === "performance" ? (
-          <ComingSoonState feature="Performance tab" className="border-white/10 bg-white/5 text-white" />
+          <ClassPerformanceTab
+            classId={classData.id}
+            classData={classData}
+          />
         ) : activeTab === "fees" ? (
-          <ComingSoonState feature="Fees tab" className="border-white/10 bg-white/5 text-white" />
+          <ClassFeesTab
+            classId={classData.id}
+            className={classData.fullLabel}
+          />
         ) : activeTab === "settings" ? (
-          <ComingSoonState feature="Settings tab" className="border-white/10 bg-white/5 text-white" />
+          <ClassSettingsTab
+            classData={classData}
+            onAssignHomeroom={() => setAssignHomeroomOpen(true)}
+            onManageSubjects={() => setAssignSubjectsOpen(true)}
+            onGoStudents={() => setActiveTab("students")}
+            onGoRoles={() => setActiveTab("roles")}
+          />
         ) : null}
       </div>
 

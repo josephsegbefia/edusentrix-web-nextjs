@@ -42,7 +42,7 @@ export function SubjectsToolbar({
           className={cn(
             "group relative flex items-center overflow-hidden rounded-xl border transition-all duration-200",
             isFocused
-              ? "border-blue-500/50 bg-blue-500/5 shadow-lg shadow-blue-500/10"
+              ? "border-amber-400/40 bg-amber-300/5 shadow-lg shadow-amber-500/10"
               : "border-white/10 bg-white/5 hover:border-white/15 hover:bg-white/8"
           )}
         >
@@ -50,7 +50,7 @@ export function SubjectsToolbar({
             <Search
               className={cn(
                 "h-3.5 w-3.5 transition-colors sm:h-4 sm:w-4",
-                isFocused ? "text-blue-400" : "text-white/40"
+                isFocused ? "text-amber-300" : "text-white/40"
               )}
             />
           </div>

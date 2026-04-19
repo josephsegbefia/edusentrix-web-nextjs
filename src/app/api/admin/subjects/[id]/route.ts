@@ -244,9 +244,17 @@ export async function PATCH(
     const body = await req.json();
 
     const updateData: Record<string, unknown> = {};
+    let nextName: string | null = null;
 
     if (body.name !== undefined) {
-      updateData.name = String(body.name).trim();
+      nextName = String(body.name).trim();
+      if (!nextName) {
+        return NextResponse.json(
+          { success: false, error: "Subject name is required" },
+          { status: 400 }
+        );
+      }
+      updateData.name = nextName;
     }
 
     if (body.code !== undefined) {
@@ -256,6 +264,23 @@ export async function PATCH(
 
     if (body.isActive !== undefined) {
       updateData.isActive = body.isActive === true;
+    }
+
+    if (nextName) {
+      const duplicate = await Subject.findOne({
+        schoolId: schoolIdObj,
+        name: nextName,
+        _id: { $ne: subjectId },
+      })
+        .collation({ locale: "en", strength: 2 })
+        .lean();
+
+      if (duplicate) {
+        return NextResponse.json(
+          { success: false, error: "A subject with that name already exists" },
+          { status: 409 }
+        );
+      }
     }
 
     const updated = await Subject.findOneAndUpdate(

@@ -157,6 +157,7 @@ export async function GET(
       teacherCount,
       subjectCount: (cls as any).subjectIds?.length || 0,
       capacity: (cls as any).capacity || null,
+      defaultRoomName: (cls as any).defaultRoomName || null,
       isActive: (cls as any).isActive,
       createdAt: new Date((cls as any).createdAt).toISOString(),
       updatedAt: new Date((cls as any).updatedAt).toISOString(),
@@ -218,14 +219,34 @@ export async function PATCH(
     }
 
     if (body.name !== undefined) {
-      updateData.name = String(body.name).trim();
+      const nextName = String(body.name).trim();
+      if (!nextName) {
+        return NextResponse.json(
+          { success: false, error: "Class name is required" },
+          { status: 400 }
+        );
+      }
+      updateData.name = nextName;
     }
 
     if (body.capacity !== undefined) {
-      updateData.capacity =
-        body.capacity === null || body.capacity === ""
-          ? null
-          : parseInt(String(body.capacity), 10);
+      if (body.capacity === null || body.capacity === "") {
+        updateData.capacity = null;
+      } else {
+        const parsedCapacity = parseInt(String(body.capacity), 10);
+        if (!Number.isFinite(parsedCapacity) || parsedCapacity < 0) {
+          return NextResponse.json(
+            { success: false, error: "Capacity must be a valid positive number" },
+            { status: 400 }
+          );
+        }
+        updateData.capacity = parsedCapacity;
+      }
+    }
+
+    if (body.defaultRoomName !== undefined) {
+      const nextRoomName = String(body.defaultRoomName || "").trim();
+      updateData.defaultRoomName = nextRoomName || null;
     }
 
     if (body.isActive !== undefined) {
@@ -254,6 +275,9 @@ export async function PATCH(
       data: {
         id: String(updated._id),
         name: updated.name,
+        capacity: (updated as any).capacity ?? null,
+        defaultRoomName: (updated as any).defaultRoomName ?? null,
+        isActive: (updated as any).isActive === true,
         homeroomTeacherId: updated.homeroomTeacherId
           ? String(updated.homeroomTeacherId._id)
           : null,

@@ -39,6 +39,7 @@ export type ClassDetailData = {
   teacherCount: number;
   subjectCount: number;
   capacity: number | null;
+  defaultRoomName?: string | null;
   isActive: boolean;
   createdAt: string;
 };

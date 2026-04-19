@@ -3,11 +3,11 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { BookOpen, School, Users, TrendingUp } from "lucide-react";
+import { BookText, School, Users, TrendingUp } from "lucide-react";
 import { useSubjects } from "@/hooks/admin/useSubjects";
 import CountUp from "react-countup";
 
-type StatTone = "slate" | "zinc" | "neutral" | "stone";
+type StatTone = "amber" | "teal" | "sky" | "rose";
 
 type StatCardProps = {
   label: string;
@@ -29,37 +29,37 @@ const toneConfig: Record<
     glow: string;
   }
 > = {
-  slate: {
-    border: "border-slate-700/55",
-    bg: "from-slate-800/50 via-slate-900/40 to-transparent",
-    iconBg: "from-slate-700/35 to-slate-800/35",
-    iconColor: "text-slate-200",
-    valueColor: "text-slate-100",
-    glow: "bg-slate-700/20",
+  amber: {
+    border: "border-amber-400/15",
+    bg: "from-amber-950/50 via-slate-900/40 to-transparent",
+    iconBg: "from-amber-300/18 to-orange-300/10",
+    iconColor: "text-amber-100",
+    valueColor: "text-amber-50",
+    glow: "bg-amber-300/18",
   },
-  zinc: {
-    border: "border-zinc-700/55",
-    bg: "from-zinc-800/50 via-zinc-900/40 to-transparent",
-    iconBg: "from-zinc-700/35 to-zinc-800/35",
-    iconColor: "text-zinc-200",
-    valueColor: "text-zinc-100",
-    glow: "bg-zinc-700/20",
+  teal: {
+    border: "border-teal-400/15",
+    bg: "from-teal-950/50 via-slate-900/40 to-transparent",
+    iconBg: "from-teal-300/18 to-cyan-300/10",
+    iconColor: "text-teal-100",
+    valueColor: "text-teal-50",
+    glow: "bg-teal-300/18",
   },
-  neutral: {
-    border: "border-neutral-700/55",
-    bg: "from-neutral-800/50 via-neutral-900/40 to-transparent",
-    iconBg: "from-neutral-700/35 to-neutral-800/35",
-    iconColor: "text-neutral-200",
-    valueColor: "text-neutral-100",
-    glow: "bg-neutral-700/20",
+  sky: {
+    border: "border-sky-400/15",
+    bg: "from-sky-950/50 via-slate-900/40 to-transparent",
+    iconBg: "from-sky-300/18 to-blue-300/10",
+    iconColor: "text-sky-100",
+    valueColor: "text-sky-50",
+    glow: "bg-sky-300/18",
   },
-  stone: {
-    border: "border-stone-700/55",
-    bg: "from-stone-800/50 via-stone-900/40 to-transparent",
-    iconBg: "from-stone-700/35 to-stone-800/35",
-    iconColor: "text-stone-200",
-    valueColor: "text-stone-100",
-    glow: "bg-stone-700/20",
+  rose: {
+    border: "border-rose-400/15",
+    bg: "from-rose-950/50 via-slate-900/40 to-transparent",
+    iconBg: "from-rose-300/18 to-pink-300/10",
+    iconColor: "text-rose-100",
+    valueColor: "text-rose-50",
+    glow: "bg-rose-300/18",
   },
 };
 
@@ -158,15 +158,15 @@ export function SubjectsQuickStatsSection() {
       <StatCard
         label="Total Subjects"
         value={stats.total}
-        icon={<BookOpen className="h-5 w-5" />}
-        tone="slate"
+        icon={<BookText className="h-5 w-5" />}
+        tone="amber"
         loading={isLoading}
       />
       <StatCard
         label="Active Subjects"
         value={stats.active}
         icon={<TrendingUp className="h-5 w-5" />}
-        tone="zinc"
+        tone="teal"
         loading={isLoading}
         subtitle={`${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}% of total`}
       />
@@ -174,7 +174,7 @@ export function SubjectsQuickStatsSection() {
         label="Classes Teaching"
         value={stats.totalClasses}
         icon={<School className="h-5 w-5" />}
-        tone="neutral"
+        tone="sky"
         loading={isLoading}
         subtitle="Total class assignments"
       />
@@ -182,7 +182,7 @@ export function SubjectsQuickStatsSection() {
         label="Teachers Assigned"
         value={stats.totalTeachers}
         icon={<Users className="h-5 w-5" />}
-        tone="stone"
+        tone="rose"
         loading={isLoading}
         subtitle="Teaching subjects"
       />

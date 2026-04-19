@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Plus,
   AlertCircle,
-  BookOpen,
+  Shapes,
   Sparkles,
 } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -18,6 +18,8 @@ import { SubjectsToolbar, type SubjectsViewMode } from "@/components/admin/subje
 import { SubjectsCardGrid } from "@/components/admin/subjects/SubjectsCardGrid";
 import { SubjectsTable } from "@/components/admin/subjects/SubjectsTable";
 import { AssignTeacherToSubjectModal } from "@/components/modals/AssignTeacherToSubjectModal";
+import { AssignSubjectToClassesModal } from "@/components/modals/AssignSubjectToClassesModal";
+import { CreateSubjectModal } from "@/components/modals/CreateSubjectModal";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
 import { cn } from "@/lib/utils";
@@ -44,7 +46,12 @@ export default function SubjectsPage() {
   );
 
   const [assignTeacherModalOpen, setAssignTeacherModalOpen] = React.useState(false);
+  const [assignClassesModalOpen, setAssignClassesModalOpen] = React.useState(false);
+  const [createSubjectModalOpen, setCreateSubjectModalOpen] = React.useState(false);
+  const [editSubjectModalOpen, setEditSubjectModalOpen] = React.useState(false);
   const [selectedSubject, setSelectedSubject] = React.useState<SubjectDTO | null>(null);
+  const [subjectForClasses, setSubjectForClasses] = React.useState<SubjectDTO | null>(null);
+  const [subjectForEdit, setSubjectForEdit] = React.useState<SubjectDTO | null>(null);
   const [selectedClassId, setSelectedClassId] = React.useState<string | undefined>();
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -86,8 +93,11 @@ export default function SubjectsPage() {
   }, []);
 
   const handleAssignToClasses = (subjectId: string) => {
-    void subjectId;
-    notifyComingSoon("Assign subject to classes");
+    const subject = subjects.find((s) => s.id === subjectId);
+    if (subject) {
+      setSubjectForClasses(subject);
+      setAssignClassesModalOpen(true);
+    }
   };
 
   const handleAssignTeachers = (subjectId: string, classGroupId?: string) => {
@@ -104,8 +114,11 @@ export default function SubjectsPage() {
   };
 
   const handleEdit = (subjectId: string) => {
-    void subjectId;
-    notifyComingSoon("Edit subject");
+    const subject = subjects.find((s) => s.id === subjectId);
+    if (subject) {
+      setSubjectForEdit(subject);
+      setEditSubjectModalOpen(true);
+    }
   };
 
   const handleExport = () => {
@@ -121,11 +134,11 @@ export default function SubjectsPage() {
       {/* Premium Header */}
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-8">
         <div
-          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-blue-500/20 via-indigo-500/10 to-transparent blur-3xl"
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-amber-400/18 via-orange-400/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-linear-to-tr from-sky-500/10 via-blue-500/5 to-transparent blur-3xl"
+          className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-linear-to-tr from-teal-400/12 via-emerald-400/5 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
@@ -136,8 +149,8 @@ export default function SubjectsPage() {
         <div className="relative z-10 flex flex-col gap-4 sm:gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-blue-500/20 to-indigo-500/20 shadow-lg shadow-blue-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
-                <BookOpen className="h-5 w-5 text-blue-300 sm:h-6 sm:w-6" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-300/15 bg-linear-to-br from-amber-300/16 via-orange-300/10 to-transparent shadow-lg shadow-amber-500/10 sm:h-12 sm:w-12 sm:rounded-2xl">
+                <Shapes className="h-5 w-5 text-amber-100 sm:h-6 sm:w-6" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
@@ -157,9 +170,9 @@ export default function SubjectsPage() {
           <div className="flex items-center gap-2 self-start md:self-auto">
             <Button
               onClick={() => {
-                notifyComingSoon("Create subject");
+                setCreateSubjectModalOpen(true);
               }}
-              className="group h-9 gap-2 rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 px-4 text-xs text-white shadow-lg shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700 sm:h-10 sm:text-sm"
+              className="group h-9 gap-2 rounded-xl bg-linear-to-r from-amber-300 to-orange-400 px-4 text-xs text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-200 hover:to-orange-300 sm:h-10 sm:text-sm"
             >
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               <span>Add Subject</span>
@@ -186,7 +199,7 @@ export default function SubjectsPage() {
       {/* Subject directory shell */}
       <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl sm:rounded-2xl">
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-blue-500/5 via-transparent to-transparent"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-amber-400/6 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
@@ -199,9 +212,9 @@ export default function SubjectsPage() {
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-linear-to-br from-white/10 to-white/5 shadow-inner shadow-white/5 sm:h-11 sm:w-11 sm:rounded-xl">
-                  <Sparkles className="h-4 w-4 text-blue-300 sm:h-5 sm:w-5" />
+                  <Sparkles className="h-4 w-4 text-amber-200 sm:h-5 sm:w-5" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-900 bg-blue-400 sm:h-3 sm:w-3" />
+                <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-900 bg-teal-300 sm:h-3 sm:w-3" />
               </div>
               <div className="space-y-0.5">
                 <CardTitle className="text-base font-semibold tracking-tight text-white sm:text-lg">
@@ -213,7 +226,7 @@ export default function SubjectsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[10px] font-medium text-blue-300">
+              <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-2.5 py-1 text-[10px] font-medium text-amber-100">
                 {totalFiltered} total
               </span>
             </div>
@@ -259,7 +272,7 @@ export default function SubjectsPage() {
                 className={cn(
                   "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
                   viewMode === "cards"
-                    ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
+                    ? "border-amber-300/20 bg-amber-300/10 text-amber-100"
                     : "border-white/10 bg-white/5 text-white/60"
                 )}
               >
@@ -273,9 +286,9 @@ export default function SubjectsPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16">
               <div className="relative">
-                <div className="h-12 w-12 animate-spin rounded-full border-2 border-blue-500/20 border-t-blue-500" />
+                <div className="h-12 w-12 animate-spin rounded-full border-2 border-amber-300/20 border-t-amber-300" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <BookOpen className="h-5 w-5 text-blue-400/60" />
+                  <Shapes className="h-5 w-5 text-amber-200/70" />
                 </div>
               </div>
               <div className="text-center">
@@ -313,7 +326,7 @@ export default function SubjectsPage() {
             <div className="flex flex-col items-center justify-center gap-4 py-12 sm:py-16">
               <div className="relative">
                 <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-linear-to-br from-white/10 to-white/5">
-                  <BookOpen className="h-10 w-10 text-white/30" />
+                  <Shapes className="h-10 w-10 text-amber-100/45" />
                 </div>
               </div>
               <div className="text-center">
@@ -325,12 +338,18 @@ export default function SubjectsPage() {
                   started.
                 </p>
               </div>
+              <Button
+                onClick={() => setCreateSubjectModalOpen(true)}
+                className="bg-linear-to-r from-amber-300 to-orange-400 text-slate-950 hover:from-amber-200 hover:to-orange-300"
+              >
+                Create Subject
+              </Button>
             </div>
           ) : (
             <div className="space-y-4 sm:space-y-5">
               <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-linear-to-r from-white/5 to-transparent px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2 text-xs text-white/70 sm:text-sm">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-[9px] font-bold text-blue-300 sm:h-6 sm:w-6 sm:text-[10px]">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-300/15 text-[9px] font-bold text-amber-100 sm:h-6 sm:w-6 sm:text-[10px]">
                     {subjects.length}
                   </span>
                   <span>
@@ -366,6 +385,33 @@ export default function SubjectsPage() {
       </Card>
 
       {/* Modals */}
+      <CreateSubjectModal
+        open={createSubjectModalOpen}
+        onOpenChange={setCreateSubjectModalOpen}
+      />
+
+      <CreateSubjectModal
+        open={editSubjectModalOpen}
+        onOpenChange={(open) => {
+          setEditSubjectModalOpen(open);
+          if (!open) {
+            setSubjectForEdit(null);
+          }
+        }}
+        subject={subjectForEdit}
+      />
+
+      <AssignSubjectToClassesModal
+        open={assignClassesModalOpen}
+        onOpenChange={(open) => {
+          setAssignClassesModalOpen(open);
+          if (!open) {
+            setSubjectForClasses(null);
+          }
+        }}
+        subject={subjectForClasses}
+      />
+
       {selectedSubject && (
         <AssignTeacherToSubjectModal
           open={assignTeacherModalOpen}

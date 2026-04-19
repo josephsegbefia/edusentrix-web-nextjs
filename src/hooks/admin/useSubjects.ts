@@ -1,5 +1,6 @@
 // src/hooks/admin/useSubjects.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useBusyToast } from "@/hooks/useBusyToast";
 
 export type SubjectDetailDTO = {
   id: string;
@@ -70,6 +71,50 @@ export type SubjectsResponse = {
   error?: string;
 };
 
+export type SubjectCategoryValue =
+  | "core"
+  | "elective"
+  | "foundation"
+  | "optional"
+  | "transdisciplinary_theme"
+  | "subject_group";
+
+export type CreateSubjectPayload = {
+  name: string;
+  code?: string | null;
+  category?: SubjectCategoryValue | null;
+  isActive?: boolean;
+};
+
+export type CreateSubjectResponse = {
+  success: boolean;
+  data: {
+    id: string;
+    name: string;
+    code: string | null;
+    category: SubjectCategoryValue | null;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
+export type UpdateSubjectPayload = {
+  subjectId: string;
+  name?: string;
+  code?: string | null;
+  isActive?: boolean;
+};
+
+export type UpdateSubjectResponse = {
+  success: boolean;
+  data: {
+    id: string;
+    name: string;
+    code: string | null;
+  };
+};
+
 export type AssignTeacherResponse = {
   success: boolean;
   message: string;
@@ -110,6 +155,86 @@ export function useSubjects(search?: string, isActive?: boolean) {
       return res.json();
     },
     staleTime: 30_000,
+  });
+}
+
+/**
+ * Hook to create a subject
+ */
+export function useCreateSubject() {
+  const queryClient = useQueryClient();
+  const busy = useBusyToast();
+
+  return useMutation({
+    mutationFn: async (payload: CreateSubjectPayload): Promise<CreateSubjectResponse> => {
+      const res = await fetch("/api/admin/subjects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await res.json()) as CreateSubjectResponse & { error?: string };
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create subject");
+      }
+
+      return data;
+    },
+    onMutate: () => {
+      busy.toast("Creating subject…");
+    },
+    onSuccess: ({ data }) => {
+      busy.success(`Subject "${data.name}" created`);
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+    },
+    onError: (error: unknown) => {
+      busy.error(
+        error instanceof Error ? error.message : "Failed to create subject"
+      );
+    },
+  });
+}
+
+/**
+ * Hook to update a subject
+ */
+export function useUpdateSubject() {
+  const queryClient = useQueryClient();
+  const busy = useBusyToast();
+
+  return useMutation({
+    mutationFn: async ({
+      subjectId,
+      ...payload
+    }: UpdateSubjectPayload): Promise<UpdateSubjectResponse> => {
+      const res = await fetch(`/api/admin/subjects/${subjectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await res.json()) as UpdateSubjectResponse & { error?: string };
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update subject");
+      }
+
+      return data;
+    },
+    onMutate: () => {
+      busy.toast("Updating subject…");
+    },
+    onSuccess: ({ data }) => {
+      busy.success(`Subject "${data.name}" updated`);
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["subject", data.id] });
+    },
+    onError: (error: unknown) => {
+      busy.error(
+        error instanceof Error ? error.message : "Failed to update subject"
+      );
+    },
   });
 }
 

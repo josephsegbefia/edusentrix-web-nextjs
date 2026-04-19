@@ -129,3 +129,102 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+/**
+ * POST /api/admin/subjects
+ * Create a single subject
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const body = (await req.json()) as {
+      name?: unknown;
+      code?: unknown;
+      category?: unknown;
+      isActive?: unknown;
+    };
+
+    const name =
+      typeof body.name === "string" ? body.name.trim() : "";
+    const code =
+      typeof body.code === "string" && body.code.trim()
+        ? body.code.trim().toUpperCase()
+        : null;
+    const category =
+      typeof body.category === "string" && body.category.trim()
+        ? body.category.trim()
+        : null;
+    const isActive = body.isActive !== false;
+
+    if (!name) {
+      return NextResponse.json(
+        { success: false, error: "Subject name is required" },
+        { status: 400 }
+      );
+    }
+
+    const allowedCategories = new Set([
+      "core",
+      "elective",
+      "foundation",
+      "optional",
+      "transdisciplinary_theme",
+      "subject_group",
+    ]);
+
+    if (category && !allowedCategories.has(category)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid subject category" },
+        { status: 400 }
+      );
+    }
+
+    const existing = await Subject.findOne({
+      schoolId: schoolIdObj,
+      name,
+    })
+      .collation({ locale: "en", strength: 2 })
+      .lean();
+
+    if (existing) {
+      return NextResponse.json(
+        { success: false, error: "A subject with that name already exists" },
+        { status: 409 }
+      );
+    }
+
+    const created = await Subject.create({
+      schoolId: schoolIdObj,
+      name,
+      code,
+      category,
+      isActive,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: String(created._id),
+          name: created.name,
+          code: created.code || null,
+          category: created.category || null,
+          isActive: created.isActive,
+          createdAt: created.createdAt.toISOString(),
+          updatedAt: created.updatedAt.toISOString(),
+        },
+      },
+      { status: 201 }
+    );
+  } catch (e: unknown) {
+    const message =
+      e instanceof Error ? e.message : "Failed to create subject";
+    return NextResponse.json(
+      { success: false, error: message },
+      { status: 500 }
+    );
+  }
+}

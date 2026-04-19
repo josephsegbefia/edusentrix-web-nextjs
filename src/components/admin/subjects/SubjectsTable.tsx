@@ -4,6 +4,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
+import { resolveSubjectVisual } from "@/components/admin/subjects/subject-visuals";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -11,7 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  BookOpen,
+  Shapes,
   MoreHorizontal,
   Pencil,
   School,
@@ -127,7 +128,7 @@ export function SubjectsTable({
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-white/10 to-white/5">
-          <BookOpen className="h-8 w-8 text-white/30" />
+          <Shapes className="h-8 w-8 text-amber-100/45" />
         </div>
         <p className="mt-4 text-sm font-medium text-white/70">No subjects found</p>
         <p className="mt-1 text-xs text-white/50">
@@ -197,6 +198,8 @@ export function SubjectsTable({
         <tbody>
           {subjects.map((subject) => {
             const isSelected = selectedIds.includes(subject.id);
+            const visual = resolveSubjectVisual(subject);
+            const SubjectIcon = visual.icon;
 
             return (
               <tr
@@ -221,28 +224,38 @@ export function SubjectsTable({
                 )}
                 <td className="px-3 py-2 align-middle">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10">
-                      <BookOpen className="h-4 w-4 text-blue-300" />
+                    <div
+                      className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border",
+                        visual.iconShell
+                      )}
+                    >
+                      <SubjectIcon className={cn("h-4 w-4", visual.iconColor)} />
                     </div>
                     <div className="min-w-0">
                       <p className="truncate text-xs font-medium text-white">
                         {subject.name}
                       </p>
-                      <p className="truncate text-[11px] text-white/60">
-                        {subject.code ?? "—"}
-                      </p>
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em]",
+                          visual.codeBadge
+                        )}
+                      >
+                        {subject.code ?? "No code"}
+                      </span>
                     </div>
                   </div>
                 </td>
                 <td className="px-3 py-2 align-middle text-xs text-white/80">
                   <div className="flex items-center gap-1.5">
-                    <School className="h-3.5 w-3.5 text-blue-300" />
+                    <School className={cn("h-3.5 w-3.5", visual.statIcon)} />
                     <span>{subject.classCount}</span>
                   </div>
                 </td>
                 <td className="px-3 py-2 align-middle text-xs text-white/80">
                   <div className="flex items-center gap-1.5">
-                    <Users className="h-3.5 w-3.5 text-blue-300" />
+                    <Users className={cn("h-3.5 w-3.5", visual.statIcon)} />
                     <span>{subject.teacherCount}</span>
                   </div>
                 </td>

@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { BookOpen } from "lucide-react";
+import { Shapes } from "lucide-react";
 import { SubjectCard } from "./SubjectCard";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
 
@@ -25,7 +25,7 @@ export function SubjectsCardGrid({
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-          <BookOpen className="h-8 w-8 text-white/30" />
+          <Shapes className="h-8 w-8 text-amber-100/45" />
         </div>
         <p className="mt-4 text-sm font-medium text-white/70">
           No subjects found

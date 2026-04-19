@@ -1,9 +1,9 @@
-// src/components/admin/subjects/SubjectCard.tsx
 "use client";
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
+import { resolveSubjectVisual } from "@/components/admin/subjects/subject-visuals";
 import {
   PremiumDropdownMenu,
   PremiumDropdownMenuTrigger,
@@ -12,7 +12,14 @@ import {
   PremiumDropdownMenuSeparator,
 } from "@/components/ui/premium-dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, School, Users, Pencil, ExternalLink, BookOpen, UserPlus } from "lucide-react";
+import {
+  MoreHorizontal,
+  School,
+  Users,
+  Pencil,
+  ExternalLink,
+  UserPlus,
+} from "lucide-react";
 
 type SubjectCardProps = {
   subject: SubjectDTO;
@@ -42,6 +49,8 @@ export function SubjectCard({
 
   const classCount = subject.classCount ?? 0;
   const teacherCount = subject.teacherCount ?? 0;
+  const visual = resolveSubjectVisual(subject);
+  const Icon = visual.icon;
 
   return (
     <div
@@ -53,34 +62,36 @@ export function SubjectCard({
       }}
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-2xl border bg-linear-to-br backdrop-blur-xl",
-        "border-slate-700/60 from-slate-800/55 via-slate-900/45 to-black/30",
-        "shadow-xl shadow-black/30 transition-all duration-300",
-        "hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/40 cursor-pointer"
+        visual.card,
+        "shadow-[0_20px_55px_-28px_rgba(0,0,0,0.82)] transition-all duration-300",
+        "hover:-translate-y-1.5 hover:shadow-[0_28px_70px_-30px_rgba(0,0,0,0.9)] cursor-pointer"
       )}
     >
-      {/* Glow effect on hover */}
       <div
         className={cn(
           "pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full blur-3xl transition-opacity duration-300",
-          "bg-slate-600/20 opacity-0 group-hover:opacity-100"
+          visual.glow,
+          "opacity-0 group-hover:opacity-100"
         )}
         aria-hidden="true"
       />
 
-      {/* Accent bar */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-slate-500/80" />
+      <div className={cn("pointer-events-none absolute inset-y-0 left-0 w-1", visual.accent)} />
 
-      {/* Top glow */}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
         aria-hidden="true"
       />
 
       <div className="relative z-10 flex flex-col gap-3 p-4 sm:gap-4 sm:p-5">
-        {/* Header */}
         <div className="flex items-start gap-3 sm:gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-600/40 bg-linear-to-br from-slate-700/30 to-slate-800/30 shadow-lg shadow-black/30 sm:h-12 sm:w-12">
-            <BookOpen className="h-5 w-5 text-slate-200 sm:h-6 sm:w-6" />
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-lg shadow-black/30 sm:h-12 sm:w-12",
+              visual.iconShell
+            )}
+          >
+            <Icon className={cn("h-5 w-5 sm:h-6 sm:w-6", visual.iconColor)} />
           </div>
 
           <div className="min-w-0 flex-1">
@@ -89,12 +100,18 @@ export function SubjectCard({
                 <h3 className="truncate text-sm font-semibold text-white sm:text-base">
                   {subject.name}
                 </h3>
-                <p className="truncate text-xs text-white/50">
-                  {subject.code ?? "No code"}
-                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em]",
+                      visual.codeBadge
+                    )}
+                  >
+                    {subject.code ?? "No code"}
+                  </span>
+                </div>
               </div>
 
-              {/* Actions dropdown */}
               <PremiumDropdownMenu>
                 <PremiumDropdownMenuTrigger asChild>
                   <Button
@@ -140,14 +157,13 @@ export function SubjectCard({
               </PremiumDropdownMenu>
             </div>
 
-            {/* Status badge */}
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <span
                 className={cn(
                   "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium",
                   subject.isActive
-                    ? "border-slate-500/40 bg-slate-600/25 text-slate-200"
-                    : "border-slate-500/30 bg-slate-500/20 text-slate-300"
+                    ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+                    : "border-white/10 bg-white/5 text-white/55"
                 )}
               >
                 {subject.isActive ? "Active" : "Inactive"}
@@ -156,16 +172,15 @@ export function SubjectCard({
           </div>
         </div>
 
-        {/* Stats */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
-            <School className="h-3.5 w-3.5 text-slate-300" />
+            <School className={cn("h-3.5 w-3.5", visual.statIcon)} />
             <span className="text-xs font-medium text-white/80">
               {classCount} class{classCount !== 1 ? "es" : ""}
             </span>
           </div>
           <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
-            <Users className="h-3.5 w-3.5 text-slate-300" />
+            <Users className={cn("h-3.5 w-3.5", visual.statIcon)} />
             <span className="text-xs font-medium text-white/80">
               {teacherCount} teacher{teacherCount !== 1 ? "s" : ""}
             </span>

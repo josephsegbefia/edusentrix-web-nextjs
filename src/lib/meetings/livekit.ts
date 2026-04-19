@@ -60,6 +60,17 @@ function normalizeApiUrl(url: string) {
   return url.replace(/\/+$/, "");
 }
 
+/** Twirp HTTP API must use https:// (not wss://). */
+function getLiveKitHttpApiBase() {
+  let url = normalizeApiUrl(getRequiredEnv("LIVEKIT_URL"));
+  if (url.startsWith("wss://")) {
+    url = `https://${url.slice("wss://".length)}`;
+  } else if (url.startsWith("ws://")) {
+    url = `http://${url.slice("ws://".length)}`;
+  }
+  return url;
+}
+
 function buildJwt(options: LiveKitTokenOptions) {
   const apiKey = getRequiredEnv("LIVEKIT_API_KEY");
   const apiSecret = getRequiredEnv("LIVEKIT_API_SECRET");
@@ -88,7 +99,7 @@ async function twirpRoomRequest<T>(
   methodName: "CreateRoom" | "DeleteRoom",
   body: Record<string, unknown>
 ) {
-  const liveKitUrl = normalizeApiUrl(getRequiredEnv("LIVEKIT_URL"));
+  const liveKitUrl = getLiveKitHttpApiBase();
   const token = buildJwt({
     validForSeconds: 60,
     video: {
@@ -148,18 +159,27 @@ export function buildLiveKitRoomName(meetingId: string) {
 }
 
 export async function provisionLiveKitRoom(options: LiveKitRoomOptions) {
+  const emptyTimeout =
+    options.emptyTimeoutSeconds ?? getOptionalInt("LIVEKIT_MEETING_EMPTY_TIMEOUT_SECONDS", 600);
+  const maxParticipants =
+    options.maxParticipants ?? getOptionalInt("LIVEKIT_MEETING_MAX_PARTICIPANTS", 32);
+
+  // Twirp JSON uses proto/json names (snake_case) for RoomService.
+  const body: Record<string, unknown> = {
+    name: options.roomName,
+    empty_timeout: emptyTimeout,
+    max_participants: maxParticipants,
+  };
+  if (options.metadata && Object.keys(options.metadata).length > 0) {
+    body.metadata = JSON.stringify(options.metadata);
+  }
+
   return twirpRoomRequest<{
     sid?: string;
     name: string;
     metadata?: string;
-    maxParticipants?: number;
-  }>("CreateRoom", {
-    name: options.roomName,
-    emptyTimeout: options.emptyTimeoutSeconds ?? getOptionalInt("LIVEKIT_MEETING_EMPTY_TIMEOUT_SECONDS", 600),
-    maxParticipants:
-      options.maxParticipants ?? getOptionalInt("LIVEKIT_MEETING_MAX_PARTICIPANTS", 32),
-    metadata: options.metadata ? JSON.stringify(options.metadata) : "",
-  });
+    max_participants?: number;
+  }>("CreateRoom", body);
 }
 
 export async function deleteLiveKitRoom(roomName: string) {

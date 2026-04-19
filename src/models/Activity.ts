@@ -94,7 +94,8 @@ export type ActivityType =
   | "store.order_paid"
   // Meetings
   | "meeting.created"
-  | "meeting.cancelled";
+  | "meeting.cancelled"
+  | "meeting.deleted";
 
 export interface IActivity {
   _id: Types.ObjectId;

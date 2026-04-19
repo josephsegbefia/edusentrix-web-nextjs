@@ -16,7 +16,7 @@ import {
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { AcademicCalendar } from "@/models/AcademicCalendar";
 import { AcademicCalendarEvent } from "@/models/AcademicCalendarEvent";
-import { Meeting } from "@/models/Meeting";
+import { Meeting, type MeetingHostRole } from "@/models/Meeting";
 import { MeetingParticipant } from "@/models/MeetingParticipant";
 
 const createMeetingSchema = z.object({
@@ -52,9 +52,11 @@ type MeetingRow = {
   status: string;
   visibility: string;
   hostUserId: Types.ObjectId;
+  hostRole: MeetingHostRole;
   provider: string;
   providerStatus: string;
   providerRoomName?: string | null;
+  providerLastError?: string | null;
   participantCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -319,6 +321,7 @@ export async function POST(req: NextRequest) {
                 provider: "livekit",
                 providerStatus: "ready",
                 providerRoomName: roomName,
+                providerLastError: null,
                 updatedBy: context.userId,
               },
             }
@@ -336,6 +339,7 @@ export async function POST(req: NextRequest) {
                 provider: "livekit",
                 providerStatus: "failed",
                 providerRoomName: roomName,
+                providerLastError: providerProvisionError,
                 updatedBy: context.userId,
               },
             }

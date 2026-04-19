@@ -22,6 +22,7 @@ export type MeetingSerializeRow = {
   provider: string;
   providerStatus: string;
   providerRoomName?: string | null;
+  providerLastError?: string | null;
   participantCount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -165,6 +166,7 @@ export async function serializeMeetings(input: {
       provider: meeting.provider,
       providerStatus: meeting.providerStatus,
       providerRoomName: meeting.providerRoomName || null,
+      providerLastError: meeting.providerLastError || null,
       participantCount: meeting.participantCount,
       counts,
       calendar: {

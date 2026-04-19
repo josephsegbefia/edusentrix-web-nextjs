@@ -11,8 +11,10 @@ import {
   Clock,
   GraduationCap,
   Loader2,
+  RefreshCw,
   Search,
   Sparkles,
+  Trash2,
   UserPlus,
   Video,
   Wallet,
@@ -69,6 +71,7 @@ type MeetingRecord = {
   provider: string;
   providerStatus: string;
   providerRoomName?: string | null;
+  providerLastError?: string | null;
   participantCount: number;
   counts: Record<string, number>;
   calendar: {
@@ -234,7 +237,7 @@ function meetingProviderMessage(meeting: Pick<MeetingRecord, "provider" | "provi
   }
 
   if (meeting.provider === "livekit" && meeting.providerStatus === "failed") {
-    return "LiveKit provisioning failed for this meeting. Scheduling and private visibility were still saved.";
+    return "LiveKit provisioning failed for this meeting. Scheduling and private visibility were still saved. Confirm LIVEKIT_URL uses your project’s HTTPS API host, and that LIVEKIT_API_KEY / LIVEKIT_API_SECRET match the LiveKit Cloud project (wss:// in LIVEKIT_URL is converted automatically for server API calls).";
   }
 
   if (meeting.provider === "livekit" && meeting.providerStatus === "pending") {
@@ -455,6 +458,8 @@ export default function AdminMeetingsPage() {
   const [loadingCalendars, setLoadingCalendars] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [cancellingId, setCancellingId] = React.useState<string | null>(null);
+  const [retryingLiveKitId, setRetryingLiveKitId] = React.useState<string | null>(null);
+  const [deletingMeetingId, setDeletingMeetingId] = React.useState<string | null>(null);
   const [meetingSearch, setMeetingSearch] = React.useState("");
   const [activeRecipientRole, setActiveRecipientRole] =
     React.useState<RecipientRole>("parent");
@@ -877,6 +882,66 @@ export default function AdminMeetingsPage() {
     }
   };
 
+  const handleDeleteCancelledMeeting = async (meetingId: string, title: string) => {
+    if (
+      !window.confirm(
+        `Permanently remove “${title}” from the queue? This also deletes the linked calendar entry and invite records.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingMeetingId(meetingId);
+    try {
+      const response = await fetch(`/api/admin/meetings/${meetingId}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "Failed to delete meeting");
+      }
+
+      toast.success("Meeting removed");
+      await loadMeetings(debouncedMeetingSearch);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete meeting"
+      );
+    } finally {
+      setDeletingMeetingId(null);
+    }
+  };
+
+  const handleRetryLiveKitProvision = async (meetingId: string) => {
+    setRetryingLiveKitId(meetingId);
+    try {
+      const response = await fetch(`/api/admin/meetings/${meetingId}/provision-livekit`, {
+        method: "POST",
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        const detail =
+          (payload.providerProvisionError as string | undefined) ||
+          (payload.error as string | undefined) ||
+          "LiveKit provisioning failed.";
+        toast.error("Could not create the video room", { description: detail });
+        await loadMeetings(debouncedMeetingSearch);
+        return;
+      }
+
+      toast.success("Video room is ready");
+      await loadMeetings(debouncedMeetingSearch);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to retry video provisioning"
+      );
+    } finally {
+      setRetryingLiveKitId(null);
+    }
+  };
+
   const publishedCalendarCount = calendars.filter((calendar) => calendar.isPublished).length;
 
   return (
@@ -893,8 +958,9 @@ export default function AdminMeetingsPage() {
               </h1>
               <p className="max-w-3xl text-sm text-white/65">
                 Schedule invite-only meetings for parents, teachers, and bursars.
-                This slice publishes private meeting entries into the school calendar
-                first. Video room provisioning is intentionally still pending.
+                This slice publishes private meeting entries into the school calendar.
+                When LiveKit env vars are set, a room is created automatically; you can
+                retry from the list if provisioning fails.
               </p>
             </div>
           </div>
@@ -1306,7 +1372,8 @@ export default function AdminMeetingsPage() {
               <div>
                 <CardTitle className="text-xl">Meeting Queue</CardTitle>
                 <p className="mt-1 text-sm text-white/55">
-                  Review upcoming meetings and cancel when plans change.
+                  Review meetings, cancel when plans change, or delete cancelled rows
+                  to clear the queue.
                 </p>
               </div>
               <div className="relative w-full max-w-[220px]">
@@ -1365,36 +1432,83 @@ export default function AdminMeetingsPage() {
                           )}
                         </div>
 
-                        {meeting.status !== "cancelled" && (
-                          <div className="flex flex-wrap gap-2">
-                            {meeting.provider === "livekit" &&
-                            meeting.providerStatus === "ready" ? (
+                        <div className="flex flex-wrap gap-2">
+                          {meeting.status !== "cancelled" ? (
+                            <>
+                              {meeting.provider === "livekit" &&
+                              meeting.providerStatus === "ready" ? (
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  className="bg-brand text-brand-foreground hover:bg-brand/90"
+                                >
+                                  <Link href={`/admin/meetings/${meeting.id}`}>Join room</Link>
+                                </Button>
+                              ) : null}
+                              {meeting.provider === "livekit" &&
+                              (meeting.providerStatus === "failed" ||
+                                meeting.providerStatus === "pending") ? (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  disabled={retryingLiveKitId === meeting.id}
+                                  onClick={() => handleRetryLiveKitProvision(meeting.id)}
+                                  className="border border-white/10 bg-white/10 text-white hover:bg-white/15"
+                                >
+                                  {retryingLiveKitId === meeting.id ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Retrying…
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RefreshCw className="mr-2 h-4 w-4" />
+                                      Retry room setup
+                                    </>
+                                  )}
+                                </Button>
+                              ) : null}
                               <Button
-                                asChild
+                                variant="outline"
                                 size="sm"
-                                className="bg-brand text-brand-foreground hover:bg-brand/90"
+                                disabled={cancellingId === meeting.id}
+                                onClick={() => handleCancelMeeting(meeting.id)}
+                                className="border-white/10 bg-transparent text-white hover:bg-white/10"
                               >
-                                <Link href={`/admin/meetings/${meeting.id}`}>Join room</Link>
+                                {cancellingId === meeting.id ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Cancelling
+                                  </>
+                                ) : (
+                                  "Cancel"
+                                )}
                               </Button>
-                            ) : null}
+                            </>
+                          ) : (
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={cancellingId === meeting.id}
-                              onClick={() => handleCancelMeeting(meeting.id)}
-                              className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                              disabled={deletingMeetingId === meeting.id}
+                              onClick={() =>
+                                handleDeleteCancelledMeeting(meeting.id, meeting.title)
+                              }
+                              className="border-rose-400/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
                             >
-                              {cancellingId === meeting.id ? (
+                              {deletingMeetingId === meeting.id ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Cancelling
+                                  Deleting…
                                 </>
                               ) : (
-                                "Cancel"
+                                <>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </>
                               )}
                             </Button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
 
                       <div className="grid gap-2 text-sm text-white/65">
@@ -1416,9 +1530,25 @@ export default function AdminMeetingsPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/85">
-                        Video provider state: {meeting.providerStatus}.{" "}
-                        {meetingProviderMessage(meeting)}
+                      <div
+                        className={cn(
+                          "rounded-2xl border px-3 py-2 text-xs",
+                          meeting.providerStatus === "failed"
+                            ? "border-rose-400/25 bg-rose-500/10 text-rose-100/90"
+                            : "border-amber-400/20 bg-amber-500/10 text-amber-100/85"
+                        )}
+                      >
+                        <div>
+                          Video provider state: {meeting.providerStatus}.{" "}
+                          {meetingProviderMessage(meeting)}
+                        </div>
+                        {meeting.provider === "livekit" &&
+                          meeting.providerStatus === "failed" &&
+                          meeting.providerLastError ? (
+                          <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-black/25 p-2 font-mono text-[11px] text-white/80">
+                            {meeting.providerLastError}
+                          </pre>
+                        ) : null}
                       </div>
 
                       <div className="flex flex-wrap gap-2">

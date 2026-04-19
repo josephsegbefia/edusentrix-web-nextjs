@@ -39,6 +39,8 @@ export interface IMeeting {
   provider: MeetingProvider;
   providerStatus: MeetingProviderStatus;
   providerRoomName?: string | null;
+  /** Last LiveKit (or other provider) provisioning error for staff debugging */
+  providerLastError?: string | null;
   reminderMinutesBefore?: number[];
   participantCount: number;
   createdBy: Types.ObjectId;
@@ -115,6 +117,7 @@ const meetingSchema = new Schema<IMeeting>(
       index: true,
     },
     providerRoomName: { type: String, default: null, trim: true },
+    providerLastError: { type: String, default: null, trim: true },
     reminderMinutesBefore: { type: [Number], default: [] },
     participantCount: { type: Number, default: 0, min: 0 },
     createdBy: {

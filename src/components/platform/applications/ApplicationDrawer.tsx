@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { usePromptDialog } from "@/hooks/usePromptDialog";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { RejectionModal } from "./RejectionModal";
@@ -271,6 +272,9 @@ const formatRawValue = (value: unknown): string => {
   return String(value);
 };
 
+/** Stack above application sheet (`z-50`) and premium selects; below portaled date picker. */
+const STATUS_NOTE_PROMPT_Z = "z-[220]";
+
 function updateMetricsCache(
   qc: ReturnType<typeof useQueryClient>,
   metric: "pending" | "approved" | "rejected",
@@ -300,6 +304,7 @@ export default function ApplicationDrawer({
   const isMobile = useIsMobile();
   const qc = useQueryClient();
   const { promise } = useBusyToast();
+  const { prompt, promptDialog } = usePromptDialog();
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [editStage, setEditStage] = useState<string>("lead");
@@ -309,6 +314,25 @@ export default function ApplicationDrawer({
   const [enLastName, setEnLastName] = useState("");
   const [enGradeId, setEnGradeId] = useState("");
   const [enClassId, setEnClassId] = useState("");
+
+  const askOptionalStatusNote = async (opts: {
+    title: string;
+    description?: string;
+    confirmLabel?: string;
+    intent?: "default" | "warning" | "destructive";
+  }) => {
+    return prompt({
+      title: opts.title,
+      description:
+        opts.description ??
+        "Stored on the application audit trail. You can leave this blank.",
+      inputLabel: "Note (optional)",
+      placeholder: "Optional note…",
+      confirmLabel: opts.confirmLabel ?? "Continue",
+      zIndexClass: STATUS_NOTE_PROMPT_Z,
+      intent: opts.intent ?? "default",
+    });
+  };
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["applications:detail", id],
@@ -651,11 +675,12 @@ export default function ApplicationDrawer({
 
   return (
     <>
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet modal={false} open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={side}
         onInteractOutside={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         className={cn(
           "bg-card/95 backdrop-blur border-white/10 px-4 py-6",
@@ -990,13 +1015,14 @@ export default function ApplicationDrawer({
                               approve.isPending ||
                               reject.isPending
                             }
-                            onClick={() => {
-                              const note = window.prompt(
-                                "Optional note for review"
-                              );
+                            onClick={async () => {
+                              const note = await askOptionalStatusNote({
+                                title: "Optional note for review",
+                              });
+                              if (note === null) return;
                               review.mutate({
                                 status: "reviewed",
-                                note: note ?? undefined,
+                                note: note || undefined,
                               });
                             }}
                           >
@@ -1014,13 +1040,16 @@ export default function ApplicationDrawer({
                                 approve.isPending ||
                                 reject.isPending
                               }
-                              onClick={() => {
-                                const note = window.prompt(
-                                  "Optional note for returning to submitted"
-                                );
+                              onClick={async () => {
+                                const note = await askOptionalStatusNote({
+                                  title: "Return to submitted",
+                                  description:
+                                    "Optional note for returning to submitted.",
+                                });
+                                if (note === null) return;
                                 review.mutate({
                                   status: "submitted",
-                                  note: note ?? undefined,
+                                  note: note || undefined,
                                 });
                               }}
                             >
@@ -1039,13 +1068,16 @@ export default function ApplicationDrawer({
                                 approve.isPending ||
                                 reject.isPending
                               }
-                              onClick={() => {
-                                const note = window.prompt(
-                                  "Optional note for status change"
-                                );
+                              onClick={async () => {
+                                const note = await askOptionalStatusNote({
+                                  title: "Return to submitted",
+                                  description:
+                                    "Optional note for this status change.",
+                                });
+                                if (note === null) return;
                                 review.mutate({
                                   status: "submitted",
-                                  note: note ?? undefined,
+                                  note: note || undefined,
                                 });
                               }}
                             >
@@ -1060,13 +1092,17 @@ export default function ApplicationDrawer({
                                 approve.isPending ||
                                 reject.isPending
                               }
-                              onClick={() => {
-                                const note = window.prompt(
-                                  "Optional note for rejection"
-                                );
+                              onClick={async () => {
+                                const note = await askOptionalStatusNote({
+                                  title: "Reject application",
+                                  description: "Optional note for rejection.",
+                                  confirmLabel: "Reject",
+                                  intent: "destructive",
+                                });
+                                if (note === null) return;
                                 review.mutate({
                                   status: "rejected",
-                                  note: note ?? undefined,
+                                  note: note || undefined,
                                 });
                               }}
                             >
@@ -1085,13 +1121,16 @@ export default function ApplicationDrawer({
                                 approve.isPending ||
                                 reject.isPending
                               }
-                              onClick={() => {
-                                const note = window.prompt(
-                                  "Optional note for status change"
-                                );
+                              onClick={async () => {
+                                const note = await askOptionalStatusNote({
+                                  title: "Return to submitted",
+                                  description:
+                                    "Optional note for this status change.",
+                                });
+                                if (note === null) return;
                                 review.mutate({
                                   status: "submitted",
-                                  note: note ?? undefined,
+                                  note: note || undefined,
                                 });
                               }}
                             >
@@ -1106,13 +1145,14 @@ export default function ApplicationDrawer({
                                 approve.isPending ||
                                 reject.isPending
                               }
-                              onClick={() => {
-                                const note = window.prompt(
-                                  "Optional note for review"
-                                );
+                              onClick={async () => {
+                                const note = await askOptionalStatusNote({
+                                  title: "Optional note for review",
+                                });
+                                if (note === null) return;
                                 review.mutate({
                                   status: "reviewed",
-                                  note: note ?? undefined,
+                                  note: note || undefined,
                                 });
                               }}
                             >
@@ -1127,13 +1167,16 @@ export default function ApplicationDrawer({
                                 approve.isPending ||
                                 reject.isPending
                               }
-                              onClick={() => {
-                                const note = window.prompt(
-                                  "Optional note for approval"
-                                );
+                              onClick={async () => {
+                                const note = await askOptionalStatusNote({
+                                  title: "Approve application",
+                                  description: "Optional note for approval.",
+                                  confirmLabel: "Approve",
+                                });
+                                if (note === null) return;
                                 review.mutate({
                                   status: "approved",
-                                  note: note ?? undefined,
+                                  note: note || undefined,
                                 });
                               }}
                             >
@@ -1307,6 +1350,8 @@ export default function ApplicationDrawer({
         isPending={reject.isPending}
       />
     </Sheet>
+
+    {promptDialog}
 
     <Dialog open={enrollOpen} onOpenChange={setEnrollOpen}>
       <DialogContent className="border-white/10 bg-card text-white sm:max-w-md">

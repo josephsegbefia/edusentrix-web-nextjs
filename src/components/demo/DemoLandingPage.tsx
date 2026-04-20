@@ -37,7 +37,7 @@ export function DemoLandingPage() {
             </span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
-              90 min session
+              5 min idle timeout
             </span>
           </div>
         </div>

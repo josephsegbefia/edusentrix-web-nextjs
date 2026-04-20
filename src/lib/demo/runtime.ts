@@ -14,7 +14,8 @@ export const DEMO_CONFIG = {
   defaultSessionMinutes: Number(
     process.env.DEMO_DEFAULT_SESSION_MINUTES || 90
   ),
-  maxActiveSessions: Number(process.env.DEMO_MAX_ACTIVE_SESSIONS || 20),
+  idleTimeoutMinutes: Number(process.env.DEMO_IDLE_TIMEOUT_MINUTES || 5),
+  maxActiveSessions: Number(process.env.DEMO_MAX_ACTIVE_SESSIONS || 50),
   uploadsEnabled: process.env.DEMO_UPLOADS_ENABLED === "true",
   aiEnabled: process.env.DEMO_AI_ENABLED !== "false",
   aiMaxRequestsPerSession: Number(

@@ -9,6 +9,7 @@ type DemoSessionInfo = {
   activePersonaRole: string;
   expiresAt: string;
   sandboxSchoolId: string | null;
+  idleTimeoutMinutes: number;
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -37,11 +38,101 @@ export function DemoBanner() {
     }
   }, []);
 
+  const sendHeartbeat = useCallback(async () => {
+    try {
+      await fetch("/api/demo/heartbeat", {
+        method: "POST",
+        keepalive: true,
+      });
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   useEffect(() => {
     fetchSession();
     const interval = setInterval(fetchSession, 60_000);
     return () => clearInterval(interval);
   }, [fetchSession]);
+
+  useEffect(() => {
+    if (!session) return;
+
+    const idleTimeoutMs = (session.idleTimeoutMinutes || 5) * 60_000;
+    let lastInteractionAt = Date.now();
+    let lastHeartbeatAt = 0;
+    let ended = false;
+
+    const recordActivity = () => {
+      if (ended) return;
+      lastInteractionAt = Date.now();
+      if (lastInteractionAt - lastHeartbeatAt >= 45_000) {
+        lastHeartbeatAt = lastInteractionAt;
+        void sendHeartbeat();
+      }
+    };
+
+    const idleInterval = window.setInterval(() => {
+      if (ended) return;
+      if (Date.now() - lastInteractionAt >= idleTimeoutMs) {
+        ended = true;
+        void (async () => {
+          await fetch("/api/demo/end-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: "idle_timeout" }),
+            keepalive: true,
+          }).catch(() => null);
+          router.push("/");
+        })();
+      }
+    }, 15_000);
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      "pointerdown",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "focus",
+    ];
+
+    for (const eventName of activityEvents) {
+      window.addEventListener(eventName, recordActivity, { passive: true });
+    }
+
+    recordActivity();
+
+    const handlePageHide = () => {
+      if (ended) return;
+      ended = true;
+      try {
+        const body = JSON.stringify({ reason: "tab_closed" });
+        if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+          const blob = new Blob([body], { type: "application/json" });
+          navigator.sendBeacon("/api/demo/end-session", blob);
+          return;
+        }
+      } catch {
+        /* fall through */
+      }
+      void fetch("/api/demo/end-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "tab_closed" }),
+        keepalive: true,
+      }).catch(() => null);
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.clearInterval(idleInterval);
+      window.removeEventListener("pagehide", handlePageHide);
+      for (const eventName of activityEvents) {
+        window.removeEventListener(eventName, recordActivity);
+      }
+    };
+  }, [router, sendHeartbeat, session]);
 
   useEffect(() => {
     if (!session?.expiresAt) return;
@@ -155,8 +246,7 @@ export function DemoBanner() {
               Demo session expired
             </h2>
             <p className="mb-6 text-sm text-gray-600">
-              Your 90-minute demo session has ended. Start a new one to
-              continue exploring.
+              Your demo session ended after inactivity. Start a new one to continue exploring.
             </p>
             <button
               onClick={() => router.push("/")}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { isDemoMode } from "@/lib/demo/runtime";
+import { DEMO_CONFIG, isDemoMode } from "@/lib/demo/runtime";
 import { resolveDemoSessionFromCookie } from "@/lib/demo/session";
 
 export async function GET() {
@@ -32,6 +32,8 @@ export async function GET() {
       startedAt: session.startedAt,
       expiresAt: session.expiresAt,
       lastActiveAt: session.lastActiveAt,
+      lastInteractionAt: session.lastInteractionAt,
+      idleTimeoutMinutes: DEMO_CONFIG.idleTimeoutMinutes,
     },
   });
 }

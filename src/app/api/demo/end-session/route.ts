@@ -4,12 +4,10 @@ import { isDemoMode } from "@/lib/demo/runtime";
 import {
   resolveDemoSessionFromCookie,
   clearDemoSessionCookie,
+  endDemoSession,
 } from "@/lib/demo/session";
-import { DemoSession } from "@/models/DemoSession";
-import { DemoLead } from "@/models/DemoLead";
-import { releaseDemoSandbox } from "@/lib/demo/sandbox";
 
-export async function POST() {
+export async function POST(req: Request) {
   if (!isDemoMode()) {
     return NextResponse.json(
       { success: false, error: "Demo mode is not enabled." },
@@ -29,20 +27,20 @@ export async function POST() {
   }
 
   const now = new Date();
-
-  await DemoSession.updateOne(
-    { _id: session._id },
-    { $set: { status: "ended", endedAt: now } }
-  );
-
-  if (session.sandboxId) {
-    await releaseDemoSandbox(session.sandboxId);
+  let reason: "manual_end" | "tab_closed" | "idle_timeout" = "manual_end";
+  try {
+    const body = await req.json();
+    if (
+      body?.reason === "tab_closed" ||
+      body?.reason === "idle_timeout" ||
+      body?.reason === "manual_end"
+    ) {
+      reason = body.reason;
+    }
+  } catch {
+    // sendBeacon often sends an empty body — ignore parse errors.
   }
-
-  await DemoLead.updateOne(
-    { _id: session.leadId },
-    { $set: { status: "completed_demo", lastSeenAt: now } }
-  );
+  await endDemoSession(session, reason, now);
 
   await clearDemoSessionCookie();
 

@@ -19,6 +19,7 @@ export interface IDemoSession {
   startedAt: Date;
   expiresAt: Date;
   lastActiveAt: Date;
+  lastInteractionAt: Date;
   endedAt?: Date | null;
   ipAddress?: string | null;
   userAgent?: string | null;
@@ -60,6 +61,7 @@ const demoSessionSchema = new Schema<IDemoSession>(
     startedAt: { type: Date, default: Date.now },
     expiresAt: { type: Date, required: true },
     lastActiveAt: { type: Date, default: Date.now },
+    lastInteractionAt: { type: Date, default: Date.now },
     endedAt: { type: Date, default: null },
     ipAddress: { type: String, default: null },
     userAgent: { type: String, default: null },
@@ -72,6 +74,7 @@ const demoSessionSchema = new Schema<IDemoSession>(
 demoSessionSchema.index({ sessionTokenHash: 1 }, { unique: true });
 demoSessionSchema.index({ leadId: 1, status: 1 });
 demoSessionSchema.index({ status: 1, expiresAt: 1 });
+demoSessionSchema.index({ status: 1, lastInteractionAt: 1 });
 demoSessionSchema.index(
   { expiresAt: 1 },
   { expireAfterSeconds: 86400 }

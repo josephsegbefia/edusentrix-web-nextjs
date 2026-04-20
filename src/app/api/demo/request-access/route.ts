@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { isDemoMode } from "@/lib/demo/runtime";
 import { createOrReuseDemoAccess } from "@/lib/demo/leads";
 import { DemoSession } from "@/models/DemoSession";
+import { DemoSandbox } from "@/models/DemoSandbox";
 
 const RequestAccessSchema = z.object({
   fullName: z.string().trim().min(2, "Full name is required"),
@@ -40,13 +41,28 @@ export async function POST(req: NextRequest) {
   await connectToDatabase();
 
   const activeSessions = await DemoSession.countDocuments({ status: "active" });
-  const maxSessions = Number(process.env.DEMO_MAX_ACTIVE_SESSIONS || 20);
+  const maxSessions = Number(process.env.DEMO_MAX_ACTIVE_SESSIONS || 50);
   if (activeSessions >= maxSessions) {
     return NextResponse.json(
       {
         success: false,
         error:
           "All demo slots are currently in use. Please try again shortly.",
+        reason: "capacity_blocked",
+      },
+      { status: 503 }
+    );
+  }
+
+  const availableSandboxes = await DemoSandbox.countDocuments({
+    state: { $in: ["available", "allocated"] },
+  });
+  if (availableSandboxes <= 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "The demo pool has not been provisioned yet. Seed the flagship demo sandboxes before opening new sessions.",
         reason: "capacity_blocked",
       },
       { status: 503 }

@@ -84,6 +84,7 @@ import { useReportsSummary, useReportsCharts } from "@/hooks/admin/useReports";
 import { useStudentStats } from "@/hooks/admin/useStudentStats";
 import { useTeacherStats } from "@/hooks/admin/useTeacherStats";
 import { useSchool } from "@/hooks/admin/useSchool";
+import { isClientDemoMode } from "@/lib/demo/runtime";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -448,6 +449,7 @@ function useCommandPalette(items: CmdItem[]) {
 
 export default function SchoolAdminOverviewPage() {
   const router = useRouter();
+  const isDemoClient = isClientDemoMode();
   const { data: m } = useAdminMetrics();
   useAdminSSE();
   const feeSummaryQuery = useFeeSummary();
@@ -768,6 +770,7 @@ export default function SchoolAdminOverviewPage() {
 
   /* Auto-show period expiry modal for critical statuses */
   React.useEffect(() => {
+    if (isDemoClient) return;
     if (
       periodStatus &&
       (periodStatus.status === "no_period" ||
@@ -780,7 +783,7 @@ export default function SchoolAdminOverviewPage() {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [periodStatus?.status]);
+  }, [isDemoClient, periodStatus?.status]);
 
   /* Student create busy state */
   const [creatingStudent, setCreatingStudent] = useState(false);
@@ -974,6 +977,7 @@ export default function SchoolAdminOverviewPage() {
   const [toastId, setToastId] = React.useState<string | number | null>(null);
 
   React.useEffect(() => {
+    if (isDemoClient) return;
     // Don't show toasts until data has loaded
     if (onboarding.isLoading) {
       return;
@@ -1024,7 +1028,7 @@ export default function SchoolAdminOverviewPage() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboarding.step, onboarding.isLoading]);
+  }, [isDemoClient, onboarding.step, onboarding.isLoading]);
 
   return (
     <div className="space-y-6">
@@ -1042,10 +1046,12 @@ export default function SchoolAdminOverviewPage() {
       </div>
 
       {/* Period Warning Banner */}
-      <PeriodWarningBanner
-        onCreatePeriod={() => setShowCreatePeriod(true)}
-        schoolLevel={schoolLevelForPeriodBanner}
-      />
+      {!isDemoClient ? (
+        <PeriodWarningBanner
+          onCreatePeriod={() => setShowCreatePeriod(true)}
+          schoolLevel={schoolLevelForPeriodBanner}
+        />
+      ) : null}
 
       <SchoolShsContextHint variant="admin" />
 
@@ -2546,14 +2552,16 @@ export default function SchoolAdminOverviewPage() {
       </ResponsiveModal>
 
       {/* Period Expiry Modal (auto-shows for critical statuses) */}
-      <PeriodExpiryModal
-        open={showPeriodExpiryModal}
-        onOpenChange={setShowPeriodExpiryModal}
-        onCreatePeriod={() => {
-          setShowPeriodExpiryModal(false);
-          setShowCreatePeriod(true);
-        }}
-      />
+      {!isDemoClient ? (
+        <PeriodExpiryModal
+          open={showPeriodExpiryModal}
+          onOpenChange={setShowPeriodExpiryModal}
+          onCreatePeriod={() => {
+            setShowPeriodExpiryModal(false);
+            setShowCreatePeriod(true);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,18 +1,13 @@
 import mongoose from "mongoose";
-import crypto from "node:crypto";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { DemoSandbox, type IDemoSandbox } from "@/models/DemoSandbox";
-import {
-  deleteOrderedCollections,
-} from "./collection-registry";
+import { DEMO_CONFIG } from "./runtime";
+import { releaseDemoSandbox } from "./sandbox";
+import { trackDemoEvent, DEMO_EVENT_CODES } from "./telemetry";
 
 /**
- * Reset a single sandbox school by deleting all school-scoped data and
- * re-running the seed.  The sandbox transitions through states:
- *
- *   allocated → resetting → (delete + seed) → available
- *
- * This is designed to be called from a cron endpoint or background job.
+ * Soft-reset a sandbox back to `available` without deleting its seeded
+ * school data. The demo environment relies on stable, preloaded content.
  */
 export async function resetSandbox(
   sandboxId: mongoose.Types.ObjectId
@@ -34,31 +29,6 @@ export async function resetSandbox(
   const { schoolId } = sandbox;
 
   try {
-    const ordered = deleteOrderedCollections();
-
-    for (const entry of ordered) {
-      const model = mongoose.models[entry.modelName];
-      if (!model) continue;
-      const filter: Record<string, unknown> = {
-        [entry.schoolIdField]: schoolId,
-      };
-      const result = await model.deleteMany(filter);
-      if (result.deletedCount > 0) {
-        console.log(
-          `[reset] Deleted ${result.deletedCount} ${entry.modelName} docs`
-        );
-      }
-    }
-
-    const School = mongoose.model("School");
-    const existing = await School.findById(schoolId).lean();
-    if (existing) {
-      await School.deleteOne({ _id: schoolId });
-      console.log("[reset] Deleted School document");
-    }
-
-    // Re-seed will be handled by the seed script or an inline seed function
-    // For now, mark as tainted until a full re-seed runs
     const durationMs = Date.now() - start;
 
     await DemoSandbox.updateOne(
@@ -73,10 +43,17 @@ export async function resetSandbox(
           lastResetAt: new Date(),
           lastResetDurationMs: durationMs,
           lastResetError: null,
-          seedFingerprint: crypto.randomBytes(16).toString("hex"),
         },
       }
     );
+
+    await trackDemoEvent({
+      sandboxId,
+      schoolId,
+      eventType: "sandbox",
+      eventCode: DEMO_EVENT_CODES.SANDBOX_RESET,
+      metadata: { mode: "soft_reset" },
+    });
 
     console.log(`[reset] Sandbox ${sandboxId} reset in ${durationMs}ms`);
     return { ok: true, durationMs };
@@ -138,44 +115,73 @@ export async function expireStaleSessions(): Promise<number> {
   const { DemoLead } = await import("@/models/DemoLead");
 
   const now = new Date();
+  const idleCutoff = new Date(
+    now.getTime() - DEMO_CONFIG.idleTimeoutMinutes * 60_000
+  );
   const expired = await DemoSession.find({
     status: "active",
-    expiresAt: { $lte: now },
+    $or: [
+      { expiresAt: { $lte: now } },
+      { lastInteractionAt: { $lte: idleCutoff } },
+    ],
   })
-    .select("_id sandboxId leadId")
+    .select(
+      "_id sandboxId sandboxSchoolId leadId activePersonaRole expiresAt lastInteractionAt"
+    )
     .lean<
       Array<{
         _id: mongoose.Types.ObjectId;
         sandboxId: mongoose.Types.ObjectId | null;
+        sandboxSchoolId: mongoose.Types.ObjectId | null;
         leadId: mongoose.Types.ObjectId;
+        activePersonaRole: string | null;
+        expiresAt: Date;
+        lastInteractionAt?: Date | null;
       }>
     >();
 
   for (const session of expired) {
+    const isIdleExpired =
+      Boolean(session.lastInteractionAt) &&
+      new Date(session.lastInteractionAt as Date).getTime() <=
+        idleCutoff.getTime();
+
     await DemoSession.updateOne(
       { _id: session._id },
-      { $set: { status: "expired", endedAt: now } }
+      {
+        $set: {
+          status: isIdleExpired ? "abandoned" : "expired",
+          endedAt: now,
+        },
+      }
     );
-
-    if (session.sandboxId) {
-      await DemoSandbox.updateOne(
-        { _id: session.sandboxId, state: "allocated" },
-        {
-          $set: {
-            state: "resetting",
-            allocatedSessionId: null,
-            allocatedLeadId: null,
-            allocatedAt: null,
-            expiresAt: null,
-          },
-        }
-      );
-    }
 
     await DemoLead.updateOne(
       { _id: session.leadId },
-      { $set: { status: "completed_demo", lastSeenAt: now } }
+      {
+        $set: {
+          status: "completed_demo",
+          lastSeenAt: now,
+        },
+      }
     );
+
+    if (session.sandboxId) {
+      await releaseDemoSandbox(session.sandboxId);
+    }
+
+    await trackDemoEvent({
+      leadId: session.leadId,
+      sessionId: session._id,
+      sandboxId: session.sandboxId,
+      schoolId: session.sandboxSchoolId,
+      actorRole: session.activePersonaRole,
+      eventType: "session",
+      eventCode: DEMO_EVENT_CODES.SESSION_EXPIRED,
+      metadata: {
+        reason: isIdleExpired ? "idle_timeout" : "session_expired",
+      },
+    });
   }
 
   if (expired.length > 0) {

@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { isDemoMode } from "@/lib/demo/runtime";
-import { resolveDemoSessionFromCookie } from "@/lib/demo/session";
+import {
+  resolveDemoSessionFromCookie,
+  touchDemoSessionInteraction,
+} from "@/lib/demo/session";
 import { DemoSession } from "@/models/DemoSession";
 import { User } from "@/models/User";
+import { trackDemoEvent, DEMO_EVENT_CODES } from "@/lib/demo/telemetry";
 
 const ALLOWED_PERSONAS = [
   "school_admin",
@@ -76,6 +80,18 @@ export async function POST(req: NextRequest) {
       },
     }
   );
+  await touchDemoSessionInteraction(session._id);
+  await trackDemoEvent({
+    leadId: session.leadId,
+    sessionId: session._id,
+    sandboxId: session.sandboxId,
+    schoolId: session.sandboxSchoolId,
+    actorRole: targetRole,
+    actorUserId: personaUser._id,
+    eventType: "persona",
+    eventCode: DEMO_EVENT_CODES.PERSONA_SWITCHED,
+    metadata: { role: targetRole },
+  });
 
   const redirectMap: Record<string, string> = {
     school_admin: "/admin",

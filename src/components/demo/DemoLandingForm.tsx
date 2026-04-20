@@ -136,7 +136,7 @@ export function DemoLandingForm() {
       </button>
 
       <p className="text-center text-xs text-gray-500">
-        No account needed. Your demo expires in 90 minutes.
+        No account needed. Your demo ends after 5 minutes of inactivity.
       </p>
     </form>
   );

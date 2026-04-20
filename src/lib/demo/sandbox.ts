@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 import { DemoSandbox, type IDemoSandbox } from "@/models/DemoSandbox";
+import { School } from "@/models/School";
 import { DEMO_CONFIG } from "./runtime";
 
 /**
@@ -16,38 +17,57 @@ export async function allocateDemoSandbox(
     now.getTime() + DEMO_CONFIG.defaultSessionMinutes * 60_000
   );
 
-  const sandbox = await DemoSandbox.findOneAndUpdate(
-    { state: "available" },
-    {
-      $set: {
-        state: "allocated",
-        allocatedLeadId: leadId,
-        allocatedAt: now,
-        expiresAt,
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const sandbox = await DemoSandbox.findOneAndUpdate(
+      { state: "available" },
+      {
+        $set: {
+          state: "allocated",
+          allocatedLeadId: leadId,
+          allocatedAt: now,
+          expiresAt,
+        },
       },
-    },
-    { sort: { lastResetAt: 1 }, new: true }
-  ).lean<IDemoSandbox>();
+      { sort: { lastResetAt: 1 }, new: true }
+    ).lean<IDemoSandbox>();
 
-  return sandbox ?? null;
+    if (!sandbox) return null;
+
+    const schoolExists = await School.exists({ _id: sandbox.schoolId });
+    if (schoolExists) return sandbox;
+
+    await DemoSandbox.updateOne(
+      { _id: sandbox._id },
+      {
+        $set: {
+          state: "tainted",
+          lastResetError:
+            "Sandbox school record is missing. Re-seed this demo tenant.",
+        },
+      }
+    );
+  }
+
+  return null;
 }
 
 /**
- * Release a sandbox back to the pool by marking it for reset.
- * The reset worker picks up sandboxes in `resetting` state.
+ * Release a sandbox back to the pool without destroying its seeded
+ * school data. This keeps the demo environment usable between sessions.
  */
 export async function releaseDemoSandbox(
   sandboxId: Types.ObjectId
 ): Promise<void> {
   await DemoSandbox.updateOne(
-    { _id: sandboxId, state: "allocated" },
+    { _id: sandboxId },
     {
       $set: {
-        state: "resetting",
+        state: "available",
         allocatedSessionId: null,
         allocatedLeadId: null,
         allocatedAt: null,
         expiresAt: null,
+        lastResetError: null,
       },
     }
   );

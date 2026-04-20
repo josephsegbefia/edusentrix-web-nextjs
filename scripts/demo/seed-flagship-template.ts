@@ -6,7 +6,7 @@
  * teachers, students, guardians, fee structures, grades, timetables, etc.
  *
  * Usage:
- *   npx tsx scripts/demo/seed-flagship-template.ts [--pool-size=5]
+ *   npx tsx scripts/demo/seed-flagship-template.ts [--pool-size=50]
  *
  * Loads env from `.env.demo` (then `.env.local` as fallback) so you
  * don't need to pass MONGODB_URI manually.
@@ -28,7 +28,7 @@ import crypto from "node:crypto";
 
 const TEMPLATE_KEY = "flagship_basic_v1";
 const TEMPLATE_VERSION = 1;
-const DEFAULT_POOL_SIZE = 5;
+const DEFAULT_POOL_SIZE = 50;
 
 function oid() {
   return new Types.ObjectId();
@@ -429,7 +429,7 @@ async function cleanPreviousRun() {
 }
 
 async function main() {
-  const poolSize = Number(
+  const requestedPoolSize = Number(
     process.argv.find((a) => a.startsWith("--pool-size="))?.split("=")[1] ||
       DEFAULT_POOL_SIZE
   );
@@ -445,13 +445,27 @@ async function main() {
 
   await registerTemplateVersion();
 
-  for (let i = 0; i < poolSize; i++) {
-    console.log(`\n[seed] Creating sandbox ${i + 1}/${poolSize}...`);
+  const DemoSandbox = mongoose.model("DemoSandbox");
+  const existingSandboxCount = await DemoSandbox.countDocuments();
+  const sandboxesToCreate = Math.max(0, requestedPoolSize - existingSandboxCount);
+
+  if (sandboxesToCreate === 0) {
+    console.log(
+      `[seed] Demo pool already has ${existingSandboxCount} sandboxes. Nothing to add.`
+    );
+    await mongoose.disconnect();
+    process.exit(0);
+  }
+
+  for (let i = 0; i < sandboxesToCreate; i++) {
+    console.log(
+      `\n[seed] Creating sandbox ${existingSandboxCount + i + 1}/${requestedPoolSize}...`
+    );
     const ctx = await seedSchool();
     await registerSandbox(ctx);
   }
 
-  console.log(`\n[seed] Done — ${poolSize} sandboxes ready`);
+  console.log(`\n[seed] Done — ${requestedPoolSize} sandboxes ready`);
   await mongoose.disconnect();
   process.exit(0);
 }

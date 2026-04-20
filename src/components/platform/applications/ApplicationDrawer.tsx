@@ -654,6 +654,9 @@ export default function ApplicationDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={side}
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
         className={cn(
           "bg-card/95 backdrop-blur border-white/10 px-4 py-6",
           isMobile ? "h-[90vh] rounded-t-2xl" : "w-full sm:max-w-lg"

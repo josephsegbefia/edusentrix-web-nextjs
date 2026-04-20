@@ -11,6 +11,7 @@ import { User } from "@/models/User";
 import { Application } from "@/models/Application";
 import { ApplicationAudit } from "@/models/ApplicationAudit";
 import { School } from "@/models/School";
+import "@/models/Student";
 import mongoose from "mongoose";
 import { recordApplicationAudit } from "@/lib/audit/recordApplicationAudit";
 import {
@@ -61,6 +62,17 @@ function refIdString(
   return String(ref);
 }
 
+function isPopulatedDoc(
+  value: unknown
+): value is Record<string, unknown> & { _id: unknown } {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      "_id" in (value as Record<string, unknown>)
+  );
+}
+
 export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
@@ -95,7 +107,7 @@ export async function GET(
     undefined;
 
   const linkedSchool =
-    doc.linkedSchoolId && typeof doc.linkedSchoolId === "object"
+    isPopulatedDoc(doc.linkedSchoolId)
       ? {
           _id: String(doc.linkedSchoolId._id),
           name: doc.linkedSchoolId.name,
@@ -107,7 +119,7 @@ export async function GET(
       : null;
 
   const processedByUser =
-    doc.processedBy && typeof doc.processedBy === "object"
+    isPopulatedDoc(doc.processedBy)
       ? {
           _id: String(doc.processedBy._id),
           name:
@@ -121,7 +133,7 @@ export async function GET(
       : null;
 
   const ownerUser =
-    doc.ownerUserId && typeof doc.ownerUserId === "object"
+    isPopulatedDoc(doc.ownerUserId)
       ? {
           _id: String(doc.ownerUserId._id),
           name:
@@ -144,7 +156,7 @@ export async function GET(
     ] ?? String(effectiveStage);
 
   const enrolledStudent =
-    doc.enrolledStudentId && typeof doc.enrolledStudentId === "object"
+    isPopulatedDoc(doc.enrolledStudentId)
       ? {
           _id: String(doc.enrolledStudentId._id),
           firstName: doc.enrolledStudentId.firstName,
@@ -168,7 +180,7 @@ export async function GET(
       : null,
     owner: ownerUser,
     ownerUserId: doc.ownerUserId
-      ? typeof doc.ownerUserId === "object"
+      ? isPopulatedDoc(doc.ownerUserId)
         ? String(doc.ownerUserId._id)
         : String(doc.ownerUserId)
       : null,
@@ -182,7 +194,7 @@ export async function GET(
     linkedSchool: linkedSchool,
     linkedSchoolId: refIdString(doc.linkedSchoolId),
     enrolledStudentId: doc.enrolledStudentId
-      ? typeof doc.enrolledStudentId === "object"
+      ? isPopulatedDoc(doc.enrolledStudentId)
         ? String(doc.enrolledStudentId._id)
         : String(doc.enrolledStudentId)
       : null,
@@ -195,7 +207,7 @@ export async function GET(
     audit: audits.map((a) => ({
       action: a.action,
       by:
-        a.by && typeof a.by === "object"
+        isPopulatedDoc(a.by)
           ? {
               _id: String(a.by._id),
               name:

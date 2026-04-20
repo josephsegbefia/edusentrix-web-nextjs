@@ -3,12 +3,16 @@
 import * as React from "react";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { SignUp } from "@clerk/nextjs";
+import { SignUp, useClerk, useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
+import { AuthSessionConflictCard } from "@/components/auth/AuthSessionConflictCard";
 
 function SignUpPageContent() {
   const searchParams = useSearchParams();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
+  const [isSigningOut, setIsSigningOut] = React.useState(false);
   const fallbackRedirectUrl = React.useMemo(() => {
     const next = searchParams.get("next");
     if (next && next.startsWith("/")) {
@@ -16,6 +20,54 @@ function SignUpPageContent() {
     }
     return "/auth/callback";
   }, [searchParams]);
+  const hasInvitationTicket = React.useMemo(
+    () => Boolean(searchParams.get("__clerk_ticket")),
+    [searchParams]
+  );
+
+  const handleSignOutAndContinue = React.useCallback(async () => {
+    setIsSigningOut(true);
+    try {
+      const currentUrl =
+        typeof window !== "undefined"
+          ? window.location.href
+          : `${fallbackRedirectUrl}`;
+      await signOut({ redirectUrl: currentUrl });
+    } finally {
+      setIsSigningOut(false);
+    }
+  }, [fallbackRedirectUrl, signOut]);
+
+  if (isLoaded && isSignedIn) {
+    const activeName =
+      [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
+      user?.primaryEmailAddress?.emailAddress ||
+      "Current user";
+
+    return (
+      <AuthSessionConflictCard
+        title={hasInvitationTicket ? "Invitation needs a fresh session" : "You are already signed in"}
+        description={
+          hasInvitationTicket
+            ? "This invitation must be completed outside the currently active account in this browser."
+            : "Creating another EduSentrix account in this browser requires signing out of the current account first."
+        }
+        primaryLabel="Continue to current workspace"
+        secondaryLabel={
+          hasInvitationTicket ? "Sign out and accept invitation" : "Sign out and create another account"
+        }
+        onSecondary={handleSignOutAndContinue}
+        secondaryBusy={isSigningOut}
+        activeName={activeName}
+        activeEmail={user?.primaryEmailAddress?.emailAddress ?? null}
+        note={
+          hasInvitationTicket
+            ? "The invite link already contains a secure Clerk ticket. After sign-out, this page will reload and continue the invited account setup."
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg py-10 px-4 flex items-center justify-center relative overflow-hidden">

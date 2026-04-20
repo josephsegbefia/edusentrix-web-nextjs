@@ -8,7 +8,11 @@ import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { School } from "@/models/School";
 import mongoose from "mongoose";
-import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  getAppUrl,
+  getInvitationAcceptUrl,
+  getInvitationRedirectUrl,
+} from "@/lib/utils/getAppUrl";
 import {
   assignPendingBillingOwnerInvitation,
   assignPendingPaymentSetupDelegate,
@@ -115,7 +119,7 @@ export async function POST(
         name: recipientName,
         role: displayRole,
         schoolName,
-        setupLink: `${APP_URL}/sign-in`,
+        setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
       });
 
       const templateKey =

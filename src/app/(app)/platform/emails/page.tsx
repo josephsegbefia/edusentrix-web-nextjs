@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 const SAMPLE_PAYLOADS: { [K in TemplateKey]: TemplatePayload[K] } = {
   SCHOOL_INVITE: {
     schoolName: "North Ridge Academy",
-    setupLink: "https://edusentrix.com/sign-in",
+    setupLink: "https://edusentrix.com/sign-up",
   },
   APPLICATION_RECEIVED: {
     name: "Ama Boateng",
@@ -38,7 +38,7 @@ const SAMPLE_PAYLOADS: { [K in TemplateKey]: TemplatePayload[K] } = {
     name: "Esi Owusu",
     role: "Teacher",
     schoolName: "North Ridge Academy",
-    setupLink: "https://edusentrix.com/sign-in",
+    setupLink: "https://edusentrix.com/sign-up",
   },
   REMINDER: {
     title: "Parent-teacher conference",

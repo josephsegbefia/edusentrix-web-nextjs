@@ -16,7 +16,11 @@ import { renderTemplate } from "@/lib/email/templates";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { parse } from "csv-parse/sync";
 import mongoose from "mongoose";
-import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  getAppUrl,
+  getInvitationAcceptUrl,
+  getInvitationRedirectUrl,
+} from "@/lib/utils/getAppUrl";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
   if (!id || !id.trim()) return null;
@@ -424,7 +428,7 @@ export async function POST(req: NextRequest) {
             name: `${row.firstName} ${row.lastName}`,
             role: "teacher",
             schoolName,
-            setupLink: `${APP_URL}/sign-in`,
+            setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
           });
 
           await sendTrackedBrevoEmail({

@@ -205,7 +205,11 @@ import {
   resolveAuditIdempotencyKey,
 } from "@/lib/audit/fromApiRoute";
 import { clerkClient } from "@clerk/nextjs/server";
-import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  getAppUrl,
+  getInvitationAcceptUrl,
+  getInvitationRedirectUrl,
+} from "@/lib/utils/getAppUrl";
 import { ensureDefaultSubscriptionTiers } from "@/lib/platform-billing/subscription-tiers";
 import { computeSubscriptionPricing } from "@/lib/platform-billing/subscription-pricing";
 import { SchoolSubscription } from "@/models/SchoolSubscription";
@@ -443,7 +447,7 @@ export async function POST(
 
     try {
       const clerk = await clerkClient();
-      await clerk.invitations.createInvitation({
+      const clerkInvitation = await clerk.invitations.createInvitation({
         emailAddress: approvedApp.adminEmail,
         redirectUrl,
         notify: false,
@@ -453,7 +457,7 @@ export async function POST(
 
       const rendered = renderTemplate("SCHOOL_INVITE", {
         schoolName: approvedApp.schoolName,
-        setupLink: `${APP_URL}/sign-in`,
+        setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
       });
 
       await sendTrackedBrevoEmail({

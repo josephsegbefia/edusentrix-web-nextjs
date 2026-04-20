@@ -20,7 +20,11 @@ import {
 } from "@/lib/audit/fromApiRoute";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  getAppUrl,
+  getInvitationAcceptUrl,
+  getInvitationRedirectUrl,
+} from "@/lib/utils/getAppUrl";
 
 const CreateGuardianSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -219,7 +223,7 @@ export async function POST(
           name: `${validated.firstName} ${validated.lastName}`,
           role: "parent",
           schoolName,
-          setupLink: `${APP_URL}/sign-in`,
+          setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
         });
 
         await sendTrackedBrevoEmail({

@@ -8,7 +8,11 @@ import { trackUsage } from "@/lib/billing/trackUsage";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
-import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  getAppUrl,
+  getInvitationAcceptUrl,
+  getInvitationRedirectUrl,
+} from "@/lib/utils/getAppUrl";
 import { assignPendingBillingOwnerInvitation } from "@/lib/school-payments/billing-owner-lifecycle";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
@@ -143,7 +147,7 @@ export async function POST(
           name: parsed.data.ownerName,
           role: "billing owner",
           schoolName: school.name || "your school",
-          setupLink: `${getAppUrl()}/sign-in`,
+          setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
         });
 
         await sendTrackedBrevoEmail({

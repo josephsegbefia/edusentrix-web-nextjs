@@ -40,3 +40,13 @@ export function getAppUrl(): string {
 export function getInvitationRedirectUrl(): string {
   return `${getAppUrl()}/sign-up`;
 }
+
+export function getInvitationAcceptUrl(
+  invitation: { url?: string | null } | null | undefined,
+  fallbackUrl?: string | null
+): string {
+  const acceptUrl = invitation?.url?.trim();
+  if (acceptUrl) return acceptUrl;
+  if (fallbackUrl) return fallbackUrl;
+  return getInvitationRedirectUrl();
+}

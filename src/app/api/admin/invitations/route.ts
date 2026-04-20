@@ -8,7 +8,11 @@ import { School } from "@/models/School";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
-import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import {
+  getAppUrl,
+  getInvitationAcceptUrl,
+  getInvitationRedirectUrl,
+} from "@/lib/utils/getAppUrl";
 import mongoose from "mongoose";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
@@ -223,7 +227,7 @@ export async function POST(req: NextRequest) {
         name: inviteeName,
         role: "bursar",
         schoolName,
-        setupLink: `${APP_URL}/sign-in`,
+        setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
       });
 
       await sendTrackedBrevoEmail({

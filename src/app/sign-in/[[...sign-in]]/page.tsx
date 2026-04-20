@@ -2,10 +2,11 @@
 
 import * as Clerk from "@clerk/elements/common";
 import * as SignIn from "@clerk/elements/sign-in";
-import { useSignIn } from "@clerk/nextjs";
+import { useClerk, useSignIn, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
+import { AuthSessionConflictCard } from "@/components/auth/AuthSessionConflictCard";
 import {
   ArrowLeft,
   ArrowRight,
@@ -508,9 +509,43 @@ function BrandPanel() {
    Main Page
    ────────────────────────────────────────────────────────────────── */
 export default function SignInPage() {
+  const { isLoaded, isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
+
+  const handleSignOutAndContinue = async () => {
+    setIsSwitchingAccount(true);
+    try {
+      const currentUrl =
+        typeof window !== "undefined" ? window.location.href : "/sign-in";
+      await signOut({ redirectUrl: currentUrl });
+    } finally {
+      setIsSwitchingAccount(false);
+    }
+  };
+
+  if (isLoaded && isSignedIn) {
+    const activeName =
+      [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
+      user?.primaryEmailAddress?.emailAddress ||
+      "Current user";
+
+    return (
+      <AuthSessionConflictCard
+        title="You are already signed in"
+        description="To sign in with a different EduSentrix account in this browser, you need to end the current session first."
+        primaryLabel="Continue to current workspace"
+        secondaryLabel="Sign out and use another account"
+        onSecondary={handleSignOutAndContinue}
+        secondaryBusy={isSwitchingAccount}
+        activeName={activeName}
+        activeEmail={user?.primaryEmailAddress?.emailAddress ?? null}
+      />
+    );
+  }
 
   return (
     <div className="relative min-h-svh overflow-hidden bg-bg text-white">

@@ -20,13 +20,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
+import {
+  Clock,
+  GraduationCap,
+  KanbanSquare,
+  UserCircle,
+  UsersRound,
+} from "lucide-react";
 
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
@@ -106,6 +114,47 @@ function toDatetimeLocalValue(iso?: string | null) {
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function parseDatetimeLocalToDate(s: string): Date | null {
+  if (!s.trim()) return null;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function getTimeHHmmFromDatetimeLocal(s: string): string {
+  const d = parseDatetimeLocalToDate(s);
+  if (!d) return "09:00";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Local datetime string for `<input type="datetime-local">`-compatible state. */
+function dateToDatetimeLocalString(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function mergeCalendarDateIntoLocal(
+  prevLocal: string,
+  calendarDate: Date | null
+): string {
+  if (!calendarDate) return "";
+  const timeHHmm = prevLocal
+    ? getTimeHHmmFromDatetimeLocal(prevLocal)
+    : "09:00";
+  const [h, m] = timeHHmm.split(":").map((x) => parseInt(x, 10));
+  const next = new Date(calendarDate);
+  next.setHours(Number.isFinite(h) ? h : 9, Number.isFinite(m) ? m : 0, 0, 0);
+  return dateToDatetimeLocalString(next);
+}
+
+function mergeTimeIntoLocal(prevLocal: string, timeHHmm: string): string {
+  const parsed = prevLocal ? parseDatetimeLocalToDate(prevLocal) : null;
+  const d = new Date(parsed ?? new Date());
+  const [h, m] = timeHHmm.split(":").map((x) => parseInt(x, 10));
+  d.setHours(Number.isFinite(h) ? h : 0, Number.isFinite(m) ? m : 0, 0, 0);
+  return dateToDatetimeLocalString(d);
 }
 
 function formatAuditMeta(action: string, meta: Record<string, unknown> | null | undefined) {
@@ -752,55 +801,107 @@ export default function ApplicationDrawer({
                         <Label className="text-[10px] uppercase tracking-wide text-white/45">
                           Stage
                         </Label>
-                        <Select value={editStage} onValueChange={setEditStage}>
-                          <SelectTrigger className="border-white/10 bg-black/30 text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
+                        <PremiumSelect
+                          value={editStage}
+                          onValueChange={setEditStage}
+                        >
+                          <PremiumSelectTrigger
+                            icon={<KanbanSquare className="h-4 w-4" />}
+                            className="border-white/10 bg-black/30"
+                          >
+                            <PremiumSelectValue placeholder="Stage" />
+                          </PremiumSelectTrigger>
+                          <PremiumSelectContent className="z-[300]">
                             {APPLICATION_PIPELINE_STAGES.map((s) => (
-                              <SelectItem key={s} value={s}>
+                              <PremiumSelectItem key={s} value={s}>
                                 {PIPELINE_STAGE_LABELS[s]}
-                              </SelectItem>
+                              </PremiumSelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </PremiumSelectContent>
+                        </PremiumSelect>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase tracking-wide text-white/45">
                           Owner (platform)
                         </Label>
-                        <Select
+                        <PremiumSelect
                           value={editOwnerId || "__none__"}
                           onValueChange={(v) =>
                             setEditOwnerId(v === "__none__" ? "" : v)
                           }
                         >
-                          <SelectTrigger className="border-white/10 bg-black/30 text-white">
-                            <SelectValue placeholder="Unassigned" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="__none__">Unassigned</SelectItem>
+                          <PremiumSelectTrigger
+                            icon={<UserCircle className="h-4 w-4" />}
+                            className="border-white/10 bg-black/30"
+                          >
+                            <PremiumSelectValue placeholder="Unassigned" />
+                          </PremiumSelectTrigger>
+                          <PremiumSelectContent className="z-[300]">
+                            <PremiumSelectItem value="__none__">
+                              Unassigned
+                            </PremiumSelectItem>
                             {(platformAdmins ?? []).map((u) => (
-                              <SelectItem key={u._id} value={u._id}>
+                              <PremiumSelectItem key={u._id} value={u._id}>
                                 {u.name}
-                              </SelectItem>
+                              </PremiumSelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </PremiumSelectContent>
+                        </PremiumSelect>
                       </div>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] uppercase tracking-wide text-white/45">
                         Next action (local time)
                       </Label>
-                      <Input
-                        type="datetime-local"
-                        value={editNextLocal}
-                        onChange={(e) => setEditNextLocal(e.target.value)}
-                        className="border-white/10 bg-black/30 text-white"
-                      />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <CustomDatePicker
+                          value={
+                            editNextLocal
+                              ? parseDatetimeLocalToDate(editNextLocal)
+                              : null
+                          }
+                          onChange={(d) =>
+                            setEditNextLocal(
+                              mergeCalendarDateIntoLocal(editNextLocal, d)
+                            )
+                          }
+                          placeholder="Select date"
+                          className="w-full"
+                        />
+                        <div className="flex flex-col justify-end gap-1.5">
+                          <Label className="text-[10px] uppercase tracking-wide text-white/45 sm:sr-only">
+                            Time
+                          </Label>
+                          <div className="relative">
+                            <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                            <Input
+                              type="time"
+                              value={
+                                editNextLocal
+                                  ? getTimeHHmmFromDatetimeLocal(editNextLocal)
+                                  : ""
+                              }
+                              onChange={(e) =>
+                                setEditNextLocal(
+                                  mergeTimeIntoLocal(
+                                    editNextLocal,
+                                    e.target.value
+                                  )
+                                )
+                              }
+                              className={cn(
+                                "h-10 w-full rounded-xl border border-white/10 bg-white/5 py-2 pl-9 pr-3",
+                                "text-sm text-white placeholder:text-white/40",
+                                "hover:bg-white/8 hover:border-white/20",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/30 focus-visible:border-violet-500/50"
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </div>
                       <p className="text-[10px] text-white/40">
-                        Clear the field before save to remove the next-action date.
+                        Clear the date in the calendar to remove the next-action
+                        date before saving.
                       </p>
                     </div>
                     <Button
@@ -1236,33 +1337,45 @@ export default function ApplicationDrawer({
           </div>
           <div className="space-y-1.5">
             <Label>Grade</Label>
-            <Select value={enGradeId} onValueChange={setEnGradeId}>
-              <SelectTrigger className="border-white/10 bg-black/30">
-                <SelectValue placeholder="Select grade" />
-              </SelectTrigger>
-              <SelectContent>
+            <PremiumSelect
+              value={enGradeId || undefined}
+              onValueChange={setEnGradeId}
+            >
+              <PremiumSelectTrigger
+                icon={<GraduationCap className="h-4 w-4" />}
+                className="border-white/10 bg-black/30"
+              >
+                <PremiumSelectValue placeholder="Select grade" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent className="z-[400]">
                 {(enrollmentCtx?.data?.grades ?? []).map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
+                  <PremiumSelectItem key={g.id} value={g.id}>
                     {g.name}
-                  </SelectItem>
+                  </PremiumSelectItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </PremiumSelectContent>
+            </PremiumSelect>
           </div>
           <div className="space-y-1.5">
             <Label>Class</Label>
-            <Select value={enClassId} onValueChange={setEnClassId}>
-              <SelectTrigger className="border-white/10 bg-black/30">
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
+            <PremiumSelect
+              value={enClassId || undefined}
+              onValueChange={setEnClassId}
+            >
+              <PremiumSelectTrigger
+                icon={<UsersRound className="h-4 w-4" />}
+                className="border-white/10 bg-black/30"
+              >
+                <PremiumSelectValue placeholder="Select class" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent className="z-[400]">
                 {(selectedGrade?.classGroups ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
+                  <PremiumSelectItem key={c.id} value={c.id}>
                     {c.name}
-                  </SelectItem>
+                  </PremiumSelectItem>
                 ))}
-              </SelectContent>
-            </Select>
+              </PremiumSelectContent>
+            </PremiumSelect>
           </div>
           {!enrollmentCtx?.data?.grades?.length && enrollOpen ? (
             <p className="text-xs text-amber-200/90">

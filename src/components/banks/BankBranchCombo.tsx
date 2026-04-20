@@ -39,19 +39,29 @@ export function BankBranchCombo(props: {
   const [q, setQ] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [items, setItems] = React.useState<Item[]>([]);
-  const [debounceId, setDebounceId] = React.useState<number | null>(null);
+  const debounceRef = React.useRef<number | null>(null);
+
+  const handleOpenChange = React.useCallback((next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      setQ("");
+      setItems([]);
+      setLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    if (!q) {
-      setItems([]);
-      return;
-    }
+    if (!open) return;
+
+    const trimmed = q.trim();
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
     setLoading(true);
-    if (debounceId) window.clearTimeout(debounceId);
-    const id = window.setTimeout(async () => {
+
+    const delay = trimmed.length === 0 ? 0 : 250;
+    debounceRef.current = window.setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/banks/search?query=${encodeURIComponent(q)}`,
+          `/api/banks/search?query=${encodeURIComponent(trimmed)}`,
           { cache: "no-store" }
         );
         if (!res.ok) {
@@ -69,10 +79,12 @@ export function BankBranchCombo(props: {
       } finally {
         setLoading(false);
       }
-    }, 250);
-    setDebounceId(id);
-    return () => window.clearTimeout(id);
-  }, [q]);
+    }, delay);
+
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+  }, [open, q]);
 
   const label = value
     ? `${value.bankName} — ${value.branchName} (${value.sortCode})`
@@ -87,7 +99,7 @@ export function BankBranchCombo(props: {
           value={value?.sortCode ?? ""}
         />
       )}
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <Button
             type="button"
@@ -102,7 +114,7 @@ export function BankBranchCombo(props: {
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="premiumMenuContent p-0 w-(--radix-popover-trigger-width)"
+          className="premiumMenuContent z-[300] p-0 w-(--radix-popover-trigger-width)"
           align="start"
         >
           <Command shouldFilter={false}>

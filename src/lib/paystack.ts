@@ -8,10 +8,11 @@ const PAYSTACK_BASE = "https://api.paystack.co";
 
 const { PAYSTACK_SECRET_KEY } = process.env;
 function headers() {
-  if (!PAYSTACK_SECRET_KEY) throw new Error("Missing PAYSTACK_SECRET_KEY");
+  const key = (PAYSTACK_SECRET_KEY || "").trim();
+  if (!key) throw new Error("Missing PAYSTACK_SECRET_KEY");
 
   return {
-    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+    Authorization: `Bearer ${key}`,
     "Content-Type": "application/json",
   };
 }
@@ -28,15 +29,32 @@ export function getPaystackKeyMode(): PaystackKeyMode {
 
 /** GET /bank?country=ghana to retrieve bank list and codes (Paystack docs) */
 
-export async function listGhanaBanks() {
+export async function listGhanaBanks(): Promise<
+  Array<{ name: string; code: string }>
+> {
+  if (!(PAYSTACK_SECRET_KEY || "").trim()) {
+    return [];
+  }
+
   const res = await fetch(`${PAYSTACK_BASE}/bank?country=ghana`, {
     method: "GET",
     headers: headers(),
     cache: "no-store",
   });
   const j = await res.json();
-  if (!res.ok) throw new Error(j?.message || "Failed to list banks");
-  return j?.data as Array<{ name: string; code: string }>;
+  if (!res.ok || j?.status !== true) {
+    throw new Error(j?.message || "Failed to list banks");
+  }
+  const data = j?.data;
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  return data
+    .map((b: { name?: string; code?: string }) => ({
+      name: String(b?.name ?? "").trim(),
+      code: String(b?.code ?? "").trim(),
+    }))
+    .filter((b) => b.name.length > 0 && b.code.length > 0);
 }
 
 let ghanaBanksCache: {
@@ -55,7 +73,9 @@ export async function listGhanaBanksCached() {
     return ghanaBanksCache.banks;
   }
   const banks = await listGhanaBanks();
-  ghanaBanksCache = { fetchedAt: now, banks };
+  if ((PAYSTACK_SECRET_KEY || "").trim()) {
+    ghanaBanksCache = { fetchedAt: now, banks };
+  }
   return banks;
 }
 

@@ -7,10 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
-import { useClasses, useAssignSubjectsToClass } from "@/hooks/admin/useClasses";
+import {
+  useClasses,
+  useAssignSubjectsToClass,
+  type ClassGroupDTO,
+} from "@/hooks/admin/useClasses";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { resolveSubjectVisual } from "@/components/admin/subjects/subject-visuals";
 import { cn } from "@/lib/utils";
+
+/** Stable fallbacks so `useMemo` / `useEffect` deps are not a new [] every render. */
+const EMPTY_CLASS_GROUPS: ClassGroupDTO[] = [];
+const EMPTY_SELECTED_IDS: string[] = [];
 
 type AssignSubjectToClassesModalProps = {
   open: boolean;
@@ -27,13 +35,14 @@ export function AssignSubjectToClassesModal({
   const assignSubjects = useAssignSubjectsToClass();
   const { data, isLoading } = useClasses({ isActive: true });
 
-  const classes = data?.data ?? [];
+  const classes = data?.data ?? EMPTY_CLASS_GROUPS;
   const [query, setQuery] = React.useState("");
   const [selectedClassIds, setSelectedClassIds] = React.useState<string[]>([]);
   const [hasInitialized, setHasInitialized] = React.useState(false);
+  const prevOpenRef = React.useRef(open);
 
   const initialSelectedClassIds = React.useMemo(() => {
-    if (!subject) return [];
+    if (!subject) return EMPTY_SELECTED_IDS;
     return classes
       .filter((classGroup) =>
         classGroup.subjects.some((item) => item.id === subject.id)
@@ -42,12 +51,17 @@ export function AssignSubjectToClassesModal({
   }, [classes, subject]);
 
   React.useEffect(() => {
-    if (!open) {
+    const wasOpen = prevOpenRef.current;
+    prevOpenRef.current = open;
+
+    if (wasOpen && !open) {
       setQuery("");
-      setSelectedClassIds([]);
+      setSelectedClassIds(EMPTY_SELECTED_IDS);
       setHasInitialized(false);
       return;
     }
+
+    if (!open) return;
 
     if (!hasInitialized && subject) {
       setSelectedClassIds(initialSelectedClassIds);

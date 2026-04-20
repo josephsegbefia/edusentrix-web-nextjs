@@ -43,6 +43,9 @@ const isPublicRoute = createRouteMatcher([
   "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
   "/api/webhooks/brevo(.*)", // Brevo outbound event + inbound parse webhooks
   "/api/cron(.*)", // Cron jobs authenticate with their own secrets
+  // Secret URL + OTP-gated first platform admin bootstrap (see PLATFORM_ADMIN_BOOTSTRAP_SECRET)
+  "/platform-bootstrap(.*)",
+  "/api/platform/bootstrap(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
@@ -91,6 +94,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       "/api/banks/search",
       "/api/uploadthing",
       "/api/webhooks/brevo",
+      "/platform-bootstrap",
+      "/api/platform/bootstrap",
     ].some((p) => pathname === p || pathname.startsWith(p));
 
   if (!userId) {

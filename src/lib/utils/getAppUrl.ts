@@ -30,8 +30,13 @@ export function getAppUrl(): string {
 }
 
 /**
- * Get the Clerk redirect URL for invitation callbacks
+ * URL Clerk redirects to **after the user clicks an invitation link**, with
+ * `__clerk_ticket` (and optionally `__clerk_status`) appended.
+ *
+ * Must be a page that can **complete sign-up without an existing session** — not
+ * `/auth/callback`, which immediately redirects unauthenticated users to sign-in
+ * and drops the ticket (Clerk: "non-existing identification" / broken Continue).
  */
 export function getInvitationRedirectUrl(): string {
-  return `${getAppUrl()}/auth/callback`;
+  return `${getAppUrl()}/sign-up`;
 }

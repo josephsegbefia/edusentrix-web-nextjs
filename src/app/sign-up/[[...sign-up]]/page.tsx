@@ -1,10 +1,22 @@
 "use client";
 
+import * as React from "react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { SignUp } from "@clerk/nextjs";
 import Image from "next/image";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 
-export default function SignUpPage() {
+function SignUpPageContent() {
+  const searchParams = useSearchParams();
+  const fallbackRedirectUrl = React.useMemo(() => {
+    const next = searchParams.get("next");
+    if (next && next.startsWith("/")) {
+      return `/auth/callback?next=${encodeURIComponent(next)}`;
+    }
+    return "/auth/callback";
+  }, [searchParams]);
+
   return (
     <div className="min-h-screen bg-bg py-10 px-4 flex items-center justify-center relative overflow-hidden">
       {/* Premium background glow effects */}
@@ -41,7 +53,7 @@ export default function SignUpPage() {
               routing="path"
               path="/sign-up"
               signInUrl="/sign-in"
-              fallbackRedirectUrl="/auth/callback"
+              fallbackRedirectUrl={fallbackRedirectUrl}
               appearance={{
                 variables: {
                   colorPrimary: "#0ea5e9", // Brand color (sky blue)
@@ -84,5 +96,19 @@ export default function SignUpPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-bg text-white/60">
+          Loading…
+        </div>
+      }
+    >
+      <SignUpPageContent />
+    </Suspense>
   );
 }

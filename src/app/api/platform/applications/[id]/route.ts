@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
+import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { User } from "@/models/User";
 import { Application } from "@/models/Application";
 import { ApplicationAudit } from "@/models/ApplicationAudit";
@@ -28,41 +29,66 @@ function notFound(msg = "Not found") {
   return NextResponse.json({ error: msg }, { status: 404 });
 }
 
+const APPLICATION_DETAIL_AUDIT_LIMIT = 300;
+
+/** Avoid NextResponse.json throwing on circular / non-JSON Mixed fields (e.g. audit meta). */
+function toJsonSafe(value: unknown): unknown {
+  if (value == null) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return { _error: "Could not serialize value as JSON" };
+  }
+}
+
+function auditTimestampIso(a: unknown): string {
+  if (!a || typeof a !== "object" || !("createdAt" in a)) {
+    return new Date(0).toISOString();
+  }
+  const raw = (a as { createdAt?: unknown }).createdAt;
+  if (raw == null) return new Date(0).toISOString();
+  const d = new Date(raw as Date | string);
+  return Number.isNaN(d.getTime()) ? new Date(0).toISOString() : d.toISOString();
+}
+
+function refIdString(
+  ref: unknown
+): string | null {
+  if (ref == null) return null;
+  if (typeof ref === "object" && ref !== null && "_id" in ref) {
+    return String((ref as { _id: unknown })._id);
+  }
+  return String(ref);
+}
+
 export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const guard = await requirePlatformAdmin();
+    if (!guard.ok) return guard.res;
 
-  await connectToDatabase();
+    await connectToDatabase();
 
-  // platform_admin only
-  const meRaw = await User.findOne({ clerkUserId: userId })
-    .select("_id role name email")
-    .lean();
-  const me = Array.isArray(meRaw) ? meRaw[0] : meRaw;
-  if (!me || (me as any).role !== "platform_admin") return forbidden();
+    const { id } = await ctx.params;
+    if (!id || !mongoose.isValidObjectId(id))
+      return badRequest("Invalid application id");
 
-  const { id } = await ctx.params;
-  if (!id || !mongoose.isValidObjectId(id))
-    return badRequest("Invalid application id");
+    const doc = await Application.findById(id)
+      .populate("linkedSchoolId", "name type status city region")
+      .populate("processedBy", "firstName lastName email name")
+      .populate("ownerUserId", "firstName lastName email name")
+      .populate("enrolledStudentId", "firstName lastName admissionNo")
+      .lean();
 
-  const doc = await Application.findById(id)
-    .populate("linkedSchoolId", "name type status city region")
-    .populate("processedBy", "firstName lastName email name")
-    .populate("ownerUserId", "firstName lastName email name")
-    .populate("enrolledStudentId", "firstName lastName admissionNo")
-    .lean();
+    if (!doc || Array.isArray(doc)) return notFound("Application not found");
 
-  if (!doc || Array.isArray(doc)) return notFound("Application not found");
-
-  // Pull real audits
-  const audits = await ApplicationAudit.find({ applicationId: doc._id })
-    .populate("by", "firstName lastName email name")
-    .sort({ createdAt: -1 })
-    .lean();
+    const audits = await ApplicationAudit.find({ applicationId: doc._id })
+      .populate("by", "firstName lastName email name")
+      .sort({ createdAt: -1 })
+      .limit(APPLICATION_DETAIL_AUDIT_LIMIT)
+      .lean();
 
   const adminName =
     [doc.adminFirstName, doc.adminLastName].filter(Boolean).join(" ") ||
@@ -112,6 +138,10 @@ export async function GET(
     stage: doc.stage,
     status: doc.status,
   });
+  const pipelineStageLabel =
+    PIPELINE_STAGE_LABELS[
+      effectiveStage as keyof typeof PIPELINE_STAGE_LABELS
+    ] ?? String(effectiveStage);
 
   const enrolledStudent =
     doc.enrolledStudentId && typeof doc.enrolledStudentId === "object"
@@ -131,7 +161,7 @@ export async function GET(
     region: doc.region,
     status: doc.status,
     pipelineStage: effectiveStage,
-    pipelineStageLabel: PIPELINE_STAGE_LABELS[effectiveStage],
+    pipelineStageLabel,
     stagePersisted: Boolean(doc.stage),
     nextActionAt: doc.nextActionAt
       ? new Date(doc.nextActionAt).toISOString()
@@ -150,7 +180,7 @@ export async function GET(
       name: adminName,
     },
     linkedSchool: linkedSchool,
-    linkedSchoolId: doc.linkedSchoolId ? String(doc.linkedSchoolId) : null,
+    linkedSchoolId: refIdString(doc.linkedSchoolId),
     enrolledStudentId: doc.enrolledStudentId
       ? typeof doc.enrolledStudentId === "object"
         ? String(doc.enrolledStudentId._id)
@@ -158,10 +188,10 @@ export async function GET(
       : null,
     enrolledStudent,
     processedBy: processedByUser,
-    processedById: doc.processedBy ? String(doc.processedBy) : null,
+    processedById: refIdString(doc.processedBy),
     createdAt: doc.createdAt?.toISOString?.(),
     updatedAt: doc.updatedAt?.toISOString?.(),
-    raw: doc,
+    raw: toJsonSafe(doc) as Record<string, unknown>,
     audit: audits.map((a) => ({
       action: a.action,
       by:
@@ -175,13 +205,20 @@ export async function GET(
               email: a.by.email,
             }
           : undefined,
-      at: a.createdAt.toISOString(),
+      at: auditTimestampIso(a),
       note: a.note,
-      meta: a.meta ?? null,
+      meta: toJsonSafe(a.meta ?? null),
     })),
   };
 
-  return NextResponse.json(payload);
+    return NextResponse.json(payload);
+  } catch (err) {
+    console.error("GET /api/platform/applications/[id]", err);
+    return NextResponse.json(
+      { error: "Failed to load application" },
+      { status: 500 }
+    );
+  }
 }
 
 const PipelinePatchSchema = z.object({

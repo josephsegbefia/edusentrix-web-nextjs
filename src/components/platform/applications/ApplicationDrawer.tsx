@@ -261,15 +261,30 @@ export default function ApplicationDrawer({
   const [enGradeId, setEnGradeId] = useState("");
   const [enClassId, setEnClassId] = useState("");
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["applications:detail", id],
     enabled: open && !!id,
     queryFn: async () => {
       const res = await fetch(`/api/platform/applications/${id}`, {
         cache: "no-store",
+        credentials: "same-origin",
       });
-      if (!res.ok) throw new Error("detail");
-      return (await res.json()) as ApplicationDetail;
+      const text = await res.text();
+      if (!res.ok) {
+        let msg = `Request failed (${res.status})`;
+        try {
+          const j = JSON.parse(text) as { error?: string };
+          if (typeof j?.error === "string" && j.error) msg = j.error;
+        } catch {
+          /* non-JSON error body */
+        }
+        throw new Error(msg);
+      }
+      try {
+        return JSON.parse(text) as ApplicationDetail;
+      } catch {
+        throw new Error("Invalid response from server");
+      }
     },
   });
 
@@ -651,6 +666,11 @@ export default function ApplicationDrawer({
           {isError && (
             <div className="text-rose-300">
               Failed to load details. Please try again later.
+              {error instanceof Error && error.message ? (
+                <span className="mt-1 block text-sm text-white/50">
+                  {error.message}
+                </span>
+              ) : null}
             </div>
           )}
 

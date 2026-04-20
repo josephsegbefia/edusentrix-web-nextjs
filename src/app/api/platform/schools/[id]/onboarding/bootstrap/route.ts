@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { School, type ISchool } from "@/models/School";
 import { getSubjectNamesForCurriculum } from "@/constants/curriculum-subject-templates";
 import { getOnboardingTargetSchoolAdmin } from "@/lib/onboarding/target-school-admin";
+import { enrichUserNamesFromApplication } from "@/lib/onboarding/enrichUserNamesFromApplication";
 
 export async function GET(
   _req: Request,
@@ -46,13 +47,19 @@ export async function GET(
   );
   const schoolTypeForClient = isSecondary ? "Secondary" : "Basic";
 
+  const displayNames = await enrichUserNamesFromApplication(
+    target.email,
+    target.firstName,
+    target.lastName
+  );
+
   return NextResponse.json({
     assistedByPlatform: true,
     targetUserId: String(target._id),
     user: {
       email: target.email,
-      firstName: target.firstName ?? "",
-      lastName: target.lastName ?? "",
+      firstName: displayNames.firstName,
+      lastName: displayNames.lastName,
       phone: target.phone ?? "",
       dateOfBirth: target.dateOfBirth
         ? new Date(target.dateOfBirth).toISOString()

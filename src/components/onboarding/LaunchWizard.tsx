@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageUpload } from "@/components/ui/image-upload";
 import { BankBranchCombo } from "@/components/banks/BankBranchCombo";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { format } from "date-fns/format";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
 import {
   CheckCircle2,
   ArrowRight,
@@ -23,7 +31,17 @@ import {
   Sparkles,
   Mail,
   ShieldCheck,
+  Award,
+  BookOpen,
+  Building2,
+  Globe,
+  GraduationCap,
+  MapPin,
+  MessageSquare,
+  TrendingUp,
 } from "lucide-react";
+import { GHANA_REGIONS, type GhanaRegion } from "@/constants/ghanaRegions";
+import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { toast } from "sonner";
 import { ImageUploader } from "@/components/upload/ImageUploader";
 import {
@@ -92,6 +110,137 @@ const STEPS = [
   { id: 3, title: "Payment Setup", description: "Billing authority" },
   { id: 4, title: "Curriculum", description: "Subjects & periods" },
 ] as const;
+
+const launchInputClass =
+  "h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder:text-white/25 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_16px_rgba(14,165,233,0.08)]";
+
+const launchLabelClass =
+  "text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40";
+
+function LaunchSectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span className="h-px flex-1 bg-white/6" />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+        {children}
+      </span>
+      <span className="h-px flex-1 bg-white/6" />
+    </div>
+  );
+}
+
+function LaunchFeaturePill({
+  icon: Icon,
+  label,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/3 px-3 py-1.5 text-xs font-medium text-white/55 backdrop-blur-sm">
+      <Icon className="h-3.5 w-3.5 text-brand" />
+      {label}
+    </div>
+  );
+}
+
+function FloatingOrbLaunch({
+  className,
+  delay = "0s",
+}: {
+  className: string;
+  delay?: string;
+}) {
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute rounded-full blur-3xl ${className}`}
+      style={{
+        animation: "float 8s ease-in-out infinite",
+        animationDelay: delay,
+      }}
+    />
+  );
+}
+
+function LaunchMarketingAside({
+  variant,
+  userEmail,
+}: {
+  variant: "school" | "platform";
+  userEmail: string;
+}) {
+  return (
+    <div className="relative flex flex-col justify-between gap-10">
+      <div className="flex items-center gap-3">
+        <Image
+          src={EDUSENTRIX_LOGO_PATH}
+          alt={EDUSENTRIX_LOGO_ALT}
+          width={40}
+          height={40}
+          className="rounded-xl"
+        />
+        <span className="text-lg font-semibold tracking-tight text-white">
+          EduSentrix
+        </span>
+      </div>
+
+      <div className="space-y-5">
+        <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-medium text-emerald-300 backdrop-blur-sm">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          Guided school launch
+        </div>
+
+        <h1 className="max-w-md text-[2.25rem] font-bold leading-[1.1] tracking-tight sm:text-4xl">
+          <span className="bg-linear-to-br from-white via-white to-white/60 bg-clip-text text-transparent">
+            Finish setting up{" "}
+          </span>
+          <span className="bg-linear-to-r from-violet-400 to-brand bg-clip-text text-transparent">
+            your workspace
+          </span>
+        </h1>
+
+        <p className="max-w-md text-base leading-7 text-white/50">
+          {variant === "platform" ? (
+            <>
+              You&apos;re completing launch for the school admin account{" "}
+              <span className="font-medium text-white/80">{userEmail}</span>.
+            </>
+          ) : (
+            <>
+              Same polished experience as our public enrol form — profile,
+              school details, payouts, then curriculum.
+            </>
+          )}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <LaunchFeaturePill icon={TrendingUp} label="Fee-ready" />
+        <LaunchFeaturePill icon={GraduationCap} label="Academics" />
+        <LaunchFeaturePill icon={MessageSquare} label="Comms" />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <Link
+          href="/sign-in"
+          className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 font-medium text-white/70 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
+        >
+          Sign in instead
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-1 py-2.5 font-medium text-white/40 transition-all duration-200 hover:text-white"
+        >
+          Back to website
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 type Step = (typeof STEPS)[number]["id"];
 type PaymentAuthorityMode = "self" | "owner_invite";
@@ -560,15 +709,29 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg text-white flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center gap-4"
-        >
-          <div className="size-12 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-          <p className="text-muted">Loading launch data…</p>
-        </motion.div>
+      <div className="relative min-h-dvh bg-bg text-white antialiased">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139,92,246,0.15) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 80% 60%, rgba(14,165,233,0.1) 0%, transparent 50%)",
+          }}
+        />
+        <FloatingOrbLaunch
+          className="left-[20%] top-[20%] h-64 w-64 bg-emerald-500/10"
+          delay="0s"
+        />
+        <div className="relative flex min-h-dvh items-center justify-center px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center gap-4 rounded-3xl border border-white/10 bg-card/60 px-10 py-12 backdrop-blur-xl"
+          >
+            <div className="size-12 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+            <p className="text-sm text-white/55">Loading launch data…</p>
+          </motion.div>
+        </div>
       </div>
     );
   }
@@ -608,75 +771,60 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     );
   }
 
+  const stepMeta = STEPS.find((s) => s.id === currentStep);
+
   return (
-    <div className="min-h-screen bg-bg text-white relative overflow-hidden">
-      {/* Premium gradient background */}
+    <div className="relative min-h-dvh bg-bg text-white antialiased">
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 opacity-50"
+        className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(50% 50% at 15% 15%, var(--color-brand) 0%, transparent 60%), radial-gradient(60% 40% at 85% 10%, var(--color-primary) 0%, transparent 65%)",
-          filter: "blur(100px)",
+            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139,92,246,0.2) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 80% 60%, rgba(14,165,233,0.12) 0%, transparent 50%), radial-gradient(ellipse 50% 30% at 20% 80%, rgba(109,40,217,0.12) 0%, transparent 50%)",
         }}
       />
-
-      {/* Animated grid pattern */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 opacity-[0.03]"
+        className="pointer-events-none absolute inset-0 opacity-[0.015]"
         style={{
           backgroundImage:
             "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-          backgroundSize: "50px 50px",
+          backgroundSize: "64px 64px",
         }}
       />
+      <FloatingOrbLaunch
+        className="left-[8%] top-[12%] h-72 w-72 bg-violet-500/15"
+        delay="0s"
+      />
+      <FloatingOrbLaunch
+        className="-right-20 top-[45%] h-80 w-80 bg-brand/10"
+        delay="2s"
+      />
+      <FloatingOrbLaunch
+        className="bottom-[8%] left-[25%] h-56 w-56 bg-primary/10"
+        delay="4s"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-0 right-0 top-0 h-px bg-linear-to-r from-transparent via-brand/30 to-transparent"
+      />
 
-      <div className="relative mx-auto max-w-6xl px-4 py-12 md:py-16">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12 text-center"
-        >
-          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-brand/10 border border-brand/20">
-            <Sparkles className="size-4 text-brand" />
-            <span className="text-sm font-medium text-brand">
-              {variant === "platform" ? "Assisted school setup" : "School Setup"}
-            </span>
-          </div>
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-linear-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
-            {variant === "platform"
-              ? "Launch on behalf of school"
-              : "Launch Your School"}
-          </h1>
-          <p className="text-lg text-muted max-w-2xl mx-auto">
-            {variant === "platform" ? (
-              <>
-                You are running the same launch steps schools see at{" "}
-                <span className="text-white/80">/launch</span>, applied to the
-                school admin account{" "}
-                <span className="text-white/90 font-medium">
-                  {data.user.email}
-                </span>
-                .
-              </>
-            ) : (
-              <>
-                Complete your school setup in a few simple steps. Let&apos;s get
-                you started.
-              </>
-            )}
-          </p>
-        </motion.div>
+      <div className="relative mx-auto grid min-h-dvh max-w-7xl items-start gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-16 lg:px-8 lg:py-16">
+        <div className="hidden lg:block">
+          <LaunchMarketingAside
+            variant={variant}
+            userEmail={data.user.email}
+          />
+        </div>
 
-        {/* Step indicator */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-12 flex items-center justify-between"
-        >
+        <div className="relative mx-auto w-full max-w-xl space-y-8 lg:mx-0 lg:max-w-none">
+          {/* Numbered steps */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex items-center justify-between"
+          >
           {STEPS.map((step, idx) => (
             <div key={step.id} className="flex items-center flex-1">
               <div className="flex flex-col items-center flex-1">
@@ -748,19 +896,65 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
           ))}
         </motion.div>
 
-        {/* Step content */}
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative"
-        >
-          {/* Subtle glow effect */}
-          <div className="absolute inset-0 bg-linear-to-br from-brand/5 via-transparent to-primary/5 pointer-events-none" />
+        <div className="relative mx-auto w-full">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-1 rounded-[2.1rem] bg-linear-to-br from-brand/20 via-transparent to-primary/20 opacity-60 blur-xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-px rounded-4xl bg-linear-to-br from-brand/10 via-transparent to-primary/10"
+          />
 
-          <div className="relative p-8 md:p-12">
+          <div className="relative overflow-hidden rounded-4xl border border-white/8 bg-card/80 shadow-2xl shadow-black/50 backdrop-blur-2xl">
+            <div className="border-b border-white/6 bg-white/3 px-6 py-5 sm:px-8">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2.5">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50">
+                    <Sparkles className="h-3.5 w-3.5 text-brand" />
+                    {variant === "platform"
+                      ? "Assisted launch"
+                      : "School launch"}
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                      {stepMeta?.title ?? "Setup"}
+                    </h1>
+                    <p className="mt-1 text-sm text-white/45">
+                      {stepMeta?.description ?? ""}
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-brand sm:flex">
+                  <Award className="h-5 w-5" />
+                </div>
+              </div>
+
+              <div className="mt-4 border-t border-white/6 pt-4 lg:hidden">
+                <div className="flex items-center gap-3">
+                  <Image
+                    src={EDUSENTRIX_LOGO_PATH}
+                    alt={EDUSENTRIX_LOGO_ALT}
+                    width={36}
+                    height={36}
+                    className="rounded-xl"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-white">EduSentrix</p>
+                    <p className="text-xs text-white/35">School workspace setup</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <LaunchFeaturePill icon={TrendingUp} label="Fees" />
+                  <LaunchFeaturePill icon={GraduationCap} label="Academics" />
+                  <LaunchFeaturePill icon={Globe} label="Ghana-ready" />
+                </div>
+              </div>
+            </div>
+
+            <div className="relative px-6 py-7 sm:px-8 sm:py-8">
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-brand/5 via-transparent to-primary/5" />
+              <div className="relative">
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
                 <motion.div
@@ -770,20 +964,15 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                   exit={{ opacity: 0 }}
                   className="space-y-8"
                 >
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
-                      Your Profile
-                    </h2>
-                    <p className="text-muted text-base">
-                      Tell us a bit about yourself to personalize your
-                      experience
-                    </p>
-                  </div>
+                  <p className="text-sm text-white/50">
+                    Names are prefilled from your enrolment application when
+                    available. You can edit them before continuing.
+                  </p>
 
                   <div className="space-y-6">
                     {/* Avatar Upload */}
                     <div className="space-y-3">
-                      <Label className="text-sm font-semibold">
+                      <Label className={launchLabelClass}>
                         Profile Photo
                       </Label>
                       {data?.school ? (
@@ -804,10 +993,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                     {/* Name Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label
-                          htmlFor="firstName"
-                          className="text-sm font-semibold"
-                        >
+                        <Label htmlFor="firstName" className={launchLabelClass}>
                           First Name *
                         </Label>
                         <Input
@@ -815,15 +1001,12 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
                           required
-                          className="bg-background/50 border-border h-11"
+                          className={launchInputClass}
                           placeholder="John"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label
-                          htmlFor="lastName"
-                          className="text-sm font-semibold"
-                        >
+                        <Label htmlFor="lastName" className={launchLabelClass}>
                           Last Name *
                         </Label>
                         <Input
@@ -831,17 +1014,14 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
                           required
-                          className="bg-background/50 border-border h-11"
+                          className={launchInputClass}
                           placeholder="Doe"
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label
-                          htmlFor="phone"
-                          className="text-sm font-semibold"
-                        >
+                        <Label htmlFor="phone" className={launchLabelClass}>
                           Phone Number
                         </Label>
                         <Input
@@ -849,27 +1029,29 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           placeholder="+233 XX XXX XXXX"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          className="bg-background/50 border-border h-11"
+                          className={launchInputClass}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="dob" className="text-sm font-semibold">
+                        <Label htmlFor="dob" className={launchLabelClass}>
                           Date of Birth
                         </Label>
-                        <Input
-                          id="dob"
-                          type="date"
-                          value={dob}
-                          onChange={(e) => setDob(e.target.value)}
-                          className="bg-background/50 border-border h-11"
+                        <CustomDatePicker
+                          value={
+                            dob
+                              ? new Date(`${dob}T12:00:00`)
+                              : null
+                          }
+                          onChange={(d) =>
+                            setDob(d ? format(d, "yyyy-MM-dd") : "")
+                          }
+                          placeholder="Select date"
+                          className="w-full"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="address"
-                        className="text-sm font-semibold"
-                      >
+                      <Label htmlFor="address" className={launchLabelClass}>
                         Address
                       </Label>
                       <Textarea
@@ -877,18 +1059,18 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         rows={3}
-                        className="bg-background/50 border-border resize-none"
+                        className={`${launchInputClass} min-h-[88px] resize-none py-3`}
                         placeholder="Enter your full address"
                       />
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-6 border-t border-border/50">
+                  <div className="flex justify-end pt-6 border-t border-white/10">
                     <Button
                       onClick={saveStep1}
                       disabled={!canContinueStep1 || saving}
                       size="lg"
-                      className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[140px]"
+                      className="rounded-2xl bg-brand px-6 text-black shadow-lg shadow-brand/20 hover:bg-sky-300 min-w-[140px]"
                     >
                       {saving ? "Saving..." : "Continue"}
                       <ArrowRight className="ml-2 size-4" />
@@ -905,72 +1087,68 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                   exit={{ opacity: 0 }}
                   className="space-y-8"
                 >
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
-                      School Information
-                    </h2>
-                    <p className="text-muted text-base">
-                      Basic details about your school
-                    </p>
-                  </div>
+                  <LaunchSectionLabel>School information</LaunchSectionLabel>
 
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="schoolName"
-                        className="text-sm font-semibold"
-                      >
+                      <Label htmlFor="schoolName" className={launchLabelClass}>
                         School Name *
                       </Label>
                       <Input
                         id="schoolName"
                         value={schoolName}
                         onChange={(e) => setSchoolName(e.target.value)}
-                        className="bg-background/50 border-border h-11"
+                        className={launchInputClass}
                         placeholder="Enter your school name"
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-semibold">
-                          School Type
-                        </Label>
-                        <Select
+                        <Label className={launchLabelClass}>School Type</Label>
+                        <PremiumSelect
                           value={schoolType}
                           onValueChange={(v: "Basic" | "Secondary") =>
                             setSchoolType(v)
                           }
                         >
-                          <SelectTrigger className="bg-background/50 border-border h-11">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover">
-                            <SelectItem value="Basic">Basic</SelectItem>
-                            <SelectItem value="Secondary">Secondary</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <PremiumSelectTrigger
+                            icon={<Building2 className="h-4 w-4" />}
+                            className="border-white/10 bg-white/5"
+                          >
+                            <PremiumSelectValue placeholder="Select type" />
+                          </PremiumSelectTrigger>
+                          <PremiumSelectContent className="z-[300]">
+                            <PremiumSelectItem value="Basic">
+                              Basic School
+                            </PremiumSelectItem>
+                            <PremiumSelectItem value="Secondary">
+                              Secondary School
+                            </PremiumSelectItem>
+                          </PremiumSelectContent>
+                        </PremiumSelect>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-semibold">
-                          Curriculum
-                        </Label>
-                        <Select
+                        <Label className={launchLabelClass}>Curriculum</Label>
+                        <PremiumSelect
                           value={curriculumCode}
                           onValueChange={(v) =>
                             setCurriculumCode(v as CurriculumCode)
                           }
                         >
-                          <SelectTrigger className="bg-background/50 border-border h-11">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover">
+                          <PremiumSelectTrigger
+                            icon={<BookOpen className="h-4 w-4" />}
+                            className="border-white/10 bg-white/5"
+                          >
+                            <PremiumSelectValue placeholder="Curriculum" />
+                          </PremiumSelectTrigger>
+                          <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
                             {CURRICULUM_OPTIONS.map((c) => (
-                              <SelectItem key={c.code} value={c.code}>
+                              <PremiumSelectItem key={c.code} value={c.code}>
                                 {c.label}
-                              </SelectItem>
+                              </PremiumSelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </PremiumSelectContent>
+                        </PremiumSelect>
                       </div>
                     </div>
                     {curriculumCode !== "ghana_nacca" && (
@@ -981,57 +1159,64 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="schoolAddress"
-                        className="text-sm font-semibold"
-                      >
+                      <Label htmlFor="schoolAddress" className={launchLabelClass}>
                         Address
                       </Label>
                       <Input
                         id="schoolAddress"
                         value={schoolAddress}
                         onChange={(e) => setSchoolAddress(e.target.value)}
-                        className="bg-background/50 border-border h-11"
+                        className={launchInputClass}
                         placeholder="School address"
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="city" className="text-sm font-semibold">
+                        <Label htmlFor="city" className={launchLabelClass}>
                           City
                         </Label>
                         <Input
                           id="city"
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
-                          className="bg-background/50 border-border h-11"
+                          className={launchInputClass}
                           placeholder="City"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label
-                          htmlFor="region"
-                          className="text-sm font-semibold"
+                        <Label className={launchLabelClass}>Region</Label>
+                        <PremiumSelect
+                          value={
+                            GHANA_REGIONS.includes(region as GhanaRegion)
+                              ? region
+                              : ""
+                          }
+                          onValueChange={(v) => setRegion(v)}
                         >
-                          Region
-                        </Label>
-                        <Input
-                          id="region"
-                          value={region}
-                          onChange={(e) => setRegion(e.target.value)}
-                          className="bg-background/50 border-border h-11"
-                          placeholder="Region"
-                        />
+                          <PremiumSelectTrigger
+                            icon={<MapPin className="h-4 w-4" />}
+                            className="border-white/10 bg-white/5"
+                          >
+                            <PremiumSelectValue placeholder="Select region" />
+                          </PremiumSelectTrigger>
+                          <PremiumSelectContent className="z-[300] max-h-64 overflow-y-auto">
+                            {GHANA_REGIONS.map((r) => (
+                              <PremiumSelectItem key={r} value={r}>
+                                {r}
+                              </PremiumSelectItem>
+                            ))}
+                          </PremiumSelectContent>
+                        </PremiumSelect>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-6 border-t border-border/50">
+                  <div className="flex justify-between pt-6 border-t border-white/10">
                     <Button
                       variant="outline"
                       onClick={() => setCurrentStep(1)}
                       size="lg"
-                      className="border-border"
+                      className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
                     >
                       <ArrowLeft className="mr-2 size-4" />
                       Back
@@ -1040,7 +1225,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                       onClick={saveStep2}
                       disabled={!canContinueStep2 || saving}
                       size="lg"
-                      className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[140px]"
+                      className="rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300 min-w-[140px]"
                     >
                       {saving ? "Saving..." : "Continue"}
                       <ArrowRight className="ml-2 size-4" />
@@ -1057,14 +1242,11 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                   exit={{ opacity: 0 }}
                   className="space-y-8"
                 >
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
-                      Payment Setup
-                    </h2>
-                    <p className="text-muted text-base">
-                      Choose whether you will add the payout account now or hand payment setup to the school's billing owner
-                    </p>
-                  </div>
+                  <LaunchSectionLabel>Payment setup</LaunchSectionLabel>
+                  <p className="text-sm text-white/50">
+                    Add payout details now or invite your billing owner to
+                    complete Paystack setup securely.
+                  </p>
 
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1077,7 +1259,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                         className={`rounded-2xl border p-5 text-left transition ${
                           paymentAuthorityMode === "self"
                             ? "border-brand/40 bg-brand/10 shadow-lg shadow-brand/10"
-                            : "border-border/70 bg-background/40 hover:border-border"
+                            : "border-white/10 bg-white/[0.04] hover:border-white/20"
                         } ${ownerInviteLocked ? "cursor-not-allowed opacity-60" : ""}`}
                       >
                         <div className="flex items-start gap-3">
@@ -1101,7 +1283,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                         className={`rounded-2xl border p-5 text-left transition ${
                           paymentAuthorityMode === "owner_invite"
                             ? "border-brand/40 bg-brand/10 shadow-lg shadow-brand/10"
-                            : "border-border/70 bg-background/40 hover:border-border"
+                            : "border-white/10 bg-white/[0.04] hover:border-white/20"
                         }`}
                       >
                         <div className="flex items-start gap-3">
@@ -1123,7 +1305,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                     {paymentAuthorityMode === "self" ? (
                       <>
                         <div className="space-y-2">
-                          <Label className="text-sm font-semibold">
+                          <Label className={launchLabelClass}>
                             Bank & Branch
                           </Label>
                           <BankBranchCombo
@@ -1152,32 +1334,26 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label
-                              htmlFor="accountName"
-                              className="text-sm font-semibold"
-                            >
+                            <Label htmlFor="accountName" className={launchLabelClass}>
                               Account Name
                             </Label>
                             <Input
                               id="accountName"
                               value={accountName}
                               onChange={(e) => setAccountName(e.target.value)}
-                              className="bg-background/50 border-border h-11"
+                              className={launchInputClass}
                               placeholder="Account holder name"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label
-                              htmlFor="accountNumber"
-                              className="text-sm font-semibold"
-                            >
+                            <Label htmlFor="accountNumber" className={launchLabelClass}>
                               Account Number
                             </Label>
                             <Input
                               id="accountNumber"
                               value={accountNumber}
                               onChange={(e) => setAccountNumber(e.target.value)}
-                              className="bg-background/50 border-border h-11"
+                              className={launchInputClass}
                               placeholder="Account number"
                             />
                           </div>
@@ -1195,33 +1371,27 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                         </div>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                           <div className="space-y-2">
-                            <Label
-                              htmlFor="billingOwnerName"
-                              className="text-sm font-semibold"
-                            >
+                            <Label htmlFor="billingOwnerName" className={launchLabelClass}>
                               Billing owner name
                             </Label>
                             <Input
                               id="billingOwnerName"
                               value={ownerName}
                               onChange={(e) => setOwnerName(e.target.value)}
-                              className="bg-background/50 border-border h-11"
+                              className={launchInputClass}
                               placeholder="Owner or finance authority"
                               disabled={ownerInviteLocked}
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label
-                              htmlFor="billingOwnerEmail"
-                              className="text-sm font-semibold"
-                            >
+                            <Label htmlFor="billingOwnerEmail" className={launchLabelClass}>
                               Billing owner email
                             </Label>
                             <Input
                               id="billingOwnerEmail"
                               value={ownerEmail}
                               onChange={(e) => setOwnerEmail(e.target.value)}
-                              className="bg-background/50 border-border h-11"
+                              className={launchInputClass}
                               placeholder="owner@school.edu.gh"
                               disabled={ownerInviteLocked}
                             />
@@ -1236,12 +1406,12 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                     )}
                   </div>
 
-                  <div className="flex justify-between pt-6 border-t border-border/50">
+                  <div className="flex justify-between pt-6 border-t border-white/10">
                     <Button
                       variant="outline"
                       onClick={() => setCurrentStep(2)}
                       size="lg"
-                      className="border-border"
+                      className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
                     >
                       <ArrowLeft className="mr-2 size-4" />
                       Back
@@ -1250,7 +1420,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                       onClick={saveStep3}
                       disabled={saving}
                       size="lg"
-                      className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[140px]"
+                      className="rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300 min-w-[140px]"
                     >
                       {saving
                         ? "Saving..."
@@ -1272,19 +1442,16 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                   exit={{ opacity: 0 }}
                   className="space-y-8"
                 >
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-bold bg-linear-to-r from-white to-white/80 bg-clip-text text-transparent">
-                      Curriculum Setup
-                    </h2>
-                    <p className="text-muted text-base">
-                      Configure subjects and academic periods for your school
-                    </p>
-                  </div>
+                  <LaunchSectionLabel>Curriculum & periods</LaunchSectionLabel>
+                  <p className="text-sm text-white/50">
+                    Select subjects and define academic periods. Dates use the
+                    calendar picker for consistency with the rest of the app.
+                  </p>
 
                   {/* Subjects */}
                   <div className="space-y-6">
                     <div>
-                      <Label className="text-sm font-semibold mb-3 block">
+                      <Label className={`${launchLabelClass} mb-3 block`}>
                         Subjects
                       </Label>
                       <div className="flex gap-2 mb-4">
@@ -1297,13 +1464,13 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               ? (e.preventDefault(), addSubject())
                               : null
                           }
-                          className="bg-background/50 border-border"
+                          className={launchInputClass}
                         />
                         <Button
                           type="button"
                           onClick={addSubject}
                           variant="outline"
-                          className="border-border"
+                          className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
                         >
                           Add
                         </Button>
@@ -1337,7 +1504,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
                     {/* Academic Periods */}
                     <div className="space-y-4">
-                      <Label className="text-sm font-semibold block">
+                      <Label className={`${launchLabelClass} block`}>
                         Academic Periods
                       </Label>
                       {periods.map((p, idx) => (
@@ -1345,10 +1512,10 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           key={idx}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end p-5 bg-background/40 rounded-xl border border-border/50 backdrop-blur-sm"
+                          className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm md:grid-cols-5 md:items-end"
                         >
                           <div className="space-y-2">
-                            <Label className="text-xs text-muted">
+                            <Label className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
                               Year label
                             </Label>
                             <Input
@@ -1361,11 +1528,13 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                   )
                                 );
                               }}
-                              className="bg-background/50 border-border"
+                              className={launchInputClass}
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-xs text-muted">Term</Label>
+                            <Label className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                              Term
+                            </Label>
                             <Input
                               value={p.term}
                               onChange={(e) => {
@@ -1376,39 +1545,51 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                   )
                                 );
                               }}
-                              className="bg-background/50 border-border"
+                              className={launchInputClass}
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-xs text-muted">Start</Label>
-                            <Input
-                              type="date"
-                              value={p.startDate}
-                              onChange={(e) => {
-                                const v = e.target.value;
+                            <Label className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                              Start
+                            </Label>
+                            <CustomDatePicker
+                              value={
+                                p.startDate
+                                  ? new Date(`${p.startDate}T12:00:00`)
+                                  : null
+                              }
+                              onChange={(d) => {
+                                const v = d ? format(d, "yyyy-MM-dd") : "";
                                 setPeriods((arr) =>
                                   arr.map((x, i) =>
                                     i === idx ? { ...x, startDate: v } : x
                                   )
                                 );
                               }}
-                              className="bg-background/50 border-border"
+                              placeholder="Start date"
+                              className="w-full"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-xs text-muted">End</Label>
-                            <Input
-                              type="date"
-                              value={p.endDate}
-                              onChange={(e) => {
-                                const v = e.target.value;
+                            <Label className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                              End
+                            </Label>
+                            <CustomDatePicker
+                              value={
+                                p.endDate
+                                  ? new Date(`${p.endDate}T12:00:00`)
+                                  : null
+                              }
+                              onChange={(d) => {
+                                const v = d ? format(d, "yyyy-MM-dd") : "";
                                 setPeriods((arr) =>
                                   arr.map((x, i) =>
                                     i === idx ? { ...x, endDate: v } : x
                                   )
                                 );
                               }}
-                              className="bg-background/50 border-border"
+                              placeholder="End date"
+                              className="w-full"
                             />
                           </div>
                           <div className="flex gap-2">
@@ -1419,8 +1600,8 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                               size="sm"
                               className={
                                 p.isCurrent
-                                  ? "bg-brand text-black"
-                                  : "border-border"
+                                  ? "rounded-xl bg-brand text-black"
+                                  : "rounded-xl border-white/15 bg-white/5"
                               }
                             >
                               {p.isCurrent ? "Current" : "Set current"}
@@ -1464,19 +1645,19 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                             },
                           ])
                         }
-                        className="border-border"
+                        className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
                       >
                         Add period
                       </Button>
                     </div>
                   </div>
 
-                  <div className="flex justify-between pt-6 border-t border-border/50">
+                  <div className="flex justify-between pt-6 border-t border-white/10">
                     <Button
                       variant="outline"
                       onClick={() => setCurrentStep(3)}
                       size="lg"
-                      className="border-border"
+                      className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
                     >
                       <ArrowLeft className="mr-2 size-4" />
                       Back
@@ -1485,7 +1666,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                       onClick={finishOnboarding}
                       disabled={!canContinueStep4 || saving}
                       size="lg"
-                      className="bg-brand text-black hover:bg-brand/90 shadow-lg shadow-brand/20 min-w-[180px]"
+                      className="rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300 min-w-[180px]"
                     >
                       {saving ? "Finishing..." : "Complete Onboarding"}
                       <CheckCircle2 className="ml-2 size-4" />
@@ -1494,8 +1675,11 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                 </motion.div>
               )}
             </AnimatePresence>
+              </div>
+            </div>
           </div>
-        </motion.div>
+        </div>
+        </div>
       </div>
     </div>
   );

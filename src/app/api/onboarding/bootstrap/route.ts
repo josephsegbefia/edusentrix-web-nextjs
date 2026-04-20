@@ -5,6 +5,7 @@ import { Invite, IInvite } from "@/models/Invite";
 import { School, ISchool } from "@/models/School";
 import { User } from "@/models/User";
 import { getSubjectNamesForCurriculum } from "@/constants/curriculum-subject-templates";
+import { enrichUserNamesFromApplication } from "@/lib/onboarding/enrichUserNamesFromApplication";
 
 export async function GET() {
   // 1) Require a signed-in Clerk session
@@ -86,12 +87,18 @@ export async function GET() {
   );
   const schoolTypeForClient = isSecondary ? "Secondary" : "Basic";
 
+  const displayNames = await enrichUserNamesFromApplication(
+    primaryEmail,
+    appUser.firstName,
+    appUser.lastName
+  );
+
   // 6) Response in the same shape your frontend expects
   return NextResponse.json({
     user: {
       email: appUser.email,
-      firstName: appUser.firstName ?? "",
-      lastName: appUser.lastName ?? "",
+      firstName: displayNames.firstName,
+      lastName: displayNames.lastName,
       phone: appUser.phone ?? "",
       dateOfBirth: appUser.dateOfBirth ?? "",
       address: appUser.address ?? "",

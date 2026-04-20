@@ -7,6 +7,7 @@ import { SignUp, useClerk, useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { AuthSessionConflictCard } from "@/components/auth/AuthSessionConflictCard";
+import { signUpAppearanceElements } from "@/lib/auth/sign-up-appearance";
 
 function SignUpPageContent() {
   const searchParams = useSearchParams();
@@ -108,40 +109,18 @@ function SignUpPageContent() {
               fallbackRedirectUrl={fallbackRedirectUrl}
               appearance={{
                 variables: {
-                  colorPrimary: "#0ea5e9", // Brand color (sky blue)
+                  colorPrimary: "#0ea5e9",
                   colorText: "#ffffff",
-                  colorTextSecondary: "#9aa3b2", // Muted color
-                  colorBackground: "#0f1524", // Card color
-                  colorInputBackground: "#0b0f1a", // Background color
+                  colorTextSecondary: "rgba(255,255,255,0.55)",
+                  colorBackground: "transparent",
+                  colorInputBackground: "rgba(255,255,255,0.05)",
                   colorInputText: "#ffffff",
-                  colorDanger: "#ef4444",
-                  borderRadius: "0.75rem",
+                  colorDanger: "#f87171",
+                  borderRadius: "1rem",
                   fontFamily: "Inter, ui-sans-serif, system-ui",
                   fontSize: "0.875rem",
                 },
-                elements: {
-                  rootBox: "w-full",
-                  card: "bg-transparent shadow-none border-0 p-0",
-                  headerTitle: "hidden", // Hide default title since we have custom header
-                  headerSubtitle: "hidden",
-                  socialButtonsBlockButton:
-                    "bg-card border border-white/10 text-white hover:bg-card/80 hover:border-white/20 transition-all rounded-lg",
-                  socialButtonsBlockButtonText: "text-sm font-medium",
-                  formButtonPrimary:
-                    "bg-[#0ea5e9] hover:bg-[#0ea5e9]/90 text-black font-medium rounded-lg transition-all shadow-lg shadow-[#0ea5e9]/20",
-                  formFieldInput:
-                    "bg-[#0b0f1a] border-white/10 text-white placeholder:text-muted focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 rounded-lg",
-                  formFieldLabel: "text-white text-sm font-medium",
-                  footerActionLink: "text-[#0ea5e9] hover:text-[#0ea5e9]/80",
-                  identityPreviewEditButton: "text-[#0ea5e9] hover:text-[#0ea5e9]/80",
-                  formResendCodeLink: "text-[#0ea5e9] hover:text-[#0ea5e9]/80",
-                  otpCodeFieldInput:
-                    "bg-[#0b0f1a] border-white/10 text-white focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 rounded-lg",
-                  dividerLine: "bg-white/10",
-                  dividerText: "text-muted text-xs",
-                  alertText: "text-sm",
-                  formFieldErrorText: "text-danger text-xs",
-                },
+                elements: { ...signUpAppearanceElements },
               }}
             />
           </div>

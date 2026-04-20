@@ -90,7 +90,9 @@ export function PlatformBootstrapClient({ pathSecret }: { pathSecret: string }) 
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || "Could not send invitation.");
       }
-      toast.success("Invitation sent. The new admin should check email and sign in.");
+      toast.success(
+        "Invitation sent. The new admin must open the link in the email (not the normal sign-in page) to accept and set a password."
+      );
       setEmail("");
       setFirstName("");
       setLastName("");

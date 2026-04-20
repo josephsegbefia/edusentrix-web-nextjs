@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Invitation } from "@clerk/backend";
 import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
@@ -12,7 +13,7 @@ import {
   bootstrapKeyFingerprint,
   isValidBootstrapPathSecret,
 } from "@/lib/platform-bootstrap/key";
-import { getAppUrl, getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
+import { getInvitationRedirectUrl } from "@/lib/utils/getAppUrl";
 import { hashOtpCode } from "@/lib/platform-billing/payout-security";
 import { PlatformBootstrapSession } from "@/models/PlatformBootstrapSession";
 import { User } from "@/models/User";
@@ -95,10 +96,9 @@ export async function POST(req: NextRequest) {
     }
 
     const redirectUrl = getInvitationRedirectUrl();
-    const appUrl = getAppUrl();
 
     const clerk = await clerkClient();
-    await clerk.invitations.createInvitation({
+    const invitation = (await clerk.invitations.createInvitation({
       emailAddress: email,
       redirectUrl,
       notify: false,
@@ -106,10 +106,30 @@ export async function POST(req: NextRequest) {
         role: "platform_admin",
       },
       ignoreExisting: true,
-    });
+    })) as Invitation;
+
+    /** Required: generic /sign-in does not include the invitation ticket — Clerk returns 404-style "account not found" until this link is used. */
+    const acceptUrl = invitation.url?.trim();
+    if (!acceptUrl) {
+      console.error(
+        "[bootstrap/create] Clerk invitation missing url — check SDK / API version."
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invitation was created but no acceptance link was returned. Check server logs and Clerk dashboard.",
+        },
+        { status: 502 }
+      );
+    }
 
     const fullName = `${firstName} ${lastName}`.trim();
     const safeName = fullName
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const safeEmail = email
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
@@ -119,9 +139,10 @@ export async function POST(req: NextRequest) {
       htmlContent: `
         <p>Hello ${safeName},</p>
         <p>You have been invited as a <strong>platform administrator</strong> for Edusentrix.</p>
-        <p>Open the sign-in page to accept your invitation and set your password:</p>
-        <p><a href="${appUrl}/sign-in">${appUrl}/sign-in</a></p>
-        <p>Use this email address: <strong>${email}</strong></p>
+        <p><strong>Use the link below</strong> to accept the invitation and set your password. Do not use the normal sign-in page first — your account is created when you complete this step.</p>
+        <p><a href="${acceptUrl}">Accept invitation and continue</a></p>
+        <p style="font-size:12px;color:#555;word-break:break-all;">If the button does not work, copy this URL: ${acceptUrl}</p>
+        <p>This email was sent to: <strong>${safeEmail}</strong></p>
       `,
     });
 

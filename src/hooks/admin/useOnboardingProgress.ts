@@ -18,6 +18,8 @@ export type OnboardingProgress = {
   nextAction: string | null;
   progressPercentage: number;
   isLoading: boolean;
+  /** After metrics load: limit school admin sidebar to Dashboard only until all setup steps are done. */
+  shouldRestrictSchoolAdminNav: boolean;
 };
 
 export function useOnboardingProgress(): OnboardingProgress {
@@ -113,5 +115,6 @@ export function useOnboardingProgress(): OnboardingProgress {
     nextAction,
     progressPercentage,
     isLoading,
+    shouldRestrictSchoolAdminNav: !isLoading && step !== "complete",
   };
 }

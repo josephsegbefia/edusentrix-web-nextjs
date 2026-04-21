@@ -7,11 +7,32 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { addDays } from "date-fns/addDays";
+import { format } from "date-fns/format";
+import Image from "next/image";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Building2,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  GraduationCap,
+  MapPin,
+  Plus,
+  School,
+  Search,
+  Sparkles,
+  UserRound,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BankBranchCombo } from "@/components/banks/BankBranchCombo";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   PremiumSelect,
@@ -20,36 +41,17 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
-import { format } from "date-fns/format";
-import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
-import Link from "next/link";
-import {
-  CheckCircle2,
-  ArrowRight,
-  ArrowLeft,
-  Sparkles,
-  Mail,
-  ShieldCheck,
-  Award,
-  BookOpen,
-  Building2,
-  Globe,
-  GraduationCap,
-  MapPin,
-  MessageSquare,
-  TrendingUp,
-} from "lucide-react";
-import { GHANA_REGIONS, type GhanaRegion } from "@/constants/ghanaRegions";
-import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
-import { toast } from "sonner";
 import { ImageUploader } from "@/components/upload/ImageUploader";
+import { GHANA_REGIONS, type GhanaRegion } from "@/constants/ghanaRegions";
 import {
   CURRICULUM_OPTIONS,
   getCurriculumProfile,
   type CurriculumCode,
 } from "@/constants/curriculum-profiles";
 import { getSubjectNamesForCurriculum } from "@/constants/curriculum-subject-templates";
+import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type Bootstrap = {
   user: {
@@ -70,25 +72,6 @@ type Bootstrap = {
     address: string;
     city: string;
     region: string;
-    bank?: {
-      bankName?: string;
-      branchName?: string;
-      sortCode?: string;
-      accountName?: string;
-      accountNumber?: string;
-    };
-    paymentSetup?: {
-      status?:
-        | "not_started"
-        | "awaiting_billing_owner"
-        | "details_submitted"
-        | "pending_provisioning"
-        | "review_required"
-        | "provisioned"
-        | "failed";
-      ownerName?: string;
-      ownerEmail?: string;
-    };
     status: "pending" | "active";
   } | null;
   subjectSuggestions: string[];
@@ -105,151 +88,194 @@ type Period = {
 };
 
 const STEPS = [
-  { id: 1, title: "Profile", description: "Your information" },
-  { id: 2, title: "School Details", description: "School information" },
-  { id: 3, title: "Payment Setup", description: "Billing authority" },
-  { id: 4, title: "Curriculum", description: "Subjects & periods" },
+  {
+    id: 1,
+    title: "Profile",
+    description: "Confirm the admin identity that owns this workspace.",
+    icon: UserRound,
+  },
+  {
+    id: 2,
+    title: "School",
+    description: "Set the school profile, curriculum, and location.",
+    icon: School,
+  },
+  {
+    id: 3,
+    title: "Curriculum",
+    description: "Choose subjects and define academic periods.",
+    icon: GraduationCap,
+  },
 ] as const;
 
 const launchInputClass =
-  "h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder:text-white/25 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_16px_rgba(14,165,233,0.08)]";
+  "h-12 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_16px_rgba(14,165,233,0.08)]";
+
+const launchTextAreaClass =
+  "min-h-[112px] rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_16px_rgba(14,165,233,0.08)]";
 
 const launchLabelClass =
-  "text-[11px] font-semibold uppercase tracking-[0.22em] text-white/40";
-
-function LaunchSectionLabel({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="h-px flex-1 bg-white/6" />
-      <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
-        {children}
-      </span>
-      <span className="h-px flex-1 bg-white/6" />
-    </div>
-  );
-}
-
-function LaunchFeaturePill({
-  icon: Icon,
-  label,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/3 px-3 py-1.5 text-xs font-medium text-white/55 backdrop-blur-sm">
-      <Icon className="h-3.5 w-3.5 text-brand" />
-      {label}
-    </div>
-  );
-}
-
-function FloatingOrbLaunch({
-  className,
-  delay = "0s",
-}: {
-  className: string;
-  delay?: string;
-}) {
-  return (
-    <div
-      aria-hidden
-      className={`pointer-events-none absolute rounded-full blur-3xl ${className}`}
-      style={{
-        animation: "float 8s ease-in-out infinite",
-        animationDelay: delay,
-      }}
-    />
-  );
-}
-
-function LaunchMarketingAside({
-  variant,
-  userEmail,
-}: {
-  variant: "school" | "platform";
-  userEmail: string;
-}) {
-  return (
-    <div className="relative flex flex-col justify-between gap-10">
-      <div className="flex items-center gap-3">
-        <Image
-          src={EDUSENTRIX_LOGO_PATH}
-          alt={EDUSENTRIX_LOGO_ALT}
-          width={40}
-          height={40}
-          className="rounded-xl"
-        />
-        <span className="text-lg font-semibold tracking-tight text-white">
-          EduSentrix
-        </span>
-      </div>
-
-      <div className="space-y-5">
-        <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-medium text-emerald-300 backdrop-blur-sm">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-          </span>
-          Guided school launch
-        </div>
-
-        <h1 className="max-w-md text-[2.25rem] font-bold leading-[1.1] tracking-tight sm:text-4xl">
-          <span className="bg-linear-to-br from-white via-white to-white/60 bg-clip-text text-transparent">
-            Finish setting up{" "}
-          </span>
-          <span className="bg-linear-to-r from-violet-400 to-brand bg-clip-text text-transparent">
-            your workspace
-          </span>
-        </h1>
-
-        <p className="max-w-md text-base leading-7 text-white/50">
-          {variant === "platform" ? (
-            <>
-              You&apos;re completing launch for the school admin account{" "}
-              <span className="font-medium text-white/80">{userEmail}</span>.
-            </>
-          ) : (
-            <>
-              Same polished experience as our public enrol form — profile,
-              school details, payouts, then curriculum.
-            </>
-          )}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <LaunchFeaturePill icon={TrendingUp} label="Fee-ready" />
-        <LaunchFeaturePill icon={GraduationCap} label="Academics" />
-        <LaunchFeaturePill icon={MessageSquare} label="Comms" />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <Link
-          href="/sign-in"
-          className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 font-medium text-white/70 transition-all duration-200 hover:border-white/20 hover:bg-white/10 hover:text-white"
-        >
-          Sign in instead
-        </Link>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 px-1 py-2.5 font-medium text-white/40 transition-all duration-200 hover:text-white"
-        >
-          Back to website
-        </Link>
-      </div>
-    </div>
-  );
-}
+  "text-[11px] font-semibold uppercase tracking-[0.22em] text-white/42";
 
 type Step = (typeof STEPS)[number]["id"];
-type PaymentAuthorityMode = "self" | "owner_invite";
 
 export type LaunchWizardProps = {
   variant: "school" | "platform";
-  /** Required when variant is platform — Mongo school id */
   platformSchoolId?: string;
 };
+
+function nextAcademicYearLabel(date = new Date()) {
+  const year = date.getFullYear();
+  return `${year}/${year + 1}`;
+}
+
+function dayAtNoon(iso: string): Date {
+  return new Date(`${iso}T12:00:00`);
+}
+
+function isoAddDays(iso: string, days: number): string {
+  return format(addDays(dayAtNoon(iso), days), "yyyy-MM-dd");
+}
+
+/**
+ * Keeps periods in wizard order non-overlapping for the inclusive backend rule
+ * (rangesOverlap: touching on the same day counts). Each term starts the day after
+ * the previous term ends; end is always strictly after start.
+ */
+function normalizeAcademicPeriodsInOrder(periods: Period[]): Period[] {
+  if (periods.length === 0) return periods;
+  const out = periods.map((p) => ({ ...p }));
+
+  for (let i = 0; i < out.length; i++) {
+    if (!out[i].startDate || !out[i].endDate) continue;
+
+    if (i > 0 && out[i - 1].endDate) {
+      const prevEnd = out[i - 1].endDate;
+      if (out[i].startDate <= prevEnd) {
+        out[i].startDate = isoAddDays(prevEnd, 1);
+      }
+    }
+
+    let { startDate: start, endDate: end } = out[i];
+    if (end <= start) {
+      end = isoAddDays(start, 1);
+    }
+    out[i].startDate = start;
+    out[i].endDate = end;
+  }
+
+  return out;
+}
+
+/** Default periods: each term starts the day after the previous term ends (~3 months long). */
+function createDefaultPeriodsSequential(termLabels: string[]): Period[] {
+  const labels = termLabels.length > 0 ? termLabels : ["Term 1"];
+  const periods: Period[] = [];
+  let prevEndIso: string | null = null;
+
+  for (let index = 0; index < labels.length; index++) {
+    let start: Date;
+    let end: Date;
+    if (index === 0) {
+      start = new Date();
+      end = new Date(start);
+      end.setMonth(end.getMonth() + 3);
+    } else if (prevEndIso) {
+      start = addDays(dayAtNoon(prevEndIso), 1);
+      end = new Date(start);
+      end.setMonth(end.getMonth() + 3);
+    } else {
+      start = new Date();
+      end = new Date(start);
+      end.setMonth(end.getMonth() + 3);
+    }
+
+    const p: Period = {
+      yearLabel: nextAcademicYearLabel(),
+      term: labels[index],
+      startDate: format(start, "yyyy-MM-dd"),
+      endDate: format(end, "yyyy-MM-dd"),
+      isCurrent: index === 0,
+    };
+    periods.push(p);
+    prevEndIso = p.endDate;
+  }
+
+  return normalizeAcademicPeriodsInOrder(periods);
+}
+
+function createPeriodsForTerms(
+  termLabels: string[],
+  existingPeriods: Period[] = []
+): Period[] {
+  const labels = termLabels.length > 0 ? termLabels : ["Term 1"];
+  const fallbackSequential = createDefaultPeriodsSequential(labels);
+  const existingCurrentIndex = existingPeriods.findIndex((period) => period.isCurrent);
+  const safeCurrentIndex = existingCurrentIndex >= 0 ? existingCurrentIndex : 0;
+
+  const merged = labels.map((label, index) => {
+    const fallback = fallbackSequential[index];
+    const existing =
+      existingPeriods[index] ||
+      existingPeriods.find((period) => period.term === label);
+
+    return {
+      yearLabel: existing?.yearLabel || fallback.yearLabel,
+      term: existing?.term || label,
+      startDate: existing?.startDate || fallback.startDate,
+      endDate: existing?.endDate || fallback.endDate,
+      isCurrent: index === Math.min(safeCurrentIndex, labels.length - 1),
+    };
+  });
+  return normalizeAcademicPeriodsInOrder(merged);
+}
+
+function parseDateValue(value: string) {
+  return value ? new Date(`${value}T12:00:00`) : null;
+}
+
+function SurfaceSection({
+  icon: Icon,
+  eyebrow,
+  title,
+  description,
+  children,
+  className,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  eyebrow: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-5 shadow-lg shadow-black/20 backdrop-blur-sm sm:p-6",
+        className
+      )}
+    >
+      <div className="mb-5 flex items-start gap-4">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-brand">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/38">
+            {eyebrow}
+          </p>
+          <h3 className="text-lg font-semibold tracking-tight text-white">
+            {title}
+          </h3>
+          <p className="max-w-2xl text-sm leading-6 text-white/52">
+            {description}
+          </p>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
   const apiBase = useMemo(() => {
@@ -257,29 +283,22 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
       return `/api/platform/schools/${platformSchoolId}/onboarding`;
     }
     return "/api/onboarding";
-  }, [variant, platformSchoolId]);
+  }, [platformSchoolId, variant]);
 
   const [loading, setLoading] = useState(true);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [data, setData] = useState<Bootstrap | null>(null);
-  const [bankPick, setBankPick] = useState<{
-    bankName: string;
-    branchName: string;
-    sortCode: string;
-  } | null>(null);
 
-  // Step 1: admin profile state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-  const [dob, setDob] = useState<string>("");
+  const [dob, setDob] = useState("");
   const [address, setAddress] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarPublicId, setAvatarPublicId] = useState<string | null>(null);
 
-  // Step 2: school + curriculum
   const [schoolName, setSchoolName] = useState("");
   const [schoolType, setSchoolType] = useState<"Basic" | "Secondary">("Basic");
   const [curriculumCode, setCurriculumCode] =
@@ -287,33 +306,40 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
   const [schoolAddress, setSchoolAddress] = useState("");
   const [city, setCity] = useState("");
   const [region, setRegion] = useState("");
-  const [bankName, setBankName] = useState("");
-  const [branchName, setBranchName] = useState("");
-  const [sortCode, setSortCode] = useState("");
-  const [accountName, setAccountName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [paymentAuthorityMode, setPaymentAuthorityMode] =
-    useState<PaymentAuthorityMode>("self");
-  const [ownerName, setOwnerName] = useState("");
-  const [ownerEmail, setOwnerEmail] = useState("");
-  const [ownerInviteLocked, setOwnerInviteLocked] = useState(false);
 
   const [subjectPool, setSubjectPool] = useState<string[]>([]);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [subjectQuery, setSubjectQuery] = useState("");
   const [newSubject, setNewSubject] = useState("");
+  const [periods, setPeriods] = useState<Period[]>(createPeriodsForTerms(["Term 1"]));
+  const [activePeriodIndex, setActivePeriodIndex] = useState(0);
 
-  const [periods, setPeriods] = useState<Period[]>([
-    {
-      yearLabel: `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
-      term: "Term 1",
-      startDate: format(new Date(), "yyyy-MM-dd"),
-      endDate: format(
-        new Date(new Date().setMonth(new Date().getMonth() + 3)),
-        "yyyy-MM-dd"
+  const curriculumProfile = useMemo(
+    () => getCurriculumProfile(curriculumCode),
+    [curriculumCode]
+  );
+
+  const recommendedSubjects = useMemo(
+    () =>
+      getSubjectNamesForCurriculum(
+        curriculumCode,
+        schoolType === "Secondary" ? "SHS" : undefined
       ),
-      isCurrent: true,
-    },
-  ]);
+    [curriculumCode, schoolType]
+  );
+
+  const recommendedSubjectSet = useMemo(
+    () => new Set(recommendedSubjects),
+    [recommendedSubjects]
+  );
+
+  const filteredSubjects = useMemo(() => {
+    const query = subjectQuery.trim().toLowerCase();
+    if (!query) return subjectPool;
+    return subjectPool.filter((subject) =>
+      subject.toLowerCase().includes(query)
+    );
+  }, [subjectPool, subjectQuery]);
 
   useEffect(() => {
     if (variant === "platform" && !platformSchoolId) {
@@ -332,22 +358,17 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
           const err = await res.json().catch(() => null);
           throw new Error(err?.error || "Bootstrap failed");
         }
+
         const payload: Bootstrap = await res.json();
         setData(payload);
 
-        // hydrate step 1
         setFirstName(payload.user.firstName || "");
         setLastName(payload.user.lastName || "");
         setPhone(payload.user.phone || "");
-        setDob(
-          payload.user.dateOfBirth
-            ? payload.user.dateOfBirth.substring(0, 10)
-            : ""
-        );
+        setDob(payload.user.dateOfBirth?.substring(0, 10) || "");
         setAddress(payload.user.address || "");
         setAvatarUrl(payload.user.avatarUrl || "");
 
-        // hydrate step 2
         if (payload.school) {
           setSchoolName(payload.school.name || "");
           setSchoolType(payload.school.type || "Basic");
@@ -355,98 +376,102 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
           setSchoolAddress(payload.school.address || "");
           setCity(payload.school.city || "");
           setRegion(payload.school.region || "");
-          setBankName(payload.school.bank?.bankName || "");
-          setBranchName(payload.school.bank?.branchName || "");
-          setSortCode(payload.school.bank?.sortCode || "");
-          setAccountName(payload.school.bank?.accountName || "");
-          setAccountNumber(payload.school.bank?.accountNumber || "");
-          setOwnerName(payload.school.paymentSetup?.ownerName || "");
-          setOwnerEmail(payload.school.paymentSetup?.ownerEmail || "");
-
-          const normalizedUserEmail = payload.user.email.toLowerCase().trim();
-          const normalizedOwnerEmail =
-            payload.school.paymentSetup?.ownerEmail?.toLowerCase().trim() || "";
-          const ownerIsDifferentUser =
-            Boolean(normalizedOwnerEmail) &&
-            normalizedOwnerEmail !== normalizedUserEmail;
-
-          setPaymentAuthorityMode(ownerIsDifferentUser ? "owner_invite" : "self");
-          setOwnerInviteLocked(
-            ownerIsDifferentUser &&
-              payload.school.paymentSetup?.status === "awaiting_billing_owner"
-          );
-
-          setBankPick((prev) => {
-            const b = payload.school?.bank;
-            if (!b?.bankName || !b?.branchName || !b?.sortCode) return prev;
-            return {
-              bankName: b.bankName,
-              branchName: b.branchName,
-              sortCode: b.sortCode,
-            };
-          });
         }
-        setSubjectPool(payload.subjectSuggestions || []);
-        setSelectedSubjects(payload.subjectSuggestions.slice(0, 5)); // pick some by default
-      } catch (e) {
+
+        const bootstrapCurriculum =
+          payload.school?.curriculumCode || "ghana_nacca";
+        const bootstrapSchoolType = payload.school?.type || "Basic";
+        const bootstrapRecommended = getSubjectNamesForCurriculum(
+          bootstrapCurriculum,
+          bootstrapSchoolType === "Secondary" ? "SHS" : undefined
+        );
+        const initialSubjects =
+          payload.subjectSuggestions?.length > 0
+            ? payload.subjectSuggestions
+            : bootstrapRecommended;
+
+        setSubjectPool(initialSubjects);
+        setSelectedSubjects(initialSubjects);
+        setPeriods(
+          createPeriodsForTerms(
+            getCurriculumProfile(bootstrapCurriculum).termLabels || ["Term 1"]
+          )
+        );
+        setActivePeriodIndex(0);
+      } catch (error) {
         setBootstrapError(
-          e instanceof Error ? e.message : "Failed to load launch data"
+          error instanceof Error ? error.message : "Failed to load launch data"
         );
       } finally {
         setLoading(false);
       }
     })();
-  }, [apiBase, variant, platformSchoolId]);
-
-  const addSubject = () => {
-    const v = newSubject.trim();
-    if (!v) return;
-    if (!selectedSubjects.includes(v)) setSelectedSubjects((s) => [...s, v]);
-    if (!subjectPool.includes(v)) setSubjectPool((p) => [...p, v]);
-    setNewSubject("");
-  };
-
-  const removeSubject = (v: string) => {
-    setSelectedSubjects((s) => s.filter((x) => x !== v));
-  };
-
-  const setCurrentPeriod = (idx: number) => {
-    setPeriods((arr) => arr.map((p, i) => ({ ...p, isCurrent: i === idx })));
-  };
+  }, [apiBase, platformSchoolId, variant]);
 
   const canContinueStep1 = useMemo(
     () => firstName.trim().length >= 1 && lastName.trim().length >= 1,
     [firstName, lastName]
   );
+
   const canContinueStep2 = useMemo(
     () => schoolName.trim().length >= 2,
     [schoolName]
   );
-  const canContinueStep4 = useMemo(
+
+  const canFinish = useMemo(
     () => selectedSubjects.length > 0 && periods.length > 0,
-    [selectedSubjects.length, periods.length]
+    [periods.length, selectedSubjects.length]
   );
 
-  async function persistSchoolProfile(options?: {
-    bank?: {
-      bankName?: string;
-      branchName?: string;
-      sortCode?: string;
-      accountName?: string;
-      accountNumber?: string;
-    };
-  }) {
+  useEffect(() => {
+    setActivePeriodIndex((current) =>
+      Math.min(current, Math.max(periods.length - 1, 0))
+    );
+  }, [periods.length]);
+
+  function toggleSubject(subject: string) {
+    setSelectedSubjects((current) =>
+      current.includes(subject)
+        ? current.filter((value) => value !== subject)
+        : [...current, subject]
+    );
+  }
+
+  function addCustomSubject() {
+    const value = newSubject.trim();
+    if (!value) return;
+    setSubjectPool((current) =>
+      current.includes(value) ? current : [...current, value]
+    );
+    setSelectedSubjects((current) =>
+      current.includes(value) ? current : [...current, value]
+    );
+    setNewSubject("");
+    setSubjectQuery("");
+  }
+
+  function setCurrentPeriod(index: number) {
+    setPeriods((current) =>
+      current.map((period, periodIndex) => ({
+        ...period,
+        isCurrent: periodIndex === index,
+      }))
+    );
+  }
+
+  function updatePeriod(index: number, patch: Partial<Period>) {
+    setPeriods((current) => {
+      const mapped = current.map((period, periodIndex) =>
+        periodIndex === index ? { ...period, ...patch } : period
+      );
+      return normalizeAcademicPeriodsInOrder(mapped);
+    });
+  }
+
+  async function persistSchoolProfile() {
     if (!data?.school) {
       throw new Error("No school bound to your account");
     }
-
-    const bankPayload = options?.bank ?? {
-      bankName: bankName.trim() || undefined,
-      branchName: branchName.trim() || undefined,
-      sortCode: sortCode.trim() || undefined,
-      accountName: accountName.trim() || undefined,
-      accountNumber: accountNumber.trim() || undefined,
-    };
 
     const schoolPayload =
       variant === "platform"
@@ -457,7 +482,6 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
             address: schoolAddress.trim() || undefined,
             city: city.trim() || undefined,
             region: region.trim() || undefined,
-            bank: bankPayload,
           }
         : {
             schoolId: data.school.id,
@@ -467,7 +491,6 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
             address: schoolAddress.trim() || undefined,
             city: city.trim() || undefined,
             region: region.trim() || undefined,
-            bank: bankPayload,
           };
 
     const res = await fetch(
@@ -483,25 +506,13 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
       const error = await res.json().catch(() => null);
       throw new Error(error?.error || "Failed to save school profile");
     }
-
-    return (await res.json().catch(() => null)) as
-      | {
-          success?: boolean;
-          data?: {
-            paymentSetupStatus?: string;
-            reviewReason?: string | null;
-          };
-        }
-      | null;
   }
 
   async function saveStep1() {
     setSaving(true);
     try {
       const res = await fetch(
-        variant === "platform"
-          ? `${apiBase}/profile`
-          : "/api/onboarding/profile",
+        variant === "platform" ? `${apiBase}/profile` : "/api/onboarding/profile",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -516,11 +527,13 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
           }),
         }
       );
+
       if (!res.ok) {
         const error = await res.json().catch(() => null);
         toast.error(error?.error || "Failed to save profile");
         return;
       }
+
       toast.success("Profile saved");
       setCurrentStep(2);
     } catch {
@@ -535,27 +548,18 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     try {
       await persistSchoolProfile();
 
-      const newSubjects = getSubjectNamesForCurriculum(
+      const refreshedSubjects = getSubjectNamesForCurriculum(
         curriculumCode,
         schoolType === "Secondary" ? "SHS" : undefined
       );
-      setSubjectPool(newSubjects);
-      setSelectedSubjects(newSubjects);
+      const refreshedTerms = getCurriculumProfile(curriculumCode).termLabels || [
+        "Term 1",
+      ];
 
-      const profile = getCurriculumProfile(curriculumCode);
-      const defaultTerm = profile.termLabels[0] || "Term 1";
-      setPeriods([
-        {
-          yearLabel: `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
-          term: defaultTerm,
-          startDate: format(new Date(), "yyyy-MM-dd"),
-          endDate: format(
-            new Date(new Date().setMonth(new Date().getMonth() + 3)),
-            "yyyy-MM-dd"
-          ),
-          isCurrent: true,
-        },
-      ]);
+      setSubjectPool(refreshedSubjects);
+      setSelectedSubjects(refreshedSubjects);
+      setPeriods(createPeriodsForTerms(refreshedTerms));
+      setActivePeriodIndex(0);
 
       toast.success("School profile saved");
       setCurrentStep(3);
@@ -568,105 +572,35 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     }
   }
 
-  async function saveStep3() {
-    setSaving(true);
-    try {
-      if (paymentAuthorityMode === "owner_invite") {
-        if (ownerInviteLocked) {
-          toast.success("Billing owner invitation already in progress");
-          setCurrentStep(4);
-          return;
-        }
-
-        if (ownerName.trim().length < 2) {
-          toast.error("Please enter the billing owner's name");
-          return;
-        }
-
-        if (!/\S+@\S+\.\S+/.test(ownerEmail.trim())) {
-          toast.error("Please enter a valid billing owner email");
-          return;
-        }
-
-        await persistSchoolProfile({
-          bank: {
-            bankName: undefined,
-            branchName: undefined,
-            sortCode: undefined,
-            accountName: undefined,
-            accountNumber: undefined,
-          },
-        });
-
-        const inviteRes = await fetch(
-          variant === "platform"
-            ? `${apiBase}/owner-invite`
-            : "/api/admin/settings/payment-setup/owner-invite",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ownerName: ownerName.trim(),
-              ownerEmail: ownerEmail.trim(),
-            }),
-          }
-        );
-
-        const invitePayload = await inviteRes.json().catch(() => null);
-        if (!inviteRes.ok || !invitePayload?.success) {
-          toast.error(
-            invitePayload?.error || "Failed to invite the billing owner"
-          );
-          return;
-        }
-
-        setOwnerInviteLocked(true);
-        toast.success("Billing owner invitation sent");
-        setCurrentStep(4);
-        return;
-      }
-
-      const result = await persistSchoolProfile();
-      toast.success("Bank details saved");
-      if (result?.data?.paymentSetupStatus === "review_required") {
-        toast.warning(
-          result.data.reviewReason ||
-            "These payout details need manual review before online payments can be activated."
-        );
-      }
-      setCurrentStep(4);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to save bank details"
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function finishOnboarding() {
     if (!data?.school) {
       toast.error("No school bound");
       return;
     }
+
     if (selectedSubjects.length === 0) {
       toast.error("Please select at least one subject");
       return;
     }
+
     if (periods.length === 0) {
       toast.error("Please define at least one academic period");
       return;
     }
 
-    // basic validation
-    for (const p of periods) {
-      if (!p.yearLabel || !p.term || !p.startDate || !p.endDate) {
+    const periodsToSubmit = normalizeAcademicPeriodsInOrder(periods);
+    if (JSON.stringify(periodsToSubmit) !== JSON.stringify(periods)) {
+      setPeriods(periodsToSubmit);
+    }
+
+    for (const period of periodsToSubmit) {
+      if (!period.yearLabel || !period.term || !period.startDate || !period.endDate) {
         toast.error("Please complete all academic period fields");
         return;
       }
-      if (new Date(p.endDate) <= new Date(p.startDate)) {
+      if (period.endDate <= period.startDate) {
         toast.error(
-          `End date must be after start date for ${p.yearLabel} - ${p.term}`
+          `End date must be after start date for ${period.yearLabel} - ${period.term}`
         );
         return;
       }
@@ -679,27 +613,29 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subjects: selectedSubjects,
-          periods: periods.map((p) => ({
-            yearLabel: p.yearLabel,
-            term: p.term,
-            startDate: p.startDate,
-            endDate: p.endDate,
-            isCurrent: p.isCurrent,
+          periods: periodsToSubmit.map((period) => ({
+            yearLabel: period.yearLabel,
+            term: period.term,
+            startDate: period.startDate,
+            endDate: period.endDate,
+            isCurrent: period.isCurrent,
           })),
         }),
       });
+
       if (!res.ok) {
-        const e = await res.json().catch(() => null);
-        toast.error(`Failed to finalize: ${e?.error ?? res.statusText}`);
+        const error = await res.json().catch(() => null);
+        toast.error(`Failed to finalize: ${error?.error ?? res.statusText}`);
         return;
       }
-      toast.success("Onboarding completed!");
+
+      toast.success("School launch completed");
       setTimeout(() => {
         window.location.href =
           variant === "platform" && platformSchoolId
             ? `/platform/schools/${platformSchoolId}`
             : "/admin";
-      }, 1500);
+      }, 1200);
     } catch {
       toast.error("Failed to finalize school launch");
     } finally {
@@ -709,28 +645,22 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
   if (loading) {
     return (
-      <div className="relative min-h-dvh bg-bg text-white antialiased">
+      <div className="relative min-h-dvh overflow-hidden bg-bg text-white">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139,92,246,0.15) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 80% 60%, rgba(14,165,233,0.1) 0%, transparent 50%)",
+              "radial-gradient(ellipse 68% 44% at 16% 14%, rgba(14,165,233,0.16) 0%, transparent 60%), radial-gradient(ellipse 48% 34% at 82% 18%, rgba(109,40,217,0.14) 0%, transparent 58%)",
           }}
         />
-        <FloatingOrbLaunch
-          className="left-[20%] top-[20%] h-64 w-64 bg-emerald-500/10"
-          delay="0s"
-        />
         <div className="relative flex min-h-dvh items-center justify-center px-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center gap-4 rounded-3xl border border-white/10 bg-card/60 px-10 py-12 backdrop-blur-xl"
-          >
-            <div className="size-12 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-            <p className="text-sm text-white/55">Loading launch data…</p>
-          </motion.div>
+          <div className="rounded-[2rem] border border-white/10 bg-card/70 px-10 py-12 shadow-2xl shadow-black/40 backdrop-blur-2xl">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-12 w-12 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+              <p className="text-sm text-white/55">Loading launch wizard…</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -738,10 +668,12 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
   if (bootstrapError) {
     return (
-      <div className="min-h-screen bg-bg text-white flex items-center justify-center px-6">
-        <div className="text-center max-w-lg space-y-3">
-          <h2 className="text-xl font-semibold">Could not load launch wizard</h2>
-          <p className="text-muted">{bootstrapError}</p>
+      <div className="min-h-screen bg-bg text-white">
+        <div className="flex min-h-screen items-center justify-center px-6">
+          <div className="max-w-lg rounded-[2rem] border border-white/10 bg-card/75 p-8 text-center shadow-2xl shadow-black/40 backdrop-blur-xl">
+            <h2 className="text-xl font-semibold">Could not load launch wizard</h2>
+            <p className="mt-3 text-sm leading-6 text-white/55">{bootstrapError}</p>
+          </div>
         </div>
       </div>
     );
@@ -749,937 +681,734 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
   if (!data?.school) {
     return (
-      <div className="min-h-screen bg-bg text-white flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md px-6"
-        >
-          <div className="text-6xl mb-4">📚</div>
-          <h2 className="text-2xl font-semibold mb-2">
-            {variant === "platform"
-              ? "School not available"
-              : "No School Invite Found"}
-          </h2>
-          <p className="text-muted">
-            {variant === "platform"
-              ? "This school could not be loaded for assisted onboarding."
-              : "Please ensure you have a valid school invitation linked to your account."}
-          </p>
-        </motion.div>
+      <div className="min-h-screen bg-bg text-white">
+        <div className="flex min-h-screen items-center justify-center px-6">
+          <div className="max-w-lg rounded-[2rem] border border-white/10 bg-card/75 p-8 text-center shadow-2xl shadow-black/40 backdrop-blur-xl">
+            <h2 className="text-2xl font-semibold">
+              {variant === "platform" ? "School not available" : "No school invite found"}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-white/55">
+              {variant === "platform"
+                ? "This school could not be loaded for assisted onboarding."
+                : "Please ensure you have a valid school invitation linked to your account."}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const stepMeta = STEPS.find((s) => s.id === currentStep);
+  const stepMeta = STEPS.find((step) => step.id === currentStep);
+  const progressPercent = Math.round((currentStep / STEPS.length) * 100);
+  const StepIcon = stepMeta?.icon ?? Sparkles;
+  const activePeriod = periods[activePeriodIndex] ?? periods[0];
 
   return (
-    <div className="relative min-h-dvh bg-bg text-white antialiased">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(139,92,246,0.2) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 80% 60%, rgba(14,165,233,0.12) 0%, transparent 50%), radial-gradient(ellipse 50% 30% at 20% 80%, rgba(109,40,217,0.12) 0%, transparent 50%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.015]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-        }}
-      />
-      <FloatingOrbLaunch
-        className="left-[8%] top-[12%] h-72 w-72 bg-violet-500/15"
-        delay="0s"
-      />
-      <FloatingOrbLaunch
-        className="-right-20 top-[45%] h-80 w-80 bg-brand/10"
-        delay="2s"
-      />
-      <FloatingOrbLaunch
-        className="bottom-[8%] left-[25%] h-56 w-56 bg-primary/10"
-        delay="4s"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-0 right-0 top-0 h-px bg-linear-to-r from-transparent via-brand/30 to-transparent"
-      />
-
-      <div className="relative mx-auto grid min-h-dvh max-w-7xl items-start gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-16 lg:px-8 lg:py-16">
-        <div className="hidden lg:block">
-          <LaunchMarketingAside
-            variant={variant}
-            userEmail={data.user.email}
-          />
-        </div>
-
-        <div className="relative mx-auto w-full max-w-xl space-y-8 lg:mx-0 lg:max-w-none">
-          {/* Numbered steps */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="flex items-center justify-between"
-          >
-          {STEPS.map((step, idx) => (
-            <div key={step.id} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
-                <motion.button
-                  onClick={() => {
-                    // Allow going back to completed steps
-                    if (step.id < currentStep) {
-                      setCurrentStep(step.id);
-                    }
-                  }}
-                  whileHover={step.id < currentStep ? { scale: 1.1 } : {}}
-                  whileTap={{ scale: 0.95 }}
-                  className={`relative flex items-center justify-center size-14 rounded-full border-2 transition-all shadow-lg ${
-                    step.id < currentStep
-                      ? "bg-brand border-brand text-black cursor-pointer hover:shadow-brand/50"
-                      : step.id === currentStep
-                      ? "bg-primary border-primary text-white shadow-primary/30"
-                      : "bg-card/50 border-border text-muted backdrop-blur-sm"
-                  }`}
-                >
-                  {step.id < currentStep ? (
-                    <CheckCircle2 className="size-7" />
-                  ) : (
-                    <span className="font-bold text-lg">{step.id}</span>
-                  )}
-                  {step.id === currentStep && (
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-2 border-primary"
-                      animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.5, 0, 0.5],
-                      }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                      }}
+    <div className="min-h-dvh bg-bg px-4 py-8 text-white antialiased sm:px-6">
+      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-3xl items-center justify-center">
+        <Card className="w-full border border-white/10 bg-linear-to-br from-card/92 via-card/88 to-card/84 shadow-2xl shadow-black/35 backdrop-blur-2xl">
+          <CardContent className="p-6 sm:p-8">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              <div className="space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/20 ring-1 ring-white/5">
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
                     />
-                  )}
-                </motion.button>
-                <div className="mt-3 text-center">
-                  <div
-                    className={`text-sm font-semibold ${
-                      step.id === currentStep ? "text-white" : "text-muted"
-                    }`}
-                  >
-                    {step.title}
+                    <Image
+                      src={EDUSENTRIX_LOGO_PATH}
+                      alt={EDUSENTRIX_LOGO_ALT}
+                      fill
+                      sizes="48px"
+                      className="object-contain px-1.5 py-1"
+                    />
                   </div>
-                  <div className="text-xs text-muted/80 mt-1">
-                    {step.description}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold tracking-tight text-white">
+                      {variant === "platform"
+                        ? "Assisted School Launch"
+                        : "School Launch Wizard"}
+                    </p>
+                    <p className="text-xs text-white/42">{data.school.name}</p>
                   </div>
                 </div>
-              </div>
-              {idx < STEPS.length - 1 && (
-                <div className="relative h-1 flex-1 mx-6">
-                  <div className="absolute inset-0 bg-border rounded-full" />
-                  <motion.div
-                    className={`absolute inset-0 rounded-full ${
-                      step.id < currentStep ? "bg-brand" : "bg-transparent"
-                    }`}
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: step.id < currentStep ? "100%" : "0%",
-                    }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </motion.div>
 
-        <div className="relative mx-auto w-full">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -inset-1 rounded-[2.1rem] bg-linear-to-br from-brand/20 via-transparent to-primary/20 opacity-60 blur-xl"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -inset-px rounded-4xl bg-linear-to-br from-brand/10 via-transparent to-primary/10"
-          />
-
-          <div className="relative overflow-hidden rounded-4xl border border-white/8 bg-card/80 shadow-2xl shadow-black/50 backdrop-blur-2xl">
-            <div className="border-b border-white/6 bg-white/3 px-6 py-5 sm:px-8">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2.5">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50">
+                <div className="space-y-3">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/48">
                     <Sparkles className="h-3.5 w-3.5 text-brand" />
-                    {variant === "platform"
-                      ? "Assisted launch"
-                      : "School launch"}
+                    Step {currentStep} of {STEPS.length}
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                      {stepMeta?.title ?? "Setup"}
+                    <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">
+                      Finish your workspace setup
                     </h1>
-                    <p className="mt-1 text-sm text-white/45">
-                      {stepMeta?.description ?? ""}
+                    <p className="mt-2 text-sm leading-6 text-white/55">
+                      Keep this simple. Confirm the admin profile, set the
+                      school basics, then choose subjects and academic periods.
+                      Payment setup happens later in Settings.
                     </p>
                   </div>
                 </div>
-                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-brand sm:flex">
-                  <Award className="h-5 w-5" />
-                </div>
-              </div>
 
-              <div className="mt-4 border-t border-white/6 pt-4 lg:hidden">
-                <div className="flex items-center gap-3">
-                  <Image
-                    src={EDUSENTRIX_LOGO_PATH}
-                    alt={EDUSENTRIX_LOGO_ALT}
-                    width={36}
-                    height={36}
-                    className="rounded-xl"
-                  />
-                  <div>
-                    <p className="text-sm font-semibold text-white">EduSentrix</p>
-                    <p className="text-xs text-white/35">School workspace setup</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <LaunchFeaturePill icon={TrendingUp} label="Fees" />
-                  <LaunchFeaturePill icon={GraduationCap} label="Academics" />
-                  <LaunchFeaturePill icon={Globe} label="Ghana-ready" />
-                </div>
-              </div>
-            </div>
-
-            <div className="relative px-6 py-7 sm:px-8 sm:py-8">
-              <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-brand/5 via-transparent to-primary/5" />
-              <div className="relative">
-            <AnimatePresence mode="wait">
-              {currentStep === 1 && (
-                <motion.div
-                  key="step1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-8"
-                >
-                  <p className="text-sm text-white/50">
-                    Names are prefilled from your enrolment application when
-                    available. You can edit them before continuing.
-                  </p>
-
-                  <div className="space-y-6">
-                    {/* Avatar Upload */}
-                    <div className="space-y-3">
-                      <Label className={launchLabelClass}>
-                        Profile Photo
-                      </Label>
-                      {data?.school ? (
-                        <ImageUploader
-                          schoolId={data.school.id}
-                          subjectRole="school_admins"
-                          maxSizeMB={5}
-                          onUploaded={({ url, publicId }) => {
-                            setAvatarUrl(url);
-                            setAvatarPublicId(publicId);
-                          }}
-                        />
-                      ) : (
-                        <div className="h-28 rounded-xl border border-border/50 bg-background/40 grid place-items-center text-muted text-sm"></div>
-                      )}
+                <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-brand">
+                      <StepIcon className="h-5 w-5" />
                     </div>
-
-                    {/* Name Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName" className={launchLabelClass}>
-                          First Name *
-                        </Label>
-                        <Input
-                          id="firstName"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          required
-                          className={launchInputClass}
-                          placeholder="John"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName" className={launchLabelClass}>
-                          Last Name *
-                        </Label>
-                        <Input
-                          id="lastName"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          required
-                          className={launchInputClass}
-                          placeholder="Doe"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone" className={launchLabelClass}>
-                          Phone Number
-                        </Label>
-                        <Input
-                          id="phone"
-                          placeholder="+233 XX XXX XXXX"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          className={launchInputClass}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dob" className={launchLabelClass}>
-                          Date of Birth
-                        </Label>
-                        <CustomDatePicker
-                          value={
-                            dob
-                              ? new Date(`${dob}T12:00:00`)
-                              : null
-                          }
-                          onChange={(d) =>
-                            setDob(d ? format(d, "yyyy-MM-dd") : "")
-                          }
-                          placeholder="Select date"
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address" className={launchLabelClass}>
-                        Address
-                      </Label>
-                      <Textarea
-                        id="address"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        rows={3}
-                        className={`${launchInputClass} min-h-[88px] resize-none py-3`}
-                        placeholder="Enter your full address"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-6 border-t border-white/10">
-                    <Button
-                      onClick={saveStep1}
-                      disabled={!canContinueStep1 || saving}
-                      size="lg"
-                      className="rounded-2xl bg-brand px-6 text-black shadow-lg shadow-brand/20 hover:bg-sky-300 min-w-[140px]"
-                    >
-                      {saving ? "Saving..." : "Continue"}
-                      <ArrowRight className="ml-2 size-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-
-              {currentStep === 2 && (
-                <motion.div
-                  key="step2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-8"
-                >
-                  <LaunchSectionLabel>School information</LaunchSectionLabel>
-
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolName" className={launchLabelClass}>
-                        School Name *
-                      </Label>
-                      <Input
-                        id="schoolName"
-                        value={schoolName}
-                        onChange={(e) => setSchoolName(e.target.value)}
-                        className={launchInputClass}
-                        placeholder="Enter your school name"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className={launchLabelClass}>School Type</Label>
-                        <PremiumSelect
-                          value={schoolType}
-                          onValueChange={(v: "Basic" | "Secondary") =>
-                            setSchoolType(v)
-                          }
-                        >
-                          <PremiumSelectTrigger
-                            icon={<Building2 className="h-4 w-4" />}
-                            className="border-white/10 bg-white/5"
-                          >
-                            <PremiumSelectValue placeholder="Select type" />
-                          </PremiumSelectTrigger>
-                          <PremiumSelectContent className="z-[300]">
-                            <PremiumSelectItem value="Basic">
-                              Basic School
-                            </PremiumSelectItem>
-                            <PremiumSelectItem value="Secondary">
-                              Secondary School
-                            </PremiumSelectItem>
-                          </PremiumSelectContent>
-                        </PremiumSelect>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className={launchLabelClass}>Curriculum</Label>
-                        <PremiumSelect
-                          value={curriculumCode}
-                          onValueChange={(v) =>
-                            setCurriculumCode(v as CurriculumCode)
-                          }
-                        >
-                          <PremiumSelectTrigger
-                            icon={<BookOpen className="h-4 w-4" />}
-                            className="border-white/10 bg-white/5"
-                          >
-                            <PremiumSelectValue placeholder="Curriculum" />
-                          </PremiumSelectTrigger>
-                          <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
-                            {CURRICULUM_OPTIONS.map((c) => (
-                              <PremiumSelectItem key={c.code} value={c.code}>
-                                {c.label}
-                              </PremiumSelectItem>
-                            ))}
-                          </PremiumSelectContent>
-                        </PremiumSelect>
-                      </div>
-                    </div>
-                    {curriculumCode !== "ghana_nacca" && (
-                      <div className="rounded-xl border border-brand/20 bg-brand/5 px-4 py-3">
-                        <p className="text-sm text-white/80">
-                          {getCurriculumProfile(curriculumCode).description}
+                    <div className="min-w-0 space-y-2">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/38">
+                          Current step
                         </p>
+                        <h2 className="mt-1 text-lg font-semibold text-white">
+                          {stepMeta?.title}
+                        </h2>
                       </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolAddress" className={launchLabelClass}>
-                        Address
-                      </Label>
-                      <Input
-                        id="schoolAddress"
-                        value={schoolAddress}
-                        onChange={(e) => setSchoolAddress(e.target.value)}
-                        className={launchInputClass}
-                        placeholder="School address"
+                      <p className="text-sm leading-6 text-white/55">
+                        {stepMeta?.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                      <span>Progress</span>
+                      <span>{progressPercent}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/8">
+                      <div
+                        className="h-2 rounded-full bg-linear-to-r from-brand to-sky-300 transition-all"
+                        style={{ width: `${progressPercent}%` }}
                       />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="city" className={launchLabelClass}>
-                          City
-                        </Label>
-                        <Input
-                          id="city"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          className={launchInputClass}
-                          placeholder="City"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className={launchLabelClass}>Region</Label>
-                        <PremiumSelect
-                          value={
-                            GHANA_REGIONS.includes(region as GhanaRegion)
-                              ? region
-                              : ""
-                          }
-                          onValueChange={(v) => setRegion(v)}
-                        >
-                          <PremiumSelectTrigger
-                            icon={<MapPin className="h-4 w-4" />}
-                            className="border-white/10 bg-white/5"
-                          >
-                            <PremiumSelectValue placeholder="Select region" />
-                          </PremiumSelectTrigger>
-                          <PremiumSelectContent className="z-[300] max-h-64 overflow-y-auto">
-                            {GHANA_REGIONS.map((r) => (
-                              <PremiumSelectItem key={r} value={r}>
-                                {r}
-                              </PremiumSelectItem>
-                            ))}
-                          </PremiumSelectContent>
-                        </PremiumSelect>
-                      </div>
-                    </div>
                   </div>
+                </div>
 
-                  <div className="flex justify-between pt-6 border-t border-white/10">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentStep(1)}
-                      size="lg"
-                      className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    >
-                      <ArrowLeft className="mr-2 size-4" />
-                      Back
-                    </Button>
-                    <Button
-                      onClick={saveStep2}
-                      disabled={!canContinueStep2 || saving}
-                      size="lg"
-                      className="rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300 min-w-[140px]"
-                    >
-                      {saving ? "Saving..." : "Continue"}
-                      <ArrowRight className="ml-2 size-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-
-              {currentStep === 3 && (
-                <motion.div
-                  key="step3"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-8"
-                >
-                  <LaunchSectionLabel>Payment setup</LaunchSectionLabel>
-                  <p className="text-sm text-white/50">
-                    Add payout details now or invite your billing owner to
-                    complete Paystack setup securely.
+                <div className="rounded-[1.6rem] border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/58">
+                  <p>
+                    Signed in as{" "}
+                    <span className="font-medium text-white/82">
+                      {data.user.email}
+                    </span>
                   </p>
+                  <p className="mt-1">
+                    School status{" "}
+                    <span className="font-medium text-white/82">
+                      {data.school.status}
+                    </span>
+                  </p>
+                </div>
+              </div>
 
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (ownerInviteLocked) return;
-                          setPaymentAuthorityMode("self");
-                        }}
-                        className={`rounded-2xl border p-5 text-left transition ${
-                          paymentAuthorityMode === "self"
-                            ? "border-brand/40 bg-brand/10 shadow-lg shadow-brand/10"
-                            : "border-white/10 bg-white/[0.04] hover:border-white/20"
-                        } ${ownerInviteLocked ? "cursor-not-allowed opacity-60" : ""}`}
+              <AnimatePresence mode="wait">
+                    {currentStep === 1 && (
+                      <motion.div
+                        key="profile-step"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        className="space-y-6"
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="rounded-xl border border-brand/20 bg-brand/10 p-2">
-                            <ShieldCheck className="size-5 text-brand" />
-                          </div>
-                          <div className="space-y-2">
-                            <p className="font-semibold text-white">
-                              I am authorized
-                            </p>
-                            <p className="text-sm text-muted">
-                              Add the school's payout bank details now and keep payment setup moving.
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPaymentAuthorityMode("owner_invite")}
-                        className={`rounded-2xl border p-5 text-left transition ${
-                          paymentAuthorityMode === "owner_invite"
-                            ? "border-brand/40 bg-brand/10 shadow-lg shadow-brand/10"
-                            : "border-white/10 bg-white/[0.04] hover:border-white/20"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="rounded-xl border border-brand/20 bg-brand/10 p-2">
-                            <Mail className="size-5 text-brand" />
-                          </div>
-                          <div className="space-y-2">
-                            <p className="font-semibold text-white">
-                              Invite the billing owner
-                            </p>
-                            <p className="text-sm text-muted">
-                              Send a secure setup link to the person authorized to control the school's payout account.
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-
-                    {paymentAuthorityMode === "self" ? (
-                      <>
-                        <div className="space-y-2">
-                          <Label className={launchLabelClass}>
-                            Bank & Branch
-                          </Label>
-                          <BankBranchCombo
-                            value={bankPick}
-                            onChange={(v) => {
-                              setBankPick(v);
-                              setBankName(v?.bankName || "");
-                              setBranchName(v?.branchName || "");
-                              setSortCode(v?.sortCode || "");
-                            }}
-                            nameHiddenSortCode="sortCode"
-                          />
-                          {bankPick && (
-                            <motion.p
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              className="text-xs text-muted mt-2 px-3 py-2 rounded-lg bg-brand/10 border border-brand/20"
-                            >
-                              Selected:{" "}
-                              <strong className="text-brand">
-                                {bankPick.bankName}
-                              </strong>{" "}
-                              - {bankPick.branchName} (sort: {bankPick.sortCode})
-                            </motion.p>
+                        <SurfaceSection
+                          icon={UserRound}
+                          eyebrow="Avatar"
+                          title="Profile photo"
+                          description="Use a clear admin photo so staff and platform operators can recognize the account quickly."
+                        >
+                          {data.school ? (
+                            <ImageUploader
+                              schoolId={data.school.id}
+                              subjectRole="school_admins"
+                              maxSizeMB={5}
+                              onUploaded={({ url, publicId }) => {
+                                setAvatarUrl(url);
+                                setAvatarPublicId(publicId);
+                              }}
+                            />
+                          ) : (
+                            <div className="grid h-36 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-sm text-white/35">
+                              Photo upload unavailable
+                            </div>
                           )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="accountName" className={launchLabelClass}>
-                              Account Name
-                            </Label>
-                            <Input
-                              id="accountName"
-                              value={accountName}
-                              onChange={(e) => setAccountName(e.target.value)}
-                              className={launchInputClass}
-                              placeholder="Account holder name"
-                            />
+                        </SurfaceSection>
+
+                        <SurfaceSection
+                          icon={UserRound}
+                          eyebrow="Identity"
+                          title="Admin profile"
+                          description="Names may already be prefilled from the invite or application. Edit them here before entering the workspace."
+                        >
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="firstName" className={launchLabelClass}>
+                                First name
+                              </Label>
+                              <Input
+                                id="firstName"
+                                value={firstName}
+                                onChange={(event) => setFirstName(event.target.value)}
+                                placeholder="First name"
+                                className={launchInputClass}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="lastName" className={launchLabelClass}>
+                                Last name
+                              </Label>
+                              <Input
+                                id="lastName"
+                                value={lastName}
+                                onChange={(event) => setLastName(event.target.value)}
+                                placeholder="Last name"
+                                className={launchInputClass}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="phone" className={launchLabelClass}>
+                                Phone number
+                              </Label>
+                              <Input
+                                id="phone"
+                                value={phone}
+                                onChange={(event) => setPhone(event.target.value)}
+                                placeholder="+233 XX XXX XXXX"
+                                className={launchInputClass}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className={launchLabelClass}>Date of birth</Label>
+                              <CustomDatePicker
+                                value={parseDateValue(dob)}
+                                onChange={(date) =>
+                                  setDob(date ? format(date, "yyyy-MM-dd") : "")
+                                }
+                                placeholder="Select date"
+                                className="w-full"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="address" className={launchLabelClass}>
+                                Address
+                              </Label>
+                              <Textarea
+                                id="address"
+                                value={address}
+                                onChange={(event) => setAddress(event.target.value)}
+                                placeholder="Enter your address"
+                                className={launchTextAreaClass}
+                              />
+                            </div>
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="accountNumber" className={launchLabelClass}>
-                              Account Number
-                            </Label>
-                            <Input
-                              id="accountNumber"
-                              value={accountNumber}
-                              onChange={(e) => setAccountNumber(e.target.value)}
-                              className={launchInputClass}
-                              placeholder="Account number"
-                            />
-                          </div>
+                        </SurfaceSection>
+
+                        <div className="space-y-3 border-t border-white/8 pt-6">
+                          <Button
+                            onClick={saveStep1}
+                            disabled={!canContinueStep1 || saving}
+                            size="lg"
+                            className="w-full rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300"
+                          >
+                            {saving ? "Saving..." : "Continue"}
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
                         </div>
-                      </>
-                    ) : (
-                      <div className="space-y-4 rounded-2xl border border-brand/20 bg-brand/5 p-5">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-white">
-                            Billing owner handoff
-                          </p>
-                          <p className="text-sm text-muted">
-                            The invited billing owner will receive a secure sign-in path and land directly in Payment Setup.
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="billingOwnerName" className={launchLabelClass}>
-                              Billing owner name
-                            </Label>
-                            <Input
-                              id="billingOwnerName"
-                              value={ownerName}
-                              onChange={(e) => setOwnerName(e.target.value)}
-                              className={launchInputClass}
-                              placeholder="Owner or finance authority"
-                              disabled={ownerInviteLocked}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="billingOwnerEmail" className={launchLabelClass}>
-                              Billing owner email
-                            </Label>
-                            <Input
-                              id="billingOwnerEmail"
-                              value={ownerEmail}
-                              onChange={(e) => setOwnerEmail(e.target.value)}
-                              className={launchInputClass}
-                              placeholder="owner@school.edu.gh"
-                              disabled={ownerInviteLocked}
-                            />
-                          </div>
-                        </div>
-                        <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/75">
-                          {ownerInviteLocked
-                            ? `Billing owner invitation already sent to ${ownerEmail}. You can continue setup while they complete payment setup later.`
-                            : "If you are not authorized to add payout details, send the setup link to the billing owner and continue with the rest of school launch."}
-                        </div>
-                      </div>
+                      </motion.div>
                     )}
-                  </div>
 
-                  <div className="flex justify-between pt-6 border-t border-white/10">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentStep(2)}
-                      size="lg"
-                      className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    >
-                      <ArrowLeft className="mr-2 size-4" />
-                      Back
-                    </Button>
-                    <Button
-                      onClick={saveStep3}
-                      disabled={saving}
-                      size="lg"
-                      className="rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300 min-w-[140px]"
-                    >
-                      {saving
-                        ? "Saving..."
-                        : paymentAuthorityMode === "owner_invite" &&
-                            !ownerInviteLocked
-                          ? "Send Invite"
-                          : "Continue"}
-                      <ArrowRight className="ml-2 size-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-
-              {currentStep === 4 && (
-                <motion.div
-                  key="step4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-8"
-                >
-                  <LaunchSectionLabel>Curriculum & periods</LaunchSectionLabel>
-                  <p className="text-sm text-white/50">
-                    Select subjects and define academic periods. Dates use the
-                    calendar picker for consistency with the rest of the app.
-                  </p>
-
-                  {/* Subjects */}
-                  <div className="space-y-6">
-                    <div>
-                      <Label className={`${launchLabelClass} mb-3 block`}>
-                        Subjects
-                      </Label>
-                      <div className="flex gap-2 mb-4">
-                        <Input
-                          placeholder="Add custom subject"
-                          value={newSubject}
-                          onChange={(e) => setNewSubject(e.target.value)}
-                          onKeyDown={(e) =>
-                            e.key === "Enter"
-                              ? (e.preventDefault(), addSubject())
-                              : null
-                          }
-                          className={launchInputClass}
-                        />
-                        <Button
-                          type="button"
-                          onClick={addSubject}
-                          variant="outline"
-                          className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    {currentStep === 2 && (
+                      <motion.div
+                        key="school-step"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        className="space-y-6"
+                      >
+                        <SurfaceSection
+                          icon={Building2}
+                          eyebrow="School profile"
+                          title="Identity and curriculum"
+                          description="These settings determine the school’s default academic structure and starter subject set."
                         >
-                          Add
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {subjectPool.map((s) => {
-                          const active = selectedSubjects.includes(s);
-                          return (
-                            <motion.button
-                              key={s}
-                              type="button"
-                              onClick={() =>
-                                active
-                                  ? removeSubject(s)
-                                  : setSelectedSubjects((prev) => [...prev, s])
-                              }
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-                                active
-                                  ? "bg-brand text-black border-brand shadow-lg shadow-brand/20"
-                                  : "border-border hover:border-brand/50 hover:bg-card/50"
-                              }`}
-                            >
-                              {s}
-                            </motion.button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="schoolName" className={launchLabelClass}>
+                                School name
+                              </Label>
+                              <Input
+                                id="schoolName"
+                                value={schoolName}
+                                onChange={(event) => setSchoolName(event.target.value)}
+                                placeholder="Enter your school name"
+                                className={launchInputClass}
+                              />
+                            </div>
 
-                    {/* Academic Periods */}
-                    <div className="space-y-4">
-                      <Label className={`${launchLabelClass} block`}>
-                        Academic Periods
-                      </Label>
-                      {periods.map((p, idx) => (
-                        <motion.div
-                          key={idx}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="grid grid-cols-1 gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm md:grid-cols-5 md:items-end"
+                            <div className="space-y-2">
+                              <Label className={launchLabelClass}>School type</Label>
+                              <PremiumSelect
+                                value={schoolType}
+                                onValueChange={(value: "Basic" | "Secondary") =>
+                                  setSchoolType(value)
+                                }
+                              >
+                                <PremiumSelectTrigger
+                                  icon={<Building2 className="h-4 w-4" />}
+                                  className="border-white/10 bg-white/5"
+                                >
+                                  <PremiumSelectValue placeholder="Select school type" />
+                                </PremiumSelectTrigger>
+                                <PremiumSelectContent className="z-[300]">
+                                  <PremiumSelectItem value="Basic">
+                                    Basic School
+                                  </PremiumSelectItem>
+                                  <PremiumSelectItem value="Secondary">
+                                    Secondary School
+                                  </PremiumSelectItem>
+                                </PremiumSelectContent>
+                              </PremiumSelect>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className={launchLabelClass}>Curriculum</Label>
+                              <PremiumSelect
+                                value={curriculumCode}
+                                onValueChange={(value) =>
+                                  setCurriculumCode(value as CurriculumCode)
+                                }
+                              >
+                                <PremiumSelectTrigger
+                                  icon={<BookOpen className="h-4 w-4" />}
+                                  className="border-white/10 bg-white/5"
+                                >
+                                  <PremiumSelectValue placeholder="Select curriculum" />
+                                </PremiumSelectTrigger>
+                                <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
+                                  {CURRICULUM_OPTIONS.map((option) => (
+                                    <PremiumSelectItem
+                                      key={option.code}
+                                      value={option.code}
+                                      description={option.description}
+                                    >
+                                      {option.label}
+                                    </PremiumSelectItem>
+                                  ))}
+                                </PremiumSelectContent>
+                              </PremiumSelect>
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-6 text-white/62">
+                              <p className="font-semibold text-white">
+                                {curriculumProfile.label}
+                              </p>
+                              <p className="mt-1">{curriculumProfile.description}</p>
+                            </div>
+                          </div>
+                        </SurfaceSection>
+
+                        <SurfaceSection
+                          icon={MapPin}
+                          eyebrow="Location"
+                          title="School address"
+                          description="This appears across reports, notices, and billing records."
                         >
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                              Year label
-                            </Label>
-                            <Input
-                              value={p.yearLabel}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setPeriods((arr) =>
-                                  arr.map((x, i) =>
-                                    i === idx ? { ...x, yearLabel: v } : x
-                                  )
-                                );
-                              }}
-                              className={launchInputClass}
-                            />
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="schoolAddress" className={launchLabelClass}>
+                                Address
+                              </Label>
+                              <Input
+                                id="schoolAddress"
+                                value={schoolAddress}
+                                onChange={(event) => setSchoolAddress(event.target.value)}
+                                placeholder="School address"
+                                className={launchInputClass}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="city" className={launchLabelClass}>
+                                City
+                              </Label>
+                              <Input
+                                id="city"
+                                value={city}
+                                onChange={(event) => setCity(event.target.value)}
+                                placeholder="City"
+                                className={launchInputClass}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label className={launchLabelClass}>Region</Label>
+                              <PremiumSelect
+                                value={
+                                  GHANA_REGIONS.includes(region as GhanaRegion)
+                                    ? region
+                                    : ""
+                                }
+                                onValueChange={(value) => setRegion(value)}
+                              >
+                                <PremiumSelectTrigger
+                                  icon={<MapPin className="h-4 w-4" />}
+                                  className="border-white/10 bg-white/5"
+                                >
+                                  <PremiumSelectValue placeholder="Select region" />
+                                </PremiumSelectTrigger>
+                                <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
+                                  {GHANA_REGIONS.map((regionOption) => (
+                                    <PremiumSelectItem
+                                      key={regionOption}
+                                      value={regionOption}
+                                    >
+                                      {regionOption}
+                                    </PremiumSelectItem>
+                                  ))}
+                                </PremiumSelectContent>
+                              </PremiumSelect>
+                            </div>
                           </div>
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                              Term
-                            </Label>
-                            <Input
-                              value={p.term}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setPeriods((arr) =>
-                                  arr.map((x, i) =>
-                                    i === idx ? { ...x, term: v } : x
-                                  )
-                                );
-                              }}
-                              className={launchInputClass}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                              Start
-                            </Label>
-                            <CustomDatePicker
-                              value={
-                                p.startDate
-                                  ? new Date(`${p.startDate}T12:00:00`)
-                                  : null
-                              }
-                              onChange={(d) => {
-                                const v = d ? format(d, "yyyy-MM-dd") : "";
-                                setPeriods((arr) =>
-                                  arr.map((x, i) =>
-                                    i === idx ? { ...x, startDate: v } : x
-                                  )
-                                );
-                              }}
-                              placeholder="Start date"
-                              className="w-full"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                              End
-                            </Label>
-                            <CustomDatePicker
-                              value={
-                                p.endDate
-                                  ? new Date(`${p.endDate}T12:00:00`)
-                                  : null
-                              }
-                              onChange={(d) => {
-                                const v = d ? format(d, "yyyy-MM-dd") : "";
-                                setPeriods((arr) =>
-                                  arr.map((x, i) =>
-                                    i === idx ? { ...x, endDate: v } : x
-                                  )
-                                );
-                              }}
-                              placeholder="End date"
-                              className="w-full"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant={p.isCurrent ? "default" : "outline"}
-                              onClick={() => setCurrentPeriod(idx)}
-                              size="sm"
-                              className={
-                                p.isCurrent
-                                  ? "rounded-xl bg-brand text-black"
-                                  : "rounded-xl border-white/15 bg-white/5"
-                              }
-                            >
-                              {p.isCurrent ? "Current" : "Set current"}
-                            </Button>
-                            {periods.length > 1 && (
+                        </SurfaceSection>
+
+                        <div className="space-y-3 border-t border-white/8 pt-6">
+                          <Button
+                            variant="outline"
+                            onClick={() => setCurrentStep(1)}
+                            size="lg"
+                            className="w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                          >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back
+                          </Button>
+                          <Button
+                            onClick={saveStep2}
+                            disabled={!canContinueStep2 || saving}
+                            size="lg"
+                            className="w-full rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300"
+                          >
+                            {saving ? "Saving..." : "Continue"}
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {currentStep === 3 && (
+                      <motion.div
+                        key="curriculum-step"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        className="space-y-6"
+                      >
+                        <SurfaceSection
+                          icon={BookOpen}
+                          eyebrow="Subjects"
+                          title="Subject selection"
+                          description="Start with the recommended curriculum set, then search, review, and toggle exactly what this school should launch with."
+                        >
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                              <Input
+                                value={subjectQuery}
+                                onChange={(event) =>
+                                  setSubjectQuery(event.target.value)
+                                }
+                                placeholder="Search recommended or custom subjects"
+                                className={`${launchInputClass} pl-11`}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
                               <Button
                                 type="button"
-                                variant="ghost"
-                                onClick={() =>
-                                  setPeriods((arr) =>
-                                    arr.filter((_, i) => i !== idx)
-                                  )
-                                }
-                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedSubjects(recommendedSubjects)}
+                                className="w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
                               >
-                                Remove
+                                Use recommended set
                               </Button>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          setPeriods((arr) => [
-                            ...arr,
-                            {
-                              yearLabel: `${new Date().getFullYear()}/${
-                                new Date().getFullYear() + 1
-                              }`,
-                              term: `Term ${arr.length + 1}`,
-                              startDate: format(new Date(), "yyyy-MM-dd"),
-                              endDate: format(
-                                new Date(
-                                  new Date().setMonth(new Date().getMonth() + 3)
-                                ),
-                                "yyyy-MM-dd"
-                              ),
-                              isCurrent: false,
-                            },
-                          ])
-                        }
-                        className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10"
-                      >
-                        Add period
-                      </Button>
-                    </div>
-                  </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setSelectedSubjects([])}
+                                className="w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                              >
+                                Clear all
+                              </Button>
+                            </div>
 
-                  <div className="flex justify-between pt-6 border-t border-white/10">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentStep(3)}
-                      size="lg"
-                      className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    >
-                      <ArrowLeft className="mr-2 size-4" />
-                      Back
-                    </Button>
-                    <Button
-                      onClick={finishOnboarding}
-                      disabled={!canContinueStep4 || saving}
-                      size="lg"
-                      className="rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300 min-w-[180px]"
-                    >
-                      {saving ? "Finishing..." : "Complete Onboarding"}
-                      <CheckCircle2 className="ml-2 size-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
+                            <div className="space-y-3">
+                              {filteredSubjects.map((subject) => {
+                                const active = selectedSubjects.includes(subject);
+                                const isRecommended =
+                                  recommendedSubjectSet.has(subject);
+
+                                return (
+                                  <button
+                                    key={subject}
+                                    type="button"
+                                    onClick={() => toggleSubject(subject)}
+                                    className={cn(
+                                      "w-full rounded-[1.35rem] border p-4 text-left transition-all",
+                                      active
+                                        ? "border-brand/35 bg-brand/10 shadow-lg shadow-brand/10"
+                                        : "border-white/10 bg-white/[0.03] hover:border-white/16 hover:bg-white/[0.06]"
+                                    )}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold text-white">
+                                          {subject}
+                                        </p>
+                                        <p className="mt-1 text-xs leading-5 text-white/45">
+                                          {isRecommended
+                                            ? "Recommended for this curriculum"
+                                            : "Custom subject"}
+                                        </p>
+                                      </div>
+                                      <div
+                                        className={cn(
+                                          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
+                                          active
+                                            ? "border-brand bg-brand text-black"
+                                            : "border-white/12 bg-white/5 text-transparent"
+                                        )}
+                                      >
+                                        <Check className="h-3.5 w-3.5" />
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </SurfaceSection>
+
+                        <SurfaceSection
+                          icon={GraduationCap}
+                          eyebrow="Selection"
+                          title="Selected subjects"
+                          description={`${selectedSubjects.length} subject${selectedSubjects.length === 1 ? "" : "s"} will be created for this school.`}
+                        >
+                          <div className="space-y-4">
+                            <div className="space-y-3">
+                              {selectedSubjects.length > 0 ? (
+                                selectedSubjects.map((subject) => (
+                                  <button
+                                    key={subject}
+                                    type="button"
+                                    onClick={() => toggleSubject(subject)}
+                                    className="flex w-full items-center justify-between gap-3 rounded-[1.2rem] border border-brand/20 bg-brand/10 px-4 py-3 text-left text-sm text-white transition hover:border-brand/35 hover:bg-brand/14"
+                                  >
+                                    <span className="truncate">{subject}</span>
+                                    <X className="h-4 w-4 shrink-0 text-white/60" />
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-6 text-sm text-white/40">
+                                  No subjects selected yet.
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="border-t border-white/8 pt-4">
+                              <Label className={`${launchLabelClass} mb-2 block`}>
+                                Add a custom subject
+                              </Label>
+                              <div className="space-y-2">
+                                <Input
+                                  value={newSubject}
+                                  onChange={(event) => setNewSubject(event.target.value)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      addCustomSubject();
+                                    }
+                                  }}
+                                  placeholder="e.g. Robotics"
+                                  className={launchInputClass}
+                                />
+                                <Button
+                                  type="button"
+                                  onClick={addCustomSubject}
+                                  className="w-full rounded-2xl bg-white/8 px-4 text-white hover:bg-white/12"
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Add subject
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </SurfaceSection>
+
+                        <SurfaceSection
+                          icon={CalendarDays}
+                          eyebrow="Academic periods"
+                          title="Academic periods"
+                          description="Review each period one at a time, adjust the dates, and choose which period should be current. Terms cannot overlap on the same day—when you change an end date, later terms shift to start the next calendar day automatically."
+                        >
+                          <div className="space-y-4">
+                            <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white/58">
+                              We created {periods.length} period
+                              {periods.length === 1 ? "" : "s"} from the selected
+                              curriculum. Move across the steps below and update
+                              the timeline for each one.
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {periods.map((period, index) => {
+                                const isActive = index === activePeriodIndex;
+                                return (
+                                  <button
+                                    key={`${period.term}-${index}`}
+                                    type="button"
+                                    onClick={() => setActivePeriodIndex(index)}
+                                    className={cn(
+                                      "min-w-[140px] rounded-[1.25rem] border px-4 py-3 text-left transition-all",
+                                      isActive
+                                        ? "border-brand/35 bg-brand/10 shadow-lg shadow-brand/10"
+                                        : "border-white/10 bg-white/[0.03] hover:border-white/16 hover:bg-white/[0.06]"
+                                    )}
+                                  >
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/38">
+                                      Period {index + 1}
+                                    </p>
+                                    <p className="mt-1 text-sm font-semibold text-white">
+                                      {period.term}
+                                    </p>
+                                    <p className="mt-1 text-xs text-white/48">
+                                      {period.isCurrent ? "Current period" : "Open step"}
+                                    </p>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {activePeriod ? (
+                              <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-5 shadow-lg shadow-black/20">
+                                <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-white/8 pb-4">
+                                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/42">
+                                    Period {activePeriodIndex + 1} of {periods.length}
+                                  </span>
+                                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white/78">
+                                    {activePeriod.term}
+                                  </span>
+                                  {activePeriod.isCurrent ? (
+                                    <span className="rounded-full border border-brand/20 bg-brand/12 px-3 py-1 text-sm font-medium text-white">
+                                      Current
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                <div className="space-y-4">
+                                  <div className="space-y-2">
+                                    <Label className={launchLabelClass}>Academic year label</Label>
+                                    <Input
+                                      value={activePeriod.yearLabel}
+                                      onChange={(event) =>
+                                        updatePeriod(activePeriodIndex, {
+                                          yearLabel: event.target.value,
+                                        })
+                                      }
+                                      placeholder="2026/2027"
+                                      className={launchInputClass}
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label className={launchLabelClass}>Term</Label>
+                                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/75">
+                                      {activePeriod.term}
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label className={launchLabelClass}>Start date</Label>
+                                    <CustomDatePicker
+                                      value={parseDateValue(activePeriod.startDate)}
+                                      onChange={(date) =>
+                                        updatePeriod(activePeriodIndex, {
+                                          startDate: date
+                                            ? format(date, "yyyy-MM-dd")
+                                            : "",
+                                        })
+                                      }
+                                      placeholder="Select start date"
+                                      className="w-full"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label className={launchLabelClass}>End date</Label>
+                                    <CustomDatePicker
+                                      value={parseDateValue(activePeriod.endDate)}
+                                      onChange={(date) =>
+                                        updatePeriod(activePeriodIndex, {
+                                          endDate: date
+                                            ? format(date, "yyyy-MM-dd")
+                                            : "",
+                                        })
+                                      }
+                                      placeholder="Select end date"
+                                      className="w-full"
+                                    />
+                                  </div>
+
+                                  <Button
+                                    type="button"
+                                    variant={activePeriod.isCurrent ? "default" : "outline"}
+                                    onClick={() => setCurrentPeriod(activePeriodIndex)}
+                                    className={
+                                      activePeriod.isCurrent
+                                        ? "w-full rounded-2xl bg-brand text-black hover:bg-sky-300"
+                                        : "w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                                    }
+                                  >
+                                    {activePeriod.isCurrent
+                                      ? "Current period"
+                                      : "Set as current period"}
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        </SurfaceSection>
+
+                        <div className="space-y-3 border-t border-white/8 pt-6">
+                          <Button
+                            variant="outline"
+                            onClick={() => setCurrentStep(2)}
+                            size="lg"
+                            className="w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
+                          >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back
+                          </Button>
+                          <Button
+                            onClick={finishOnboarding}
+                            disabled={!canFinish || saving}
+                            size="lg"
+                            className="w-full rounded-2xl bg-brand text-black shadow-lg shadow-brand/20 hover:bg-sky-300"
+                          >
+                            {saving ? "Finishing..." : "Complete school launch"}
+                            <CheckCircle2 className="ml-2 h-4 w-4" />
+                          </Button>
+                          <p className="text-center text-sm text-white/40">
+                            Need to stop now? Your progress on each step is saved
+                            when you continue.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+              </AnimatePresence>
+            </motion.div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

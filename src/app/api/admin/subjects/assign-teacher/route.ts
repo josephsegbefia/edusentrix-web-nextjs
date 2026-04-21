@@ -8,6 +8,10 @@ import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
 import { z } from "zod";
+import {
+  deactivateOtherTeachersOnSlot,
+  findOtherTeachersOnSlot,
+} from "@/lib/admin/teacher-assignment-slot";
 
 const AssignTeacherSchema = z.object({
   teacherId: z.string(),
@@ -16,7 +20,10 @@ const AssignTeacherSchema = z.object({
   academicPeriodId: z.string().optional(), // If not provided, use active period
   workloadHours: z.number().min(0).optional(),
   notes: z.string().max(1000).optional(),
-  allowMultiple: z.boolean().optional(), // Allow multiple teachers for same subject/class
+  /** Add this teacher alongside existing teacher(s) for the same subject/class/period. */
+  allowMultiple: z.boolean().optional(),
+  /** Remove active assignments for other teacher(s) on this slot, then assign this teacher. */
+  replaceExisting: z.boolean().optional(),
 });
 
 function toObjectIdOrNull(id: string) {
@@ -58,6 +65,7 @@ export async function POST(req: NextRequest) {
       workloadHours,
       notes,
       allowMultiple,
+      replaceExisting,
     } = parsed.data;
 
     const teacherObjId = toObjectIdOrNull(teacherId);
@@ -99,54 +107,18 @@ export async function POST(req: NextRequest) {
       periodObjId = activePeriod._id;
     }
 
-    // Check for existing assignment conflict
-    const existingAssignment = await TeacherAssignment.findOne({
+    const sameTeacherAssignment = await TeacherAssignment.findOne({
       schoolId: schoolIdObj,
       academicPeriodId: periodObjId,
       subjectId: subjectObjId,
       classGroupId: classGroupObjId,
-      status: "active",
-    }).lean() as { _id: any; teacherId: any } | null;
-
-    // Check if another teacher is already assigned
-    const otherTeacherAssignment = await TeacherAssignment.findOne({
-      schoolId: schoolIdObj,
-      academicPeriodId: periodObjId,
-      subjectId: subjectObjId,
-      classGroupId: classGroupObjId,
-      teacherId: { $ne: teacherObjId },
+      teacherId: teacherObjId,
       status: "active",
     })
-      .populate("teacherId", "userId")
-      .populate("teacherId.userId", "firstName lastName")
+      .select("_id")
       .lean();
 
-    if (otherTeacherAssignment && !allowMultiple) {
-      const otherTeacher = (otherTeacherAssignment as any).teacherId;
-      const otherTeacherUser = otherTeacher?.userId;
-      const otherTeacherName = otherTeacherUser
-        ? `${otherTeacherUser.firstName || ""} ${otherTeacherUser.lastName || ""}`.trim()
-        : "Another teacher";
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Conflict detected",
-          conflict: {
-            type: "multiple_teachers",
-            message: `${otherTeacherName} is already assigned to teach this subject in this class for this period.`,
-            existingTeacher: {
-              id: String(otherTeacher._id),
-              name: otherTeacherName,
-            },
-          },
-        },
-        { status: 409 }
-      );
-    }
-
-    // Check if this teacher already has this assignment
-    if (existingAssignment && String(existingAssignment.teacherId) === String(teacherObjId)) {
+    if (sameTeacherAssignment) {
       return NextResponse.json(
         {
           success: false,
@@ -156,23 +128,50 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If existing assignment exists and allowMultiple is true, deactivate it first
-    // This allows multiple teachers but maintains data integrity
-    if (existingAssignment && allowMultiple) {
-      await TeacherAssignment.updateOne(
-        { _id: existingAssignment._id },
-        { $set: { status: "inactive" } }
-      );
-    } else if (existingAssignment && !allowMultiple) {
-      // This case is already handled above with the conflict error
-      // But we keep this check for safety
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Another teacher is already assigned. Use allowMultiple flag to override.",
-        },
-        { status: 409 }
-      );
+    const othersOnSlot = await findOtherTeachersOnSlot({
+      schoolId: schoolIdObj,
+      academicPeriodId: periodObjId,
+      subjectId: subjectObjId,
+      classGroupId: classGroupObjId,
+      requestingTeacherId: teacherObjId,
+    });
+    const hadOthersOnSlot = othersOnSlot.length > 0;
+
+    if (othersOnSlot.length > 0) {
+      if (replaceExisting) {
+        await deactivateOtherTeachersOnSlot({
+          schoolId: schoolIdObj,
+          academicPeriodId: periodObjId,
+          subjectId: subjectObjId,
+          classGroupId: classGroupObjId,
+          keepTeacherId: teacherObjId,
+        });
+      } else if (allowMultiple) {
+        // Co-teaching: keep existing active assignments and add this teacher.
+      } else {
+        const names = othersOnSlot.map((o) => o.displayName).filter(Boolean);
+        const summary =
+          names.length === 1
+            ? `${names[0]} is already assigned to teach this subject in this class for this period.`
+            : `${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""} already teach this subject in this class for this period.`;
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Conflict detected",
+            conflict: {
+              type: "other_teachers_on_slot",
+              message: summary,
+              existingTeachers: othersOnSlot.map((o) => ({
+                id: o.teacherId,
+                name: o.displayName,
+                assignmentId: o.assignmentId,
+              })),
+            },
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Ensure the class has this subject in subjectIds (so it appears in Assigned Classes)
@@ -210,7 +209,7 @@ export async function POST(req: NextRequest) {
         subjectId: String(subjectObjId),
         classGroupId: String(classGroupObjId),
         academicPeriodId: String(periodObjId),
-        hasConflict: !!otherTeacherAssignment,
+        hasConflict: hadOthersOnSlot,
       },
       warnings,
     });

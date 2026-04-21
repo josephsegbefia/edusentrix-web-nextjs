@@ -25,6 +25,7 @@ import {
   Power,
   Clock,
 } from "lucide-react";
+import { PendingInviteBadge } from "@/components/admin/PendingInviteBadge";
 
 type TeacherCardProps = {
   teacher: TeacherListItemDTO;
@@ -103,6 +104,7 @@ export function TeacherCard({
 }: TeacherCardProps) {
   const tone = getStatusTone(teacher);
   const config = toneConfig[tone];
+  const invitePending = teacher.hasPlatformAccount === false;
 
   const hireDateLabel = React.useMemo(() => {
     if (!teacher.hireDate) return null;
@@ -306,6 +308,7 @@ export function TeacherCard({
               >
                 {statusLabel}
               </span>
+              {invitePending && <PendingInviteBadge />}
               {teacher.employeeId && (
                 <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60">
                   {teacher.employeeId}

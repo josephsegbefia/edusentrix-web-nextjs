@@ -60,10 +60,23 @@ const userSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-// keep simple indexes
+// Non-unique: fast lookup by email alone
 userSchema.index({ email: 1 });
-// optional compound index if you want faster lookups when both exist:
 userSchema.index({ email: 1, clerkUserId: 1 });
+
+/**
+ * One email may exist per school (multi-tenant). Platform users with no schoolId
+ * are excluded so they are not covered by this constraint.
+ * If Mongo still has a legacy unique index on { email: 1 }, drop it after deploy:
+ * db.users.dropIndex("email_1")
+ */
+userSchema.index(
+  { schoolId: 1, email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { schoolId: { $type: "objectId" } },
+  }
+);
 
 export const User: Model<IUser> =
   (models.User as Model<IUser>) || model<IUser>("User", userSchema);

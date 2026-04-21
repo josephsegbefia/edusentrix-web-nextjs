@@ -102,10 +102,15 @@ export async function POST(
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { classGroupId } = body;
+  const { classGroupId, replaceExisting: replaceExistingRaw } = body as {
+    classGroupId?: string;
+    replaceExisting?: boolean;
+  };
   if (!classGroupId) {
     return Response.json({ error: "classGroupId is required" }, { status: 400 });
   }
+
+  const replaceExisting = replaceExistingRaw === true;
 
   const classGroupObjId = toObjectIdOrNull(classGroupId);
   if (!classGroupObjId) {
@@ -137,21 +142,39 @@ export async function POST(
     classGroup.homeroomTeacherId &&
     String(classGroup.homeroomTeacherId) !== String(teacher._id)
   ) {
-    // Get the current homeroom teacher's name
     const currentHomeroomTeacher = await Teacher.findById(
       classGroup.homeroomTeacherId
     ).populate("userId", "firstName lastName");
 
-    const currentUser = currentHomeroomTeacher?.userId as any;
+    const currentUser = currentHomeroomTeacher?.userId as {
+      firstName?: string;
+      lastName?: string;
+    };
     const currentName = currentUser
       ? `${currentUser.firstName || ""} ${currentUser.lastName || ""}`.trim()
       : "another teacher";
 
-    return Response.json(
+    if (!replaceExisting) {
+      return Response.json(
+        {
+          error: `${currentName} is already the homeroom teacher for this class.`,
+          conflict: {
+            type: "homeroom_exists" as const,
+            message: `${currentName} is already assigned as homeroom for this class.`,
+            currentTeacherName: currentName,
+            currentTeacherId: String(classGroup.homeroomTeacherId),
+          },
+        },
+        { status: 409 }
+      );
+    }
+
+    await Teacher.updateOne(
       {
-        error: `This class already has ${currentName} as homeroom teacher. Please remove them first.`,
+        _id: classGroup.homeroomTeacherId,
+        schoolId: schoolIdObj,
       },
-      { status: 409 }
+      { $unset: { homeroomClassGroupId: 1 } }
     );
   }
 

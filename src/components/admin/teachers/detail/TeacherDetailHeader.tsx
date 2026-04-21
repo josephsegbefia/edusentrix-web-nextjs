@@ -10,6 +10,7 @@ import {
   BookOpen,
   Calendar,
   Clock3,
+  Send,
 } from "lucide-react";
 
 type TeacherDetailHeaderProps = {
@@ -30,6 +31,8 @@ type TeacherDetailHeaderProps = {
     leaveStartDate?: string | null;
     leaveEndDate?: string | null;
     leaveReason?: string | null;
+    /** False until they accept the invite and link a Clerk login */
+    hasPlatformAccount?: boolean;
   };
 };
 
@@ -84,8 +87,10 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
     hireDate,
     department,
     leaveEndDate,
+    hasPlatformAccount = true,
   } = teacher;
   const displaySubjects = (assignedSubjects?.length ? assignedSubjects : subjects) ?? [];
+  const invitePending = hasPlatformAccount === false;
 
   const statusStyle = statusConfig[status] || statusConfig.inactive;
 
@@ -136,6 +141,23 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+      {invitePending && (
+        <div
+          className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          role="status"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/20">
+            <Send className="h-4 w-4 text-amber-200" aria-hidden />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <p className="font-semibold text-amber-100">Invitation not accepted yet</p>
+            <p className="text-xs leading-relaxed text-amber-100/85">
+              This teacher does not have an official platform login until they accept the
+              invitation email. You can still add details, subjects, and assignments here.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         {/* Left: Avatar + Info */}
         <div className="flex flex-1 items-start gap-5">
@@ -168,6 +190,11 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
                 />
                 {status.replace("_", " ")}
               </span>
+              {invitePending && (
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
+                  Invite pending
+                </span>
+              )}
             </div>
 
             {department && (

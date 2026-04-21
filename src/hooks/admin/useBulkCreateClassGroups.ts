@@ -2,6 +2,7 @@
 // src/hooks/admin/useBulkCreateClassGroups.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 
 type Strategy =
   | { kind: "letters"; from: string; to: string }
@@ -21,8 +22,10 @@ export function useBulkCreateClassGroups() {
     mutationFn: async (payload: {
       gradeConfigs: GradeConfig[];
       subjectIds?: string[];
+      subjectIdsByGrade?: Record<string, string[]>;
       homeroomTeacherId?: string | null;
       capacity?: number | null;
+      capacitiesByClassName?: Record<string, number | null>;
     }) => {
       const res = await fetch("/api/admin/class-groups/bulk", {
         method: "POST",
@@ -36,7 +39,9 @@ export function useBulkCreateClassGroups() {
     onSuccess: (d) => {
       busy.success(`Class groups created: ${d.created}`);
       qc.invalidateQueries({ queryKey: ["class-groups"] });
-      qc.invalidateQueries({ queryKey: ["admin:metrics"] });
+      invalidateSetupReadiness(qc);
+      qc.invalidateQueries({ queryKey: ["admin", "metrics"] });
+      qc.invalidateQueries({ queryKey: ["class-groups", "count"] });
     },
     onError: (e: any) =>
       busy.error(e?.message ?? "Failed to create class groups"),

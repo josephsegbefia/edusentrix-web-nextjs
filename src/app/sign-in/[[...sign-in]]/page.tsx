@@ -34,6 +34,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_CLERK_GOOGLE_ENABLED === "true";
 
@@ -509,12 +510,14 @@ function BrandPanel() {
    Main Page
    ────────────────────────────────────────────────────────────────── */
 export default function SignInPage() {
+  const searchParams = useSearchParams();
   const { isLoaded, isSignedIn, user } = useUser();
   const { signOut } = useClerk();
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
+  const authError = searchParams.get("error");
 
   const handleSignOutAndContinue = async () => {
     setIsSwitchingAccount(true);
@@ -600,6 +603,19 @@ export default function SignInPage() {
           />
 
           <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-card/80 shadow-2xl shadow-black/50 backdrop-blur-2xl">
+            {authError === "multi_school_email" ? (
+              <div
+                role="alert"
+                className="border-b border-amber-500/20 bg-amber-500/10 px-6 py-4 text-sm leading-relaxed text-amber-50/95 sm:px-8"
+              >
+                This email is used in more than one school. Open the{" "}
+                <strong className="font-semibold text-amber-100">
+                  invitation link
+                </strong>{" "}
+                for the school you need so we can connect the right workspace,
+                or ask an administrator to resend your invite.
+              </div>
+            ) : null}
             {/* Card header */}
             <div className="border-b border-white/[0.06] bg-white/[0.03] px-6 py-5 sm:px-8">
               <div className="flex items-center justify-between gap-4">

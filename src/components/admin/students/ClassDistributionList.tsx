@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { formatClassGroupLabel } from "@/lib/utils/formatClassGroupLabel";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StudentQuickStats } from "@/types/admin/student";
@@ -81,16 +82,22 @@ export function ClassDistributionList({
       </CardHeader>
       <CardContent className="relative z-10 space-y-3">
         {items.map((item) => {
-          const key = `${item.gradeName ?? "No grade"}-${item.classGroupName}`;
+          const key =
+            item.classGroupId ||
+            `${item.gradeName ?? "No grade"}-${item.classGroupName}`;
           const pct = max > 0 ? (item.count / max) * 100 : 0;
+          const label =
+            formatClassGroupLabel(
+              item.gradeName,
+              item.classGroupName ?? ""
+            ).trim() || "No class";
 
           return (
             <div key={key} className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <p className="truncate text-xs font-medium text-white/90">
-                    {item.gradeName ?? "No grade"} ·{" "}
-                    {item.classGroupName ?? "No class"}
+                    {label}
                   </p>
                   <span className="shrink-0 text-xs font-semibold text-white/70">
                     {item.count}

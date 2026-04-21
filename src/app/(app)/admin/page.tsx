@@ -5,6 +5,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
@@ -49,6 +51,7 @@ import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
 import { useAdminSSE } from "@/hooks/admin/useAdminSSE";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
+import { useSchoolSetupReadiness } from "@/hooks/admin/useSchoolSetupReadiness";
 import { useCreateInvitation } from "@/hooks/admin/useInvitations";
 
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
@@ -70,6 +73,7 @@ import { AcademicPeriodOverviewModal } from "@/components/modals/AcademicPeriodO
 import { GHANA_BASIC_SUBJECTS } from "@/constants/ghana-basic-subjects";
 import { ShimmerHighlight } from "@/components/onboarding/ShimmerHighlight";
 import { OnboardingProgressIndicator } from "@/components/onboarding/OnboardingProgressIndicator";
+import { SchoolSetupChecklistCard } from "@/components/admin/setup/SchoolSetupChecklistCard";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { PeriodWarningBanner } from "@/components/dashboard/PeriodWarningBanner";
 import { SchoolShsContextHint } from "@/components/dashboard/SchoolShsContextHint";
@@ -393,12 +397,30 @@ function Donut({
   );
 }
 
-function ReconPill({ count }: { count: number }) {
+function ReconPill({
+  count,
+  linkDisabled,
+}: {
+  count: number;
+  /** When true, unmatched row is not a link (setup not complete). */
+  linkDisabled?: boolean;
+}) {
   if (count <= 0) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">
         <CheckCircle2 className="h-3.5 w-3.5" />
         Reconciled
+      </span>
+    );
+  }
+  if (linkDisabled) {
+    return (
+      <span
+        className="inline-flex cursor-not-allowed items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-xs text-amber-200/45"
+        title="Complete school setup on the Dashboard to open reconciliation."
+      >
+        <AlertCircle className="h-3.5 w-3.5" />
+        {count} unmatched settlements
       </span>
     );
   }
@@ -449,6 +471,7 @@ function useCommandPalette(items: CmdItem[]) {
 
 export default function SchoolAdminOverviewPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const isDemoClient = isClientDemoMode();
   const { data: m } = useAdminMetrics();
   useAdminSSE();
@@ -704,7 +727,14 @@ export default function SchoolAdminOverviewPage() {
     }
   }
 
-  const cmdItems: CmdItem[] = [
+  /* Onboarding progress (before command palette so we can filter commands) */
+  const onboarding = useOnboardingProgress();
+  const setupReadinessEnabled =
+    !onboarding.isLoading && onboarding.step === "complete";
+  const { data: setupReadiness, isLoading: setupReadinessLoading } =
+    useSchoolSetupReadiness(setupReadinessEnabled);
+
+  const allCmdItems: CmdItem[] = [
     {
       id: "search",
       label: "Search (students, teachers, classes)",
@@ -718,7 +748,7 @@ export default function SchoolAdminOverviewPage() {
     },
     {
       id: "add-class",
-      label: "Add Class",
+      label: "Create Class Groups",
       onRun: openCreateClassFlow, // <-- use preflight
     },
     { id: "add-fee", label: "Add Fee", onRun: () => {} },
@@ -738,14 +768,25 @@ export default function SchoolAdminOverviewPage() {
       onRun: () => setShowSimpleReport(true),
     },
   ];
+  const cmdItems: CmdItem[] = onboarding.shouldRestrictSchoolAdminNav
+    ? allCmdItems.filter((i) =>
+        ["search", "create-student", "add-class"].includes(i.id)
+      )
+    : allCmdItems;
   const palette = useCommandPalette(cmdItems);
-
-  /* Onboarding progress */
-  const onboarding = useOnboardingProgress();
 
   const [activeDashboardTab, setActiveDashboardTab] = useState<
     "overview" | "insights"
   >("overview");
+
+  useEffect(() => {
+    if (
+      onboarding.shouldRestrictSchoolAdminNav &&
+      activeDashboardTab === "insights"
+    ) {
+      setActiveDashboardTab("overview");
+    }
+  }, [onboarding.shouldRestrictSchoolAdminNav, activeDashboardTab]);
 
   /* Invitation actions */
   const createInvitation = useCreateInvitation();
@@ -847,6 +888,9 @@ export default function SchoolAdminOverviewPage() {
         success: "Academic period created",
         error: "Could not create period",
       });
+      invalidateSetupReadiness(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
+      void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
       // SSE will push period.updated
     } finally {
       setCreatingPeriod(false);
@@ -901,6 +945,8 @@ export default function SchoolAdminOverviewPage() {
         success: "Teacher added successfully",
         error: "Could not add teacher",
       });
+      invalidateSetupReadiness(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
       setShowCreateTeacher(false);
     } catch (e: unknown) {
       throw e;
@@ -962,6 +1008,8 @@ export default function SchoolAdminOverviewPage() {
         success: "Student added",
         error: "Could not add student",
       });
+      invalidateSetupReadiness(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
       setShowCreateStudent(false);
       // SSE pushes students.updated
     } catch (e: unknown) {
@@ -1033,16 +1081,11 @@ export default function SchoolAdminOverviewPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-          <p className="text-muted">
-            Welcome back! Here&apos;s an overview of your school.
-          </p>
-        </div>
-        <div className="pt-1">
-          <ReconPill count={reconUnmatched} />
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+        <p className="text-muted">
+          Welcome back! Here&apos;s an overview of your school.
+        </p>
       </div>
 
       {/* Period Warning Banner */}
@@ -1063,6 +1106,19 @@ export default function SchoolAdminOverviewPage() {
         />
       )}
 
+      {setupReadinessEnabled ? (
+        <SchoolSetupChecklistCard
+          items={setupReadiness?.items ?? []}
+          completionPercent={setupReadiness?.completionPercent ?? 0}
+          incompleteCount={setupReadiness?.incompleteCount ?? 0}
+          coachMessage={
+            setupReadiness?.coachMessage ??
+            "Review the checklist below to finish configuration."
+          }
+          loading={setupReadinessLoading}
+        />
+      ) : null}
+
       <div className="flex items-center gap-2 overflow-x-auto">
         <button
           type="button"
@@ -1076,18 +1132,42 @@ export default function SchoolAdminOverviewPage() {
         >
           Overview
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveDashboardTab("insights")}
-          className={[
-            "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-            activeDashboardTab === "insights"
-              ? "border-brand bg-brand/20 text-brand"
-              : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
-          ].join(" ")}
-        >
-          Insights
-        </button>
+        {onboarding.shouldRestrictSchoolAdminNav ? (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <button
+                    type="button"
+                    disabled
+                    className={[
+                      "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                      "cursor-not-allowed border-white/10 bg-white/5 text-white/45 opacity-60",
+                    ].join(" ")}
+                  >
+                    Insights
+                  </button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-sm">
+                Complete school setup on the Dashboard to unlock Insights.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setActiveDashboardTab("insights")}
+            className={[
+              "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+              activeDashboardTab === "insights"
+                ? "border-brand bg-brand/20 text-brand"
+                : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+            ].join(" ")}
+          >
+            Insights
+          </button>
+        )}
       </div>
 
       {/* KPI Grid */}
@@ -1223,8 +1303,8 @@ export default function SchoolAdminOverviewPage() {
             {onboarding.nextAction === "create_class_group" ? (
               <ShimmerHighlight enabled={true}>
                 <QuickAction
-                  title="Create Class"
-                  description="Set up a new class or grade level"
+                  title="Create Class Groups"
+                  description="Set up parallel streams (e.g. KG1 A / KG1 B) with Leo"
                   icon={School}
                   accent="bg-purple-500/20 border-purple-500/30"
                   onClick={openCreateClassFlow}
@@ -1233,8 +1313,8 @@ export default function SchoolAdminOverviewPage() {
               </ShimmerHighlight>
             ) : (
               <QuickAction
-                title="Create Class"
-                description="Set up a new class or grade level"
+                title="Create Class Groups"
+                description="Set up parallel streams with Leo-guided setup"
                 icon={School}
                 accent="bg-purple-500/20 border-purple-500/30"
                 onClick={openCreateClassFlow}
@@ -1306,8 +1386,22 @@ export default function SchoolAdminOverviewPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setShowPeriodOverview(true)}
-                className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10"
+                disabled={onboarding.shouldRestrictSchoolAdminNav}
+                onClick={() => {
+                  if (onboarding.shouldRestrictSchoolAdminNav) return;
+                  setShowPeriodOverview(true);
+                }}
+                title={
+                  onboarding.shouldRestrictSchoolAdminNav
+                    ? "Complete school setup on the Dashboard first."
+                    : undefined
+                }
+                className={[
+                  "rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80",
+                  onboarding.shouldRestrictSchoolAdminNav
+                    ? "cursor-not-allowed opacity-45"
+                    : "hover:bg-white/10",
+                ].join(" ")}
               >
                 Overview
               </button>
@@ -1463,8 +1557,22 @@ export default function SchoolAdminOverviewPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowPeriodOverview(true)}
-                className="text-xs text-brand hover:opacity-90"
+                disabled={onboarding.shouldRestrictSchoolAdminNav}
+                onClick={() => {
+                  if (onboarding.shouldRestrictSchoolAdminNav) return;
+                  setShowPeriodOverview(true);
+                }}
+                title={
+                  onboarding.shouldRestrictSchoolAdminNav
+                    ? "Complete school setup on the Dashboard first."
+                    : undefined
+                }
+                className={[
+                  "text-xs",
+                  onboarding.shouldRestrictSchoolAdminNav
+                    ? "cursor-not-allowed text-white/35"
+                    : "text-brand hover:opacity-90",
+                ].join(" ")}
               >
                 View period overview →
               </button>
@@ -1490,7 +1598,10 @@ export default function SchoolAdminOverviewPage() {
               </div>
               Collections Snapshot
             </CardTitle>
-            <ReconPill count={reconUnmatched} />
+            <ReconPill
+              count={reconUnmatched}
+              linkDisabled={onboarding.shouldRestrictSchoolAdminNav}
+            />
           </CardHeader>
           <CardContent className="relative z-10 space-y-3">
             {collectionsLoading ? (
@@ -1630,15 +1741,37 @@ export default function SchoolAdminOverviewPage() {
                       : "All tracked settlements currently reconciled"}
                   </div>
                   <div className="flex items-center gap-3 text-xs">
-                    <Link href="/admin/fees" className="text-brand hover:opacity-90">
-                      Open fees →
-                    </Link>
-                    <Link
-                      href="/admin/reconciliation"
-                      className="text-brand hover:opacity-90"
-                    >
-                      Reconcile →
-                    </Link>
+                    {onboarding.shouldRestrictSchoolAdminNav ? (
+                      <>
+                        <span
+                          className="cursor-not-allowed text-white/35"
+                          title="Complete school setup on the Dashboard first."
+                        >
+                          Open fees →
+                        </span>
+                        <span
+                          className="cursor-not-allowed text-white/35"
+                          title="Complete school setup on the Dashboard first."
+                        >
+                          Reconcile →
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/admin/fees"
+                          className="text-brand hover:opacity-90"
+                        >
+                          Open fees →
+                        </Link>
+                        <Link
+                          href="/admin/reconciliation"
+                          className="text-brand hover:opacity-90"
+                        >
+                          Reconcile →
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
               </>
@@ -2502,7 +2635,7 @@ export default function SchoolAdminOverviewPage() {
       <ResponsiveModal
         open={showCreateClass}
         onClose={() => setShowCreateClass(false)}
-        title="Create Class Group"
+        title="Create Class Groups"
       >
         <CreateClassGroupsModal onClose={() => setShowCreateClass(false)} />
       </ResponsiveModal>

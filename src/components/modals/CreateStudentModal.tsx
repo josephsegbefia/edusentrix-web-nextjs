@@ -6,6 +6,7 @@ import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateStudentSchema, CreateStudentInput } from "@/schemas/student";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { useToast } from "@/hooks/useToast";
 import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
 import { useClassGroupOptions } from "@/hooks/admin/useClassGroupOptions";
 import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
@@ -15,6 +16,14 @@ import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { LeoIcon } from "@/components/icons/LeoIcon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,6 +32,7 @@ import {
   Wand2,
   Loader2,
   Info,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -62,17 +72,31 @@ function getInitials(firstName?: string, lastName?: string): string {
   return first + last || "?";
 }
 
+function LeoCallout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.07] p-3 sm:p-4">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-400/25 bg-violet-500/15 sm:h-10 sm:w-10">
+        <LeoIcon className="h-4 w-4 text-violet-200 sm:h-5 sm:w-5" />
+      </div>
+      <div className="min-w-0 flex-1 text-xs leading-relaxed text-white/85 sm:text-sm">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function CreateStudentModal({
   onClose,
   onSubmit,
   isLoading,
 }: Props) {
   const busy = useBusyToast();
+  const { success: toastSuccess } = useToast();
   const { me } = useAuth();
   const [currentStep, setCurrentStep] = React.useState(1);
   const { data: grades = [], isLoading: loadingGrades } = useGradeOptions();
 
-  // ID generation state
+  const [patternHint, setPatternHint] = React.useState("");
   const [generatingId, setGeneratingId] = React.useState(false);
   const [idGenerated, setIdGenerated] = React.useState(false);
   const [idBreakdown, setIdBreakdown] = React.useState<{
@@ -82,6 +106,9 @@ export default function CreateStudentModal({
     initials: string;
     sequence: string;
   } | null>(null);
+  const [idLeoExplanation, setIdLeoExplanation] = React.useState<string | null>(
+    null
+  );
 
   const {
     register,
@@ -137,12 +164,12 @@ export default function CreateStudentModal({
       !admissionNo?.trim()
     ) {
       autoGenRef.current = true;
-      generateStudentId();
+      void generateStudentId();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstName, lastName, dateOfBirth]);
 
-  async function generateStudentId() {
+  async function generateStudentId(opts?: { useLeo?: boolean }) {
     const fn = watch("firstName")?.trim();
     const ln = watch("lastName")?.trim();
     const dob = watch("dateOfBirth");
@@ -152,16 +179,29 @@ export default function CreateStudentModal({
       return;
     }
 
+    if (opts?.useLeo) {
+      const hint = patternHint.trim();
+      if (hint.length < 3) {
+        busy.error("Describe your ID pattern for Leo (at least 3 characters).");
+        return;
+      }
+    }
+
     setGeneratingId(true);
     try {
+      const body: Record<string, unknown> = {
+        firstName: fn,
+        lastName: ln,
+        dateOfBirth: dob ? dob.toISOString() : undefined,
+      };
+      if (opts?.useLeo) {
+        body.patternHint = patternHint.trim();
+      }
+
       const res = await fetch("/api/admin/students/generate-id", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: fn,
-          lastName: ln,
-          dateOfBirth: dob ? dob.toISOString() : undefined,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) {
@@ -173,6 +213,14 @@ export default function CreateStudentModal({
         setValue("admissionNo", data.admissionNo, { shouldValidate: true });
         setIdGenerated(true);
         setIdBreakdown(data.breakdown ?? null);
+        setIdLeoExplanation(
+          typeof data.leoExplanation === "string" ? data.leoExplanation : null
+        );
+        if (typeof data.leoFallbackNote === "string" && data.leoFallbackNote) {
+          toastSuccess("Student ID", {
+            description: data.leoFallbackNote,
+          });
+        }
       }
     } catch (e) {
       console.error("Failed to generate student ID:", e);
@@ -227,6 +275,7 @@ export default function CreateStudentModal({
   const initials = getInitials(firstName, lastName);
 
   return (
+    <TooltipProvider delayDuration={200}>
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
       {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
@@ -317,7 +366,7 @@ export default function CreateStudentModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-end">
                 <div className="space-y-2">
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Sex
@@ -330,7 +379,7 @@ export default function CreateStudentModal({
                         {(["male", "female"] as const).map((s) => (
                           <label
                             key={s}
-                            className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
+                            className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
                               field.value === s
                                 ? "border-brand bg-brand/20 text-brand"
                                 : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
@@ -351,9 +400,6 @@ export default function CreateStudentModal({
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                    Date of Birth
-                  </Label>
                   <Controller
                     name="dateOfBirth"
                     control={control}
@@ -361,49 +407,118 @@ export default function CreateStudentModal({
                       <CustomDatePicker
                         value={field.value ?? null}
                         onChange={(d) => field.onChange(d ?? undefined)}
-                        placeholder="Select date of birth"
+                        placeholder="Date of birth"
+                        triggerAriaLabel="Date of birth"
                         maxDate={new Date()}
                         error={errors.dateOfBirth?.message}
+                        className="[&>div[role=button]]:min-h-12 [&>div[role=button]]:py-3"
                       />
                     )}
                   />
                 </div>
               </div>
 
-              {/* Student ID (Admission Number) — auto-generated */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <Label
                     htmlFor="admissionNo"
                     className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
                   >
-                    Student ID (Admission Number)
+                    Student ID (admission number)
                   </Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      autoGenRef.current = false;
-                      setIdGenerated(false);
-                      generateStudentId();
-                    }}
-                    disabled={generatingId || !firstName?.trim() || !lastName?.trim()}
-                    className="h-7 gap-1.5 rounded-lg px-2.5 text-[11px] text-brand hover:bg-brand/10 hover:text-brand disabled:opacity-40"
-                  >
-                    {generatingId ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Wand2 className="h-3 w-3" />
-                    )}
-                    {generatingId ? "Generating…" : idGenerated ? "Regenerate" : "Generate ID"}
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="How student IDs work"
+                        className="rounded p-0.5 text-white/35 hover:bg-white/10 hover:text-white/70"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="right"
+                      className="max-w-xs border border-white/15 bg-zinc-950 px-3 py-2 text-xs leading-relaxed"
+                    >
+                      Many schools use a short school or district code plus intake
+                      year and a roll number; others use initials plus birth date
+                      (e.g. YYYYMMDD) and a sequence. Ministry or exam bodies often
+                      issue their own learner numbers. Uniqueness is enforced in the
+                      database—you can always type your own ID if you already have a
+                      scheme.
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
+
+                <LeoCallout>
+                  <p className="mb-2 font-medium text-violet-100">
+                    Describe a pattern for{" "}
+                    <span className="font-semibold text-violet-200">Leo</span>
+                  </p>
+                  <p className="mb-2 text-[11px] text-white/70 sm:text-xs">
+                    Example: “First 3 letters of school name + birth year + last 4
+                    digits of phone” or “GES-style: district code + sequential”.
+                    Leave blank and use Standard format for the built-in template.
+                  </p>
+                  <Textarea
+                    value={patternHint}
+                    onChange={(e) => setPatternHint(e.target.value)}
+                    placeholder='e.g. "SAS + 2-digit year + student initials + random 3 digits"'
+                    className="min-h-[72px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+                  />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={
+                        generatingId || !firstName?.trim() || !lastName?.trim()
+                      }
+                      onClick={() => {
+                        autoGenRef.current = false;
+                        void generateStudentId({ useLeo: true });
+                      }}
+                      className="gap-1.5 border-violet-400/30 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
+                    >
+                      {generatingId ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5" />
+                      )}
+                      Suggest with Leo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        autoGenRef.current = false;
+                        setIdGenerated(false);
+                        setIdLeoExplanation(null);
+                        void generateStudentId();
+                      }}
+                      disabled={generatingId || !firstName?.trim() || !lastName?.trim()}
+                      className="h-8 gap-1.5 text-[11px] text-brand hover:bg-brand/10"
+                    >
+                      {generatingId ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-3 w-3" />
+                      )}
+                      Standard format
+                    </Button>
+                  </div>
+                </LeoCallout>
+
                 <div className="relative">
                   <Input
                     id="admissionNo"
                     {...register("admissionNo")}
-                    placeholder={generatingId ? "Generating…" : "Auto-generated or enter manually"}
+                    placeholder={
+                      generatingId
+                        ? "Generating…"
+                        : "Generated ID or type your own"
+                    }
                     className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand font-mono tracking-wide"
                   />
                   {generatingId && (
@@ -412,38 +527,58 @@ export default function CreateStudentModal({
                     </div>
                   )}
                 </div>
-                {idBreakdown && idGenerated && (
+
+                {idLeoExplanation && idGenerated && (
                   <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-start gap-2 rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2"
+                    className="flex items-start gap-2 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2"
                   >
-                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-400" />
-                    <div className="space-y-0.5 text-[11px] text-teal-200/80">
-                      <span className="font-medium text-teal-200">ID Breakdown:</span>{" "}
-                      <span className="font-mono">
-                        {idBreakdown.schoolPrefix}
-                      </span>{" "}
-                      (school) —{" "}
-                      <span className="font-mono">
-                        {idBreakdown.enrollYear}
-                      </span>{" "}
-                      (year) —{" "}
-                      <span className="font-mono">
-                        {idBreakdown.birthMonth}
-                      </span>{" "}
-                      (birth month) —{" "}
-                      <span className="font-mono">
-                        {idBreakdown.initials}
-                      </span>{" "}
-                      (initials) —{" "}
-                      <span className="font-mono">
-                        {idBreakdown.sequence}
-                      </span>{" "}
-                      (seq)
-                    </div>
+                    <LeoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" />
+                    <p className="text-[11px] leading-relaxed text-violet-100/90">
+                      <span className="font-medium text-violet-200">Leo: </span>
+                      {idLeoExplanation}
+                    </p>
                   </motion.div>
                 )}
+
+                {idBreakdown &&
+                  idGenerated &&
+                  !idLeoExplanation &&
+                  idBreakdown.enrollYear !== "—" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-start gap-2 rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2"
+                    >
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-400" />
+                      <div className="space-y-0.5 text-[11px] text-teal-200/80">
+                        <span className="font-medium text-teal-200">
+                          Standard format breakdown:
+                        </span>{" "}
+                        <span className="font-mono">
+                          {idBreakdown.schoolPrefix}
+                        </span>{" "}
+                        (school) —{" "}
+                        <span className="font-mono">
+                          {idBreakdown.enrollYear}
+                        </span>{" "}
+                        (year) —{" "}
+                        <span className="font-mono">
+                          {idBreakdown.birthMonth}
+                        </span>{" "}
+                        (birth month) —{" "}
+                        <span className="font-mono">
+                          {idBreakdown.initials}
+                        </span>{" "}
+                        (initials) —{" "}
+                        <span className="font-mono">
+                          {idBreakdown.sequence}
+                        </span>{" "}
+                        (seq)
+                      </div>
+                    </motion.div>
+                  )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -956,5 +1091,6 @@ export default function CreateStudentModal({
         </div>
       </div>
     </form>
+    </TooltipProvider>
   );
 }

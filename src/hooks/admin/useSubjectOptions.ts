@@ -6,10 +6,20 @@ export function useSubjectOptions() {
   return useQuery<Subject[]>({
     queryKey: ["subjects", "active"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/subjects?active=1");
+      const res = await fetch("/api/admin/subjects?isActive=true");
       if (!res.ok) throw new Error("Failed to fetch subjects");
       const json = await res.json();
-      return (json?.data ?? []) as Subject[];
+      const rows = (json?.data ?? []) as Array<{
+        _id?: string;
+        id?: string;
+        name?: string;
+        isActive?: boolean;
+      }>;
+      return rows.map((row) => ({
+        _id: String(row._id ?? row.id ?? ""),
+        name: String(row.name ?? ""),
+        isActive: row.isActive !== false,
+      }));
     },
   });
 }

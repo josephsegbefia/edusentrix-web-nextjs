@@ -21,6 +21,8 @@ interface CustomDatePickerProps {
   disabled?: boolean;
   className?: string;
   label?: string;
+  /** When `label` is omitted, set this for the trigger (accessibility). */
+  triggerAriaLabel?: string;
   error?: string;
 }
 
@@ -50,6 +52,7 @@ export function CustomDatePicker({
   disabled = false,
   className,
   label,
+  triggerAriaLabel,
   error,
 }: CustomDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -179,6 +182,17 @@ export function CustomDatePicker({
 
       {/* Trigger Container */}
       <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        aria-label={triggerAriaLabel ?? label ?? placeholder}
+        onKeyDown={(e) => {
+          if (disabled) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
         className={cn(
           "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm transition-all",
           isOpen

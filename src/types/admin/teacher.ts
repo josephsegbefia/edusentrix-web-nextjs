@@ -57,6 +57,8 @@ export type TeacherDetailDTO = {
   createdAt: string;
   updatedAt: string;
   isNew: boolean;
+  /** False until they accept the invite and Clerk links their account (clerkUserId set). */
+  hasPlatformAccount: boolean;
 };
 
 export type TeacherDetailResponse = {
@@ -84,6 +86,8 @@ export type TeacherListItemDTO = {
   leaveStartDate?: string | null;
   leaveEndDate?: string | null;
   leaveReason?: string | null;
+  /** False until they accept the invite and Clerk links their account (clerkUserId set). */
+  hasPlatformAccount: boolean;
 };
 
 // API response types

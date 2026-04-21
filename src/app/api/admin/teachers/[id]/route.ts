@@ -74,7 +74,10 @@ export async function GET(
       _id: teacherObjId,
       schoolId: schoolIdObj,
     })
-      .populate("userId", "firstName lastName email phone avatarUrl")
+      .populate(
+        "userId",
+        "firstName lastName email phone avatarUrl clerkUserId"
+      )
       .populate({ path: "subjectIds", select: "name", model: Subject })
       .populate({
         path: "homeroomClassGroupId",
@@ -207,6 +210,8 @@ export async function GET(
         createdAt: createdAt.toISOString(),
         updatedAt: updatedAt.toISOString(),
         isNew: createdAt >= sevenDaysAgo,
+
+        hasPlatformAccount: Boolean(u.clerkUserId),
       },
     });
   } catch (e) {
@@ -281,14 +286,17 @@ export async function PATCH(
       changes.push("lastName");
     }
     if (input.email !== undefined) {
-      // Check email uniqueness (excluding current user)
       const existingUser = await User.findOne({
         email: input.email.toLowerCase(),
+        schoolId: schoolIdObj,
         _id: { $ne: teacher.userId },
       });
       if (existingUser) {
         return Response.json(
-          { error: "Email already in use by another user" },
+          {
+            error:
+              "This email is already in use by another user in your school",
+          },
           { status: 409 }
         );
       }
@@ -330,7 +338,25 @@ export async function PATCH(
 
     // Professional info
     if (input.employeeId !== undefined) {
-      teacherUpdates.employeeId = input.employeeId || null;
+      const nextEmployeeId = input.employeeId?.trim() || null;
+      if (nextEmployeeId) {
+        const dup = await Teacher.findOne({
+          schoolId: schoolIdObj,
+          employeeId: nextEmployeeId,
+          _id: { $ne: teacherObjId },
+        })
+          .select("_id")
+          .lean();
+        if (dup) {
+          return Response.json(
+            {
+              error: "Another teacher already has this employee ID",
+            },
+            { status: 409 }
+          );
+        }
+      }
+      teacherUpdates.employeeId = nextEmployeeId;
       changes.push("employeeId");
     }
     if (input.department !== undefined) {

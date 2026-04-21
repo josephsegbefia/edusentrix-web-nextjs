@@ -8,6 +8,7 @@ import type { TeachersSortBy, TeachersSortOrder } from "@/constants/teachers";
 import { TeacherAvatarStatus } from "./TeacherAvatarStatus";
 import { TeacherRowActions } from "./TeacherRowActions";
 import { ArrowUpDown, ChevronUp, ChevronDown } from "lucide-react";
+import { PendingInviteBadge } from "@/components/admin/PendingInviteBadge";
 import { TeacherListItemDTO } from "@/types/admin/teacher";
 import { Badge } from "@/components/ui/badge";
 import { Home, BookOpen } from "lucide-react";
@@ -283,7 +284,7 @@ export function TeachersTable({
                   )}
                 </td>
                 <td className="px-3 py-2 align-middle text-xs">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span
                       className={cn(
                         "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
@@ -311,6 +312,9 @@ export function TeachersTable({
                         </span>
                       );
                     })()}
+                    {teacher.hasPlatformAccount === false && (
+                      <PendingInviteBadge size="sm" className="rounded-full" />
+                    )}
                   </div>
                 </td>
                 <td className="px-3 py-2 align-middle text-xs text-white/80">

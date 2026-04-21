@@ -9,6 +9,7 @@ import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { School } from "@/models/School";
 import { escapeRegex, parsePositiveInt } from "@/lib/utils";
+import { formatClassGroupLabel } from "@/lib/utils/formatClassGroupLabel";
 import { getAllowedStagesForSubject } from "@/constants/curriculum-subject-templates";
 import type { CurriculumCode } from "@/constants/curriculum-profiles";
 
@@ -23,9 +24,13 @@ export async function GET(req: NextRequest) {
     const q = (searchParams.get("q") || "").trim();
     const limit = Math.min(parsePositiveInt(searchParams.get("limit"), 10), 50);
     const subjectId = (searchParams.get("subjectId") || "").trim();
+    const gradeIdParam = (searchParams.get("gradeId") || "").trim();
 
     const query: any = { schoolId: schoolIdObj, isActive: true };
     if (q) query.name = new RegExp(escapeRegex(q), "i");
+    if (gradeIdParam && mongoose.Types.ObjectId.isValid(gradeIdParam)) {
+      query.gradeId = new mongoose.Types.ObjectId(gradeIdParam);
+    }
 
     let allowedStages: string[] | null = null;
     if (subjectId && mongoose.Types.ObjectId.isValid(subjectId)) {
@@ -70,11 +75,12 @@ export async function GET(req: NextRequest) {
       success: true,
       data: (items || []).map((g: any) => {
         const gradeName = g.gradeId?.name ? String(g.gradeId.name) : null;
+        const name = String(g.name);
         return {
           id: String(g._id),
-          name: String(g.name),
+          name,
           gradeName,
-          label: gradeName ? `${gradeName} ${String(g.name)}` : String(g.name),
+          label: formatClassGroupLabel(gradeName, name),
         };
       }),
     });

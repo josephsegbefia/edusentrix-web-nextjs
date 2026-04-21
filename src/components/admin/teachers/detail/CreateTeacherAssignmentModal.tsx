@@ -16,6 +16,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  UserPlus,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -362,6 +363,10 @@ export function CreateTeacherAssignmentModal({
     classGroup?: { name: string };
     schedule?: { dayOfWeek?: number; startTime?: string; endTime?: string };
   } | null>(null);
+  const [slotConflict, setSlotConflict] = React.useState<{
+    message: string;
+    teachers: { id: string; name: string; assignmentId: string }[];
+  } | null>(null);
   const [result, setResult] = React.useState<{ id: string } | null>(null);
 
   const maxClasses = teacher.maxClasses;
@@ -396,6 +401,7 @@ export function CreateTeacherAssignmentModal({
     setResult(null);
     setWarnings([]);
     setConflict(null);
+    setSlotConflict(null);
     setLocationOpenIndex(null);
     setLocationQuery("");
 
@@ -435,12 +441,21 @@ export function CreateTeacherAssignmentModal({
     return p ? `${p.yearLabel} • ${p.term}` : "—";
   };
 
-  async function onSubmit(values: FormValues) {
+  async function runCreate(
+    values: FormValues,
+    opts?: {
+      resolution?: "add_alongside" | "replace";
+      skipWorkloadCheck?: boolean;
+    }
+  ) {
     setWarnings([]);
     setConflict(null);
+    if (!opts?.resolution) {
+      setSlotConflict(null);
+    }
 
     // Check workload before submitting (unchanged)
-    if (workload) {
+    if (!opts?.skipWorkloadCheck && workload) {
       const newClassCount = workload.current.classes + 1;
       const wouldExceedClasses =
         workload.capacity.maxClasses &&
@@ -488,12 +503,14 @@ export function CreateTeacherAssignmentModal({
         ? values.schedules
         : undefined,
       status: "active" as const,
+      ...(opts?.resolution ? { resolution: opts.resolution } : {}),
     };
 
     try {
       const res = await mutateAsync(payload);
       setWarnings(res.warnings ?? []);
       setResult({ id: res.data.id });
+      setSlotConflict(null);
 
       toast.success("Assignment created", {
         description: `${teacher.fullName} is now assigned.`,
@@ -502,14 +519,31 @@ export function CreateTeacherAssignmentModal({
       const error = e as {
         status?: number;
         message?: string;
-        meta?: { conflict?: unknown };
+        meta?: { conflict?: { type?: string; message?: string; existingTeachers?: { id: string; name: string; assignmentId: string }[] } };
       };
       const meta = error?.meta;
+      if (
+        error?.status === 409 &&
+        meta?.conflict &&
+        (meta.conflict as { type?: string }).type === "other_teachers_on_slot"
+      ) {
+        setSlotConflict({
+          message: String(meta.conflict.message || ""),
+          teachers: Array.isArray(meta.conflict.existingTeachers)
+            ? meta.conflict.existingTeachers
+            : [],
+        });
+        return;
+      }
       if (error?.status === 409 && meta?.conflict) {
         setConflict(meta.conflict as typeof conflict);
       }
       toast.error(error?.message || "Failed to create assignment");
     }
+  }
+
+  async function onSubmit(values: FormValues) {
+    await runCreate(values, {});
   }
 
   // match CreateStudentModal behavior: if closed, render nothing (parent controls open)
@@ -592,6 +626,70 @@ export function CreateTeacherAssignmentModal({
             . You can still proceed, but consider rebalancing workloads.
           </Callout>
         ) : null}
+
+            {slotConflict ? (
+              <div className="rounded-2xl border border-violet-400/25 bg-violet-500/10 p-4 text-violet-50">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5">
+                    <Info className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        This class already has a teacher for this subject
+                      </p>
+                      <p className="mt-1 text-sm text-white/75">
+                        {slotConflict.message}
+                      </p>
+                      {slotConflict.teachers.length > 0 ? (
+                        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-white/65">
+                          {slotConflict.teachers.map((t) => (
+                            <li key={t.assignmentId}>{t.name}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <p className="mt-2 text-xs text-white/55">
+                        Choose whether {teacher.fullName} should teach alongside them, or take over this assignment for the term.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Button
+                        type="button"
+                        className="gap-2 bg-violet-500 text-white hover:bg-violet-600"
+                        disabled={isPending}
+                        onClick={() =>
+                          void form.handleSubmit((v) =>
+                            runCreate(v, {
+                              resolution: "add_alongside",
+                              skipWorkloadCheck: true,
+                            })
+                          )()
+                        }
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        Add as co-teacher
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                        disabled={isPending}
+                        onClick={() =>
+                          void form.handleSubmit((v) =>
+                            runCreate(v, {
+                              resolution: "replace",
+                              skipWorkloadCheck: true,
+                            })
+                          )()
+                        }
+                      >
+                        Replace with {teacher.fullName.split(" ")[0] ?? "this teacher"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             {conflict ? (
           <Callout tone="warning" title="Schedule conflict detected">

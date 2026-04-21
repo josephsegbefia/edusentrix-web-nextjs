@@ -79,6 +79,10 @@ export function AssignTeacherToSubjectModal({
   const [selectedClassLabels, setSelectedClassLabels] = React.useState<Record<string, string>>({});
   const [allowMultiple, setAllowMultiple] = React.useState(false);
   const [conflictError, setConflictError] = React.useState<string | null>(null);
+  const [slotConflict, setSlotConflict] = React.useState<{
+    message: string;
+    teachers: { id: string; name: string; assignmentId: string }[];
+  } | null>(null);
   const [createdAssignments, setCreatedAssignments] = React.useState<
     { assignmentId: string; className: string }[]
   >([]);
@@ -174,6 +178,7 @@ export function AssignTeacherToSubjectModal({
       }
       setAllowMultiple(false);
       setConflictError(null);
+      setSlotConflict(null);
       setCreatedAssignments([]);
       setSchedulePhase("idle");
       setAssignmentSchedules({});
@@ -216,61 +221,85 @@ export function AssignTeacherToSubjectModal({
     else setStep(step - 1);
   };
 
-  const handleConfirm = async () => {
+  const runAssignWithResolution = async (opts: {
+    allowMultiple?: boolean;
+    replaceExisting?: boolean;
+  }) => {
     if (!selectedTeacherId || !selectedSubjectId || selectedClassIds.length === 0) return;
     setConflictError(null);
+    setSlotConflict(null);
     const count = selectedClassIds.length;
+    const loadingLabel = isEditMode
+      ? "Updating assignment..."
+      : count > 1
+        ? `Assigning teacher to ${count} classes...`
+        : "Assigning teacher...";
+    busy.show(loadingLabel);
     try {
-      const results = await busy.promise(
-        (async () => {
-          if (editAssignment) {
-            await unassignTeacher.mutateAsync(editAssignment.assignmentId);
-          }
-          const created: { assignmentId: string; className: string }[] = [];
-          for (const classGroupId of selectedClassIds) {
-            const res = await assignTeacher.mutateAsync({
-              teacherId: selectedTeacherId,
-              subjectId: selectedSubjectId,
-              classGroupId,
-              academicPeriodId: currentPeriod?._id || "",
-              allowMultiple,
-            });
-            const className = selectedClassLabels[classGroupId] ?? classes.find((c) => c.id === classGroupId)?.label ?? classes.find((c) => c.id === classGroupId)?.name ?? "Class";
-            created.push({ assignmentId: res.data.id, className });
-          }
-          return created;
-        })(),
-        {
-          loading: isEditMode
-            ? "Updating assignment..."
-            : count > 1
-            ? `Assigning teacher to ${count} classes...`
-            : "Assigning teacher...",
-          success: isEditMode
-            ? "Assignment updated successfully"
-            : count > 1
+      if (editAssignment) {
+        await unassignTeacher.mutateAsync(editAssignment.assignmentId);
+      }
+      const created: { assignmentId: string; className: string }[] = [];
+      for (const classGroupId of selectedClassIds) {
+        const res = await assignTeacher.mutateAsync({
+          teacherId: selectedTeacherId,
+          subjectId: selectedSubjectId,
+          classGroupId,
+          academicPeriodId: currentPeriod?._id || "",
+          allowMultiple: opts.allowMultiple ?? allowMultiple,
+          replaceExisting: opts.replaceExisting ?? false,
+        });
+        const className =
+          selectedClassLabels[classGroupId] ??
+          classes.find((c) => c.id === classGroupId)?.label ??
+          classes.find((c) => c.id === classGroupId)?.name ??
+          "Class";
+        created.push({ assignmentId: res.data.id, className });
+      }
+      busy.hide();
+      busy.success(
+        isEditMode
+          ? "Assignment updated successfully"
+          : count > 1
             ? `Teacher assigned to ${count} classes successfully`
-            : "Teacher assigned successfully",
-          error: (e: Error) => {
-            if (e.message.includes("already assigned") || e.message.includes("Conflict")) {
-              setConflictError(e.message);
-              return e.message;
-            }
-            return e.message || "Failed to assign teacher";
-          },
-        }
+            : "Teacher assigned successfully"
       );
-      if (isEditMode || !results || results.length === 0) {
+      if (isEditMode || !created.length) {
         onOpenChange(false);
         return;
       }
-      setCreatedAssignments(results);
+      setCreatedAssignments(created);
       setSchedulePhase("prompt");
-    } catch (e) {
-      if (e instanceof Error && (e.message.includes("already assigned") || e.message.includes("Conflict"))) {
-        setConflictError(e.message);
+    } catch (e: unknown) {
+      busy.hide();
+      const err = e as {
+        message?: string;
+        meta?: {
+          conflict?: {
+            type?: string;
+            message?: string;
+            existingTeachers?: { id: string; name: string; assignmentId: string }[];
+          };
+        };
+      };
+      if (err?.meta?.conflict?.type === "other_teachers_on_slot") {
+        setSlotConflict({
+          message: String(err.meta.conflict.message || ""),
+          teachers: Array.isArray(err.meta.conflict.existingTeachers)
+            ? err.meta.conflict.existingTeachers
+            : [],
+        });
+        return;
       }
+      const msg =
+        e instanceof Error ? e.message : "Failed to assign teacher";
+      setConflictError(msg);
+      busy.error(msg);
     }
+  };
+
+  const handleConfirm = async () => {
+    await runAssignWithResolution({});
   };
 
   const handleSkipSchedule = () => {
@@ -819,6 +848,52 @@ export function AssignTeacherToSubjectModal({
                           {conflictError}
                         </AlertDescription>
                       </Alert>
+                    )}
+
+                    {slotConflict && (
+                      <div className="rounded-xl border border-violet-400/25 bg-violet-500/10 p-4 space-y-3">
+                        <div className="flex gap-2">
+                          <Info className="h-4 w-4 shrink-0 text-violet-300 mt-0.5" />
+                          <div className="space-y-2 min-w-0">
+                            <p className="text-sm font-medium text-white">
+                              Someone already teaches this here
+                            </p>
+                            <p className="text-sm text-white/75 leading-relaxed">
+                              {slotConflict.message}
+                            </p>
+                            {slotConflict.teachers.length > 0 ? (
+                              <ul className="text-xs text-white/60 list-disc pl-4 space-y-0.5">
+                                {slotConflict.teachers.map((t) => (
+                                  <li key={t.assignmentId}>{t.name}</li>
+                                ))}
+                              </ul>
+                            ) : null}
+                            <p className="text-xs text-white/55 pt-1">
+                              Add {displayTeacher?.fullName ?? "this teacher"} alongside the current teacher, or make them the only teacher for this slot (the previous assignment will be ended for this term).
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap pt-1">
+                          <Button
+                            type="button"
+                            className="gap-2 bg-violet-500 text-white hover:bg-violet-600"
+                            onClick={() => void runAssignWithResolution({ allowMultiple: true })}
+                            disabled={assignTeacher.isPending}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                            Add as co-teacher
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="gap-2 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                            onClick={() => void runAssignWithResolution({ replaceExisting: true })}
+                            disabled={assignTeacher.isPending}
+                          >
+                            Replace previous teacher(s)
+                          </Button>
+                        </div>
+                      </div>
                     )}
 
                     <Alert className="border-sky-400/20 bg-sky-500/10">

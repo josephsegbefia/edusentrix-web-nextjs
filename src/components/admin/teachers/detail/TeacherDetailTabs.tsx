@@ -118,7 +118,7 @@ const TABS = TIMETABLE_ROLE_VIEWS_ENABLED
       ...BASE_TABS.slice(0, 2),
       {
         id: "my_week" as TeacherDetailTabId,
-        label: "My Week",
+        label: "Weekly schedule",
         icon: CalendarDays,
         color: {
           active: "border-cyan-500/40 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/20",

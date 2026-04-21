@@ -24,6 +24,8 @@ export type GuardianData = {
   photoUrl: string | null;
   isPrimary: boolean;
   createdAt: string;
+  /** False until the parent accepts the invite and Clerk links their account */
+  hasPlatformAccount: boolean;
 };
 
 export type CreateGuardianInput = {

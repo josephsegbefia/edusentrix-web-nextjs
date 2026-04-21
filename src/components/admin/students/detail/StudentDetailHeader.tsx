@@ -24,6 +24,7 @@ import {
   X,
   Loader2,
   HelpCircle,
+  Send,
 } from "lucide-react";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
 import { useQueryClient } from "@tanstack/react-query";
@@ -523,6 +524,18 @@ export function StudentDetailHeader({
               }
             />
           </div>
+
+          {primaryGuardian &&
+            primaryGuardian.hasPlatformAccount === false && (
+              <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2.5 text-left">
+                <Send className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden />
+                <p className="text-[11px] leading-snug text-amber-100/90">
+                  <span className="font-semibold text-amber-100">Primary contact</span> has not
+                  accepted their invitation yet and does not have a parent portal login. You can
+                  still use their details saved here.
+                </p>
+              </div>
+            )}
 
           {/* Actions */}
           <div className="flex flex-wrap items-center justify-end gap-2">

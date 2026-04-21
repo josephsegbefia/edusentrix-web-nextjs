@@ -2,6 +2,7 @@
 // src/hooks/admin/useBulkCreateSubjects.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 
 export function useBulkCreateSubjects() {
   const qc = useQueryClient();
@@ -29,6 +30,8 @@ export function useBulkCreateSubjects() {
         }`
       );
       qc.invalidateQueries({ queryKey: ["subjects"] });
+      invalidateSetupReadiness(qc);
+      qc.invalidateQueries({ queryKey: ["admin", "metrics"] });
     },
     onError: (e: any) => busy.error(e?.message ?? "Failed to create subjects"),
   });

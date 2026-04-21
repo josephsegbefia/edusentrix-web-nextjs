@@ -20,10 +20,23 @@ type GradeConfig = {
 
 type Body = {
   gradeConfigs: GradeConfig[];
+  /** Applied to every new group when no per-grade override. */
   subjectIds?: string[];
+  /** When set, each grade uses its list; missing grade falls back to subjectIds. */
+  subjectIdsByGrade?: Record<string, string[]>;
   homeroomTeacherId?: string | null;
+  /** Default capacity when capacitiesByClassName omits a class name. */
   capacity?: number | null;
+  /** Exact class group display name → capacity. Overrides capacity for matching rows. */
+  capacitiesByClassName?: Record<string, number | null>;
 };
+
+function normalizeCapacity(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
 
 function generateNames(strategy: Strategy): string[] {
   if (strategy.kind === "letters") {
@@ -92,20 +105,61 @@ export async function POST(req: NextRequest) {
     // Create a map for quick grade lookup
     const gradeMap = new Map(grades.map((g: any) => [String(g._id), g]));
 
-    // Validate subjectIds belong to this school
-    let subjectIds: mongoose.Types.ObjectId[] = [];
-    if (body.subjectIds && body.subjectIds.length > 0) {
+    const idStrings = new Set<string>();
+    if (body.subjectIds?.length) {
+      for (const id of body.subjectIds) idStrings.add(String(id));
+    }
+    if (body.subjectIdsByGrade) {
+      for (const arr of Object.values(body.subjectIdsByGrade)) {
+        for (const id of arr ?? []) idStrings.add(String(id));
+      }
+    }
+    const subjectOidList = [...idStrings].filter((id) =>
+      mongoose.isValidObjectId(id)
+    );
+    const validSubjectById = new Map<string, mongoose.Types.ObjectId>();
+    if (subjectOidList.length > 0) {
       const subs = (await Subject.find({
-        _id: { $in: body.subjectIds },
+        _id: { $in: subjectOidList.map((id) => new mongoose.Types.ObjectId(id)) },
         schoolId,
         isActive: true,
       }).lean()) as unknown as ISubject[];
-      subjectIds = subs.map((s: ISubject) => {
+      for (const s of subs) {
         const id = s._id;
-        return id instanceof mongoose.Types.ObjectId
-          ? id
-          : new mongoose.Types.ObjectId(String(id));
-      });
+        const oid =
+          id instanceof mongoose.Types.ObjectId
+            ? id
+            : new mongoose.Types.ObjectId(String(id));
+        validSubjectById.set(String(oid), oid);
+      }
+    }
+
+    const capByName = body.capacitiesByClassName;
+
+    function capacityForClassName(className: string): number | null {
+      if (
+        capByName &&
+        Object.prototype.hasOwnProperty.call(capByName, className)
+      ) {
+        return normalizeCapacity(capByName[className]);
+      }
+      return normalizeCapacity(body.capacity);
+    }
+
+    function subjectOidsForGrade(gradeIdStr: string): mongoose.Types.ObjectId[] {
+      const byGrade = body.subjectIdsByGrade;
+      if (byGrade && Object.prototype.hasOwnProperty.call(byGrade, gradeIdStr)) {
+        const raw = byGrade[gradeIdStr] ?? [];
+        return raw
+          .map((id) => validSubjectById.get(String(id)))
+          .filter(Boolean) as mongoose.Types.ObjectId[];
+      }
+      if (body.subjectIds && body.subjectIds.length > 0) {
+        return body.subjectIds
+          .map((id) => validSubjectById.get(String(id)))
+          .filter(Boolean) as mongoose.Types.ObjectId[];
+      }
+      return [];
     }
 
     const docs = [];
@@ -116,15 +170,18 @@ export async function POST(req: NextRequest) {
       const names = generateNames(config.strategy);
       if (names.length === 0) continue;
 
+      const subjectIdsForRow = subjectOidsForGrade(String(config.gradeId));
+
       for (const n of names) {
+        const className = `${grade.name} ${n}`.replace(/\s+/g, " ").trim();
         docs.push({
           schoolId,
           gradeId: grade._id,
-          name: `${grade.name} ${n}`.replace(/\s+/g, " ").trim(),
+          name: className,
           code: null,
-          subjectIds,
+          subjectIds: subjectIdsForRow,
           homeroomTeacherId: body.homeroomTeacherId ?? null,
-          capacity: body.capacity ?? null,
+          capacity: capacityForClassName(className),
           isActive: true,
         });
       }

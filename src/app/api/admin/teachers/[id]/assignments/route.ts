@@ -11,6 +11,10 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Grade } from "@/models/Grade";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { TimetableSlot } from "@/models/TimetableSlot";
+import {
+  deactivateOtherTeachersOnSlot,
+  findOtherTeachersOnSlot,
+} from "@/lib/admin/teacher-assignment-slot";
 
 function toObjectIdOrThrow(id: string, label: string) {
   try {
@@ -291,6 +295,12 @@ export async function POST(
       Object.prototype.hasOwnProperty.call(body, "schedule") ||
       Object.prototype.hasOwnProperty.call(body, "schedules");
 
+    const resolutionRaw = body.resolution;
+    const resolution =
+      resolutionRaw === "replace" || resolutionRaw === "add_alongside"
+        ? resolutionRaw
+        : undefined;
+
     // Ensure teacher belongs to school
     const teacher = await Teacher.findOne({
       _id: teacherObjId,
@@ -348,6 +358,76 @@ export async function POST(
       warnings.push("Subject was added to teacher’s subject list.");
     }
 
+    const sameTeacherAssignment = await TeacherAssignment.findOne({
+      schoolId: schoolIdObj,
+      academicPeriodId: academicPeriodObjId,
+      subjectId: subjectObjId,
+      classGroupId: classGroupObjId,
+      teacherId: teacherObjId,
+      status: "active",
+    })
+      .select("_id")
+      .lean();
+
+    if (sameTeacherAssignment) {
+      return Response.json(
+        {
+          error: "This teacher already has this assignment for this period.",
+          conflict: { type: "duplicate_self" as const },
+        },
+        { status: 409 }
+      );
+    }
+
+    const othersOnSlot = await findOtherTeachersOnSlot({
+      schoolId: schoolIdObj,
+      academicPeriodId: academicPeriodObjId,
+      subjectId: subjectObjId,
+      classGroupId: classGroupObjId,
+      requestingTeacherId: teacherObjId,
+    });
+
+    if (othersOnSlot.length > 0 && !resolution) {
+      const names = othersOnSlot.map((o) => o.displayName).filter(Boolean);
+      const summary =
+        names.length === 1
+          ? `${names[0]} is already assigned for this subject and class in this period.`
+          : `${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""} already teach this subject in this class for this period.`;
+
+      return Response.json(
+        {
+          error: summary,
+          conflict: {
+            type: "other_teachers_on_slot" as const,
+            message: summary,
+            subject: subject
+              ? { id: String(subjectObjId), name: String((subject as any).name) }
+              : { id: String(subjectObjId), name: "Subject" },
+            classGroup: classGroup
+              ? { id: String(classGroupObjId), name: String((classGroup as any).name) }
+              : { id: String(classGroupObjId), name: "Class" },
+            academicPeriodId: String(academicPeriodObjId),
+            existingTeachers: othersOnSlot.map((o) => ({
+              id: o.teacherId,
+              name: o.displayName,
+              assignmentId: o.assignmentId,
+            })),
+          },
+        },
+        { status: 409 }
+      );
+    }
+
+    if (othersOnSlot.length > 0 && resolution === "replace") {
+      await deactivateOtherTeachersOnSlot({
+        schoolId: schoolIdObj,
+        academicPeriodId: academicPeriodObjId,
+        subjectId: subjectObjId,
+        classGroupId: classGroupObjId,
+        keepTeacherId: teacherObjId,
+      });
+    }
+
     // Create assignment
     try {
       const assignmentData: any = {
@@ -376,8 +456,8 @@ export async function POST(
       if (err?.code === 11000) {
         return Response.json(
           {
-            error:
-              "This assignment already exists (or another teacher is already assigned to this subject for the class group in this period).",
+            error: "This teacher already has this assignment for this period.",
+            conflict: { type: "duplicate_self" as const },
           },
           { status: 409 }
         );

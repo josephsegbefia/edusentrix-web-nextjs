@@ -2,467 +2,1684 @@
 "use client";
 
 import * as React from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { useQueryClient } from "@tanstack/react-query";
 import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
 import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
 import { useBulkCreateClassGroups } from "@/hooks/admin/useBulkCreateClassGroups";
+import { useSchool } from "@/hooks/admin/useSchool";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Info } from "lucide-react";
+import { LeoIcon } from "@/components/icons/LeoIcon";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 type Strategy =
   | { kind: "letters"; from: string; to: string }
   | { kind: "numbers"; from: number; to: number }
   | { kind: "custom"; names: string[] };
 
-type GradeConfig = {
-  gradeId: string;
-  count: number;
-  pattern: "letters" | "numbers" | "custom";
-  customNames?: string;
-};
+type DraftGradeConfig = { gradeId: string; strategy: Strategy };
 
-type Form = {
-  gradeIds: string[];
-  gradeConfigs: Record<string, GradeConfig>;
-  defaultPattern: "letters" | "numbers" | "custom";
-  defaultCount: number;
-  subjectIds?: string[];
-  capacity?: number;
+type NamingPattern = "letters" | "numbers" | "themed" | "custom";
+
+type SubjectMode = "none" | "all" | "pick_shared" | "per_grade";
+
+type WizardStep = 1 | 2 | 3 | 4;
+
+type DraftResult = {
+  leoSummary: string;
+  gradeConfigs: DraftGradeConfig[];
+  subjectIds: string[];
+  subjectIdsByGrade: Record<string, string[]>;
+  subjectMode: SubjectMode;
 };
 
 type Props = { onClose: () => void };
 
+const STEP_META: { step: WizardStep; label: string }[] = [
+  { step: 1, label: "Basics" },
+  { step: 2, label: "Grades" },
+  { step: 3, label: "Subjects" },
+  { step: 4, label: "Review" },
+];
+
+const STREAM_NAMING_OPTION_HELP: Record<NamingPattern, string> = {
+  letters:
+    "Each parallel stream gets a letter suffix (A, B, C…). Example class group names: “KG1 A”, “KG1 B”. Clear and familiar for parents and teachers.",
+  numbers:
+    "Each stream gets a number suffix (1, 2, 3…). Example: “KG1 1”, “KG1 2”. Same structure as letters, but numeric.",
+  themed:
+    "Leo suggests short themed suffixes per stream (from your hint). Stream counts follow the numbers you set per grade on the Grades step. If AI isn’t configured, simple placeholder names are used instead.",
+  custom:
+    "You type suffixes separated by commas. They’re applied in order for each grade’s streams. If a grade needs more streams than you listed, extra names are filled in automatically (e.g. “Group 3”).",
+};
+
+const SUBJECT_MODE_OPTION_HELP: Record<SubjectMode, string> = {
+  all:
+    "Every new class group is created with the full set of active subjects for your school. Best when most streams share the same curriculum.",
+  none:
+    "New groups are created without subjects attached. You can assign subjects later from class settings. Use this if you’re not ready to wire timetables yet.",
+  pick_shared:
+    "You choose one list of subjects. That exact list is attached to every new class group in every grade you selected. Good when all streams share the same core subjects.",
+  per_grade:
+    "You choose subjects separately for each grade. Only that grade’s new class groups get that list—useful when JHS electives differ from primary, or KG has fewer subjects.",
+};
+
+const SUBJECT_CATEGORY_OPTION_HELP: Record<string, string> = {
+  __none__: "No category stored on the subject. You can still use it everywhere; category is mainly for reporting and filtering.",
+  core: "Required foundational subjects for most students (e.g. English, Mathematics).",
+  elective: "Optional subjects students may choose (often at JHS/SHS).",
+  foundation: "Early-years or preparatory subjects that support core learning.",
+  optional: "Subjects that are optional or supplementary but not necessarily “elective” in the timetable sense.",
+  transdisciplinary_theme:
+    "Cross-cutting themes (e.g. IB-style) that link multiple subjects.",
+  subject_group: "A bucket or grouping label for related subjects (e.g. “Science cluster”).",
+};
+
+const REVIEW_PATTERN_HELP: Record<"letters" | "numbers" | "custom", string> = {
+  letters:
+    "Stream suffixes are letters (A–Z range based on how many streams you set for this grade). Edit the count in the # column to change how many letters.",
+  numbers:
+    "Stream suffixes are numbers starting at 1. Change # to change how many numbered streams are created.",
+  custom:
+    "You control the exact suffix list (comma-separated). The plan will use these names for this grade’s streams.",
+};
+
+const CAPACITY_MODE_HELP = {
+  uniform:
+    "Apply one optional enrolment cap to every new class group created in this run. Leave blank for no limit on new groups (you can still edit individual classes later).",
+  custom:
+    "Set capacity per class group in the table (e.g. smaller KG streams, larger upper-primary). Leave a cell blank for no limit on that group. Editing stream counts or names above refreshes this list; new rows copy the “Same for all” value if set.",
+} as const;
+
+function OptionInfoIcon({ text, label }: { text: string; label: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          className="shrink-0 rounded p-0.5 text-white/35 outline-none hover:bg-white/10 hover:text-white/75 focus-visible:ring-1 focus-visible:ring-brand"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <Info className="h-3.5 w-3.5" strokeWidth={2} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="left"
+        align="center"
+        className="z-400 max-w-xs border border-white/15 bg-zinc-950 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-lg"
+      >
+        {text}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function SelectLabelRow({
+  label,
+  hint,
+}: {
+  label: string;
+  hint: React.ReactNode;
+}) {
+  return (
+    <div className="mb-1.5 flex items-start justify-between gap-3">
+      <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+        {label}
+      </Label>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={`About: ${label}`}
+            className="shrink-0 rounded p-1 text-white/35 hover:bg-white/10 hover:text-white/75 focus-visible:ring-1 focus-visible:ring-brand"
+          >
+            <Info className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          side="left"
+          className="z-400 max-w-sm border border-white/15 bg-zinc-950 px-3 py-2 text-xs leading-relaxed text-white/90 shadow-lg"
+        >
+          {hint}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
+}
+
+function strategyLetters(count: number): Strategy {
+  const from = "A";
+  const to = String.fromCharCode("A".charCodeAt(0) + Math.min(count, 26) - 1);
+  return { kind: "letters", from, to };
+}
+
+function strategyNumbers(count: number): Strategy {
+  return { kind: "numbers", from: 1, to: count };
+}
+
+function strategyCustomFromList(names: string[], count: number): Strategy {
+  const base = names.filter(Boolean).slice(0, count);
+  const out = [...base];
+  while (out.length < count) {
+    out.push(`Group ${out.length + 1}`);
+  }
+  return { kind: "custom", names: out };
+}
+
+function generateNamesFromStrategy(strategy: Strategy): string[] {
+  if (strategy.kind === "letters") {
+    const start = strategy.from.toUpperCase().charCodeAt(0);
+    const end = strategy.to.toUpperCase().charCodeAt(0);
+    if (isNaN(start) || isNaN(end) || end < start) return [];
+    const out: string[] = [];
+    for (let c = start; c <= end; c++) out.push(String.fromCharCode(c));
+    return out;
+  }
+  if (strategy.kind === "numbers") {
+    const out: string[] = [];
+    for (let n = strategy.from; n <= strategy.to; n++) out.push(String(n));
+    return out;
+  }
+  return strategy.names.map((n) => n.trim()).filter(Boolean);
+}
+
+type PlannedClassRow = { displayName: string; gradeId: string };
+
+function plannedClassGroupRows(
+  gradeConfigs: DraftGradeConfig[],
+  gradeNameById: Map<string, string>
+): PlannedClassRow[] {
+  const rows: PlannedClassRow[] = [];
+  for (const gc of gradeConfigs) {
+    const gname = (gradeNameById.get(gc.gradeId) ?? "").trim();
+    const parts = generateNamesFromStrategy(gc.strategy);
+    for (const p of parts) {
+      const displayName = `${gname} ${p}`.replace(/\s+/g, " ").trim();
+      rows.push({ displayName, gradeId: gc.gradeId });
+    }
+  }
+  return rows;
+}
+
+function streamCountFromStrategy(s: Strategy): number {
+  if (s.kind === "letters") {
+    const start = s.from.toUpperCase().charCodeAt(0);
+    const end = s.to.toUpperCase().charCodeAt(0);
+    if (isNaN(start) || isNaN(end) || end < start) return 0;
+    return end - start + 1;
+  }
+  if (s.kind === "numbers") return Math.max(0, s.to - s.from + 1);
+  return s.names.length;
+}
+
+function adjustStrategyCount(s: Strategy, n: number): Strategy {
+  const count = Math.min(26, Math.max(1, n));
+  if (s.kind === "letters") return strategyLetters(count);
+  if (s.kind === "numbers") return strategyNumbers(count);
+  const names = s.names;
+  if (names.length >= count) return { kind: "custom", names: names.slice(0, count) };
+  const pad = [...names];
+  while (pad.length < count) pad.push(`Group ${pad.length + 1}`);
+  return { kind: "custom", names: pad };
+}
+
+function customCsvFromStrategy(s: Strategy): string {
+  if (s.kind !== "custom") return "";
+  return s.names.join(", ");
+}
+
+function strategyFromRowPattern(
+  pattern: "letters" | "numbers" | "custom",
+  count: number,
+  customCsv: string,
+  previous: Strategy
+): Strategy {
+  const n = Math.min(26, Math.max(1, count));
+  if (pattern === "letters") return strategyLetters(n);
+  if (pattern === "numbers") return strategyNumbers(n);
+  const list = customCsv
+    .split(/[,;\n]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (list.length > 0) return strategyCustomFromList(list, n);
+  if (previous.kind === "custom") return strategyCustomFromList(previous.names, n);
+  return strategyCustomFromList([], n);
+}
+
+function previewLine(gradeName: string, strategy: Strategy): string {
+  const parts = generateNamesFromStrategy(strategy);
+  if (parts.length === 0) return "—";
+  return parts.map((x) => `${gradeName} ${x}`).join(", ");
+}
+
+function unionSubjectIds(map: Record<string, string[]>): string[] {
+  const s = new Set<string>();
+  for (const arr of Object.values(map)) {
+    for (const id of arr) s.add(id);
+  }
+  return [...s];
+}
+
+function SubjectPickGrid({
+  subjects,
+  selected,
+  onToggle,
+}: {
+  subjects: { _id: string; name: string }[];
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  if (subjects.length === 0) {
+    return (
+      <p className="text-xs text-white/45">No subjects yet — add one below.</p>
+    );
+  }
+  return (
+    <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto pr-1">
+      {subjects.map((s) => (
+        <label
+          key={s._id}
+          className="flex cursor-pointer items-center gap-2 rounded-md border border-white/10 bg-white/5 p-2 hover:bg-white/10"
+        >
+          <input
+            type="checkbox"
+            checked={selected.has(s._id)}
+            onChange={() => onToggle(s._id)}
+            className="h-4 w-4 cursor-pointer rounded border-white/20 bg-white/5 accent-brand"
+          />
+          <span className="text-sm text-white/80">{s.name}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export function CreateClassGroupsModal({ onClose }: Props) {
+  const qc = useQueryClient();
   const { data: grades = [] } = useGradeOptions();
   const { data: subjects = [] } = useSubjectOptions();
+  const { data: schoolRes } = useSchool();
   const createGroups = useBulkCreateClassGroups();
 
-  const { control, handleSubmit, setValue, watch } = useForm<Form>({
-    defaultValues: {
-      gradeIds: [],
-      gradeConfigs: {},
-      defaultPattern: "letters",
-      defaultCount: 2,
-      subjectIds: [],
-      capacity: undefined,
-    },
-  });
+  const [step, setStep] = React.useState<WizardStep>(1);
+  const [namingPattern, setNamingPattern] = React.useState<NamingPattern>("letters");
+  const [streamsPerGrade, setStreamsPerGrade] = React.useState(2);
+  const [streamsByGrade, setStreamsByGrade] = React.useState<Record<string, number>>(
+    {}
+  );
+  const [themedHint, setThemedHint] = React.useState(
+    "flowers and plants — gentle, age-appropriate labels"
+  );
+  const [customSuffixes, setCustomSuffixes] = React.useState("Rose, Sunflower, Lily");
+  const [selectedGradeIds, setSelectedGradeIds] = React.useState<string[]>([]);
+  const [subjectMode, setSubjectMode] = React.useState<SubjectMode>("all");
+  const [pickedSubjectIds, setPickedSubjectIds] = React.useState<string[]>([]);
+  const [subjectIdsByGrade, setSubjectIdsByGrade] = React.useState<
+    Record<string, string[]>
+  >({});
+  const [perGradeFocus, setPerGradeFocus] = React.useState<string>("");
+  const [reviewSubjectGrade, setReviewSubjectGrade] = React.useState<string>("");
 
-  const gradeIds = useWatch({ control, name: "gradeIds" });
-  const gradeConfigs = useWatch({ control, name: "gradeConfigs" });
-  const defaultPattern = useWatch({ control, name: "defaultPattern" });
-  const defaultCount = useWatch({ control, name: "defaultCount" });
+  const [newSubjectName, setNewSubjectName] = React.useState("");
+  const [newSubjectCode, setNewSubjectCode] = React.useState("");
+  const [newSubjectCategory, setNewSubjectCategory] = React.useState<string>("");
+  const [creatingSubject, setCreatingSubject] = React.useState(false);
 
-  // Initialize configs when grades are selected
+  const [capacity, setCapacity] = React.useState("");
+  const [capacityMode, setCapacityMode] = React.useState<"uniform" | "custom">(
+    "uniform"
+  );
+  const [capacityByClassName, setCapacityByClassName] = React.useState<
+    Record<string, string>
+  >({});
+  const [draft, setDraft] = React.useState<DraftResult | null>(null);
+  const [draftLoading, setDraftLoading] = React.useState(false);
+  const [draftError, setDraftError] = React.useState<string | null>(null);
+
+  const gradeMap = React.useMemo(
+    () => new Map(grades.map((g) => [g._id, g.name] as const)),
+    [grades]
+  );
+
+  const subjectNameMap = React.useMemo(
+    () => new Map(subjects.map((s) => [s._id, s.name] as const)),
+    [subjects]
+  );
+
+  /** Selected grades in school order — avoids duplicate Radix Select values and orphan ids. */
+  const selectedGradesOrdered = React.useMemo(() => {
+    const seen = new Set<string>();
+    const orderedIds: string[] = [];
+    for (const raw of selectedGradeIds) {
+      const id = String(raw).trim();
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      orderedIds.push(id);
+    }
+    const want = new Set(orderedIds);
+    return grades
+      .filter((g) => want.has(String(g._id).trim()))
+      .sort(
+        (a, b) =>
+          (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name)
+      );
+  }, [grades, selectedGradeIds]);
+
+  const selectedGradeIdSet = React.useMemo(
+    () =>
+      new Set(
+        selectedGradeIds.map((x) => String(x).trim()).filter(Boolean)
+      ),
+    [selectedGradeIds]
+  );
+
   React.useEffect(() => {
-    if (gradeIds && gradeIds.length > 0) {
-      const currentConfigs = gradeConfigs || {};
-      const newConfigs: Record<string, GradeConfig> = { ...currentConfigs };
-
-      gradeIds.forEach((gradeId) => {
-        if (!newConfigs[gradeId]) {
-          newConfigs[gradeId] = {
-            gradeId,
-            count: defaultCount,
-            pattern: defaultPattern,
-            customNames: "",
-          };
-        }
-      });
-
-      // Remove configs for deselected grades
-      Object.keys(newConfigs).forEach((key) => {
-        if (!gradeIds.includes(key)) {
-          delete newConfigs[key];
-        }
-      });
-
-      if (JSON.stringify(newConfigs) !== JSON.stringify(currentConfigs)) {
-        setValue("gradeConfigs", newConfigs);
-      }
+    if (grades.length > 0 && selectedGradeIds.length === 0) {
+      setSelectedGradeIds(grades.map((g) => String(g._id).trim()));
     }
-  }, [gradeIds, defaultPattern, defaultCount, gradeConfigs, setValue]);
+  }, [grades, selectedGradeIds.length]);
 
-  function generatePreview(config: GradeConfig, gradeName: string): string {
-    if (!config || config.count <= 0) return "—";
-
-    let names: string[] = [];
-    if (config.pattern === "letters") {
-      const start = "A".charCodeAt(0);
-      for (let i = 0; i < config.count; i++) {
-        names.push(String.fromCharCode(start + i));
+  React.useEffect(() => {
+    setStreamsByGrade((prev) => {
+      const next = { ...prev };
+      for (const id of selectedGradeIds) {
+        const k = String(id).trim();
+        if (!k) continue;
+        if (next[k] == null || next[k] === undefined) next[k] = streamsPerGrade;
       }
-    } else if (config.pattern === "numbers") {
-      for (let i = 1; i <= config.count; i++) {
-        names.push(String(i));
+      for (const key of Object.keys(next)) {
+        if (!selectedGradeIdSet.has(key)) delete next[key];
       }
-    } else {
-      // Custom
-      const custom = (config.customNames || "")
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean);
-      names = custom.slice(0, config.count);
-      // Fill remaining with placeholders if needed
-      while (names.length < config.count) {
-        names.push(`Custom ${names.length + 1}`);
-      }
-    }
-
-    return names.map((n) => `${gradeName} ${n}`).join(", ");
-  }
-
-  function toPayload(values: Form): {
-    gradeConfigs: Array<{ gradeId: string; strategy: Strategy }>;
-    subjectIds?: string[];
-    capacity?: number | null;
-  } {
-    const configs = Object.values(values.gradeConfigs || {})
-      .filter((config) => config && config.count > 0)
-      .map((config) => {
-        let strategy: Strategy;
-
-        if (config.pattern === "letters") {
-          const start = "A".charCodeAt(0);
-          const end = start + config.count - 1;
-          strategy = {
-            kind: "letters",
-            from: String.fromCharCode(start),
-            to: String.fromCharCode(end),
-          };
-        } else if (config.pattern === "numbers") {
-          strategy = {
-            kind: "numbers",
-            from: 1,
-            to: config.count,
-          };
-        } else {
-          // Custom
-          const names = (config.customNames || "")
-            .split(",")
-            .map((x) => x.trim())
-            .filter(Boolean);
-          strategy = {
-            kind: "custom",
-            names: names.slice(0, config.count),
-          };
-        }
-
-        return {
-          gradeId: config.gradeId,
-          strategy,
-        };
-      });
-
-    return {
-      gradeConfigs: configs,
-      subjectIds:
-        values.subjectIds && values.subjectIds.length > 0
-          ? values.subjectIds
-          : undefined,
-      capacity: values.capacity ? Number(values.capacity) : undefined,
-    };
-  }
-
-  function applyToAll() {
-    const currentConfigs = gradeConfigs || {};
-    const newConfigs: Record<string, GradeConfig> = {};
-
-    gradeIds.forEach((gradeId) => {
-      newConfigs[gradeId] = {
-        gradeId,
-        count: defaultCount,
-        pattern: defaultPattern,
-        customNames: defaultPattern === "custom" ? "" : undefined,
-      };
+      return next;
     });
+  }, [selectedGradeIds, selectedGradeIdSet, streamsPerGrade]);
 
-    setValue("gradeConfigs", newConfigs);
+  React.useEffect(() => {
+    if (subjectMode !== "per_grade") return;
+    const first = selectedGradesOrdered[0]?._id ?? "";
+    setPerGradeFocus((f) =>
+      f && selectedGradesOrdered.some((g) => g._id === f) ? f : first
+    );
+  }, [subjectMode, selectedGradesOrdered]);
+
+  React.useEffect(() => {
+    if (!draft || !reviewSubjectGrade) return;
+    if (!draft.gradeConfigs.some((gc) => gc.gradeId === reviewSubjectGrade)) {
+      setReviewSubjectGrade(draft.gradeConfigs[0]?.gradeId ?? "");
+    }
+  }, [draft, reviewSubjectGrade]);
+
+  function changeSubjectMode(next: SubjectMode) {
+    if (next === subjectMode) return;
+    if (next === "per_grade" && subjectMode !== "per_grade") {
+      const seed =
+        subjectMode === "all"
+          ? subjects.map((s) => s._id)
+          : subjectMode === "pick_shared"
+            ? [...pickedSubjectIds]
+            : [];
+      setSubjectIdsByGrade(
+        Object.fromEntries(
+          selectedGradesOrdered.map((g) => [g._id, [...seed]])
+        )
+      );
+    }
+    if (next === "pick_shared" && subjectMode === "per_grade") {
+      setPickedSubjectIds(unionSubjectIds(subjectIdsByGrade));
+    }
+    setSubjectMode(next);
   }
 
-  async function onSubmit(values: Form) {
+  function togglePickedSubject(id: string) {
+    setPickedSubjectIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function togglePerGradeSubject(gradeId: string, id: string) {
+    setSubjectIdsByGrade((prev) => {
+      const cur = new Set(prev[gradeId] ?? []);
+      if (cur.has(id)) cur.delete(id);
+      else cur.add(id);
+      return { ...prev, [gradeId]: Array.from(cur) };
+    });
+  }
+
+  function buildStreamsPayload(): Record<string, number> {
+    return Object.fromEntries(
+      selectedGradesOrdered.map((g) => [
+        g._id,
+        streamsByGrade[g._id] ?? streamsPerGrade,
+      ])
+    );
+  }
+
+  async function requestDraft() {
+    setDraftLoading(true);
+    setDraftError(null);
     try {
-      const payload = toPayload(values);
-      if (payload.gradeConfigs.length === 0) {
-        return;
+      const res = await fetch("/api/admin/class-groups/leo-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          namingPattern,
+          streamsPerGrade,
+          streamsByGrade: buildStreamsPayload(),
+          customSuffixes: namingPattern === "custom" ? customSuffixes : undefined,
+          themedHint: namingPattern === "themed" ? themedHint : undefined,
+          gradeIds: selectedGradesOrdered.map((g) => g._id),
+          subjectMode,
+          subjectIds: subjectMode === "pick_shared" ? pickedSubjectIds : undefined,
+          subjectIdsByGrade:
+            subjectMode === "per_grade" ? subjectIdsByGrade : undefined,
+          schoolType: schoolRes?.data?.type ?? null,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || res.statusText);
+      const subjectIdsByGradeRes =
+        json.subjectIdsByGrade && typeof json.subjectIdsByGrade === "object"
+          ? (json.subjectIdsByGrade as Record<string, string[]>)
+          : Object.fromEntries(
+              (Array.isArray(json.gradeConfigs) ? json.gradeConfigs : []).map(
+                (gc: { gradeId: string }) => [
+                  gc.gradeId,
+                  Array.isArray(json.subjectIds) ? json.subjectIds : [],
+                ]
+              )
+            );
+      setDraft({
+        leoSummary: String(json.leoSummary ?? ""),
+        gradeConfigs: Array.isArray(json.gradeConfigs) ? json.gradeConfigs : [],
+        subjectIds: Array.isArray(json.subjectIds) ? json.subjectIds : [],
+        subjectIdsByGrade: subjectIdsByGradeRes,
+        subjectMode,
+      });
+      const firstG = Array.isArray(json.gradeConfigs)
+        ? json.gradeConfigs[0]?.gradeId
+        : "";
+      setReviewSubjectGrade(String(firstG ?? ""));
+      setStep(4);
+    } catch (e: unknown) {
+      setDraftError(e instanceof Error ? e.message : "Failed to build plan");
+    } finally {
+      setDraftLoading(false);
+    }
+  }
+
+  function toggleGrade(id: string) {
+    const k = String(id).trim();
+    setSelectedGradeIds((prev) => {
+      const norm = prev.map((x) => String(x).trim()).filter(Boolean);
+      if (norm.includes(k)) return norm.filter((x) => x !== k);
+      return [...norm, k];
+    });
+  }
+
+  function selectAllGrades() {
+    setSelectedGradeIds(grades.map((g) => String(g._id).trim()));
+  }
+
+  function applyDefaultStreamsToAll() {
+    setStreamsByGrade((prev) => {
+      const next = { ...prev };
+      for (const g of selectedGradesOrdered) next[g._id] = streamsPerGrade;
+      return next;
+    });
+  }
+
+  async function createSubjectInline() {
+    const name = newSubjectName.trim();
+    if (!name) return;
+    setCreatingSubject(true);
+    try {
+      const res = await fetch("/api/admin/subjects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          code: newSubjectCode.trim() || undefined,
+          category: newSubjectCategory.trim() || undefined,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || res.statusText);
+      const id = String(json?.data?.id ?? "");
+      if (!id) throw new Error("Missing subject id");
+      await qc.invalidateQueries({ queryKey: ["subjects", "active"] });
+      setNewSubjectName("");
+      setNewSubjectCode("");
+      setNewSubjectCategory("");
+      if (subjectMode === "pick_shared") {
+        setPickedSubjectIds((p) => (p.includes(id) ? p : [...p, id]));
+      } else if (subjectMode === "per_grade") {
+        const focus = perGradeFocus || selectedGradesOrdered[0]?._id;
+        if (focus) {
+          setSubjectIdsByGrade((prev) => {
+            const cur = new Set(prev[focus] ?? []);
+            cur.add(id);
+            return { ...prev, [focus]: Array.from(cur) };
+          });
+        }
       }
+      if (draft && draft.subjectMode === "per_grade" && reviewSubjectGrade) {
+        setDraft((d) => {
+          if (!d) return d;
+          const g = reviewSubjectGrade;
+          const cur = new Set(d.subjectIdsByGrade[g] ?? []);
+          cur.add(id);
+          const nextBy = {
+            ...d.subjectIdsByGrade,
+            [g]: Array.from(cur),
+          };
+          return {
+            ...d,
+            subjectIdsByGrade: nextBy,
+            subjectIds: unionSubjectIds(nextBy),
+          };
+        });
+      } else if (draft && draft.subjectMode === "pick_shared") {
+        setDraft((d) => {
+          if (!d) return d;
+          const nextIds = d.subjectIds.includes(id) ? d.subjectIds : [...d.subjectIds, id];
+          return {
+            ...d,
+            subjectIds: nextIds,
+            subjectIdsByGrade: Object.fromEntries(
+              Object.keys(d.subjectIdsByGrade).map((g) => [g, [...nextIds]])
+            ),
+          };
+        });
+      }
+    } catch (e: unknown) {
+      setDraftError(e instanceof Error ? e.message : "Could not create subject");
+    } finally {
+      setCreatingSubject(false);
+    }
+  }
+
+  const reviewPlannedRows = React.useMemo(() => {
+    if (!draft?.gradeConfigs?.length) return [];
+    return plannedClassGroupRows(draft.gradeConfigs, gradeMap);
+  }, [draft?.gradeConfigs, gradeMap]);
+
+  React.useEffect(() => {
+    if (capacityMode !== "custom" || reviewPlannedRows.length === 0) return;
+    setCapacityByClassName((prev) => {
+      const next = { ...prev };
+      const valid = new Set(reviewPlannedRows.map((r) => r.displayName));
+      const seed = capacity.trim();
+      for (const r of reviewPlannedRows) {
+        if (!(r.displayName in next)) next[r.displayName] = seed;
+      }
+      for (const k of Object.keys(next)) {
+        if (!valid.has(k)) delete next[k];
+      }
+      return next;
+    });
+  }, [reviewPlannedRows, capacityMode]);
+
+  async function onConfirmCreate() {
+    if (!draft?.gradeConfigs?.length) return;
+    try {
+      const hasByGrade =
+        draft.subjectIdsByGrade &&
+        Object.keys(draft.subjectIdsByGrade).length > 0;
+
+      const payload: {
+        gradeConfigs: DraftGradeConfig[];
+        subjectIds?: string[];
+        subjectIdsByGrade?: Record<string, string[]>;
+        capacity?: number | null;
+        capacitiesByClassName?: Record<string, number | null>;
+      } = {
+        gradeConfigs: draft.gradeConfigs,
+        subjectIds:
+          !hasByGrade && draft.subjectIds.length > 0
+            ? draft.subjectIds
+            : undefined,
+        subjectIdsByGrade: hasByGrade ? draft.subjectIdsByGrade : undefined,
+      };
+
+      if (capacityMode === "uniform") {
+        if (capacity.trim()) {
+          const n = Number(capacity);
+          if (Number.isFinite(n) && n >= 0) payload.capacity = n;
+        }
+      } else {
+        payload.capacity = null;
+        const capMap: Record<string, number | null> = {};
+        for (const r of reviewPlannedRows) {
+          const raw = (capacityByClassName[r.displayName] ?? "").trim();
+          capMap[r.displayName] =
+            raw === ""
+              ? null
+              : Number.isFinite(Number(raw)) && Number(raw) >= 0
+                ? Number(raw)
+                : null;
+        }
+        payload.capacitiesByClassName = capMap;
+      }
+
       await createGroups.mutateAsync(payload);
       onClose();
-    } catch (error) {
-      // Error is handled by mutation's onError callback
-      console.error("Failed to create class groups:", error);
+    } catch {
+      /* mutation toast */
     }
   }
 
-  const selectedGrades = grades.filter((g) => gradeIds?.includes(g._id));
+  function patchDraftGrade(
+    gradeId: string,
+    updater: (gc: DraftGradeConfig) => DraftGradeConfig
+  ) {
+    setDraft((d) => {
+      if (!d) return d;
+      return {
+        ...d,
+        gradeConfigs: d.gradeConfigs.map((gc) =>
+          gc.gradeId === gradeId ? updater(gc) : gc
+        ),
+      };
+    });
+  }
+
+  const canNextFrom1 =
+    streamsPerGrade >= 1 &&
+    streamsPerGrade <= 26 &&
+    (namingPattern !== "custom" ||
+      customSuffixes.split(/[,;\n]/).some((s) => s.trim().length > 0));
+
+  const canNextFrom2 =
+    selectedGradesOrdered.length > 0 &&
+    selectedGradesOrdered.every((g) => {
+      const n = streamsByGrade[g._id] ?? streamsPerGrade;
+      return n >= 1 && n <= 26;
+    });
+
+  const canNextFrom3 =
+    subjectMode === "none" ||
+    subjectMode === "all" ||
+    subjectMode === "per_grade" ||
+    (subjectMode === "pick_shared" && pickedSubjectIds.length > 0);
+
+  const reviewRowPattern = (s: Strategy) => rowPatternFromStrategy(s);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-h-full">
-      {/* Grades Selection */}
-      <div className="space-y-2">
-        <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-          Select Grades *
-        </Label>
-        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-auto pr-1">
-          {grades.map((g) => (
-            <label
-              key={g._id}
-              className="flex items-center gap-2 rounded-md p-2 border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer"
+    <TooltipProvider delayDuration={280}>
+    <div className="flex max-h-full flex-col space-y-5">
+      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
+        {STEP_META.map(({ step: s, label }, i) => (
+          <React.Fragment key={s}>
+            {i > 0 ? (
+              <span className="text-white/25" aria-hidden>
+                /
+              </span>
+            ) : null}
+            <span
+              className={cn(
+                "rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]",
+                step === s
+                  ? "bg-brand/20 text-brand ring-1 ring-brand/30"
+                  : step > s
+                    ? "text-white/45"
+                    : "text-white/30"
+              )}
             >
-              <input
-                type="checkbox"
-                checked={gradeIds?.includes(g._id) ?? false}
-                onChange={(e) => {
-                  const next = new Set(gradeIds ?? []);
-                  if (e.target.checked) next.add(g._id);
-                  else next.delete(g._id);
-                  setValue("gradeIds", Array.from(next), {
-                    shouldValidate: true,
-                  });
-                }}
-                className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
-              />
-              <span className="text-sm text-white/80">{g.name}</span>
-            </label>
-          ))}
-        </div>
+              {s} {label}
+            </span>
+          </React.Fragment>
+        ))}
       </div>
 
-      {/* Default Settings & Apply to All */}
-      {selectedGrades.length > 0 && (
-        <div className="space-y-3 p-4 rounded-lg border border-white/10 bg-white/5">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              Default Settings
-            </Label>
+      {step === 1 && (
+        <>
+          <LeoCallout>
+            <p className="text-sm leading-relaxed text-white/85">
+              Hi, I&apos;m <span className="font-semibold text-violet-200">Leo</span>.
+              We&apos;ll set up <strong>class groups</strong> (parallel streams) for
+              your grades—like <em>KG1 A</em> / <em>KG1 B</em>, or themed names such
+              as <em>KG1 Rose</em>. Choose naming below; you can set{" "}
+              <strong>different stream counts per grade</strong> on the next step.
+            </p>
+          </LeoCallout>
+
+          <div className="space-y-2">
+            <SelectLabelRow
+              label="1. How should stream names work?"
+              hint={
+                <div className="space-y-2">
+                  <p>
+                    This controls the <strong>suffix</strong> for each parallel class
+                    group (the part after the grade name, e.g. “A” or “Rose”).
+                  </p>
+                  <p className="text-white/75">
+                    Hover or focus the ⓘ beside each choice in the menu for exactly
+                    what gets created.
+                  </p>
+                </div>
+              }
+            />
+            <PremiumSelect
+              value={namingPattern}
+              onValueChange={(v) => setNamingPattern(v as NamingPattern)}
+            >
+              <PremiumSelectTrigger className="w-full">
+                <PremiumSelectValue placeholder="Naming pattern" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent className="z-[300]">
+                <PremiumSelectItem value="letters">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      Letters (e.g. KG1 A, KG1 B)
+                    </span>
+                    <OptionInfoIcon
+                      text={STREAM_NAMING_OPTION_HELP.letters}
+                      label="About letter suffixes"
+                    />
+                  </span>
+                </PremiumSelectItem>
+                <PremiumSelectItem value="numbers">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      Numbers (e.g. KG1 1, KG1 2)
+                    </span>
+                    <OptionInfoIcon
+                      text={STREAM_NAMING_OPTION_HELP.numbers}
+                      label="About number suffixes"
+                    />
+                  </span>
+                </PremiumSelectItem>
+                <PremiumSelectItem value="themed">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      Themed — Leo suggests labels (flowers, virtues, colours…)
+                    </span>
+                    <OptionInfoIcon
+                      text={STREAM_NAMING_OPTION_HELP.themed}
+                      label="About themed names"
+                    />
+                  </span>
+                </PremiumSelectItem>
+                <PremiumSelectItem value="custom">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      Custom suffixes — I&apos;ll type them
+                    </span>
+                    <OptionInfoIcon
+                      text={STREAM_NAMING_OPTION_HELP.custom}
+                      label="About custom suffixes"
+                    />
+                  </span>
+                </PremiumSelectItem>
+              </PremiumSelectContent>
+            </PremiumSelect>
+          </div>
+
+          <div className="space-y-2">
+            <SelectLabelRow
+              label="2. Default streams per grade"
+              hint={
+                <p>
+                  Newly checked grades on the next step start with this stream
+                  count. You can still set each grade differently there, or use
+                  “Apply N to all” to reset every selected grade at once.
+                </p>
+              }
+            />
+            <Input
+              type="number"
+              min={1}
+              max={26}
+              value={streamsPerGrade}
+              onChange={(e) =>
+                setStreamsPerGrade(Number(e.target.value) || 1)
+              }
+              className="border border-white/10 bg-white/5 text-white"
+            />
+            <p className="text-xs text-white/45">
+              Newly selected grades start with this count. Adjust individual grades
+              on step 2, or use &quot;Apply default to all&quot; there.
+            </p>
+          </div>
+
+          {namingPattern === "themed" ? (
+            <div className="space-y-2">
+              <SelectLabelRow
+                label="Theme hint for Leo (optional)"
+                hint={
+                  <p>
+                    Short guidance for themed suffixes (e.g. “local birds” or
+                    “virtues”). Leo uses it together with each grade’s stream count.
+                    If AI isn’t available, you’ll get simple placeholder names instead.
+                  </p>
+                }
+              />
+              <Input
+                value={themedHint}
+                onChange={(e) => setThemedHint(e.target.value)}
+                placeholder="e.g. local flowers, moral virtues, colours…"
+                className="border border-white/10 bg-white/5 text-white"
+              />
+            </div>
+          ) : null}
+
+          {namingPattern === "custom" ? (
+            <div className="space-y-2">
+              <SelectLabelRow
+                label="Custom suffixes (comma-separated)"
+                hint={
+                  <p>
+                    List the suffixes you want in order. They apply per grade based
+                    on how many streams that grade has; extra streams get
+                    auto-filled names if the list is too short.
+                  </p>
+                }
+              />
+              <Input
+                value={customSuffixes}
+                onChange={(e) => setCustomSuffixes(e.target.value)}
+                placeholder="Rose, Sunflower, Lily"
+                className="border border-white/10 bg-white/5 text-white"
+              />
+            </div>
+          ) : null}
+        </>
+      )}
+
+      {step === 2 && (
+        <>
+          <LeoCallout>
+            <p className="text-sm leading-relaxed text-white/85">
+              Pick which levels get class groups, and how many parallel streams each
+              one needs — KG might use two streams while P6 uses four, all in one
+              pass.
+            </p>
+          </LeoCallout>
+
+          <SelectLabelRow
+            label="Grades & stream counts"
+            hint={
+              <p>
+                Check every level that should get new class groups. Each row has
+                its own stream count so lower grades and JHS can differ. The
+                subject “per grade” menu lists exactly these grades, in your
+                school’s usual order.
+              </p>
+            }
+          />
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={applyToAll}
-              className="border-white/10 bg-white/5 text-white hover:bg-white/10 text-xs"
+              onClick={selectAllGrades}
+              className="border-white/10 bg-white/5 text-xs text-white hover:bg-white/10"
             >
-              Apply to All
+              Select all
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={applyDefaultStreamsToAll}
+              className="border-white/10 bg-white/5 text-xs text-white hover:bg-white/10"
+            >
+              Apply {streamsPerGrade} to all
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs text-white/60">Pattern</Label>
-              <Controller
-                control={control}
-                name="defaultPattern"
-                render={({ field }) => (
-                  <select
-                    {...field}
-                    className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand"
-                  >
-                    <option value="letters">Letters (A, B, C...)</option>
-                    <option value="numbers">Numbers (1, 2, 3...)</option>
-                    <option value="custom">Custom Names</option>
-                  </select>
-                )}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-white/60">Number of Classes</Label>
-              <Controller
-                control={control}
-                name="defaultCount"
-                render={({ field }) => (
+          <div className="grid max-h-56 gap-2 overflow-auto pr-1">
+            {grades.map((g) => (
+              <div
+                key={g._id}
+                className="flex flex-wrap items-center gap-3 rounded-md border border-white/10 bg-white/5 p-2"
+              >
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedGradeIdSet.has(String(g._id).trim())}
+                    onChange={() => toggleGrade(g._id)}
+                    className="h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-white/5 accent-brand"
+                  />
+                  <span className="truncate text-sm text-white/80">{g.name}</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-wider text-white/40">
+                    Streams
+                  </span>
                   <Input
                     type="number"
-                    min="1"
-                    max="26"
-                    {...field}
-                    value={field.value ?? 2}
-                    onChange={(e) => field.onChange(Number(e.target.value) || 1)}
-                    className="border border-white/10 bg-white/5 text-white"
+                    min={1}
+                    max={26}
+                    disabled={!selectedGradeIdSet.has(String(g._id).trim())}
+                    value={streamsByGrade[g._id] ?? streamsPerGrade}
+                    onChange={(e) => {
+                      const n = Number(e.target.value) || 1;
+                      setStreamsByGrade((prev) => ({
+                        ...prev,
+                        [g._id]: Math.min(26, Math.max(1, n)),
+                      }));
+                    }}
+                    className="h-9 w-16 border border-white/10 bg-white/5 text-center text-sm text-white disabled:opacity-40"
                   />
-                )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <LeoCallout>
+            <p className="text-sm leading-relaxed text-white/85">
+              Attach subjects so timetables and assignments line up. Use one shared
+              set for every grade, or fine-tune per grade when streams don&apos;t
+              all offer the same subjects.
+            </p>
+          </LeoCallout>
+
+          <div className="space-y-2">
+            <SelectLabelRow
+              label="Subject assignment"
+              hint={
+                <div className="space-y-2">
+                  <p>
+                    Subjects attached here are stored on each <strong>new class
+                    group</strong> you create in this run (for timetabling and
+                    assignments).
+                  </p>
+                  <p className="text-white/75">
+                    Use the ⓘ next to each mode in the menu for what happens when
+                    you save.
+                  </p>
+                </div>
+              }
+            />
+            <PremiumSelect
+              value={subjectMode}
+              onValueChange={(v) => changeSubjectMode(v as SubjectMode)}
+            >
+              <PremiumSelectTrigger className="w-full">
+                <PremiumSelectValue placeholder="How to assign subjects" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent className="z-[300]">
+                <PremiumSelectItem value="all">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      All active subjects (typical default)
+                    </span>
+                    <OptionInfoIcon
+                      text={SUBJECT_MODE_OPTION_HELP.all}
+                      label="About: all subjects"
+                    />
+                  </span>
+                </PremiumSelectItem>
+                <PremiumSelectItem value="none">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      None for now — I&apos;ll assign later
+                    </span>
+                    <OptionInfoIcon
+                      text={SUBJECT_MODE_OPTION_HELP.none}
+                      label="About: no subjects"
+                    />
+                  </span>
+                </PremiumSelectItem>
+                <PremiumSelectItem value="pick_shared">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      Same hand-picked set for every selected grade
+                    </span>
+                    <OptionInfoIcon
+                      text={SUBJECT_MODE_OPTION_HELP.pick_shared}
+                      label="About: shared subject set"
+                    />
+                  </span>
+                </PremiumSelectItem>
+                <PremiumSelectItem value="per_grade">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      Different subjects per grade
+                    </span>
+                    <OptionInfoIcon
+                      text={SUBJECT_MODE_OPTION_HELP.per_grade}
+                      label="About: per-grade subjects"
+                    />
+                  </span>
+                </PremiumSelectItem>
+              </PremiumSelectContent>
+            </PremiumSelect>
+          </div>
+
+          {subjectMode === "pick_shared" ? (
+            <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                Subjects to attach
+              </Label>
+              <SubjectPickGrid
+                subjects={subjects}
+                selected={new Set(pickedSubjectIds)}
+                onToggle={togglePickedSubject}
               />
             </div>
-          </div>
-        </div>
-      )}
+          ) : null}
 
-      {/* Per-Grade Configuration Table */}
-      {selectedGrades.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-            Configure Classes per Grade
-          </Label>
-          <div className="rounded-lg border border-white/10 bg-white/5 overflow-hidden">
-            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
-              <table className="w-full">
-                <thead className="sticky top-0 bg-white/10 backdrop-blur-sm z-10">
-                  <tr className="border-b border-white/10">
-                    <th className="text-left p-3 text-xs font-medium text-white/60 uppercase tracking-wider whitespace-nowrap">
-                      Grade
-                    </th>
-                    <th className="text-left p-3 text-xs font-medium text-white/60 uppercase tracking-wider whitespace-nowrap">
-                      Count
-                    </th>
-                    <th className="text-left p-3 text-xs font-medium text-white/60 uppercase tracking-wider whitespace-nowrap">
-                      Pattern
-                    </th>
-                    <th className="text-left p-3 text-xs font-medium text-white/60 uppercase tracking-wider whitespace-nowrap">
-                      Preview
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedGrades.map((grade) => {
-                    const config = gradeConfigs?.[grade._id] || {
-                      gradeId: grade._id,
-                      count: defaultCount,
-                      pattern: defaultPattern,
-                      customNames: "",
-                    };
-                    const preview = generatePreview(config, grade.name);
-
-                    return (
-                      <tr
-                        key={grade._id}
-                        className="border-b border-white/5 last:border-b-0 hover:bg-white/5 transition-colors"
-                      >
-                        <td className="p-3 whitespace-nowrap">
-                          <span className="text-sm font-medium text-white">
-                            {grade.name}
+          {subjectMode === "per_grade" ? (
+            <div className="space-y-3 rounded-lg border border-white/10 bg-black/20 p-3">
+              <div className="space-y-2">
+                <SelectLabelRow
+                  label="Configure grade"
+                  hint={
+                    <p>
+                      Lists every grade you checked on the Grades step, in your
+                      school’s usual order (not only one section such as JHS). Pick
+                      one grade, then tick subjects for <strong>that</strong> grade’s
+                      new class groups only. Repeat for other grades as needed.
+                    </p>
+                  }
+                />
+                <PremiumSelect
+                  value={
+                    perGradeFocus ||
+                    selectedGradesOrdered[0]?._id ||
+                    ""
+                  }
+                  onValueChange={setPerGradeFocus}
+                >
+                  <PremiumSelectTrigger className="w-full">
+                    <PremiumSelectValue placeholder="Choose grade" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
+                    {selectedGradesOrdered.map((g) => (
+                      <PremiumSelectItem key={g._id} value={g._id}>
+                        <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                          <span className="min-w-0 flex-1 truncate">
+                            {g.name}
                           </span>
-                        </td>
-                        <td className="p-3 whitespace-nowrap">
-                          <Input
-                            type="number"
-                            min="1"
-                            max="26"
-                            value={config.count || 1}
-                            onChange={(e) => {
-                              const newConfigs = { ...gradeConfigs };
-                              newConfigs[grade._id] = {
-                                ...config,
-                                count: Number(e.target.value) || 1,
-                              };
-                              setValue("gradeConfigs", newConfigs);
-                            }}
-                            className="w-20 border border-white/10 bg-white/5 text-white text-sm"
+                          <OptionInfoIcon
+                            text={`Subjects you select apply only to new class groups in ${g.name}. Other grades keep their own lists.`}
+                            label={`About subjects for ${g.name}`}
                           />
-                        </td>
-                        <td className="p-3">
-                          <div className="space-y-2 min-w-[140px]">
-                            <select
-                              value={config.pattern || "letters"}
-                              onChange={(e) => {
-                                const newConfigs = { ...gradeConfigs };
-                                newConfigs[grade._id] = {
-                                  ...config,
-                                  pattern: e.target.value as
-                                    | "letters"
-                                    | "numbers"
-                                    | "custom",
-                                  customNames:
-                                    e.target.value === "custom" ? "" : undefined,
-                                };
-                                setValue("gradeConfigs", newConfigs);
-                              }}
-                              className="w-full rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs text-white focus:outline-none focus:ring-2 focus:ring-brand"
-                            >
-                              <option value="letters">Letters</option>
-                              <option value="numbers">Numbers</option>
-                              <option value="custom">Custom</option>
-                            </select>
-                            {config.pattern === "custom" && (
-                              <Input
-                                placeholder="Rose, Sunflower..."
-                                value={config.customNames || ""}
-                                onChange={(e) => {
-                                  const newConfigs = { ...gradeConfigs };
-                                  newConfigs[grade._id] = {
-                                    ...config,
-                                    customNames: e.target.value,
-                                  };
-                                  setValue("gradeConfigs", newConfigs);
-                                }}
-                                className="w-full border border-white/10 bg-white/5 text-white text-xs"
-                              />
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <span className="text-xs text-white/60 line-clamp-2 block max-w-xs">
-                            {preview}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </span>
+                      </PremiumSelectItem>
+                    ))}
+                  </PremiumSelectContent>
+                </PremiumSelect>
+              </div>
+              {perGradeFocus || selectedGradesOrdered[0]?._id ? (
+                <SubjectPickGrid
+                  subjects={subjects}
+                  selected={
+                    new Set(
+                      subjectIdsByGrade[
+                        perGradeFocus || selectedGradesOrdered[0]!._id
+                      ] ?? []
+                    )
+                  }
+                  onToggle={(id) =>
+                    togglePerGradeSubject(
+                      perGradeFocus || selectedGradesOrdered[0]!._id,
+                      id
+                    )
+                  }
+                />
+              ) : null}
+            </div>
+          ) : null}
+
+          <div className="space-y-2 rounded-lg border border-violet-500/20 bg-violet-500/[0.06] p-3">
+            <SelectLabelRow
+              label="Quick add subject"
+              hint={
+                <p>
+                  Creates a new subject in your school catalog via the API, then
+                  selects it for the current assignment mode (shared list or the
+                  grade you’re configuring). Category is optional metadata for
+                  reports and filters.
+                </p>
+              }
+            />
+            <p className="text-xs text-white/50">
+              Saves to your school catalog and selects it for{" "}
+              {subjectMode === "per_grade"
+                ? "the grade you’re configuring"
+                : subjectMode === "pick_shared"
+                  ? "your shared list"
+                  : "the next draft (use pick / per-grade to attach inline)."}
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <Input
+                value={newSubjectName}
+                onChange={(e) => setNewSubjectName(e.target.value)}
+                placeholder="Subject name"
+                className="min-w-[140px] flex-1 border border-white/10 bg-white/5 text-white"
+              />
+              <Input
+                value={newSubjectCode}
+                onChange={(e) => setNewSubjectCode(e.target.value)}
+                placeholder="Code (optional)"
+                className="w-full border border-white/10 bg-white/5 text-white sm:w-28"
+              />
+              <div className="flex w-full flex-col gap-1 sm:w-52">
+                <SelectLabelRow
+                  label="Category"
+                  hint={
+                    <p>
+                      Optional label for reporting and filtering. Open the menu and
+                      use ⓘ beside each category to see how we use it.
+                    </p>
+                  }
+                />
+              <PremiumSelect
+                value={newSubjectCategory || "__none__"}
+                onValueChange={(v) =>
+                  setNewSubjectCategory(v === "__none__" ? "" : v)
+                }
+              >
+                <PremiumSelectTrigger className="w-full">
+                  <PremiumSelectValue placeholder="Category" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent className="z-[300]">
+                  <PremiumSelectItem value="__none__">
+                    <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                      <span className="min-w-0 flex-1 truncate">No category</span>
+                      <OptionInfoIcon
+                        text={SUBJECT_CATEGORY_OPTION_HELP.__none__}
+                        label="About: no category"
+                      />
+                    </span>
+                  </PremiumSelectItem>
+                  <PremiumSelectItem value="core">
+                    <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                      <span className="min-w-0 flex-1 truncate">Core</span>
+                      <OptionInfoIcon
+                        text={SUBJECT_CATEGORY_OPTION_HELP.core}
+                        label="About: core"
+                      />
+                    </span>
+                  </PremiumSelectItem>
+                  <PremiumSelectItem value="elective">
+                    <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                      <span className="min-w-0 flex-1 truncate">Elective</span>
+                      <OptionInfoIcon
+                        text={SUBJECT_CATEGORY_OPTION_HELP.elective}
+                        label="About: elective"
+                      />
+                    </span>
+                  </PremiumSelectItem>
+                  <PremiumSelectItem value="foundation">
+                    <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                      <span className="min-w-0 flex-1 truncate">Foundation</span>
+                      <OptionInfoIcon
+                        text={SUBJECT_CATEGORY_OPTION_HELP.foundation}
+                        label="About: foundation"
+                      />
+                    </span>
+                  </PremiumSelectItem>
+                  <PremiumSelectItem value="optional">
+                    <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                      <span className="min-w-0 flex-1 truncate">Optional</span>
+                      <OptionInfoIcon
+                        text={SUBJECT_CATEGORY_OPTION_HELP.optional}
+                        label="About: optional"
+                      />
+                    </span>
+                  </PremiumSelectItem>
+                  <PremiumSelectItem value="transdisciplinary_theme">
+                    <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                      <span className="min-w-0 flex-1 truncate">
+                        Transdisciplinary theme
+                      </span>
+                      <OptionInfoIcon
+                        text={
+                          SUBJECT_CATEGORY_OPTION_HELP.transdisciplinary_theme
+                        }
+                        label="About: transdisciplinary theme"
+                      />
+                    </span>
+                  </PremiumSelectItem>
+                  <PremiumSelectItem value="subject_group">
+                    <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                      <span className="min-w-0 flex-1 truncate">Subject group</span>
+                      <OptionInfoIcon
+                        text={SUBJECT_CATEGORY_OPTION_HELP.subject_group}
+                        label="About: subject group"
+                      />
+                    </span>
+                  </PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={creatingSubject || !newSubjectName.trim()}
+                onClick={() => void createSubjectInline()}
+                className="bg-brand text-black hover:opacity-90"
+              >
+                {creatingSubject ? "Adding…" : "Add subject"}
+              </Button>
             </div>
           </div>
-        </div>
+
+          {draftError ? (
+            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+              {draftError}
+            </div>
+          ) : null}
+        </>
       )}
 
-      {/* Subjects (optional default for groups) */}
-      <div className="space-y-2">
-        <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-          Default Subjects for these Class Groups (optional)
-        </Label>
-        <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-          {subjects.map((s) => (
-            <Controller
-              key={s._id}
-              control={control}
-              name="subjectIds"
-              render={({ field }) => {
-                const checked = (field.value ?? []).includes(s._id);
-                return (
-                  <label className="flex items-center gap-2 rounded-md p-2 border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => {
-                        const set = new Set(field.value ?? []);
-                        if (e.target.checked) set.add(s._id);
-                        else set.delete(s._id);
-                        field.onChange(Array.from(set));
-                      }}
-                      className="h-4 w-4 rounded border-white/20 bg-white/5 accent-brand cursor-pointer"
-                    />
-                    <span className="text-sm text-white/80">{s.name}</span>
-                  </label>
-                );
-              }}
-            />
-          ))}
-        </div>
-      </div>
+      {step === 4 && draft && (
+        <>
+          <LeoCallout>
+            <p className="text-sm leading-relaxed text-white/85">{draft.leoSummary}</p>
+          </LeoCallout>
 
-      {/* Optional capacity */}
-      <div className="space-y-2">
-        <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-          Capacity (optional)
-        </Label>
-        <Controller
-          control={control}
-          name="capacity"
-          render={({ field }) => (
-            <Input
-              type="number"
-              value={field.value ?? ""}
-              onChange={(e) =>
-                field.onChange(e.target.value ? Number(e.target.value) : undefined)
+          <div className="space-y-2">
+            <SelectLabelRow
+              label="Edit plan — streams, naming, preview"
+              hint={
+                <p>
+                  Adjust stream counts, naming pattern, or custom suffixes per grade
+                  before saving. Changes update the preview column immediately. Use
+                  the ⓘ in each pattern menu for what letters, numbers, or custom
+                  lists do in this step.
+                </p>
               }
-              onBlur={field.onBlur}
-              name={field.name}
-              placeholder="e.g., 35"
-              className="border border-white/10 bg-white/5 text-white"
             />
-          )}
-        />
-      </div>
+            <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
+              <div className="max-h-72 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-[1] bg-white/10 backdrop-blur-sm">
+                    <tr className="border-b border-white/10">
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                        Grade
+                      </th>
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                        #
+                      </th>
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                        Pattern
+                      </th>
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                        Custom
+                      </th>
+                      <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                        Preview
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {draft.gradeConfigs.map((gc) => {
+                      const count = streamCountFromStrategy(gc.strategy);
+                      const pattern = reviewRowPattern(gc.strategy);
+                      const csv = customCsvFromStrategy(gc.strategy);
+                      return (
+                        <tr
+                          key={gc.gradeId}
+                          className="border-b border-white/5 last:border-b-0 align-top"
+                        >
+                          <td className="p-2 font-medium text-white">
+                            {gradeMap.get(gc.gradeId) ?? gc.gradeId}
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={26}
+                              value={count || 1}
+                              onChange={(e) => {
+                                const n = Number(e.target.value) || 1;
+                                patchDraftGrade(gc.gradeId, (row) => ({
+                                  ...row,
+                                  strategy: adjustStrategyCount(row.strategy, n),
+                                }));
+                              }}
+                              className="h-9 w-14 border border-white/10 bg-white/5 text-center text-xs text-white"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <PremiumSelect
+                              value={pattern}
+                              onValueChange={(v) => {
+                                const p = v as "letters" | "numbers" | "custom";
+                                patchDraftGrade(gc.gradeId, (row) => ({
+                                  ...row,
+                                  strategy: strategyFromRowPattern(
+                                    p,
+                                    streamCountFromStrategy(row.strategy) || 1,
+                                    customCsvFromStrategy(row.strategy),
+                                    row.strategy
+                                  ),
+                                }));
+                              }}
+                            >
+                              <PremiumSelectTrigger className="h-9 min-w-[7rem] text-xs">
+                                <PremiumSelectValue />
+                              </PremiumSelectTrigger>
+                              <PremiumSelectContent className="z-[300]">
+                                <PremiumSelectItem value="letters">
+                                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                                    <span className="min-w-0 flex-1 truncate">
+                                      Letters
+                                    </span>
+                                    <OptionInfoIcon
+                                      text={REVIEW_PATTERN_HELP.letters}
+                                      label="Review: letters pattern"
+                                    />
+                                  </span>
+                                </PremiumSelectItem>
+                                <PremiumSelectItem value="numbers">
+                                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                                    <span className="min-w-0 flex-1 truncate">
+                                      Numbers
+                                    </span>
+                                    <OptionInfoIcon
+                                      text={REVIEW_PATTERN_HELP.numbers}
+                                      label="Review: numbers pattern"
+                                    />
+                                  </span>
+                                </PremiumSelectItem>
+                                <PremiumSelectItem value="custom">
+                                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                                    <span className="min-w-0 flex-1 truncate">
+                                      Custom list
+                                    </span>
+                                    <OptionInfoIcon
+                                      text={REVIEW_PATTERN_HELP.custom}
+                                      label="Review: custom pattern"
+                                    />
+                                  </span>
+                                </PremiumSelectItem>
+                              </PremiumSelectContent>
+                            </PremiumSelect>
+                          </td>
+                          <td className="max-w-[140px] p-2">
+                            {pattern === "custom" ? (
+                              <Input
+                                value={csv}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  patchDraftGrade(gc.gradeId, (row) => ({
+                                    ...row,
+                                    strategy: strategyFromRowPattern(
+                                      "custom",
+                                      streamCountFromStrategy(row.strategy) || 1,
+                                      val,
+                                      row.strategy
+                                    ),
+                                  }));
+                                }}
+                                className="h-9 border border-white/10 bg-white/5 text-xs text-white"
+                              />
+                            ) : (
+                              <span className="text-[10px] text-white/35">—</span>
+                            )}
+                          </td>
+                          <td className="p-2 text-[11px] leading-snug text-white/65">
+                            {previewLine(
+                              gradeMap.get(gc.gradeId) ?? "",
+                              gc.strategy
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
-      <div className="flex justify-end gap-2 pt-4 border-t border-white/10">
+          <div className="space-y-2">
+            <SelectLabelRow
+              label="Subjects linked to new groups"
+              hint={
+                <p>
+                  For per-grade mode, pick a grade and adjust checkboxes to change
+                  which subjects attach to <strong>that</strong> grade’s new class
+                  groups only. Other modes show a single combined list.
+                </p>
+              }
+            />
+            {draft.subjectMode === "per_grade" ? (
+              <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-3">
+                <PremiumSelect
+                  value={reviewSubjectGrade || draft.gradeConfigs[0]?.gradeId || ""}
+                  onValueChange={setReviewSubjectGrade}
+                >
+                  <PremiumSelectTrigger className="w-full">
+                    <PremiumSelectValue placeholder="Grade" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
+                    {draft.gradeConfigs.map((gc) => {
+                      const gname = gradeMap.get(gc.gradeId) ?? gc.gradeId;
+                      return (
+                        <PremiumSelectItem key={gc.gradeId} value={gc.gradeId}>
+                          <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                            <span className="min-w-0 flex-1 truncate">
+                              {gname}
+                            </span>
+                            <OptionInfoIcon
+                              text={`Edit subject attachments for ${gname} only. Saving will apply this list to every new class group in this grade from this wizard run.`}
+                              label={`About subjects for ${gname}`}
+                            />
+                          </span>
+                        </PremiumSelectItem>
+                      );
+                    })}
+                  </PremiumSelectContent>
+                </PremiumSelect>
+                {reviewSubjectGrade ? (
+                  <SubjectPickGrid
+                    subjects={subjects}
+                    selected={
+                      new Set(draft.subjectIdsByGrade[reviewSubjectGrade] ?? [])
+                    }
+                    onToggle={(id) => {
+                      setDraft((d) => {
+                        if (!d) return d;
+                        const g = reviewSubjectGrade;
+                        const cur = new Set(d.subjectIdsByGrade[g] ?? []);
+                        if (cur.has(id)) cur.delete(id);
+                        else cur.add(id);
+                        const nextBy = {
+                          ...d.subjectIdsByGrade,
+                          [g]: Array.from(cur),
+                        };
+                        return {
+                          ...d,
+                          subjectIdsByGrade: nextBy,
+                          subjectIds: unionSubjectIds(nextBy),
+                        };
+                      });
+                    }}
+                  />
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/70">
+                {draft.subjectIds.length === 0
+                  ? "None (you can assign from class settings later)"
+                  : draft.subjectIds
+                      .map((id) => subjectNameMap.get(id) ?? id)
+                      .join(", ")}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-white/10 bg-black/15 p-3">
+            <SelectLabelRow
+              label="Capacity (optional)"
+              hint={
+                <div className="space-y-2">
+                  <p>
+                    <strong>Same for all</strong> sets one enrolment cap on every
+                    new class group. <strong>Per class group</strong> lets you type
+                    a different cap for each exact name in the plan (or leave blank
+                    for no limit on that group).
+                  </p>
+                  <p className="text-white/75">
+                    Use the ⓘ in the menu for more detail. In per-group mode, you
+                    can fill every row from the shared value with one click.
+                  </p>
+                </div>
+              }
+            />
+            <PremiumSelect
+              value={capacityMode}
+              onValueChange={(v) => {
+                const m = v as "uniform" | "custom";
+                if (m === "custom") {
+                  setCapacityByClassName(
+                    Object.fromEntries(
+                      reviewPlannedRows.map((r) => [
+                        r.displayName,
+                        capacity.trim(),
+                      ])
+                    )
+                  );
+                }
+                setCapacityMode(m);
+              }}
+            >
+              <PremiumSelectTrigger className="w-full">
+                <PremiumSelectValue placeholder="Capacity mode" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent className="z-[300]">
+                <PremiumSelectItem value="uniform">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      Same capacity for every new class group
+                    </span>
+                    <OptionInfoIcon
+                      text={CAPACITY_MODE_HELP.uniform}
+                      label="About uniform capacity"
+                    />
+                  </span>
+                </PremiumSelectItem>
+                <PremiumSelectItem value="custom">
+                  <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
+                    <span className="min-w-0 flex-1 truncate">
+                      Set capacity per class group
+                    </span>
+                    <OptionInfoIcon
+                      text={CAPACITY_MODE_HELP.custom}
+                      label="About per-group capacity"
+                    />
+                  </span>
+                </PremiumSelectItem>
+              </PremiumSelectContent>
+            </PremiumSelect>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-medium uppercase tracking-wider text-white/45">
+                {capacityMode === "uniform"
+                  ? "Capacity for all groups"
+                  : "Default / fill value (optional)"}
+              </Label>
+              <div className="flex flex-wrap items-end gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                  placeholder="e.g. 35 — leave empty for no limit"
+                  className="min-w-[10rem] flex-1 border border-white/10 bg-white/5 text-white"
+                />
+                {capacityMode === "custom" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-white/10 bg-white/5 text-xs text-white hover:bg-white/10"
+                    onClick={() =>
+                      setCapacityByClassName(
+                        Object.fromEntries(
+                          reviewPlannedRows.map((r) => [
+                            r.displayName,
+                            capacity.trim(),
+                          ])
+                        )
+                      )
+                    }
+                  >
+                    Apply to all rows
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            {capacityMode === "custom" ? (
+              <div className="overflow-hidden rounded-md border border-white/10 bg-white/5">
+                <div className="max-h-52 overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 z-1 bg-white/10 backdrop-blur-sm">
+                      <tr className="border-b border-white/10">
+                        <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                          Class group
+                        </th>
+                        <th className="w-28 p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
+                          Capacity
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reviewPlannedRows.map((r) => (
+                        <tr
+                          key={r.displayName}
+                          className="border-b border-white/5 last:border-b-0"
+                        >
+                          <td className="p-2 text-xs text-white/80">
+                            {r.displayName}
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              min={0}
+                              value={capacityByClassName[r.displayName] ?? ""}
+                              onChange={(e) =>
+                                setCapacityByClassName((prev) => ({
+                                  ...prev,
+                                  [r.displayName]: e.target.value,
+                                }))
+                              }
+                              placeholder="—"
+                              className="h-8 border border-white/10 bg-white/5 text-xs text-white"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/10 pt-4">
         <Button
           type="button"
           variant="outline"
@@ -471,20 +1688,92 @@ export function CreateClassGroupsModal({ onClose }: Props) {
         >
           Cancel
         </Button>
-        <Button
-          type="submit"
-          disabled={
-            createGroups.isPending ||
-            (gradeIds?.length ?? 0) === 0 ||
-            Object.values(gradeConfigs || {}).every(
-              (c) => !c || c.count <= 0
-            )
-          }
-          className="bg-brand text-black hover:opacity-90"
-        >
-          {createGroups.isPending ? "Creating…" : "Create Class Groups"}
-        </Button>
+        {step > 1 && step < 4 ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setStep((s) => (s > 1 ? ((s - 1) as WizardStep) : s))}
+            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+          >
+            Back
+          </Button>
+        ) : null}
+        {step === 4 ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setStep(3)}
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              Adjust subjects
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setStep(2)}
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              Adjust grades
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDraft(null);
+                setStep(1);
+              }}
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              Start over
+            </Button>
+            <Button
+              type="button"
+              disabled={!draft?.gradeConfigs?.length || createGroups.isPending}
+              onClick={() => void onConfirmCreate()}
+              className="bg-brand text-black hover:opacity-90"
+            >
+              {createGroups.isPending ? "Saving…" : "Create class groups"}
+            </Button>
+          </>
+        ) : step === 3 ? (
+          <Button
+            type="button"
+            disabled={!canNextFrom3 || draftLoading}
+            onClick={() => void requestDraft()}
+            className="bg-brand text-black hover:opacity-90"
+          >
+            {draftLoading ? "Leo is planning…" : "Build plan & review"}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            disabled={
+              (step === 1 && !canNextFrom1) || (step === 2 && !canNextFrom2)
+            }
+            onClick={() => setStep((s) => (s < 4 ? ((s + 1) as WizardStep) : s))}
+            className="bg-brand text-black hover:opacity-90"
+          >
+            Continue
+          </Button>
+        )}
       </div>
-    </form>
+    </div>
+    </TooltipProvider>
+  );
+}
+
+function rowPatternFromStrategy(s: Strategy): "letters" | "numbers" | "custom" {
+  return s.kind;
+}
+
+function LeoCallout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.07] p-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-500/15">
+        <LeoIcon className="h-5 w-5 text-violet-200" />
+      </div>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
   );
 }

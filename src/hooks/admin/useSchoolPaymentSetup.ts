@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 
 export type SchoolPaymentSetupDTO = {
   schoolId: string;
@@ -210,6 +211,7 @@ export function useUpdateSchoolPaymentSetup() {
         ["school-payment-setup", false],
         data
       );
+      invalidateSetupReadiness(queryClient);
     },
   });
 }
@@ -275,6 +277,7 @@ export function useStartSchoolPaymentProvisioning() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-payment-setup"] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }

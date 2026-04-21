@@ -181,14 +181,17 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email: normalizedEmail }).lean();
+        const existingUser = await User.findOne({
+          email: normalizedEmail,
+          schoolId: schoolIdObj,
+        }).lean();
         if (existingUser) {
           results.push({
             row: rowNumber,
             success: false,
             email: normalizedEmail,
-            error: "User with this email already exists",
+            error:
+              "A user with this email already exists in your school",
           });
           continue;
         }

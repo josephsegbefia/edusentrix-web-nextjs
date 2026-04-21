@@ -350,6 +350,11 @@ function TeacherDetailContent() {
             teacher={{
               id: teacher.id,
               fullName: teacher.fullName,
+              firstName: teacher.firstName,
+              lastName: teacher.lastName,
+              email: teacher.email,
+              photoUrl: teacher.photoUrl,
+              department: teacher.department,
             }}
           />
         ) : activeTab === "attendance" ? (

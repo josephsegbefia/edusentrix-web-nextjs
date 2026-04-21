@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 
 export type AcademicPeriodDTO = {
   _id: string;
@@ -60,6 +61,7 @@ export function useCreatePeriod() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }
@@ -81,6 +83,7 @@ export function useSetCurrentPeriod() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }

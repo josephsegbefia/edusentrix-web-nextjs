@@ -13,6 +13,8 @@ import {
   ChevronsUpDown,
   Loader2,
   Home,
+  Info,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,11 +35,12 @@ import {
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useTeacherSearch, useClassGroupSearch } from "@/hooks/admin/useDirectorySearch";
 import { useAssignHomeroomTeacher } from "@/hooks/admin/useClasses";
+import { useAssignHomeroom } from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { premiumSelectContent, premiumMenuItem } from "@/components/ui/premium";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { ClassGroupDTO } from "@/hooks/admin/useClasses";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
 // Schema for assigning teacher to class (from Classes page)
 const teacherSchema = z.object({
@@ -422,7 +425,7 @@ function TeacherModeModal({
   teacherName: string;
 }) {
   const busy = useBusyToast();
-  const queryClient = useQueryClient();
+  const assignHomeroom = useAssignHomeroom();
   const [query, setQuery] = React.useState("");
   const debouncedQuery = useDebouncedValue(query, 300);
   const { data: classesData, isLoading: isLoadingClasses } = useClassGroupSearch(
@@ -430,26 +433,12 @@ function TeacherModeModal({
   );
   const classes = classesData?.data || [];
 
-  const assignHomeroomMutation = useMutation({
-    mutationFn: async (classGroupId: string) => {
-      const res = await fetch(`/api/admin/classes/${classGroupId}/assign-homeroom`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherId }),
-      });
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to assign homeroom" }));
-        throw new Error(error.error || "Failed to assign homeroom");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["classes"] });
-      queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      queryClient.invalidateQueries({ queryKey: ["teacher", teacherId] });
-      queryClient.invalidateQueries({ queryKey: ["teacherHomeroom", teacherId] });
-    },
-  });
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [homeroomConflict, setHomeroomConflict] = React.useState<{
+    message: string;
+    currentTeacherName: string;
+    classGroupId: string;
+  } | null>(null);
 
   const {
     handleSubmit,
@@ -474,29 +463,88 @@ function TeacherModeModal({
     if (open) {
       reset({ classGroupId: "" });
       setQuery("");
+      setHomeroomConflict(null);
+      setPickerOpen(false);
     }
   }, [open, reset]);
 
+  React.useEffect(() => {
+    if (
+      homeroomConflict &&
+      selectedClassId &&
+      selectedClassId !== homeroomConflict.classGroupId
+    ) {
+      setHomeroomConflict(null);
+    }
+  }, [selectedClassId, homeroomConflict]);
+
   const onSubmit = async (data: ClassFormValues) => {
+    setHomeroomConflict(null);
+    busy.show("Saving homeroom…");
     try {
-      await busy.promise(
-        assignHomeroomMutation.mutateAsync(data.classGroupId),
-        {
-          loading: "Assigning homeroom class...",
-          success: "Homeroom class assigned successfully",
-          error: (e: Error) => e.message || "Failed to assign homeroom class",
-        }
-      );
+      await assignHomeroom.mutateAsync({
+        teacherId,
+        classGroupId: data.classGroupId,
+        replaceExisting: false,
+      });
+      busy.hide();
+      busy.success("Homeroom assigned", {
+        description: `${teacherName} is now the form teacher for that class.`,
+      });
       onOpenChange(false);
-    } catch {
-      // Error handled by busy.promise
+    } catch (e: unknown) {
+      busy.hide();
+      const err = e as {
+        message?: string;
+        meta?: {
+          conflict?: {
+            type?: string;
+            message?: string;
+            currentTeacherName?: string;
+          };
+        };
+      };
+      if (err?.meta?.conflict?.type === "homeroom_exists") {
+        setHomeroomConflict({
+          message:
+            String(err.meta.conflict.message || "") ||
+            "This class already has a homeroom teacher.",
+          currentTeacherName: String(
+            err.meta.conflict.currentTeacherName || "Another teacher"
+          ),
+          classGroupId: data.classGroupId,
+        });
+        return;
+      }
+      busy.error(err?.message || "Could not assign homeroom");
     }
   };
+
+  async function onReplaceExisting() {
+    if (!homeroomConflict?.classGroupId) return;
+    busy.show("Updating homeroom…");
+    try {
+      await assignHomeroom.mutateAsync({
+        teacherId,
+        classGroupId: homeroomConflict.classGroupId,
+        replaceExisting: true,
+      });
+      busy.hide();
+      busy.success("Homeroom updated", {
+        description: `${teacherName} is now the form teacher for this class.`,
+      });
+      setHomeroomConflict(null);
+      onOpenChange(false);
+    } catch (e: unknown) {
+      busy.hide();
+      const err = e as { message?: string };
+      busy.error(err?.message || "Could not assign homeroom");
+    }
+  }
 
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -505,66 +553,75 @@ function TeacherModeModal({
           onClick={() => onOpenChange(false)}
         />
 
-        {/* Modal */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl"
         >
-          {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-violet-500/30 bg-violet-500/10">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-violet-500/30 bg-violet-500/10">
                 <Home className="h-5 w-5 text-violet-300" />
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-white">
-                  Assign Homeroom Class
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-white truncate">
+                  Homeroom class
                 </h2>
-                <p className="text-sm text-white/60">{teacherName}</p>
+                <p className="text-sm text-white/60 truncate">{teacherName}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
+              className="h-8 w-8 shrink-0 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* Content */}
           <form onSubmit={handleSubmit(onSubmit)} className="p-6">
             <div className="space-y-6">
-              {/* Class selection */}
+              <div className="flex gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.07] p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/25 bg-violet-500/15">
+                  <Home className="h-5 w-5 text-violet-200" />
+                </div>
+                <div className="min-w-0 text-sm text-white/85">
+                  <p className="font-medium text-violet-100">Pick a class in seconds</p>
+                  <p className="mt-1 text-xs text-white/65 leading-relaxed">
+                    Search by stream name or grade. Homeroom is the teacher who leads this class day to day
+                    (attendance, notices). You can change this anytime.
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="classGroupId" className="text-white">
-                  Select Class
+                  Class
                 </Label>
-                <Popover>
+                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-12 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className="h-12 w-full min-w-0 justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10"
                     >
                       {selectedClass ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 items-center justify-center rounded bg-violet-500/20 text-xs font-bold text-violet-300">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-violet-500/20 text-xs font-bold text-violet-300">
                             {selectedClass.name?.charAt(0) || "C"}
                           </div>
-                          <span className="truncate">
+                          <span className="truncate text-left">
                             {selectedClass.label || selectedClass.gradeName
                               ? `${selectedClass.gradeName || ""} ${selectedClass.name}`.trim()
                               : selectedClass.name}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-white/50">Select a class...</span>
+                        <span className="text-white/50">Search and select a class…</span>
                       )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-70" />
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-70" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
@@ -572,10 +629,11 @@ function TeacherModeModal({
                       premiumSelectContent,
                       "w-[--radix-popover-trigger-width] p-1 max-h-[400px]"
                     )}
+                    align="start"
                   >
                     <Command shouldFilter={false} className="bg-transparent">
                       <CommandInput
-                        placeholder="Search classes..."
+                        placeholder="Type grade or class name…"
                         value={query}
                         onValueChange={setQuery}
                         className="border-b border-neutral-800/60 bg-transparent"
@@ -583,12 +641,14 @@ function TeacherModeModal({
                       <CommandList className="max-h-[300px] overflow-y-auto">
                         {isLoadingClasses ? (
                           <div className="px-3 py-3 text-sm text-neutral-400">
-                            Searching...
+                            Loading classes…
                           </div>
                         ) : (
                           <>
                             <CommandEmpty className="py-6 text-center text-sm text-neutral-400">
-                              No classes found.
+                              {query.trim()
+                                ? "No classes match. Try a shorter search."
+                                : "Start typing to filter, or browse the list below."}
                             </CommandEmpty>
                             <CommandGroup>
                               {classes.map((cls) => (
@@ -596,15 +656,18 @@ function TeacherModeModal({
                                   key={cls.id}
                                   value={cls.id}
                                   onSelect={() => {
-                                    setValue("classGroupId", cls.id);
+                                    setValue("classGroupId", cls.id, {
+                                      shouldValidate: true,
+                                    });
+                                    setPickerOpen(false);
                                   }}
                                   className={cn(
                                     premiumMenuItem,
                                     "flex items-center justify-between gap-2"
                                   )}
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex h-6 w-6 items-center justify-center rounded bg-violet-500/20 text-xs font-bold text-violet-300">
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-violet-500/20 text-xs font-bold text-violet-300">
                                       {cls.name?.charAt(0) || "C"}
                                     </div>
                                     <span className="truncate">
@@ -614,7 +677,7 @@ function TeacherModeModal({
                                     </span>
                                   </div>
                                   {selectedClassId === cls.id ? (
-                                    <Check className="h-4 w-4 text-neutral-300" />
+                                    <Check className="h-4 w-4 shrink-0 text-neutral-300" />
                                   ) : null}
                                 </CommandItem>
                               ))}
@@ -630,34 +693,64 @@ function TeacherModeModal({
                 )}
               </div>
 
-              <p className="text-xs text-white/50">
-                Assigning a homeroom class will make {teacherName} the homeroom teacher for that class.
-                If the class already has a homeroom teacher, they will be replaced.
-              </p>
+              {homeroomConflict && (
+                <div className="rounded-xl border border-violet-400/30 bg-violet-500/15 px-3 py-3 text-sm">
+                  <div className="flex gap-2">
+                    <Info className="h-4 w-4 shrink-0 text-violet-200 mt-0.5" />
+                    <div className="min-w-0 space-y-3">
+                      <p className="font-medium text-white">This class already has a homeroom teacher</p>
+                      <p className="text-xs text-white/70 leading-relaxed">{homeroomConflict.message}</p>
+                      <p className="text-xs text-white/55">
+                        Choose whether {teacherName} should take over as the only homeroom teacher for this class.
+                      </p>
+                      <div className="flex w-full min-w-0 flex-col gap-2 pt-1">
+                        <Button
+                          type="button"
+                          className="h-auto min-h-8 w-full max-w-full whitespace-normal px-3 py-2.5 text-center leading-snug bg-violet-500 text-white hover:bg-violet-600"
+                          disabled={assignHomeroom.isPending}
+                          onClick={() => void onReplaceExisting()}
+                        >
+                          Replace {homeroomConflict.currentTeacherName} with {teacherName}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-auto min-h-8 w-full max-w-full whitespace-normal border-white/15 bg-white/5 px-3 py-2.5 text-center leading-snug text-white hover:bg-white/10"
+                          onClick={() => setHomeroomConflict(null)}
+                        >
+                          Choose a different class
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Footer */}
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+                className="border-white/10 bg-white/5 text-white hover:bg-white/10 w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !selectedClassId}
-                className="bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50"
+                disabled={isSubmitting || !selectedClassId || assignHomeroom.isPending}
+                className="bg-violet-500 text-white hover:bg-violet-600 disabled:opacity-50 w-full sm:w-auto"
               >
-                {isSubmitting ? (
+                {isSubmitting || assignHomeroom.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Assigning...
+                    Saving…
                   </>
                 ) : (
-                  "Assign Class"
+                  <>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Assign homeroom
+                  </>
                 )}
               </Button>
             </div>

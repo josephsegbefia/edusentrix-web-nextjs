@@ -2,13 +2,17 @@
 // test after moving to organization github
 import "server-only";
 import { redirect } from "next/navigation";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import type { AppRole } from "@/lib/roles";
 import { isDemoMode } from "@/lib/demo/runtime";
 import { resolveDemoSessionFromCookie } from "@/lib/demo/session";
 import { resolveDemoPersona } from "@/lib/demo/persona";
+import {
+  resolveTenantUserForClerkSession,
+  schoolIdFromClerkMetadata,
+} from "@/lib/auth/resolveTenantUserForClerkSession";
 
 export type CurrentAppUser = {
   _id: string;
@@ -30,39 +34,38 @@ export async function getCurrentUser(
     if (session) return resolveDemoPersona(session);
   }
 
-  const resolvedUserId = clerkUserId ?? (await auth()).userId;
-  if (!resolvedUserId) return null;
+  let resolvedClerkId: string | null = clerkUserId ?? null;
+  let email: string | undefined;
+  let schoolIdFromMeta: string | undefined;
+
+  if (clerkUserId) {
+    // Bearer/mobile may pass userId without cookie auth() context
+    const clerk = await clerkClient();
+    const c = await clerk.users.getUser(clerkUserId);
+    email =
+      c.emailAddresses?.[0]?.emailAddress?.toLowerCase() ?? undefined;
+    schoolIdFromMeta = schoolIdFromClerkMetadata(c);
+    resolvedClerkId = clerkUserId;
+  } else {
+    const cu = await currentUser();
+    if (!cu) return null;
+    resolvedClerkId = cu.id;
+    email =
+      cu.primaryEmailAddress?.emailAddress?.toLowerCase() ??
+      cu.emailAddresses?.[0]?.emailAddress?.toLowerCase() ??
+      undefined;
+    schoolIdFromMeta = schoolIdFromClerkMetadata(cu);
+  }
+
+  if (!resolvedClerkId) return null;
 
   await connectToDatabase();
 
-  let doc: IUser | null = (await User.findOne({ clerkUserId: resolvedUserId })
-    .select(
-      "_id email firstName lastName avatarUrl role schoolId pendingOnboarding createdAt updatedAt"
-    )
-    .lean()) as IUser | null;
-
-  if (!doc) {
-    const clerk = await clerkClient();
-    const cUser = await clerk.users.getUser(resolvedUserId);
-    const email =
-      cUser?.emailAddresses?.[0]?.emailAddress?.toLowerCase() ?? undefined;
-
-    if (email) {
-      const byEmail = (await User.findOne({ email })
-        .select(
-          "_id email firstName lastName avatarUrl role schoolId pendingOnboarding createdAt updatedAt"
-        )
-        .lean()) as IUser | null;
-
-      if (byEmail) {
-        await User.updateOne(
-          { _id: byEmail._id },
-          { $set: { clerkUserId: resolvedUserId } }
-        );
-        doc = { ...byEmail, clerkUserId: resolvedUserId };
-      }
-    }
-  }
+  const doc = await resolveTenantUserForClerkSession({
+    clerkUserId: resolvedClerkId,
+    email: email ?? "",
+    schoolIdFromMetadata: schoolIdFromMeta,
+  });
 
   if (!doc) return null;
 

@@ -198,7 +198,7 @@ export async function PATCH(
 
     // Fetch updated guardian
     const updatedGuardianRaw = await Guardian.findById(guardianIdObj)
-      .populate("userId", "firstName lastName email avatarUrl")
+      .populate("userId", "firstName lastName email avatarUrl clerkUserId")
       .lean();
 
     // Normalize updatedGuardian (findById().lean() can be inferred as array by TypeScript)
@@ -229,6 +229,7 @@ export async function PATCH(
           (updatedGuardian as any).photoUrl || user.avatarUrl || null,
         isPrimary: (updatedGuardian as any).isPrimary,
         createdAt: (updatedGuardian as any).createdAt.toISOString(),
+        hasPlatformAccount: Boolean(user.clerkUserId),
       },
     });
   } catch (error) {

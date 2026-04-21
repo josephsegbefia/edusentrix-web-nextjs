@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,15 @@ const TABS: Array<{ id: SettingsTab; label: string; icon: React.ElementType }> =
   { id: "academic", label: "Academic Calendar", icon: Calendar },
   { id: "features", label: "Features", icon: Sparkles },
 ];
+
+const VALID_SETTINGS_TABS: SettingsTab[] = ["schedule", "attendance", "academic", "features"];
+
+function tabFromSearchParam(raw: string | null): SettingsTab {
+  if (raw && VALID_SETTINGS_TABS.includes(raw as SettingsTab)) {
+    return raw as SettingsTab;
+  }
+  return "schedule";
+}
 
 const DAYS_OF_WEEK = [
   { value: 0, label: "Sun" },
@@ -144,8 +154,23 @@ function PaymentSetupEntryCard() {
   );
 }
 
-export default function SettingsPage() {
-  const [activeTab, setActiveTab] = React.useState<SettingsTab>("schedule");
+function SettingsPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const activeTab = React.useMemo(
+    () => tabFromSearchParam(searchParams.get("tab")),
+    [searchParams]
+  );
+  const selectTab = React.useCallback(
+    (tab: SettingsTab) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", tab);
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
   const [dailyOverridesExpanded, setDailyOverridesExpanded] =
     React.useState(false);
   const [gradeOverridesExpanded, setGradeOverridesExpanded] =
@@ -645,7 +670,7 @@ export default function SettingsPage() {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => selectTab(tab.id)}
               className={cn(
                 "flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
                 isActive
@@ -1910,5 +1935,17 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="p-6 text-sm text-white/60">Loading settings…</div>
+      }
+    >
+      <SettingsPageContent />
+    </React.Suspense>
   );
 }

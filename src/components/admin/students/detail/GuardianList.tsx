@@ -17,6 +17,7 @@ import {
 import { motion } from "framer-motion";
 import type { GuardianData } from "@/hooks/admin/useGuardians";
 import { cn } from "@/lib/utils";
+import { PendingInviteBadge } from "@/components/admin/PendingInviteBadge";
 
 type Props = {
   guardians: GuardianData[];
@@ -109,6 +110,9 @@ export function GuardianList({
                 >
                   {getRelationshipLabel(guardian.relationship)}
                 </Badge>
+                {guardian.hasPlatformAccount === false && (
+                  <PendingInviteBadge className="rounded-md" />
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground/80">

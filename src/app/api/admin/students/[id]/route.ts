@@ -154,7 +154,7 @@ export async function GET(
         await Guardian.find({
           studentId: new mongoose.Types.ObjectId(id),
         })
-          .populate("userId", "firstName lastName email avatarUrl")
+          .populate("userId", "firstName lastName email avatarUrl clerkUserId")
           .sort({ isPrimary: -1, createdAt: 1 })
           .lean()
       ).map((g: any) => {
@@ -166,6 +166,7 @@ export async function GET(
           phone: g.phone || "",
           email: g.email || user.email || null,
           isPrimary: g.isPrimary,
+          hasPlatformAccount: Boolean(user.clerkUserId),
         };
       }),
 

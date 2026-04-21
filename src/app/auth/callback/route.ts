@@ -4,6 +4,11 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import { Invitation } from "@/models/Invitation";
+import mongoose from "mongoose";
+import {
+  resolveTenantUserForClerkSession,
+  schoolIdFromClerkMetadata,
+} from "@/lib/auth/resolveTenantUserForClerkSession";
 import {
   bindBillingOwnerToSchool,
   bindPaymentSetupDelegateToSchool,
@@ -65,43 +70,25 @@ export async function GET(req: NextRequest) {
   const role =
     (cUser.publicMetadata?.role as string | undefined) ||
     (cUser.privateMetadata?.role as string | undefined);
-  const schoolIdFromMetadata =
-    (cUser.publicMetadata?.schoolId as string | undefined) ||
-    (cUser.privateMetadata?.schoolId as string | undefined);
+  const schoolIdFromMetadata = schoolIdFromClerkMetadata(cUser);
 
   await connectToDatabase();
 
-  // Find by clerkUserId, else fallback to email, then repair link
-  let appUser: IUser | null = (await User.findOne({
+  let appUser: IUser | null = await resolveTenantUserForClerkSession({
     clerkUserId: userId,
-  }).lean()) as IUser | null;
-  if (!appUser && email) {
-    const byEmail = (await User.findOne({ email }).lean()) as IUser | null;
-    if (byEmail) {
-      await User.updateOne(
-        { _id: byEmail._id },
-        {
-          $set: {
-            clerkUserId: userId,
-            ...(role ? { role } : {}),
-            ...(schoolIdFromMetadata
-              ? { schoolId: schoolIdFromMetadata }
-              : {}),
-          },
-        }
-      );
-      appUser = {
-        ...byEmail,
-        clerkUserId: userId,
-        role: (role as IUser["role"]) || byEmail.role,
-        schoolId: schoolIdFromMetadata
-          ? ((schoolIdFromMetadata as unknown) as IUser["schoolId"])
-          : byEmail.schoolId,
-      };
-    }
-  }
-  // Soft-create if still not found (unscoped user)
+    email,
+    schoolIdFromMetadata,
+  });
+
   if (!appUser) {
+    if (email) {
+      const dup = await User.countDocuments({ email: email.toLowerCase() });
+      if (dup > 1) {
+        const errUrl = new URL("/sign-in", req.url);
+        errUrl.searchParams.set("error", "multi_school_email");
+        return NextResponse.redirect(errUrl);
+      }
+    }
     const created = await User.create({
       clerkUserId: userId,
       email,
@@ -129,18 +116,19 @@ export async function GET(req: NextRequest) {
   // This handles teacher/staff invitations that were sent via the school admin
   if (email) {
     try {
-      await Invitation.updateMany(
-        {
-          email: email.toLowerCase(),
-          status: "pending",
+      const inviteMatch: Record<string, unknown> = {
+        email: email.toLowerCase(),
+        status: "pending",
+      };
+      if (schoolIdFromMetadata && mongoose.isValidObjectId(schoolIdFromMetadata)) {
+        inviteMatch.schoolId = new mongoose.Types.ObjectId(schoolIdFromMetadata);
+      }
+      await Invitation.updateMany(inviteMatch, {
+        $set: {
+          status: "accepted",
+          acceptedAt: new Date(),
         },
-        {
-          $set: {
-            status: "accepted",
-            acceptedAt: new Date(),
-          },
-        }
-      );
+      });
     } catch (invitationError) {
       // Don't fail the callback if invitation update fails
       console.error("Failed to update invitation status:", invitationError);

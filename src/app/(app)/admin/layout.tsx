@@ -10,7 +10,7 @@ import { AdminRolePathGuard } from "@/components/auth/admin-role-path-guard";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
 import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
-import TrialBanner from "@/components/billing/TrialBanner";
+import { AdminTrialBanner } from "@/components/billing/AdminTrialBanner";
 import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
 
 export default async function AdminLayout({
@@ -39,7 +39,7 @@ export default async function AdminLayout({
       <AuthRefreshHandler />
       <AdminRolePathGuard role={user.role} />
       {snapshot?.subscription.status === "trial" ? (
-        <TrialBanner endsAt={snapshot.subscription.pilotEndsAt || null} />
+        <AdminTrialBanner endsAt={snapshot.subscription.pilotEndsAt || null} />
       ) : null}
       <SidebarProvider>
         <div className="flex min-h-[calc(100vh-3.5rem)]">

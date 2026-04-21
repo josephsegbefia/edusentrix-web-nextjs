@@ -35,6 +35,7 @@ import {
   ShoppingBag,
   ClipboardList,
   Video,
+  Lock,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -58,6 +59,7 @@ import { SidebarSchoolIdentity } from "@/components/nav/sidebars/SidebarSchoolId
 import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { useSchool } from "@/hooks/admin/useSchool";
+import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
 
 type NavSection = {
   title: string;
@@ -264,25 +266,66 @@ const sidebarTooltipClasses =
 
 function CurriculumBadge({ collapsed }: { collapsed: boolean }) {
   const { data } = useSchool();
+  const { shouldRestrictSchoolAdminNav } = useOnboardingProgress();
   const currCode = data?.data?.curriculumCode;
 
   if (!currCode) return null;
 
   const label = CURRICULUM_SHORT_LABELS[currCode] || currCode;
+  const locked = shouldRestrictSchoolAdminNav;
 
   if (collapsed) {
+    const icon = (
+      <span
+        className={cn(
+          "flex h-8 w-8 mx-auto items-center justify-center rounded-lg border border-brand/20 bg-brand/10 transition-colors",
+          locked ? "cursor-not-allowed opacity-50" : "hover:bg-brand/15"
+        )}
+        aria-disabled={locked}
+      >
+        <BookOpen className="h-3.5 w-3.5 text-brand" />
+      </span>
+    );
     return (
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>
-          <ActiveLink
-            href="/admin/settings/curriculum"
-            className="flex h-8 w-8 mx-auto items-center justify-center rounded-lg border border-brand/20 bg-brand/10 transition-colors hover:bg-brand/15"
-          >
-            <BookOpen className="h-3.5 w-3.5 text-brand" />
-          </ActiveLink>
+          {locked ? (
+            icon
+          ) : (
+            <ActiveLink
+              href="/admin/settings/curriculum"
+              className="flex h-8 w-8 mx-auto items-center justify-center rounded-lg border border-brand/20 bg-brand/10 transition-colors hover:bg-brand/15"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-brand" />
+            </ActiveLink>
+          )}
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
-          {label} Curriculum
+          {locked
+            ? `${label} curriculum — unlock after school setup on the Dashboard`
+            : `${label} Curriculum`}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  if (locked) {
+    return (
+      <Tooltip delayDuration={0}>
+        <TooltipTrigger asChild>
+          <span
+            className="flex cursor-not-allowed items-center gap-2 rounded-lg border border-brand/15 bg-brand/5 px-3 py-1.5 opacity-50"
+            aria-disabled="true"
+          >
+            <BookOpen className="h-3.5 w-3.5 text-brand" />
+            <span className="text-[11px] font-semibold text-brand tracking-wide">
+              {label}
+            </span>
+            <Lock className="ml-auto h-3 w-3 text-white/35" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
+          Complete school setup on the Dashboard to open curriculum settings.
         </TooltipContent>
       </Tooltip>
     );
@@ -301,6 +344,13 @@ function CurriculumBadge({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+const NAV_LOCK_TOOLTIP =
+  "Complete school setup on the Dashboard to unlock this section.";
+
+function isAdminDashboardItem(href: string, exact?: boolean) {
+  return href === "/admin" && !!exact;
+}
+
 function NavContent({
   onItemClick,
   collapsed,
@@ -309,6 +359,7 @@ function NavContent({
   collapsed: boolean;
 }) {
   const pathname = usePathname();
+  const { shouldRestrictSchoolAdminNav } = useOnboardingProgress();
 
   return (
     <nav className={cn("space-y-5", collapsed && "space-y-3")}>
@@ -327,8 +378,34 @@ function NavContent({
               const active = exact
                 ? pathname === href
                 : pathname === href || pathname.startsWith(href + "/");
+              const locked =
+                shouldRestrictSchoolAdminNav && !isAdminDashboardItem(href, exact);
 
               if (collapsed) {
+                if (locked) {
+                  return (
+                    <Tooltip key={href} delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={cn(
+                            "flex h-10 w-10 mx-auto cursor-not-allowed items-center justify-center rounded-xl",
+                            "text-white/30 opacity-60"
+                          )}
+                          aria-disabled="true"
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        sideOffset={8}
+                        className={sidebarTooltipClasses}
+                      >
+                        {label} — {NAV_LOCK_TOOLTIP}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
                 return (
                   <Tooltip key={href} delayDuration={0}>
                     <TooltipTrigger asChild>
@@ -349,6 +426,34 @@ function NavContent({
                     </TooltipTrigger>
                     <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
                       {label}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              if (locked) {
+                return (
+                  <Tooltip key={href} delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn(
+                          premiumSideItem,
+                          "cursor-not-allowed opacity-45 pointer-events-auto"
+                        )}
+                        aria-disabled="true"
+                        tabIndex={0}
+                      >
+                        <Icon className="h-4 w-4 shrink-0 text-white/40" />
+                        <span className="truncate">{label}</span>
+                        <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-white/25" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="right"
+                      sideOffset={8}
+                      className={sidebarTooltipClasses}
+                    >
+                      {NAV_LOCK_TOOLTIP}
                     </TooltipContent>
                   </Tooltip>
                 );

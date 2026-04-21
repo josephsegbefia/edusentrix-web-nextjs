@@ -1,22 +1,71 @@
 import { z } from "zod";
 
-export const CreateTeacherSchema = z.object({
-  firstName: z.string().trim().min(1, "First name is required"),
-  lastName: z.string().trim().min(1, "Last name is required"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().trim().optional(),
-  photoUrl: z
-    .union([
-      z.string().url("Invalid photo URL"),
-      z.literal(""),
-    ])
-    .optional(),
-  subjectIds: z.array(z.string().trim()),
-  homeroomClassGroupId: z.union([z.string().trim(), z.literal("")]).optional(),
-  status: z.enum(["active", "inactive"]),
+/** Form row: gradeId is UI-only (filters class groups); strip before POST body if needed. */
+const TeachingAssignmentFormRowSchema = z.object({
+  subjectId: z.string().trim().optional().default(""),
+  classGroupId: z.string().trim().optional().default(""),
+  gradeId: z.string().trim().optional().default(""),
 });
 
+export const CreateTeacherSchema = z
+  .object({
+    firstName: z.string().trim().min(1, "First name is required"),
+    lastName: z.string().trim().min(1, "Last name is required"),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().trim().optional(),
+    photoUrl: z
+      .union([
+        z.string().url("Invalid photo URL"),
+        z.literal(""),
+      ])
+      .optional(),
+    /** Extra subject capabilities without a class assignment (optional). */
+    subjectIds: z.array(z.string().trim()).optional().default([]),
+    /** Subject + class group pairs for the current academic term (creates TeacherAssignment rows). */
+    teachingAssignments: z
+      .array(TeachingAssignmentFormRowSchema)
+      .optional()
+      .default([]),
+    homeroomClassGroupId: z.union([z.string().trim(), z.literal("")]).optional(),
+    status: z.enum(["active", "inactive"]),
+    /** When creating assignments, if another teacher already teaches this subject in that class for the term. */
+    teachingAssignmentResolution: z
+      .enum(["add_alongside", "replace", "skip"])
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    const rows = data.teachingAssignments || [];
+    const complete = rows.filter(
+      (r) =>
+        String(r.subjectId || "").trim() && String(r.classGroupId || "").trim()
+    );
+    if (complete.length < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["teachingAssignments"],
+        message: "Add at least one subject with a class group.",
+      });
+    }
+    rows.forEach((row, idx) => {
+      const started =
+        Boolean(row.subjectId) ||
+        Boolean(row.classGroupId) ||
+        Boolean(row.gradeId);
+      if (!started) return;
+      if (!row.subjectId || !row.classGroupId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["teachingAssignments", idx, "classGroupId"],
+          message: "Complete subject and class group, or clear the row.",
+        });
+      }
+    });
+  });
+
 export type CreateTeacherInput = z.infer<typeof CreateTeacherSchema>;
+export type TeachingAssignmentFormRow = z.infer<
+  typeof TeachingAssignmentFormRowSchema
+>;
 
 // Emergency contact schema for teacher updates
 const EmergencyContactSchema = z.object({

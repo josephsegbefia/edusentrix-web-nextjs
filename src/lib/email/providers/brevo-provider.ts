@@ -23,6 +23,20 @@ function getConfig() {
   };
 }
 
+/**
+ * Brevo returns 400 "email is not valid in replyTo" when the local part is
+ * longer than RFC 5321’s 64-character limit (e.g. long school+billing aliases).
+ */
+function brevoSafeReplyToEmail(
+  email: string | null | undefined,
+): string | undefined {
+  if (!email?.trim() || !email.includes("@")) return undefined;
+  const trimmed = email.trim();
+  const local = trimmed.split("@")[0] ?? "";
+  if (local.length > 64) return undefined;
+  return trimmed;
+}
+
 function getClient(): SibApiV3Sdk.TransactionalEmailsApi {
   if (!apiInstance) {
     const { apiKey } = getConfig();
@@ -78,8 +92,9 @@ export async function brevoSend(
     },
   ];
 
-  if (input.replyTo) {
-    msg.replyTo = { email: input.replyTo };
+  const reply = brevoSafeReplyToEmail(input.replyTo);
+  if (reply) {
+    msg.replyTo = { email: reply };
   }
 
   if (input.tags?.length) {

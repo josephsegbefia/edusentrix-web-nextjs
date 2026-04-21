@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Clock,
@@ -28,12 +28,38 @@ interface TeacherDutiesTabProps {
   teacher: {
     id: string;
     fullName: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    photoUrl: string | null;
+    department: string | null;
   };
 }
 
 export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const { confirm, confirmationDialog } = useConfirmationDialog();
+
+  const assignToTeacherPayload = useMemo(
+    () => ({
+      id: teacher.id,
+      firstName: teacher.firstName,
+      lastName: teacher.lastName,
+      fullName: teacher.fullName,
+      photoUrl: teacher.photoUrl,
+      email: teacher.email,
+      department: teacher.department,
+    }),
+    [
+      teacher.id,
+      teacher.firstName,
+      teacher.lastName,
+      teacher.fullName,
+      teacher.photoUrl,
+      teacher.email,
+      teacher.department,
+    ]
+  );
 
   const { data, isLoading, isError } = useTeacherDuties(true, teacher.id);
   const removeMutation = useRemoveTeacherDuty();
@@ -250,6 +276,7 @@ export function TeacherDutiesTab({ teacher }: TeacherDutiesTabProps) {
         onOpenChange={setAssignModalOpen}
         preselectedDuty={null}
         duties={duties}
+        assignToTeacher={assignToTeacherPayload}
       />
       {confirmationDialog}
     </div>

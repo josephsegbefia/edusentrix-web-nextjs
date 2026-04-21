@@ -270,6 +270,8 @@ export async function GET(req: NextRequest) {
 
         createdAt: createdAt.toISOString(),
         isNew: createdAt >= sevenDaysAgo,
+
+        hasPlatformAccount: Boolean(u.clerkUserId),
       };
     });
 

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
+import mongoose from "mongoose";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
@@ -68,16 +70,105 @@ function buildStudentInitials(firstName: string, lastName: string): string {
   return `${f}${l}`;
 }
 
+function sanitizeAdmissionCandidate(raw: string): string {
+  return raw
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^A-Za-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48);
+}
+
+async function ensureUniqueAdmissionNo(
+  schoolId: mongoose.Types.ObjectId,
+  base: string
+): Promise<string> {
+  let candidate = base;
+  let n = 0;
+  for (;;) {
+    const exists = await Student.findOne({ schoolId, admissionNo: candidate }).lean();
+    if (!exists) return candidate;
+    n += 1;
+    candidate = `${base}-${n}`;
+  }
+}
+
+async function suggestAdmissionWithLeo(input: {
+  patternHint: string;
+  schoolName: string;
+  schoolPrefix: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth?: string;
+}): Promise<{ admissionNo: string; explanation: string } | null> {
+  if (!process.env.OPENAI_API_KEY) return null;
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    temperature: 0.35,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `You help schools design one student admission / learner ID string. Return ONLY valid JSON: { "admissionNo": string, "explanation": string }.
+
+admissionNo rules:
+- Characters: letters, digits, hyphens only. No spaces.
+- Length 6–40.
+- Follow the administrator's pattern hint using school name, student name, and date of birth when relevant.
+
+Real-world context (for explanation only): many schools use (1) a short school or district code + intake year + sequential roll number; (2) initials + birth date (e.g. YYYYMMDD) + sequence; (3) ministry/region codes plus a unique numeric tail. Uniqueness in a database is usually enforced with a serial or checking collisions—not by the ID format alone.
+
+Produce one concrete ID that matches the hint; if the hint is vague, combine school prefix, year, initials, and a short numeric suffix.`,
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          patternHint: input.patternHint,
+          schoolName: input.schoolName,
+          suggestedPrefix: input.schoolPrefix,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          dateOfBirth: input.dateOfBirth ?? null,
+        }),
+      },
+    ],
+  });
+
+  const text = completion.choices[0]?.message?.content;
+  if (!text) return null;
+  try {
+    const data = JSON.parse(text) as {
+      admissionNo?: string;
+      explanation?: string;
+    };
+    const admissionNo = sanitizeAdmissionCandidate(String(data.admissionNo || ""));
+    const explanation =
+      typeof data.explanation === "string" ? data.explanation.trim() : "";
+    if (admissionNo.length < 4) return null;
+    return { admissionNo, explanation };
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
 
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
     const body = await req.json();
-    const { firstName, lastName, dateOfBirth } = body as {
+    const { firstName, lastName, dateOfBirth, patternHint } = body as {
       firstName?: string;
       lastName?: string;
       dateOfBirth?: string;
+      patternHint?: string;
     };
 
     if (!firstName || !lastName) {
@@ -93,6 +184,39 @@ export async function POST(req: NextRequest) {
     const schoolPrefix = buildSchoolPrefix(schoolName);
     const initials = buildStudentInitials(firstName, lastName);
 
+    const hint = typeof patternHint === "string" ? patternHint.trim() : "";
+    let leoFallbackNote: string | undefined;
+
+    if (hint.length >= 3) {
+      const leo = await suggestAdmissionWithLeo({
+        patternHint: hint,
+        schoolName,
+        schoolPrefix,
+        firstName,
+        lastName,
+        dateOfBirth,
+      });
+      if (leo) {
+        const unique = await ensureUniqueAdmissionNo(schoolIdObj, leo.admissionNo);
+        return NextResponse.json({
+          success: true,
+          admissionNo: unique,
+          source: "leo" as const,
+          leoExplanation: leo.explanation,
+          breakdown: {
+            schoolPrefix,
+            enrollYear: "—",
+            birthMonth: "—",
+            initials,
+            sequence: "—",
+          },
+        });
+      }
+      leoFallbackNote = !process.env.OPENAI_API_KEY
+        ? "OpenAI isn’t configured; used the standard format below."
+        : "Leo couldn’t build an ID from that hint; used the standard format below.";
+    }
+
     const now = new Date();
     const enrollYear = String(now.getFullYear()).slice(-2);
 
@@ -104,25 +228,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Get the next sequential number for this school
     const totalStudents = await Student.countDocuments({ schoolId });
     const seq = String(totalStudents + 1).padStart(4, "0");
 
     const admissionNo = `${schoolPrefix}-${enrollYear}${birthPart}-${initials}-${seq}`;
-
-    // Verify uniqueness, append a suffix if collision (extremely unlikely)
-    const exists = await Student.findOne({
-      schoolId,
-      admissionNo,
-    }).lean();
-
-    const finalId = exists
-      ? `${admissionNo}${String(Math.floor(Math.random() * 9) + 1)}`
-      : admissionNo;
+    const finalId = await ensureUniqueAdmissionNo(schoolIdObj, admissionNo);
 
     return NextResponse.json({
       success: true,
       admissionNo: finalId,
+      source: "deterministic" as const,
+      ...(leoFallbackNote ? { leoFallbackNote } : {}),
       breakdown: {
         schoolPrefix,
         enrollYear,

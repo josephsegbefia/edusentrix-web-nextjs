@@ -1,5 +1,6 @@
 // src/hooks/admin/useFeeStructures.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 import { formatAmount, toMinorUnits } from "@/lib/fees/money";
 
 export interface FeeStructure {
@@ -28,7 +29,14 @@ export interface CreateFeeStructureInput {
   maxInstallments?: number;
 }
 
-export interface UpdateFeeStructureInput extends Partial<CreateFeeStructureInput> {}
+/** PATCH accepts null to clear optional fields (aligned with API) */
+export type UpdateFeeStructureInput = Omit<
+  Partial<CreateFeeStructureInput>,
+  "description" | "maxInstallments"
+> & {
+  description?: string | null;
+  maxInstallments?: number | null;
+};
 
 export function useFeeStructures(filters?: {
   category?: string;
@@ -84,6 +92,7 @@ export function useCreateFeeStructure() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feeStructures"] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }
@@ -113,6 +122,7 @@ export function useUpdateFeeStructure() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["feeStructures"] });
       queryClient.invalidateQueries({ queryKey: ["feeStructure", variables.id] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }
@@ -133,6 +143,7 @@ export function useDeleteFeeStructure() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["feeStructures"] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }

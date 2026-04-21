@@ -14,6 +14,7 @@ import { User } from "@/models/User";
 import { Invitation } from "@/models/Invitation";
 import { UserMembership } from "@/models/UserMembership";
 import mongoose from "mongoose";
+import { attachClerkUserIdToUser } from "@/lib/auth/resolveTenantUserForClerkSession";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { isMembershipRole } from "@/lib/roles";
 import {
@@ -129,15 +130,38 @@ async function handleUserCreated(data: ClerkUserData) {
     schoolId?: mongoose.Types.ObjectId;
     role?: string;
   }
-  const existingUser = await User.findOne({ email }).lean() as ExistingUserLean | null;
+
+  let existingUser: ExistingUserLean | null = null;
+  if (schoolId && mongoose.isValidObjectId(schoolId)) {
+    const schoolOid = new mongoose.Types.ObjectId(schoolId);
+    existingUser = (await User.findOne({
+      email,
+      schoolId: schoolOid,
+    }).lean()) as ExistingUserLean | null;
+  }
+  if (!existingUser) {
+    const dup = await User.countDocuments({ email });
+    if (dup <= 1) {
+      existingUser = (await User.findOne({ email }).lean()) as ExistingUserLean | null;
+    } else {
+      console.warn(
+        "Clerk webhook: skipped ambiguous email-only lookup (same email in multiple schools); use schoolId in metadata",
+        email
+      );
+    }
+  }
 
   if (existingUser) {
-    // Link the Clerk user ID to the existing MongoDB user
+    await attachClerkUserIdToUser(
+      data.id,
+      existingUser._id instanceof mongoose.Types.ObjectId
+        ? existingUser._id
+        : new mongoose.Types.ObjectId(String(existingUser._id))
+    );
     await User.updateOne(
       { _id: existingUser._id },
       {
         $set: {
-          clerkUserId: data.id,
           firstName: data.first_name || existingUser.firstName,
           lastName: data.last_name || existingUser.lastName,
           avatarUrl: data.image_url || existingUser.avatarUrl,
@@ -214,16 +238,18 @@ async function handleUserCreated(data: ClerkUserData) {
     console.log(`Clerk webhook: Created new user ${email} from Clerk ID ${data.id}`);
   }
 
-  // Mark any pending invitations as accepted
-  const updateResult = await Invitation.updateMany(
-    { email, status: "pending" },
-    {
-      $set: {
-        status: "accepted",
-        acceptedAt: new Date(),
-      },
-    }
-  );
+  const inviteMatch: Record<string, unknown> = { email, status: "pending" };
+  if (resolvedSchoolId) inviteMatch.schoolId = resolvedSchoolId;
+  else if (schoolId && mongoose.isValidObjectId(schoolId)) {
+    inviteMatch.schoolId = new mongoose.Types.ObjectId(schoolId);
+  }
+
+  const updateResult = await Invitation.updateMany(inviteMatch, {
+    $set: {
+      status: "accepted",
+      acceptedAt: new Date(),
+    },
+  });
 
   if (updateResult.modifiedCount > 0) {
     console.log(`Clerk webhook: Marked ${updateResult.modifiedCount} invitation(s) as accepted for ${email}`);

@@ -13,7 +13,7 @@ export function TeacherMyWeekTab({
   return (
     <RoleWeekDayTimetable
       endpoint={`/api/admin/teachers/${encodeURIComponent(teacher.id)}/timetable/week`}
-      title="My Week"
+      title="Weekly schedule"
       subtitle={`Published timetable for ${teacher.fullName}.`}
       hideTeacherName
       noPublishedMessage="No published timetable is available for this teacher yet."

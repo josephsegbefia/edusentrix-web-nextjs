@@ -48,6 +48,7 @@ export type StudentDetailDTO = {
     phone: string;
     email?: string | null;
     isPrimary: boolean;
+    hasPlatformAccount: boolean;
   }>;
   feesSummary: {
     currentTermLabel: string;

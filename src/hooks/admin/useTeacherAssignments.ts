@@ -54,6 +54,8 @@ export type CreateTeacherAssignmentInput = {
     endTime?: string;
     location?: string;
   };
+  /** When another teacher already teaches this subject in this class for this period. */
+  resolution?: "add_alongside" | "replace";
 };
 
 export type CreateTeacherAssignmentResponse = {
@@ -109,12 +111,15 @@ export function useCreateTeacherAssignment(teacherId: string) {
       const json = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        // preserve structured details for UI (conflicts, etc.)
         const err = Object.assign(
-          new Error(json?.error || "Failed to create assignment"),
+          new Error(
+            typeof json?.error === "string"
+              ? json.error
+              : "Failed to create assignment"
+          ),
           {
             status: res.status,
-            meta: json,
+            meta: json as Record<string, unknown>,
           }
         );
         throw err;

@@ -1,5 +1,6 @@
 // src/hooks/admin/useSchoolSettings.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 
 export type BreakPeriodDTO = {
   name: string;
@@ -138,6 +139,7 @@ export function useUpdateSchoolSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-settings"] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }

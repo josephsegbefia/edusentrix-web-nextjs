@@ -71,6 +71,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const hasDefaultAmount =
+      defaultAmount != null &&
+      typeof defaultAmount === "number" &&
+      Number.isFinite(defaultAmount);
+
     const structure = await FeeStructure.create({
       schoolId,
       name,
@@ -78,7 +83,7 @@ export async function POST(req: NextRequest) {
       description: description || null,
       category,
       isActive,
-      defaultAmountMinor: defaultAmount ? toMinorUnits(defaultAmount) : null,
+      defaultAmountMinor: hasDefaultAmount ? toMinorUnits(defaultAmount) : null,
       allowsInstallments,
       maxInstallments: maxInstallments || null,
     });

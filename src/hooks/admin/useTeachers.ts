@@ -1,5 +1,6 @@
 // src/hooks/admin/useTeachers.ts
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 import type {
   TeacherListResponse,
   TeacherDetailResponse,
@@ -112,6 +113,7 @@ export function useCreateTeacher() {
     onSuccess: () => {
       // Invalidate teachers list queries
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }
@@ -147,6 +149,28 @@ export function useUpdateTeacher() {
       queryClient.invalidateQueries({ queryKey: ["teachers", "detail", variables.teacherId] });
       // Also invalidate stats
       queryClient.invalidateQueries({ queryKey: ["teachers", "stats"] });
+    },
+  });
+}
+
+type SuggestEmployeeIdResponse = {
+  success: boolean;
+  employeeId: string;
+  length: number;
+};
+
+export function useSuggestEmployeeId() {
+  return useMutation({
+    mutationFn: async (length: 5 | 6): Promise<SuggestEmployeeIdResponse> => {
+      const res = await fetch(
+        `/api/admin/teachers/suggest-employee-id?length=${length}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to generate ID" }));
+        throw new Error(err.error || "Failed to generate employee ID");
+      }
+      return res.json();
     },
   });
 }
@@ -513,25 +537,40 @@ export function useAssignHomeroom() {
     mutationFn: async ({
       teacherId,
       classGroupId,
+      replaceExisting,
     }: {
       teacherId: string;
       classGroupId: string;
+      replaceExisting?: boolean;
     }): Promise<AssignHomeroomResponse> => {
       const res = await fetch(`/api/admin/teachers/${teacherId}/homeroom`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ classGroupId }),
+        body: JSON.stringify({
+          classGroupId,
+          ...(replaceExisting ? { replaceExisting: true } : {}),
+        }),
       });
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to assign homeroom" }));
-        throw new Error(error.error || "Failed to assign homeroom");
+        const err = Object.assign(
+          new Error(
+            typeof json?.error === "string"
+              ? json.error
+              : "Failed to assign homeroom"
+          ),
+          { status: res.status, meta: json as Record<string, unknown> }
+        );
+        throw err;
       }
-      return res.json();
+      return json as AssignHomeroomResponse;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["teachers", "homeroom", variables.teacherId] });
       queryClient.invalidateQueries({ queryKey: ["teachers", "detail", variables.teacherId] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["classGroups"] });
     },
   });
 }

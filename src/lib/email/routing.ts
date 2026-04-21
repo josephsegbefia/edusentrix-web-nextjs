@@ -11,9 +11,11 @@ function getReplyDomain(): string {
 
 /**
  * Generate a cryptographically random routing token for thread-level reply routing.
+ * 16 hex chars (8 bytes) keeps `school+s_<id>+t_<token>@…` under RFC 5321’s
+ * 64-octet local-part limit so Brevo accepts `replyTo`.
  */
 export function generateRoutingToken(): string {
-  return crypto.randomBytes(16).toString("hex");
+  return crypto.randomBytes(8).toString("hex");
 }
 
 /**
@@ -61,12 +63,13 @@ export interface ParsedReplyAlias {
   routingToken: string;
 }
 
+/** Token was 32 hex (legacy); new sends use 16 hex to satisfy Brevo / RFC 5321. */
 const SCHOOL_RE =
-  /^school\+s_([a-f0-9]{24})\+t_([a-f0-9]{32})@/i;
+  /^school\+s_([a-f0-9]{24})\+t_([a-f0-9]{16,32})@/i;
 const PLATFORM_RE =
-  /^platform\+p_([a-z0-9_]+)\+t_([a-f0-9]{32})@/i;
+  /^platform\+p_([a-z0-9_]+)\+t_([a-f0-9]{16,32})@/i;
 const BILLING_RE =
-  /^billing\+s_([a-f0-9]{24})\+i_([a-f0-9]{24})\+t_([a-f0-9]{32})@/i;
+  /^billing\+s_([a-f0-9]{24})\+i_([a-f0-9]{24})\+t_([a-f0-9]{16,32})@/i;
 
 /**
  * Parse a reply-to alias address into structured routing components.

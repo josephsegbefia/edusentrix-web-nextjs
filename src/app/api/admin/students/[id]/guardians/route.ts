@@ -91,7 +91,7 @@ export async function GET(
     const guardians = await Guardian.find({
       studentId: new mongoose.Types.ObjectId(id),
     })
-      .populate("userId", "firstName lastName email avatarUrl")
+      .populate("userId", "firstName lastName email avatarUrl clerkUserId")
       .sort({ isPrimary: -1, createdAt: 1 })
       .lean();
 
@@ -108,6 +108,7 @@ export async function GET(
         photoUrl: g.photoUrl || user.avatarUrl || null,
         isPrimary: g.isPrimary,
         createdAt: g.createdAt.toISOString(),
+        hasPlatformAccount: Boolean(user.clerkUserId),
       };
     });
 
@@ -173,8 +174,10 @@ export async function POST(
     const studentIdObj = new mongoose.Types.ObjectId(id);
     const emailLower = validated.email.toLowerCase().trim();
 
-    // Check if user with email already exists
-    const parentUserRaw = await User.findOne({ email: emailLower }).lean();
+    const parentUserRaw = await User.findOne({
+      email: emailLower,
+      schoolId: schoolIdObj,
+    }).lean();
     const parentUser = Array.isArray(parentUserRaw)
       ? parentUserRaw[0] || null
       : parentUserRaw;
@@ -416,7 +419,7 @@ export async function POST(
 
     // Fetch created guardian with user data
     const createdGuardianRaw = await Guardian.findById(guardian._id)
-      .populate("userId", "firstName lastName email avatarUrl")
+      .populate("userId", "firstName lastName email avatarUrl clerkUserId")
       .lean();
     const createdGuardian = Array.isArray(createdGuardianRaw)
       ? createdGuardianRaw[0] || null
@@ -445,6 +448,7 @@ export async function POST(
           (createdGuardian as any).photoUrl || user.avatarUrl || null,
         isPrimary: (createdGuardian as any).isPrimary,
         createdAt: (createdGuardian as any).createdAt.toISOString(),
+        hasPlatformAccount: Boolean(user.clerkUserId),
       },
     });
   } catch (error) {

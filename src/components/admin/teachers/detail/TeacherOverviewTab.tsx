@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
   BookOpen,
-  Briefcase,
   Calendar,
   Clock,
   FileText,
@@ -38,6 +37,8 @@ import { AssignHomeroomModal } from "@/components/modals/AssignHomeroomModal";
 import { useTeacherWorkload } from "@/hooks/admin/useTeacherWorkload";
 import type { TeacherDetailTabId } from "@/components/admin/teachers/detail/TeacherDetailTabs";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { LeoTeacherAssignmentsPanel } from "@/components/admin/teachers/LeoTeacherAssignmentsPanel";
+import { TeacherProfessionalInfoCard } from "@/components/admin/teachers/detail/TeacherProfessionalInfoCard";
 
 type TeacherOverviewTabProps = {
   teacher: {
@@ -500,11 +501,68 @@ export function TeacherOverviewTab({
                 Teaching Assignments
               </h3>
               <p className="mt-0.5 text-xs text-white/45">
-                Subjects and homeroom ownership
+                Leo suggestions, homeroom, and subject load for this term
               </p>
             </div>
 
             <div className="space-y-4">
+              <LeoTeacherAssignmentsPanel
+                teacherId={teacher.id}
+                teacherName={teacher.fullName}
+              />
+
+              {/* Homeroom — directly under Leo so it’s easy to set alongside teaching assignments */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <p className="flex items-center gap-2 text-xs font-medium text-white/60">
+                    <Home className="h-3.5 w-3.5" />
+                    Homeroom Class
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 rounded-lg text-xs text-purple-300 hover:bg-purple-500/10 hover:text-purple-200"
+                    onClick={() => setAssignHomeroomOpen(true)}
+                  >
+                    {homeroom ? (
+                      <>
+                        <Pencil className="h-3 w-3" />
+                        Change
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-3 w-3" />
+                        Assign
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {homeroom ? (
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="gap-1.5 rounded-lg border-purple-500/30 bg-purple-500/10 pr-1.5 text-purple-200"
+                    >
+                      {homeroom.name}
+                      {homeroom.gradeName && ` (${homeroom.gradeName})`}
+                      <button
+                        type="button"
+                        onClick={handleRemoveHomeroom}
+                        disabled={removeHomeroomMutation.isPending}
+                        className="ml-0.5 rounded-full p-0.5 transition-all hover:bg-white/10"
+                        title="Remove homeroom"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  </div>
+                ) : (
+                  <p className="text-sm text-white/40">
+                    No homeroom yet. Assign the class this teacher leads as a form teacher.
+                  </p>
+                )}
+              </div>
+
           {/* Subjects */}
               <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between gap-2 mb-3">
@@ -553,50 +611,7 @@ export function TeacherOverviewTab({
                       No subjects assigned yet.
                     </p>
                   )}
-            </div>
-          </div>
-
-              {/* Homeroom */}
-              <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="flex items-center gap-2 text-xs font-medium text-white/60">
-                    <Home className="h-3.5 w-3.5" />
-                    Homeroom Class
-                  </p>
-                  {!homeroom && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1 rounded-lg text-xs text-purple-300 hover:bg-purple-500/10 hover:text-purple-200"
-                      onClick={() => setAssignHomeroomOpen(true)}
-                    >
-                      <Plus className="h-3 w-3" />
-                      Assign
-                    </Button>
-                  )}
                 </div>
-                {homeroom ? (
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className="gap-1.5 rounded-lg border-purple-500/30 bg-purple-500/10 pr-1.5 text-purple-200"
-                    >
-                      {homeroom.name}
-                      {homeroom.gradeName && ` (${homeroom.gradeName})`}
-                      <button
-                        type="button"
-                        onClick={handleRemoveHomeroom}
-                        disabled={removeHomeroomMutation.isPending}
-                        className="ml-0.5 rounded-full p-0.5 transition-all hover:bg-white/10"
-                        title="Remove homeroom"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  </div>
-                ) : (
-                  <p className="text-sm text-white/40">No homeroom assigned.</p>
-                )}
               </div>
             </div>
           </div>
@@ -606,57 +621,13 @@ export function TeacherOverviewTab({
             <LeaveInfoCard teacher={teacher} />
           )}
 
-          {/* Professional Info Card */}
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-white">
-                Professional Info
-              </h3>
-              <p className="mt-0.5 text-xs text-white/45">Employment details</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                  <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
-                    <Briefcase className="h-3 w-3" />
-                Employee ID
-              </p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {teacher.employeeId ?? "—"}
-                  </p>
-            </div>
-
-                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                  <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
-                    <Users className="h-3 w-3" />
-                Department
-              </p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {teacher.department ?? "—"}
-                  </p>
-            </div>
-
-                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                  <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
-                    <Calendar className="h-3 w-3" />
-                Hire Date
-              </p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                    {formatDate(teacher.hireDate)}
-                  </p>
-            </div>
-
-                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                  <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white/40">
-                    <Calendar className="h-3 w-3" />
-                Termination
-              </p>
-                  <p className="mt-2 text-sm font-medium text-white">
-                  {formatDate(teacher.terminationDate)}
-              </p>
-            </div>
-          </div>
-          </div>
+          <TeacherProfessionalInfoCard
+            teacherId={teacher.id}
+            employeeId={teacher.employeeId}
+            department={teacher.department}
+            hireDate={teacher.hireDate}
+            terminationDate={teacher.terminationDate}
+          />
         </div>
 
         {/* Workload & History */}

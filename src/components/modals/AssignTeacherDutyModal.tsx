@@ -26,11 +26,24 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 
+/** When set (e.g. teacher detail page), skip teacher search — assignment is always for this teacher. */
+export type AssignDutyTargetTeacher = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  photoUrl?: string | null;
+  email?: string | null;
+  department?: string | null;
+};
+
 interface AssignTeacherDutyModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preselectedDuty?: DutyDefinitionDTO | null;
   duties: DutyDefinitionDTO[];
+  /** If provided, the flow skips choosing a teacher (3 steps: duty → schedule → confirm). */
+  assignToTeacher?: AssignDutyTargetTeacher | null;
 }
 
 interface TeacherResult {
@@ -48,6 +61,7 @@ export function AssignTeacherDutyModal({
   onOpenChange,
   preselectedDuty,
   duties,
+  assignToTeacher = null,
 }: AssignTeacherDutyModalProps) {
   const [step, setStep] = useState(1);
   const [selectedDutyId, setSelectedDutyId] = useState<string | null>(null);
@@ -64,12 +78,43 @@ export function AssignTeacherDutyModal({
 
   const selectedDuty = duties.find((d) => d.id === selectedDutyId);
 
+  const lockedTeacherDisplay: TeacherResult | null = useMemo(() => {
+    if (!assignToTeacher) return null;
+    return {
+      id: assignToTeacher.id,
+      firstName: assignToTeacher.firstName,
+      lastName: assignToTeacher.lastName,
+      fullName: assignToTeacher.fullName,
+      photoUrl: assignToTeacher.photoUrl ?? null,
+      email: assignToTeacher.email ?? null,
+      department: assignToTeacher.department ?? null,
+    };
+  }, [assignToTeacher]);
+
+  const totalWizardSteps = assignToTeacher ? 3 : 4;
+  const displayStepIndex =
+    assignToTeacher && (step === 3 || step === 4)
+      ? step === 3
+        ? 2
+        : 3
+      : step;
+
   // Reset on open
   useEffect(() => {
     if (open) {
-      setStep(preselectedDuty ? 2 : 1);
-      setSelectedDutyId(preselectedDuty?.id || null);
-      setSelectedTeacherId(null);
+      if (assignToTeacher && preselectedDuty) {
+        setStep(3);
+        setSelectedDutyId(preselectedDuty.id);
+        setSelectedTeacherId(assignToTeacher.id);
+      } else if (preselectedDuty && !assignToTeacher) {
+        setStep(2);
+        setSelectedDutyId(preselectedDuty.id);
+        setSelectedTeacherId(null);
+      } else {
+        setStep(1);
+        setSelectedDutyId(preselectedDuty?.id || null);
+        setSelectedTeacherId(assignToTeacher?.id ?? null);
+      }
       setSelectedDays(preselectedDuty?.defaultDays || []);
       setStartTime(preselectedDuty?.defaultStartTime || "");
       setEndTime(preselectedDuty?.defaultEndTime || "");
@@ -78,7 +123,7 @@ export function AssignTeacherDutyModal({
       setTeacherQuery("");
       setNotes("");
     }
-  }, [open, preselectedDuty]);
+  }, [open, preselectedDuty, assignToTeacher]);
 
   // Update schedule when duty changes
   useEffect(() => {
@@ -100,7 +145,7 @@ export function AssignTeacherDutyModal({
       if (!res.ok) throw new Error("Failed to search teachers");
       return res.json();
     },
-    enabled: open && step === 2,
+    enabled: open && step === 2 && !assignToTeacher,
     staleTime: 30_000,
   });
 
@@ -116,7 +161,15 @@ export function AssignTeacherDutyModal({
     }));
   }, [teachersData]);
 
-  const selectedTeacher = teachers.find((t) => t.id === selectedTeacherId);
+  const selectedTeacher =
+    assignToTeacher && lockedTeacherDisplay
+      ? lockedTeacherDisplay
+      : teachers.find((t) => t.id === selectedTeacherId);
+
+  const showCancelFooter =
+    step === 1 ||
+    (step === 2 && preselectedDuty) ||
+    (step === 3 && !!assignToTeacher && !!preselectedDuty);
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
@@ -130,7 +183,12 @@ export function AssignTeacherDutyModal({
 
   const handleNext = () => {
     if (step === 1 && selectedDutyId) {
-      setStep(2);
+      if (assignToTeacher) {
+        setSelectedTeacherId(assignToTeacher.id);
+        setStep(3);
+      } else {
+        setStep(2);
+      }
     } else if (step === 2 && selectedTeacherId) {
       setStep(3);
     } else if (step === 3 && selectedDays.length > 0 && startTime && endTime) {
@@ -142,7 +200,7 @@ export function AssignTeacherDutyModal({
     if (step === 2 && !preselectedDuty) {
       setStep(1);
     } else if (step === 3) {
-      setStep(2);
+      setStep(assignToTeacher ? 1 : 2);
     } else if (step === 4) {
       setStep(3);
     }
@@ -214,15 +272,16 @@ export function AssignTeacherDutyModal({
               {/* Step Indicator */}
               <div className="px-5 pt-4 flex items-center justify-between">
                 <div className="text-sm text-white/70">
-                  Step <span className="font-semibold">{step}</span> of 4
+                  Step <span className="font-semibold">{displayStepIndex}</span> of{" "}
+                  {totalWizardSteps}
                 </div>
                 <div className="flex gap-1">
-                  {[1, 2, 3, 4].map((s) => (
+                  {Array.from({ length: totalWizardSteps }, (_, i) => i + 1).map((s) => (
                     <span
                       key={s}
                       className={cn(
                         "h-1.5 w-6 rounded-full transition-all",
-                        s <= step ? "bg-brand" : "bg-white/20"
+                        s <= displayStepIndex ? "bg-brand" : "bg-white/20"
                       )}
                     />
                   ))}
@@ -246,6 +305,15 @@ export function AssignTeacherDutyModal({
                         <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
                           Select Duty
                         </h2>
+                        {assignToTeacher && (
+                          <p className="text-sm text-white/65">
+                            This duty will be assigned to{" "}
+                            <span className="font-medium text-white">
+                              {assignToTeacher.fullName}
+                            </span>
+                            .
+                          </p>
+                        )}
                         <div className="grid gap-2 max-h-[50vh] overflow-y-auto pr-1">
                           {duties.map((duty) => (
                             <motion.label
@@ -474,6 +542,11 @@ export function AssignTeacherDutyModal({
                         <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
                           Review Assignment
                         </h2>
+                        {assignToTeacher && (
+                          <p className="text-sm text-white/65">
+                            Confirm this duty and teacher are correct before saving.
+                          </p>
+                        )}
 
                         <div className="rounded-xl border border-brand/20 bg-brand/10 p-4 space-y-4">
                           <div className="flex items-center gap-4">
@@ -561,11 +634,11 @@ export function AssignTeacherDutyModal({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={step === 1 || (step === 2 && preselectedDuty) ? () => onOpenChange(false) : handleBack}
+                  onClick={showCancelFooter ? () => onOpenChange(false) : handleBack}
                   className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  {step === 1 || (step === 2 && preselectedDuty) ? "Cancel" : "Back"}
+                  {showCancelFooter ? "Cancel" : "Back"}
                 </Button>
 
                 {step < 4 ? (
@@ -626,15 +699,16 @@ export function AssignTeacherDutyModal({
                 {/* Step Indicator */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-sm text-white/70">
-                    Step <span className="font-semibold">{step}</span> of 4
+                    Step <span className="font-semibold">{displayStepIndex}</span> of{" "}
+                    {totalWizardSteps}
                   </div>
                   <div className="flex gap-1">
-                    {[1, 2, 3, 4].map((s) => (
+                    {Array.from({ length: totalWizardSteps }, (_, i) => i + 1).map((s) => (
                       <span
                         key={s}
                         className={cn(
                           "h-1.5 w-6 rounded-full transition-all",
-                          s <= step ? "bg-brand" : "bg-white/20"
+                          s <= displayStepIndex ? "bg-brand" : "bg-white/20"
                         )}
                       />
                     ))}
@@ -656,6 +730,14 @@ export function AssignTeacherDutyModal({
                         <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
                           Select Duty
                         </h2>
+                        {assignToTeacher && (
+                          <p className="text-sm text-white/65">
+                            For{" "}
+                            <span className="font-medium text-white">
+                              {assignToTeacher.fullName}
+                            </span>
+                          </p>
+                        )}
                         <div className="grid gap-2 max-h-[40vh] overflow-y-auto">
                           {duties.map((duty) => (
                             <label
@@ -817,6 +899,11 @@ export function AssignTeacherDutyModal({
                         <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
                           Review
                         </h2>
+                        {assignToTeacher && (
+                          <p className="text-sm text-white/65">
+                            Confirm duty and teacher before saving.
+                          </p>
+                        )}
                         <div className="rounded-xl border border-brand/20 bg-brand/10 p-4 space-y-3">
                           <div className="flex items-center gap-3">
                             <Avatar className="h-12 w-12 border-2 border-white/20">
@@ -857,11 +944,11 @@ export function AssignTeacherDutyModal({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={step === 1 || (step === 2 && preselectedDuty) ? () => onOpenChange(false) : handleBack}
+                    onClick={showCancelFooter ? () => onOpenChange(false) : handleBack}
                     className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    {step === 1 || (step === 2 && preselectedDuty) ? "Cancel" : "Back"}
+                    {showCancelFooter ? "Cancel" : "Back"}
                   </Button>
 
                   {step < 4 ? (

@@ -76,7 +76,13 @@ export async function PATCH(
     if (category !== undefined) structure.category = category;
     if (isActive !== undefined) structure.isActive = isActive;
     if (defaultAmount !== undefined) {
-      structure.defaultAmountMinor = defaultAmount ? toMinorUnits(defaultAmount) : null;
+      const hasDefaultAmount =
+        defaultAmount != null &&
+        typeof defaultAmount === "number" &&
+        Number.isFinite(defaultAmount);
+      structure.defaultAmountMinor = hasDefaultAmount
+        ? toMinorUnits(defaultAmount)
+        : null;
     }
     if (allowsInstallments !== undefined)
       structure.allowsInstallments = allowsInstallments;

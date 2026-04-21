@@ -26,6 +26,7 @@ import { useGuardians } from "@/hooks/admin/useGuardians";
 import { useDocumentSSE } from "@/hooks/admin/useDocumentSSE";
 import { useStudentPromotionHistory } from "@/hooks/admin/useStudentPromotionHistory";
 import { cn } from "@/lib/utils";
+import { PendingInviteBadge } from "@/components/admin/PendingInviteBadge";
 
 type Props = {
   student: StudentDetailDTO;
@@ -273,9 +274,14 @@ export function StudentRelationshipsTab({ student }: Props) {
 
                     {/* Name and Relationship */}
                     <div className="space-y-1">
-                      <h3 className="text-sm font-bold leading-tight text-white">
-                        {g.fullName}
-                      </h3>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm font-bold leading-tight text-white">
+                          {g.fullName}
+                        </h3>
+                        {g.hasPlatformAccount === false && (
+                          <PendingInviteBadge className="rounded-md" />
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                         <div className="h-1 w-1 rounded-full bg-teal-500/60" />
                         <span className="text-[11px] font-medium text-white/70">

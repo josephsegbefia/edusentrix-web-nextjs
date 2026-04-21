@@ -8,6 +8,8 @@ import { Subject, type ISubject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
 import { UserMembership } from "@/models/UserMembership";
 import { Teacher } from "@/models/Teacher";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { School } from "@/models/School";
 import { clerkClient } from "@clerk/nextjs/server";
 import { Invitation } from "@/models/Invitation";
@@ -15,12 +17,15 @@ import { sendTrackedBrevoEmail } from "@/lib/email";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import mongoose from "mongoose";
 import {
-  getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
+import {
+  deactivateOtherTeachersOnSlot,
+  findOtherTeachersOnSlot,
+} from "@/lib/admin/teacher-assignment-slot";
 
 type Body = {
   firstName: string;
@@ -29,8 +34,13 @@ type Body = {
   phone?: string;
   photoUrl?: string;
   subjectIds?: string[];
+  /** Subject + class group pairs; creates TeacherAssignment for the current (or chosen) academic period */
+  teachingAssignments?: Array<{ subjectId: string; classGroupId: string }>;
+  academicPeriodId?: string;
   homeroomClassGroupId?: string;
   status?: "active" | "inactive";
+  /** If another teacher already has an active assignment for the same subject/class/period */
+  teachingAssignmentResolution?: "add_alongside" | "replace" | "skip";
 };
 
 export async function POST(req: NextRequest) {
@@ -53,11 +63,36 @@ export async function POST(req: NextRequest) {
       hasPhone: !!body.phone,
       hasPhotoUrl: !!body.photoUrl,
       subjectIdsCount: body.subjectIds?.length || 0,
+      teachingAssignmentsCount: body.teachingAssignments?.length || 0,
       hasHomeroom: !!body.homeroomClassGroupId,
       status: body.status,
     });
 
     // Normalize optional fields - convert empty strings to undefined
+    const rawAssignments = Array.isArray(body.teachingAssignments)
+      ? body.teachingAssignments
+      : [];
+    const seenPairs = new Set<string>();
+    const teachingAssignmentsDeduped: Array<{
+      subjectId: string;
+      classGroupId: string;
+    }> = [];
+    for (const row of rawAssignments) {
+      const sid = String(row?.subjectId || "").trim();
+      const cid = String(row?.classGroupId || "").trim();
+      if (!sid || !cid) continue;
+      const key = `${sid}|${cid}`;
+      if (seenPairs.has(key)) continue;
+      seenPairs.add(key);
+      teachingAssignmentsDeduped.push({ subjectId: sid, classGroupId: cid });
+    }
+
+    const rawResolution = body.teachingAssignmentResolution;
+    const teachingAssignmentResolution =
+      rawResolution === "replace" || rawResolution === "skip"
+        ? rawResolution
+        : "add_alongside";
+
     const normalizedBody: Body = {
       ...body,
       phone: body.phone?.trim() || undefined,
@@ -70,8 +105,20 @@ export async function POST(req: NextRequest) {
               .map((id) => id?.trim())
               .filter((id): id is string => !!id)
           : undefined,
+      teachingAssignments: teachingAssignmentsDeduped,
+      academicPeriodId: body.academicPeriodId?.trim() || undefined,
       status: body.status || "active",
     };
+
+    if (teachingAssignmentsDeduped.length < 1) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Add at least one teaching assignment (subject and class group) before creating the teacher.",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     // Validate required fields
     if (
@@ -101,29 +148,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user with email already exists
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
+    // Same email allowed in different schools; block duplicates within this school
     const existingUser = await User.findOne({
       email: normalizedBody.email.toLowerCase().trim(),
+      schoolId: schoolIdObj,
     }).lean();
 
     if (existingUser) {
       return new Response(
-        JSON.stringify({ error: "User with this email already exists" }),
+        JSON.stringify({
+          error:
+            "A user with this email already exists in your school. Use a different email or update the existing staff record.",
+        }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Validate subject IDs if provided
+    const subjectIdStringsFromAssignments = (
+      normalizedBody.teachingAssignments || []
+    )
+      .map((t) => t.subjectId)
+      .filter((id) => mongoose.isValidObjectId(id));
+    const mergedSubjectIdStrings = Array.from(
+      new Set([
+        ...(normalizedBody.subjectIds || []),
+        ...subjectIdStringsFromAssignments,
+      ])
+    );
+
     let subjectIds: mongoose.Types.ObjectId[] = [];
-    if (normalizedBody.subjectIds && normalizedBody.subjectIds.length > 0) {
-      // Filter out invalid ObjectIds
-      const validSubjectIds = normalizedBody.subjectIds.filter((id) =>
+    if (mergedSubjectIdStrings.length > 0) {
+      const validSubjectIds = mergedSubjectIdStrings.filter((id) =>
         mongoose.isValidObjectId(id)
       );
 
-      // If subjectIds array was provided but all IDs are invalid, that's an error
-      // But if it's an empty array, that's fine (no subjects assigned)
-      if (normalizedBody.subjectIds.length > 0 && validSubjectIds.length === 0) {
+      if (mergedSubjectIdStrings.length > 0 && validSubjectIds.length === 0) {
         return new Response(
           JSON.stringify({ error: "One or more subject IDs are invalid" }),
           { status: 400, headers: { "Content-Type": "application/json" } }
@@ -153,6 +217,110 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let academicPeriodObjId: mongoose.Types.ObjectId | null = null;
+    let classGroupById: Map<
+      string,
+      { _id: mongoose.Types.ObjectId; subjectIds?: unknown; name?: string }
+    > | null = null;
+    const assignmentRows = normalizedBody.teachingAssignments || [];
+    if (assignmentRows.length > 0) {
+      if (
+        normalizedBody.academicPeriodId &&
+        mongoose.isValidObjectId(normalizedBody.academicPeriodId)
+      ) {
+        const chosen = await AcademicPeriod.findOne({
+          _id: new mongoose.Types.ObjectId(normalizedBody.academicPeriodId),
+          schoolId: schoolIdObj,
+        })
+          .select("_id")
+          .lean();
+        if (!chosen) {
+          return new Response(
+            JSON.stringify({
+              error:
+                "Academic period not found for this school. Choose a valid term or year.",
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        academicPeriodObjId =
+          chosen._id instanceof mongoose.Types.ObjectId
+            ? chosen._id
+            : new mongoose.Types.ObjectId(String(chosen._id));
+      } else {
+        const current = await AcademicPeriod.findOne({
+          schoolId: schoolIdObj,
+          isCurrent: true,
+        })
+          .select("_id")
+          .lean();
+        if (!current) {
+          return new Response(
+            JSON.stringify({
+              error:
+                "Set a current academic period for your school before assigning subjects to class groups.",
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } }
+          );
+        }
+        academicPeriodObjId =
+          current._id instanceof mongoose.Types.ObjectId
+            ? current._id
+            : new mongoose.Types.ObjectId(String(current._id));
+      }
+
+      const classGroupOids = assignmentRows
+        .map((r) => r.classGroupId)
+        .filter((id) => mongoose.isValidObjectId(id))
+        .map((id) => new mongoose.Types.ObjectId(id));
+      if (classGroupOids.length !== assignmentRows.length) {
+        return new Response(
+          JSON.stringify({
+            error: "One or more class group IDs in teaching assignments are invalid",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const classGroups = await ClassGroup.find({
+        _id: { $in: classGroupOids },
+        schoolId: schoolIdObj,
+        isActive: true,
+      })
+        .select("_id subjectIds name")
+        .lean();
+      if (classGroups.length !== classGroupOids.length) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "One or more class groups were not found, are inactive, or belong to another school",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      classGroupById = new Map(
+        (classGroups as Array<{
+          _id: mongoose.Types.ObjectId;
+          subjectIds?: unknown;
+          name?: string;
+        }>).map((cg) => [String(cg._id), cg])
+      );
+
+      const subjectIdSet = new Set(subjectIds.map(String));
+      for (const row of assignmentRows) {
+        if (!subjectIdSet.has(row.subjectId)) {
+          return new Response(
+            JSON.stringify({
+              error:
+                "Each teaching assignment must use a subject that exists and is active for your school",
+            }),
+            { status: 400, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     // Validate homeroom class group if provided
     if (normalizedBody.homeroomClassGroupId) {
       if (!mongoose.isValidObjectId(normalizedBody.homeroomClassGroupId)) {
@@ -177,11 +345,6 @@ export async function POST(req: NextRequest) {
         );
       }
     }
-
-    const schoolIdObj =
-      schoolId instanceof mongoose.Types.ObjectId
-        ? schoolId
-        : new mongoose.Types.ObjectId(String(schoolId));
 
     // Create teacher user
     const teacherUser = new User({
@@ -221,20 +384,107 @@ export async function POST(req: NextRequest) {
 
     await teacherRecord.save();
 
-    // Assign homeroom if provided
+    const assignmentWarnings: string[] = [];
+    if (
+      assignmentRows.length > 0 &&
+      academicPeriodObjId &&
+      classGroupById
+    ) {
+      for (const row of assignmentRows) {
+        const subjectObjId = new mongoose.Types.ObjectId(row.subjectId);
+        const classGroupObjId = new mongoose.Types.ObjectId(row.classGroupId);
+        const cg = classGroupById.get(String(classGroupObjId));
+        const cgSubjects = Array.isArray(cg?.subjectIds)
+          ? (cg.subjectIds as mongoose.Types.ObjectId[]).map(String)
+          : [];
+        if (cgSubjects.length && !cgSubjects.includes(String(subjectObjId))) {
+          assignmentWarnings.push(
+            `“${cg?.name || "Class"}”: this subject isn’t on that class group’s list yet—the assignment was still created.`
+          );
+        }
+
+        const othersOnSlot = await findOtherTeachersOnSlot({
+          schoolId: schoolIdObj,
+          academicPeriodId: academicPeriodObjId,
+          subjectId: subjectObjId,
+          classGroupId: classGroupObjId,
+          requestingTeacherId: teacherRecord._id,
+        });
+
+        if (othersOnSlot.length > 0) {
+          if (teachingAssignmentResolution === "skip") {
+            assignmentWarnings.push(
+              `Skipped “${cg?.name || "Class"}” for this subject — another teacher is already assigned for this term.`
+            );
+            continue;
+          }
+          if (teachingAssignmentResolution === "replace") {
+            await deactivateOtherTeachersOnSlot({
+              schoolId: schoolIdObj,
+              academicPeriodId: academicPeriodObjId,
+              subjectId: subjectObjId,
+              classGroupId: classGroupObjId,
+              keepTeacherId: teacherRecord._id,
+            });
+          }
+        }
+
+        try {
+          await TeacherAssignment.create({
+            schoolId: schoolIdObj,
+            teacherId: teacherRecord._id,
+            academicPeriodId: academicPeriodObjId,
+            subjectId: subjectObjId,
+            classGroupId: classGroupObjId,
+            workloadHours: 0,
+            status: "active",
+            assignedBy: userId
+              ? new mongoose.Types.ObjectId(String(userId))
+              : null,
+            assignedAt: new Date(),
+          });
+        } catch (err: unknown) {
+          const code = (err as { code?: number })?.code;
+          if (code === 11000) {
+            assignmentWarnings.push(
+              "Skipped a duplicate teaching assignment for this term (same subject and class)."
+            );
+            continue;
+          }
+          throw err;
+        }
+      }
+    }
+
+    // Assign homeroom if provided (replace previous homeroom teacher on the class if any)
     if (normalizedBody.homeroomClassGroupId) {
+      const homeroomCgId = new mongoose.Types.ObjectId(
+        normalizedBody.homeroomClassGroupId
+      );
+      const prevClass = await ClassGroup.findOne({
+        _id: homeroomCgId,
+        schoolId: schoolIdObj,
+      })
+        .select("homeroomTeacherId")
+        .lean();
+      const prevHt = (prevClass as { homeroomTeacherId?: mongoose.Types.ObjectId } | null)
+        ?.homeroomTeacherId;
+      if (prevHt && String(prevHt) !== String(teacherRecord._id)) {
+        await Teacher.updateOne(
+          { _id: prevHt, schoolId: schoolIdObj },
+          { $unset: { homeroomClassGroupId: 1 } }
+        );
+      }
       await ClassGroup.updateOne(
-        {
-          _id: new mongoose.Types.ObjectId(normalizedBody.homeroomClassGroupId),
-          schoolId,
-        },
+        { _id: homeroomCgId, schoolId: schoolIdObj },
         { $set: { homeroomTeacherId: teacherRecord._id } }
       );
     }
 
     // Send Clerk invitation email and create invitation record
-    const APP_URL = getAppUrl();
-    const redirectUrl = getInvitationRedirectUrl();
+    const redirectUrl = `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
+      "/teacher"
+    )}`;
     let clerkInvitationId: string | undefined;
     let invitationStatus: "pending" | "failed" = "pending";
 
@@ -289,7 +539,7 @@ export async function POST(req: NextRequest) {
         notes: "Teacher invitation email sent.",
       });
     } catch (inviteError) {
-      console.error("Clerk invitation error:", inviteError);
+      console.error("Teacher invite (Clerk and/or invite email) error:", inviteError);
       invitationStatus = "failed";
       // Don't fail the request if invitation fails - teacher is already created
       // Admin can resend invitation later if needed
@@ -313,7 +563,8 @@ export async function POST(req: NextRequest) {
         metadata: {
           firstName: normalizedBody.firstName,
           lastName: normalizedBody.lastName,
-          subjectIds: normalizedBody.subjectIds || [],
+          subjectIds: mergedSubjectIdStrings,
+          teachingAssignments: normalizedBody.teachingAssignments || [],
           homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
         },
       });
@@ -333,7 +584,8 @@ export async function POST(req: NextRequest) {
       metadata: {
         teacherId: String(teacherRecord._id),
         email: normalizedBody.email,
-        subjectIds: normalizedBody.subjectIds || [],
+        subjectIds: mergedSubjectIdStrings,
+        teachingAssignments: normalizedBody.teachingAssignments || [],
         homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
         invitationSent: invitationStatus === "pending",
       },
@@ -369,6 +621,9 @@ export async function POST(req: NextRequest) {
           lastName: teacherUser.lastName,
           email: teacherUser.email,
           subjectIds: subjectIds.map(String),
+          teachingAssignments: normalizedBody.teachingAssignments || [],
+          teachingAssignmentWarnings:
+            assignmentWarnings.length > 0 ? assignmentWarnings : undefined,
           homeroomClassGroupId: normalizedBody.homeroomClassGroupId || null,
         },
       },
@@ -382,9 +637,16 @@ export async function POST(req: NextRequest) {
     // Handle MongoDB duplicate key errors (code 11000)
     if (e?.code === 11000) {
       const errorMsg = e?.message || "";
-      if (errorMsg.includes("email_1") || errorMsg.includes("email")) {
+      if (
+        errorMsg.includes("schoolId_1_email_1") ||
+        errorMsg.includes("dup key") ||
+        errorMsg.includes("email_1")
+      ) {
         return new Response(
-          JSON.stringify({ error: "User with this email already exists" }),
+          JSON.stringify({
+            error:
+              "A user with this email already exists in your school (or the email is reserved for this school).",
+          }),
           { status: 400, headers: { "Content-Type": "application/json" } }
         );
       }

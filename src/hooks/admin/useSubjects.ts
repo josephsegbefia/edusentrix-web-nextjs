@@ -1,5 +1,6 @@
 // src/hooks/admin/useSubjects.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateSetupReadiness } from "@/lib/query/invalidate-setup-readiness";
 import { useBusyToast } from "@/hooks/useBusyToast";
 
 export type SubjectDetailDTO = {
@@ -187,6 +188,8 @@ export function useCreateSubject() {
     onSuccess: ({ data }) => {
       busy.success(`Subject "${data.name}" created`);
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
+      invalidateSetupReadiness(queryClient);
+      queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
     },
     onError: (error: unknown) => {
       busy.error(
@@ -253,6 +256,7 @@ export function useAssignTeacherToSubject() {
       workloadHours,
       notes,
       allowMultiple,
+      replaceExisting,
     }: {
       teacherId: string;
       subjectId: string;
@@ -261,6 +265,7 @@ export function useAssignTeacherToSubject() {
       workloadHours?: number;
       notes?: string;
       allowMultiple?: boolean;
+      replaceExisting?: boolean;
     }): Promise<AssignTeacherResponse> => {
       const res = await fetch("/api/admin/subjects/assign-teacher", {
         method: "POST",
@@ -273,17 +278,22 @@ export function useAssignTeacherToSubject() {
           workloadHours,
           notes,
           allowMultiple,
+          replaceExisting,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        // Handle conflict errors specially
-        if (res.status === 409 && data.conflict) {
-          throw new Error(data.conflict.message);
-        }
-        throw new Error(data.error || "Failed to assign teacher");
+        const msg =
+          res.status === 409 && data.conflict?.message
+            ? String(data.conflict.message)
+            : data.error || "Failed to assign teacher";
+        const err = Object.assign(new Error(msg), {
+          status: res.status,
+          meta: data as Record<string, unknown>,
+        });
+        throw err;
       }
 
       return data;

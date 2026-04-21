@@ -160,8 +160,8 @@ export function TimetableHelpDrawer({
                 Pick a day, add a period with subject and teacher. Repeat until the week is complete.
               </StepItem>
               <StepItem step={3} title="Publish">
-                When all classes are scheduled, return here and click <strong className="text-white/70">Publish</strong>.
-                The timetable becomes visible to teachers, students, and parents.
+                When ready, publish from a class&apos;s <strong className="text-white/70">Schedule</strong> tab
+                (Review step). The master timetable page then shows the live, published schedule for everyone.
               </StepItem>
             </div>
           </Section>
@@ -189,18 +189,19 @@ export function TimetableHelpDrawer({
             </ExampleBox>
           </Section>
 
-          <Section title="Version dropdown and Publish" icon={Sparkles}>
+          <Section title="Draft vs published" icon={Sparkles}>
             <p>
               <strong className="text-white/70">Draft</strong> — The timetable you&apos;re editing. Slots added
               in class Schedule tabs go into the draft. Teachers and students do not see the draft.
             </p>
             <p className="mt-2">
-              <strong className="text-white/70">Published</strong> — The live timetable. After you click
-              Publish, this version is shown to teachers, students, and parents.
+              <strong className="text-white/70">Published</strong> — The live timetable. After you publish from
+              a class Schedule tab, that version is shown to teachers, students, and parents, and the master
+              timetable page reflects it (read-only).
             </p>
             <p className="mt-2">
-              Use the version dropdown to switch between draft and published. When you&apos;re ready,
-              click <strong className="text-white/70">Publish</strong> to make the draft live.
+              This page does not edit slots; it only displays the published school-wide view for the selected
+              academic period.
             </p>
           </Section>
 
@@ -223,8 +224,8 @@ export function TimetableHelpDrawer({
                 shown after applying your filters (grade, class, teacher, subject).
               </li>
               <li>
-                <strong className="text-white/70">Open conflicts</strong> — Number of timetable
-                conflicts (e.g. teacher double-booked, class overlap) that still need to be resolved.
+                <strong className="text-white/70">Published only</strong> — The master view never shows draft
+                edits; it reflects the published timetable for the selected academic period.
               </li>
             </ul>
           </Section>

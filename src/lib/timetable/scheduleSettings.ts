@@ -11,7 +11,23 @@ export type ResolvedScheduleSettings = {
   periodsPerDay: number;
   periodDuration: number;
   periodSlots: IPeriodSlot[];
+  /** Effective breaks for this grade/day (from school settings + overrides). */
+  breaks: IBreakPeriod[];
   assembly: ResolvedAssembly | null;
+};
+
+export type ResolvedScheduleDiagnostics = {
+  firstPeriodStartTime: string | null;
+  lastPeriodEndTime: string | null;
+  scheduledPeriods: number;
+  periodsShortfall: number;
+  teachingMinutes: number;
+  breakMinutes: number;
+  assemblyMinutes: number;
+  daySpanMinutes: number;
+  allocatedMinutes: number;
+  unallocatedMinutes: number;
+  overflowMinutes: number;
 };
 
 /** Settings input - supports both API DTO (string ids) and model (ObjectId) */
@@ -63,7 +79,7 @@ export type ResolvedAssembly = {
   duration: number;
 };
 
-function timeToMinutes(time: string): number {
+export function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(":").map(Number);
   return (hours || 0) * 60 + (minutes || 0);
 }
@@ -75,62 +91,68 @@ function minutesToTime(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-function generatePeriodSlots(
+function generateScheduleLayout(
   startTime: string,
   periodDuration: number,
   periodsPerDay: number,
-  breaks: IBreakPeriod[] = []
-): IPeriodSlot[] {
+  breaks: IBreakPeriod[] = [],
+  options?: { maxEndTime?: string | null }
+): { periodSlots: IPeriodSlot[]; effectiveBreaks: IBreakPeriod[] } {
   const slots: IPeriodSlot[] = [];
+  const effectiveBreaks: IBreakPeriod[] = [];
   const startMinutes = timeToMinutes(startTime);
-  const sortedBreaks = [...breaks].sort(
-    (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)
-  );
+  const maxEnd =
+    options?.maxEndTime != null && options.maxEndTime !== ""
+      ? timeToMinutes(options.maxEndTime)
+      : 24 * 60;
+  const pendingBreaks = [...breaks]
+    .map((b) => ({
+      ...b,
+      desiredStartMinutes: timeToMinutes(b.startTime),
+      durationMinutes: Math.max(0, timeToMinutes(b.endTime) - timeToMinutes(b.startTime)),
+    }))
+    .filter((b) => Number.isFinite(b.desiredStartMinutes) && b.durationMinutes > 0)
+    .sort((a, b) => a.desiredStartMinutes - b.desiredStartMinutes);
 
   let currentTime = startMinutes;
   let periodNum = 1;
 
   while (periodNum <= periodsPerDay) {
-    const breakPeriod = sortedBreaks.find(
-      (b) =>
-        timeToMinutes(b.startTime) <= currentTime &&
-        currentTime < timeToMinutes(b.endTime)
-    );
+    if (currentTime >= maxEnd) break;
 
-    if (breakPeriod) {
-      currentTime = timeToMinutes(breakPeriod.endTime);
-      continue;
-    }
-
-    const nextBreak = sortedBreaks.find(
-      (b) =>
-        currentTime < timeToMinutes(b.startTime) &&
-        currentTime + periodDuration > timeToMinutes(b.startTime)
-    );
-
-    if (nextBreak) {
-      const periodEnd = timeToMinutes(nextBreak.startTime);
-      if (periodEnd - currentTime >= 15) {
-        slots.push({
-          periodNumber: periodNum,
-          startTime: minutesToTime(currentTime),
-          endTime: minutesToTime(periodEnd),
-        });
-        periodNum++;
+    while (
+      pendingBreaks.length > 0 &&
+      currentTime >= pendingBreaks[0].desiredStartMinutes
+    ) {
+      const nextBreak = pendingBreaks.shift()!;
+      const breakEnd = currentTime + nextBreak.durationMinutes;
+      if (breakEnd > maxEnd) {
+        return { periodSlots: slots, effectiveBreaks };
       }
-      currentTime = timeToMinutes(nextBreak.endTime);
-    } else {
-      slots.push({
-        periodNumber: periodNum,
+      effectiveBreaks.push({
+        name: nextBreak.name,
         startTime: minutesToTime(currentTime),
-        endTime: minutesToTime(currentTime + periodDuration),
+        endTime: minutesToTime(breakEnd),
+        isLunch: nextBreak.isLunch,
       });
-      currentTime += periodDuration;
-      periodNum++;
+      currentTime = breakEnd;
     }
+
+    const periodEnd = currentTime + periodDuration;
+    if (periodEnd > maxEnd) {
+      break;
+    }
+
+    slots.push({
+      periodNumber: periodNum,
+      startTime: minutesToTime(currentTime),
+      endTime: minutesToTime(periodEnd),
+    });
+    currentTime = periodEnd;
+    periodNum++;
   }
 
-  return slots;
+  return { periodSlots: slots, effectiveBreaks };
 }
 
 /**
@@ -258,7 +280,10 @@ export function getResolvedScheduleSettings(
   let endTime = defaults.endTime;
   let periodsPerDay = defaults.periodsPerDay;
   let periodDuration = defaults.periodDuration;
-  let periodSlots: IPeriodSlot[] | undefined = settings.periodSlots;
+  let periodSlots: IPeriodSlot[] | undefined =
+    settings.periodSlots && settings.periodSlots.length > 0
+      ? settings.periodSlots
+      : undefined;
 
   // Apply per-day overrides
   if (dayOfWeek != null && settings.dailyScheduleOverrides?.length) {
@@ -270,6 +295,8 @@ export function getResolvedScheduleSettings(
       if (dayOverride.endTime != null) endTime = dayOverride.endTime;
     }
   }
+
+  let gradeHasExplicitSlots = false;
 
   // Apply per-grade overrides
   if (gradeId != null && settings.gradeScheduleOverrides?.length) {
@@ -291,7 +318,34 @@ export function getResolvedScheduleSettings(
         gradeOverride.periodSlots.length > 0
       ) {
         periodSlots = gradeOverride.periodSlots;
+        gradeHasExplicitSlots = true;
       }
+    }
+  }
+
+  const hasDailyScheduleOverride =
+    dayOfWeek != null &&
+    Boolean(
+      settings.dailyScheduleOverrides?.some(
+        (o) =>
+          o.dayOfWeek === dayOfWeek &&
+          (o.startTime != null || o.endTime != null)
+      )
+    );
+
+  const usingSchoolWideSlotsOnly =
+    Boolean(periodSlots?.length) &&
+    !gradeHasExplicitSlots &&
+    Boolean(settings.periodSlots?.length);
+
+  /**
+   * School-wide `periodSlots` is a single template; it ignores per-day start/end (e.g. Friday
+   * early dismissal). For any resolved weekday, prefer regenerating from bell settings + breaks
+   * unless this grade has explicit custom slots. Daily overrides always force regeneration.
+   */
+  if (dayOfWeek != null && periodSlots?.length) {
+    if (hasDailyScheduleOverride || usingSchoolWideSlotsOnly) {
+      periodSlots = undefined;
     }
   }
 
@@ -317,16 +371,27 @@ export function getResolvedScheduleSettings(
     dayOfWeek ?? undefined
   );
 
-  // Use explicit periodSlots if available, otherwise generate
-  const finalSlots =
+  // Use explicit periodSlots if available, otherwise generate (clamped to resolved endTime).
+  // Auto-generated schedules keep every lesson at the configured duration and shift breaks to
+  // the next period boundary instead of silently shortening periods.
+  const generatedLayout =
     periodSlots && periodSlots.length > 0
-      ? periodSlots
-      : generatePeriodSlots(
+      ? null
+      : generateScheduleLayout(
           effectiveStartForPeriods,
           periodDuration,
           periodsPerDay,
-          resolvedBreaks
+          resolvedBreaks,
+          { maxEndTime: endTime }
         );
+  const finalSlots =
+    periodSlots && periodSlots.length > 0
+      ? periodSlots
+      : generatedLayout?.periodSlots ?? [];
+  const finalBreaks =
+    periodSlots && periodSlots.length > 0
+      ? resolvedBreaks
+      : generatedLayout?.effectiveBreaks ?? [];
 
   return {
     startTime,
@@ -334,6 +399,53 @@ export function getResolvedScheduleSettings(
     periodsPerDay,
     periodDuration,
     periodSlots: finalSlots,
+    breaks: finalBreaks,
     assembly,
+  };
+}
+
+export function getResolvedScheduleDiagnostics(
+  resolved: ResolvedScheduleSettings
+): ResolvedScheduleDiagnostics {
+  const firstPeriod = resolved.periodSlots[0] ?? null;
+  const lastPeriod = resolved.periodSlots[resolved.periodSlots.length - 1] ?? null;
+
+  const teachingMinutes = resolved.periodSlots.reduce((total, slot) => {
+    return total + Math.max(0, timeToMinutes(slot.endTime) - timeToMinutes(slot.startTime));
+  }, 0);
+  const breakMinutes = resolved.breaks.reduce((total, breakPeriod) => {
+    return (
+      total +
+      Math.max(
+        0,
+        timeToMinutes(breakPeriod.endTime) - timeToMinutes(breakPeriod.startTime)
+      )
+    );
+  }, 0);
+  const assemblyMinutes = resolved.assembly?.duration ?? 0;
+  const daySpanMinutes = Math.max(
+    0,
+    timeToMinutes(resolved.endTime) - timeToMinutes(resolved.startTime)
+  );
+  const allocatedMinutes = teachingMinutes + breakMinutes + assemblyMinutes;
+  const unallocatedMinutes = Math.max(0, daySpanMinutes - allocatedMinutes);
+  const configuredTeachingMinutes = resolved.periodsPerDay * resolved.periodDuration;
+  const overflowMinutes = Math.max(
+    0,
+    configuredTeachingMinutes + breakMinutes + assemblyMinutes - daySpanMinutes
+  );
+
+  return {
+    firstPeriodStartTime: firstPeriod?.startTime ?? null,
+    lastPeriodEndTime: lastPeriod?.endTime ?? null,
+    scheduledPeriods: resolved.periodSlots.length,
+    periodsShortfall: Math.max(0, resolved.periodsPerDay - resolved.periodSlots.length),
+    teachingMinutes,
+    breakMinutes,
+    assemblyMinutes,
+    daySpanMinutes,
+    allocatedMinutes,
+    unallocatedMinutes,
+    overflowMinutes,
   };
 }

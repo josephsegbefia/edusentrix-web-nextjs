@@ -26,7 +26,8 @@ export interface TimetableSlotValidationInput {
   classGroupId: Types.ObjectId;
   gradeId: Types.ObjectId;
   subjectId: Types.ObjectId;
-  teacherId: Types.ObjectId;
+  /** Null when no subject–teacher assignment exists yet. */
+  teacherId: Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -110,7 +111,9 @@ export async function validateTimetableSlotReferences(
 
   const [teacherExists, subjectExists, classGroupRaw, gradeRaw] =
     await Promise.all([
-      Teacher.exists({ _id: input.teacherId, schoolId: input.schoolId }),
+      input.teacherId
+        ? Teacher.exists({ _id: input.teacherId, schoolId: input.schoolId })
+        : Promise.resolve(true),
       Subject.exists({ _id: input.subjectId, schoolId: input.schoolId }),
       ClassGroup.findOne({
         _id: input.classGroupId,
@@ -123,7 +126,7 @@ export async function validateTimetableSlotReferences(
         .lean(),
     ]);
 
-  if (!teacherExists) {
+  if (input.teacherId && !teacherExists) {
     issues.push({
       code: "MISSING_TEACHER",
       field: "teacherId",

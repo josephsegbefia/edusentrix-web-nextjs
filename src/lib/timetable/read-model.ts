@@ -31,6 +31,7 @@ export interface TimetableSlotDTO {
   classGroupId: string;
   gradeId: string;
   subjectId: string;
+  /** Empty when no teacher assigned yet. */
   teacherId: string;
   classGroupName?: string | null;
   gradeName?: string | null;
@@ -128,7 +129,7 @@ export function mapSlotDto(slot: {
   classGroupId: Types.ObjectId;
   gradeId: Types.ObjectId;
   subjectId: Types.ObjectId;
-  teacherId: Types.ObjectId;
+  teacherId?: Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -140,7 +141,7 @@ export function mapSlotDto(slot: {
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
-    teacherId: String(slot.teacherId),
+    teacherId: slot.teacherId ? String(slot.teacherId) : "",
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
     endTime: slot.endTime,
@@ -171,6 +172,48 @@ export async function resolvePublishedTimetableContext(
   if (!period) return null;
 
   const academicPeriodId = (period as { _id: Types.ObjectId })._id;
+  const version = await TimetableVersion.findOne({
+    schoolId,
+    academicPeriodId,
+    status: "published",
+  })
+    .select("_id publishedAt")
+    .lean();
+
+  if (!version) return null;
+
+  const settings = await SchoolSettings.findOne({ schoolId })
+    .select("workingDays")
+    .lean();
+  const workingDays = normalizeWorkingDays(
+    (settings as { workingDays?: number[] } | null)?.workingDays
+  );
+
+  return {
+    academicPeriodId,
+    versionId: (version as { _id: Types.ObjectId })._id,
+    publishedAt:
+      (version as { publishedAt?: Date | null }).publishedAt || null,
+    workingDays,
+  };
+}
+
+/**
+ * Published timetable for a specific academic period (e.g. admin master view by period).
+ */
+export async function resolvePublishedTimetableContextForPeriod(
+  schoolId: Types.ObjectId,
+  academicPeriodId: Types.ObjectId
+): Promise<TimetableResolvedContext | null> {
+  const period = await AcademicPeriod.findOne({
+    _id: academicPeriodId,
+    schoolId,
+  })
+    .select("_id")
+    .lean();
+
+  if (!period) return null;
+
   const version = await TimetableVersion.findOne({
     schoolId,
     academicPeriodId,
@@ -307,7 +350,11 @@ export async function enrichSlotsForDisplay(args: {
   const classIds = toObjectIds(Array.from(new Set(slots.map((slot) => slot.classGroupId))));
   const gradeIds = toObjectIds(Array.from(new Set(slots.map((slot) => slot.gradeId))));
   const subjectIds = toObjectIds(Array.from(new Set(slots.map((slot) => slot.subjectId))));
-  const teacherIds = toObjectIds(Array.from(new Set(slots.map((slot) => slot.teacherId))));
+  const teacherIds = toObjectIds(
+    Array.from(
+      new Set(slots.map((slot) => slot.teacherId).filter((id) => id && id.length === 24))
+    )
+  );
 
   const [classes, grades, subjects, teachers] = await Promise.all([
     classIds.length
@@ -373,7 +420,7 @@ export async function enrichSlotsForDisplay(args: {
       gradeMap.get(slot.gradeId) ||
       (classInfo?.gradeId ? gradeMap.get(String(classInfo.gradeId)) : undefined);
     const subjectInfo = subjectMap.get(slot.subjectId);
-    const teacherInfo = teacherMap.get(slot.teacherId);
+    const teacherInfo = slot.teacherId ? teacherMap.get(slot.teacherId) : undefined;
 
     return {
       ...slot,
@@ -381,7 +428,7 @@ export async function enrichSlotsForDisplay(args: {
       gradeName: gradeInfo?.name || null,
       subjectName: subjectInfo?.name || null,
       subjectCode: subjectInfo?.code ?? null,
-      teacherName: teacherInfo?.name || null,
+      teacherName: teacherInfo?.name ?? null,
     };
   });
 }

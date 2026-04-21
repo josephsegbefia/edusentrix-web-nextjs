@@ -1,4 +1,4 @@
-import { Schema, model, models, Types, type Model } from "mongoose";
+import mongoose, { Schema, model, models, Types, type Model } from "mongoose";
 
 export type TimetableConflictCode =
   | "TEACHER_OVERLAP"
@@ -8,7 +8,8 @@ export type TimetableConflictCode =
   | "MISSING_SUBJECT"
   | "MISSING_CLASSGROUP"
   | "MISSING_CLASSROOM_LABEL"
-  | "OUTSIDE_PERIOD_RANGE";
+  | "OUTSIDE_PERIOD_RANGE"
+  | "TEACHER_PENDING_ASSIGNMENT";
 
 export type TimetableConflictSeverity = "error" | "warning";
 export type TimetableConflictStatus = "open" | "resolved" | "ignored";
@@ -59,6 +60,7 @@ const timetableConflictSchema = new Schema<ITimetableConflict>(
         "MISSING_CLASSGROUP",
         "MISSING_CLASSROOM_LABEL",
         "OUTSIDE_PERIOD_RANGE",
+        "TEACHER_PENDING_ASSIGNMENT",
       ],
       required: true,
       index: true,
@@ -92,6 +94,11 @@ timetableConflictSchema.index({
   createdAt: -1,
 });
 timetableConflictSchema.index({ versionId: 1, code: 1, status: 1, updatedAt: -1 });
+
+// Next.js dev hot-reload can keep a stale model without updated `code` enum values.
+if (process.env.NODE_ENV === "development" && mongoose.models.TimetableConflict) {
+  delete mongoose.models.TimetableConflict;
+}
 
 export const TimetableConflict: Model<ITimetableConflict> =
   (models.TimetableConflict as Model<ITimetableConflict>) ||

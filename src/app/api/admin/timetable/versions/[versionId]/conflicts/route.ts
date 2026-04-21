@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { TimetableConflict, type TimetableConflictCode } from "@/models/TimetableConflict";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { isTimetableApiWriteEnabled } from "@/lib/timetable/feature-flags";
@@ -31,6 +31,7 @@ const CONFLICT_CODES: TimetableConflictCode[] = [
   "MISSING_CLASSGROUP",
   "MISSING_CLASSROOM_LABEL",
   "OUTSIDE_PERIOD_RANGE",
+  "TEACHER_PENDING_ASSIGNMENT",
 ];
 
 /**
@@ -49,10 +50,10 @@ export async function GET(
       );
     }
 
-    const { schoolId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrTeacherRead();
     await connectToDatabase();
 
-    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const authSchoolId = new mongoose.Types.ObjectId(String(authCtx.schoolId));
     const { versionId } = await ctx.params;
     const versionObjId = toObjectIdOrNull(versionId);
     if (!versionObjId) {
@@ -64,7 +65,7 @@ export async function GET(
 
     const version = await TimetableVersion.findOne({
       _id: versionObjId,
-      schoolId: schoolIdObj,
+      schoolId: authSchoolId,
     })
       .select("_id status academicPeriodId")
       .lean();
@@ -74,6 +75,8 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    const schoolIdObj = authSchoolId;
 
     const { searchParams } = new URL(req.url);
     const page = parsePositiveInt(searchParams.get("page"), 1, 10000);
@@ -168,6 +171,7 @@ export async function GET(
       },
     });
   } catch (e: unknown) {
+    if (e instanceof Response) return e;
     console.error("Failed to list timetable conflicts:", e);
     return NextResponse.json(
       {

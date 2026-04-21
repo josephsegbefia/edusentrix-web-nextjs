@@ -1,4 +1,4 @@
-import { Schema, model, models, Types, type Model } from "mongoose";
+import mongoose, { Schema, model, models, Types, type Model } from "mongoose";
 
 export type TimetableSlotSource = "manual" | "imported" | "assignment_sync";
 
@@ -10,7 +10,8 @@ export interface ITimetableSlot {
   classGroupId: Types.ObjectId;
   gradeId: Types.ObjectId;
   subjectId: Types.ObjectId;
-  teacherId: Types.ObjectId;
+  /** Set when a teacher is assigned; omitted until subject–teacher assignment exists. */
+  teacherId?: Types.ObjectId | null;
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   startTime: string;
   endTime: string;
@@ -64,8 +65,9 @@ const timetableSlotSchema = new Schema<ITimetableSlot>(
     teacherId: {
       type: Schema.Types.ObjectId,
       ref: "Teacher",
-      required: true,
+      required: false,
       index: true,
+      // Intentionally no default: omit field when unassigned; queries treat missing as "no teacher".
     },
     dayOfWeek: { type: Number, required: true, min: 0, max: 6 },
     startTime: {
@@ -137,6 +139,11 @@ timetableSlotSchema.index({
   legacyAssignmentId: 1,
   source: 1,
 });
+
+// Next.js dev hot-reload can keep a stale compiled model with old paths; drop so schema updates apply.
+if (process.env.NODE_ENV === "development" && mongoose.models.TimetableSlot) {
+  delete mongoose.models.TimetableSlot;
+}
 
 export const TimetableSlot: Model<ITimetableSlot> =
   (models.TimetableSlot as Model<ITimetableSlot>) ||

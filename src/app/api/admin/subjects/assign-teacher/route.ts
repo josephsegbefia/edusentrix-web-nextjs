@@ -12,6 +12,7 @@ import {
   deactivateOtherTeachersOnSlot,
   findOtherTeachersOnSlot,
 } from "@/lib/admin/teacher-assignment-slot";
+import { syncDraftSlotTeachersFromAssignment } from "@/lib/timetable/sync-slot-teachers-from-assignments";
 
 const AssignTeacherSchema = z.object({
   teacherId: z.string(),
@@ -198,6 +199,15 @@ export async function POST(req: NextRequest) {
       assignedBy: actorIdObj || undefined,
       assignedAt: new Date(),
       status: "active",
+    });
+
+    await syncDraftSlotTeachersFromAssignment({
+      schoolId: schoolIdObj,
+      academicPeriodId: periodObjId,
+      classGroupId: classGroupObjId,
+      subjectId: subjectObjId,
+      teacherId: teacherObjId,
+      updatedBy: actorIdObj ?? undefined,
     });
 
     return NextResponse.json({

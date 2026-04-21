@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireClassTimetableEditor } from "@/lib/auth/requireClassTimetableEditor";
 import { ClassGroup } from "@/models/ClassGroup";
 import { TimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
@@ -20,6 +20,8 @@ import {
   isTimetableRebootEnabled,
   isTimetableApiWriteEnabled,
 } from "@/lib/timetable/feature-flags";
+import { loadResolvedScheduleForSchoolDay } from "@/lib/timetable/load-resolved-schedule";
+import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
 import { z } from "zod";
 
 type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -39,7 +41,7 @@ function isDayOfWeek(value: number): value is DayOfWeek {
 
 const PatchSlotSchema = z.object({
   subjectId: z.string().length(24).optional(),
-  teacherId: z.string().length(24).optional(),
+  teacherId: z.union([z.string().length(24), z.null()]).optional(),
   dayOfWeek: z.number().min(0).max(6).optional(),
   startTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
   endTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/).optional(),
@@ -50,7 +52,7 @@ function toSlotDto(slot: {
   classGroupId: mongoose.Types.ObjectId;
   gradeId: mongoose.Types.ObjectId;
   subjectId: mongoose.Types.ObjectId;
-  teacherId: mongoose.Types.ObjectId;
+  teacherId?: mongoose.Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -66,7 +68,7 @@ function toSlotDto(slot: {
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
-    teacherId: String(slot.teacherId),
+    teacherId: slot.teacherId ? String(slot.teacherId) : "",
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
     endTime: slot.endTime,
@@ -95,10 +97,10 @@ export async function PATCH(
       );
     }
 
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { id, slotId } = await ctx.params;
+    const editor = await requireClassTimetableEditor(id);
     await connectToDatabase();
 
-    const { id, slotId } = await ctx.params;
     const classObjId = toObjectIdOrNull(id);
     const slotObjId = toObjectIdOrNull(slotId);
     if (!classObjId || !slotObjId) {
@@ -109,13 +111,13 @@ export async function PATCH(
     }
 
     const schoolIdObj =
-      schoolId instanceof mongoose.Types.ObjectId
-        ? schoolId
-        : new mongoose.Types.ObjectId(String(schoolId));
+      editor.schoolId instanceof mongoose.Types.ObjectId
+        ? editor.schoolId
+        : new mongoose.Types.ObjectId(String(editor.schoolId));
     const userIdObj =
-      userId instanceof mongoose.Types.ObjectId
-        ? userId
-        : new mongoose.Types.ObjectId(String(userId));
+      editor.userId instanceof mongoose.Types.ObjectId
+        ? editor.userId
+        : new mongoose.Types.ObjectId(String(editor.userId));
 
     const classGroup = await ClassGroup.findOne({
       _id: classObjId,
@@ -179,9 +181,12 @@ export async function PATCH(
     const subjectId = input.subjectId
       ? new mongoose.Types.ObjectId(input.subjectId)
       : existing.subjectId;
-    const teacherId = input.teacherId
-      ? new mongoose.Types.ObjectId(input.teacherId)
-      : existing.teacherId;
+    const teacherId =
+      input.teacherId !== undefined
+        ? input.teacherId === null
+          ? null
+          : new mongoose.Types.ObjectId(input.teacherId)
+        : existing.teacherId ?? null;
     const dayOfWeek = input.dayOfWeek !== undefined ? input.dayOfWeek : existing.dayOfWeek;
     const startTime = input.startTime ?? existing.startTime;
     const endTime = input.endTime ?? existing.endTime;
@@ -190,6 +195,40 @@ export async function PATCH(
     if (!isDayOfWeek(dayOfWeek)) {
       return NextResponse.json(
         { success: false, error: "dayOfWeek must be an integer from 0 to 6." },
+        { status: 400 }
+      );
+    }
+
+    const resolved = await loadResolvedScheduleForSchoolDay(
+      schoolIdObj,
+      gradeId,
+      dayOfWeek
+    );
+    if (!resolved) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "School schedule is not configured. Configure periods and breaks in School Settings.",
+        },
+        { status: 400 }
+      );
+    }
+    if (!slotAlignsWithSchoolPeriods(resolved, startTime, endTime)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Slot validation failed.",
+          issues: [
+            {
+              code: "INVALID_TIME_RANGE",
+              field: "startTime",
+              message:
+                "Lesson times must match a school period for this day (Settings → periods & breaks).",
+              severity: "error" as const,
+            },
+          ],
+        },
         { status: 400 }
       );
     }
@@ -256,6 +295,7 @@ export async function PATCH(
       conflicts: conflictSummary,
     });
   } catch (e: unknown) {
+    if (e instanceof Response) throw e;
     console.error("Class timetable slot PATCH error:", e);
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Failed to update slot." },
@@ -280,10 +320,10 @@ export async function DELETE(
       );
     }
 
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { id, slotId } = await ctx.params;
+    const editor = await requireClassTimetableEditor(id);
     await connectToDatabase();
 
-    const { id, slotId } = await ctx.params;
     const classObjId = toObjectIdOrNull(id);
     const slotObjId = toObjectIdOrNull(slotId);
     if (!classObjId || !slotObjId) {
@@ -294,13 +334,13 @@ export async function DELETE(
     }
 
     const schoolIdObj =
-      schoolId instanceof mongoose.Types.ObjectId
-        ? schoolId
-        : new mongoose.Types.ObjectId(String(schoolId));
+      editor.schoolId instanceof mongoose.Types.ObjectId
+        ? editor.schoolId
+        : new mongoose.Types.ObjectId(String(editor.schoolId));
     const userIdObj =
-      userId instanceof mongoose.Types.ObjectId
-        ? userId
-        : new mongoose.Types.ObjectId(String(userId));
+      editor.userId instanceof mongoose.Types.ObjectId
+        ? editor.userId
+        : new mongoose.Types.ObjectId(String(editor.userId));
 
     const existing = await TimetableSlot.findOne({
       _id: slotObjId,
@@ -353,6 +393,7 @@ export async function DELETE(
       conflicts: conflictSummary,
     });
   } catch (e: unknown) {
+    if (e instanceof Response) throw e;
     console.error("Class timetable slot DELETE error:", e);
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Failed to delete slot." },

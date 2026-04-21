@@ -2,20 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { Loader2, Sparkles, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -23,41 +14,36 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
-import { CalendarDays, Clock, Loader2, MapPin, Plus, Trash2, User } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
-import { useTeachersForFilter } from "@/hooks/admin/useClasses";
-import { useSubjects } from "@/hooks/admin/useSubjects";
 import { useSchoolSettings } from "@/hooks/admin/useSchoolSettings";
-import { getResolvedScheduleSettings } from "@/lib/timetable/scheduleSettings";
 import {
-  useClassTimetableSlots,
-  useCreateClassSlot,
-  useUpdateClassSlot,
-  useDeleteClassSlot,
-  type ClassTimetableSlotDTO,
-} from "@/hooks/admin/useClassTimetableSlots";
-import { DAY_NAMES } from "@/components/admin/timetable/types";
-import { formatTimeLabel } from "@/components/admin/timetable/types";
-import type { TimetableValidationIssue } from "@/hooks/admin/useTimetablePlanner";
-
-const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-function timeToMinutes(hhmm: string): number {
-  const [h, m] = hhmm.split(":").map(Number);
-  return (h || 0) * 60 + (m || 0);
-}
-
-function minutesToTime(m: number): string {
-  const total = Math.max(0, Math.floor(m));
-  const h = Math.floor(total / 60) % 24;
-  const min = total % 60;
-  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
-}
+  getResolvedScheduleDiagnostics,
+  getResolvedScheduleSettings,
+} from "@/lib/timetable/scheduleSettings";
+import { useClassTimetableSlots } from "@/hooks/admin/useClassTimetableSlots";
+import { useClassSubjectTeachers } from "@/hooks/admin/useClassSubjectTeachers";
+import {
+  type TimetableConflictDTO,
+  type TimetableConflictSlotSummary,
+  useTimetableConflicts,
+  usePublishTimetableVersion,
+} from "@/hooks/admin/useTimetablePlanner";
+import {
+  ClassTimetableGridBoard,
+  type TimelineRow,
+} from "@/components/admin/classes/detail/ClassTimetableGridBoard";
+import { cn } from "@/lib/utils";
+import { DAY_NAMES, formatTimeLabel } from "@/components/admin/timetable/types";
 
 type ClassTimetableEditorProps = {
   classId: string;
   className: string;
   gradeId?: string | null;
+  schoolTimetablePlannerHref?: string;
+  bellScheduleSettingsHref?: string;
+  /** Homeroom teachers build drafts; publishing stays a school-admin action. */
+  canPublishTimetable?: boolean;
 };
 
 function getPeriodOptionsFromResolved(resolved: {
@@ -78,20 +64,123 @@ function getPeriodOptionsFromResolved(resolved: {
   }));
 }
 
-function getIssuesFromError(error: unknown): TimetableValidationIssue[] {
-  const candidate = error as Error & { issues?: TimetableValidationIssue[] };
-  return Array.isArray(candidate.issues) ? candidate.issues : [];
+function formatMinutesLabel(totalMinutes: number): string {
+  if (totalMinutes <= 0) return "0m";
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}m`;
 }
 
+function getConflictSlots(conflict: TimetableConflictDTO): TimetableConflictSlotSummary[] {
+  return Array.isArray(conflict.metadata?.slots) ? conflict.metadata.slots : [];
+}
+
+function describeConflict(
+  conflict: TimetableConflictDTO,
+  classId: string
+): { title: string; summary: string; lines: string[] } {
+  const slots = getConflictSlots(conflict);
+  const currentSlot = slots.find((slot) => slot.classGroupId === classId) || slots[0] || null;
+  const otherSlots = currentSlot
+    ? slots.filter((slot) => slot.slotId !== currentSlot.slotId)
+    : slots;
+  const resolvedDay = conflict.metadata?.resolvedDay;
+
+  switch (conflict.code) {
+    case "TEACHER_OVERLAP":
+      return {
+        title: currentSlot?.teacherName
+          ? `${currentSlot.teacherName} is double-booked`
+          : "Teacher overlap",
+        summary: conflict.message,
+        lines: slots.map(
+          (slot) =>
+            `${slot.className}: ${slot.subjectName} · ${formatTimeLabel(slot.startTime)}–${formatTimeLabel(slot.endTime)}`
+        ),
+      };
+    case "CLASS_OVERLAP":
+      return {
+        title: currentSlot ? `${currentSlot.className} has overlapping lessons` : "Class overlap",
+        summary: conflict.message,
+        lines: slots.map(
+          (slot) =>
+            `${slot.subjectName}${slot.teacherName ? ` · ${slot.teacherName}` : ""} · ${formatTimeLabel(slot.startTime)}–${formatTimeLabel(slot.endTime)}`
+        ),
+      };
+    case "OUTSIDE_PERIOD_RANGE": {
+      const lines: string[] = [];
+      if (resolvedDay?.expectedPeriodSlots?.length) {
+        const first = resolvedDay.expectedPeriodSlots[0];
+        const last =
+          resolvedDay.expectedPeriodSlots[resolvedDay.expectedPeriodSlots.length - 1];
+        lines.push(
+          `Available teaching periods: ${resolvedDay.expectedPeriodSlots.length} between ${formatTimeLabel(first.startTime)} and ${formatTimeLabel(last.endTime)}.`
+        );
+      }
+      if (resolvedDay?.diagnostics?.periodsShortfall) {
+        lines.push(
+          `${resolvedDay.diagnostics.periodsShortfall} configured period(s) no longer fit inside the day.`
+        );
+      } else if (
+        resolvedDay?.diagnostics?.unallocatedMinutes &&
+        resolvedDay.diagnostics.lastPeriodEndTime
+      ) {
+        lines.push(
+          `Teaching ends at ${formatTimeLabel(resolvedDay.diagnostics.lastPeriodEndTime)}, leaving ${formatMinutesLabel(resolvedDay.diagnostics.unallocatedMinutes)} before school closes.`
+        );
+      }
+      return {
+        title: currentSlot
+          ? `${currentSlot.subjectName} is outside the configured ${DAY_NAMES[currentSlot.dayOfWeek]} periods`
+          : "Lesson is outside the configured periods",
+        summary: conflict.message,
+        lines,
+      };
+    }
+    case "TEACHER_PENDING_ASSIGNMENT":
+      return {
+        title: currentSlot ? `${currentSlot.subjectName} still needs a teacher` : "Teacher pending",
+        summary: conflict.message,
+        lines:
+          currentSlot && otherSlots.length === 0
+            ? [
+                `${currentSlot.className} · ${DAY_NAMES[currentSlot.dayOfWeek]} ${formatTimeLabel(currentSlot.startTime)}–${formatTimeLabel(currentSlot.endTime)}`,
+              ]
+            : [],
+      };
+    default:
+      return {
+        title: currentSlot
+          ? `${currentSlot.subjectName} needs review`
+          : conflict.code.replace(/_/g, " "),
+        summary: conflict.message,
+        lines:
+          currentSlot && otherSlots.length > 0
+            ? otherSlots.map(
+                (slot) =>
+                  `${slot.className}: ${slot.subjectName} · ${formatTimeLabel(slot.startTime)}–${formatTimeLabel(slot.endTime)}`
+              )
+            : [],
+      };
+  }
+}
+
+/**
+ * Class Schedule tab — wizard by day, class subjects only, teachers from assignments,
+ * breaks from settings, review step, optional publish for admins.
+ */
 export function ClassTimetableEditor({
   classId,
   className,
   gradeId,
+  bellScheduleSettingsHref = "/admin/settings",
+  canPublishTimetable = true,
 }: ClassTimetableEditorProps) {
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>("");
-  const [slotModalOpen, setSlotModalOpen] = React.useState(false);
-  const [editingSlot, setEditingSlot] = React.useState<ClassTimetableSlotDTO | null>(null);
-  const [addDayOfWeek, setAddDayOfWeek] = React.useState<number>(1);
+  const [wizardStep, setWizardStep] = React.useState(0);
+  const queryClient = useQueryClient();
 
   const periodsQuery = useAcademicPeriods();
   const periods = periodsQuery.data?.periods || [];
@@ -99,37 +188,75 @@ export function ClassTimetableEditor({
   const settingsQuery = useSchoolSettings();
   const settings = settingsQuery.data?.data || null;
 
+  const scheduleInput = React.useMemo(
+    () =>
+      settings
+        ? {
+            schoolStartTime: settings.schoolStartTime,
+            schoolEndTime: settings.schoolEndTime,
+            periodDuration: settings.periodDuration,
+            periodsPerDay: settings.periodsPerDay,
+            periodSlots: settings.periodSlots,
+            breaks: settings.breaks,
+            breakDailyOverrides: settings.breakDailyOverrides || [],
+            breakGradeOverrides: settings.breakGradeOverrides || [],
+            assembly: settings.assembly
+              ? {
+                  days: settings.assembly.days,
+                  startTime: settings.assembly.startTime,
+                  duration: settings.assembly.duration,
+                }
+              : undefined,
+            assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
+            assemblyGradeOverrides: settings.assemblyGradeOverrides || [],
+            dailyScheduleOverrides: settings.dailyScheduleOverrides,
+            gradeScheduleOverrides: settings.gradeScheduleOverrides,
+          }
+        : null,
+    [settings]
+  );
+
+  const getResolvedForDay = React.useCallback(
+    (dayOfWeek: number) => {
+      if (!scheduleInput) return null;
+      return getResolvedScheduleSettings(scheduleInput, gradeId ?? undefined, dayOfWeek);
+    },
+    [scheduleInput, gradeId]
+  );
+
   const getPeriodOptionsForDay = React.useCallback(
     (dayOfWeek: number) => {
-      if (!settings) return [];
-      const resolved = getResolvedScheduleSettings(
-        {
-          schoolStartTime: settings.schoolStartTime,
-          schoolEndTime: settings.schoolEndTime,
-          periodDuration: settings.periodDuration,
-          periodsPerDay: settings.periodsPerDay,
-          periodSlots: settings.periodSlots,
-          breaks: settings.breaks,
-          breakDailyOverrides: settings.breakDailyOverrides || [],
-          breakGradeOverrides: settings.breakGradeOverrides || [],
-          assembly: settings.assembly
-            ? {
-                days: settings.assembly.days,
-                startTime: settings.assembly.startTime,
-                duration: settings.assembly.duration,
-              }
-            : undefined,
-          assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
-          assemblyGradeOverrides: settings.assemblyGradeOverrides || [],
-          dailyScheduleOverrides: settings.dailyScheduleOverrides,
-          gradeScheduleOverrides: settings.gradeScheduleOverrides,
-        },
-        gradeId ?? undefined,
-        dayOfWeek
-      );
+      const resolved = getResolvedForDay(dayOfWeek);
+      if (!resolved) return [];
       return getPeriodOptionsFromResolved(resolved);
     },
-    [settings, gradeId]
+    [getResolvedForDay]
+  );
+
+  const getTimelineForDay = React.useCallback(
+    (dayOfWeek: number): TimelineRow[] => {
+      const resolved = getResolvedForDay(dayOfWeek);
+      if (!resolved) return [];
+      const periods = getPeriodOptionsFromResolved(resolved);
+      const breaks = resolved.breaks || [];
+      const merged: TimelineRow[] = [
+        ...periods.map((p) => ({
+          kind: "period" as const,
+          periodNumber: p.periodNumber,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          label: p.label,
+        })),
+        ...breaks.map((b) => ({
+          kind: "break" as const,
+          name: b.name,
+          startTime: b.startTime,
+          endTime: b.endTime,
+        })),
+      ].sort((a, b) => a.startTime.localeCompare(b.startTime));
+      return merged;
+    },
+    [getResolvedForDay]
   );
 
   const workingDays = settings?.workingDays?.length
@@ -138,12 +265,84 @@ export function ClassTimetableEditor({
 
   const slotsQuery = useClassTimetableSlots(classId, selectedPeriodId);
   const slots = slotsQuery.data?.data || [];
+  const versionId = slotsQuery.data?.meta?.versionId;
 
-  const subjectsQuery = useSubjects(undefined, true);
-  const subjects = subjectsQuery.data?.data || [];
+  const subjectTeachersQuery = useClassSubjectTeachers(classId, selectedPeriodId);
+  const classSubjects = subjectTeachersQuery.data?.data || [];
 
-  const teachersQuery = useTeachersForFilter();
-  const teachers = teachersQuery.data?.data || [];
+  const conflictsQuery = useTimetableConflicts(versionId || undefined);
+  const allOpenConflicts = conflictsQuery.data?.data || [];
+  const relevantConflicts = React.useMemo(() => {
+    const slotIds = new Set(slots.map((s) => s.id));
+    return allOpenConflicts.filter((c) =>
+      (c.slotIds || []).some((id: string) => slotIds.has(String(id)))
+    );
+  }, [allOpenConflicts, slots]);
+
+  const errorConflicts = React.useMemo(
+    () => relevantConflicts.filter((c) => (c.severity ?? "error") === "error"),
+    [relevantConflicts]
+  );
+  const warnConflicts = React.useMemo(
+    () => relevantConflicts.filter((c) => c.severity === "warning"),
+    [relevantConflicts]
+  );
+  const otherErrorConflicts = React.useMemo(() => {
+    const relevantIds = new Set(errorConflicts.map((conflict) => conflict.id));
+    return allOpenConflicts.filter(
+      (conflict) =>
+        (conflict.severity ?? "error") === "error" && !relevantIds.has(conflict.id)
+    );
+  }, [allOpenConflicts, errorConflicts]);
+
+  const publishMutation = usePublishTimetableVersion();
+  const publishBlocked = conflictsQuery.data?.meta?.blockers?.publishBlocked ?? false;
+  const openErrorCount = conflictsQuery.data?.meta?.blockers?.openErrorCount ?? 0;
+
+  const subjectMap = React.useMemo(() => {
+    const m = new Map<string, { id: string; name: string; code: string | null }>();
+    for (const row of classSubjects) {
+      m.set(row.subjectId, {
+        id: row.subjectId,
+        name: row.subjectName,
+        code: row.subjectCode,
+      });
+    }
+    return m;
+  }, [classSubjects]);
+
+  const teacherMap = React.useMemo(() => {
+    const m = new Map<string, string>();
+    for (const row of classSubjects) {
+      for (const t of row.teachers) {
+        m.set(t.id, t.fullName);
+      }
+    }
+    return m;
+  }, [classSubjects]);
+
+  const getDiagnosticsForDay = React.useCallback(
+    (dayOfWeek: number) => {
+      const resolved = getResolvedForDay(dayOfWeek);
+      return resolved ? getResolvedScheduleDiagnostics(resolved) : null;
+    },
+    [getResolvedForDay]
+  );
+
+  const slotIssueSeverityById = React.useMemo(() => {
+    const severityBySlotId = new Map<string, "error" | "warning">();
+    const classSlotIds = new Set(slots.map((slot) => slot.id));
+    for (const conflict of relevantConflicts) {
+      const severity = (conflict.severity ?? "error") as "error" | "warning";
+      for (const slotId of conflict.slotIds || []) {
+        if (!classSlotIds.has(slotId)) continue;
+        if (severity === "error" || !severityBySlotId.has(slotId)) {
+          severityBySlotId.set(slotId, severity);
+        }
+      }
+    }
+    return severityBySlotId;
+  }, [relevantConflicts, slots]);
 
   React.useEffect(() => {
     if (selectedPeriodId || periods.length === 0) return;
@@ -151,27 +350,62 @@ export function ClassTimetableEditor({
     if (current?._id) setSelectedPeriodId(current._id);
   }, [periods, selectedPeriodId]);
 
-  const slotsByDay = React.useMemo(() => {
-    const map = new Map<number, ClassTimetableSlotDTO[]>();
-    for (const slot of slots) {
-      const list = map.get(slot.dayOfWeek) || [];
-      list.push(slot);
-      map.set(slot.dayOfWeek, list);
-    }
-    for (const list of map.values()) {
-      list.sort((a, b) => a.startTime.localeCompare(b.startTime));
-    }
-    return map;
-  }, [slots]);
+  const totalSteps = workingDays.length + 1;
+  const isReviewStep = wizardStep >= workingDays.length;
+  const activeDay = !isReviewStep ? workingDays[wizardStep] : null;
 
-  const subjectMap = React.useMemo(
-    () => new Map(subjects.map((s) => [s.id, s])),
-    [subjects]
-  );
-  const teacherMap = React.useMemo(
-    () => new Map(teachers.map((t) => [t.id, t.fullName])),
-    [teachers]
-  );
+  React.useEffect(() => {
+    setWizardStep(0);
+  }, [selectedPeriodId]);
+
+  const [leoLoading, setLeoLoading] = React.useState(false);
+  const [leoText, setLeoText] = React.useState<string | null>(null);
+
+  const runLeoCoach = async () => {
+    if (!selectedPeriodId) return;
+    setLeoLoading(true);
+    setLeoText(null);
+    try {
+      const res = await fetch(
+        `/api/admin/classes/${encodeURIComponent(classId)}/timetable/leo-coach`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ academicPeriodId: selectedPeriodId }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.error || "Leo could not respond");
+      }
+      setLeoText(typeof json?.data?.text === "string" ? json.data.text : "");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Leo failed");
+    } finally {
+      setLeoLoading(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!versionId) {
+      toast.error("Nothing to publish yet — add lessons in the draft first.");
+      return;
+    }
+    if (publishBlocked) {
+      toast.error("Resolve error-level conflicts before publishing.");
+      return;
+    }
+    try {
+      await publishMutation.mutateAsync(versionId);
+      queryClient.invalidateQueries({ queryKey: ["class-timetable-slots", classId] });
+      toast.success(
+        "Timetable published. Teachers, parents, and students will see it in their calendars."
+      );
+      slotsQuery.refetch();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Publish failed");
+    }
+  };
 
   return (
     <Card className="border-white/10 bg-white/5">
@@ -182,10 +416,7 @@ export function ClassTimetableEditor({
             Class Timetable
           </CardTitle>
           <div className="flex flex-wrap items-center gap-2">
-            <PremiumSelect
-              value={selectedPeriodId}
-              onValueChange={setSelectedPeriodId}
-            >
+            <PremiumSelect value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
               <PremiumSelectTrigger className="w-[220px] border-white/20 bg-white/5 text-white">
                 <PremiumSelectValue placeholder="Select academic period" />
               </PremiumSelectTrigger>
@@ -201,18 +432,137 @@ export function ClassTimetableEditor({
           </div>
         </div>
         <p className="text-sm text-white/60">
-          Build the timetable for {className}. Pick a day, add a period with subject and teacher.
-          This becomes the source of truth for the master timetable.
+          Periods and breaks follow school settings in{" "}
+          <Link href={bellScheduleSettingsHref} className="text-cyan-300 underline hover:text-cyan-200">
+            Settings
+          </Link>
+          . Drag each class subject into a period; teachers come from your assignments. The whole
+          draft is checked for clashes across classes.
         </p>
-        {getPeriodOptionsForDay(workingDays[0] ?? 1).length === 0 &&
-        !settingsQuery.isLoading ? (
+        {getPeriodOptionsForDay(workingDays[0] ?? 1).length === 0 && !settingsQuery.isLoading ? (
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-            Set up school hours in{" "}
-            <Link href="/admin/settings" className="underline hover:text-amber-100">
+            Configure school hours and periods in{" "}
+            <Link href={bellScheduleSettingsHref} className="underline hover:text-amber-100">
               Settings
             </Link>{" "}
-            before creating class timetables.
+            before building timetables.
           </p>
+        ) : null}
+
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/45">
+                Leo coach
+              </p>
+              <p className="text-sm text-white/70">
+                Short suggestions for this class&apos;s draft and open conflicts.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="border-violet-400/40 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
+              disabled={!selectedPeriodId || leoLoading}
+              onClick={runLeoCoach}
+            >
+              {leoLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4 text-amber-300" />
+              )}
+              Ask Leo
+            </Button>
+          </div>
+          {leoText !== null ? (
+            <p className="mt-3 text-sm leading-relaxed text-white/85 whitespace-pre-wrap">
+              {leoText || "No suggestions right now."}
+            </p>
+          ) : null}
+        </div>
+
+        {conflictsQuery.isError ? (
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+            Could not load timetable conflicts.{" "}
+            {conflictsQuery.error instanceof Error ? conflictsQuery.error.message : "Try again."}
+          </div>
+        ) : null}
+
+        {errorConflicts.length > 0 ? (
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-3 text-sm text-rose-100">
+            <p className="font-medium text-rose-50">
+              {errorConflicts.length} open error(s) affecting this class. The highlighted lesson
+              card(s) below need attention before school-wide publishing can proceed.
+            </p>
+            <div className="mt-3 space-y-2.5">
+              {errorConflicts.map((conflict) => {
+                const details = describeConflict(conflict, classId);
+                return (
+                  <div
+                    key={conflict.id}
+                    className="rounded-lg border border-rose-400/20 bg-black/20 px-3 py-2.5"
+                  >
+                    <p className="font-medium text-rose-50">{details.title}</p>
+                    <p className="mt-1 text-rose-100/90">{details.summary}</p>
+                    {details.lines.length > 0 ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-rose-100/85">
+                        {details.lines.map((line, index) => (
+                          <li key={`${conflict.id}-${index}`}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+        {warnConflicts.length > 0 ? (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-100">
+            <p className="font-medium text-amber-50">{warnConflicts.length} reminder(s)</p>
+            <div className="mt-3 space-y-2.5">
+              {warnConflicts.map((conflict) => {
+                const details = describeConflict(conflict, classId);
+                return (
+                  <div
+                    key={conflict.id}
+                    className="rounded-lg border border-amber-400/20 bg-black/20 px-3 py-2.5"
+                  >
+                    <p className="font-medium text-amber-50">{details.title}</p>
+                    <p className="mt-1 text-amber-100/90">{details.summary}</p>
+                    {details.lines.length > 0 ? (
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-100/85">
+                        {details.lines.map((line, index) => (
+                          <li key={`${conflict.id}-${index}`}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-amber-200/85">
+              Warnings do not block publishing unless your school treats them as errors.
+            </p>
+          </div>
+        ) : null}
+        {publishBlocked && otherErrorConflicts.length > 0 ? (
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-sm text-white/80">
+            <p className="font-medium text-white">
+              Publishing is also blocked by {otherErrorConflicts.length} issue(s) elsewhere in the
+              school draft.
+            </p>
+            <p className="mt-1 text-white/60">
+              This class may be ready, but the shared academic-period draft still has {openErrorCount} open
+              error(s) across other classes.
+            </p>
+            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-white/70">
+              {otherErrorConflicts.slice(0, 4).map((conflict) => (
+                <li key={conflict.id}>{describeConflict(conflict, classId).summary}</li>
+              ))}
+            </ul>
+          </div>
         ) : null}
       </CardHeader>
       <CardContent>
@@ -220,536 +570,208 @@ export function ClassTimetableEditor({
           <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-6 text-center text-sm text-white/60">
             Select an academic period to edit the timetable.
           </div>
-        ) : slotsQuery.isLoading ? (
+        ) : slotsQuery.isLoading || subjectTeachersQuery.isLoading ? (
           <div className="flex items-center justify-center gap-2 py-12 text-white/70">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Loading slots...
+            Loading timetable…
           </div>
         ) : (
-          <div className="space-y-4">
-            {workingDays.map((day) => {
-              const daySlots = slotsByDay.get(day) || [];
-              return (
-                <DaySlotSection
-                  key={day}
-                  dayOfWeek={day}
-                  slots={daySlots}
-                  subjectMap={subjectMap}
-                  teacherMap={teacherMap}
-                  onAddSlot={() => {
-                    setAddDayOfWeek(day);
-                    setEditingSlot(null);
-                    setSlotModalOpen(true);
-                  }}
-                  onEditSlot={(slot) => {
-                    setEditingSlot(slot);
-                    setSlotModalOpen(true);
-                  }}
-                  classId={classId}
-                  academicPeriodId={selectedPeriodId}
-                  periodOptions={getPeriodOptionsForDay(day)}
-                />
-              );
-            })}
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {Array.from({ length: totalSteps }).map((_, i) => {
+                  const label =
+                    i < workingDays.length
+                      ? DAY_NAMES[workingDays[i]]
+                      : "Review & publish";
+                  const active = i === wizardStep;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setWizardStep(i)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                        active
+                          ? "bg-cyan-500/25 text-cyan-100 ring-1 ring-cyan-400/40"
+                          : "bg-white/5 text-white/50 hover:bg-white/10"
+                      )}
+                    >
+                      {i + 1}. {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 text-white"
+                  disabled={wizardStep === 0}
+                  onClick={() => setWizardStep((s) => Math.max(0, s - 1))}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 text-white"
+                  disabled={wizardStep >= totalSteps - 1}
+                  onClick={() => setWizardStep((s) => Math.min(totalSteps - 1, s + 1))}
+                >
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {!isReviewStep ? (
+              <div className="space-y-1.5">
+                <p className="text-sm text-white/55">
+                  Step {wizardStep + 1} of {totalSteps}: editing{" "}
+                  <span className="font-medium text-white">
+                    {activeDay !== null ? DAY_NAMES[activeDay] : ""}
+                  </span>
+                  . Drag subjects from the strip above into period rows. Breaks from your school
+                  settings are shown and are not drop targets.
+                </p>
+                {activeDay !== null && getResolvedForDay(activeDay) ? (
+                  <div className="space-y-1">
+                    <p className="text-xs text-white/45">
+                      Resolved for {DAY_NAMES[activeDay]}: school day{" "}
+                      {formatTimeLabel(getResolvedForDay(activeDay)!.startTime)}–
+                      {formatTimeLabel(getResolvedForDay(activeDay)!.endTime)}
+                      {" · "}
+                      {getResolvedForDay(activeDay)!.periodSlots.length} teaching periods ×{" "}
+                      {getResolvedForDay(activeDay)!.periodDuration} min.
+                    </p>
+                    {(() => {
+                      const diagnostics = getDiagnosticsForDay(activeDay);
+                      if (!diagnostics) return null;
+                      if (diagnostics.periodsShortfall > 0) {
+                        return (
+                          <p className="text-xs text-rose-200/85">
+                            {DAY_NAMES[activeDay]} can currently fit only {diagnostics.scheduledPeriods} of{" "}
+                            {getResolvedForDay(activeDay)!.periodsPerDay} configured periods. Review
+                            school end time, breaks, or daily overrides in{" "}
+                            <Link href={bellScheduleSettingsHref} className="underline hover:text-rose-100">
+                              Settings
+                            </Link>
+                            .
+                          </p>
+                        );
+                      }
+                      if (
+                        diagnostics.unallocatedMinutes > 0 &&
+                        diagnostics.lastPeriodEndTime
+                      ) {
+                        return (
+                          <p className="text-xs text-amber-200/85">
+                            Teaching periods end at{" "}
+                            {formatTimeLabel(diagnostics.lastPeriodEndTime)}, leaving{" "}
+                            {formatMinutesLabel(diagnostics.unallocatedMinutes)} before school closes.
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-white/55">
+                  Review the full week. Drag lessons to adjust times or days. Saving updates the
+                  shared draft immediately.
+                </p>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/55">
+                  <p className="font-medium text-white/70">School hours by day (this class)</p>
+                  <ul className="mt-1.5 space-y-0.5">
+                    {workingDays.map((d) => {
+                      const r = getResolvedForDay(d);
+                      const diagnostics = getDiagnosticsForDay(d);
+                      if (!r) return null;
+                      return (
+                        <li key={d}>
+                          {DAY_NAMES[d]}: {formatTimeLabel(r.startTime)}–{formatTimeLabel(r.endTime)}
+                          {" · "}
+                          {r.periodSlots.length}×{r.periodDuration} min
+                          {diagnostics?.periodsShortfall
+                            ? ` · ${diagnostics.periodsShortfall} period(s) do not fit`
+                            : diagnostics?.unallocatedMinutes && diagnostics.lastPeriodEndTime
+                              ? ` · last lesson ${formatTimeLabel(diagnostics.lastPeriodEndTime)}`
+                              : ""}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+                {canPublishTimetable ? (
+                  <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-300" />
+                    <div className="min-w-0 flex-1 text-sm text-emerald-50">
+                      <p className="font-medium">Publish for the school</p>
+                      <p className="text-emerald-100/80">
+                        When you publish, this version replaces the previous published timetable
+                        for the academic period. Parents, students, and teachers then see it in
+                        their apps.
+                      </p>
+                      {publishBlocked ? (
+                        <p className="mt-2 text-xs text-emerald-100/75">
+                          Publishing is blocked until all {openErrorCount} open error(s) in the shared
+                          draft are resolved.
+                        </p>
+                      ) : null}
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-500"
+                      disabled={
+                        !versionId ||
+                        publishBlocked ||
+                        publishMutation.isPending ||
+                        !slots.length
+                      }
+                      onClick={handlePublish}
+                    >
+                      {publishMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Publish timetable"
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/65">
+                    A school admin can publish the shared draft from the Review step here when ready. Your
+                    edits are saved in the shared draft.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <ClassTimetableGridBoard
+              classId={classId}
+              className={className}
+              academicPeriodId={selectedPeriodId}
+              mode={isReviewStep ? "review" : "day"}
+              activeDayOfWeek={activeDay}
+              workingDays={workingDays}
+              getTimelineForDay={getTimelineForDay}
+              classSubjects={classSubjects}
+              slots={slots}
+              subjectMap={subjectMap}
+              teacherMap={teacherMap}
+              slotIssueSeverityById={slotIssueSeverityById}
+              onSlotsChanged={() => slotsQuery.refetch()}
+            />
           </div>
         )}
       </CardContent>
-
-      <ClassSlotEditorModal
-        open={slotModalOpen}
-        onOpenChange={setSlotModalOpen}
-        classId={classId}
-        academicPeriodId={selectedPeriodId}
-        dayOfWeek={addDayOfWeek}
-        slot={editingSlot}
-        periodOptions={getPeriodOptionsForDay(
-          editingSlot?.dayOfWeek ?? addDayOfWeek
-        )}
-        subjects={subjects}
-        teachers={teachers}
-        onSaved={() => {
-          setSlotModalOpen(false);
-          setEditingSlot(null);
-          slotsQuery.refetch();
-        }}
-      />
     </Card>
-  );
-}
-
-type DaySlotSectionProps = {
-  dayOfWeek: number;
-  slots: ClassTimetableSlotDTO[];
-  subjectMap: Map<string, { id: string; name: string; code: string | null }>;
-  teacherMap: Map<string, string>;
-  onAddSlot: () => void;
-  onEditSlot: (slot: ClassTimetableSlotDTO) => void;
-  classId: string;
-  academicPeriodId: string;
-  periodOptions: Array<{ periodNumber: number; startTime: string; endTime: string; label: string }>;
-};
-
-function DaySlotSection({
-  dayOfWeek,
-  slots,
-  subjectMap,
-  teacherMap,
-  onAddSlot,
-  onEditSlot,
-  classId,
-  academicPeriodId,
-  periodOptions,
-}: DaySlotSectionProps) {
-  const deleteMutation = useDeleteClassSlot(classId);
-
-  const handleDelete = async (slot: ClassTimetableSlotDTO) => {
-    if (!window.confirm("Delete this slot?")) return;
-    try {
-      await deleteMutation.mutateAsync(slot.id);
-      toast.success("Slot deleted");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete slot");
-    }
-  };
-
-  return (
-    <div className="rounded-xl border border-white/10 bg-black/15 p-3">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="font-medium text-white">{DAY_NAMES[dayOfWeek]}</p>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-white/20 text-xs text-white/65">
-            {slots.length} slot{slots.length === 1 ? "" : "s"}
-          </Badge>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onAddSlot}
-            className="border-cyan-500/40 bg-cyan-500/10 text-cyan-200 hover:bg-cyan-500/20"
-          >
-            <Plus className="mr-1 h-3.5 w-3.5" />
-            Add Slot
-          </Button>
-        </div>
-      </div>
-
-      {slots.length === 0 ? (
-        <div
-          className="cursor-pointer rounded-lg border border-dashed border-white/15 bg-white/5 p-3 text-xs text-white/50 transition-colors hover:border-cyan-400/30 hover:bg-cyan-500/10 hover:text-white/70"
-          onClick={onAddSlot}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && onAddSlot()}
-        >
-          No slots. Click to add.
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {slots.map((slot) => {
-            const subject = subjectMap.get(slot.subjectId);
-            const teacherName = teacherMap.get(slot.teacherId) || "—";
-            return (
-              <div
-                key={slot.id}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-3 transition-colors hover:border-cyan-400/40 hover:bg-cyan-500/10"
-              >
-                <div className="flex flex-wrap items-start gap-3">
-                  <div>
-                    <p className="font-medium text-white">
-                      {subject?.name || "Subject"}
-                      {subject?.code ? (
-                        <Badge variant="outline" className="ml-2 border-white/20 text-xs">
-                          {subject.code}
-                        </Badge>
-                      ) : null}
-                    </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-white/65">
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {formatTimeLabel(slot.startTime)} - {formatTimeLabel(slot.endTime)}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {slot.classroomLabel}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <User className="h-3.5 w-3.5" />
-                        {teacherName}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEditSlot(slot)}
-                    className="h-8 text-white/70 hover:bg-white/10 hover:text-white"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(slot)}
-                    disabled={deleteMutation.isPending}
-                    className="h-8 text-rose-300 hover:bg-rose-500/20 hover:text-rose-200"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-type ClassSlotEditorModalProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  classId: string;
-  academicPeriodId: string;
-  dayOfWeek: number;
-  slot: ClassTimetableSlotDTO | null;
-  periodOptions: Array<{ periodNumber: number; startTime: string; endTime: string; label: string }>;
-  subjects: Array<{ id: string; name: string; code: string | null }>;
-  teachers: Array<{ id: string; fullName: string }>;
-  onSaved: () => void;
-};
-
-function ClassSlotEditorModal({
-  open,
-  onOpenChange,
-  classId,
-  academicPeriodId,
-  dayOfWeek,
-  slot,
-  periodOptions,
-  subjects,
-  teachers,
-  onSaved,
-}: ClassSlotEditorModalProps) {
-  const createMutation = useCreateClassSlot(classId);
-  const updateMutation = useUpdateClassSlot(classId);
-
-  const isEdit = Boolean(slot?.id);
-
-  const [formDayOfWeek, setFormDayOfWeek] = React.useState(dayOfWeek);
-  const [formPeriodKey, setFormPeriodKey] = React.useState<string>("");
-  const [formDuration, setFormDuration] = React.useState<"1" | "1.5" | "2">("1");
-  const [formStartTime, setFormStartTime] = React.useState("08:00");
-  const [formEndTime, setFormEndTime] = React.useState("08:40");
-  const [formSubjectId, setFormSubjectId] = React.useState("");
-  const [formTeacherId, setFormTeacherId] = React.useState("");
-  const [formError, setFormError] = React.useState<string | null>(null);
-  const [issues, setIssues] = React.useState<TimetableValidationIssue[]>([]);
-
-  React.useEffect(() => {
-    if (!open) return;
-    if (slot) {
-      setFormDayOfWeek(slot.dayOfWeek);
-      setFormStartTime(slot.startTime);
-      setFormEndTime(slot.endTime);
-      setFormSubjectId(slot.subjectId);
-      setFormTeacherId(slot.teacherId);
-      const match = periodOptions.find((p) => p.startTime === slot.startTime && p.endTime === slot.endTime);
-      if (match) {
-        setFormPeriodKey(`p-${match.periodNumber}`);
-        setFormDuration("1");
-      } else {
-        const matchDouble = periodOptions.find(
-          (p, i) =>
-            i < periodOptions.length - 1 &&
-            p.startTime === slot.startTime &&
-            periodOptions[i + 1]?.endTime === slot.endTime
-        );
-        if (matchDouble) {
-          setFormPeriodKey(`p-${matchDouble.periodNumber}`);
-          setFormDuration("2");
-        } else {
-          const matchHalf = periodOptions.find(
-            (p, i) =>
-              i < periodOptions.length - 1 &&
-              p.startTime === slot.startTime &&
-              (() => {
-                const p2 = periodOptions[i + 1];
-                if (!p2) return false;
-                const p1EndM = timeToMinutes(p.endTime);
-                const p2Dur = timeToMinutes(p2.endTime) - timeToMinutes(p2.startTime);
-                const expectedEndM = p1EndM + p2Dur / 2;
-                const actualEndM = timeToMinutes(slot.endTime);
-                return Math.abs(expectedEndM - actualEndM) < 2;
-              })()
-          );
-          if (matchHalf) {
-            setFormPeriodKey(`p-${matchHalf.periodNumber}`);
-            setFormDuration("1.5");
-          } else {
-            setFormPeriodKey("custom");
-            setFormDuration("1");
-          }
-        }
-      }
-    } else {
-      setFormDayOfWeek(dayOfWeek);
-      const first = periodOptions[0];
-      if (first) {
-        setFormPeriodKey(`p-${first.periodNumber}`);
-        setFormDuration("1");
-        setFormStartTime(first.startTime);
-        setFormEndTime(first.endTime);
-      } else {
-        setFormPeriodKey("custom");
-        setFormDuration("1");
-        setFormStartTime("08:00");
-        setFormEndTime("08:40");
-      }
-      setFormSubjectId("");
-      setFormTeacherId("");
-    }
-    setFormError(null);
-    setIssues([]);
-  }, [open, slot, dayOfWeek, periodOptions]);
-
-  React.useEffect(() => {
-    if (formPeriodKey && formPeriodKey !== "custom") {
-      const num = parseInt(formPeriodKey.replace("p-", ""), 10);
-      const idx = periodOptions.findIndex((x) => x.periodNumber === num);
-      const p = periodOptions[idx];
-      const p2 = idx >= 0 && idx < periodOptions.length - 1 ? periodOptions[idx + 1] : null;
-      if (p) {
-        setFormStartTime(p.startTime);
-        if (formDuration === "1") {
-          setFormEndTime(p.endTime);
-        } else if (formDuration === "2" && p2) {
-          setFormEndTime(p2.endTime);
-        } else if (formDuration === "1.5" && p2) {
-          const p1EndM = timeToMinutes(p.endTime);
-          const p2Dur = timeToMinutes(p2.endTime) - timeToMinutes(p2.startTime);
-          setFormEndTime(minutesToTime(p1EndM + p2Dur / 2));
-        } else {
-          setFormEndTime(p.endTime);
-        }
-      }
-    }
-  }, [formPeriodKey, formDuration, periodOptions]);
-
-  const isBusy = createMutation.isPending || updateMutation.isPending;
-
-  const handleSubmit = async () => {
-    if (!formSubjectId || !formTeacherId) {
-      setFormError("Subject and teacher are required.");
-      return;
-    }
-    if (!formStartTime || !formEndTime) {
-      setFormError("Start and end time are required.");
-      return;
-    }
-    setFormError(null);
-    setIssues([]);
-
-    try {
-      if (isEdit && slot?.id) {
-        await updateMutation.mutateAsync({
-          slotId: slot.id,
-          payload: {
-            subjectId: formSubjectId,
-            teacherId: formTeacherId,
-            dayOfWeek: formDayOfWeek,
-            startTime: formStartTime,
-            endTime: formEndTime,
-          },
-        });
-        toast.success("Slot updated");
-      } else {
-        await createMutation.mutateAsync({
-          academicPeriodId,
-          dayOfWeek: formDayOfWeek,
-          startTime: formStartTime,
-          endTime: formEndTime,
-          subjectId: formSubjectId,
-          teacherId: formTeacherId,
-        });
-        toast.success("Slot created");
-      }
-      onOpenChange(false);
-      onSaved();
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Failed to save slot";
-      setFormError(msg);
-      setIssues(getIssuesFromError(error));
-      toast.error(msg);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl border-white/20 bg-slate-950 text-white">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Slot" : "Add Slot"}</DialogTitle>
-          <DialogDescription className="text-white/60">
-            {isEdit
-              ? "Update subject, teacher, and time for this slot."
-              : "Add a new slot to the class timetable."}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label className="text-white/80">Day</Label>
-            <PremiumSelect
-              value={String(formDayOfWeek)}
-              onValueChange={(v) => setFormDayOfWeek(Number(v))}
-            >
-              <PremiumSelectTrigger className="border-white/15 bg-white/5 text-white">
-                <PremiumSelectValue />
-              </PremiumSelectTrigger>
-              <PremiumSelectContent>
-                {DAY_NAMES.map((name, i) => (
-                  <PremiumSelectItem key={i} value={String(i)}>
-                    {name}
-                  </PremiumSelectItem>
-                ))}
-              </PremiumSelectContent>
-            </PremiumSelect>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-white/80">Period</Label>
-            <PremiumSelect value={formPeriodKey} onValueChange={setFormPeriodKey}>
-              <PremiumSelectTrigger className="border-white/15 bg-white/5 text-white">
-                <PremiumSelectValue />
-              </PremiumSelectTrigger>
-              <PremiumSelectContent>
-                {periodOptions.map((p) => (
-                  <PremiumSelectItem key={p.periodNumber} value={`p-${p.periodNumber}`}>
-                    {p.label} ({p.startTime} - {p.endTime})
-                  </PremiumSelectItem>
-                ))}
-                <PremiumSelectItem value="custom">Custom time</PremiumSelectItem>
-              </PremiumSelectContent>
-            </PremiumSelect>
-          </div>
-
-          {formPeriodKey !== "custom" ? (
-            <div className="space-y-1.5">
-              <Label className="text-white/80">Duration</Label>
-              <PremiumSelect
-                value={formDuration}
-                onValueChange={(v) => setFormDuration(v as "1" | "1.5" | "2")}
-              >
-                <PremiumSelectTrigger className="border-white/15 bg-white/5 text-white">
-                  <PremiumSelectValue />
-                </PremiumSelectTrigger>
-                <PremiumSelectContent>
-                  <PremiumSelectItem value="1">1 period</PremiumSelectItem>
-                  <PremiumSelectItem value="1.5">1.5 periods</PremiumSelectItem>
-                  <PremiumSelectItem value="2">2 periods (double)</PremiumSelectItem>
-                </PremiumSelectContent>
-              </PremiumSelect>
-            </div>
-          ) : null}
-
-          {formPeriodKey === "custom" ? (
-            <>
-              <div className="space-y-1.5">
-                <Label className="text-white/80">Start Time</Label>
-                <Input
-                  type="time"
-                  value={formStartTime}
-                  onChange={(e) => setFormStartTime(e.target.value)}
-                  className="border-white/15 bg-white/5 text-white"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-white/80">End Time</Label>
-                <Input
-                  type="time"
-                  value={formEndTime}
-                  onChange={(e) => setFormEndTime(e.target.value)}
-                  className="border-white/15 bg-white/5 text-white"
-                />
-              </div>
-            </>
-          ) : null}
-
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-white/80">Subject</Label>
-            <PremiumSelect value={formSubjectId} onValueChange={setFormSubjectId}>
-              <PremiumSelectTrigger className="border-white/15 bg-white/5 text-white">
-                <PremiumSelectValue placeholder="Select subject" />
-              </PremiumSelectTrigger>
-              <PremiumSelectContent>
-                {subjects.map((s) => (
-                  <PremiumSelectItem key={s.id} value={s.id}>
-                    {s.code ? `${s.name} (${s.code})` : s.name}
-                  </PremiumSelectItem>
-                ))}
-              </PremiumSelectContent>
-            </PremiumSelect>
-          </div>
-
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label className="text-white/80">Teacher</Label>
-            <PremiumSelect value={formTeacherId} onValueChange={setFormTeacherId}>
-              <PremiumSelectTrigger className="border-white/15 bg-white/5 text-white">
-                <PremiumSelectValue placeholder="Select teacher" />
-              </PremiumSelectTrigger>
-              <PremiumSelectContent>
-                {teachers.map((t) => (
-                  <PremiumSelectItem key={t.id} value={t.id}>
-                    {t.fullName}
-                  </PremiumSelectItem>
-                ))}
-              </PremiumSelectContent>
-            </PremiumSelect>
-          </div>
-        </div>
-
-        {formError ? (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
-            {formError}
-            {issues.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {issues.map((issue) => (
-                  <Badge
-                    key={`${issue.code}-${issue.field || ""}`}
-                    variant="outline"
-                    className="border-rose-300/40 text-rose-200"
-                  >
-                    {issue.code}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            className="border-white/20 bg-transparent text-white/80 hover:bg-white/10"
-            onClick={() => onOpenChange(false)}
-            disabled={isBusy}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isBusy}
-            className="bg-emerald-500 text-white hover:bg-emerald-400"
-          >
-            {isEdit ? "Save Changes" : "Create Slot"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

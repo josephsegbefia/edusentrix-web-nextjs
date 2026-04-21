@@ -119,7 +119,7 @@ export function TeacherAssignmentsTab({
               variant="outline"
               className="rounded-xl border-purple-500/30 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20"
             >
-              <Link href="/admin/timetable">Open Timetable Center</Link>
+              <Link href="/admin/timetable">Open Timetable Hub</Link>
             </Button>
           </div>
 
@@ -127,8 +127,8 @@ export function TeacherAssignmentsTab({
             <p className="flex items-start gap-2 text-xs text-white/70">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-300" />
               Schedules shown here are pulled from class-group timetable slots.
-              Schedule creation and edits are managed in the Master Timetable
-              planner.
+              Schedule creation and edits are managed from each class&apos;s
+              Schedule tab via the timetable hub.
             </p>
           </div>
         </CardHeader>

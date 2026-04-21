@@ -50,7 +50,62 @@ export type TimetableConflictCode =
   | "MISSING_SUBJECT"
   | "MISSING_CLASSGROUP"
   | "MISSING_CLASSROOM_LABEL"
-  | "OUTSIDE_PERIOD_RANGE";
+  | "OUTSIDE_PERIOD_RANGE"
+  | "TEACHER_PENDING_ASSIGNMENT";
+
+export type TimetableConflictSlotSummary = {
+  slotId: string;
+  classGroupId: string;
+  className: string;
+  gradeId: string;
+  gradeName: string;
+  subjectId: string;
+  subjectName: string;
+  subjectCode: string | null;
+  teacherId: string | null;
+  teacherName: string | null;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  classroomLabel: string;
+};
+
+export type TimetableConflictResolvedDayDiagnostics = {
+  firstPeriodStartTime: string | null;
+  lastPeriodEndTime: string | null;
+  scheduledPeriods: number;
+  periodsShortfall: number;
+  teachingMinutes: number;
+  breakMinutes: number;
+  assemblyMinutes: number;
+  daySpanMinutes: number;
+  allocatedMinutes: number;
+  unallocatedMinutes: number;
+  overflowMinutes: number;
+};
+
+export type TimetableConflictResolvedDaySummary = {
+  startTime: string;
+  endTime: string;
+  periodDuration: number;
+  periodsPerDay: number;
+  expectedPeriodSlots: Array<{
+    periodNumber: number;
+    startTime: string;
+    endTime: string;
+    label?: string;
+  }>;
+  diagnostics: TimetableConflictResolvedDayDiagnostics;
+};
+
+export type TimetableConflictMetadata = Record<string, unknown> & {
+  field?: string;
+  validationCode?: string;
+  dayName?: string;
+  slot?: TimetableConflictSlotSummary;
+  slots?: TimetableConflictSlotSummary[];
+  resolvedDay?: TimetableConflictResolvedDaySummary;
+};
 
 export type TimetableConflictDTO = {
   id: string;
@@ -62,7 +117,7 @@ export type TimetableConflictDTO = {
   status: TimetableConflictStatus;
   message: string;
   slotIds: string[];
-  metadata: Record<string, unknown>;
+  metadata: TimetableConflictMetadata;
   createdAt: string;
   updatedAt: string;
 };
@@ -186,7 +241,7 @@ type ApiErrorResponse = {
   issues?: TimetableValidationIssue[];
 };
 
-function buildTimetableKey(...parts: Array<string | number | undefined>) {
+export function buildTimetableKey(...parts: Array<string | number | undefined>) {
   return ["timetable-admin", ...parts] as const;
 }
 
@@ -203,6 +258,63 @@ function getErrorMessage(
   fallback: string
 ): string {
   return payload?.error || fallback;
+}
+
+export type MasterTimetableSlotRow = {
+  slotId: string;
+  classId: string;
+  gradeId: string;
+  className: string;
+  gradeName: string;
+  gradeLevel: number;
+  subjectId: string;
+  subjectName: string;
+  subjectCode: string | null;
+  teacherId: string;
+  teacherName: string;
+  teacherPhotoUrl: null;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+  roomId: null;
+};
+
+export type MasterTimetableMeta = {
+  hasPublishedVersion: boolean;
+  academicPeriodId: string | null;
+  versionId: string | null;
+  publishedAt: string | null;
+  workingDays: number[];
+};
+
+type MasterTimetableResponse = {
+  success: boolean;
+  data: MasterTimetableSlotRow[];
+  meta?: MasterTimetableMeta;
+};
+
+/**
+ * Published master timetable for the school (read-only). Uses GET /api/admin/timetable/master.
+ */
+export function useMasterTimetable(academicPeriodId?: string) {
+  return useQuery<MasterTimetableResponse>({
+    queryKey: buildTimetableKey("master", academicPeriodId || "none"),
+    queryFn: async () => {
+      if (!academicPeriodId) throw new Error("academicPeriodId is required");
+      const params = new URLSearchParams({ academicPeriodId });
+      const res = await fetch(`/api/admin/timetable/master?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const json = await readJsonSafe<ApiErrorResponse & MasterTimetableResponse>(res);
+      if (!res.ok) {
+        throw new Error(getErrorMessage(json, "Failed to load master timetable"));
+      }
+      return json as MasterTimetableResponse;
+    },
+    enabled: Boolean(academicPeriodId),
+    staleTime: 30_000,
+  });
 }
 
 export function useTimetableVersions(academicPeriodId?: string) {
@@ -420,6 +532,7 @@ export function usePublishTimetableVersion() {
       queryClient.invalidateQueries({ queryKey: buildTimetableKey("versions") });
       queryClient.invalidateQueries({ queryKey: buildTimetableKey("slots", versionId) });
       queryClient.invalidateQueries({ queryKey: buildTimetableKey("conflicts", versionId) });
+      queryClient.invalidateQueries({ queryKey: buildTimetableKey("master") });
     },
   });
 }

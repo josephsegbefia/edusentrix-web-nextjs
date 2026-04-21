@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export type TeacherClass = {
   _id: string;
+  gradeId: string;
   name: string;
   gradeName: string;
   subjectName: string;

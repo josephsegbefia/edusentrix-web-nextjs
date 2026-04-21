@@ -10,6 +10,7 @@ export type ClassTimetableSlotDTO = {
   classGroupId: string;
   gradeId: string;
   subjectId: string;
+  /** Empty string when no teacher assigned yet. */
   teacherId: string;
   dayOfWeek: number;
   startTime: string;
@@ -75,7 +76,8 @@ export type CreateClassSlotInput = {
   startTime: string;
   endTime: string;
   subjectId: string;
-  teacherId: string;
+  /** Omit or null when the subject has no teacher assignment yet. */
+  teacherId?: string | null;
 };
 
 export function useCreateClassSlot(classId: string) {
@@ -104,13 +106,14 @@ export function useCreateClassSlot(classId: string) {
         queryKey: buildClassSlotsKey(classId, variables.academicPeriodId),
       });
       queryClient.invalidateQueries({ queryKey: ["timetable-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
     },
   });
 }
 
 export type UpdateClassSlotInput = {
   subjectId?: string;
-  teacherId?: string;
+  teacherId?: string | null;
   dayOfWeek?: number;
   startTime?: string;
   endTime?: string;
@@ -146,6 +149,7 @@ export function useUpdateClassSlot(classId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["class-timetable-slots"] });
       queryClient.invalidateQueries({ queryKey: ["timetable-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
     },
   });
 }
@@ -168,6 +172,7 @@ export function useDeleteClassSlot(classId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["class-timetable-slots"] });
       queryClient.invalidateQueries({ queryKey: ["timetable-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
     },
   });
 }

@@ -4,6 +4,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import {
   resolvePublishedTimetableContext,
+  resolvePublishedTimetableContextForPeriod,
   queryPublishedSlots,
   enrichSlotsForDisplay,
 } from "@/lib/timetable/read-model";
@@ -12,7 +13,11 @@ import mongoose from "mongoose";
 
 /**
  * GET /api/admin/timetable/master
- * Get master timetable - all schedules from published TimetableSlot
+ * Get master timetable — read-only aggregate of the published version only.
+ *
+ * Query: `academicPeriodId` (optional) — when set, resolves the published version for that
+ * period. When omitted, uses the period containing "today" (or current period fallback),
+ * matching other published timetable APIs.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -21,13 +26,29 @@ export async function GET(req: NextRequest) {
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
 
-    const published = await resolvePublishedTimetableContext(
-      schoolIdObj,
-      new Date()
-    );
+    const periodParam = req.nextUrl.searchParams.get("academicPeriodId");
+    let published =
+      periodParam && mongoose.Types.ObjectId.isValid(periodParam)
+        ? await resolvePublishedTimetableContextForPeriod(
+            schoolIdObj,
+            new mongoose.Types.ObjectId(periodParam)
+          )
+        : await resolvePublishedTimetableContext(schoolIdObj, new Date());
 
     if (!published) {
-      return NextResponse.json({ success: true, data: [] });
+      return NextResponse.json({
+        success: true,
+        data: [],
+        meta: {
+          hasPublishedVersion: false,
+          academicPeriodId: periodParam && mongoose.Types.ObjectId.isValid(periodParam)
+            ? periodParam
+            : null,
+          versionId: null,
+          publishedAt: null,
+          workingDays: [1, 2, 3, 4, 5],
+        },
+      });
     }
 
     const slots = await queryPublishedSlots({
@@ -70,6 +91,7 @@ export async function GET(req: NextRequest) {
     const timetableData = enrichedSlots.map((slot) => ({
       slotId: slot.id,
       classId: slot.classGroupId,
+      gradeId: slot.gradeId,
       className: slot.classGroupName || slot.classGroupId,
       gradeName: slot.gradeName || "Unknown",
       gradeLevel: gradeOrderMap.get(slot.gradeId) ?? 0,
@@ -93,7 +115,19 @@ export async function GET(req: NextRequest) {
       return a.startTime.localeCompare(b.startTime);
     });
 
-    return NextResponse.json({ success: true, data: timetableData });
+    return NextResponse.json({
+      success: true,
+      data: timetableData,
+      meta: {
+        hasPublishedVersion: true,
+        academicPeriodId: String(published.academicPeriodId),
+        versionId: String(published.versionId),
+        publishedAt: published.publishedAt
+          ? published.publishedAt.toISOString()
+          : null,
+        workingDays: published.workingDays,
+      },
+    });
   } catch (e: unknown) {
     console.error("Error fetching master timetable:", e);
     const message =

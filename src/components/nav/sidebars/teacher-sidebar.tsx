@@ -30,6 +30,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Table2,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -85,6 +86,11 @@ const navSections: NavSection[] = [
         label: "My Classes",
         href: "/teacher/classes",
         icon: School,
+      },
+      {
+        label: "Homeroom timetable",
+        href: "/teacher/homeroom/timetable",
+        icon: Table2,
       },
       {
         label: "Students",
@@ -244,6 +250,8 @@ function NavContent({
     [subscription]
   );
 
+  const homeroomClassGroupId = data?.data?.teacher?.homeroomClassGroupId;
+
   const sections = React.useMemo(
     () =>
       navSections
@@ -252,12 +260,16 @@ function NavContent({
         )
         .map((section) => ({
           ...section,
-          items: section.items.filter(
-            (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
-          ),
+          items: section.items
+            .filter((item) =>
+              item.href === "/teacher/homeroom/timetable" ? Boolean(homeroomClassGroupId) : true
+            )
+            .filter(
+              (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
+            ),
         }))
         .filter((section) => section.items.length > 0),
-    [enabledFeatures, showStudio]
+    [enabledFeatures, showStudio, homeroomClassGroupId]
   );
 
   return (

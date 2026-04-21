@@ -2,6 +2,7 @@
 // src/app/api/admin/teachers/route.ts
 import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
@@ -30,7 +31,7 @@ function startOfDay(d: Date) {
 }
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireSchoolAdminOrTeacherRead();
   await connectToDatabase();
 
   try {
@@ -286,6 +287,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Error fetching teachers:", error);
     return Response.json(
       { error: "Failed to fetch teachers" },

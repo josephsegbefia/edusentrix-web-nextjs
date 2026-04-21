@@ -147,7 +147,7 @@ const navSections: NavSection[] = [
         icon: GraduationCap,
       },
       {
-        label: "Master Timetable",
+        label: "Timetable Hub",
         href: "/admin/timetable",
         icon: CalendarDays,
       },

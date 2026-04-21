@@ -1,6 +1,7 @@
 // src/app/api/admin/subjects/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Subject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -14,7 +15,7 @@ import mongoose from "mongoose";
  */
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrTeacherRead();
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
@@ -122,6 +123,7 @@ export async function GET(req: NextRequest) {
       data,
     });
   } catch (e: unknown) {
+    if (e instanceof Response) return e;
     const message = e instanceof Error ? e.message : "Failed to fetch subjects";
     return NextResponse.json(
       { success: false, error: message },

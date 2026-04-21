@@ -1,6 +1,7 @@
 // src/app/api/admin/settings/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SchoolSettings } from "@/models/SchoolSettings";
 import mongoose from "mongoose";
@@ -123,15 +124,53 @@ function asArray<T>(value: unknown): T[] {
  */
 export async function GET() {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrTeacherRead();
     await connectToDatabase();
 
-    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const schoolIdObj = new mongoose.Types.ObjectId(String(authCtx.schoolId));
 
     // Find or create settings
     let settings = await SchoolSettings.findOne({ schoolId: schoolIdObj }).lean() as Record<string, unknown> | null;
 
     if (!settings) {
+      if (!authCtx.canBootstrapSchoolSettings) {
+        const data = {
+          id: "",
+          schoolStartTime: "07:30",
+          schoolEndTime: "15:00",
+          periodDuration: 40,
+          periodsPerDay: 8,
+          periodSlots: [],
+          dailyScheduleOverrides: [],
+          gradeScheduleOverrides: [],
+          breaks: [
+            { name: "Short Break", startTime: "10:00", endTime: "10:20", isLunch: false },
+            { name: "Lunch", startTime: "12:00", endTime: "13:00", isLunch: true },
+          ],
+          breakDailyOverrides: [],
+          breakGradeOverrides: [],
+          assembly: {
+            days: [1, 5],
+            startTime: "07:30",
+            duration: 30,
+          },
+          assemblyDailyOverrides: [],
+          assemblyGradeOverrides: [],
+          lateArrivalCutoff: "07:45",
+          minimumAttendancePercent: 75,
+          defaultExamWeekDuration: 5,
+          defaultRevisionWeekDuration: 5,
+          workingDays: [1, 2, 3, 4, 5],
+          teacherStudio: { enabled: true },
+          attendanceNotifications: {
+            enabled: true,
+            channels: { whatsapp: true, sms: false, email: false },
+          },
+          offlineMode: { enabled: true },
+          updatedAt: null,
+        };
+        return NextResponse.json({ success: true, data });
+      }
       // Create default settings
       const newSettings = await SchoolSettings.create({
         schoolId: schoolIdObj,
@@ -236,6 +275,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data });
   } catch (e: unknown) {
+    if (e instanceof Response) return e;
     console.error("Error fetching school settings:", e);
     const message = e instanceof Error ? e.message : "Failed to fetch settings";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
@@ -297,10 +337,35 @@ export async function PATCH(req: NextRequest) {
       }));
     }
 
+    const scheduleAffectingFields = [
+      "schoolStartTime",
+      "schoolEndTime",
+      "periodDuration",
+      "periodsPerDay",
+      "breaks",
+      "breakDailyOverrides",
+      "breakGradeOverrides",
+      "assembly",
+      "assemblyDailyOverrides",
+      "assemblyGradeOverrides",
+      "dailyScheduleOverrides",
+    ];
+    const shouldClearSchoolWidePeriodSlots = scheduleAffectingFields.some(
+      (field) => field in parsed.data
+    );
+
+    const updateOps: {
+      $set: Record<string, unknown>;
+      $unset?: Record<string, unknown>;
+    } = { $set: updateData };
+    if (shouldClearSchoolWidePeriodSlots) {
+      updateOps.$unset = { periodSlots: 1 };
+    }
+
     // Upsert settings
     const settings = await SchoolSettings.findOneAndUpdate(
       { schoolId: schoolIdObj },
-      { $set: updateData },
+      updateOps,
       { new: true, upsert: true, runValidators: true }
     ).lean() as Record<string, unknown>;
 

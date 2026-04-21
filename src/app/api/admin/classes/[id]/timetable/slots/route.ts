@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireClassTimetableEditor } from "@/lib/auth/requireClassTimetableEditor";
 import { ClassGroup } from "@/models/ClassGroup";
 import { TimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
@@ -22,6 +22,8 @@ import {
   isTimetableRebootEnabled,
   isTimetableApiWriteEnabled,
 } from "@/lib/timetable/feature-flags";
+import { loadResolvedScheduleForSchoolDay } from "@/lib/timetable/load-resolved-schedule";
+import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
 import { z } from "zod";
 
 function toObjectIdOrNull(value: string | null | undefined): mongoose.Types.ObjectId | null {
@@ -39,7 +41,8 @@ const CreateSlotSchema = z.object({
   startTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/),
   endTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/),
   subjectId: z.string().length(24),
-  teacherId: z.string().length(24),
+  /** Omit or null when no teacher is assigned to this subject for the class yet. */
+  teacherId: z.union([z.string().length(24), z.null()]).optional(),
 });
 
 function toSlotDto(slot: {
@@ -47,7 +50,7 @@ function toSlotDto(slot: {
   classGroupId: mongoose.Types.ObjectId;
   gradeId: mongoose.Types.ObjectId;
   subjectId: mongoose.Types.ObjectId;
-  teacherId: mongoose.Types.ObjectId;
+  teacherId?: mongoose.Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -63,7 +66,7 @@ function toSlotDto(slot: {
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
-    teacherId: String(slot.teacherId),
+    teacherId: slot.teacherId ? String(slot.teacherId) : "",
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
     endTime: slot.endTime,
@@ -92,10 +95,10 @@ export async function GET(
       );
     }
 
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { id } = await ctx.params;
+    const editor = await requireClassTimetableEditor(id);
     await connectToDatabase();
 
-    const { id } = await ctx.params;
     const classObjId = toObjectIdOrNull(id);
     if (!classObjId) {
       return NextResponse.json(
@@ -105,9 +108,9 @@ export async function GET(
     }
 
     const schoolIdObj =
-      schoolId instanceof mongoose.Types.ObjectId
-        ? schoolId
-        : new mongoose.Types.ObjectId(String(schoolId));
+      editor.schoolId instanceof mongoose.Types.ObjectId
+        ? editor.schoolId
+        : new mongoose.Types.ObjectId(String(editor.schoolId));
 
     const academicPeriodIdParam = req.nextUrl.searchParams.get("academicPeriodId");
     if (!academicPeriodIdParam) {
@@ -173,7 +176,7 @@ export async function GET(
             classGroupId: mongoose.Types.ObjectId;
             gradeId: mongoose.Types.ObjectId;
             subjectId: mongoose.Types.ObjectId;
-            teacherId: mongoose.Types.ObjectId;
+            teacherId?: mongoose.Types.ObjectId | null;
             dayOfWeek: number;
             startTime: string;
             endTime: string;
@@ -189,6 +192,7 @@ export async function GET(
       meta: { versionId: String(versionObjId) },
     });
   } catch (e: unknown) {
+    if (e instanceof Response) throw e;
     console.error("Class timetable slots GET error:", e);
     return NextResponse.json(
       {
@@ -216,10 +220,10 @@ export async function POST(
       );
     }
 
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { id } = await ctx.params;
+    const editor = await requireClassTimetableEditor(id);
     await connectToDatabase();
 
-    const { id } = await ctx.params;
     const classObjId = toObjectIdOrNull(id);
     if (!classObjId) {
       return NextResponse.json(
@@ -229,13 +233,13 @@ export async function POST(
     }
 
     const schoolIdObj =
-      schoolId instanceof mongoose.Types.ObjectId
-        ? schoolId
-        : new mongoose.Types.ObjectId(String(schoolId));
+      editor.schoolId instanceof mongoose.Types.ObjectId
+        ? editor.schoolId
+        : new mongoose.Types.ObjectId(String(editor.schoolId));
     const userIdObj =
-      userId instanceof mongoose.Types.ObjectId
-        ? userId
-        : new mongoose.Types.ObjectId(String(userId));
+      editor.userId instanceof mongoose.Types.ObjectId
+        ? editor.userId
+        : new mongoose.Types.ObjectId(String(editor.userId));
 
     const classGroup = await ClassGroup.findOne({
       _id: classObjId,
@@ -263,8 +267,45 @@ export async function POST(
     const input = parsed.data;
     const academicPeriodId = new mongoose.Types.ObjectId(input.academicPeriodId);
     const subjectId = new mongoose.Types.ObjectId(input.subjectId);
-    const teacherId = new mongoose.Types.ObjectId(input.teacherId);
+    const teacherId =
+      input.teacherId === undefined || input.teacherId === null
+        ? null
+        : new mongoose.Types.ObjectId(input.teacherId);
     const gradeId = (classGroup as { gradeId: mongoose.Types.ObjectId }).gradeId;
+
+    const resolved = await loadResolvedScheduleForSchoolDay(
+      schoolIdObj,
+      gradeId,
+      input.dayOfWeek
+    );
+    if (!resolved) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "School schedule is not configured. Add start times, periods, and breaks under School Settings before building a timetable.",
+        },
+        { status: 400 }
+      );
+    }
+    if (!slotAlignsWithSchoolPeriods(resolved, input.startTime, input.endTime)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: [
+            {
+              code: "INVALID_TIME_RANGE",
+              field: "startTime",
+              message:
+                "Lesson times must match a school period for this day (see Settings → daily periods and breaks).",
+              severity: "error" as const,
+            },
+          ],
+        },
+        { status: 400 }
+      );
+    }
 
     const { classroomLabel } = await resolveClassroomLabel({
       schoolId: schoolIdObj,
@@ -308,7 +349,7 @@ export async function POST(
       classGroupId: classObjId,
       gradeId,
       subjectId,
-      teacherId,
+      ...(teacherId ? { teacherId } : {}),
       dayOfWeek: input.dayOfWeek,
       startTime: input.startTime,
       endTime: input.endTime,
@@ -339,6 +380,7 @@ export async function POST(
       }),
     });
   } catch (e: unknown) {
+    if (e instanceof Response) throw e;
     console.error("Class timetable slot POST error:", e);
     return NextResponse.json(
       {

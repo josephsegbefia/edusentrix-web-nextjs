@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
 import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 
@@ -26,7 +27,7 @@ function rangesOverlap(
 }
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireFinanceStaff();
+  const { schoolId } = await requireSchoolAdminOrTeacherRead();
   await connectToDatabase();
 
   try {
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ periods });
   } catch (error) {
+    if (error instanceof Response) return error;
     console.error("Error fetching academic periods:", error);
     return NextResponse.json(
       { error: "Failed to fetch academic periods" },

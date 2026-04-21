@@ -1,6 +1,6 @@
 // src/app/api/admin/classes/[id]/subject-teachers/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireClassTimetableEditor } from "@/lib/auth/requireClassTimetableEditor";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Subject } from "@/models/Subject";
@@ -12,14 +12,20 @@ import mongoose from "mongoose";
  * GET /api/admin/classes/[id]/subject-teachers
  * Get all subject-teacher assignments for a class
  */
+function toObjectIdOrNull(id: string | null): mongoose.Types.ObjectId | null {
+  if (!id) return null;
+  try {
+    return new mongoose.Types.ObjectId(String(id));
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
-    await connectToDatabase();
-
     const { id: classId } = await params;
 
     let classIdObj: mongoose.Types.ObjectId;
@@ -32,7 +38,13 @@ export async function GET(
       );
     }
 
-    const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const editor = await requireClassTimetableEditor(classId);
+    await connectToDatabase();
+
+    const schoolIdObj =
+      editor.schoolId instanceof mongoose.Types.ObjectId
+        ? editor.schoolId
+        : new mongoose.Types.ObjectId(String(editor.schoolId));
 
     // Verify class belongs to school
     const classGroup = await ClassGroup.findOne({
@@ -49,15 +61,29 @@ export async function GET(
       );
     }
 
-    // Get current academic period
-    const currentPeriod = await AcademicPeriod.findOne({
-      schoolId: schoolIdObj,
-      isCurrent: true,
-    })
-      .select("_id")
-      .lean() as { _id: any } | null;
+    const academicPeriodIdParam = req.nextUrl.searchParams.get("academicPeriodId");
+    let activePeriod: { _id: mongoose.Types.ObjectId } | null = null;
+    const requestedAp = toObjectIdOrNull(academicPeriodIdParam);
+    if (requestedAp) {
+      const found = await AcademicPeriod.findOne({
+        _id: requestedAp,
+        schoolId: schoolIdObj,
+      })
+        .select("_id")
+        .lean();
+      if (found) activePeriod = found as { _id: mongoose.Types.ObjectId };
+    }
+    if (!activePeriod) {
+      const currentPeriod = await AcademicPeriod.findOne({
+        schoolId: schoolIdObj,
+        isCurrent: true,
+      })
+        .select("_id")
+        .lean();
+      if (currentPeriod) activePeriod = currentPeriod as { _id: mongoose.Types.ObjectId };
+    }
 
-    if (!currentPeriod) {
+    if (!activePeriod) {
       // No current period - return empty assignments
       const subjectIds = (classGroup as any).subjectIds || [];
       const subjects = await Subject.find({
@@ -80,7 +106,7 @@ export async function GET(
     const assignments = await TeacherAssignment.find({
       schoolId: schoolIdObj,
       classGroupId: classIdObj,
-      academicPeriodId: currentPeriod._id,
+      academicPeriodId: activePeriod._id,
       status: "active",
     })
       .populate({
@@ -170,6 +196,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, data });
   } catch (e: unknown) {
+    if (e instanceof Response) return e;
     console.error("Error fetching subject-teachers:", e);
     const message =
       e instanceof Error ? e.message : "Failed to fetch subject teachers";

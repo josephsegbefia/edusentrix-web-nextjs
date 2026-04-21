@@ -1,13 +1,13 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { TimetableCenterShell } from "@/components/admin/timetable/TimetableCenterShell";
+import { TimetableHubShell } from "@/components/admin/timetable/TimetableHubShell";
 import {
   isTimetableAdminPlannerEnabled,
   isTimetableRebootEnabled,
 } from "@/lib/timetable/feature-flags";
 
-export default function MasterTimetablePage() {
+export default function TimetableHubPage() {
   if (!isTimetableRebootEnabled() || !isTimetableAdminPlannerEnabled()) {
     return (
       <Card className="border-white/10 bg-white/5">
@@ -21,5 +21,5 @@ export default function MasterTimetablePage() {
     );
   }
 
-  return <TimetableCenterShell />;
+  return <TimetableHubShell />;
 }

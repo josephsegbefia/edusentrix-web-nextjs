@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,27 +21,21 @@ import {
   Clock3,
   HelpCircle,
   Loader2,
-  Rocket,
 } from "lucide-react";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useClasses } from "@/hooks/admin/useClasses";
 import { useGrades } from "@/hooks/admin/useGrades";
 import { useSubjects } from "@/hooks/admin/useSubjects";
 import {
-  usePublishTimetableVersion,
-  useRecomputeTimetableConflicts,
-  useTimetableConflicts,
-  useTimetableVersionSlots,
-  useTimetableVersions,
-  type TimetableVersionDTO,
+  useMasterTimetable,
+  type MasterTimetableMeta,
+  type MasterTimetableSlotRow,
 } from "@/hooks/admin/useTimetablePlanner";
 import { useTeachersForFilter } from "@/hooks/admin/useClasses";
 import { CalendarView } from "./CalendarView";
-import { ConflictPanel } from "./ConflictPanel";
 import { DayView } from "./DayView";
 import { TimetableHelpDrawer } from "./TimetableHelpDrawer";
 import {
-  dateForDayOfWeek,
   DAY_NAMES,
   filterSlots,
   getWeekStartMonday,
@@ -69,25 +62,59 @@ const DEFAULT_FILTERS: TimetableFilterState = {
   subjectId: "all",
 };
 
-function formatVersionLabel(version: TimetableVersionDTO): string {
-  return `${version.name} (${version.status})`;
+function formatPublishedLabel(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return null;
+  }
 }
 
-function formatVersionUpdatedAt(version: TimetableVersionDTO): string {
-  return new Date(version.updatedAt).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function rowsToEnrichedSlots(
+  rows: MasterTimetableSlotRow[],
+  meta: MasterTimetableMeta | undefined
+): TimetableEnrichedSlot[] {
+  const academicPeriodId = meta?.academicPeriodId ?? "";
+  const versionId = meta?.versionId ?? "";
+
+  return rows.map((row) => ({
+    id: row.slotId,
+    schoolId: "",
+    academicPeriodId,
+    versionId,
+    classGroupId: row.classId,
+    gradeId: row.gradeId,
+    subjectId: row.subjectId,
+    teacherId: row.teacherId || "",
+    dayOfWeek: row.dayOfWeek,
+    startTime: row.startTime,
+    endTime: row.endTime,
+    classroomLabel: row.location ?? "",
+    source: "manual",
+    createdBy: "",
+    updatedBy: "",
+    createdAt: "",
+    updatedAt: "",
+    className: row.className,
+    classLabel: row.className,
+    gradeName: row.gradeName,
+    subjectName: row.subjectName,
+    subjectCode: row.subjectCode,
+    teacherName: row.teacherName?.trim() ? row.teacherName : "—",
+  }));
 }
 
 export function TimetableCenterShell() {
   const [viewMode, setViewMode] = React.useState<ViewMode>("week");
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>("");
-  const [selectedVersionId, setSelectedVersionId] = React.useState<string>("");
   const [filters, setFilters] = React.useState<TimetableFilterState>(DEFAULT_FILTERS);
   const [helpOpen, setHelpOpen] = React.useState(false);
 
@@ -99,20 +126,9 @@ export function TimetableCenterShell() {
   const subjectsQuery = useSubjects(undefined, true);
   const teachersQuery = useTeachersForFilter();
 
-  const versionsQuery = useTimetableVersions(selectedPeriodId || undefined);
-  const versions = versionsQuery.data?.data || [];
-
-  const selectedVersion = versions.find((version) => version.id === selectedVersionId) || null;
-
-  const slotsQuery = useTimetableVersionSlots(selectedVersionId || undefined);
-  const allSlots = slotsQuery.data?.data || [];
-
-  const conflictsQuery = useTimetableConflicts(selectedVersionId || undefined);
-  const conflicts = conflictsQuery.data?.data || [];
-  const blockers = conflictsQuery.data?.meta?.blockers;
-
-  const publishMutation = usePublishTimetableVersion();
-  const recomputeMutation = useRecomputeTimetableConflicts();
+  const masterQuery = useMasterTimetable(selectedPeriodId || undefined);
+  const masterMeta = masterQuery.data?.meta;
+  const hasPublished = Boolean(masterMeta?.hasPublishedVersion);
 
   React.useEffect(() => {
     if (selectedPeriodId || periods.length === 0) return;
@@ -121,26 +137,6 @@ export function TimetableCenterShell() {
       setSelectedPeriodId(current._id);
     }
   }, [periods, selectedPeriodId]);
-
-  React.useEffect(() => {
-    if (versions.length === 0) {
-      setSelectedVersionId("");
-      return;
-    }
-
-    if (selectedVersionId && versions.some((version) => version.id === selectedVersionId)) {
-      return;
-    }
-
-    const preferred =
-      versions.find((version) => version.status === "draft") ||
-      versions.find((version) => version.status === "published") ||
-      versions[0];
-
-    if (preferred?.id) {
-      setSelectedVersionId(preferred.id);
-    }
-  }, [versions, selectedVersionId]);
 
   const gradeOptions = React.useMemo<TimetableGradeOption[]>(() => {
     return (gradesQuery.data?.data || []).map((grade) => ({
@@ -185,40 +181,12 @@ export function TimetableCenterShell() {
     }
   }, [classOptions, filters.classGroupId, filters.gradeId]);
 
-  const gradeMap = React.useMemo(() => {
-    return new Map(gradeOptions.map((grade) => [grade.id, grade]));
-  }, [gradeOptions]);
-
-  const classMap = React.useMemo(() => {
-    return new Map(classOptions.map((classOption) => [classOption.id, classOption]));
-  }, [classOptions]);
-
-  const subjectMap = React.useMemo(() => {
-    return new Map(subjectOptions.map((subject) => [subject.id, subject]));
-  }, [subjectOptions]);
-
-  const teacherMap = React.useMemo(() => {
-    return new Map(teacherOptions.map((teacher) => [teacher.id, teacher]));
-  }, [teacherOptions]);
-
   const allEnrichedSlots = React.useMemo<TimetableEnrichedSlot[]>(() => {
-    return allSlots.map((slot) => {
-      const classOption = classMap.get(slot.classGroupId);
-      const gradeOption = gradeMap.get(slot.gradeId);
-      const subjectOption = subjectMap.get(slot.subjectId);
-      const teacherOption = teacherMap.get(slot.teacherId);
+    const rows = masterQuery.data?.data ?? [];
+    return rowsToEnrichedSlots(rows, masterQuery.data?.meta);
+  }, [masterQuery.data]);
 
-      return {
-        ...slot,
-        className: classOption?.name || slot.classGroupId,
-        classLabel: classOption?.fullLabel || classOption?.name || `Class ${slot.classGroupId}`,
-        gradeName: gradeOption?.name || "Unknown Grade",
-        subjectName: subjectOption?.name || `Subject ${slot.subjectId}`,
-        subjectCode: subjectOption?.code || null,
-        teacherName: teacherOption?.fullName || `Teacher ${slot.teacherId}`,
-      };
-    });
-  }, [allSlots, classMap, gradeMap, subjectMap, teacherMap]);
+  const allSlots = allEnrichedSlots;
 
   const filteredSlots = React.useMemo(() => {
     const filteredRaw = filterSlots(allSlots, filters);
@@ -233,52 +201,14 @@ export function TimetableCenterShell() {
     }, {});
   }, [filteredSlots]);
 
-  const slotById = React.useMemo(() => {
-    return new Map(allEnrichedSlots.map((slot) => [slot.id, slot]));
-  }, [allEnrichedSlots]);
-
   const weekStart = React.useMemo(() => getWeekStartMonday(selectedDate), [selectedDate]);
   const weekEnd = React.useMemo(() => shiftDate(weekStart, 6), [weekStart]);
 
-  const canEditDraft = selectedVersion?.status === "draft";
-  const publishBlocked = blockers?.publishBlocked || false;
-
-  const handlePublish = async () => {
-    if (!selectedVersionId) return;
-
-    try {
-      await publishMutation.mutateAsync(selectedVersionId);
-      await Promise.all([versionsQuery.refetch(), conflictsQuery.refetch()]);
-      toast.success("Timetable published successfully.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to publish timetable";
-      toast.error(message);
-    }
-  };
-
-  const handleRecomputeConflicts = async () => {
-    if (!selectedVersionId) return;
-
-    try {
-      await recomputeMutation.mutateAsync(selectedVersionId);
-      await conflictsQuery.refetch();
-      toast.success("Conflict recompute completed.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to recompute conflicts";
-      toast.error(message);
-    }
-  };
-
-  const handleJumpToConflictSlot = (slotId: string) => {
-    const slot = slotById.get(slotId);
-    if (!slot) {
-      toast.error("Could not locate slot for this conflict.");
-      return;
-    }
-
-    setSelectedDate(dateForDayOfWeek(selectedDate, slot.dayOfWeek));
-    setViewMode("day");
-  };
+  const workingDays = React.useMemo(() => {
+    const wd = masterMeta?.workingDays;
+    if (Array.isArray(wd) && wd.length > 0) return wd;
+    return [...WORKING_DAYS_DEFAULT];
+  }, [masterMeta?.workingDays]);
 
   const handleChangeGrade = (gradeId: string) => {
     setFilters((prev) => ({
@@ -332,12 +262,14 @@ export function TimetableCenterShell() {
     viewMode === "day"
       ? humanDate(selectedDate)
       : viewMode === "week"
-      ? `${humanDate(weekStart)} - ${humanDate(weekEnd)}`
-      : selectedDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+        ? `${humanDate(weekStart)} - ${humanDate(weekEnd)}`
+        : selectedDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
   const showSlotsLoading =
-    slotsQuery.isLoading ||
-    (slotsQuery.isFetching && !slotsQuery.data && Boolean(selectedVersionId));
+    masterQuery.isLoading ||
+    (masterQuery.isFetching && !masterQuery.data && Boolean(selectedPeriodId));
+
+  const publishedLabel = formatPublishedLabel(masterMeta?.publishedAt);
 
   return (
     <div className="space-y-6">
@@ -347,10 +279,11 @@ export function TimetableCenterShell() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-                Master Timetable Center
+                Master Timetable
               </h1>
               <p className="mt-1 text-sm text-white/70">
-                Versioned planner for weekly, day, and calendar scheduling.
+                Read-only view of the published school timetable. Draft edits stay in each class
+                until you publish.
               </p>
             </div>
 
@@ -368,12 +301,17 @@ export function TimetableCenterShell() {
                 variant="outline"
                 className={cn(
                   "border-white/20 text-white/80",
-                  selectedVersion?.status === "draft" && "border-amber-400/40 text-amber-200",
-                  selectedVersion?.status === "published" &&
-                    "border-emerald-400/40 text-emerald-200"
+                  hasPublished && "border-emerald-400/40 text-emerald-200",
+                  !hasPublished && selectedPeriodId && "border-amber-400/40 text-amber-200"
                 )}
               >
-                {selectedVersion ? selectedVersion.status.toUpperCase() : "NO VERSION"}
+                {hasPublished
+                  ? publishedLabel
+                    ? `PUBLISHED · ${publishedLabel}`
+                    : "PUBLISHED"
+                  : selectedPeriodId
+                    ? "NOT PUBLISHED"
+                    : "—"}
               </Badge>
 
               <Badge variant="outline" className="border-white/20 text-white/70">
@@ -383,7 +321,7 @@ export function TimetableCenterShell() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 md:col-span-2 xl:col-span-2">
               <p className="text-xs uppercase tracking-wide text-white/60">Academic Period</p>
               <PremiumSelect value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
                 <PremiumSelectTrigger className="border-white/15 bg-black/25 text-white">
@@ -398,27 +336,11 @@ export function TimetableCenterShell() {
                   ))}
                 </PremiumSelectContent>
               </PremiumSelect>
+              <p className="text-xs text-white/50">
+                Shows the timetable version with status <span className="text-white/70">published</span>{" "}
+                for this period only.
+              </p>
             </div>
-
-            <div className="space-y-1.5 md:col-span-1 xl:col-span-2">
-              <p className="text-xs uppercase tracking-wide text-white/60">Timetable Version</p>
-              <PremiumSelect value={selectedVersionId} onValueChange={setSelectedVersionId}>
-                <PremiumSelectTrigger className="border-white/15 bg-black/25 text-white">
-                  <PremiumSelectValue placeholder="Select timetable version" />
-                </PremiumSelectTrigger>
-                <PremiumSelectContent>
-                  {versions.map((version) => (
-                    <PremiumSelectItem key={version.id} value={version.id}>
-                      {formatVersionLabel(version)}
-                    </PremiumSelectItem>
-                  ))}
-                </PremiumSelectContent>
-              </PremiumSelect>
-              {selectedVersion ? (
-                <p className="text-xs text-white/60">Updated {formatVersionUpdatedAt(selectedVersion)}</p>
-              ) : null}
-            </div>
-
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -454,22 +376,6 @@ export function TimetableCenterShell() {
                 onClick={() => setSelectedDate(new Date())}
               >
                 Today
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                onClick={handlePublish}
-                disabled={!canEditDraft || publishBlocked || publishMutation.isPending}
-                className="bg-cyan-500 text-white hover:bg-cyan-400"
-              >
-                {publishMutation.isPending ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                ) : (
-                  <Rocket className="mr-1.5 h-4 w-4" />
-                )}
-                Publish
               </Button>
             </div>
           </div>
@@ -576,22 +482,28 @@ export function TimetableCenterShell() {
                 Select an academic period to begin.
               </CardContent>
             </Card>
-          ) : versionsQuery.isLoading ? (
+          ) : masterQuery.isLoading ? (
             <Card className="border-white/10 bg-white/5">
               <CardContent className="flex items-center justify-center gap-2 py-10 text-white/70">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Loading timetable versions...
+                Loading published timetable...
               </CardContent>
             </Card>
-          ) : versions.length === 0 ? (
+          ) : masterQuery.isError ? (
+            <Card className="border-rose-500/30 bg-rose-500/10">
+              <CardContent className="py-10 text-center text-rose-200">
+                {masterQuery.error instanceof Error
+                  ? masterQuery.error.message
+                  : "Failed to load master timetable."}
+              </CardContent>
+            </Card>
+          ) : !hasPublished ? (
             <Card className="border-white/10 bg-white/5">
               <CardContent className="space-y-3 py-10 text-center">
-                <p className="font-medium text-white">No timetable version yet</p>
+                <p className="font-medium text-white">No published timetable for this period</p>
                 <p className="text-sm text-white/60">
-                  Go to each class&apos;s Schedule tab to add slots. The draft will be created automatically when you add your first slot.
-                </p>
-                <p className="text-xs text-white/40">
-                  Make sure school hours are configured in Settings first.
+                  Build and publish a timetable from each class&apos;s Schedule tab. This page only
+                  shows slots after publication.
                 </p>
               </CardContent>
             </Card>
@@ -602,27 +514,15 @@ export function TimetableCenterShell() {
                 Loading slots...
               </CardContent>
             </Card>
-          ) : slotsQuery.isError ? (
-            <Card className="border-rose-500/30 bg-rose-500/10">
-              <CardContent className="py-10 text-center text-rose-200">
-                {slotsQuery.error instanceof Error
-                  ? slotsQuery.error.message
-                  : "Failed to load timetable slots."}
-              </CardContent>
-            </Card>
           ) : viewMode === "week" ? (
             <WeekView
               slots={filteredSlots}
               weekStart={weekStart}
-              workingDays={[...WORKING_DAYS_DEFAULT]}
-              isDraft={Boolean(canEditDraft)}
+              workingDays={workingDays}
+              isDraft={false}
             />
           ) : viewMode === "day" ? (
-            <DayView
-              slots={filteredSlots}
-              selectedDate={selectedDate}
-              isDraft={Boolean(canEditDraft)}
-            />
+            <DayView slots={filteredSlots} selectedDate={selectedDate} isDraft={false} />
           ) : (
             <CalendarView
               monthDate={selectedDate}
@@ -638,29 +538,14 @@ export function TimetableCenterShell() {
         </div>
 
         <div className="space-y-4">
-          <ConflictPanel
-            conflicts={conflicts}
-            blockers={blockers}
-            isLoading={conflictsQuery.isLoading}
-            errorMessage={
-              conflictsQuery.isError
-                ? conflictsQuery.error instanceof Error
-                  ? conflictsQuery.error.message
-                  : "Failed to load conflicts"
-                : null
-            }
-            onRecompute={handleRecomputeConflicts}
-            recomputing={recomputeMutation.isPending}
-            onJumpToSlot={handleJumpToConflictSlot}
-          />
-
           <Card className="border-white/10 bg-white/5">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm text-white">Quick Facts</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-white/70">
               <p>
-                <span className="text-white/90">Selected date:</span> {ymd(selectedDate)} ({DAY_NAMES[selectedDate.getDay()]})
+                <span className="text-white/90">Selected date:</span> {ymd(selectedDate)} (
+                {DAY_NAMES[selectedDate.getDay()]})
               </p>
               <p>
                 <span className="text-white/90">Week range:</span> {ymd(weekStart)} to {ymd(weekEnd)}
@@ -668,16 +553,13 @@ export function TimetableCenterShell() {
               <p>
                 <span className="text-white/90">Visible slots:</span> {filteredSlots.length}
               </p>
-              <p>
-                <span className="text-white/90">Open conflicts:</span> {conflicts.length}
-              </p>
             </CardContent>
           </Card>
         </div>
       </div>
 
       <p className="text-center text-sm text-white/60">
-        Edit timetables in each class&apos;s Schedule tab. This master view is read-only.
+        Editing happens in each class&apos;s Schedule tab. Publishing updates what you see here.
       </p>
 
       <TimetableHelpDrawer open={helpOpen} onOpenChange={setHelpOpen} />

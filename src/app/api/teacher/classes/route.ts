@@ -194,6 +194,7 @@ export async function GET() {
 
       return {
         _id: classGroup?._id ? String(classGroup._id) : "",
+        gradeId: classGroup?.gradeId ? String(classGroup.gradeId) : "",
         name: className,
         gradeName: gradeName || "",
         subjectName: subject?.name || "",

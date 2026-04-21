@@ -4,7 +4,8 @@ import { parseTimeToMinutes, slotsOverlap } from "@/lib/timetable/validate";
 
 export interface TimetableConflictSlot {
   _id?: Types.ObjectId;
-  teacherId: Types.ObjectId;
+  /** Omitted when no teacher is assigned; those slots skip teacher-overlap checks. */
+  teacherId?: Types.ObjectId | null;
   classGroupId: Types.ObjectId;
   dayOfWeek: number;
   startTime: string;
@@ -127,16 +128,19 @@ export function detectTimetableConflicts(
   const classGroups = new Map<string, IndexedSlot[]>();
 
   for (const entry of indexedSlots) {
-    const teacherKey = `${String(entry.slot.teacherId)}|${entry.slot.dayOfWeek}`;
     const classKey = `${String(entry.slot.classGroupId)}|${entry.slot.dayOfWeek}`;
-
-    const teacherItems = teacherGroups.get(teacherKey) ?? [];
-    teacherItems.push(entry);
-    teacherGroups.set(teacherKey, teacherItems);
 
     const classItems = classGroups.get(classKey) ?? [];
     classItems.push(entry);
     classGroups.set(classKey, classItems);
+
+    const tid = entry.slot.teacherId;
+    if (tid) {
+      const teacherKey = `${String(tid)}|${entry.slot.dayOfWeek}`;
+      const teacherItems = teacherGroups.get(teacherKey) ?? [];
+      teacherItems.push(entry);
+      teacherGroups.set(teacherKey, teacherItems);
+    }
   }
 
   const output: DetectedTimetableConflict[] = [];

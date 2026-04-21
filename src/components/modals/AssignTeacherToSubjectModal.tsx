@@ -463,7 +463,8 @@ export function AssignTeacherToSubjectModal({
                     Would you like to set the days and times this teacher will teach?
                   </p>
                   <p className="mt-1 text-xs text-white/60">
-                    This helps build the master timetable and class timetables. Schedules are checked for conflicts.
+                    This helps build the shared school timetable draft from each class schedule.
+                    Schedules are checked for conflicts.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2">

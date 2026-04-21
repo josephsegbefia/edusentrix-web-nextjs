@@ -11,7 +11,7 @@ type ClassScheduleTabProps = {
 /**
  * Class Schedule tab: primary creation path for class-group timetable.
  * Build the timetable per class (day + period + subject + teacher).
- * This is the source of truth for the master timetable.
+ * This is the source of truth for the school timetable draft.
  */
 export function ClassScheduleTab({
   classId,

@@ -61,6 +61,29 @@ export interface IGradeScheduleOverride {
 }
 
 /**
+ * Per-day school schedule used by the timetable builder.
+ * Period count is derived automatically from start/end, breaks, and duration.
+ */
+export interface IDayScheduleConfig {
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  periodDuration?: number | null; // minutes
+  startTime?: string | null; // "HH:MM"
+  endTime?: string | null; // "HH:MM"
+  breaks?: IBreakPeriod[];
+}
+
+/**
+ * Grade-level schedule profile that can be assigned to one or more grades.
+ * Missing day entries fall back to the school-wide per-day schedule.
+ */
+export interface IGradeDayScheduleProfile {
+  _id?: Types.ObjectId;
+  name: string;
+  gradeIds: Types.ObjectId[];
+  daySchedules?: IDayScheduleConfig[];
+}
+
+/**
  * Assembly configuration
  */
 export interface IAssemblyConfig {
@@ -95,6 +118,11 @@ export interface IAssemblyGradeOverride {
 export interface ISchoolSettings {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
+
+  // Timetable schedule model
+  scheduleModelVersion?: number;
+  daySchedules?: IDayScheduleConfig[];
+  gradeDayScheduleProfiles?: IGradeDayScheduleProfile[];
 
   // Daily Schedule
   schoolStartTime: string; // "HH:MM" - when school day begins
@@ -265,6 +293,43 @@ const GradeScheduleOverrideSchema = new Schema<IGradeScheduleOverride>(
   { _id: false }
 );
 
+const DayScheduleConfigSchema = new Schema<IDayScheduleConfig>(
+  {
+    dayOfWeek: { type: Number, required: true, min: 0, max: 6 },
+    periodDuration: { type: Number, min: 15, max: 120, default: null },
+    startTime: {
+      type: String,
+      default: null,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    endTime: {
+      type: String,
+      default: null,
+      match: /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/,
+    },
+    breaks: { type: [BreakPeriodSchema], default: undefined },
+  },
+  { _id: false }
+);
+
+const GradeDayScheduleProfileSchema = new Schema<IGradeDayScheduleProfile>(
+  {
+    name: { type: String, required: true, trim: true },
+    gradeIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Grade",
+        required: true,
+      },
+    ],
+    daySchedules: {
+      type: [DayScheduleConfigSchema],
+      default: undefined,
+    },
+  },
+  { _id: true }
+);
+
 const AssemblyConfigSchema = new Schema<IAssemblyConfig>(
   {
     days: [{ type: Number, min: 0, max: 6 }],
@@ -315,6 +380,21 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
       required: true,
       unique: true, // One settings document per school
       index: true,
+    },
+
+    scheduleModelVersion: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 2,
+    },
+    daySchedules: {
+      type: [DayScheduleConfigSchema],
+      default: undefined,
+    },
+    gradeDayScheduleProfiles: {
+      type: [GradeDayScheduleProfileSchema],
+      default: undefined,
     },
 
     // Daily Schedule

@@ -20,6 +20,7 @@
     "admin:create": "tsx scripts/createPlatformAdmin.ts",
     "timetable:backfill": "tsx scripts/backfill-timetable-from-assignments.ts",
     "timetable:parity": "tsx scripts/check-timetable-assignment-parity.ts",
+    "timetable:reset-day-spring": "tsx scripts/reset-timetable-day-spring-school.ts",
     "audit:reconcile": "tsx scripts/audit-reconcile.ts"
   },
   "dependencies": {

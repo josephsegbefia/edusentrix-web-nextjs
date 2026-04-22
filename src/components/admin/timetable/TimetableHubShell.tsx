@@ -34,6 +34,8 @@ import {
   getResolvedScheduleDiagnostics,
   getResolvedScheduleSettings,
 } from "@/lib/timetable/scheduleSettings";
+import { schoolSettingsToScheduleInput } from "@/lib/timetable/schoolSettingsScheduleInput";
+import type { ISchoolSettings } from "@/models/SchoolSettings";
 import { DAY_NAMES, formatTimeLabel } from "./types";
 
 function formatMinutesLabel(totalMinutes: number): string {
@@ -102,29 +104,7 @@ export function TimetableHubShell() {
 
   const scheduleInput = React.useMemo(
     () =>
-      settings
-        ? {
-            schoolStartTime: settings.schoolStartTime,
-            schoolEndTime: settings.schoolEndTime,
-            periodDuration: settings.periodDuration,
-            periodsPerDay: settings.periodsPerDay,
-            periodSlots: settings.periodSlots,
-            breaks: settings.breaks,
-            breakDailyOverrides: settings.breakDailyOverrides || [],
-            breakGradeOverrides: settings.breakGradeOverrides || [],
-            assembly: settings.assembly
-              ? {
-                  days: settings.assembly.days,
-                  startTime: settings.assembly.startTime,
-                  duration: settings.assembly.duration,
-                }
-              : undefined,
-            assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
-            assemblyGradeOverrides: settings.assemblyGradeOverrides || [],
-            dailyScheduleOverrides: settings.dailyScheduleOverrides,
-            gradeScheduleOverrides: settings.gradeScheduleOverrides,
-          }
-        : null,
+      settings ? schoolSettingsToScheduleInput(settings as unknown as ISchoolSettings) : null,
     [settings]
   );
 
@@ -160,9 +140,8 @@ export function TimetableHubShell() {
                 Build the school timetable inside each class
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-white/65">
-                The master timetable view is replaced here with a simpler workflow. Check the
-                school-day setup, then open a class and build its schedule directly from the
-                class detail page.
+                Check the school-day setup here, then open a class and build its schedule
+                directly from the class detail page.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -250,8 +229,8 @@ export function TimetableHubShell() {
               </div>
             </div>
             <p className="text-sm text-white/60">
-              These are the resolved school-wide day settings that class timetable creation uses.
-              If a day fits fewer periods than expected, fix it in Settings before publishing.
+              These are the resolved day settings that class timetable creation uses. Each day now
+              calculates its available teaching periods from duration, start/end, and breaks.
             </p>
           </CardHeader>
           <CardContent>
@@ -262,8 +241,9 @@ export function TimetableHubShell() {
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {daySummaries.map(({ dayOfWeek, resolved, diagnostics }) => {
-                  const severity =
-                    diagnostics.periodsShortfall > 0
+                  const severity = !resolved.isConfigured
+                    ? "missing"
+                    : diagnostics.periodsShortfall > 0
                       ? "error"
                       : diagnostics.unallocatedMinutes > 0
                         ? "warning"
@@ -272,7 +252,9 @@ export function TimetableHubShell() {
                     <div
                       key={dayOfWeek}
                       className={`rounded-xl border p-4 ${
-                        severity === "error"
+                        severity === "missing"
+                          ? "border-white/15 bg-white/[0.04]"
+                          : severity === "error"
                           ? "border-rose-500/35 bg-rose-500/10"
                           : severity === "warning"
                             ? "border-amber-500/35 bg-amber-500/10"
@@ -283,39 +265,52 @@ export function TimetableHubShell() {
                         <div>
                           <p className="text-sm font-semibold text-white">{DAY_NAMES[dayOfWeek]}</p>
                           <p className="mt-1 text-xs text-white/65">
-                            School day {formatTimeLabel(resolved.startTime)}–{formatTimeLabel(resolved.endTime)}
+                            {resolved.isConfigured
+                              ? `School day ${formatTimeLabel(resolved.startTime)}–${formatTimeLabel(resolved.endTime)}`
+                              : "School day not configured yet"}
                           </p>
                         </div>
                         <Badge
                           variant="outline"
                           className={`${
-                            severity === "error"
+                            severity === "missing"
+                              ? "border-white/15 text-white/65"
+                              : severity === "error"
                               ? "border-rose-400/40 text-rose-100"
                               : severity === "warning"
                                 ? "border-amber-400/40 text-amber-100"
                                 : "border-emerald-400/40 text-emerald-100"
                           }`}
                         >
-                          {diagnostics.scheduledPeriods}/{resolved.periodsPerDay} periods
+                          {resolved.isConfigured
+                            ? `${diagnostics.scheduledPeriods} period(s)`
+                            : "Needs setup"}
                         </Badge>
                       </div>
 
-                      <div className="mt-3 space-y-1 text-xs text-white/75">
-                        <p>
-                          Period duration: {resolved.periodDuration} min
-                          {diagnostics.lastPeriodEndTime
-                            ? ` · last lesson ${formatTimeLabel(diagnostics.lastPeriodEndTime)}`
-                            : ""}
-                        </p>
-                        <p>
-                          Breaks + assembly:{" "}
-                          {formatMinutesLabel(
-                            diagnostics.breakMinutes + diagnostics.assemblyMinutes
-                          )}
-                        </p>
-                      </div>
+                      {resolved.isConfigured ? (
+                        <div className="mt-3 space-y-1 text-xs text-white/75">
+                          <p>
+                            Period duration: {resolved.periodDuration} min
+                            {diagnostics.lastPeriodEndTime
+                              ? ` · last lesson ${formatTimeLabel(diagnostics.lastPeriodEndTime)}`
+                              : ""}
+                          </p>
+                          <p>
+                            Breaks + assembly:{" "}
+                            {formatMinutesLabel(
+                              diagnostics.breakMinutes + diagnostics.assemblyMinutes
+                            )}
+                          </p>
+                        </div>
+                      ) : null}
 
-                      {diagnostics.periodsShortfall > 0 ? (
+                      {!resolved.isConfigured ? (
+                        <p className="mt-3 text-xs text-white/75">
+                          Set period duration first, then start/end time and breaks for this day in
+                          Settings.
+                        </p>
+                      ) : diagnostics.periodsShortfall > 0 ? (
                         <p className="mt-3 text-xs text-rose-100/90">
                           {DAY_NAMES[dayOfWeek]} is short by {diagnostics.periodsShortfall} period(s).
                           Current breaks, assembly, and school-close time cannot fit the configured day.

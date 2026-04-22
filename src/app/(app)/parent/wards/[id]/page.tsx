@@ -59,7 +59,6 @@ import { ParentPaystackTestModeBanner } from "@/components/parent/ParentPaystack
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { PaystackKeyMode } from "@/types/paystack-key-mode";
 import { formatMoney } from "@/lib/fees/money";
-import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
 import { toast } from "sonner";
 
 /* --------------------------------------------------------------------------------
@@ -80,8 +79,6 @@ type TabConfig = {
 /* --------------------------------------------------------------------------------
    Constants
 -------------------------------------------------------------------------------- */
-const TIMETABLE_ROLE_VIEWS_ENABLED = isTimetableRoleReadViewsEnabled();
-
 const TABS: TabConfig[] = [
   {
     id: "overview",
@@ -92,19 +89,15 @@ const TABS: TabConfig[] = [
       icon: "bg-teal-500/20 text-teal-300 border-teal-500/30",
     },
   },
-  ...(TIMETABLE_ROLE_VIEWS_ENABLED
-    ? [
-        {
-          id: "timetable" as WardDetailTabId,
-          label: "Timetable",
-          icon: Calendar,
-          colors: {
-            active: "border-sky-500/40 bg-sky-500/15 text-sky-200 shadow-sky-500/20",
-            icon: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-          },
-        },
-      ]
-    : []),
+  {
+    id: "timetable",
+    label: "Timetable",
+    icon: Calendar,
+    colors: {
+      active: "border-sky-500/40 bg-sky-500/15 text-sky-200 shadow-sky-500/20",
+      icon: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+    },
+  },
   {
     id: "academics",
     label: "Academics",
@@ -172,7 +165,7 @@ function getInitialTab(sp: URLSearchParams | null): WardDetailTabId {
   const raw = sp.get("tab");
   if (
     raw === "overview" ||
-    (raw === "timetable" && TIMETABLE_ROLE_VIEWS_ENABLED) ||
+    raw === "timetable" ||
     raw === "academics" ||
     raw === "fees" ||
     raw === "attendance"
@@ -1845,7 +1838,7 @@ function WardDetailContent() {
       <div>
         {activeTab === "overview" ? (
           <OverviewTab wardId={wardId} />
-        ) : activeTab === "timetable" && TIMETABLE_ROLE_VIEWS_ENABLED ? (
+        ) : activeTab === "timetable" ? (
           <WardTimetable wardId={wardId} wardName={ward.name} />
         ) : activeTab === "academics" ? (
           <AcademicsTab wardId={wardId} />

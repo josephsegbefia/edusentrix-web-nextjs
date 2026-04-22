@@ -7,7 +7,6 @@ import { Teacher } from "@/models/Teacher";
 import { Student } from "@/models/Student";
 import { Subject } from "@/models/Subject";
 import { FeeStructure } from "@/models/FeeStructure";
-import { SchoolSettings } from "@/models/SchoolSettings";
 import { School, type ISchool } from "@/models/School";
 import type {
   SchoolSetupReadinessResult,
@@ -54,7 +53,6 @@ export async function getSchoolSetupReadiness(
     studentCount,
     subjectCount,
     feeStructureCount,
-    settingsLean,
     schoolLean,
   ] = await Promise.all([
     AcademicPeriod.findOne({
@@ -68,15 +66,6 @@ export async function getSchoolSetupReadiness(
     Student.countDocuments({ schoolId: schoolIdObj }),
     Subject.countDocuments({ schoolId: schoolIdObj }),
     FeeStructure.countDocuments({ schoolId: schoolIdObj, isActive: true }),
-    SchoolSettings.findOne({ schoolId: schoolIdObj })
-      .select("createdAt updatedAt gradeScheduleOverrides dailyScheduleOverrides breakGradeOverrides")
-      .lean() as Promise<{
-      createdAt?: Date;
-      updatedAt?: Date;
-      gradeScheduleOverrides?: unknown[];
-      dailyScheduleOverrides?: unknown[];
-      breakGradeOverrides?: unknown[];
-    } | null>,
     School.findById(schoolIdObj).select("billing").lean() as Promise<
       Pick<ISchool, "billing"> & { _id: mongoose.Types.ObjectId }
     > | null,
@@ -88,22 +77,6 @@ export async function getSchoolSetupReadiness(
   const hasStudents = studentCount > 0;
   const hasSubjects = subjectCount > 0;
   const hasFeeStructures = feeStructureCount > 0;
-
-  let scheduleLooksReviewed = false;
-  if (settingsLean) {
-    const created = settingsLean.createdAt
-      ? new Date(settingsLean.createdAt).getTime()
-      : 0;
-    const updated = settingsLean.updatedAt
-      ? new Date(settingsLean.updatedAt).getTime()
-      : 0;
-    const hasOverrides =
-      (settingsLean.gradeScheduleOverrides?.length ?? 0) > 0 ||
-      (settingsLean.dailyScheduleOverrides?.length ?? 0) > 0 ||
-      (settingsLean.breakGradeOverrides?.length ?? 0) > 0;
-    scheduleLooksReviewed =
-      hasOverrides || (updated > 0 && created > 0 && updated - created > 5000);
-  }
 
   const payStatus = schoolLean?.billing?.paymentSetup?.status;
   const paystackReady = !!schoolLean?.billing?.paystack?.subaccountCode;
@@ -176,15 +149,6 @@ export async function getSchoolSetupReadiness(
       priority: "medium",
       href: "/admin/settings/payment-setup",
       ctaLabel: "Payment setup",
-    },
-    {
-      id: "daily_schedule",
-      title: "Daily schedule",
-      description: "Confirm school start and end times, periods, breaks, and assembly.",
-      done: scheduleLooksReviewed,
-      priority: "medium",
-      href: "/admin/settings?tab=schedule",
-      ctaLabel: "School settings",
     },
   ];
 

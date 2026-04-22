@@ -34,17 +34,13 @@ import { TeacherDutiesTab } from "@/components/admin/teachers/detail/TeacherDuti
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
 import { UpdateLeaveModal } from "@/components/modals/UpdateLeaveModal";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
-import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
-
-const TIMETABLE_ROLE_VIEWS_ENABLED = isTimetableRoleReadViewsEnabled();
-
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
   if (!sp) return "overview";
   const raw = sp.get("tab");
   if (
     raw === "overview" ||
     raw === "assignments" ||
-    (raw === "my_week" && TIMETABLE_ROLE_VIEWS_ENABLED) ||
+    raw === "my_week" ||
     raw === "duties" ||
     raw === "performance" ||
     raw === "attendance" ||

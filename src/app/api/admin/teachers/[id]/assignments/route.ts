@@ -332,7 +332,7 @@ export async function POST(
     const warnings: string[] = [];
     if (scheduleWriteAttempted) {
       warnings.push(
-        "Assignment-level schedule writes are disabled. Manage schedules in the Master Timetable planner."
+        "Assignment-level schedule writes are disabled. Manage schedules from the class timetable page."
       );
     }
 

@@ -25,8 +25,8 @@ import {
   getResolvedScheduleSettings,
   type ResolvedScheduleDiagnostics,
   type ResolvedScheduleSettings,
-  type ScheduleSettingsInput,
 } from "@/lib/timetable/scheduleSettings";
+import { schoolSettingsToScheduleInput } from "@/lib/timetable/schoolSettingsScheduleInput";
 import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
 
 const DAY_NAMES = [
@@ -90,30 +90,6 @@ interface MaterializedValidationConflict {
   message: string;
   metadata: Record<string, unknown>;
   severity?: TimetableConflictSeverity;
-}
-
-function toScheduleInput(doc: ISchoolSettings): ScheduleSettingsInput {
-  return {
-    schoolStartTime: doc.schoolStartTime,
-    schoolEndTime: doc.schoolEndTime,
-    periodDuration: doc.periodDuration,
-    periodsPerDay: doc.periodsPerDay,
-    periodSlots: doc.periodSlots,
-    breaks: doc.breaks || [],
-    assembly: doc.assembly
-      ? {
-          days: doc.assembly.days,
-          startTime: doc.assembly.startTime,
-          duration: doc.assembly.duration,
-        }
-      : undefined,
-    assemblyDailyOverrides: doc.assemblyDailyOverrides || [],
-    assemblyGradeOverrides: doc.assemblyGradeOverrides || [],
-    dailyScheduleOverrides: doc.dailyScheduleOverrides,
-    gradeScheduleOverrides: doc.gradeScheduleOverrides,
-    breakDailyOverrides: doc.breakDailyOverrides || [],
-    breakGradeOverrides: doc.breakGradeOverrides || [],
-  };
 }
 
 function dayName(dayOfWeek: number): string {
@@ -246,6 +222,7 @@ function buildOutsidePeriodRangeMessage(args: {
   const { slot, resolvedDay } = args;
   const shortfall = resolvedDay.diagnostics.periodsShortfall;
   const lastPeriodEnd = resolvedDay.diagnostics.lastPeriodEndTime;
+  const availablePeriods = resolvedDay.expectedPeriodSlots.length;
 
   if (shortfall > 0) {
     const shortfallLabel =
@@ -254,10 +231,10 @@ function buildOutsidePeriodRangeMessage(args: {
   }
 
   if (lastPeriodEnd) {
-    return `${describeSlot(slot)} no longer matches ${dayName(slot.dayOfWeek)}'s configured periods. The resolved teaching periods now end at ${lastPeriodEnd}.`;
+    return `${describeSlot(slot)} no longer matches ${dayName(slot.dayOfWeek)}. ${availablePeriods} teaching period(s) are currently available and the last one ends at ${lastPeriodEnd}.`;
   }
 
-  return `${describeSlot(slot)} no longer matches ${dayName(slot.dayOfWeek)}'s configured periods.`;
+  return `${describeSlot(slot)} no longer matches ${dayName(slot.dayOfWeek)}'s available teaching periods.`;
 }
 
 function buildOverlapMessage(
@@ -427,17 +404,14 @@ export async function recomputeConflictsForVersion(
     });
   }
 
-  const scheduleInput = settingsDoc ? toScheduleInput(settingsDoc) : null;
-  const resolvedScheduleCache = new Map<string, ConflictResolvedDaySummary | null>();
+  const scheduleInput = settingsDoc ? schoolSettingsToScheduleInput(settingsDoc) : null;
+  const resolvedScheduleCache = new Map<string, ResolvedScheduleSettings>();
 
-  const getResolvedDaySummary = (slot: {
-    gradeId: Types.ObjectId;
-    dayOfWeek: number;
-  }) => {
+  const getResolvedForSlot = (slot: { gradeId: Types.ObjectId; dayOfWeek: number }) => {
     if (!scheduleInput) return null;
     const key = `${String(slot.gradeId)}:${slot.dayOfWeek}`;
     if (resolvedScheduleCache.has(key)) {
-      return resolvedScheduleCache.get(key) ?? null;
+      return resolvedScheduleCache.get(key)!;
     }
 
     const resolved = getResolvedScheduleSettings(
@@ -445,9 +419,8 @@ export async function recomputeConflictsForVersion(
       String(slot.gradeId),
       slot.dayOfWeek
     );
-    const summary = buildResolvedDaySummary(resolved);
-    resolvedScheduleCache.set(key, summary);
-    return summary;
+    resolvedScheduleCache.set(key, resolved);
+    return resolved;
   };
 
   const generatedValidationConflicts: MaterializedValidationConflict[] = [];
@@ -474,22 +447,13 @@ export async function recomputeConflictsForVersion(
       if (mapped) generatedValidationConflicts.push(mapped);
     }
 
-    const resolvedDay = getResolvedDaySummary(slot);
+    const resolved = getResolvedForSlot(slot);
+    const resolvedDay = resolved ? buildResolvedDaySummary(resolved) : null;
     if (
+      resolved &&
+      resolved.isConfigured &&
       resolvedDay &&
-      !slotAlignsWithSchoolPeriods(
-        {
-          startTime: resolvedDay.startTime,
-          endTime: resolvedDay.endTime,
-          periodDuration: resolvedDay.periodDuration,
-          periodsPerDay: resolvedDay.periodsPerDay,
-          periodSlots: resolvedDay.expectedPeriodSlots,
-          breaks: [],
-          assembly: null,
-        },
-        slot.startTime,
-        slot.endTime
-      )
+      !slotAlignsWithSchoolPeriods(resolved, slot.startTime, slot.endTime)
     ) {
       generatedValidationConflicts.push({
         code: "OUTSIDE_PERIOD_RANGE",

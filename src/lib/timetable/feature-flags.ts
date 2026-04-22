@@ -1,3 +1,14 @@
+/**
+ * When true, timetable read/write APIs, class-group slot APIs, and daily schedule
+ * settings are disabled. UI routes remain and show a “coming soon” state.
+ * Set env FEATURE_TIMETABLE_SUNSET=false to temporarily re-enable (e.g. local debugging).
+ */
+export function isTimetableModuleSunset(): boolean {
+  if (process.env.FEATURE_TIMETABLE_SUNSET === "false") return false;
+  if (process.env.FEATURE_TIMETABLE_SUNSET === "true") return true;
+  return true;
+}
+
 function parseBoolean(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined) return fallback;
   return value === "true";
@@ -12,6 +23,7 @@ function envBoolean(keys: string[], fallback: boolean): boolean {
 }
 
 export function isTimetableRebootEnabled(): boolean {
+  if (isTimetableModuleSunset()) return false;
   return envBoolean(
     [
       "NEXT_PUBLIC_FEATURE_TIMETABLE_REBOOT_ENABLED",
@@ -22,6 +34,7 @@ export function isTimetableRebootEnabled(): boolean {
 }
 
 export function isTimetableDualWriteEnabled(): boolean {
+  if (isTimetableModuleSunset()) return false;
   return envBoolean(
     [
       "NEXT_PUBLIC_FEATURE_TIMETABLE_DUAL_WRITE_ENABLED",
@@ -32,6 +45,7 @@ export function isTimetableDualWriteEnabled(): boolean {
 }
 
 export function isTimetableAdminPlannerEnabled(): boolean {
+  if (isTimetableModuleSunset()) return false;
   return envBoolean(
     [
       "NEXT_PUBLIC_FEATURE_TIMETABLE_ADMIN_PLANNER_ENABLED",
@@ -42,6 +56,7 @@ export function isTimetableAdminPlannerEnabled(): boolean {
 }
 
 export function isTimetablePublishWorkflowEnabled(): boolean {
+  if (isTimetableModuleSunset()) return false;
   return envBoolean(
     [
       "NEXT_PUBLIC_FEATURE_TIMETABLE_PUBLISH_WORKFLOW_ENABLED",
@@ -52,6 +67,7 @@ export function isTimetablePublishWorkflowEnabled(): boolean {
 }
 
 export function isTimetableRoleReadViewsEnabled(): boolean {
+  if (isTimetableModuleSunset()) return false;
   return envBoolean(
     [
       "NEXT_PUBLIC_FEATURE_TIMETABLE_ROLE_READ_VIEWS_ENABLED",

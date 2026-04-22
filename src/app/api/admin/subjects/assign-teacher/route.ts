@@ -12,6 +12,7 @@ import {
   deactivateOtherTeachersOnSlot,
   findOtherTeachersOnSlot,
 } from "@/lib/admin/teacher-assignment-slot";
+import { isTimetableApiWriteEnabled } from "@/lib/timetable/feature-flags";
 import { syncDraftSlotTeachersFromAssignment } from "@/lib/timetable/sync-slot-teachers-from-assignments";
 
 const AssignTeacherSchema = z.object({
@@ -201,14 +202,16 @@ export async function POST(req: NextRequest) {
       status: "active",
     });
 
-    await syncDraftSlotTeachersFromAssignment({
-      schoolId: schoolIdObj,
-      academicPeriodId: periodObjId,
-      classGroupId: classGroupObjId,
-      subjectId: subjectObjId,
-      teacherId: teacherObjId,
-      updatedBy: actorIdObj ?? undefined,
-    });
+    if (isTimetableApiWriteEnabled()) {
+      await syncDraftSlotTeachersFromAssignment({
+        schoolId: schoolIdObj,
+        academicPeriodId: periodObjId,
+        classGroupId: classGroupObjId,
+        subjectId: subjectObjId,
+        teacherId: teacherObjId,
+        updatedBy: actorIdObj ?? undefined,
+      });
+    }
 
     return NextResponse.json({
       success: true,

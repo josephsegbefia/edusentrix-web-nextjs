@@ -9,6 +9,7 @@ import { Teacher } from "@/models/Teacher";
 import { TimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { User } from "@/models/User";
+import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
 
 export type TimetableScope = "school" | "class" | "teacher" | "student";
 
@@ -447,15 +448,31 @@ export async function getPublishedWeekTimetable(args: {
       status: number;
     }
 > {
-  const published = await resolvePublishedTimetableContext(
-    args.schoolId,
-    args.targetDate
-  );
   const weekStart = getWeekStartMonday(args.targetDate);
   const weekEnd = new Date(
     weekStart.getFullYear(),
     weekStart.getMonth(),
     weekStart.getDate() + 6
+  );
+
+  if (!isTimetableRoleReadViewsEnabled()) {
+    return {
+      noPublishedVersion: true,
+      publishedVersionId: null,
+      publishedAt: null,
+      data: {
+        scope: args.scope,
+        weekStart: formatDateYmd(weekStart),
+        weekEnd: formatDateYmd(weekEnd),
+        workingDays: [1, 2, 3, 4, 5],
+        days: [],
+      },
+    };
+  }
+
+  const published = await resolvePublishedTimetableContext(
+    args.schoolId,
+    args.targetDate
   );
 
   if (!published) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { ClassTimetableEditor } from "./ClassTimetableEditor";
+import { ComingSoonPanel } from "@/components/ui/coming-soon-panel";
 
 type ClassScheduleTabProps = {
   classId: string;
@@ -9,20 +9,13 @@ type ClassScheduleTabProps = {
 };
 
 /**
- * Class Schedule tab: primary creation path for class-group timetable.
- * Build the timetable per class (day + period + subject + teacher).
- * This is the source of truth for the school timetable draft.
+ * Class schedule / timetable (coming soon).
  */
-export function ClassScheduleTab({
-  classId,
-  className,
-  gradeId,
-}: ClassScheduleTabProps) {
+export function ClassScheduleTab({ className, classId: _classId, gradeId: _gradeId }: ClassScheduleTabProps) {
   return (
-    <ClassTimetableEditor
-      classId={classId}
-      className={className}
-      gradeId={gradeId}
+    <ComingSoonPanel
+      title="Class timetable"
+      description={`Timetable building for ${className} is not available yet. Subject and teacher assignments on the class still work as usual.`}
     />
   );
 }

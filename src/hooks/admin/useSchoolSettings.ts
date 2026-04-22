@@ -9,6 +9,21 @@ export type BreakPeriodDTO = {
   isLunch?: boolean;
 };
 
+export type SchoolDayScheduleDTO = {
+  dayOfWeek: number;
+  periodDuration?: number | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  breaks: BreakPeriodDTO[];
+};
+
+export type GradeDayScheduleProfileDTO = {
+  id?: string;
+  name: string;
+  gradeIds: string[];
+  daySchedules: SchoolDayScheduleDTO[];
+};
+
 export type BreakDailyOverrideDTO = {
   dayOfWeek: number;
   breakName: string;
@@ -64,10 +79,10 @@ export type GradeScheduleOverrideDTO = {
 
 export type SchoolSettingsDTO = {
   id: string;
-  schoolStartTime: string;
-  schoolEndTime: string;
-  periodDuration: number;
-  periodsPerDay: number;
+  schoolStartTime: string | null;
+  schoolEndTime: string | null;
+  periodDuration: number | null;
+  periodsPerDay: number | null;
   periodSlots: PeriodSlotDTO[];
   dailyScheduleOverrides: DailyScheduleOverrideDTO[];
   gradeScheduleOverrides: GradeScheduleOverrideDTO[];
@@ -81,7 +96,6 @@ export type SchoolSettingsDTO = {
   minimumAttendancePercent: number;
   defaultExamWeekDuration: number;
   defaultRevisionWeekDuration: number;
-  workingDays: number[];
   teacherStudio: {
     enabled: boolean;
   };
@@ -99,6 +113,12 @@ export type SchoolSettingsDTO = {
   updatedAt: string | null;
 };
 
+export type SchoolSettingsResponse = {
+  success: boolean;
+  data: SchoolSettingsDTO;
+  message?: string;
+};
+
 export type UpdateSchoolSettingsInput = Partial<
   Omit<SchoolSettingsDTO, "id" | "periodSlots" | "updatedAt">
 >;
@@ -107,7 +127,7 @@ export type UpdateSchoolSettingsInput = Partial<
  * Fetch school settings
  */
 export function useSchoolSettings() {
-  return useQuery<{ success: boolean; data: SchoolSettingsDTO }>({
+  return useQuery<SchoolSettingsResponse>({
     queryKey: ["school-settings"],
     queryFn: async () => {
       const res = await fetch("/api/admin/settings", { cache: "no-store" });
@@ -124,7 +144,7 @@ export function useSchoolSettings() {
 export function useUpdateSchoolSettings() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<SchoolSettingsResponse, Error, UpdateSchoolSettingsInput>({
     mutationFn: async (data: UpdateSchoolSettingsInput) => {
       const res = await fetch("/api/admin/settings", {
         method: "PATCH",
@@ -137,7 +157,8 @@ export function useUpdateSchoolSettings() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      queryClient.setQueryData(["school-settings"], response);
       queryClient.invalidateQueries({ queryKey: ["school-settings"] });
       invalidateSetupReadiness(queryClient);
     },
@@ -147,7 +168,7 @@ export function useUpdateSchoolSettings() {
 /**
  * Helper to format time for display
  */
-export function formatTime(time: string): string {
+export function formatTime(time: string | null | undefined): string {
   if (!time) return "";
   const [hours, minutes] = time.split(":").map(Number);
   const period = hours >= 12 ? "PM" : "AM";

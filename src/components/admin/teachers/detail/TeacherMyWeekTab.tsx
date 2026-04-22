@@ -1,6 +1,6 @@
 "use client";
 
-import { RoleWeekDayTimetable } from "@/components/timetable/RoleWeekDayTimetable";
+import { ComingSoonPanel } from "@/components/ui/coming-soon-panel";
 
 export function TeacherMyWeekTab({
   teacher,
@@ -11,14 +11,9 @@ export function TeacherMyWeekTab({
   };
 }) {
   return (
-    <RoleWeekDayTimetable
-      endpoint={`/api/admin/teachers/${encodeURIComponent(teacher.id)}/timetable/week`}
+    <ComingSoonPanel
       title="Weekly schedule"
-      subtitle={`Published timetable for ${teacher.fullName}.`}
-      hideTeacherName
-      noPublishedMessage="No published timetable is available for this teacher yet."
-      emptyWeekMessage="No classes are scheduled for this week."
-      emptyDayMessage="No classes are scheduled for this day."
+      description={`A read-only week view for ${teacher.fullName} will return when timetables relaunch. Assignments and classes are unchanged.`}
     />
   );
 }

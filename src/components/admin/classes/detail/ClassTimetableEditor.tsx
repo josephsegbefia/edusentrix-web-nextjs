@@ -2,7 +2,17 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Loader2, Sparkles, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Loader2,
+  Sparkles,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -21,6 +31,8 @@ import {
   getResolvedScheduleDiagnostics,
   getResolvedScheduleSettings,
 } from "@/lib/timetable/scheduleSettings";
+import { schoolSettingsToScheduleInput } from "@/lib/timetable/schoolSettingsScheduleInput";
+import type { ISchoolSettings } from "@/models/SchoolSettings";
 import { useClassTimetableSlots } from "@/hooks/admin/useClassTimetableSlots";
 import { useClassSubjectTeachers } from "@/hooks/admin/useClassSubjectTeachers";
 import {
@@ -190,29 +202,7 @@ export function ClassTimetableEditor({
 
   const scheduleInput = React.useMemo(
     () =>
-      settings
-        ? {
-            schoolStartTime: settings.schoolStartTime,
-            schoolEndTime: settings.schoolEndTime,
-            periodDuration: settings.periodDuration,
-            periodsPerDay: settings.periodsPerDay,
-            periodSlots: settings.periodSlots,
-            breaks: settings.breaks,
-            breakDailyOverrides: settings.breakDailyOverrides || [],
-            breakGradeOverrides: settings.breakGradeOverrides || [],
-            assembly: settings.assembly
-              ? {
-                  days: settings.assembly.days,
-                  startTime: settings.assembly.startTime,
-                  duration: settings.assembly.duration,
-                }
-              : undefined,
-            assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
-            assemblyGradeOverrides: settings.assemblyGradeOverrides || [],
-            dailyScheduleOverrides: settings.dailyScheduleOverrides,
-            gradeScheduleOverrides: settings.gradeScheduleOverrides,
-          }
-        : null,
+      settings ? schoolSettingsToScheduleInput(settings as unknown as ISchoolSettings) : null,
     [settings]
   );
 
@@ -360,6 +350,12 @@ export function ClassTimetableEditor({
 
   const [leoLoading, setLeoLoading] = React.useState(false);
   const [leoText, setLeoText] = React.useState<string | null>(null);
+  const [issuesExpanded, setIssuesExpanded] = React.useState(false);
+
+  const hasIssueSummary =
+    errorConflicts.length > 0 ||
+    warnConflicts.length > 0 ||
+    (publishBlocked && otherErrorConflicts.length > 0);
 
   const runLeoCoach = async () => {
     if (!selectedPeriodId) return;
@@ -476,9 +472,22 @@ export function ClassTimetableEditor({
             </Button>
           </div>
           {leoText !== null ? (
-            <p className="mt-3 text-sm leading-relaxed text-white/85 whitespace-pre-wrap">
-              {leoText || "No suggestions right now."}
-            </p>
+            <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm leading-relaxed text-white/85 whitespace-pre-wrap">
+                  {leoText || "No suggestions right now."}
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-white/55 hover:bg-white/10 hover:text-white"
+                  onClick={() => setLeoText(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           ) : null}
         </div>
 
@@ -489,79 +498,113 @@ export function ClassTimetableEditor({
           </div>
         ) : null}
 
-        {errorConflicts.length > 0 ? (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-3 text-sm text-rose-100">
-            <p className="font-medium text-rose-50">
-              {errorConflicts.length} open error(s) affecting this class. The highlighted lesson
-              card(s) below need attention before school-wide publishing can proceed.
-            </p>
-            <div className="mt-3 space-y-2.5">
-              {errorConflicts.map((conflict) => {
-                const details = describeConflict(conflict, classId);
-                return (
-                  <div
-                    key={conflict.id}
-                    className="rounded-lg border border-rose-400/20 bg-black/20 px-3 py-2.5"
-                  >
-                    <p className="font-medium text-rose-50">{details.title}</p>
-                    <p className="mt-1 text-rose-100/90">{details.summary}</p>
-                    {details.lines.length > 0 ? (
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-rose-100/85">
-                        {details.lines.map((line, index) => (
-                          <li key={`${conflict.id}-${index}`}>{line}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                );
-              })}
+        {hasIssueSummary ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-amber-400/25 bg-amber-500/10">
+                  <AlertTriangle className="h-4 w-4 text-amber-200" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">Draft issues</p>
+                  <p className="mt-1 text-sm text-white/65">
+                    {errorConflicts.length > 0
+                      ? `${errorConflicts.length} error(s) affect this class.`
+                      : "No error-level issues affect this class."}{" "}
+                    {warnConflicts.length > 0 ? `${warnConflicts.length} reminder(s) are open.` : ""}
+                    {publishBlocked && otherErrorConflicts.length > 0
+                      ? ` ${otherErrorConflicts.length} more error(s) in other classes also block publishing.`
+                      : ""}
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+                onClick={() => setIssuesExpanded((current) => !current)}
+              >
+                {issuesExpanded ? (
+                  <ChevronUp className="mr-2 h-4 w-4" />
+                ) : (
+                  <ChevronDown className="mr-2 h-4 w-4" />
+                )}
+                {issuesExpanded ? "Hide details" : "Review details"}
+              </Button>
             </div>
-          </div>
-        ) : null}
-        {warnConflicts.length > 0 ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-sm text-amber-100">
-            <p className="font-medium text-amber-50">{warnConflicts.length} reminder(s)</p>
-            <div className="mt-3 space-y-2.5">
-              {warnConflicts.map((conflict) => {
-                const details = describeConflict(conflict, classId);
-                return (
-                  <div
-                    key={conflict.id}
-                    className="rounded-lg border border-amber-400/20 bg-black/20 px-3 py-2.5"
-                  >
-                    <p className="font-medium text-amber-50">{details.title}</p>
-                    <p className="mt-1 text-amber-100/90">{details.summary}</p>
-                    {details.lines.length > 0 ? (
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-100/85">
-                        {details.lines.map((line, index) => (
-                          <li key={`${conflict.id}-${index}`}>{line}</li>
-                        ))}
-                      </ul>
-                    ) : null}
+
+            {issuesExpanded ? (
+              <div className="mt-4 space-y-4">
+                {errorConflicts.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {errorConflicts.map((conflict) => {
+                      const details = describeConflict(conflict, classId);
+                      return (
+                        <div
+                          key={conflict.id}
+                          className="rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-100"
+                        >
+                          <p className="font-medium text-rose-50">{details.title}</p>
+                          <p className="mt-1 text-rose-100/90">{details.summary}</p>
+                          {details.lines.length > 0 ? (
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-rose-100/85">
+                              {details.lines.map((line, index) => (
+                                <li key={`${conflict.id}-${index}`}>{line}</li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-amber-200/85">
-              Warnings do not block publishing unless your school treats them as errors.
-            </p>
-          </div>
-        ) : null}
-        {publishBlocked && otherErrorConflicts.length > 0 ? (
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-sm text-white/80">
-            <p className="font-medium text-white">
-              Publishing is also blocked by {otherErrorConflicts.length} issue(s) elsewhere in the
-              school draft.
-            </p>
-            <p className="mt-1 text-white/60">
-              This class may be ready, but the shared academic-period draft still has {openErrorCount} open
-              error(s) across other classes.
-            </p>
-            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-white/70">
-              {otherErrorConflicts.slice(0, 4).map((conflict) => (
-                <li key={conflict.id}>{describeConflict(conflict, classId).summary}</li>
-              ))}
-            </ul>
+                ) : null}
+
+                {warnConflicts.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {warnConflicts.map((conflict) => {
+                      const details = describeConflict(conflict, classId);
+                      return (
+                        <div
+                          key={conflict.id}
+                          className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100"
+                        >
+                          <p className="font-medium text-amber-50">{details.title}</p>
+                          <p className="mt-1 text-amber-100/90">{details.summary}</p>
+                          {details.lines.length > 0 ? (
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-100/85">
+                              {details.lines.map((line, index) => (
+                                <li key={`${conflict.id}-${index}`}>{line}</li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-amber-200/85">
+                      Warnings do not block publishing unless your school treats them as errors.
+                    </p>
+                  </div>
+                ) : null}
+
+                {publishBlocked && otherErrorConflicts.length > 0 ? (
+                  <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-sm text-white/80">
+                    <p className="font-medium text-white">
+                      Other classes still have {otherErrorConflicts.length} blocking issue(s).
+                    </p>
+                    <p className="mt-1 text-white/60">
+                      The shared academic-period draft currently has {openErrorCount} open error(s)
+                      across the school.
+                    </p>
+                    <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-white/70">
+                      {otherErrorConflicts.slice(0, 4).map((conflict) => (
+                        <li key={conflict.id}>{describeConflict(conflict, classId).summary}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </CardHeader>
@@ -638,7 +681,7 @@ export function ClassTimetableEditor({
                   . Drag subjects from the strip above into period rows. Breaks from your school
                   settings are shown and are not drop targets.
                 </p>
-                {activeDay !== null && getResolvedForDay(activeDay) ? (
+                {activeDay !== null && getResolvedForDay(activeDay)?.isConfigured ? (
                   <div className="space-y-1">
                     <p className="text-xs text-white/45">
                       Resolved for {DAY_NAMES[activeDay]}: school day{" "}
@@ -679,6 +722,15 @@ export function ClassTimetableEditor({
                       return null;
                     })()}
                   </div>
+                ) : activeDay !== null ? (
+                  <p className="text-xs text-amber-200/85">
+                    {DAY_NAMES[activeDay]} is not configured yet. Set period duration first, then
+                    start/end time and breaks in{" "}
+                    <Link href={bellScheduleSettingsHref} className="underline hover:text-amber-100">
+                      Settings
+                    </Link>
+                    .
+                  </p>
                 ) : null}
               </div>
             ) : (
@@ -693,7 +745,9 @@ export function ClassTimetableEditor({
                     {workingDays.map((d) => {
                       const r = getResolvedForDay(d);
                       const diagnostics = getDiagnosticsForDay(d);
-                      if (!r) return null;
+                      if (!r || !r.isConfigured) {
+                        return <li key={d}>{DAY_NAMES[d]}: not configured yet</li>;
+                      }
                       return (
                         <li key={d}>
                           {DAY_NAMES[d]}: {formatTimeLabel(r.startTime)}–{formatTimeLabel(r.endTime)}

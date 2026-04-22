@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
 import {
   LayoutDashboard,
   Calendar,
@@ -30,8 +29,6 @@ type TeacherDetailTabsProps = {
   value: TeacherDetailTabId;
   onChange: (tab: TeacherDetailTabId) => void;
 };
-
-const TIMETABLE_ROLE_VIEWS_ENABLED = isTimetableRoleReadViewsEnabled();
 
 const BASE_TABS: {
   id: TeacherDetailTabId;
@@ -113,21 +110,19 @@ const BASE_TABS: {
   },
 ];
 
-const TABS = TIMETABLE_ROLE_VIEWS_ENABLED
-  ? [
-      ...BASE_TABS.slice(0, 2),
-      {
-        id: "my_week" as TeacherDetailTabId,
-        label: "Weekly schedule",
-        icon: CalendarDays,
-        color: {
-          active: "border-cyan-500/40 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/20",
-          icon: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
-        },
-      },
-      ...BASE_TABS.slice(2),
-    ]
-  : BASE_TABS;
+const TABS = [
+  ...BASE_TABS.slice(0, 2),
+  {
+    id: "my_week" as TeacherDetailTabId,
+    label: "Weekly schedule",
+    icon: CalendarDays,
+    color: {
+      active: "border-cyan-500/40 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/20",
+      icon: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+    },
+  },
+  ...BASE_TABS.slice(2),
+];
 
 export function TeacherDetailTabs({ value, onChange }: TeacherDetailTabsProps) {
   return (

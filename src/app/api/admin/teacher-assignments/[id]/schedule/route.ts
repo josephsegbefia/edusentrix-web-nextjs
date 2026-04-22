@@ -53,7 +53,7 @@ export async function PATCH(
         {
           success: false,
           error:
-            "Assignment-level schedule writes are disabled. Manage schedules in the Master Timetable planner.",
+            "Assignment-level schedule writes are disabled. Manage schedules from the class timetable page.",
         },
         { status: 409 }
       );
@@ -89,9 +89,7 @@ export async function PATCH(
 
     const warnings: string[] = [];
     if (scheduleWriteAttempted) {
-      warnings.push(
-        "Schedules were ignored. Manage schedules in the Master Timetable planner."
-      );
+      warnings.push("Schedules were ignored. Manage schedules from the class timetable page.");
     }
 
     return NextResponse.json({

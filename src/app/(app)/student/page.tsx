@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
 import { StudentParityNavLinks } from "@/components/student/StudentParityNavLinks";
 import {
   ClipboardList,
@@ -13,8 +12,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-const TIMETABLE_ROLE_VIEWS_ENABLED = isTimetableRoleReadViewsEnabled();
 
 const quickActions = [
   {
@@ -29,16 +26,12 @@ const quickActions = [
     href: "/student/results",
     icon: BarChart3,
   },
-  ...(TIMETABLE_ROLE_VIEWS_ENABLED
-    ? [
-        {
-          title: "My Timetable",
-          description: "See your published week and day class schedule.",
-          href: "/student/timetable",
-          icon: CalendarClock,
-        },
-      ]
-    : []),
+  {
+    title: "My Timetable",
+    description: "Your class schedule (coming soon).",
+    href: "/student/timetable",
+    icon: CalendarClock,
+  },
   {
     title: "Calendar",
     description: "Keep up with deadlines and school events.",

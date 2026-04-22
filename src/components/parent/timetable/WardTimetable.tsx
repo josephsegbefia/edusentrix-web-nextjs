@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RoleWeekDayTimetable } from "@/components/timetable/RoleWeekDayTimetable";
+import { ComingSoonPanel } from "@/components/ui/coming-soon-panel";
 import { useParentDashboard } from "@/hooks/parent";
 
 export function WardTimetable({ wardId, wardName }: { wardId: string; wardName: string }) {
@@ -33,7 +33,7 @@ export function WardTimetable({ wardId, wardName }: { wardId: string; wardName: 
         <Card className="border-white/10 bg-white/5">
           <CardContent className="p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-white/70">Switch ward to view another child&apos;s timetable</p>
+              <p className="text-sm text-white/70">Switch ward to view another child&apos;s profile</p>
               <Select value={selectedWardId} onValueChange={handleWardChange}>
                 <SelectTrigger className="w-full border-white/15 bg-black/20 text-white sm:w-72">
                   <SelectValue placeholder="Select ward" />
@@ -51,14 +51,9 @@ export function WardTimetable({ wardId, wardName }: { wardId: string; wardName: 
         </Card>
       ) : null}
 
-      <RoleWeekDayTimetable
-        endpoint={`/api/parent/wards/${encodeURIComponent(selectedWardId)}/timetable/week`}
-        title="Ward Timetable"
-        subtitle={`Published week/day schedule for ${wardName}.`}
-        hideClassName
-        noPublishedMessage="No published timetable is available for this ward yet."
-        emptyWeekMessage="No classes are scheduled for this week."
-        emptyDayMessage="No classes are scheduled for this day."
+      <ComingSoonPanel
+        title="Ward timetable"
+        description={`A clear week view for ${wardName} will return in a future update. Fees, attendance, and academics for this ward are unchanged.`}
       />
     </div>
   );

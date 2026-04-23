@@ -11,6 +11,8 @@ export type SchoolInfo = {
   status: "pending" | "active" | "deactivated";
   gesSchoolCode: string | null;
   curriculumCode: string;
+  /** IANA time zone (e.g. Africa/Accra). */
+  timeZone: string;
 };
 
 export type SchoolResponse = {
@@ -20,7 +22,7 @@ export type SchoolResponse = {
 };
 
 export type UpdateSchoolProfileInput = Partial<
-  Pick<SchoolInfo, "name" | "logo" | "motto" | "gesSchoolCode">
+  Pick<SchoolInfo, "name" | "logo" | "motto" | "gesSchoolCode" | "timeZone">
 >;
 
 type SchoolQueryError = Error & { status?: number };

@@ -3,7 +3,10 @@
  * Uses /api/admin/classes/:classId/timetable/slots.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { TimetableValidationIssue } from "./useTimetablePlanner";
+import {
+  buildTimetableKey,
+  type TimetableValidationIssue,
+} from "./useTimetablePlanner";
 
 export type ClassTimetableSlotDTO = {
   id: string;
@@ -35,7 +38,7 @@ type ApiErrorResponse = {
   issues?: TimetableValidationIssue[];
 };
 
-function buildClassSlotsKey(classId: string, academicPeriodId?: string) {
+export function buildClassSlotsKey(classId: string, academicPeriodId?: string) {
   return ["class-timetable-slots", classId, academicPeriodId || "none"] as const;
 }
 
@@ -173,6 +176,7 @@ export function useDeleteClassSlot(classId: string) {
       queryClient.invalidateQueries({ queryKey: ["class-timetable-slots"] });
       queryClient.invalidateQueries({ queryKey: ["timetable-admin"] });
       queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+      queryClient.invalidateQueries({ queryKey: buildTimetableKey("conflicts"), exact: false });
     },
   });
 }

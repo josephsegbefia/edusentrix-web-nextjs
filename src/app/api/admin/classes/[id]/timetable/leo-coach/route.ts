@@ -11,9 +11,24 @@ import { TimetableConflict } from "@/models/TimetableConflict";
 import { TimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { User } from "@/models/User";
+import { hhmmToMinutes } from "@/lib/school-day/time";
+
+const GapSchema = z.object({
+  dayOfWeek: z.number().int().min(0).max(6),
+  startTime: z.string().min(4).max(5),
+  endTime: z.string().min(4).max(5),
+  /** What's scheduled immediately before this gap (from the day strip). */
+  beforeBlock: z.string().max(300).optional(),
+  /** What's scheduled immediately after this gap. */
+  afterBlock: z.string().max(300).optional(),
+  /** e.g. "Monday, mid-morning" */
+  timeOfDayContext: z.string().max(200).optional(),
+});
 
 const BodySchema = z.object({
   academicPeriodId: z.string().length(24),
+  /** Focus Leo on a specific unallocated (slack) window in the class day view. */
+  gap: GapSchema.optional(),
 });
 
 function toOid(s: string) {
@@ -43,11 +58,11 @@ export async function POST(
     const parsedBody = BodySchema.safeParse(await req.json());
     if (!parsedBody.success) {
       return NextResponse.json(
-        { success: false, error: "academicPeriodId is required." },
+        { success: false, error: "academicPeriodId is required (and optional gap must be valid)." },
         { status: 400 }
       );
     }
-    const { academicPeriodId } = parsedBody.data;
+    const { academicPeriodId, gap } = parsedBody.data;
     const apObjId = toOid(academicPeriodId);
     const classObjId = toOid(classId);
     if (!apObjId || !classObjId) {
@@ -144,12 +159,17 @@ export async function POST(
     };
 
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const slotLines = slots.map((s) => {
+    const slotLine = (s: (typeof slots)[0]) => {
       const d = dayNames[s.dayOfWeek] ?? s.dayOfWeek;
       const tid = toValidOidString(s.teacherId);
       const tLabel = tid ? teacherName(tid) : "Unassigned";
       return `- ${d} ${s.startTime}-${s.endTime}: ${subName(String(s.subjectId))} with ${tLabel}`;
-    });
+    };
+    const slotLines = slots.map(slotLine);
+    const slotsThisDay = gap
+      ? slots.filter((s) => s.dayOfWeek === gap.dayOfWeek)
+      : slots;
+    const slotLinesThisDay = slotsThisDay.map(slotLine);
 
     const slotIds = slots.map((s) => s._id);
 
@@ -164,14 +184,28 @@ export async function POST(
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      const fallback =
-        slotLines.length === 0
-          ? "Add lessons by dragging subject+teacher into period rows. Ensure Settings → school periods and breaks match how you want the day structured."
-          : `You have ${slotLines.length} lesson(s) in this draft. ${
-              conflicts.length
-                ? `There are ${conflicts.length} open conflict(s) — often a teacher double-booked across classes; adjust times or teachers.`
-                : "No conflicts flagged for this class's slots in the current draft."
-            }`;
+      let fallback: string;
+      if (gap) {
+        const gDay = dayNames[gap.dayOfWeek] ?? gap.dayOfWeek;
+        const a = hhmmToMinutes(gap.startTime);
+        const b = hhmmToMinutes(gap.endTime);
+        const gapMin = a != null && b != null && b > a ? b - a : 0;
+        const beforeL = gap.beforeBlock || "the start of the teaching window";
+        const afterL = gap.afterBlock || "the end of the teaching day";
+        fallback =
+          slotLinesThisDay.length === 0
+            ? `On ${gDay} (${gap.timeOfDayContext || "this time"}), the ${gapMin || "?"}-minute unallocated block between ${beforeL} and ${afterL} is well suited to staff planning or a fixed pastoral slot until you add lessons.`
+            : `On ${gDay}, between ${beforeL} and ${afterL}, this ${gapMin || "?"}-minute unallocated window fits a single purpose such as a short club or intervention block alongside your ${slotLinesThisDay.length} timetabled lesson(s) that day, without moving formal periods.`;
+      } else {
+        fallback =
+          slotLines.length === 0
+            ? "Add lessons by dragging subject+teacher into period rows. Ensure Settings → school periods and breaks match how you want the day structured."
+            : `You have ${slotLines.length} lesson(s) in this draft. ${
+                conflicts.length
+                  ? `There are ${conflicts.length} open conflict(s) — often a teacher double-booked across classes; adjust times or teachers.`
+                  : "No conflicts flagged for this class's slots in the current draft."
+              }`;
+      }
       return NextResponse.json({ success: true, data: { text: fallback } });
     }
 
@@ -181,13 +215,47 @@ export async function POST(
         ? String((cg as { gradeId: { name?: string } }).gradeId.name || "")
         : "";
 
-    const prompt = `You are Leo, a concise school timetable assistant. The administrator is editing the class "${gradeName} ${(cg as { name?: string }).name || ""}" draft.
+    const classLabel = `${gradeName} ${(cg as { name?: string }).name || ""}`.trim();
 
-Lessons in this class draft:
+    const baseBlock = `Lessons in this class draft (all week):
 ${slotLines.length ? slotLines.join("\n") : "(none yet)"}
 
 Open conflicts touching these lessons:
-${conflicts.length ? conflicts.map((c) => `- ${(c as { code?: string }).code}: ${(c as { message?: string }).message}`).join("\n") : "(none)"}
+${conflicts.length ? conflicts.map((c) => `- ${(c as { code?: string }).code}: ${(c as { message?: string }).message}`).join("\n") : "(none)"}`;
+
+    const gapMins = gap
+      ? (() => {
+          const x = hhmmToMinutes(gap.startTime);
+          const y = hhmmToMinutes(gap.endTime);
+          return x != null && y != null && y > x ? y - x : 0;
+        })()
+      : 0;
+    const dayLabel = gap ? (dayNames[gap.dayOfWeek] ?? "Day") : "";
+    const beforeL = gap?.beforeBlock || "start of the teaching day window";
+    const afterL = gap?.afterBlock || "end of the teaching day";
+    const tdc = gap?.timeOfDayContext || "";
+
+    const prompt = gap
+      ? `You are Leo, a school timetable assistant. The class is "${classLabel}".
+
+The user is asking about ONE unallocated (slack) window in the school day template. This is NOT a cell where you assign subjects in the class grid; it is extra time in the day structure.
+
+Facts:
+- Day of week: ${dayLabel} (${tdc || "time-of-day not specified"}).
+- Unallocated: ${gap.startTime} to ${gap.endTime} (about ${gapMins} minutes if positive).
+- Immediately BEFORE this unallocated time in the day strip: ${beforeL}
+- Immediately AFTER: ${afterL}
+
+This class's scheduled lessons on ${dayLabel} in the draft:
+${slotLinesThisDay.length ? slotLinesThisDay.join("\n") : "(none on that day yet)"}
+
+Full-week draft and conflicts (for light context only):
+${baseBlock}
+
+Reply with EXACTLY ONE short paragraph (2–4 sentences). Give a single, reasonable recommendation for what this school is most likely to do with this specific gap, using the time of day, weekday, and what comes before/after. Do not use bullet points. Do not suggest dropping a subject into this block in the class timetable.`
+      : `You are Leo, a concise school timetable assistant. The administrator is editing the class "${classLabel}" draft.
+
+${baseBlock}
 
 Give 3–6 short bullet suggestions (plain text, no markdown headings). Focus on feasibility: teacher clashes, empty periods, break placement, and encouraging alignment with the school's bell schedule.`;
 
@@ -195,11 +263,16 @@ Give 3–6 short bullet suggestions (plain text, no markdown headings). Focus on
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_TIMETABLE_COACH_MODEL || "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You help school staff build conflict-aware timetables. Be practical and brief." },
+        {
+          role: "system",
+          content: gap
+            ? "You give one practical paragraph only. No bullets, no list."
+            : "You help school staff build conflict-aware timetables. Be practical and brief.",
+        },
         { role: "user", content: prompt },
       ],
-      temperature: 0.4,
-      max_tokens: 450,
+      temperature: gap ? 0.35 : 0.4,
+      max_tokens: gap ? 220 : 450,
     });
 
     const text = completion.choices[0]?.message?.content?.trim() || "";

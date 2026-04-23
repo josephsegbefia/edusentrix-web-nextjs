@@ -17,6 +17,8 @@ export interface ISchool {
   city?: string;
   region?: string;
   gesSchoolCode?: string | null;
+  /** IANA time zone (e.g. Africa/Accra) for school-local times and notifications. */
+  timeZone?: string;
   bank?: {
     bankName?: string;
     branchName?: string;
@@ -115,6 +117,7 @@ const schoolSchema = new Schema<ISchool>(
     city: String,
     region: String,
     gesSchoolCode: { type: String, default: null, trim: true },
+    timeZone: { type: String, default: "Africa/Accra", trim: true },
     bank: {
       bankName: String,
       branchName: String,

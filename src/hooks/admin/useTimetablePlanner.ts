@@ -533,6 +533,7 @@ export function usePublishTimetableVersion() {
       queryClient.invalidateQueries({ queryKey: buildTimetableKey("slots", versionId) });
       queryClient.invalidateQueries({ queryKey: buildTimetableKey("conflicts", versionId) });
       queryClient.invalidateQueries({ queryKey: buildTimetableKey("master") });
+      queryClient.invalidateQueries({ queryKey: ["class-published-timetable"] });
     },
   });
 }

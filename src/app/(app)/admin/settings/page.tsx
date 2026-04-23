@@ -28,6 +28,7 @@ import {
   ArrowRight,
   Building2,
   Clock,
+  Globe,
 } from "lucide-react";
 import {
   useSchoolSettings,
@@ -40,13 +41,15 @@ import {
 import { useSchoolPaymentSetup } from "@/hooks/admin/useSchoolPaymentSetup";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { SchoolDailySchedulePanel } from "@/components/admin/settings/school-daily/SchoolDailySchedulePanel";
+import { SchoolTimeZoneSettingsCard } from "@/components/admin/settings/SchoolTimeZoneSettingsCard";
 
-type SettingsTab = "school" | "attendance" | "academic" | "features" | "dailySchedule";
+type SettingsTab = "school" | "attendance" | "academic" | "features" | "dailySchedule" | "regional";
 
 const TABS: Array<{ id: SettingsTab; label: string; icon: React.ElementType }> = [
   { id: "school", label: "School & billing", icon: Building2 },
   { id: "attendance", label: "Attendance", icon: Users },
   { id: "academic", label: "Academic Calendar", icon: Calendar },
+  { id: "regional", label: "Time zone", icon: Globe },
   { id: "dailySchedule", label: "Daily schedules", icon: Clock },
   { id: "features", label: "Features", icon: Sparkles },
 ];
@@ -55,6 +58,7 @@ const VALID_SETTINGS_TABS: SettingsTab[] = [
   "school",
   "attendance",
   "academic",
+  "regional",
   "features",
   "dailySchedule",
 ];
@@ -62,6 +66,7 @@ const VALID_SETTINGS_TABS: SettingsTab[] = [
 function tabFromSearchParam(raw: string | null): SettingsTab {
   if (raw === "schedule") return "school";
   if (raw === "daily" || raw === "dailySchedule") return "dailySchedule";
+  if (raw === "timezone" || raw === "regional" || raw === "timeZone") return "regional";
   if (raw && VALID_SETTINGS_TABS.includes(raw as SettingsTab)) {
     return raw as SettingsTab;
   }
@@ -393,6 +398,8 @@ function SettingsPageContent() {
           );
         })}
       </div>
+
+      {activeTab === "regional" && <SchoolTimeZoneSettingsCard />}
 
       {/* Tab Content */}
       {formData && (

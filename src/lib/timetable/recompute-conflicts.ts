@@ -17,6 +17,10 @@ import {
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { SchoolSettings, type ISchoolSettings } from "@/models/SchoolSettings";
+import {
+  SchoolDailySchedule,
+  type ISchoolDailySchedule,
+} from "@/models/SchoolDailySchedule";
 import { Subject } from "@/models/Subject";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
@@ -28,6 +32,7 @@ import {
 } from "@/lib/timetable/scheduleSettings";
 import { schoolSettingsToScheduleInput } from "@/lib/timetable/schoolSettingsScheduleInput";
 import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
+import { buildResolvedFromSchoolDailyConfig } from "@/lib/timetable/dailyScheduleTimetable";
 
 const DAY_NAMES = [
   "Sunday",
@@ -291,8 +296,12 @@ export async function recomputeConflictsForVersion(
 
   void User;
 
-  const [settingsDoc, teachers, subjects, classGroups, grades] = await Promise.all([
+  const [settingsDoc, dailyScheduleDoc, teachers, subjects, classGroups, grades] =
+    await Promise.all([
     SchoolSettings.findOne({ schoolId: input.schoolId }).lean() as Promise<ISchoolSettings | null>,
+    SchoolDailySchedule.findOne({ schoolId: input.schoolId })
+      .select("config")
+      .lean<Pick<ISchoolDailySchedule, "config"> | null>(),
     teacherIds.length
       ? Teacher.find({
           schoolId: input.schoolId,
@@ -405,20 +414,31 @@ export async function recomputeConflictsForVersion(
   }
 
   const scheduleInput = settingsDoc ? schoolSettingsToScheduleInput(settingsDoc) : null;
-  const resolvedScheduleCache = new Map<string, ResolvedScheduleSettings>();
+  const resolvedScheduleCache = new Map<string, ResolvedScheduleSettings | null>();
 
   const getResolvedForSlot = (slot: { gradeId: Types.ObjectId; dayOfWeek: number }) => {
-    if (!scheduleInput) return null;
     const key = `${String(slot.gradeId)}:${slot.dayOfWeek}`;
     if (resolvedScheduleCache.has(key)) {
       return resolvedScheduleCache.get(key)!;
     }
 
-    const resolved = getResolvedScheduleSettings(
-      scheduleInput,
-      String(slot.gradeId),
-      slot.dayOfWeek
-    );
+    let resolved: ResolvedScheduleSettings | null = null;
+    if (dailyScheduleDoc?.config) {
+      const fromDaily = buildResolvedFromSchoolDailyConfig(
+        dailyScheduleDoc.config,
+        String(slot.gradeId),
+        slot.dayOfWeek
+      );
+      if (fromDaily?.isConfigured) resolved = fromDaily;
+    }
+    if (!resolved && scheduleInput) {
+      const fromSettings = getResolvedScheduleSettings(
+        scheduleInput,
+        String(slot.gradeId),
+        slot.dayOfWeek
+      );
+      resolved = fromSettings.isConfigured ? fromSettings : null;
+    }
     resolvedScheduleCache.set(key, resolved);
     return resolved;
   };

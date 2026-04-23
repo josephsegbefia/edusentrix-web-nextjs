@@ -27,13 +27,23 @@ import {
 import { CalendarDays } from "lucide-react";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useSchoolSettings } from "@/hooks/admin/useSchoolSettings";
+import { useSchoolDailySchedule } from "@/hooks/admin/useSchoolDailySchedule";
+import { ensureConfigV2 } from "@/lib/school-day/migrate-v2";
+import {
+  buildClassTimelineFromDailyConfig,
+  buildResolvedFromSchoolDailyConfig,
+} from "@/lib/timetable/dailyScheduleTimetable";
 import {
   getResolvedScheduleDiagnostics,
   getResolvedScheduleSettings,
 } from "@/lib/timetable/scheduleSettings";
 import { schoolSettingsToScheduleInput } from "@/lib/timetable/schoolSettingsScheduleInput";
 import type { ISchoolSettings } from "@/models/SchoolSettings";
-import { useClassTimetableSlots } from "@/hooks/admin/useClassTimetableSlots";
+import {
+  useClassTimetableSlots,
+  useDeleteClassSlot,
+  type ClassTimetableSlotDTO,
+} from "@/hooks/admin/useClassTimetableSlots";
 import { useClassSubjectTeachers } from "@/hooks/admin/useClassSubjectTeachers";
 import {
   type TimetableConflictDTO,
@@ -45,6 +55,7 @@ import {
   ClassTimetableGridBoard,
   type TimelineRow,
 } from "@/components/admin/classes/detail/ClassTimetableGridBoard";
+import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
 import { cn } from "@/lib/utils";
 import { DAY_NAMES, formatTimeLabel } from "@/components/admin/timetable/types";
 
@@ -56,6 +67,9 @@ type ClassTimetableEditorProps = {
   bellScheduleSettingsHref?: string;
   /** Homeroom teachers build drafts; publishing stays a school-admin action. */
   canPublishTimetable?: boolean;
+  /** When set, selection is controlled by the parent (e.g. class schedule tab + published view). */
+  academicPeriodId?: string;
+  onAcademicPeriodIdChange?: (academicPeriodId: string) => void;
 };
 
 function getPeriodOptionsFromResolved(resolved: {
@@ -122,7 +136,9 @@ function describeConflict(
         ),
       };
     case "OUTSIDE_PERIOD_RANGE": {
-      const lines: string[] = [];
+      const lines: string[] = [
+        "This refers to a lesson already stored in the shared draft (for example from an older school-hours setup, or automatic subject–assignment sync)—not necessarily something you just placed on the grid. Times that no longer match any period row may be hidden from the day view below.",
+      ];
       if (resolvedDay?.expectedPeriodSlots?.length) {
         const first = resolvedDay.expectedPeriodSlots[0];
         const last =
@@ -189,8 +205,16 @@ export function ClassTimetableEditor({
   gradeId,
   bellScheduleSettingsHref = "/admin/settings",
   canPublishTimetable = true,
+  academicPeriodId: academicPeriodIdProp,
+  onAcademicPeriodIdChange,
 }: ClassTimetableEditorProps) {
-  const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>("");
+  const [internalPeriodId, setInternalPeriodId] = React.useState<string>("");
+  const selectedPeriodId =
+    academicPeriodIdProp !== undefined ? academicPeriodIdProp : internalPeriodId;
+  const setSelectedPeriodId = (id: string) => {
+    onAcademicPeriodIdChange?.(id);
+    if (academicPeriodIdProp === undefined) setInternalPeriodId(id);
+  };
   const [wizardStep, setWizardStep] = React.useState(0);
   const queryClient = useQueryClient();
 
@@ -199,6 +223,11 @@ export function ClassTimetableEditor({
 
   const settingsQuery = useSchoolSettings();
   const settings = settingsQuery.data?.data || null;
+  const dailyQuery = useSchoolDailySchedule();
+  const dailyV2 = React.useMemo(
+    () => (dailyQuery.data?.config ? ensureConfigV2(dailyQuery.data.config) : null),
+    [dailyQuery.data?.config]
+  );
 
   const scheduleInput = React.useMemo(
     () =>
@@ -208,10 +237,14 @@ export function ClassTimetableEditor({
 
   const getResolvedForDay = React.useCallback(
     (dayOfWeek: number) => {
+      if (dailyV2) {
+        const fromDaily = buildResolvedFromSchoolDailyConfig(dailyV2, gradeId ?? null, dayOfWeek);
+        if (fromDaily?.isConfigured) return fromDaily;
+      }
       if (!scheduleInput) return null;
       return getResolvedScheduleSettings(scheduleInput, gradeId ?? undefined, dayOfWeek);
     },
-    [scheduleInput, gradeId]
+    [scheduleInput, gradeId, dailyV2]
   );
 
   const getPeriodOptionsForDay = React.useCallback(
@@ -225,6 +258,16 @@ export function ClassTimetableEditor({
 
   const getTimelineForDay = React.useCallback(
     (dayOfWeek: number): TimelineRow[] => {
+      if (dailyV2) {
+        const fromDaily = buildResolvedFromSchoolDailyConfig(dailyV2, gradeId ?? null, dayOfWeek);
+        if (fromDaily?.isConfigured) {
+          return buildClassTimelineFromDailyConfig(
+            dailyV2,
+            gradeId ?? null,
+            dayOfWeek
+          ) as TimelineRow[];
+        }
+      }
       const resolved = getResolvedForDay(dayOfWeek);
       if (!resolved) return [];
       const periods = getPeriodOptionsFromResolved(resolved);
@@ -246,12 +289,13 @@ export function ClassTimetableEditor({
       ].sort((a, b) => a.startTime.localeCompare(b.startTime));
       return merged;
     },
-    [getResolvedForDay]
+    [getResolvedForDay, dailyV2, gradeId]
   );
 
-  const workingDays = settings?.workingDays?.length
-    ? settings.workingDays
-    : [1, 2, 3, 4, 5];
+  const workingDays = React.useMemo((): number[] => {
+    const wd = scheduleInput?.workingDays;
+    return wd?.length ? [...wd] : [1, 2, 3, 4, 5];
+  }, [scheduleInput]);
 
   const slotsQuery = useClassTimetableSlots(classId, selectedPeriodId);
   const slots = slotsQuery.data?.data || [];
@@ -334,11 +378,22 @@ export function ClassTimetableEditor({
     return severityBySlotId;
   }, [relevantConflicts, slots]);
 
+  const slotsOutsideCurrentPeriods = React.useMemo((): ClassTimetableSlotDTO[] => {
+    return slots.filter((slot) => {
+      const resolved = getResolvedForDay(slot.dayOfWeek);
+      if (!resolved?.isConfigured) return false;
+      return !slotAlignsWithSchoolPeriods(resolved, slot.startTime, slot.endTime);
+    });
+  }, [slots, getResolvedForDay]);
+
+  const deleteOffGridSlot = useDeleteClassSlot(classId);
+
   React.useEffect(() => {
+    if (academicPeriodIdProp !== undefined) return;
     if (selectedPeriodId || periods.length === 0) return;
     const current = periods.find((p) => p.isCurrent) || periods[0];
     if (current?._id) setSelectedPeriodId(current._id);
-  }, [periods, selectedPeriodId]);
+  }, [periods, selectedPeriodId, academicPeriodIdProp]);
 
   const totalSteps = workingDays.length + 1;
   const isReviewStep = wizardStep >= workingDays.length;
@@ -432,8 +487,9 @@ export function ClassTimetableEditor({
           <Link href={bellScheduleSettingsHref} className="text-cyan-300 underline hover:text-cyan-200">
             Settings
           </Link>
-          . Drag each class subject into a period; teachers come from your assignments. The whole
-          draft is checked for clashes across classes.
+          . Drag each class subject into a period; teachers come from your assignments. The shared
+          draft can also contain older or auto-synced lessons—see &quot;Off-grid draft lessons&quot;
+          if something errors but you do not see it in the rows.
         </p>
         {getPeriodOptionsForDay(workingDays[0] ?? 1).length === 0 && !settingsQuery.isLoading ? (
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
@@ -808,6 +864,62 @@ export function ClassTimetableEditor({
               </div>
             )}
 
+            {slotsOutsideCurrentPeriods.length > 0 ? (
+              <div className="rounded-xl border border-rose-500/25 bg-rose-950/20 px-4 py-3 text-sm text-rose-100">
+                <p className="font-medium text-rose-50">Off-grid draft lessons</p>
+                <p className="mt-1 text-xs text-rose-100/85">
+                  These times do not match any current school period row (for example 07:00 when
+                  periods start at 08:00), so they will not appear in the grid. They are still in the
+                  shared draft and can trigger &quot;outside period&quot; errors—remove them here or
+                  fix the time in school settings.
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {slotsOutsideCurrentPeriods.map((slot) => {
+                    const subj = subjectMap.get(slot.subjectId);
+                    const src =
+                      slot.source === "assignment_sync"
+                        ? "Assignment sync"
+                        : slot.source === "manual"
+                          ? "Manual / grid"
+                          : slot.source;
+                    return (
+                      <li
+                        key={slot.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-xs"
+                      >
+                        <span>
+                          <span className="font-medium text-rose-50">
+                            {subj?.name || "Subject"}
+                          </span>
+                          {" · "}
+                          {DAY_NAMES[slot.dayOfWeek]}{" "}
+                          {formatTimeLabel(slot.startTime)}–{formatTimeLabel(slot.endTime)}
+                          <span className="text-rose-200/70"> · {src}</span>
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-rose-400/30 text-rose-100 hover:bg-rose-500/20"
+                          disabled={deleteOffGridSlot.isPending}
+                          onClick={async () => {
+                            try {
+                              await deleteOffGridSlot.mutateAsync(slot.id);
+                              toast.success("Removed from draft");
+                            } catch (e) {
+                              toast.error(e instanceof Error ? e.message : "Could not remove");
+                            }
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
+
             <ClassTimetableGridBoard
               classId={classId}
               className={className}
@@ -822,6 +934,7 @@ export function ClassTimetableEditor({
               teacherMap={teacherMap}
               slotIssueSeverityById={slotIssueSeverityById}
               onSlotsChanged={() => slotsQuery.refetch()}
+              dailyScheduleSettingsHref={bellScheduleSettingsHref}
             />
           </div>
         )}

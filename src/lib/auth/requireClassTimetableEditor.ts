@@ -11,6 +11,7 @@ import { UserMembership, type IUserMembership } from "@/models/UserMembership";
 import type { MembershipRole } from "@/lib/roles";
 import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
+import type { SchoolStaffReadContext } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 
 export type ClassTimetableEditorContext = {
   userId: mongoose.Types.ObjectId;
@@ -176,4 +177,87 @@ export async function requireClassTimetableEditor(
     mode: "homeroom_teacher",
     teacherId: (teacher as { _id: mongoose.Types.ObjectId })._id,
   };
+}
+
+/**
+ * True when the same user may edit/delete a class-group timetable
+ * (school admin or this class’s homeroom teacher). For read access use
+ * `requireSchoolAdminOrTeacherRead` and call this to decide Edit/Delete UI.
+ */
+export async function isClassTimetableManagerForReadUser(
+  classGroupId: string,
+  read: SchoolStaffReadContext
+): Promise<boolean> {
+  const classObjId = toObjectId(classGroupId);
+  if (!classObjId) return false;
+
+  await connectToDatabase();
+
+  const classGroup = await ClassGroup.findById(classObjId)
+    .select("_id schoolId homeroomTeacherId")
+    .lean();
+  if (!classGroup) return false;
+  const schoolIdObj = (classGroup as { schoolId: mongoose.Types.ObjectId }).schoolId;
+  if (String(schoolIdObj) !== String(read.schoolId)) return false;
+
+  const demo = await tryResolveDemoGuard();
+  if (demo.isDemo && demo.user.schoolId) {
+    if (String(demo.user.schoolId) !== String(schoolIdObj)) return false;
+    const roles = (demo.membership.roles || []) as MembershipRole[];
+    if (roles.includes("school_admin")) return true;
+    const teacher = await Teacher.findOne({
+      userId: demo.user._id,
+      schoolId: schoolIdObj,
+    })
+      .select("_id homeroomClassGroupId")
+      .lean();
+    if (!teacher) return false;
+    return (
+      String(
+        (classGroup as { homeroomTeacherId?: mongoose.Types.ObjectId | null }).homeroomTeacherId || ""
+      ) === String((teacher as { _id: mongoose.Types.ObjectId })._id) ||
+      String(
+        (teacher as { homeroomClassGroupId?: mongoose.Types.ObjectId | null }).homeroomClassGroupId ||
+          ""
+      ) === String(classObjId)
+    );
+  }
+
+  let membership = (await UserMembership.findOne({
+    userId: read.userId,
+    schoolId: read.schoolId,
+  }).lean()) as IUserMembership | null;
+
+  if (!membership && read.schoolId) {
+    const user = await User.findById(read.userId).lean();
+    if (!user?.schoolId) return false;
+    membership = (await UserMembership.create({
+      userId: read.userId,
+      schoolId: read.schoolId,
+      roles: legacyRoleToArray((user as Pick<IUser, "role">).role),
+      status: "active",
+    }).then((d) => d.toObject())) as IUserMembership;
+  }
+
+  const roles = (membership?.roles || []) as MembershipRole[];
+  if (gateSchoolAdminRoles(roles).ok) return true;
+
+  if (!read.teacherId) return false;
+
+  const teacher = await Teacher.findById(read.teacherId)
+    .select("_id homeroomClassGroupId")
+    .lean();
+  if (!teacher) return false;
+
+  const hrOnClass =
+    (classGroup as { homeroomTeacherId?: mongoose.Types.ObjectId | null }).homeroomTeacherId &&
+    String((classGroup as { homeroomTeacherId: mongoose.Types.ObjectId }).homeroomTeacherId) ===
+      String((teacher as { _id: mongoose.Types.ObjectId })._id);
+
+  const hrOnTeacherRecord =
+    (teacher as { homeroomClassGroupId?: mongoose.Types.ObjectId | null }).homeroomClassGroupId &&
+    String((teacher as { homeroomClassGroupId: mongoose.Types.ObjectId }).homeroomClassGroupId) ===
+      String(classObjId);
+
+  return Boolean(hrOnClass || hrOnTeacherRecord);
 }

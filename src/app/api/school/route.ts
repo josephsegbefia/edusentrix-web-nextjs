@@ -6,6 +6,7 @@ import { School, ISchool } from "@/models/School";
 import { User, IUser } from "@/models/User";
 import mongoose from "mongoose";
 import { z } from "zod";
+import { isValidIanaTimeZone } from "@/lib/validation/iana-timezone";
 
 const UpdateSchoolProfileSchema = z
   .object({
@@ -18,6 +19,13 @@ const UpdateSchoolProfileSchema = z
       .optional(),
     gesSchoolCode: z
       .union([z.string().trim().max(50), z.literal(""), z.null()])
+      .optional(),
+    timeZone: z
+      .string()
+      .trim()
+      .min(2)
+      .max(120)
+      .refine((s) => isValidIanaTimeZone(s), { message: "Invalid IANA time zone" })
       .optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
@@ -57,11 +65,19 @@ export async function GET(req: NextRequest) {
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(user.schoolId));
     const school = await School.findById(schoolIdObj)
-      .select("_id name logo motto type status gesSchoolCode curriculumCode")
+      .select("_id name logo motto type status gesSchoolCode curriculumCode timeZone")
       .lean<
         Pick<
           ISchool,
-          "_id" | "name" | "logo" | "motto" | "type" | "status" | "gesSchoolCode" | "curriculumCode"
+          | "_id"
+          | "name"
+          | "logo"
+          | "motto"
+          | "type"
+          | "status"
+          | "gesSchoolCode"
+          | "curriculumCode"
+          | "timeZone"
         >
       >();
 
@@ -83,6 +99,7 @@ export async function GET(req: NextRequest) {
         status: school.status,
         gesSchoolCode: school.gesSchoolCode || null,
         curriculumCode: school.curriculumCode || "ghana_nacca",
+        timeZone: school.timeZone?.trim() || "Africa/Accra",
       },
     });
   } catch (e: unknown) {
@@ -150,17 +167,28 @@ export async function PATCH(req: NextRequest) {
     if ("gesSchoolCode" in parsed.data) {
       updates.gesSchoolCode = parsed.data.gesSchoolCode?.trim() || null;
     }
+    if (typeof parsed.data.timeZone === "string") {
+      updates.timeZone = parsed.data.timeZone.trim();
+    }
 
     const updated = await School.findByIdAndUpdate(
       user.schoolId,
       { $set: updates },
       { new: true, runValidators: true }
     )
-      .select("_id name logo motto type status gesSchoolCode curriculumCode")
+      .select("_id name logo motto type status gesSchoolCode curriculumCode timeZone")
       .lean<
         Pick<
           ISchool,
-          "_id" | "name" | "logo" | "motto" | "type" | "status" | "gesSchoolCode" | "curriculumCode"
+          | "_id"
+          | "name"
+          | "logo"
+          | "motto"
+          | "type"
+          | "status"
+          | "gesSchoolCode"
+          | "curriculumCode"
+          | "timeZone"
         >
       >();
 
@@ -182,6 +210,7 @@ export async function PATCH(req: NextRequest) {
         status: updated.status,
         gesSchoolCode: updated.gesSchoolCode || null,
         curriculumCode: updated.curriculumCode || "ghana_nacca",
+        timeZone: updated.timeZone?.trim() || "Africa/Accra",
       },
     });
   } catch (e: unknown) {

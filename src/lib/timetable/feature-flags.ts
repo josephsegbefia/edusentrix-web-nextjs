@@ -1,10 +1,15 @@
 /**
  * When true, timetable read/write APIs, class-group slot APIs, and daily schedule
  * settings are disabled. UI routes remain and show a “coming soon” state.
- * Set env FEATURE_TIMETABLE_SUNSET=false to temporarily re-enable (e.g. local debugging).
+ *
+ * Use `NEXT_PUBLIC_FEATURE_TIMETABLE_SUNSET=false` so **client** components (e.g. class
+ * schedule tab) see the flag. `FEATURE_TIMETABLE_SUNSET=false` is enough for **server** routes
+ * only — Next only inlines `NEXT_PUBLIC_*` in the browser bundle.
  */
 export function isTimetableModuleSunset(): boolean {
+  if (process.env.NEXT_PUBLIC_FEATURE_TIMETABLE_SUNSET === "false") return false;
   if (process.env.FEATURE_TIMETABLE_SUNSET === "false") return false;
+  if (process.env.NEXT_PUBLIC_FEATURE_TIMETABLE_SUNSET === "true") return true;
   if (process.env.FEATURE_TIMETABLE_SUNSET === "true") return true;
   return true;
 }

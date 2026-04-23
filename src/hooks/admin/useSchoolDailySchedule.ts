@@ -78,6 +78,7 @@ export function useSaveSchoolDailySchedule() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: KEY });
+      void qc.invalidateQueries({ queryKey: ["unallocated-gap-fills"], exact: false });
     },
   });
 }

@@ -19,7 +19,7 @@ export type ResolvedScheduleSettings = {
   breaks: IBreakPeriod[];
   assembly: ResolvedAssembly | null;
   isConfigured: boolean;
-  source: "day_schedule" | "grade_profile";
+  source: "day_schedule" | "grade_profile" | "school_daily";
   profileName?: string | null;
 };
 

@@ -14,7 +14,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GripVertical, Loader2, Trash2, User, Coffee } from "lucide-react";
+import { GripVertical, Loader2, Trash2, User, Coffee, Sun, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useCreateClassSlot,
@@ -27,6 +27,7 @@ import { DAY_NAMES } from "@/components/admin/timetable/types";
 import type { TimetableValidationIssue } from "@/hooks/admin/useTimetablePlanner";
 import type { ClassSubjectTeacherRow } from "@/hooks/admin/useClassSubjectTeachers";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import { UnallocatedGapActions } from "@/components/admin/classes/detail/UnallocatedGapActions";
 
 const NO_TEACHER_TOKEN = "__none__";
 
@@ -62,7 +63,30 @@ export type TimelineRow =
       endTime: string;
       label: string;
     }
-  | { kind: "break"; name: string; startTime: string; endTime: string };
+  | { kind: "break"; name: string; startTime: string; endTime: string }
+  | { kind: "opening"; name: string; startTime: string; endTime: string }
+  | { kind: "unallocated"; label: string; startTime: string; endTime: string };
+
+function formatTimelineNeighborLabel(
+  row: TimelineRow | undefined,
+  position: "before" | "after"
+): string {
+  if (!row) {
+    return position === "before" ? "Start of the teaching day window" : "End of the teaching day";
+  }
+  switch (row.kind) {
+    case "period":
+      return `Period ${row.periodNumber} (${row.startTime}–${row.endTime})`;
+    case "break":
+      return `Break: ${row.name} (${row.startTime}–${row.endTime})`;
+    case "opening":
+      return `Opening: ${row.name} (${row.startTime}–${row.endTime})`;
+    case "unallocated":
+      return `Unallocated (${row.startTime}–${row.endTime})`;
+    default:
+      return "Adjacent block";
+  }
+}
 
 type ClassTimetableGridBoardProps = {
   classId: string;
@@ -80,6 +104,8 @@ type ClassTimetableGridBoardProps = {
   teacherMap: Map<string, string>;
   slotIssueSeverityById?: Map<string, "error" | "warning">;
   onSlotsChanged: () => void;
+  /** Unallocated-row actions: presets + Leo (defaults to admin daily schedules tab). */
+  dailyScheduleSettingsHref?: string;
 };
 
 function DraggableSlot({
@@ -153,6 +179,7 @@ export function ClassTimetableGridBoard({
   teacherMap,
   slotIssueSeverityById,
   onSlotsChanged,
+  dailyScheduleSettingsHref = "/admin/settings?tab=dailySchedule",
 }: ClassTimetableGridBoardProps) {
   const createMutation = useCreateClassSlot(classId);
   const updateMutation = useUpdateClassSlot(classId);
@@ -307,6 +334,65 @@ export function ClassTimetableGridBoard({
                     </div>
                     <div className="border-t border-amber-500/10 bg-amber-500/5 px-3 py-3 text-xs text-amber-100/60 sm:border-l-0">
                       Break (school settings) — not a teaching period
+                    </div>
+                  </div>
+                );
+              }
+
+              if (row.kind === "opening") {
+                return (
+                  <div
+                    key={`op-${day}-${idx}`}
+                    className="grid gap-0 sm:grid-cols-[220px,1fr]"
+                  >
+                    <div className="border-t border-amber-400/20 bg-amber-400/5 px-3 py-2 text-sm text-amber-50/90 sm:border-r sm:border-amber-400/15">
+                      <span className="flex items-center gap-2 font-medium">
+                        <Sun className="h-4 w-4 shrink-0 text-amber-200" />
+                        {row.name}
+                      </span>
+                      <span className="ml-6 block text-xs text-amber-100/60">
+                        {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
+                      </span>
+                    </div>
+                    <div className="border-t border-amber-400/10 bg-amber-950/20 px-3 py-3 text-xs text-amber-100/55 sm:border-l-0">
+                      Non-teaching (opening) — not on the class timetable; lessons start at Period 1.
+                    </div>
+                  </div>
+                );
+              }
+
+              if (row.kind === "unallocated") {
+                return (
+                  <div
+                    key={`slack-${day}-${idx}`}
+                    className="grid gap-0 sm:grid-cols-[220px,1fr]"
+                  >
+                    <div className="border-t border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/50 sm:border-r sm:border-white/10">
+                      <span className="flex items-center gap-2 font-medium text-white/65">
+                        <Hourglass className="h-4 w-4 shrink-0 text-white/35" />
+                        {row.label}
+                      </span>
+                      <span className="ml-6 block text-xs text-white/40">
+                        {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
+                      </span>
+                    </div>
+                    <div className="border-t border-white/5 bg-white/[0.02] px-3 py-3 sm:border-l-0">
+                      <UnallocatedGapActions
+                        classId={classId}
+                        academicPeriodId={academicPeriodId}
+                        dayOfWeek={day}
+                        startTime={row.startTime}
+                        endTime={row.endTime}
+                        dailyScheduleSettingsHref={dailyScheduleSettingsHref}
+                        beforeBlockLabel={formatTimelineNeighborLabel(
+                          timeline[idx - 1],
+                          "before"
+                        )}
+                        afterBlockLabel={formatTimelineNeighborLabel(
+                          timeline[idx + 1],
+                          "after"
+                        )}
+                      />
                     </div>
                   </div>
                 );

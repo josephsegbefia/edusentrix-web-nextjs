@@ -1,0 +1,2029 @@
+"use client";
+
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { effectivePeriodsFor, validateBreaksInWindow } from "@/lib/school-day/periods";
+import { validateOpeningBlocks } from "@/lib/school-day/opening-validation";
+import {
+  createDefaultV2Config,
+  ensureConfigV2,
+  prepareSchoolDailyConfigForApi,
+} from "@/lib/school-day/migrate-v2";
+import { DayTimelineStrip } from "./DayTimelineStrip";
+import {
+  type DailyBreakItemV2,
+  type OpeningBlock,
+  type PeriodLengthOverride,
+  type SchoolDailyScheduleConfigV2,
+  type WeekdayKey,
+} from "@/types/school-daily-schedule";
+import type { DailyBreakItem } from "@/types/school-daily-schedule";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
+import { ChevronLeft, ChevronRight, Plus, Trash2, Loader2, X } from "lucide-react";
+
+const PRESET_PERIODS = [30, 35, 40, 45, 50, 55, 60] as const;
+function isPresetPeriodMinutes(n: number) {
+  return (PRESET_PERIODS as readonly number[]).includes(n);
+}
+
+const WEEKDAYS: { key: WeekdayKey; short: string }[] = [
+  { key: "monday", short: "Mon" },
+  { key: "tuesday", short: "Tue" },
+  { key: "wednesday", short: "Wed" },
+  { key: "thursday", short: "Thu" },
+  { key: "friday", short: "Fri" },
+  { key: "saturday", short: "Sat" },
+  { key: "sunday", short: "Sun" },
+];
+
+function newId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function seedExceptionFrom(
+  base: SchoolDailyScheduleConfigV2,
+  weekday: WeekdayKey
+): SchoolDailyScheduleConfigV2["weekdayExceptions"][0] {
+  return {
+    weekday,
+    dayGateStart: base.dayGateStart,
+    lessonStart: base.lessonStart,
+    dayEnd: base.dayEnd,
+    periodLengthMinutes: base.periodLengthMinutes,
+    periodLengthOverrides: [...(base.periodLengthOverrides ?? [])],
+    openingBlocks: (base.openingBlocks ?? []).map((o) => ({ ...o, id: newId() })),
+    breaks: base.breaks.map((b) => ({ ...b, id: newId() })),
+  };
+}
+
+type GradeOverrideDraft = {
+  gradeIds: string[];
+  useDayGate: boolean;
+  dayGateStart: string;
+  useStart: boolean;
+  useEnd: boolean;
+  usePeriod: boolean;
+  useOpenings: boolean;
+  openingBlocks: OpeningBlock[];
+  usePeriodOverrides: boolean;
+  periodLengthOverrides: PeriodLengthOverride[];
+  useBreaks: boolean;
+  lessonStart: string;
+  dayEnd: string;
+  periodLengthMinutes: number;
+  breaks: DailyBreakItemV2[];
+};
+
+type StoredGradeOverride = SchoolDailyScheduleConfigV2["gradeOverrides"][0] & {
+  gradeId?: string;
+};
+
+function toGradeDraft(o: StoredGradeOverride, base: SchoolDailyScheduleConfigV2): GradeOverrideDraft {
+  const gradeIds =
+    o.gradeIds?.length > 0
+      ? o.gradeIds
+      : typeof o.gradeId === "string" && o.gradeId
+        ? [o.gradeId]
+        : [];
+  return {
+    gradeIds,
+    useDayGate: o.dayGateStart != null,
+    dayGateStart: o.dayGateStart ?? base.dayGateStart,
+    useStart: o.lessonStart != null,
+    useEnd: o.dayEnd != null,
+    usePeriod: o.periodLengthMinutes != null,
+    useOpenings: Boolean(o.openingBlocks && o.openingBlocks.length > 0),
+    openingBlocks:
+      o.openingBlocks && o.openingBlocks.length
+        ? o.openingBlocks
+        : (base.openingBlocks ?? []).map((b) => ({ ...b, id: newId() })),
+    usePeriodOverrides: Boolean(o.periodLengthOverrides && o.periodLengthOverrides.length > 0),
+    periodLengthOverrides:
+      o.periodLengthOverrides && o.periodLengthOverrides.length
+        ? o.periodLengthOverrides.map((p) => ({ ...p }))
+        : [...(base.periodLengthOverrides ?? [])],
+    useBreaks: o.breaks != null && o.breaks.length > 0,
+    lessonStart: o.lessonStart ?? base.lessonStart,
+    dayEnd: o.dayEnd ?? base.dayEnd,
+    periodLengthMinutes: o.periodLengthMinutes ?? base.periodLengthMinutes,
+    breaks:
+      o.breaks && o.breaks.length
+        ? o.breaks
+        : base.breaks.map((b) => ({ ...b, id: newId() })),
+  };
+}
+
+function fromGradeDrafts(
+  rows: GradeOverrideDraft[],
+  _base: SchoolDailyScheduleConfigV2
+): SchoolDailyScheduleConfigV2["gradeOverrides"] {
+  return rows
+    .filter((r) => r.gradeIds.length > 0)
+    .map((r) => {
+      const out: SchoolDailyScheduleConfigV2["gradeOverrides"][0] = {
+        gradeIds: r.gradeIds,
+      };
+      if (r.useDayGate) out.dayGateStart = r.dayGateStart;
+      if (r.useStart) out.lessonStart = r.lessonStart;
+      if (r.useEnd) out.dayEnd = r.dayEnd;
+      if (r.usePeriod) out.periodLengthMinutes = r.periodLengthMinutes;
+      if (r.useOpenings) {
+        out.openingBlocks = r.openingBlocks;
+      }
+      if (r.usePeriodOverrides) {
+        out.periodLengthOverrides = r.periodLengthOverrides;
+      }
+      if (r.useBreaks) {
+        out.breaks = r.breaks;
+      }
+      return out;
+    });
+}
+
+export type SchoolDailySaveMeta = {
+  changeLabel?: string;
+  academicPeriodId?: string;
+};
+
+type Props = {
+  initial: SchoolDailyScheduleConfigV2 | null;
+  gradeOptions: Array<{ _id: string; name: string }>;
+  saving: boolean;
+  onCancel: () => void;
+  onSave: (config: SchoolDailyScheduleConfigV2, meta?: SchoolDailySaveMeta) => void | Promise<void>;
+};
+
+function formatHhmm12(h: string) {
+  const m = h.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return h;
+  let hour = parseInt(m[1], 10);
+  const min = m[2];
+  const ap = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+  return `${hour}:${min} ${ap}`;
+}
+
+function summarizeBreaks(
+  br: DailyBreakItemV2[],
+  gradeName: (id: string) => string
+) {
+  if (!br.length) return "No breaks";
+  return br
+    .map((b) => {
+      const sc =
+        b.appliesToGradeIds && b.appliesToGradeIds.length
+          ? ` [${b.appliesToGradeIds.map(gradeName).filter(Boolean).join(", ")}]`
+          : "";
+      return `${b.name} (${b.startTime}–${b.endTime})${sc}`;
+    })
+    .join(", ");
+}
+
+function gradeRowEffectiveDayGate(
+  r: GradeOverrideDraft,
+  base: SchoolDailyScheduleConfigV2
+) {
+  return r.useDayGate ? r.dayGateStart : base.dayGateStart;
+}
+
+function gradeRowEffectiveLessonStart(
+  r: GradeOverrideDraft,
+  base: SchoolDailyScheduleConfigV2
+) {
+  return r.useStart ? r.lessonStart : base.lessonStart;
+}
+
+function getGradeRowOpeningError(
+  r: GradeOverrideDraft,
+  base: SchoolDailyScheduleConfigV2
+) {
+  if (!r.useOpenings) return null;
+  if (r.openingBlocks.length === 0) {
+    return "Add at least one non-teaching block, or turn off this option.";
+  }
+  const v = validateOpeningBlocks(
+    gradeRowEffectiveDayGate(r, base),
+    gradeRowEffectiveLessonStart(r, base),
+    r.openingBlocks
+  );
+  return v.ok ? null : v.error;
+}
+
+function getGradeRowPeriodOverrideError(r: GradeOverrideDraft) {
+  if (!r.usePeriodOverrides) return null;
+  if (r.periodLengthOverrides.length === 0) {
+    return "Add at least one per-period length override, or turn off this option.";
+  }
+  const seen = new Set<number>();
+  for (const o of r.periodLengthOverrides) {
+    if (o.periodIndex < 1 || o.periodIndex > 20) {
+      return "Period # must be between 1 and 20.";
+    }
+    if (o.minutes < 5 || o.minutes > 120) {
+      return "Override minutes must be between 5 and 120.";
+    }
+    if (seen.has(o.periodIndex)) {
+      return "Each period can only have one length override.";
+    }
+    seen.add(o.periodIndex);
+  }
+  return null;
+}
+
+function emptyGradeOverrideDraft(
+  base: SchoolDailyScheduleConfigV2
+): GradeOverrideDraft {
+  return {
+    gradeIds: [],
+    useDayGate: false,
+    dayGateStart: base.dayGateStart,
+    useStart: false,
+    useEnd: false,
+    usePeriod: false,
+    useOpenings: false,
+    openingBlocks: (base.openingBlocks ?? []).map((o) => ({ ...o, id: newId() })),
+    usePeriodOverrides: false,
+    periodLengthOverrides: (base.periodLengthOverrides ?? []).map((p) => ({ ...p })),
+    useBreaks: false,
+    lessonStart: base.lessonStart,
+    dayEnd: base.dayEnd,
+    periodLengthMinutes: base.periodLengthMinutes,
+    breaks: base.breaks.map((b) => ({ ...b, id: newId() })),
+  };
+}
+
+function GradeOverrideOpeningAddForm({
+  onAdd,
+}: {
+  onAdd: (b: OpeningBlock) => void;
+}) {
+  const [name, setName] = React.useState("");
+  const [kind, setKind] = React.useState<OpeningBlock["kind"]>("registration");
+  const [start, setStart] = React.useState("08:00");
+  const [end, setEnd] = React.useState("08:15");
+  return (
+    <div className="mt-2 grid gap-2 rounded border border-dashed border-white/15 p-3 sm:grid-cols-2">
+      <div className="space-y-1 sm:col-span-2">
+        <Label className="text-[11px] text-white/50">Name</Label>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Assembly"
+          className="h-8 border-white/10 bg-slate-950/60 text-xs text-white"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-[11px] text-white/50">Kind</Label>
+        <PremiumSelect
+          value={kind}
+          onValueChange={(v) => setKind(v as OpeningBlock["kind"])}
+        >
+          <PremiumSelectTrigger className="h-8 border-white/10 bg-slate-950/60 text-[11px] text-white">
+            <PremiumSelectValue />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            <PremiumSelectItem value="assembly">assembly</PremiumSelectItem>
+            <PremiumSelectItem value="registration">registration</PremiumSelectItem>
+            <PremiumSelectItem value="other">other</PremiumSelectItem>
+          </PremiumSelectContent>
+        </PremiumSelect>
+      </div>
+      <div className="flex flex-wrap gap-2 sm:col-span-2 sm:col-start-1">
+        <div className="min-w-0 flex-1 space-y-1">
+          <Label className="text-[11px] text-white/50">Start</Label>
+          <Input
+            type="time"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            className="h-8 border-white/10 bg-slate-950/60 text-white"
+          />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          <Label className="text-[11px] text-white/50">End</Label>
+          <Input
+            type="time"
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+            className="h-8 border-white/10 bg-slate-950/60 text-white"
+          />
+        </div>
+        <div className="flex items-end sm:col-span-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="h-8 w-full"
+            onClick={() => {
+              if (!name.trim()) return;
+              onAdd({ id: newId(), name: name.trim(), kind, startTime: start, endTime: end });
+              setName("");
+            }}
+          >
+            <Plus className="mr-1 h-3 w-3" />
+            Add block
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GradeOverridePeriodAddRow({ onSet }: { onSet: (periodIndex: number, minutes: number) => void }) {
+  const [n, setN] = React.useState(1);
+  const [mins, setMins] = React.useState(40);
+  return (
+    <div className="mt-1 flex flex-wrap items-end gap-2">
+      <div className="space-y-1">
+        <Label className="text-[11px] text-white/50">Period #</Label>
+        <Input
+          type="number"
+          min={1}
+          max={20}
+          className="h-8 w-16 border-white/10 bg-slate-950/60 text-xs text-white"
+          value={n}
+          onChange={(e) => setN(Number(e.target.value) || 1)}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label className="text-[11px] text-white/50">Min</Label>
+        <Input
+          type="number"
+          min={5}
+          max={120}
+          className="h-8 w-20 border-white/10 bg-slate-950/60 text-xs text-white"
+          value={mins}
+          onChange={(e) => setMins(Number(e.target.value) || 0)}
+        />
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        className="h-8"
+        variant="secondary"
+        onClick={() => {
+          const pi = Math.max(1, Math.min(20, n));
+          const m = Math.max(5, Math.min(120, mins));
+          onSet(pi, m);
+        }}
+      >
+        <Plus className="mr-1 h-3 w-3" />
+        Set
+      </Button>
+    </div>
+  );
+}
+
+export function SchoolDailyScheduleWizard({
+  initial,
+  gradeOptions,
+  saving,
+  onCancel,
+  onSave,
+}: Props) {
+  const [step, setStep] = React.useState(1);
+  const [draft, setDraft] = React.useState<SchoolDailyScheduleConfigV2>(() =>
+    initial ? ensureConfigV2(initial) : createDefaultV2Config()
+  );
+  const [gradeRows, setGradeRows] = React.useState<GradeOverrideDraft[]>(() => {
+    if (initial?.hasGradeOverrides && initial.gradeOverrides.length) {
+      const b = ensureConfigV2(initial);
+      return initial.gradeOverrides.map((g) => toGradeDraft(g, b));
+    }
+    return [];
+  });
+
+  const [breakName, setBreakName] = React.useState("");
+  const [breakStart, setBreakStart] = React.useState("10:00");
+  const [breakEnd, setBreakEnd] = React.useState("10:20");
+  const [breakScopeIds, setBreakScopeIds] = React.useState<string[]>([]);
+  const [breakExampleKey, setBreakExampleKey] = React.useState(0);
+
+  const [obName, setObName] = React.useState("");
+  const [obKind, setObKind] = React.useState<OpeningBlock["kind"]>("registration");
+  const [obStart, setObStart] = React.useState("08:00");
+  const [obEnd, setObEnd] = React.useState("08:15");
+
+  const [ovIndex, setOvIndex] = React.useState(1);
+  const [ovMinutes, setOvMinutes] = React.useState(35);
+
+  const [changeLabel, setChangeLabel] = React.useState("");
+  const [academicPeriodId, setAcademicPeriodId] = React.useState("");
+
+  const gradeName = React.useCallback(
+    (id: string) => gradeOptions.find((g) => g._id === id)?.name || id,
+    [gradeOptions]
+  );
+
+  const setBase = (patch: Partial<SchoolDailyScheduleConfigV2>) => {
+    setDraft((d) => ({ ...d, ...patch }));
+  };
+
+  const defaultEstimate = React.useMemo(
+    () => effectivePeriodsFor(draft, "monday", null),
+    [draft]
+  );
+
+  const canGoFromStep1 = React.useMemo(() => {
+    const open = validateOpeningBlocks(
+      draft.dayGateStart,
+      draft.lessonStart,
+      draft.openingBlocks ?? []
+    );
+    if (!open.ok) return false;
+    const toMin = (h: string) => {
+      const p = h.match(/^(\d{1,2}):(\d{2})$/);
+      if (!p) return Number.NaN;
+      return parseInt(p[1], 10) * 60 + parseInt(p[2], 10);
+    };
+    if (toMin(draft.lessonStart) >= toMin(draft.dayEnd)) return false;
+    return true;
+  }, [draft]);
+
+  const step1ErrorMessage = React.useMemo(() => {
+    const o = validateOpeningBlocks(
+      draft.dayGateStart,
+      draft.lessonStart,
+      draft.openingBlocks ?? []
+    );
+    if (!o.ok) return o.error;
+    const toMin = (h: string) => {
+      const p = h.match(/^(\d{1,2}):(\d{2})$/);
+      if (!p) return Number.NaN;
+      return parseInt(p[1], 10) * 60 + parseInt(p[2], 10);
+    };
+    if (toMin(draft.lessonStart) >= toMin(draft.dayEnd)) {
+      return "The school day end must be after lessons start.";
+    }
+    return null;
+  }, [draft]);
+
+  const canGoFromStep2 = React.useMemo(() => {
+    const hasStagger = draft.breaks.some(
+      (b) => b.appliesToGradeIds && b.appliesToGradeIds.length > 0
+    );
+    if (hasStagger) {
+      for (const b of draft.breaks) {
+        const v = validateBreaksInWindow(draft.lessonStart, draft.dayEnd, [b as DailyBreakItem]);
+        if (!v.ok) return false;
+      }
+      return true;
+    }
+    return validateBreaksInWindow(
+      draft.lessonStart,
+      draft.dayEnd,
+      draft.breaks as DailyBreakItem[]
+    ).ok;
+  }, [draft]);
+
+  const canGoFromStep3 = !draft.allWeekdaysSame
+    ? draft.weekdayExceptions.length > 0 &&
+      draft.weekdayExceptions.every((ex) => {
+        const hasStagger = ex.breaks.some(
+          (b) => b.appliesToGradeIds && b.appliesToGradeIds.length > 0
+        );
+        if (hasStagger) {
+          return ex.breaks.every((b) =>
+            validateBreaksInWindow(ex.lessonStart, ex.dayEnd, [b as DailyBreakItem]).ok
+          );
+        }
+        return validateBreaksInWindow(
+          ex.lessonStart,
+          ex.dayEnd,
+          ex.breaks as DailyBreakItem[]
+        ).ok;
+      })
+    : true;
+
+  const canGoFromStep4 = React.useMemo(() => {
+    if (!draft.hasGradeOverrides) return true;
+    if (gradeRows.length === 0) return false;
+    return gradeRows.every((r) => {
+      if (r.gradeIds.length === 0) return false;
+      const hasAny =
+        r.useDayGate ||
+        r.useStart ||
+        r.useEnd ||
+        r.usePeriod ||
+        r.useOpenings ||
+        r.usePeriodOverrides ||
+        r.useBreaks;
+      if (!hasAny) return false;
+      if (getGradeRowOpeningError(r, draft)) return false;
+      if (getGradeRowPeriodOverrideError(r)) return false;
+      return true;
+    });
+  }, [draft, gradeRows]);
+
+  const canFinish =
+    canGoFromStep1 &&
+    canGoFromStep2 &&
+    canGoFromStep3 &&
+    canGoFromStep4;
+
+  const addBreak = () => {
+    if (!breakName.trim()) return;
+    const b: DailyBreakItemV2 = {
+      id: newId(),
+      name: breakName.trim(),
+      startTime: breakStart,
+      endTime: breakEnd,
+      ...(breakScopeIds.length ? { appliesToGradeIds: [...breakScopeIds] } : {}),
+    };
+    setDraft((d) => ({ ...d, breaks: [...d.breaks, b] }));
+    setBreakName("");
+    setBreakScopeIds([]);
+  };
+
+  const removeBreak = (id: string) => {
+    setDraft((d) => ({
+      ...d,
+      breaks: d.breaks.filter((b) => b.id !== id),
+    }));
+  };
+
+  const patchBreak = (id: string, patch: Partial<DailyBreakItemV2>) => {
+    setDraft((d) => ({
+      ...d,
+      breaks: d.breaks.map((b) => (b.id === id ? { ...b, ...patch } : b)),
+    }));
+  };
+
+  const toggleDifferingDay = (day: WeekdayKey) => {
+    setDraft((d) => {
+      const has = d.weekdayExceptions.some((e) => e.weekday === day);
+      if (has) {
+        return {
+          ...d,
+          weekdayExceptions: d.weekdayExceptions.filter((e) => e.weekday !== day),
+        };
+      }
+      return {
+        ...d,
+        weekdayExceptions: [
+          ...d.weekdayExceptions,
+          seedExceptionFrom(d, day),
+        ],
+      };
+    });
+  };
+
+  const patchException = (
+    day: WeekdayKey,
+    patch: Partial<SchoolDailyScheduleConfigV2["weekdayExceptions"][0]>
+  ) => {
+    setDraft((d) => ({
+      ...d,
+      weekdayExceptions: d.weekdayExceptions.map((e) =>
+        e.weekday === day ? { ...e, ...patch } : e
+      ),
+    }));
+  };
+
+  const addExceptionBreak = (day: WeekdayKey) => {
+    const b: DailyBreakItemV2 = {
+      id: newId(),
+      name: "Break",
+      startTime: "10:00",
+      endTime: "10:20",
+    };
+    setDraft((d) => ({
+      ...d,
+      weekdayExceptions: d.weekdayExceptions.map((e) =>
+        e.weekday === day ? { ...e, breaks: [...e.breaks, b] } : e
+      ),
+    }));
+  };
+
+  const removeExceptionBreak = (day: WeekdayKey, id: string) => {
+    setDraft((d) => ({
+      ...d,
+      weekdayExceptions: d.weekdayExceptions.map((e) =>
+        e.weekday === day
+          ? { ...e, breaks: e.breaks.filter((x) => x.id !== id) }
+          : e
+      ),
+    }));
+  };
+
+  const syncGradeOverrideConfig = (next: GradeOverrideDraft[]) => {
+    setGradeRows(next);
+  };
+
+  const [gradeAddNonce, setGradeAddNonce] = React.useState<Record<number, number>>({});
+
+  const addGradeToGroup = React.useCallback((i: number, gradeId: string) => {
+    if (!gradeId) return;
+    setGradeRows((rows) =>
+      rows.map((r, j) =>
+        j === i
+          ? {
+              ...r,
+              gradeIds: r.gradeIds.includes(gradeId)
+                ? r.gradeIds
+                : [...r.gradeIds, gradeId],
+            }
+          : r
+      )
+    );
+    setGradeAddNonce((n) => ({ ...n, [i]: (n[i] ?? 0) + 1 }));
+  }, []);
+
+  const removeGradeFromGroup = React.useCallback((i: number, gradeId: string) => {
+    setGradeRows((rows) =>
+      rows.map((r, j) =>
+        j === i ? { ...r, gradeIds: r.gradeIds.filter((x) => x !== gradeId) } : r
+      )
+    );
+  }, []);
+
+  const addGradeRow = () => {
+    const base = draft;
+    setGradeRows((rows) => [...rows, emptyGradeOverrideDraft(base)]);
+    setDraft((d) => ({ ...d, hasGradeOverrides: true }));
+  };
+
+  const removeGradeRow = (i: number) => {
+    setGradeRows((rows) => {
+      const next = rows.filter((_, j) => j !== i);
+      if (next.length === 0) {
+        setDraft((d) => ({
+          ...d,
+          hasGradeOverrides: false,
+          gradeOverrides: [],
+        }));
+      }
+      return next;
+    });
+  };
+
+  const runSave = () => {
+    const ge = fromGradeDrafts(gradeRows, draft);
+    const config: SchoolDailyScheduleConfigV2 = prepareSchoolDailyConfigForApi({
+      ...draft,
+      version: 2,
+      allWeekdaysSame: draft.allWeekdaysSame,
+      weekdayExceptions: draft.allWeekdaysSame ? [] : draft.weekdayExceptions,
+      hasGradeOverrides: gradeRows.length > 0,
+      gradeOverrides: gradeRows.length > 0 ? ge : [],
+    });
+    return onSave(config, {
+      changeLabel: changeLabel.trim() || undefined,
+      academicPeriodId: academicPeriodId.trim() || undefined,
+    });
+  };
+
+  const next = () => {
+    if (step < 5) {
+      if (step === 4) {
+        const ge = fromGradeDrafts(gradeRows, draft);
+        setDraft((d) => ({
+          ...d,
+          hasGradeOverrides: gradeRows.length > 0,
+          gradeOverrides: gradeRows.length > 0 ? ge : [],
+        }));
+      }
+      setStep((s) => s + 1);
+    } else {
+      void runSave();
+    }
+  };
+
+  const back = () => {
+    if (step > 1) setStep((s) => s - 1);
+  };
+
+  const gradesForPicker = React.useCallback(
+    (rowIndex: number) =>
+      gradeOptions.filter((g) => {
+        if (gradeRows[rowIndex]?.gradeIds.includes(g._id)) return false;
+        return !gradeRows.some(
+          (r, j) => j !== rowIndex && r.gradeIds.includes(g._id)
+        );
+      }),
+    [gradeOptions, gradeRows]
+  );
+
+  return (
+    <Card className="border border-violet-500/20 bg-slate-950/80 backdrop-blur">
+      <CardContent className="space-y-6 p-6">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-violet-300/90">
+              Step {step} of 5
+            </p>
+            <h2 className="text-lg font-semibold text-white">
+              {step === 1 && "Basic school day"}
+              {step === 2 && "Breaks"}
+              {step === 3 && "Weekday exceptions"}
+              {step === 4 && "Grade-specific overrides"}
+              {step === 5 && "Review & confirm"}
+            </h2>
+          </div>
+          <div className="flex gap-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-1.5 w-6 rounded-full",
+                  i < step ? "bg-violet-500" : "bg-white/10"
+                )}
+              />
+            ))}
+          </div>
+        </div>
+
+        {step === 1 && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-1">
+              <Label className="text-white/80">First bell / day gate (before teaching)</Label>
+              <Input
+                type="time"
+                value={draft.dayGateStart}
+                onChange={(e) => setBase({ dayGateStart: e.target.value })}
+                className="border-white/10 bg-white/5 text-white"
+              />
+              <p className="text-[11px] text-white/40">Assembly, registration, or other non-lesson time can sit after this and before the first period.</p>
+            </div>
+            <div className="space-y-2 sm:col-span-1">
+              <Label className="text-white/80">What time does period 1 (teaching) start?</Label>
+              <Input
+                type="time"
+                value={draft.lessonStart}
+                onChange={(e) => setBase({ lessonStart: e.target.value })}
+                className="border-white/10 bg-white/5 text-white"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-1">
+              <Label className="text-white/80">What time does the school day usually end?</Label>
+              <Input
+                type="time"
+                value={draft.dayEnd}
+                onChange={(e) => setBase({ dayEnd: e.target.value })}
+                className="border-white/10 bg-white/5 text-white"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2 sm:max-w-2xl">
+              <Label className="text-white/80">How long is one period (minutes)?</Label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <PremiumSelect
+                  value={
+                    isPresetPeriodMinutes(draft.periodLengthMinutes)
+                      ? String(draft.periodLengthMinutes)
+                      : "custom"
+                  }
+                  onValueChange={(v) => {
+                    if (v === "custom") return;
+                    setBase({ periodLengthMinutes: Number(v) });
+                  }}
+                >
+                  <PremiumSelectTrigger className="h-10 w-full min-w-[220px] border-white/10 bg-white/5 text-white">
+                    <PremiumSelectValue placeholder="Period length" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
+                    {PRESET_PERIODS.map((n) => (
+                      <PremiumSelectItem key={n} value={String(n)}>
+                        {n} minutes
+                      </PremiumSelectItem>
+                    ))}
+                    <PremiumSelectItem value="custom">Custom…</PremiumSelectItem>
+                  </PremiumSelectContent>
+                </PremiumSelect>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-white/40">Exact minutes</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    max={120}
+                    value={draft.periodLengthMinutes}
+                    onChange={(e) =>
+                      setBase({ periodLengthMinutes: Number(e.target.value) || 0 })
+                    }
+                    className="h-10 max-w-32 border-white/10 bg-white/5 text-white"
+                    aria-label="Period length in minutes"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4 sm:col-span-2">
+              <p className="text-sm font-medium text-white/90">Non-teaching time before first period</p>
+              <p className="text-xs text-white/45">Optional blocks such as assembly or registration. They are not &quot;breaks&quot; and sit between first bell and the start of period 1.</p>
+              <ul className="space-y-1.5">
+                {(draft.openingBlocks ?? []).map((o) => (
+                  <li
+                    key={o.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-slate-950/50 px-2 py-1.5 text-xs text-white/80"
+                  >
+                    <span>
+                      <span className="font-medium">{o.name}</span>{" "}
+                      <span className="text-white/50">
+                        ({o.kind}) {o.startTime}–{o.endTime}
+                      </span>
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-rose-300"
+                      onClick={() =>
+                        setDraft((d) => ({
+                          ...d,
+                          openingBlocks: (d.openingBlocks ?? []).filter((x) => x.id !== o.id),
+                        }))
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
+                ))}
+                {(draft.openingBlocks?.length ?? 0) === 0 && (
+                  <li className="text-xs text-white/40">No opening blocks. First bell and lessons start are the only anchors.</li>
+                )}
+              </ul>
+              <div className="mt-2 grid gap-2 rounded border border-dashed border-white/15 p-3 sm:grid-cols-2">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="text-[11px] text-white/50">Name</Label>
+                  <Input
+                    value={obName}
+                    onChange={(e) => setObName(e.target.value)}
+                    placeholder="e.g. Assembly"
+                    className="border-white/10 bg-slate-950/60 text-sm text-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-white/50">Kind</Label>
+                  <PremiumSelect
+                    value={obKind}
+                    onValueChange={(v) => setObKind(v as OpeningBlock["kind"])}
+                  >
+                    <PremiumSelectTrigger className="h-9 border-white/10 bg-slate-950/60 text-xs text-white">
+                      <PremiumSelectValue />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent>
+                      <PremiumSelectItem value="assembly">assembly</PremiumSelectItem>
+                      <PremiumSelectItem value="registration">registration</PremiumSelectItem>
+                      <PremiumSelectItem value="other">other</PremiumSelectItem>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Label className="text-[11px] text-white/50">Start</Label>
+                    <Input
+                      type="time"
+                      value={obStart}
+                      onChange={(e) => setObStart(e.target.value)}
+                      className="h-9 border-white/10 bg-slate-950/60 text-white"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <Label className="text-[11px] text-white/50">End</Label>
+                    <Input
+                      type="time"
+                      value={obEnd}
+                      onChange={(e) => setObEnd(e.target.value)}
+                      className="h-9 border-white/10 bg-slate-950/60 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      if (!obName.trim()) return;
+                      const b: OpeningBlock = {
+                        id: newId(),
+                        name: obName.trim(),
+                        kind: obKind,
+                        startTime: obStart,
+                        endTime: obEnd,
+                      };
+                      setDraft((d) => ({ ...d, openingBlocks: [...(d.openingBlocks ?? []), b] }));
+                      setObName("");
+                    }}
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    Add block
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4 sm:col-span-2">
+              <p className="text-sm font-medium text-white/90">Period length overrides</p>
+              <p className="text-xs text-white/45">Make only certain periods shorter or longer (e.g. first period) without duplicating a whole weekday.</p>
+              <ul className="space-y-1.5 text-xs text-white/70">
+                {(draft.periodLengthOverrides ?? []).map((o) => (
+                  <li key={o.periodIndex} className="flex items-center justify-between gap-2 rounded border border-white/5 bg-slate-950/50 px-2 py-1">
+                    <span>
+                      Period {o.periodIndex}: {o.minutes} min
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-rose-300"
+                      onClick={() =>
+                        setDraft((d) => ({
+                          ...d,
+                          periodLengthOverrides: (d.periodLengthOverrides ?? []).filter(
+                            (x) => x.periodIndex !== o.periodIndex
+                          ),
+                        }))
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </li>
+                ))}
+                {(draft.periodLengthOverrides?.length ?? 0) === 0 && (
+                  <li className="text-white/40">All periods use the default length above.</li>
+                )}
+              </ul>
+              <div className="mt-1 flex flex-wrap items-end gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-white/50">Period #</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={ovIndex}
+                    onChange={(e) => setOvIndex(Number(e.target.value) || 1)}
+                    className="h-9 w-20 border-white/10 bg-slate-950/60 text-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-white/50">Minutes</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    max={120}
+                    value={ovMinutes}
+                    onChange={(e) => setOvMinutes(Number(e.target.value) || 0)}
+                    className="h-9 w-24 border-white/10 bg-slate-950/60 text-white"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-5"
+                  variant="secondary"
+                  onClick={() => {
+                    const n = Math.max(1, Math.min(20, ovIndex));
+                    const mins = Math.max(5, Math.min(120, ovMinutes));
+                    setDraft((d) => {
+                      const rest = (d.periodLengthOverrides ?? []).filter((x) => x.periodIndex !== n);
+                      return { ...d, periodLengthOverrides: [...rest, { periodIndex: n, minutes: mins }] };
+                    });
+                  }}
+                >
+                  <Plus className="mr-1 h-3 w-3" />
+                  Set override
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 sm:col-span-2">
+              <p className="text-sm font-medium text-emerald-200">
+                Estimated teaching periods: {defaultEstimate.fullPeriods}
+                {defaultEstimate.hasPartialRemainder
+                  ? ` (with ${defaultEstimate.remainderTeachingMinutes} min remaining)`
+                  : null}
+              </p>
+              <p className="mt-1 text-xs text-emerald-200/80">
+                We subtract break time, then use your default and any per-period overrides. You can add breaks in
+                the next step.
+              </p>
+            </div>
+            {!canGoFromStep1 && step1ErrorMessage && (
+              <p className="text-sm text-amber-200 sm:col-span-2">{step1ErrorMessage}</p>
+            )}
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4">
+            <p className="text-sm text-white/60">
+              Add breaks one at a time (e.g. morning break, lunch). They block teaching time and reduce how many
+              periods fit in the day. Use grade scopes when different year groups have staggered breaks — leave
+              empty for a school-wide break.
+            </p>
+            <div className="space-y-2 max-w-md">
+              <Label className="text-white/50 text-xs">Prefill from an example (optional)</Label>
+              <PremiumSelect
+                key={breakExampleKey}
+                onValueChange={(v) => {
+                  if (v === "morning") {
+                    setBreakName("Morning break");
+                    setBreakStart("10:00");
+                    setBreakEnd("10:20");
+                  } else if (v === "lunch") {
+                    setBreakName("Lunch");
+                    setBreakStart("12:00");
+                    setBreakEnd("12:40");
+                  } else if (v === "afternoon") {
+                    setBreakName("Afternoon break");
+                    setBreakStart("14:00");
+                    setBreakEnd("14:15");
+                  }
+                  setBreakExampleKey((k) => k + 1);
+                }}
+              >
+                <PremiumSelectTrigger className="h-10 w-full border-white/10 bg-white/5 text-white">
+                  <PremiumSelectValue placeholder="Choose a template…" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent>
+                  <PremiumSelectItem value="morning">Morning break (10:00–10:20)</PremiumSelectItem>
+                  <PremiumSelectItem value="lunch">Lunch (12:00–12:40)</PremiumSelectItem>
+                  <PremiumSelectItem value="afternoon">Afternoon break (14:00–14:15)</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
+            </div>
+            <ul className="space-y-2">
+              {draft.breaks.length === 0 && (
+                <li className="text-sm text-white/40">No breaks added yet.</li>
+              )}
+              {draft.breaks.map((b) => (
+                <li
+                  key={b.id}
+                  className="space-y-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm text-white">
+                      <span className="font-medium">{b.name}</span>{" "}
+                      <span className="text-white/60">
+                        {b.startTime} – {b.endTime}
+                      </span>
+                    </span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="text-rose-300"
+                      onClick={() => removeBreak(b.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                    <span className="text-[11px] text-white/45">Applies to</span>
+                    {b.appliesToGradeIds && b.appliesToGradeIds.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {b.appliesToGradeIds.map((gid) => (
+                          <span
+                            key={gid}
+                            className="inline-flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-[11px] text-violet-100"
+                          >
+                            {gradeName(gid)}
+                            <button
+                              type="button"
+                              className="rounded-full p-0.5 text-violet-200/90 hover:bg-white/10"
+                              onClick={() => {
+                                const next = b.appliesToGradeIds?.filter((x) => x !== gid) ?? [];
+                                patchBreak(b.id, {
+                                  appliesToGradeIds: next.length > 0 ? next : undefined,
+                                });
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-emerald-200/80">All grades (school-wide)</span>
+                    )}
+                    {gradeOptions.filter(
+                      (g) => !(b.appliesToGradeIds ?? []).includes(g._id)
+                    ).length > 0 && (
+                      <PremiumSelect
+                        onValueChange={(v) => {
+                          const next = new Set([...(b.appliesToGradeIds ?? []), v]);
+                          patchBreak(b.id, { appliesToGradeIds: [...next] });
+                        }}
+                      >
+                        <PremiumSelectTrigger className="h-8 max-w-xs border-white/10 bg-slate-950/60 text-[11px] text-white">
+                          <PremiumSelectValue placeholder="Add grade scope" />
+                        </PremiumSelectTrigger>
+                        <PremiumSelectContent>
+                          {gradeOptions
+                            .filter((g) => !(b.appliesToGradeIds ?? []).includes(g._id))
+                            .map((g) => (
+                              <PremiumSelectItem key={g._id} value={g._id}>
+                                {g.name}
+                              </PremiumSelectItem>
+                            ))}
+                        </PremiumSelectContent>
+                      </PremiumSelect>
+                    )}
+                    {(b.appliesToGradeIds?.length ?? 0) > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-[11px] text-white/50"
+                        onClick={() => patchBreak(b.id, { appliesToGradeIds: undefined })}
+                      >
+                        Clear to school-wide
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="grid gap-3 rounded-xl border border-dashed border-white/15 p-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label className="text-white/80">Break name</Label>
+                <Input
+                  value={breakName}
+                  onChange={(e) => setBreakName(e.target.value)}
+                  placeholder="e.g. Morning break"
+                  className="border-white/10 bg-white/5 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-white/80">Start</Label>
+                <Input
+                  type="time"
+                  value={breakStart}
+                  onChange={(e) => setBreakStart(e.target.value)}
+                  className="border-white/10 bg-white/5 text-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-white/80">End</Label>
+                <Input
+                  type="time"
+                  value={breakEnd}
+                  onChange={(e) => setBreakEnd(e.target.value)}
+                  className="border-white/10 bg-white/5 text-white"
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-white/50">Limit to grades (optional, staggered breaks)</Label>
+                  {breakScopeIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {breakScopeIds.map((gid) => (
+                        <span
+                          key={gid}
+                          className="inline-flex items-center gap-1 rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-[11px] text-violet-100"
+                        >
+                          {gradeName(gid)}
+                          <button
+                            type="button"
+                            className="rounded-full p-0.5"
+                            onClick={() => setBreakScopeIds((s) => s.filter((x) => x !== gid))}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {gradeOptions.filter((g) => !breakScopeIds.includes(g._id)).length > 0 && (
+                    <PremiumSelect
+                      onValueChange={(v) => {
+                        if (!breakScopeIds.includes(v)) {
+                          setBreakScopeIds((s) => [...s, v]);
+                        }
+                      }}
+                    >
+                      <PremiumSelectTrigger className="h-9 border-white/10 bg-slate-950/60 text-xs text-white">
+                        <PremiumSelectValue placeholder="Add a grade" />
+                      </PremiumSelectTrigger>
+                      <PremiumSelectContent>
+                        {gradeOptions
+                          .filter((g) => !breakScopeIds.includes(g._id))
+                          .map((g) => (
+                            <PremiumSelectItem key={g._id} value={g._id}>
+                              {g.name}
+                            </PremiumSelectItem>
+                          ))}
+                      </PremiumSelectContent>
+                    </PremiumSelect>
+                  )}
+                </div>
+                <Button type="button" variant="secondary" className="w-full" onClick={addBreak}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add this break
+                </Button>
+              </div>
+            </div>
+            {!canGoFromStep2 && (
+              <p className="text-sm text-amber-200">
+                Fix break times: each must be inside the school day and not overlap.
+              </p>
+            )}
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-white/70">Do all weekdays follow the same schedule?</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/50">Different by day</span>
+                <Switch
+                  checked={!draft.allWeekdaysSame}
+                  onCheckedChange={(v) => {
+                    if (!v) {
+                      setBase({ allWeekdaysSame: true, weekdayExceptions: [] });
+                    } else {
+                      setBase({ allWeekdaysSame: false });
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            {!draft.allWeekdaysSame && (
+              <div className="space-y-3">
+                <p className="text-sm text-white/60">
+                  Tap the days that use a different start, end, period length, or breaks. You only configure
+                  those days — the rest use your default from step 1–2.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {WEEKDAYS.map(({ key, short }) => {
+                    const on = draft.weekdayExceptions.some((e) => e.weekday === key);
+                    return (
+                      <button
+                        type="button"
+                        key={key}
+                        onClick={() => toggleDifferingDay(key)}
+                        className={cn(
+                          "rounded-lg border px-3 py-1.5 text-sm font-medium transition",
+                          on
+                            ? "border-violet-500/50 bg-violet-500/20 text-violet-100"
+                            : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+                        )}
+                      >
+                        {short}
+                      </button>
+                    );
+                  })}
+                </div>
+                {draft.weekdayExceptions.map((ex) => (
+                  <div
+                    key={ex.weekday}
+                    className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="capitalize">
+                        {ex.weekday}
+                      </Badge>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-white/60">Lessons start</Label>
+                        <Input
+                          type="time"
+                          value={ex.lessonStart}
+                          onChange={(e) =>
+                            patchException(ex.weekday, { lessonStart: e.target.value })
+                          }
+                          className="border-white/10 bg-slate-950/60 text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-white/60">Day ends</Label>
+                        <Input
+                          type="time"
+                          value={ex.dayEnd}
+                          onChange={(e) => patchException(ex.weekday, { dayEnd: e.target.value })}
+                          className="border-white/10 bg-slate-950/60 text-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-white/60">Period (min)</Label>
+                        <Input
+                          type="number"
+                          min={5}
+                          max={120}
+                          value={ex.periodLengthMinutes}
+                          onChange={(e) =>
+                            patchException(ex.weekday, {
+                              periodLengthMinutes: Number(e.target.value) || 0,
+                            })
+                          }
+                          className="border-white/10 bg-slate-950/60 text-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-white/60">Breaks for this day</Label>
+                      {ex.breaks.map((b) => (
+                        <div
+                          key={b.id}
+                          className="flex flex-wrap items-end gap-2 rounded-lg border border-white/5 bg-slate-950/40 p-2"
+                        >
+                          <Input
+                            value={b.name}
+                            onChange={(e) =>
+                              setDraft((d) => ({
+                                ...d,
+                                weekdayExceptions: d.weekdayExceptions.map((x) =>
+                                  x.weekday === ex.weekday
+                                    ? {
+                                        ...x,
+                                        breaks: x.breaks.map((bb) =>
+                                          bb.id === b.id
+                                            ? { ...bb, name: e.target.value }
+                                            : bb
+                                        ),
+                                      }
+                                    : x
+                                ),
+                              }))
+                            }
+                            className="h-9 max-w-xs border-white/10 bg-slate-950/60 text-sm text-white"
+                            placeholder="Name"
+                          />
+                          <Input
+                            type="time"
+                            value={b.startTime}
+                            onChange={(e) =>
+                              setDraft((d) => ({
+                                ...d,
+                                weekdayExceptions: d.weekdayExceptions.map((x) =>
+                                  x.weekday === ex.weekday
+                                    ? {
+                                        ...x,
+                                        breaks: x.breaks.map((bb) =>
+                                          bb.id === b.id
+                                            ? { ...bb, startTime: e.target.value }
+                                            : bb
+                                        ),
+                                      }
+                                    : x
+                                ),
+                              }))
+                            }
+                            className="h-9 w-28 border-white/10 bg-slate-950/60 text-sm text-white"
+                          />
+                          <Input
+                            type="time"
+                            value={b.endTime}
+                            onChange={(e) =>
+                              setDraft((d) => ({
+                                ...d,
+                                weekdayExceptions: d.weekdayExceptions.map((x) =>
+                                  x.weekday === ex.weekday
+                                    ? {
+                                        ...x,
+                                        breaks: x.breaks.map((bb) =>
+                                          bb.id === b.id
+                                            ? { ...bb, endTime: e.target.value }
+                                            : bb
+                                        ),
+                                      }
+                                    : x
+                                ),
+                              }))
+                            }
+                            className="h-9 w-28 border-white/10 bg-slate-950/60 text-sm text-white"
+                          />
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeExceptionBreak(ex.weekday, b.id)}
+                            className="h-9 text-rose-300"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => addExceptionBreak(ex.weekday)}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Add break
+                      </Button>
+                    </div>
+                    <p className="text-xs text-white/40">
+                      Periods:{" "}
+                      {effectivePeriodsFor(ensureConfigV2(draft), ex.weekday, null).fullPeriods}
+                    </p>
+                  </div>
+                ))}
+                {!canGoFromStep3 && (
+                  <p className="text-sm text-amber-200">Select and complete at least one different weekday, or turn off exceptions.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-4">
+            <p className="text-sm text-white/60">
+              If KG, JHS, or other grades do not follow the same structure, define overrides here.
+            </p>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-white/70">Use grade-specific schedules</span>
+              <Switch
+                checked={draft.hasGradeOverrides && gradeRows.length > 0}
+                onCheckedChange={(v) => {
+                  if (!v) {
+                    setGradeRows([]);
+                    setDraft((d) => ({ ...d, hasGradeOverrides: false, gradeOverrides: [] }));
+                  } else {
+                    if (gradeRows.length === 0) {
+                      setGradeRows([emptyGradeOverrideDraft(draft)]);
+                    }
+                    setDraft((d) => ({ ...d, hasGradeOverrides: true }));
+                  }
+                }}
+              />
+            </div>
+            {gradeRows.map((row, i) => (
+              <div
+                key={i}
+                className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Label className="text-xs text-white/60">Grades that share this override</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {row.gradeIds.length === 0 && (
+                        <span className="text-xs text-white/40">No grades selected yet.</span>
+                      )}
+                      {row.gradeIds.map((gid) => (
+                        <span
+                          key={gid}
+                          className="inline-flex items-center gap-1 rounded-full border border-violet-400/35 bg-violet-500/15 pl-2.5 pr-0.5 py-0.5 text-xs font-medium text-violet-100"
+                        >
+                          {gradeOptions.find((g) => g._id === gid)?.name ?? gid}
+                          <button
+                            type="button"
+                            onClick={() => removeGradeFromGroup(i, gid)}
+                            className="rounded-full p-0.5 text-violet-200/90 hover:bg-white/10 hover:text-white"
+                            aria-label={`Remove ${gradeOptions.find((g) => g._id === gid)?.name ?? "grade"}`}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    {gradesForPicker(i).length > 0 ? (
+                      <PremiumSelect
+                        key={`grade-add-${i}-${gradeAddNonce[i] ?? 0}`}
+                        onValueChange={(v) => {
+                          addGradeToGroup(i, v);
+                        }}
+                      >
+                        <PremiumSelectTrigger className="h-10 w-full max-w-sm border-white/10 bg-slate-950/60 text-white">
+                          <PremiumSelectValue placeholder="Add a grade" />
+                        </PremiumSelectTrigger>
+                        <PremiumSelectContent>
+                          {gradesForPicker(i).map((g) => (
+                            <PremiumSelectItem key={g._id} value={g._id}>
+                              {g.name}
+                            </PremiumSelectItem>
+                          ))}
+                        </PremiumSelectContent>
+                      </PremiumSelect>
+                    ) : (
+                      <p className="text-xs text-white/45">All available grades are assigned to a group.</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => removeGradeRow(i)}
+                    className="shrink-0 text-rose-300"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(
+                    [
+                      ["useDayGate", "Different first bell"] as const,
+                      ["useStart", "Different lessons / period 1 start"] as const,
+                      ["useEnd", "Different school day end"] as const,
+                      ["usePeriod", "Different default period length"] as const,
+                      ["useOpenings", "Non-teaching (opening) blocks"] as const,
+                      ["usePeriodOverrides", "Per-period length overrides"] as const,
+                      ["useBreaks", "Breaks"] as const,
+                    ] as const
+                  ).map(([k, label]) => (
+                    <div key={k} className="flex items-center justify-between gap-2 rounded-lg border border-white/5 p-2">
+                      <span className="text-xs text-white/70">{label}</span>
+                      <Switch
+                        checked={row[k]}
+                        onCheckedChange={(v) => {
+                          const next = gradeRows.map((g, j) => {
+                            if (j !== i) return g;
+                            if (k === "useOpenings" && v) {
+                              return {
+                                ...g,
+                                useOpenings: true,
+                                openingBlocks: (draft.openingBlocks ?? []).map((o) => ({
+                                  ...o,
+                                  id: newId(),
+                                })),
+                              };
+                            }
+                            if (k === "usePeriodOverrides" && v) {
+                              return {
+                                ...g,
+                                usePeriodOverrides: true,
+                                periodLengthOverrides: (draft.periodLengthOverrides ?? []).map(
+                                  (p) => ({ ...p })
+                                ),
+                              };
+                            }
+                            if (k === "useDayGate" && v) {
+                              return { ...g, useDayGate: true, dayGateStart: draft.dayGateStart };
+                            }
+                            return { ...g, [k]: v } as GradeOverrideDraft;
+                          });
+                          syncGradeOverrideConfig(next);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                {row.useDayGate && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-white/60">First bell (day gate)</Label>
+                    <Input
+                      type="time"
+                      value={row.dayGateStart}
+                      onChange={(e) => {
+                        const next = gradeRows.map((g, j) =>
+                          j === i ? { ...g, dayGateStart: e.target.value } : g
+                        );
+                        syncGradeOverrideConfig(next);
+                      }}
+                      className="max-w-xs border-white/10 bg-slate-950/60 text-white"
+                    />
+                    <p className="text-[11px] text-white/40">
+                      Used with opening blocks. If you do not set a custom start time for period 1, the school
+                      default start still applies to teaching.
+                    </p>
+                  </div>
+                )}
+                {row.useStart && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-white/60">Start</Label>
+                    <Input
+                      type="time"
+                      value={row.lessonStart}
+                      onChange={(e) => {
+                        const next = gradeRows.map((g, j) =>
+                          j === i ? { ...g, lessonStart: e.target.value } : g
+                        );
+                        syncGradeOverrideConfig(next);
+                      }}
+                      className="max-w-xs border-white/10 bg-slate-950/60 text-white"
+                    />
+                  </div>
+                )}
+                {row.useEnd && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-white/60">End</Label>
+                    <Input
+                      type="time"
+                      value={row.dayEnd}
+                      onChange={(e) => {
+                        const next = gradeRows.map((g, j) =>
+                          j === i ? { ...g, dayEnd: e.target.value } : g
+                        );
+                        syncGradeOverrideConfig(next);
+                      }}
+                      className="max-w-xs border-white/10 bg-slate-950/60 text-white"
+                    />
+                  </div>
+                )}
+                {row.usePeriod && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-white/60">Period (minutes)</Label>
+                    <Input
+                      type="number"
+                      min={5}
+                      max={120}
+                      value={row.periodLengthMinutes}
+                      onChange={(e) => {
+                        const next = gradeRows.map((g, j) =>
+                          j === i
+                            ? { ...g, periodLengthMinutes: Number(e.target.value) || 0 }
+                            : g
+                        );
+                        syncGradeOverrideConfig(next);
+                      }}
+                      className="max-w-xs border-white/10 bg-slate-950/60 text-white"
+                    />
+                  </div>
+                )}
+                {row.useOpenings && (
+                  <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                    <Label className="text-xs text-white/60">
+                      Non-teaching time before first period (this grade group)
+                    </Label>
+                    <p className="text-[11px] text-white/40">
+                      Blocks must fall between the effective first bell (
+                      {row.useDayGate ? row.dayGateStart : draft.dayGateStart}) and the effective lessons
+                      start ({row.useStart ? row.lessonStart : draft.lessonStart}).
+                    </p>
+                    <ul className="space-y-1.5">
+                      {row.openingBlocks.map((o) => (
+                        <li
+                          key={o.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded border border-white/5 bg-slate-950/60 px-2 py-1.5 text-xs text-white/80"
+                        >
+                          <span>
+                            <span className="font-medium">{o.name}</span>{" "}
+                            <span className="text-white/50">
+                              ({o.kind}) {o.startTime}–{o.endTime}
+                            </span>
+                          </span>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-rose-300"
+                            onClick={() => {
+                              const next = gradeRows.map((g, j) =>
+                                j === i
+                                  ? {
+                                      ...g,
+                                      openingBlocks: g.openingBlocks.filter((x) => x.id !== o.id),
+                                    }
+                                  : g
+                              );
+                              syncGradeOverrideConfig(next);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                    <GradeOverrideOpeningAddForm
+                      onAdd={(b) => {
+                        const next = gradeRows.map((g, j) =>
+                          j === i ? { ...g, openingBlocks: [...g.openingBlocks, b] } : g
+                        );
+                        syncGradeOverrideConfig(next);
+                      }}
+                    />
+                    {getGradeRowOpeningError(row, draft) && (
+                      <p className="text-xs text-amber-200">{getGradeRowOpeningError(row, draft)}</p>
+                    )}
+                  </div>
+                )}
+                {row.usePeriodOverrides && (
+                  <div className="space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-3">
+                    <Label className="text-xs text-white/60">Per-period length overrides (this group)</Label>
+                    <p className="text-[11px] text-white/40">
+                      Override minutes for specific 1-based period numbers, on top of this group’s default
+                      length{row.usePeriod ? ` (${row.periodLengthMinutes} min)` : ` (${draft.periodLengthMinutes} min)`}
+                      .
+                    </p>
+                    <ul className="space-y-1 text-xs text-white/70">
+                      {row.periodLengthOverrides.map((o) => (
+                        <li
+                          key={o.periodIndex}
+                          className="flex items-center justify-between gap-2 rounded border border-white/5 px-2 py-1"
+                        >
+                          <span>
+                            Period {o.periodIndex}: {o.minutes} min
+                          </span>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-rose-300"
+                            onClick={() => {
+                              const next = gradeRows.map((g, j) =>
+                                j === i
+                                  ? {
+                                      ...g,
+                                      periodLengthOverrides: g.periodLengthOverrides.filter(
+                                        (x) => x.periodIndex !== o.periodIndex
+                                      ),
+                                    }
+                                  : g
+                              );
+                              syncGradeOverrideConfig(next);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                    <GradeOverridePeriodAddRow
+                      key={i}
+                      onSet={(n, mins) => {
+                        const next = gradeRows.map((g, j) => {
+                          if (j !== i) return g;
+                          const rest = g.periodLengthOverrides.filter((x) => x.periodIndex !== n);
+                          return {
+                            ...g,
+                            periodLengthOverrides: [...rest, { periodIndex: n, minutes: mins }],
+                          };
+                        });
+                        syncGradeOverrideConfig(next);
+                      }}
+                    />
+                    {getGradeRowPeriodOverrideError(row) && (
+                      <p className="text-xs text-amber-200">{getGradeRowPeriodOverrideError(row)}</p>
+                    )}
+                  </div>
+                )}
+                {row.useBreaks && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-white/60">Breaks for this group</Label>
+                    {row.breaks.map((b) => (
+                      <div
+                        key={b.id}
+                        className="flex flex-wrap items-end gap-2 rounded border border-white/5 p-2"
+                      >
+                        <Input
+                          value={b.name}
+                          onChange={(e) => {
+                            const next = gradeRows.map((g, j) =>
+                              j === i
+                                ? {
+                                    ...g,
+                                    breaks: g.breaks.map((bb) =>
+                                      bb.id === b.id
+                                        ? { ...bb, name: e.target.value }
+                                        : bb
+                                    ),
+                                  }
+                                : g
+                            );
+                            syncGradeOverrideConfig(next);
+                          }}
+                          className="h-8 max-w-[120px] border-white/10 bg-slate-950/60 text-xs text-white"
+                        />
+                        <Input
+                          type="time"
+                          value={b.startTime}
+                          onChange={(e) => {
+                            const next = gradeRows.map((g, j) =>
+                              j === i
+                                ? {
+                                    ...g,
+                                    breaks: g.breaks.map((bb) =>
+                                      bb.id === b.id
+                                        ? { ...bb, startTime: e.target.value }
+                                        : bb
+                                    ),
+                                  }
+                                : g
+                            );
+                            syncGradeOverrideConfig(next);
+                          }}
+                          className="h-8 w-24 border-white/10 bg-slate-950/60 text-xs text-white"
+                        />
+                        <Input
+                          type="time"
+                          value={b.endTime}
+                          onChange={(e) => {
+                            const next = gradeRows.map((g, j) =>
+                              j === i
+                                ? {
+                                    ...g,
+                                    breaks: g.breaks.map((bb) =>
+                                      bb.id === b.id
+                                        ? { ...bb, endTime: e.target.value }
+                                        : bb
+                                    ),
+                                  }
+                                : g
+                            );
+                            syncGradeOverrideConfig(next);
+                          }}
+                          className="h-8 w-24 border-white/10 bg-slate-950/60 text-xs text-white"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            const next = gradeRows.map((g, j) =>
+                              j === i
+                                ? {
+                                    ...g,
+                                    breaks: g.breaks.filter((x) => x.id !== b.id),
+                                  }
+                                : g
+                            );
+                            syncGradeOverrideConfig(next);
+                          }}
+                          className="h-8 text-rose-300"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const next = gradeRows.map((g, j) =>
+                          j === i
+                            ? {
+                                ...g,
+                                breaks: [
+                                  ...g.breaks,
+                                    {
+                                    id: newId(),
+                                    name: "Break",
+                                    startTime: "10:00",
+                                    endTime: "10:20",
+                                  } as DailyBreakItemV2,
+                                ],
+                              }
+                            : g
+                        );
+                        syncGradeOverrideConfig(next);
+                      }}
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      Add break
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {draft.hasGradeOverrides && gradeRows.length > 0 && (
+              <Button type="button" variant="secondary" onClick={addGradeRow}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add another override group
+              </Button>
+            )}
+            {!canGoFromStep4 && gradeRows.length > 0 && (
+              <p className="text-sm text-amber-200">
+                In each group, add at least one grade, turn on at least one override, and fix any highlighted
+                validation (opening blocks must sit between the effective first bell and lessons start; per-period
+                overrides need unique period numbers and minutes in range).
+              </p>
+            )}
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="space-y-4 text-sm text-white/80">
+            <DayTimelineStrip config={ensureConfigV2(draft)} gradeOptions={gradeOptions} />
+            <div className="space-y-2">
+              <Label className="text-white/60">Version note (optional)</Label>
+              <Input
+                value={changeLabel}
+                onChange={(e) => setChangeLabel(e.target.value)}
+                placeholder="e.g. Term 1 2026, post-assembly change"
+                className="border-white/10 bg-slate-950/50 text-sm text-white"
+              />
+              <p className="text-[11px] text-white/40">
+                Saved with the previous snapshot in history so you can tell which rule set was active.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-white/60">Academic period ID (optional)</Label>
+              <Input
+                value={academicPeriodId}
+                onChange={(e) => setAcademicPeriodId(e.target.value)}
+                placeholder="Link to a term/semester if your school uses that record"
+                className="border-white/10 bg-slate-950/50 text-sm text-white"
+              />
+            </div>
+            <div>
+              <h3 className="mb-2 font-semibold text-white">Default school day</h3>
+              <ul className="list-inside list-disc space-y-1 text-white/70">
+                <li>First bell: {formatHhmm12(draft.dayGateStart)}</li>
+                <li>Period 1 starts: {formatHhmm12(draft.lessonStart)}</li>
+                <li>End: {formatHhmm12(draft.dayEnd)}</li>
+                <li>Default period length: {draft.periodLengthMinutes} minutes</li>
+                <li>~{defaultEstimate.fullPeriods} teaching period(s) (sample Mon, default group)</li>
+                <li>Breaks: {summarizeBreaks(draft.breaks, gradeName)}</li>
+              </ul>
+            </div>
+            {!draft.allWeekdaysSame && (
+              <div>
+                <h3 className="mb-2 font-semibold text-white">Exceptions</h3>
+                <ul className="space-y-2">
+                  {draft.weekdayExceptions.map((ex) => (
+                    <li key={ex.weekday} className="text-white/70">
+                      <span className="font-medium capitalize text-violet-200">
+                        {ex.weekday}:
+                      </span>{" "}
+                      {formatHhmm12(ex.lessonStart)}–{formatHhmm12(ex.dayEnd)},{" "}
+                      {ex.periodLengthMinutes} min periods, {ex.breaks.length} break(s), ~
+                      {effectivePeriodsFor(ensureConfigV2(draft), ex.weekday, null).fullPeriods}{" "}
+                      periods
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {gradeRows.length > 0 && (
+              <div>
+                <h3 className="mb-2 font-semibold text-white">Grade overrides</h3>
+                <ul className="space-y-1">
+                  {fromGradeDrafts(gradeRows, draft).map((g) => {
+                    const label = g.gradeIds
+                      .map((id) => gradeOptions.find((o) => o._id === id)?.name || id)
+                      .join(", ");
+                    const bits: string[] = [];
+                    if (g.dayGateStart) bits.push(`first bell ${g.dayGateStart}`);
+                    if (g.lessonStart) bits.push(`lessons start ${g.lessonStart}`);
+                    if (g.dayEnd) bits.push(`end ${g.dayEnd}`);
+                    if (g.periodLengthMinutes != null) bits.push(`default period ${g.periodLengthMinutes}m`);
+                    if (g.openingBlocks && g.openingBlocks.length) {
+                      bits.push(
+                        `opening: ${g.openingBlocks.map((o) => o.name).join(", ")}`
+                      );
+                    }
+                    if (g.periodLengthOverrides && g.periodLengthOverrides.length) {
+                      bits.push(
+                        `per-period: ${g.periodLengthOverrides
+                          .map((o) => `P${o.periodIndex}=${o.minutes}m`)
+                          .join(", ")}`
+                      );
+                    }
+                    if (g.breaks && g.breaks.length) bits.push(`custom breaks`);
+                    return (
+                      <li key={g.gradeIds.join("-")} className="text-white/70">
+                        <span className="text-violet-200">{label}</span>: {bits.join(" · ")}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+            <p className="text-xs text-white/50">
+              Saving applies this as the school-wide day pattern (with exceptions) for future timetables and
+              scheduling features.
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+          <Button type="button" variant="ghost" onClick={onCancel} className="text-white/70">
+            Cancel
+          </Button>
+          <div className="flex gap-2">
+            {step > 1 && (
+              <Button type="button" variant="outline" onClick={back}>
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Back
+              </Button>
+            )}
+            {step < 5 ? (
+              <Button
+                type="button"
+                onClick={next}
+                disabled={
+                  (step === 1 && !canGoFromStep1) ||
+                  (step === 2 && !canGoFromStep2) ||
+                  (step === 3 && !canGoFromStep3) ||
+                  (step === 4 && !canGoFromStep4)
+                }
+                className="bg-violet-600 hover:bg-violet-500"
+              >
+                Next
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => void runSave()}
+                disabled={saving || !canFinish}
+                className="bg-linear-to-r from-violet-500 to-purple-600"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save daily schedule"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

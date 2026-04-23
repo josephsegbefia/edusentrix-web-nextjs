@@ -27,6 +27,7 @@ import {
   Landmark,
   ArrowRight,
   Building2,
+  Clock,
 } from "lucide-react";
 import {
   useSchoolSettings,
@@ -38,20 +39,29 @@ import {
 } from "@/hooks/admin/useSchoolSettings";
 import { useSchoolPaymentSetup } from "@/hooks/admin/useSchoolPaymentSetup";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { SchoolDailySchedulePanel } from "@/components/admin/settings/school-daily/SchoolDailySchedulePanel";
 
-type SettingsTab = "school" | "attendance" | "academic" | "features";
+type SettingsTab = "school" | "attendance" | "academic" | "features" | "dailySchedule";
 
 const TABS: Array<{ id: SettingsTab; label: string; icon: React.ElementType }> = [
   { id: "school", label: "School & billing", icon: Building2 },
   { id: "attendance", label: "Attendance", icon: Users },
   { id: "academic", label: "Academic Calendar", icon: Calendar },
+  { id: "dailySchedule", label: "Daily schedules", icon: Clock },
   { id: "features", label: "Features", icon: Sparkles },
 ];
 
-const VALID_SETTINGS_TABS: SettingsTab[] = ["school", "attendance", "academic", "features"];
+const VALID_SETTINGS_TABS: SettingsTab[] = [
+  "school",
+  "attendance",
+  "academic",
+  "features",
+  "dailySchedule",
+];
 
 function tabFromSearchParam(raw: string | null): SettingsTab {
   if (raw === "schedule") return "school";
+  if (raw === "daily" || raw === "dailySchedule") return "dailySchedule";
   if (raw && VALID_SETTINGS_TABS.includes(raw as SettingsTab)) {
     return raw as SettingsTab;
   }
@@ -577,6 +587,8 @@ function SettingsPageContent() {
               </CardContent>
             </Card>
           )}
+
+          {activeTab === "dailySchedule" && <SchoolDailySchedulePanel />}
 
           {activeTab === "features" && (
             <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">

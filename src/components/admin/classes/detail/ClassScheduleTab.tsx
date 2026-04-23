@@ -50,7 +50,8 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
 
   const meta = publishedQuery.data?.meta;
   const hasPublishedForPeriod = Boolean(
-    meta?.hasPublishedVersion && (meta.slotCount ?? 0) > 0
+    meta?.hasPublishedVersion &&
+      ((meta.slotCount ?? 0) + (meta.gapFillCount ?? 0) > 0)
   );
   const showReadOnly = view === "published" && hasPublishedForPeriod;
   const canManage = Boolean(meta?.canManage);
@@ -168,8 +169,10 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
           classLabel={className}
           workingDays={p.meta.workingDays?.length ? p.meta.workingDays : [1, 2, 3, 4, 5]}
           timeAxis={p.meta.timeAxis}
-          hourLabels={p.meta.hourLabels}
           slots={p.data}
+          gapFills={p.gapFills ?? []}
+          dayScheduleSegments={p.dayScheduleSegments ?? []}
+          calendarKey={periodId}
         />
       </div>
     );

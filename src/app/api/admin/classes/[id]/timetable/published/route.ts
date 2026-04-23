@@ -22,6 +22,12 @@ import {
   isTimetableRebootEnabled,
   isTimetableApiWriteEnabled,
 } from "@/lib/timetable/feature-flags";
+import { SchoolUnallocatedGapFill } from "@/models/SchoolUnallocatedGapFill";
+import { UNALLOCATED_GAP_PRESET_OPTIONS } from "@/lib/timetable/unallocated-gap-presets";
+import {
+  loadPublishedDayScheduleSegments,
+  type PublishedDayScheduleSegmentDTO,
+} from "@/lib/timetable/publishedTimetableDaySegments";
 
 function toObjectIdOrNull(value: string | null | undefined): mongoose.Types.ObjectId | null {
   if (!value) return null;
@@ -57,6 +63,67 @@ export type PublishedClassSlotDTO = {
   endTime: string;
   classroomLabel: string;
 };
+
+export type PublishedGapFillDTO = {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  presetCode: string;
+  label: string;
+  description: string;
+};
+
+function presetMeta(code: string): { label: string; description: string } {
+  const hit = UNALLOCATED_GAP_PRESET_OPTIONS.find((o) => o.code === code);
+  return {
+    label: hit?.label || code,
+    description: hit?.description || "",
+  };
+}
+
+function extendTimeRangeFromFills(
+  startHour: number,
+  endHourExclusive: number,
+  items: { startTime: string; endTime: string }[]
+): { startHour: number; endHourExclusive: number } {
+  let sh = startHour;
+  let eh = endHourExclusive;
+  for (const it of items) {
+    const [a] = it.startTime.split(":").map(Number);
+    const [b, c] = it.endTime.split(":").map(Number);
+    const endMins = Number.isFinite(b) ? b * 60 + (Number.isFinite(c) ? c : 0) : 0;
+    if (Number.isFinite(a)) sh = Math.min(sh, a);
+    if (Number.isFinite(b)) {
+      const ceilHour = endMins > 0 ? Math.ceil(endMins / 60) : b;
+      eh = Math.max(eh, Math.min(24, ceilHour + 1));
+    }
+  }
+  if (eh <= sh) {
+    eh = Math.min(20, sh + 8);
+  }
+  return { startHour: sh, endHourExclusive: eh };
+}
+
+async function loadGapFills(
+  schoolId: mongoose.Types.ObjectId,
+  gradeId: mongoose.Types.ObjectId
+): Promise<PublishedGapFillDTO[]> {
+  const rows = await SchoolUnallocatedGapFill.find({ schoolId, gradeId })
+    .select("dayOfWeek startTime endTime presetCode")
+    .sort({ dayOfWeek: 1, startTime: 1 })
+    .lean();
+  return rows.map((r) => {
+    const m = presetMeta(String((r as { presetCode: string }).presetCode));
+    return {
+      dayOfWeek: (r as { dayOfWeek: number }).dayOfWeek,
+      startTime: (r as { startTime: string }).startTime,
+      endTime: (r as { endTime: string }).endTime,
+      presetCode: String((r as { presetCode: string }).presetCode),
+      label: m.label,
+      description: m.description,
+    };
+  });
+}
 
 async function enrichSlots(
   schoolId: mongoose.Types.ObjectId,
@@ -180,10 +247,13 @@ export async function GET(
         ? read.schoolId
         : new mongoose.Types.ObjectId(String(read.schoolId));
 
-    const classRow = await ClassGroup.findById(classObjId).select("schoolId").lean();
-    if (!classRow || String((classRow as { schoolId: mongoose.Types.ObjectId }).schoolId) !== String(schoolIdObj)) {
+    const classRow = await ClassGroup.findById(classObjId).select("schoolId gradeId").lean() as
+      | { schoolId: mongoose.Types.ObjectId; gradeId?: mongoose.Types.ObjectId }
+      | null;
+    if (!classRow || String(classRow.schoolId) !== String(schoolIdObj)) {
       return NextResponse.json({ success: false, error: "Class not found." }, { status: 404 });
     }
+    const gradeId = classRow.gradeId;
 
     const canManage = await isClassTimetableManagerForReadUser(id, read);
 
@@ -221,11 +291,14 @@ export async function GET(
       return NextResponse.json({
         success: true,
         data: [],
+        gapFills: [],
+        dayScheduleSegments: [] as PublishedDayScheduleSegmentDTO[],
         meta: {
           hasPublishedVersion: false,
           versionId: null,
           publishedAt: null,
           slotCount: 0,
+          gapFillCount: 0,
           workingDays,
           timeAxis: { startHour: 6, endHour: 20, hours: [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19] },
           canManage,
@@ -246,6 +319,16 @@ export async function GET(
 
     const data = await enrichSlots(schoolIdObj, rawSlots as never);
 
+    const gapFills =
+      gradeId != null
+        ? await loadGapFills(schoolIdObj, gradeId)
+        : [];
+
+    const dayScheduleSegments =
+      gradeId != null
+        ? await loadPublishedDayScheduleSegments(schoolIdObj, gradeId, workingDays)
+        : [];
+
     let startHour = 6;
     let endHourExclusive = 20;
     for (const s of data) {
@@ -258,6 +341,12 @@ export async function GET(
         endHourExclusive = Math.max(endHourExclusive, Math.min(24, ceilHour + 1));
       }
     }
+    const tr = extendTimeRangeFromFills(startHour, endHourExclusive, [
+      ...gapFills,
+      ...dayScheduleSegments,
+    ]);
+    startHour = tr.startHour;
+    endHourExclusive = tr.endHourExclusive;
     if (endHourExclusive <= startHour) {
       endHourExclusive = Math.min(20, startHour + 8);
     }
@@ -272,11 +361,14 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data,
+      gapFills,
+      dayScheduleSegments,
       meta: {
         hasPublishedVersion: true,
         versionId: String(versionObjId),
         publishedAt: publishedAt ? new Date(publishedAt).toISOString() : null,
         slotCount: data.length,
+        gapFillCount: gapFills.length,
         workingDays,
         timeAxis: {
           startHour: hours[0] ?? 6,

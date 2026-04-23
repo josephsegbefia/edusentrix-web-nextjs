@@ -62,6 +62,10 @@ export function useSaveUnallocatedGapFill(classId: string) {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: key(classId) });
+      void qc.invalidateQueries({
+        queryKey: ["class-published-timetable", classId],
+        exact: false,
+      });
     },
   });
 }

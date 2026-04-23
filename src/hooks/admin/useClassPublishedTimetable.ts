@@ -4,6 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildTimetableKey } from "./useTimetablePlanner";
 import { buildClassSlotsKey } from "./useClassTimetableSlots";
+import type { PublishedDayScheduleSegmentDTO } from "@/lib/timetable/publishedTimetableDaySegments";
 
 export type PublishedClassSlotDTO = {
   id: string;
@@ -18,11 +19,22 @@ export type PublishedClassSlotDTO = {
   classroomLabel: string;
 };
 
+export type PublishedGapFillDTO = {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  presetCode: string;
+  label: string;
+  description: string;
+};
+
 export type ClassPublishedTimetableMeta = {
   hasPublishedVersion: boolean;
   versionId: string | null;
   publishedAt: string | null;
   slotCount: number;
+  /** Grade-level unallocated block labels (same for all classes in the grade). */
+  gapFillCount: number;
   workingDays: number[];
   timeAxis: {
     startHour: number;
@@ -36,6 +48,8 @@ export type ClassPublishedTimetableMeta = {
 type PublishedResponse = {
   success: boolean;
   data: PublishedClassSlotDTO[];
+  gapFills: PublishedGapFillDTO[];
+  dayScheduleSegments: PublishedDayScheduleSegmentDTO[];
   meta: ClassPublishedTimetableMeta;
 };
 
@@ -59,11 +73,14 @@ export function useClassPublishedTimetable(classId: string, academicPeriodId?: s
         return {
           success: true,
           data: [],
+          gapFills: [] as PublishedGapFillDTO[],
+          dayScheduleSegments: [] as PublishedDayScheduleSegmentDTO[],
           meta: {
             hasPublishedVersion: false,
             versionId: null,
             publishedAt: null,
             slotCount: 0,
+            gapFillCount: 0,
             workingDays: [1, 2, 3, 4, 5],
             timeAxis: {
               startHour: 6,
@@ -83,7 +100,18 @@ export function useClassPublishedTimetable(classId: string, academicPeriodId?: s
       if (!res.ok) {
         throw new Error(json?.error || "Failed to load published timetable");
       }
-      return json as PublishedResponse;
+      const r = json as PublishedResponse;
+      const gapFills = Array.isArray(r.gapFills) ? r.gapFills : [];
+      const dayScheduleSegments = Array.isArray(
+        (r as { dayScheduleSegments?: unknown }).dayScheduleSegments
+      )
+        ? (r as PublishedResponse).dayScheduleSegments
+        : [];
+      const meta =
+        typeof r.meta?.gapFillCount === "number"
+          ? r.meta
+          : { ...r.meta, gapFillCount: gapFills.length };
+      return { ...r, gapFills, dayScheduleSegments, meta };
     },
     enabled: Boolean(classId && academicPeriodId),
     staleTime: 30_000,

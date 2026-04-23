@@ -1,0 +1,111 @@
+/* Edusentrix theme for FullCalendar (v6 injects base rules; we layer brand tokens). */
+.published-timetable-fc {
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: rgba(11, 15, 26, 0.72);
+  --fc-today-bg-color: rgba(14, 165, 233, 0.08);
+  --fc-now-indicator-color: #0ea5e9;
+  --fc-border-color: rgba(255, 255, 255, 0.08);
+  --fc-button-bg-color: rgba(109, 40, 217, 0.15);
+  --fc-button-border-color: rgba(255, 255, 255, 0.12);
+  --fc-button-text-color: rgba(255, 255, 255, 0.92);
+  --fc-button-hover-bg-color: rgba(109, 40, 217, 0.28);
+  --fc-button-active-bg-color: rgba(109, 40, 217, 0.38);
+  --fc-event-border-color: transparent;
+  --fc-event-bg-color: transparent;
+  --fc-page-text-color: rgba(255, 255, 255, 0.88);
+  --fc-small-font-size: 0.72rem;
+}
+
+.published-timetable-fc .fc-theme-standard {
+  color: var(--fc-page-text-color);
+}
+
+.published-timetable-fc .fc-scrollgrid,
+.published-timetable-fc .fc-timegrid,
+.published-timetable-fc .fc-timegrid-body {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.published-timetable-fc .fc-col-header-cell {
+  padding: 0.75rem 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  background: linear-gradient(180deg, rgba(15, 21, 36, 0.95) 0%, rgba(11, 15, 26, 0.85) 100%);
+}
+
+.published-timetable-fc .fc-col-header-cell-cushion {
+  padding: 0.1rem 0.2rem;
+}
+
+.published-timetable-fc .fc-timegrid-slot {
+  height: 2.25rem;
+}
+
+.published-timetable-fc .fc-timegrid-axis,
+.published-timetable-fc .fc-timegrid-slot-label-frame {
+  background: rgba(9, 13, 24, 0.82);
+}
+
+.published-timetable-fc .fc-timegrid-slot-label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+.published-timetable-fc .fc-timegrid-slot-label-cushion,
+.published-timetable-fc .fc-timegrid-axis-cushion {
+  padding: 0 0.5rem;
+}
+
+.published-timetable-fc .fc-timegrid-now-indicator-line {
+  border-width: 2px;
+  opacity: 0.9;
+}
+
+.published-timetable-fc .fc-timegrid-event-harness,
+.published-timetable-fc .fc-timegrid-event {
+  overflow: visible;
+}
+
+.published-timetable-fc .edus-pub-event {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 1px 3px 0;
+  min-height: 2.25rem;
+}
+
+.published-timetable-fc .fc-timegrid-event-harness {
+  margin-top: 0;
+}
+
+.published-timetable-fc .fc-v-event {
+  min-height: 1.5rem;
+  border-radius: 0.65rem;
+}
+
+.published-timetable-fc .fc-timegrid-event .fc-event-main {
+  padding: 0;
+  min-width: 0;
+}
+
+.published-timetable-fc .fc-timegrid-event .fc-event-main-frame {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.published-timetable-fc .fc-scrollgrid-section-body > td {
+  background: rgba(11, 15, 26, 0.35);
+}
+
+.published-timetable-fc .fc-timegrid-col.fc-day-today {
+  background: rgba(14, 165, 233, 0.04);
+}
+
+.published-timetable-fc .fc-scrollgrid-sync-inner {
+  min-height: 2.5rem;
+}

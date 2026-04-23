@@ -155,7 +155,7 @@ function DroppableCell({
     <div
       ref={setNodeRef}
       className={cn(
-        "min-h-[72px] rounded-lg border border-dashed border-white/15 bg-white/[0.03] p-2 transition-colors",
+        "min-h-[88px] rounded-xl border border-dashed border-white/15 bg-white/[0.04] p-2.5 transition-colors",
         isOver && "border-cyan-400/50 bg-cyan-500/10",
         className
       )}
@@ -304,10 +304,15 @@ export function ClassTimetableGridBoard({
     return (
       <div
         key={day}
-        className="overflow-hidden rounded-xl border border-white/10 bg-black/20"
+        className="overflow-hidden rounded-2xl border border-white/10 bg-black/20 shadow-[0_12px_32px_rgba(0,0,0,0.18)]"
       >
-        <div className="border-b border-white/10 bg-white/[0.04] px-4 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3">
           <span className="font-medium text-white">{DAY_NAMES[day]}</span>
+          {timeline.length > 0 ? (
+            <span className="text-xs text-white/45">
+              {timeline.filter((row) => row.kind === "period").length} teaching block(s)
+            </span>
+          ) : null}
         </div>
         <div className="divide-y divide-white/10">
           {timeline.length === 0 ? (
@@ -321,18 +326,18 @@ export function ClassTimetableGridBoard({
                 return (
                   <div
                     key={`br-${day}-${idx}`}
-                    className="grid gap-0 sm:grid-cols-[220px,1fr]"
+                    className="grid gap-0 lg:grid-cols-[190px_minmax(0,1fr)]"
                   >
-                    <div className="border-t border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100/90 sm:border-r sm:border-amber-500/15">
+                    <div className="border-t border-amber-500/20 bg-amber-500/10 px-3 py-3 text-sm text-amber-100/90 lg:border-r lg:border-amber-500/15">
                       <span className="flex items-center gap-2 font-medium">
                         <Coffee className="h-4 w-4 shrink-0 text-amber-300" />
                         {row.name}
                       </span>
-                      <span className="ml-6 block text-xs text-amber-200/70">
+                      <span className="mt-1 block text-xs text-amber-200/70">
                         {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
                       </span>
                     </div>
-                    <div className="border-t border-amber-500/10 bg-amber-500/5 px-3 py-3 text-xs text-amber-100/60 sm:border-l-0">
+                    <div className="border-t border-amber-500/10 bg-amber-500/5 px-3 py-3 text-xs leading-relaxed text-amber-100/60 lg:border-l-0">
                       Break (school settings) — not a teaching period
                     </div>
                   </div>
@@ -343,18 +348,18 @@ export function ClassTimetableGridBoard({
                 return (
                   <div
                     key={`op-${day}-${idx}`}
-                    className="grid gap-0 sm:grid-cols-[220px,1fr]"
+                    className="grid gap-0 lg:grid-cols-[190px_minmax(0,1fr)]"
                   >
-                    <div className="border-t border-amber-400/20 bg-amber-400/5 px-3 py-2 text-sm text-amber-50/90 sm:border-r sm:border-amber-400/15">
+                    <div className="border-t border-amber-400/20 bg-amber-400/5 px-3 py-3 text-sm text-amber-50/90 lg:border-r lg:border-amber-400/15">
                       <span className="flex items-center gap-2 font-medium">
                         <Sun className="h-4 w-4 shrink-0 text-amber-200" />
                         {row.name}
                       </span>
-                      <span className="ml-6 block text-xs text-amber-100/60">
+                      <span className="mt-1 block text-xs text-amber-100/60">
                         {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
                       </span>
                     </div>
-                    <div className="border-t border-amber-400/10 bg-amber-950/20 px-3 py-3 text-xs text-amber-100/55 sm:border-l-0">
+                    <div className="border-t border-amber-400/10 bg-amber-950/20 px-3 py-3 text-xs leading-relaxed text-amber-100/55 lg:border-l-0">
                       Non-teaching (opening) — not on the class timetable; lessons start at Period 1.
                     </div>
                   </div>
@@ -365,18 +370,18 @@ export function ClassTimetableGridBoard({
                 return (
                   <div
                     key={`slack-${day}-${idx}`}
-                    className="grid gap-0 sm:grid-cols-[220px,1fr]"
+                    className="grid gap-0 lg:grid-cols-[190px_minmax(0,1fr)]"
                   >
-                    <div className="border-t border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/50 sm:border-r sm:border-white/10">
+                    <div className="border-t border-white/10 bg-white/[0.03] px-3 py-3 text-sm text-white/50 lg:border-r lg:border-white/10">
                       <span className="flex items-center gap-2 font-medium text-white/65">
                         <Hourglass className="h-4 w-4 shrink-0 text-white/35" />
                         {row.label}
                       </span>
-                      <span className="ml-6 block text-xs text-white/40">
+                      <span className="mt-1 block text-xs text-white/40">
                         {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
                       </span>
                     </div>
-                    <div className="border-t border-white/5 bg-white/[0.02] px-3 py-3 sm:border-l-0">
+                    <div className="border-t border-white/5 bg-white/[0.02] px-3 py-3 lg:border-l-0">
                       <UnallocatedGapActions
                         classId={classId}
                         academicPeriodId={academicPeriodId}
@@ -405,17 +410,17 @@ export function ClassTimetableGridBoard({
               return (
                 <div
                   key={`${day}-${row.periodNumber}-${row.startTime}`}
-                  className="grid gap-0 sm:grid-cols-[220px,1fr]"
+                  className="grid gap-0 lg:grid-cols-[190px_minmax(0,1fr)]"
                 >
-                  <div className="border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white/70 sm:border-r">
-                    <span className="font-medium text-white/90">{row.label}</span>
-                    <span className="ml-2 text-xs text-white/45">
+                  <div className="border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-white/70 lg:border-r">
+                    <span className="block font-medium text-white/90">{row.label}</span>
+                    <span className="mt-1 block text-xs text-white/45">
                       {formatTimeLabel(row.startTime)} – {formatTimeLabel(row.endTime)}
                     </span>
                   </div>
-                  <DroppableCell id={cid} className="border-white/5 sm:border-l-0">
+                  <DroppableCell id={cid} className="border-white/5 lg:border-l-0">
                     {cellSlots.length === 0 ? (
-                      <p className="py-3 text-center text-xs text-white/35">
+                      <p className="py-5 text-center text-xs text-white/35">
                         Drop a subject card here
                       </p>
                     ) : (
@@ -430,7 +435,7 @@ export function ClassTimetableGridBoard({
                             <DraggableSlot key={slot.id} slot={slot} disabled={busy}>
                               <div
                                 className={cn(
-                                  "flex items-start justify-between gap-2 rounded-lg border bg-white/5 py-2 pl-1 pr-2",
+                                  "flex min-w-0 items-start justify-between gap-2 rounded-xl border bg-white/5 py-2.5 pl-1 pr-2.5",
                                   issueSeverity === "error"
                                     ? "border-rose-400/50 bg-rose-500/10 shadow-[0_0_0_1px_rgba(251,113,133,0.12)]"
                                     : issueSeverity === "warning"
@@ -438,21 +443,23 @@ export function ClassTimetableGridBoard({
                                       : "border-white/10"
                                 )}
                               >
-                                <div>
-                                  <p className="text-sm font-medium text-white">
-                                    {subject?.name || "Subject"}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                                    <p className="min-w-0 break-words text-sm font-medium leading-snug text-white">
+                                      {subject?.name || "Subject"}
+                                    </p>
                                     {subject?.code ? (
                                       <Badge
                                         variant="outline"
-                                        className="ml-2 border-white/20 text-[10px]"
+                                        className="shrink-0 border-white/20 text-[10px]"
                                       >
                                         {subject.code}
                                       </Badge>
                                     ) : null}
-                                  </p>
-                                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/55">
+                                  </div>
+                                  <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-white/55">
                                     <User className="h-3 w-3" />
-                                    {teacherName}
+                                    <span className="truncate">{teacherName}</span>
                                   </p>
                                   {issueSeverity ? (
                                     <p
@@ -471,7 +478,7 @@ export function ClassTimetableGridBoard({
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="h-8 text-rose-300 hover:bg-rose-500/15 hover:text-rose-200"
+                                  className="h-8 shrink-0 text-rose-300 hover:bg-rose-500/15 hover:text-rose-200"
                                   onClick={() => handleDelete(slot)}
                                   disabled={deleteMutation.isPending}
                                 >
@@ -511,7 +518,7 @@ export function ClassTimetableGridBoard({
               No subjects for this class yet — assign subjects under Class → Subjects first.
             </p>
           ) : (
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {classSubjects.map((row) => {
                 const primaryTeacher = row.teachers[0];
                 const teacherId = primaryTeacher?.id ?? null;
@@ -573,7 +580,7 @@ function DraggablePaletteCard({
       type="button"
       style={style}
       className={cn(
-        "flex max-w-[280px] items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium",
+        "flex min-w-0 w-full max-w-none items-start gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium",
         warnNoTeacher
           ? "border-amber-500/40 bg-amber-500/15 text-amber-50"
           : "border-violet-400/40 bg-violet-500/20 text-violet-100",
@@ -583,7 +590,7 @@ function DraggablePaletteCard({
       {...attributes}
     >
       <GripVertical className="h-4 w-4 shrink-0" />
-      <span className="line-clamp-2">{label}</span>
+      <span className="min-w-0 break-words leading-snug">{label}</span>
     </button>
   );
 }

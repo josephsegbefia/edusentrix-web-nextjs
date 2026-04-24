@@ -6,6 +6,11 @@ import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import {
+  assignmentScheduleKey,
+  buildTeacherScheduleMap,
+  resolveEffectiveWorkloadHours,
+} from "@/lib/teachers/timetable-workload";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
@@ -103,6 +108,20 @@ export async function GET(
       .populate("classGroupId", "name capacity")
       .lean();
 
+    const assignmentPeriodIds = Array.from(
+      new Set(
+        assignments
+          .map((assignment: any) => String(assignment.academicPeriodId || ""))
+          .filter(Boolean)
+      )
+    ).map((value) => new mongoose.Types.ObjectId(value));
+
+    const scheduleMap = await buildTeacherScheduleMap({
+      schoolId: schoolIdObj,
+      teacherId,
+      periodIds: assignmentPeriodIds,
+    });
+
     // Calculate current workload
     const uniqueClassIdStrings = new Set(
       assignments.map((a: any) => String(a.classGroupId?._id || "")).filter((id) => id !== "")
@@ -130,7 +149,23 @@ export async function GET(
 
     // Calculate total workload hours
     const totalWorkloadHours = assignments.reduce((sum: number, a: any) => {
-      return sum + (a.workloadHours || 0);
+      const schedules =
+        scheduleMap.get(
+          assignmentScheduleKey({
+            academicPeriodId: a.academicPeriodId,
+            classGroupId: a.classGroupId?._id || a.classGroupId,
+            subjectId: a.subjectId,
+          })
+        ) || [];
+
+      return (
+        sum +
+        resolveEffectiveWorkloadHours({
+          schedules,
+          contactHoursPerWeek: a.contactHoursPerWeek,
+          workloadHours: a.workloadHours,
+        })
+      );
     }, 0);
 
     // Get max capacity from teacher record

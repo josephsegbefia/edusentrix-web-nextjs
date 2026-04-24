@@ -582,28 +582,35 @@ export function TeacherOverviewTab({
                     </Button>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-2">
                   {subjects.length > 0 ? (
                     subjects.map((s) => {
                       const classGroups = teacher.assignedSubjects?.find((a) => a.id === s.id)?.classGroups;
                       return (
-                        <Badge
+                        <div
                           key={s.id}
-                          variant="outline"
-                          className="group gap-1.5 rounded-lg border-indigo-500/30 bg-indigo-500/10 pr-1.5 text-indigo-200"
+                          className="group flex w-full items-start justify-between gap-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-3 py-2.5 text-indigo-200"
                         >
-                          {s.name}
-                          {classGroups?.length ? ` (${classGroups.join(", ")})` : ""}
+                          <div className="min-w-0 flex-1">
+                            <p className="break-words text-sm font-medium leading-snug text-indigo-100">
+                              {s.name}
+                            </p>
+                            {classGroups?.length ? (
+                              <p className="mt-1 break-words text-xs leading-relaxed text-indigo-100/75">
+                                {classGroups.join(", ")}
+                              </p>
+                            ) : null}
+                          </div>
                           <button
                             type="button"
                             onClick={() => handleRemoveSubject(s.id, s.name)}
                             disabled={removeSubjectMutation.isPending}
-                            className="ml-0.5 rounded-full p-0.5 opacity-0 transition-all hover:bg-white/10 group-hover:opacity-100"
+                            className="mt-0.5 shrink-0 rounded-full p-0.5 opacity-0 transition-all hover:bg-white/10 group-hover:opacity-100"
                             title={`Remove ${s.name}`}
                           >
                             <X className="h-3 w-3" />
                           </button>
-                        </Badge>
+                        </div>
                       );
                     })
                   ) : (
@@ -780,10 +787,13 @@ export function TeacherOverviewTab({
                   <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                     <div className="mb-1 flex items-center gap-2">
                       <Clock className="h-3.5 w-3.5 text-white/40" />
-                      <p className="text-xs text-white/40">Workload Hours</p>
+                      <p className="text-xs text-white/40">Workload per Week</p>
                     </div>
                     <p className="text-lg font-semibold text-white">
-                      {workload.current.workloadHours}h
+                      {workload.current.workloadHours} hrs/week
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-white/40">
+                      From linked timetable slots for this week
                     </p>
                   </div>
 

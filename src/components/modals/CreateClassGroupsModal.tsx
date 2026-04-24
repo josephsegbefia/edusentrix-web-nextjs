@@ -1166,7 +1166,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                   ? "your shared list"
                   : "the next draft (use pick / per-grade to attach inline)."}
             </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
               <Input
                 value={newSubjectName}
                 onChange={(e) => setNewSubjectName(e.target.value)}

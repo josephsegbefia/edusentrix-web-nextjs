@@ -6,6 +6,11 @@ import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import {
+  assignmentScheduleKey,
+  buildTeacherScheduleMap,
+  resolveEffectiveWorkloadHours,
+} from "@/lib/teachers/timetable-workload";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
@@ -91,6 +96,34 @@ export async function GET(req: NextRequest) {
       .populate("subjectId", "name")
       .lean();
 
+    const assignmentPeriodIds = Array.from(
+      new Set(
+        assignments
+          .map((assignment: any) => String(assignment.academicPeriodId || ""))
+          .filter(Boolean)
+      )
+    ).map((value) => new mongoose.Types.ObjectId(value));
+
+    const teacherIds = Array.from(
+      new Set(
+        assignments
+          .map((assignment: any) => String(assignment.teacherId || ""))
+          .filter(Boolean)
+      )
+    ).map((value) => new mongoose.Types.ObjectId(value));
+
+    const scheduleMapsByTeacher = new Map<string, Awaited<ReturnType<typeof buildTeacherScheduleMap>>>();
+    await Promise.all(
+      teacherIds.map(async (teacherIdObj) => {
+        const scheduleMap = await buildTeacherScheduleMap({
+          schoolId: schoolIdObj,
+          teacherId: teacherIdObj,
+          periodIds: assignmentPeriodIds,
+        });
+        scheduleMapsByTeacher.set(String(teacherIdObj), scheduleMap);
+      })
+    );
+
     // Calculate workload for each teacher
     const workloadData = teachers.map((teacher: any) => {
       const teacherAssignments = assignments.filter(
@@ -124,7 +157,23 @@ export async function GET(req: NextRequest) {
 
       // Calculate total workload hours
       const totalWorkloadHours = teacherAssignments.reduce((sum: number, a: any) => {
-        return sum + (a.workloadHours || 0);
+        const scheduleMap = scheduleMapsByTeacher.get(String(teacher._id));
+        const schedules =
+          scheduleMap?.get(
+            assignmentScheduleKey({
+              academicPeriodId: a.academicPeriodId,
+              classGroupId: a.classGroupId?._id || a.classGroupId,
+              subjectId: a.subjectId?._id || a.subjectId,
+            })
+          ) || [];
+        return (
+          sum +
+          resolveEffectiveWorkloadHours({
+            schedules,
+            contactHoursPerWeek: a.contactHoursPerWeek,
+            workloadHours: a.workloadHours,
+          })
+        );
       }, 0);
 
       // Get max capacity from teacher record

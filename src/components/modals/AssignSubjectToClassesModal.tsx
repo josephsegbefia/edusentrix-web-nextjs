@@ -284,21 +284,31 @@ export function AssignSubjectToClassesModal({
                     const isSelected = selectedClassIds.includes(classGroup.id);
                     const currentSubjectCount = classGroup.subjects.length;
                     return (
-                      <button
+                      <div
                         key={classGroup.id}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={isSelected}
+                        aria-label={`Assign ${subject?.name ?? "subject"} to ${classGroup.fullLabel}`}
                         onClick={() => toggleClass(classGroup.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toggleClass(classGroup.id);
+                          }
+                        }}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-all",
+                          "flex w-full cursor-pointer items-center gap-3 rounded-2xl border p-4 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-amber-300/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
                           isSelected
                             ? "border-amber-300/35 bg-amber-300/10 shadow-[0_18px_45px_-32px_rgba(251,191,36,0.75)]"
                             : "border-white/10 bg-white/5 hover:border-white/15 hover:bg-white/10"
                         )}
                       >
                         <Checkbox
+                          tabIndex={-1}
                           checked={isSelected}
                           className="pointer-events-none h-4 w-4 border-white/30 bg-slate-900/80 data-[state=checked]:bg-amber-300 data-[state=checked]:text-slate-950"
-                          aria-label={`Assign ${subject?.name ?? "subject"} to ${classGroup.fullLabel}`}
+                          aria-hidden
                         />
                         <div className="flex min-w-0 flex-1 items-center gap-3">
                           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5">
@@ -314,7 +324,7 @@ export function AssignSubjectToClassesModal({
                             </p>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })
                 )}

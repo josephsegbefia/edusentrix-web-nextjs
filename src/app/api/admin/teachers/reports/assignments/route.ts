@@ -7,6 +7,11 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Subject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import {
+  assignmentScheduleKey,
+  buildTeacherScheduleMap,
+  resolveEffectiveWorkloadHours,
+} from "@/lib/teachers/timetable-workload";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
@@ -72,6 +77,38 @@ export async function GET(req: NextRequest) {
       })
       .lean();
 
+    const assignmentPeriodIds = Array.from(
+      new Set(
+        assignments
+          .map((assignment: any) =>
+            String(assignment.academicPeriodId?._id || assignment.academicPeriodId || "")
+          )
+          .filter(Boolean)
+      )
+    ).map((value) => new mongoose.Types.ObjectId(value));
+
+    const teacherIds = Array.from(
+      new Set(
+        assignments
+          .map((assignment: any) =>
+            String(assignment.teacherId?._id || assignment.teacherId || "")
+          )
+          .filter(Boolean)
+      )
+    ).map((value) => new mongoose.Types.ObjectId(value));
+
+    const scheduleMapsByTeacher = new Map<string, Awaited<ReturnType<typeof buildTeacherScheduleMap>>>();
+    await Promise.all(
+      teacherIds.map(async (teacherIdObj) => {
+        const scheduleMap = await buildTeacherScheduleMap({
+          schoolId: schoolIdObj,
+          teacherId: teacherIdObj,
+          periodIds: assignmentPeriodIds,
+        });
+        scheduleMapsByTeacher.set(String(teacherIdObj), scheduleMap);
+      })
+    );
+
     // Group by subject
     const bySubject: Record<string, any> = {};
     const byTeacher: Record<string, any> = {};
@@ -118,7 +155,21 @@ export async function GET(req: NextRequest) {
       byTeacher[teacherId].assignments.push(assignment);
       byTeacher[teacherId].subjectCount.add(subjectId);
       byTeacher[teacherId].classCount.add(classId);
-      byTeacher[teacherId].totalWorkloadHours += assignment.workloadHours || 0;
+      byTeacher[teacherId].totalWorkloadHours += resolveEffectiveWorkloadHours({
+        schedules:
+          scheduleMapsByTeacher
+            .get(teacherId)
+            ?.get(
+              assignmentScheduleKey({
+                academicPeriodId:
+                  assignment.academicPeriodId?._id || assignment.academicPeriodId,
+                classGroupId: assignment.classGroupId?._id || assignment.classGroupId,
+                subjectId: assignment.subjectId?._id || assignment.subjectId,
+              })
+            ) || [],
+        contactHoursPerWeek: assignment.contactHoursPerWeek,
+        workloadHours: assignment.workloadHours,
+      });
 
       // Group by class
       if (!byClass[classId]) {

@@ -269,11 +269,13 @@ export async function POST(req: NextRequest) {
             : new mongoose.Types.ObjectId(String(current._id));
       }
 
-      const classGroupOids = assignmentRows
-        .map((r) => r.classGroupId)
+      const classGroupIdStrings = Array.from(
+        new Set(assignmentRows.map((r) => String(r.classGroupId || "").trim()))
+      );
+      const classGroupOids = classGroupIdStrings
         .filter((id) => mongoose.isValidObjectId(id))
         .map((id) => new mongoose.Types.ObjectId(id));
-      if (classGroupOids.length !== assignmentRows.length) {
+      if (classGroupOids.length !== classGroupIdStrings.length) {
         return new Response(
           JSON.stringify({
             error: "One or more class group IDs in teaching assignments are invalid",
@@ -289,7 +291,7 @@ export async function POST(req: NextRequest) {
       })
         .select("_id subjectIds name")
         .lean();
-      if (classGroups.length !== classGroupOids.length) {
+      if (classGroups.length !== classGroupIdStrings.length) {
         return new Response(
           JSON.stringify({
             error:

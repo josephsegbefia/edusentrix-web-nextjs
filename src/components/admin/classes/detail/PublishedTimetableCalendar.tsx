@@ -87,6 +87,7 @@ function PublishedEventCard({
   detail,
   description,
   durationMinutes,
+  isCurrent,
   tone,
 }: {
   icon: React.ElementType;
@@ -96,6 +97,7 @@ function PublishedEventCard({
   detail?: string | null;
   description?: string | null;
   durationMinutes: number;
+  isCurrent?: boolean;
   tone: PublishedEventTone;
 }) {
   const isUltraCompact = durationMinutes > 0 && durationMinutes <= 20;
@@ -106,10 +108,21 @@ function PublishedEventCard({
       <div
         className={cn(
           "flex h-full min-h-0 w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-xl border px-2 py-1.5 text-left",
-          tone.bodyClassName
+          tone.bodyClassName,
+          isCurrent &&
+            "border-sky-300/70 bg-sky-500/20 ring-2 ring-sky-300/55 shadow-[0_0_0_1px_rgba(125,211,252,0.28),0_0_20px_rgba(14,165,233,0.22)]"
         )}
       >
-        <Icon className={cn("h-3 w-3 shrink-0", tone.eyebrowClassName)} />
+        <Icon
+          className={cn(
+            "h-3 w-3 shrink-0",
+            tone.eyebrowClassName,
+            isCurrent && "text-sky-100"
+          )}
+        />
+        {isCurrent ? (
+          <span className="h-2 w-2 shrink-0 rounded-full bg-sky-200 shadow-[0_0_10px_rgba(125,211,252,0.9)]" />
+        ) : null}
         <p className="truncate text-[11px] font-semibold text-white">{title}</p>
       </div>
     );
@@ -120,7 +133,9 @@ function PublishedEventCard({
       className={cn(
         "flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border px-2.5 py-2 text-left",
         tone.bodyClassName,
-        isCompact && "gap-0.5 px-2 py-1.5"
+        isCompact && "gap-0.5 px-2 py-1.5",
+        isCurrent &&
+          "border-sky-300/70 bg-sky-500/15 ring-2 ring-sky-300/55 shadow-[0_0_0_1px_rgba(125,211,252,0.28),0_0_24px_rgba(14,165,233,0.24)]"
       )}
     >
       <div
@@ -131,6 +146,11 @@ function PublishedEventCard({
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />
         <span className="truncate">{eyebrow}</span>
+        {isCurrent ? (
+          <span className="ml-auto shrink-0 rounded-full bg-sky-200/18 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.18em] text-sky-100">
+            NOW
+          </span>
+        ) : null}
       </div>
       <p
         className={cn(
@@ -171,6 +191,7 @@ function PublishedEventCard({
 
 function renderEventContent(arg: EventContentArg) {
   const kind = arg.event.extendedProps?.kind as EventKind | undefined;
+  const isCurrent = arg.event.extendedProps?.isCurrent === true;
   if (kind === "lesson") {
     const slot = arg.event.extendedProps?.slot as PublishedClassSlotDTO | undefined;
     if (!slot) {
@@ -192,6 +213,7 @@ function renderEventContent(arg: EventContentArg) {
         }
         description={slot.classroomLabel ? `Room ${slot.classroomLabel}` : null}
         durationMinutes={durationMinutes}
+        isCurrent={isCurrent}
         tone={{
           bodyClassName:
             "border-cyan-400/30 bg-linear-to-br from-cyan-500/20 via-sky-500/10 to-slate-950/80 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]",
@@ -215,6 +237,7 @@ function renderEventContent(arg: EventContentArg) {
         timeText={timeRangeText(fill.startTime, fill.endTime)}
         description={fill.description}
         durationMinutes={durationMinutes}
+        isCurrent={isCurrent}
         tone={{
           bodyClassName:
             "border-amber-400/30 bg-linear-to-br from-amber-500/20 to-amber-950/30 shadow-[0_1px_0_0_rgba(251,191,36,0.15)_inset]",
@@ -235,6 +258,7 @@ function renderEventContent(arg: EventContentArg) {
         title={seg.label}
         timeText={timeRangeText(seg.startTime, seg.endTime)}
         durationMinutes={durationMinutes}
+        isCurrent={isCurrent}
         tone={{
           bodyClassName:
             "border-emerald-400/30 bg-linear-to-br from-emerald-500/20 to-slate-950/80",
@@ -254,6 +278,7 @@ function renderEventContent(arg: EventContentArg) {
         timeText={timeRangeText(seg.startTime, seg.endTime)}
         description={seg.detail}
         durationMinutes={durationMinutes}
+        isCurrent={isCurrent}
         tone={{
           bodyClassName:
             "border-rose-400/30 bg-linear-to-br from-rose-500/20 to-slate-950/80",
@@ -273,6 +298,7 @@ function renderEventContent(arg: EventContentArg) {
         timeText={timeRangeText(seg.startTime, seg.endTime)}
         description={seg.detail}
         durationMinutes={durationMinutes}
+        isCurrent={isCurrent}
         tone={{
           bodyClassName:
             "border-violet-400/30 bg-linear-to-br from-violet-500/20 to-slate-950/80",
@@ -292,6 +318,7 @@ function renderEventContent(arg: EventContentArg) {
         timeText={timeRangeText(seg.startTime, seg.endTime)}
         description={seg.detail}
         durationMinutes={durationMinutes}
+        isCurrent={isCurrent}
         tone={{
           bodyClassName:
             "border border-dashed border-slate-400/35 bg-slate-900/60",
@@ -318,12 +345,20 @@ export function PublishedTimetableCalendar({
   calendarKey = "cal",
 }: PublishedTimetableCalendarProps) {
   const { startHour, endHour } = timeAxis;
+  const [now, setNow] = React.useState(() => new Date());
 
   const weekSunday = React.useMemo(() => weekSundayContaining(new Date()), []);
 
+  React.useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(new Date());
+    }, 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const events = React.useMemo(
-    () => buildPublishedTimetableEvents(weekSunday, slots, gapFills, dayScheduleSegments),
-    [weekSunday, slots, gapFills, dayScheduleSegments]
+    () => buildPublishedTimetableEvents(weekSunday, slots, gapFills, dayScheduleSegments, now),
+    [weekSunday, slots, gapFills, dayScheduleSegments, now]
   );
 
   const hiddenDays = React.useMemo(() => {

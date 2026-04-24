@@ -4,9 +4,9 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { Teacher } from "@/models/Teacher";
 import {
-  getPublishedWeekTimetable,
   parseDateInput,
 } from "@/lib/timetable/read-model";
+import { buildTeacherWeekAgenda } from "@/lib/teacher/buildTeacherWeekAgenda";
 import {
   isTimetableRebootEnabled,
   isTimetableRoleReadViewsEnabled,
@@ -68,28 +68,15 @@ export async function GET(
       );
     }
 
-    const weekly = await getPublishedWeekTimetable({
+    const weekly = await buildTeacherWeekAgenda({
       schoolId: schoolIdObj,
       targetDate: targetDate || new Date(),
-      scope: "teacher",
       teacherId: teacherObjId,
     });
 
-    if ("error" in weekly) {
-      return NextResponse.json(
-        { success: false, error: weekly.error },
-        { status: weekly.status }
-      );
-    }
-
     return NextResponse.json({
       success: true,
-      data: weekly.data,
-      meta: {
-        publishedVersionId: weekly.publishedVersionId,
-        publishedAt: weekly.publishedAt,
-        noPublishedVersion: weekly.noPublishedVersion,
-      },
+      data: weekly,
     });
   } catch (e: unknown) {
     console.error("Failed to fetch teacher week timetable:", e);

@@ -56,6 +56,10 @@ type CreateAcademicPeriodModalProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: FormValues) => Promise<void>;
   isLoading?: boolean;
+  initialValues?: Partial<FormValues> | null;
+  title?: string;
+  description?: string;
+  submitLabel?: string;
 };
 
 export default function CreateAcademicPeriodModal({
@@ -63,15 +67,29 @@ export default function CreateAcademicPeriodModal({
   onOpenChange,
   onSubmit,
   isLoading,
+  initialValues,
+  title = "Create Academic Period",
+  description = "Set the academic year, term, and key dates for this period.",
+  submitLabel = "Create Period",
 }: CreateAcademicPeriodModalProps) {
+  const resolvedDefaults = React.useMemo(
+    () => ({
+      yearLabel: initialValues?.yearLabel || "",
+      term: initialValues?.term || "",
+      startDate: initialValues?.startDate || "",
+      endDate: initialValues?.endDate || "",
+    }),
+    [
+      initialValues?.endDate,
+      initialValues?.startDate,
+      initialValues?.term,
+      initialValues?.yearLabel,
+    ]
+  );
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as Resolver<FormValues>,
-    defaultValues: {
-      yearLabel: "",
-      term: "",
-      startDate: "",
-      endDate: "",
-    },
+    defaultValues: resolvedDefaults,
     mode: "onChange",
   });
 
@@ -81,13 +99,8 @@ export default function CreateAcademicPeriodModal({
 
   React.useEffect(() => {
     if (!open) return;
-    form.reset({
-      yearLabel: "",
-      term: "",
-      startDate: "",
-      endDate: "",
-    });
-  }, [open, form]);
+    form.reset(resolvedDefaults);
+  }, [open, form, resolvedDefaults]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -148,10 +161,10 @@ export default function CreateAcademicPeriodModal({
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                   <h1 className="text-lg font-semibold">
-                    Create Academic Period
+                    {title}
                   </h1>
                   <p className="text-sm text-white/60">
-                    Set the academic year, term, and key dates for this period.
+                    {description}
                   </p>
                 </div>
 
@@ -260,11 +273,11 @@ export default function CreateAcademicPeriodModal({
                     className="gap-2 bg-brand text-black hover:opacity-90"
                   >
                     {isPending ? (
-                      "Creating…"
+                      `${submitLabel.replace(/\s+/g, " ")}…`
                     ) : (
                       <>
                         <Check className="h-4 w-4" />
-                        Create Period
+                        {submitLabel}
                       </>
                     )}
                   </Button>

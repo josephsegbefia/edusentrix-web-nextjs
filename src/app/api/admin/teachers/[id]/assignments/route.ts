@@ -10,11 +10,12 @@ import { Subject } from "@/models/Subject";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Grade } from "@/models/Grade";
 import { TimetableVersion } from "@/models/TimetableVersion";
-import { TimetableSlot } from "@/models/TimetableSlot";
 import {
   deactivateOtherTeachersOnSlot,
   findOtherTeachersOnSlot,
 } from "@/lib/admin/teacher-assignment-slot";
+import { syncTimetableSlotTeachersFromAssignments } from "@/lib/timetable/sync-slot-teachers-from-assignments";
+import { querySlotsForTeacherWithAssignments } from "@/lib/timetable/read-model";
 
 function toObjectIdOrThrow(id: string, label: string) {
   try {
@@ -112,22 +113,33 @@ export async function GET(
   }
 
   const preferredVersionIds = Array.from(new Set(preferredVersionByPeriodId.values()));
-  const versionObjIds = preferredVersionIds.map(
-    (value) => new mongoose.Types.ObjectId(value)
-  );
-
   const timetableSlotsRaw =
-    versionObjIds.length > 0
-      ? await TimetableSlot.find({
-          schoolId: schoolIdObj,
-          teacherId: teacherIdObj,
-          versionId: { $in: versionObjIds },
-        })
-          .sort({ dayOfWeek: 1, startTime: 1, endTime: 1, _id: 1 })
-          .select(
-            "versionId classGroupId subjectId dayOfWeek startTime endTime classroomLabel"
+    preferredVersionIds.length > 0
+      ? (
+          await Promise.all(
+            Array.from(preferredVersionByPeriodId.entries()).map(
+              async ([periodId, versionId]) => {
+                const slots = await querySlotsForTeacherWithAssignments({
+                  schoolId: schoolIdObj,
+                  versionId: new mongoose.Types.ObjectId(versionId),
+                  teacherId: teacherIdObj,
+                  academicPeriodId: new mongoose.Types.ObjectId(periodId),
+                  dayOfWeekIn: [0, 1, 2, 3, 4, 5, 6],
+                });
+
+                return slots.map((slot) => ({
+                  versionId: new mongoose.Types.ObjectId(versionId),
+                  classGroupId: new mongoose.Types.ObjectId(slot.classGroupId),
+                  subjectId: new mongoose.Types.ObjectId(slot.subjectId),
+                  dayOfWeek: slot.dayOfWeek,
+                  startTime: slot.startTime,
+                  endTime: slot.endTime,
+                  classroomLabel: slot.classroomLabel,
+                }));
+              }
+            )
           )
-          .lean()
+        ).flat()
       : [];
 
   const slotScheduleMap = new Map<
@@ -445,6 +457,18 @@ export async function POST(
       };
 
       const created = await TeacherAssignment.create(assignmentData);
+
+      await syncTimetableSlotTeachersFromAssignments({
+        schoolId: schoolIdObj,
+        pairs: [
+          {
+            academicPeriodId: academicPeriodObjId,
+            classGroupId: classGroupObjId,
+            subjectId: subjectObjId,
+          },
+        ],
+        updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
+      });
 
       return Response.json({
         success: true,

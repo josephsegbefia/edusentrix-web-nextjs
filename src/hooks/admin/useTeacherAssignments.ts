@@ -132,6 +132,10 @@ export function useCreateTeacherAssignment(teacherId: string) {
         queryKey: ["teachers", "assignments", teacherId],
       });
       qc.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] }); // subjects may get auto-added
+      qc.invalidateQueries({ queryKey: ["teacher-week-agenda"] });
+      qc.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+      qc.invalidateQueries({ queryKey: ["class-timetable-slots"] });
+      qc.invalidateQueries({ queryKey: ["class-published-timetable"] });
     },
   });
 }
@@ -155,6 +159,10 @@ export function useDeactivateTeacherAssignment(teacherId: string) {
       qc.invalidateQueries({
         queryKey: ["teachers", "assignments", teacherId],
       });
+      qc.invalidateQueries({ queryKey: ["teacher-week-agenda"] });
+      qc.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+      qc.invalidateQueries({ queryKey: ["class-timetable-slots"] });
+      qc.invalidateQueries({ queryKey: ["class-published-timetable"] });
     },
   });
 }
@@ -221,6 +229,10 @@ export function useUpdateTeacherAssignment(teacherId: string) {
         queryKey: ["teachers", "assignments", teacherId],
       });
       qc.invalidateQueries({ queryKey: ["teachers", "detail", teacherId] });
+      qc.invalidateQueries({ queryKey: ["teacher-week-agenda"] });
+      qc.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+      qc.invalidateQueries({ queryKey: ["class-timetable-slots"] });
+      qc.invalidateQueries({ queryKey: ["class-published-timetable"] });
     },
   });
 }

@@ -427,9 +427,16 @@ export function ClassTimetableGridBoard({
                       <div className="space-y-2">
                         {cellSlots.map((slot) => {
                           const subject = subjectMap.get(slot.subjectId);
+                          const assignedTeachers =
+                            classSubjects.find((row) => row.subjectId === slot.subjectId)
+                              ?.teachers || [];
                           const teacherName = slot.teacherId
                             ? teacherMap.get(slot.teacherId) || "—"
-                            : "Teacher not assigned yet";
+                            : assignedTeachers.length === 1
+                              ? assignedTeachers[0].fullName
+                              : assignedTeachers.length > 1
+                                ? `${assignedTeachers.length} teachers assigned`
+                                : "Teacher not assigned yet";
                           const issueSeverity = slotIssueSeverityById?.get(slot.id);
                           return (
                             <DraggableSlot key={slot.id} slot={slot} disabled={busy}>

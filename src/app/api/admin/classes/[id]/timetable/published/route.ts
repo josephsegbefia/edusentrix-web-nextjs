@@ -12,10 +12,8 @@ import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOr
 import { ClassGroup } from "@/models/ClassGroup";
 import { SchoolSettings } from "@/models/SchoolSettings";
 import { Subject } from "@/models/Subject";
-import { Teacher } from "@/models/Teacher";
 import { TimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
-import { User } from "@/models/User";
 import { recordTimetableActivity } from "@/lib/timetable/audit";
 import { recomputeConflictsForVersion } from "@/lib/timetable/recompute-conflicts";
 import {
@@ -28,6 +26,7 @@ import {
   loadPublishedDayScheduleSegments,
   type PublishedDayScheduleSegmentDTO,
 } from "@/lib/timetable/publishedTimetableDaySegments";
+import { resolveTeacherLinksForSlots } from "@/lib/timetable/teacher-links";
 
 function toObjectIdOrNull(value: string | null | undefined): mongoose.Types.ObjectId | null {
   if (!value) return null;
@@ -58,6 +57,9 @@ export type PublishedClassSlotDTO = {
   subjectCode: string | null;
   teacherId: string;
   teacherName: string;
+  teacherIds?: string[];
+  teacherNames?: string[];
+  teacherLinkSource?: "assignment" | "slot" | "fallback" | "unassigned";
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -127,8 +129,10 @@ async function loadGapFills(
 
 async function enrichSlots(
   schoolId: mongoose.Types.ObjectId,
+  academicPeriodId: mongoose.Types.ObjectId,
   slots: Array<{
     _id: mongoose.Types.ObjectId;
+    classGroupId: mongoose.Types.ObjectId;
     subjectId: mongoose.Types.ObjectId;
     teacherId?: mongoose.Types.ObjectId | null;
     dayOfWeek: number;
@@ -138,13 +142,8 @@ async function enrichSlots(
   }>
 ): Promise<PublishedClassSlotDTO[]> {
   const subjectIds = [...new Set(slots.map((s) => String(s.subjectId)))];
-  const teacherIds = [
-    ...new Set(
-      slots.map((s) => s.teacherId).filter(Boolean) as mongoose.Types.ObjectId[]
-    ),
-  ];
 
-  const [subjects, teachers] = await Promise.all([
+  const [subjects, teacherLinks] = await Promise.all([
     subjectIds.length
       ? Subject.find({
           schoolId,
@@ -153,24 +152,16 @@ async function enrichSlots(
           .select("name code")
           .lean()
       : [],
-    teacherIds.length
-      ? Teacher.find({
-          schoolId,
-          _id: { $in: teacherIds },
-        })
-          .select("userId")
-          .lean()
-      : [],
+    resolveTeacherLinksForSlots({
+      schoolId,
+      academicPeriodId,
+      slots: slots.map((slot) => ({
+        classGroupId: slot.classGroupId,
+        subjectId: slot.subjectId,
+        teacherId: slot.teacherId || null,
+      })),
+    }),
   ]);
-
-  const userIds = teachers
-    .map((t) => (t as { userId?: mongoose.Types.ObjectId }).userId)
-    .filter(Boolean) as mongoose.Types.ObjectId[];
-  const users = userIds.length
-    ? await User.find({ _id: { $in: userIds } })
-        .select("firstName lastName")
-        .lean()
-    : [];
 
   const subName = (id: string) => {
     const s = subjects.find(
@@ -182,31 +173,20 @@ async function enrichSlots(
     };
   };
 
-  const teacherName = (tid: string | undefined) => {
-    if (!tid) return "Unassigned";
-    const te = teachers.find(
-      (x) => String((x as { _id: mongoose.Types.ObjectId })._id) === tid
-    ) as { userId?: mongoose.Types.ObjectId } | undefined;
-    if (!te?.userId) return "Unassigned";
-    const u = users.find(
-      (x) => String((x as { _id: mongoose.Types.ObjectId })._id) === String(te.userId)
-    ) as { firstName?: string; lastName?: string } | undefined;
-    if (!u) return tid;
-    const n = `${u.firstName || ""} ${u.lastName || ""}`.trim();
-    return n || tid;
-  };
-
-  return slots.map((s) => {
+  return slots.map((s, index) => {
     const sid = String(s.subjectId);
-    const tid = s.teacherId ? String(s.teacherId) : "";
     const sn = subName(sid);
+    const teacherLink = teacherLinks[index];
     return {
       id: String(s._id),
       subjectId: sid,
       subjectName: sn.name,
       subjectCode: sn.code,
-      teacherId: tid,
-      teacherName: teacherName(s.teacherId ? String(s.teacherId) : undefined),
+      teacherId: teacherLink?.teacherId || (s.teacherId ? String(s.teacherId) : ""),
+      teacherName: teacherLink?.teacherName || "Unassigned",
+      teacherIds: teacherLink?.teacherIds || [],
+      teacherNames: teacherLink?.teacherNames || [],
+      teacherLinkSource: teacherLink?.source || "unassigned",
       dayOfWeek: s.dayOfWeek,
       startTime: s.startTime,
       endTime: s.endTime,
@@ -317,7 +297,20 @@ export async function GET(
       .sort({ dayOfWeek: 1, startTime: 1, _id: 1 })
       .lean();
 
-    const data = await enrichSlots(schoolIdObj, rawSlots as never);
+    const data = await enrichSlots(
+      schoolIdObj,
+      academicPeriodId,
+      rawSlots as Array<{
+        _id: mongoose.Types.ObjectId;
+        classGroupId: mongoose.Types.ObjectId;
+        subjectId: mongoose.Types.ObjectId;
+        teacherId?: mongoose.Types.ObjectId | null;
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
+        classroomLabel: string;
+      }>
+    );
 
     const gapFills =
       gradeId != null

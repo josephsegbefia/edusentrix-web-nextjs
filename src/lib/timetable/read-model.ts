@@ -6,10 +6,15 @@ import { SchoolSettings } from "@/models/SchoolSettings";
 import { Student } from "@/models/Student";
 import { Subject } from "@/models/Subject";
 import { Teacher } from "@/models/Teacher";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { TimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { User } from "@/models/User";
 import { isTimetableRoleReadViewsEnabled } from "@/lib/timetable/feature-flags";
+import {
+  resolveTeacherLinksForSlots,
+  type TimetableTeacherLinkSource,
+} from "@/lib/timetable/teacher-links";
 
 export type TimetableScope = "school" | "class" | "teacher" | "student";
 
@@ -39,6 +44,9 @@ export interface TimetableSlotDTO {
   subjectName?: string | null;
   subjectCode?: string | null;
   teacherName?: string | null;
+  teacherIds?: string[];
+  teacherNames?: string[];
+  teacherLinkSource?: TimetableTeacherLinkSource;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -326,6 +334,163 @@ export async function queryPublishedSlots(
   );
 }
 
+function buildDayOfWeekFilter(args: {
+  dayOfWeek?: number | null;
+  dayOfWeekIn?: number[];
+}): Record<string, unknown> {
+  const filter: Record<string, unknown> = {};
+  if (args.dayOfWeek !== undefined && args.dayOfWeek !== null) {
+    filter.dayOfWeek = args.dayOfWeek;
+  }
+  if (args.dayOfWeekIn && args.dayOfWeekIn.length > 0) {
+    filter.dayOfWeek = { $in: args.dayOfWeekIn };
+  }
+  return filter;
+}
+
+function buildPairKey(classGroupId: Types.ObjectId, subjectId: Types.ObjectId): string {
+  return `${String(classGroupId)}|${String(subjectId)}`;
+}
+
+type TimetableSlotLean = {
+  _id: Types.ObjectId;
+  classGroupId: Types.ObjectId;
+  gradeId: Types.ObjectId;
+  subjectId: Types.ObjectId;
+  teacherId?: Types.ObjectId | null;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  classroomLabel: string;
+  source: string;
+};
+
+export async function querySlotsForTeacherWithAssignments(args: {
+  schoolId: Types.ObjectId;
+  versionId: Types.ObjectId;
+  teacherId: Types.ObjectId;
+  academicPeriodId: Types.ObjectId;
+  dayOfWeek?: number | null;
+  dayOfWeekIn?: number[];
+}): Promise<TimetableSlotDTO[]> {
+  const teacherIdString = String(args.teacherId);
+  const teacherAssignmentPairs = await TeacherAssignment.find({
+    schoolId: args.schoolId,
+    teacherId: args.teacherId,
+    academicPeriodId: args.academicPeriodId,
+    status: "active",
+  })
+    .select("classGroupId subjectId")
+    .lean();
+
+  const pairConditions = Array.from(
+    new Set(
+      (teacherAssignmentPairs as Array<{
+        classGroupId: Types.ObjectId;
+        subjectId: Types.ObjectId;
+      }>).map((row) => buildPairKey(row.classGroupId, row.subjectId))
+    )
+  ).map((pair) => {
+    const [classGroupId, subjectId] = pair.split("|");
+    return {
+      classGroupId: new Types.ObjectId(classGroupId),
+      subjectId: new Types.ObjectId(subjectId),
+    };
+  });
+
+  const filter: Record<string, unknown> = {
+    schoolId: args.schoolId,
+    versionId: args.versionId,
+    ...buildDayOfWeekFilter(args),
+  };
+
+  if (pairConditions.length > 0) {
+    filter.$or = [{ teacherId: args.teacherId }, ...pairConditions];
+  } else {
+    filter.teacherId = args.teacherId;
+  }
+
+  const candidateSlots = (await TimetableSlot.find(filter)
+    .sort({ dayOfWeek: 1, startTime: 1, _id: 1 })
+    .lean()) as TimetableSlotLean[];
+
+  if (!candidateSlots.length) return [];
+
+  const slotPairConditions = Array.from(
+    new Set(candidateSlots.map((slot) => buildPairKey(slot.classGroupId, slot.subjectId)))
+  ).map((pair) => {
+    const [classGroupId, subjectId] = pair.split("|");
+    return {
+      classGroupId: new Types.ObjectId(classGroupId),
+      subjectId: new Types.ObjectId(subjectId),
+    };
+  });
+
+  const assignmentRows =
+    slotPairConditions.length > 0
+      ? await TeacherAssignment.find({
+          schoolId: args.schoolId,
+          academicPeriodId: args.academicPeriodId,
+          status: "active",
+          $or: slotPairConditions,
+        })
+          .select("classGroupId subjectId teacherId")
+          .lean()
+      : [];
+
+  const teacherIdsByPair = new Map<string, string[]>();
+  for (const row of assignmentRows as Array<{
+    classGroupId: Types.ObjectId;
+    subjectId: Types.ObjectId;
+    teacherId: Types.ObjectId;
+  }>) {
+    const key = buildPairKey(row.classGroupId, row.subjectId);
+    const ids = teacherIdsByPair.get(key) || [];
+    const teacherId = String(row.teacherId);
+    if (!ids.includes(teacherId)) ids.push(teacherId);
+    teacherIdsByPair.set(key, ids);
+  }
+
+  const teacherSlots = candidateSlots.filter((slot) => {
+    const assignedTeacherIds =
+      teacherIdsByPair.get(buildPairKey(slot.classGroupId, slot.subjectId)) || [];
+    if (assignedTeacherIds.length > 0) {
+      return assignedTeacherIds.includes(teacherIdString);
+    }
+    return slot.teacherId ? String(slot.teacherId) === teacherIdString : false;
+  });
+
+  if (!teacherSlots.length) return [];
+
+  const teacherLinks = await resolveTeacherLinksForSlots({
+    schoolId: args.schoolId,
+    academicPeriodId: args.academicPeriodId,
+    preferredTeacherId: args.teacherId,
+    slots: teacherSlots.map((slot) => ({
+      classGroupId: slot.classGroupId,
+      subjectId: slot.subjectId,
+      teacherId: slot.teacherId || null,
+    })),
+  });
+
+  return teacherSlots.map((slot, index) => {
+    const mapped = mapSlotDto(slot);
+    const teacherLink = teacherLinks[index];
+    const fallbackTeacherIds = mapped.teacherId ? [mapped.teacherId] : [];
+    const fallbackTeacherNames = mapped.teacherName ? [mapped.teacherName] : [];
+
+    return {
+      ...mapped,
+      teacherId: teacherLink?.teacherId || mapped.teacherId,
+      teacherName: teacherLink?.teacherName || mapped.teacherName || null,
+      teacherIds: teacherLink?.teacherIds || fallbackTeacherIds,
+      teacherNames: teacherLink?.teacherNames || fallbackTeacherNames,
+      teacherLinkSource:
+        teacherLink?.source || (mapped.teacherId ? "slot" : "unassigned"),
+    };
+  });
+}
+
 function toObjectIds(values: string[]): Types.ObjectId[] {
   const ids: Types.ObjectId[] = [];
   for (const value of values) {
@@ -341,6 +506,7 @@ function toObjectIds(values: string[]): Types.ObjectId[] {
 export async function enrichSlotsForDisplay(args: {
   schoolId: Types.ObjectId;
   slots: TimetableSlotDTO[];
+  academicPeriodId?: Types.ObjectId | null;
 }): Promise<TimetableSlotDTO[]> {
   const { schoolId, slots } = args;
   if (!slots.length) return slots;
@@ -429,7 +595,7 @@ export async function enrichSlotsForDisplay(args: {
       gradeName: gradeInfo?.name || null,
       subjectName: subjectInfo?.name || null,
       subjectCode: subjectInfo?.code ?? null,
-      teacherName: teacherInfo?.name ?? null,
+      teacherName: slot.teacherName ?? teacherInfo?.name ?? null,
     };
   });
 }
@@ -505,14 +671,23 @@ export async function getPublishedWeekTimetable(args: {
     };
   }
 
-  const slots = await queryPublishedSlots({
-    schoolId: args.schoolId,
-    versionId: published.versionId,
-    scope: args.scope,
-    classGroupId: scopeFilter.classGroupId,
-    teacherId: scopeFilter.teacherId,
-    dayOfWeekIn: published.workingDays,
-  });
+  const slots =
+    args.scope === "teacher" && scopeFilter.teacherId
+      ? await querySlotsForTeacherWithAssignments({
+          schoolId: args.schoolId,
+          versionId: published.versionId,
+          teacherId: scopeFilter.teacherId,
+          academicPeriodId: published.academicPeriodId,
+          dayOfWeekIn: published.workingDays,
+        })
+      : await queryPublishedSlots({
+          schoolId: args.schoolId,
+          versionId: published.versionId,
+          scope: args.scope,
+          classGroupId: scopeFilter.classGroupId,
+          teacherId: scopeFilter.teacherId,
+          dayOfWeekIn: published.workingDays,
+        });
   const enrichedSlots = await enrichSlotsForDisplay({
     schoolId: args.schoolId,
     slots,

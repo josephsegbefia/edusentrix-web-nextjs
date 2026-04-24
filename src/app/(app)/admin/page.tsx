@@ -38,6 +38,7 @@ import {
   Vote,
   Heart,
   Trophy,
+  Pencil,
 } from "lucide-react";
 import {
   Tooltip,
@@ -537,13 +538,23 @@ export default function SchoolAdminOverviewPage() {
 
   const currentPeriodSource = periodOverview?.currentPeriod
     ? {
+        id: periodOverview.currentPeriod.id,
         yearLabel: periodOverview.currentPeriod.yearLabel,
         term: periodOverview.currentPeriod.term,
         startDate: periodOverview.currentPeriod.startDate,
         endDate: periodOverview.currentPeriod.endDate,
       }
+    : periodStatus?.currentPeriod
+    ? {
+        id: periodStatus.currentPeriod.id,
+        yearLabel: periodStatus.currentPeriod.yearLabel,
+        term: periodStatus.currentPeriod.term,
+        startDate: periodStatus.currentPeriod.startDate,
+        endDate: periodStatus.currentPeriod.endDate,
+      }
     : m?.period
     ? {
+        id: null,
         yearLabel: m.period.yearLabel,
         term: m.period.term,
         startDate: m.period.startDate,
@@ -553,6 +564,7 @@ export default function SchoolAdminOverviewPage() {
 
   const period = currentPeriodSource
     ? {
+        id: currentPeriodSource.id,
         yearLabel: currentPeriodSource.yearLabel,
         term: currentPeriodSource.term,
         startDate: formatDateLong(currentPeriodSource.startDate),
@@ -561,6 +573,7 @@ export default function SchoolAdminOverviewPage() {
         endDateRaw: toIsoDate(currentPeriodSource.endDate),
       }
     : {
+        id: null,
         yearLabel: "—",
         term: "—",
         startDate: "",
@@ -806,8 +819,10 @@ export default function SchoolAdminOverviewPage() {
 
   /* Academic period modal state */
   const [showCreatePeriod, setShowCreatePeriod] = useState(false);
+  const [showEditPeriod, setShowEditPeriod] = useState(false);
   const [showPeriodExpiryModal, setShowPeriodExpiryModal] = useState(false);
   const [creatingPeriod, setCreatingPeriod] = useState(false);
+  const [editingPeriod, setEditingPeriod] = useState(false);
 
   /* Auto-show period expiry modal for critical statuses */
   React.useEffect(() => {
@@ -894,6 +909,56 @@ export default function SchoolAdminOverviewPage() {
       // SSE will push period.updated
     } finally {
       setCreatingPeriod(false);
+    }
+  }
+
+  async function handleUpdatePeriod(payload: {
+    yearLabel: string;
+    term: string;
+    startDate: string;
+    endDate: string;
+  }) {
+    if (!period.id) {
+      busy.error("No current academic period is available to edit");
+      throw new Error("Missing current academic period");
+    }
+    if (!payload.yearLabel || !payload.term || !payload.startDate || !payload.endDate) {
+      busy.error("Please fill all fields");
+      throw new Error("Missing academic period fields");
+    }
+
+    setEditingPeriod(true);
+    try {
+      const updatePromise = fetch(`/api/admin/periods/${encodeURIComponent(period.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          yearLabel: payload.yearLabel.trim(),
+          term: payload.term.trim(),
+          startDate: payload.startDate,
+          endDate: payload.endDate,
+        }),
+      }).then(async (res) => {
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(json?.error || "Failed to update period");
+        }
+        return json;
+      });
+
+      await busy.promise(updatePromise, {
+        loading: "Updating academic period…",
+        success: "Academic period updated",
+        error: (e: Error) => e.message || "Could not update period",
+      });
+
+      invalidateSetupReadiness(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
+      void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "period-overview"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "period-status"] });
+    } finally {
+      setEditingPeriod(false);
     }
   }
 
@@ -1405,6 +1470,18 @@ export default function SchoolAdminOverviewPage() {
               >
                 Overview
               </button>
+              {period.id ? (
+                <button
+                  type="button"
+                  onClick={() => setShowEditPeriod(true)}
+                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/10"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </span>
+                </button>
+              ) : null}
               {progress.label === "Not Set" && (
                 <>
                   {onboarding.nextAction === "academic_period" ? (
@@ -2605,6 +2682,22 @@ export default function SchoolAdminOverviewPage() {
         onOpenChange={setShowCreatePeriod}
         onSubmit={handleCreatePeriod}
         isLoading={creatingPeriod}
+      />
+
+      <CreateAcademicPeriodModal
+        open={showEditPeriod}
+        onOpenChange={setShowEditPeriod}
+        onSubmit={handleUpdatePeriod}
+        isLoading={editingPeriod}
+        initialValues={{
+          yearLabel: period.yearLabel !== "—" ? period.yearLabel : "",
+          term: period.term !== "—" ? period.term : "",
+          startDate: period.startDateRaw,
+          endDate: period.endDateRaw,
+        }}
+        title="Edit Academic Period"
+        description="Update the current academic period directly from the dashboard card."
+        submitLabel="Save Changes"
       />
 
       <ResponsiveModal

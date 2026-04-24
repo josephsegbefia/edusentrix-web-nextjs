@@ -9,6 +9,7 @@ import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { TeacherActivity } from "@/models/TeacherActivity";
 import { UpdateTeacherAssignmentSchema } from "@/schemas/teacher";
+import { syncTimetableSlotTeachersFromAssignments } from "@/lib/timetable/sync-slot-teachers-from-assignments";
 
 function toObjectIdOrNull(id: string) {
   try {
@@ -259,6 +260,29 @@ export async function PATCH(
     { $set: updateFields }
   );
 
+  await syncTimetableSlotTeachersFromAssignments({
+    schoolId: schoolIdObj,
+    pairs: [
+      {
+        academicPeriodId: existingAssignment.academicPeriodId,
+        classGroupId: existingAssignment.classGroupId,
+        subjectId: existingAssignment.subjectId,
+      },
+      {
+        academicPeriodId:
+          (updateFields.academicPeriodId as mongoose.Types.ObjectId | undefined) ??
+          existingAssignment.academicPeriodId,
+        classGroupId:
+          (updateFields.classGroupId as mongoose.Types.ObjectId | undefined) ??
+          existingAssignment.classGroupId,
+        subjectId:
+          (updateFields.subjectId as mongoose.Types.ObjectId | undefined) ??
+          existingAssignment.subjectId,
+      },
+    ],
+    updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
+  });
+
   // Log activity
   try {
     const changeDescriptions = changes.map((c) => {
@@ -304,6 +328,18 @@ export async function DELETE(
     return Response.json({ error: "Invalid id" }, { status: 400 });
   }
 
+  const existingAssignment = await TeacherAssignment.findOne({
+    _id: assignmentObjId,
+    schoolId: schoolIdObj,
+    teacherId: teacherObjId,
+  })
+    .select("academicPeriodId classGroupId subjectId")
+    .lean();
+
+  if (!existingAssignment) {
+    return Response.json({ error: "Assignment not found" }, { status: 404 });
+  }
+
   const res = await TeacherAssignment.updateOne(
     { _id: assignmentObjId, schoolId: schoolIdObj, teacherId: teacherObjId },
     { $set: { status: "inactive" } }
@@ -312,6 +348,36 @@ export async function DELETE(
   if (res.matchedCount === 0) {
     return Response.json({ error: "Assignment not found" }, { status: 404 });
   }
+
+  await syncTimetableSlotTeachersFromAssignments({
+    schoolId: schoolIdObj,
+    pairs: [
+      {
+        academicPeriodId: (
+          existingAssignment as {
+            academicPeriodId: mongoose.Types.ObjectId;
+            classGroupId: mongoose.Types.ObjectId;
+            subjectId: mongoose.Types.ObjectId;
+          }
+        ).academicPeriodId,
+        classGroupId: (
+          existingAssignment as {
+            academicPeriodId: mongoose.Types.ObjectId;
+            classGroupId: mongoose.Types.ObjectId;
+            subjectId: mongoose.Types.ObjectId;
+          }
+        ).classGroupId,
+        subjectId: (
+          existingAssignment as {
+            academicPeriodId: mongoose.Types.ObjectId;
+            classGroupId: mongoose.Types.ObjectId;
+            subjectId: mongoose.Types.ObjectId;
+          }
+        ).subjectId,
+      },
+    ],
+    updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
+  });
 
   // Log activity
   try {

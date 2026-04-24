@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
 
     const enrichedSlots = await enrichSlotsForDisplay({
       schoolId: schoolIdObj,
+      academicPeriodId: published.academicPeriodId,
       slots,
     });
 

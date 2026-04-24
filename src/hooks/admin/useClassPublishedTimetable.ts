@@ -13,6 +13,9 @@ export type PublishedClassSlotDTO = {
   subjectCode: string | null;
   teacherId: string;
   teacherName: string;
+  teacherIds?: string[];
+  teacherNames?: string[];
+  teacherLinkSource?: "assignment" | "slot" | "fallback" | "unassigned";
   dayOfWeek: number;
   startTime: string;
   endTime: string;

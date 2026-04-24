@@ -20,15 +20,19 @@ export function buildPublishedTimetableEvents(
   weekSunday: Date,
   slots: PublishedClassSlotDTO[],
   gapFills: PublishedGapFillDTO[],
-  dayScheduleSegments: PublishedDayScheduleSegmentDTO[] = []
+  dayScheduleSegments: PublishedDayScheduleSegmentDTO[] = [],
+  now: Date | null = null
 ): EventInput[] {
   const out: EventInput[] = [];
+  const nowMs = now ? now.getTime() : null;
 
   dayScheduleSegments.forEach((seg, i) => {
     const day = addDays(weekSunday, seg.dayOfWeek);
     const start = atTimeOnDay(day, seg.startTime.trim());
     const end = atTimeOnDay(day, seg.endTime.trim());
     if (end <= start) return;
+    const isCurrent =
+      nowMs !== null && start.getTime() <= nowMs && nowMs < end.getTime();
     const uiKind =
       seg.kind === "dayEnd"
         ? ("dayClose" as const)
@@ -49,6 +53,7 @@ export function buildPublishedTimetableEvents(
       extendedProps: {
         kind: uiKind,
         segment: seg,
+        isCurrent,
       },
     });
   });
@@ -58,6 +63,8 @@ export function buildPublishedTimetableEvents(
     const start = atTimeOnDay(day, g.startTime.trim());
     const end = atTimeOnDay(day, g.endTime.trim());
     if (end <= start) return;
+    const isCurrent =
+      nowMs !== null && start.getTime() <= nowMs && nowMs < end.getTime();
     out.push({
       id: `gap-${g.dayOfWeek}-${g.startTime}-${g.endTime}-${g.presetCode}-${i}`,
       title: g.label,
@@ -70,6 +77,7 @@ export function buildPublishedTimetableEvents(
       extendedProps: {
         kind: "gap" as const,
         fill: g,
+        isCurrent,
       },
     });
   });
@@ -79,6 +87,8 @@ export function buildPublishedTimetableEvents(
     const start = atTimeOnDay(day, s.startTime.trim());
     const end = atTimeOnDay(day, s.endTime.trim());
     if (end <= start) continue;
+    const isCurrent =
+      nowMs !== null && start.getTime() <= nowMs && nowMs < end.getTime();
     out.push({
       id: `lesson-${s.id}`,
       title: s.subjectName,
@@ -91,6 +101,7 @@ export function buildPublishedTimetableEvents(
       extendedProps: {
         kind: "lesson" as const,
         slot: s,
+        isCurrent,
       },
     });
   }

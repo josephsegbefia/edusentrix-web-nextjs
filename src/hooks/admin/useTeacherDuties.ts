@@ -115,6 +115,7 @@ export function useAssignTeacherDuty() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-duties"] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-week-agenda"] });
     },
   });
 }
@@ -134,6 +135,7 @@ export function useRemoveTeacherDuty() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-duties"] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-week-agenda"] });
     },
   });
 }
@@ -167,6 +169,7 @@ export function useCreateDutyDefinition() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-duties"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-week-agenda"] });
     },
   });
 }
@@ -205,6 +208,7 @@ export function useUpdateDutyDefinition() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-duties"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-week-agenda"] });
     },
   });
 }
@@ -223,6 +227,7 @@ export function useDeleteDutyDefinition() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-duties"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-week-agenda"] });
     },
   });
 }

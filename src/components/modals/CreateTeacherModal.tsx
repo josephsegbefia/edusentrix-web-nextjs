@@ -111,6 +111,21 @@ type LeoPreviewState = {
   unmatched: string[];
 };
 
+type ReviewTeachingConflict = {
+  key: string;
+  subjectId: string;
+  classGroupId: string;
+  subjectName: string;
+  classLabel: string;
+  teacherNames: string[];
+};
+
+type ReviewHomeroomConflict = {
+  classGroupId: string;
+  classLabel: string;
+  teacherName: string;
+};
+
 function LeoCallout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.07] p-4">
@@ -493,6 +508,15 @@ export default function CreateTeacherModal({
     string | null
   >(null);
   const [reviewLoading, setReviewLoading] = React.useState(false);
+  const [reviewTeachingConflicts, setReviewTeachingConflicts] =
+    React.useState<ReviewTeachingConflict[]>([]);
+  const [reviewHomeroomConflict, setReviewHomeroomConflict] =
+    React.useState<ReviewHomeroomConflict | null>(null);
+  const [reviewConflictLoading, setReviewConflictLoading] =
+    React.useState(false);
+  const [reviewConflictError, setReviewConflictError] = React.useState<
+    string | null
+  >(null);
 
   React.useEffect(() => {
     if (currentStep !== 5) return;
@@ -599,6 +623,212 @@ export default function CreateTeacherModal({
     watchedAssignments,
     watchedHomeroom,
   ]);
+
+  React.useEffect(() => {
+    if (currentStep !== 5) return;
+
+    const assignmentRows = Array.from(
+      new Map(
+        (watchedAssignments || [])
+          .filter(
+            (row) =>
+              String(row?.subjectId || "").trim() &&
+              String(row?.classGroupId || "").trim()
+          )
+          .map((row) => [
+            `${String(row.subjectId).trim()}|${String(row.classGroupId).trim()}`,
+            {
+              subjectId: String(row.subjectId).trim(),
+              classGroupId: String(row.classGroupId).trim(),
+            },
+          ])
+      ).values()
+    );
+
+    const classGroupIds = Array.from(
+      new Set(
+        [
+          ...assignmentRows.map((row) => row.classGroupId),
+          String(watchedHomeroom || "").trim(),
+        ].filter(Boolean)
+      )
+    );
+
+    if (classGroupIds.length === 0) {
+      setReviewTeachingConflicts([]);
+      setReviewHomeroomConflict(null);
+      setReviewConflictError(null);
+      setReviewConflictLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const buildTeacherName = (teacher: {
+      fullName?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+    }) =>
+      teacher.fullName?.trim() ||
+      `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim() ||
+      "Teacher";
+
+    (async () => {
+      setReviewConflictLoading(true);
+      setReviewConflictError(null);
+
+      try {
+        const classPayloads = await Promise.all(
+          classGroupIds.map(async (classGroupId) => {
+            const [classRes, subjectTeachersRes] = await Promise.all([
+              fetch(`/api/admin/classes/${classGroupId}`, {
+                cache: "no-store",
+              }),
+              fetch(`/api/admin/classes/${classGroupId}/subject-teachers`, {
+                cache: "no-store",
+              }),
+            ]);
+
+            const classJson = await classRes
+              .json()
+              .catch(() => ({ success: false }));
+            const subjectTeachersJson = await subjectTeachersRes
+              .json()
+              .catch(() => ({ success: false }));
+
+            if (!classRes.ok || !classJson?.success) {
+              throw new Error(
+                classJson?.error || "Failed to load class details for review."
+              );
+            }
+
+            if (!subjectTeachersRes.ok || !subjectTeachersJson?.success) {
+              throw new Error(
+                subjectTeachersJson?.error ||
+                  "Failed to check current teaching assignments."
+              );
+            }
+
+            return {
+              classGroupId,
+              classData: classJson.data as {
+                fullLabel?: string;
+                name?: string;
+                homeroomTeacher?: {
+                  fullName?: string | null;
+                  firstName?: string | null;
+                  lastName?: string | null;
+                } | null;
+              },
+              subjectTeacherData: (subjectTeachersJson.data ||
+                []) as Array<{
+                subjectId: string;
+                subjectName?: string;
+                teachers?: Array<{
+                  fullName?: string | null;
+                  firstName?: string | null;
+                  lastName?: string | null;
+                }>;
+              }>,
+            };
+          })
+        );
+
+        const classMetaById = new Map<
+          string,
+          { classLabel: string; homeroomTeacherName: string | null }
+        >();
+        const subjectTeacherBySlot = new Map<
+          string,
+          { subjectName: string; teacherNames: string[] }
+        >();
+
+        for (const payload of classPayloads) {
+          classMetaById.set(payload.classGroupId, {
+            classLabel:
+              payload.classData.fullLabel?.trim() ||
+              payload.classData.name?.trim() ||
+              payload.classGroupId,
+            homeroomTeacherName: payload.classData.homeroomTeacher
+              ? buildTeacherName(payload.classData.homeroomTeacher)
+              : null,
+          });
+
+          for (const subjectRow of payload.subjectTeacherData) {
+            subjectTeacherBySlot.set(
+              `${payload.classGroupId}|${String(subjectRow.subjectId)}`,
+              {
+                subjectName:
+                  String(subjectRow.subjectName || "").trim() ||
+                  String(subjectRow.subjectId),
+                teacherNames: Array.from(
+                  new Set(
+                    (subjectRow.teachers || [])
+                      .map(buildTeacherName)
+                      .filter(Boolean)
+                  )
+                ),
+              }
+            );
+          }
+        }
+
+        const nextTeachingConflicts: ReviewTeachingConflict[] = assignmentRows
+          .map((row) => {
+            const slot = subjectTeacherBySlot.get(
+              `${row.classGroupId}|${row.subjectId}`
+            );
+            if (!slot || slot.teacherNames.length === 0) return null;
+            return {
+              key: `${row.subjectId}|${row.classGroupId}`,
+              subjectId: row.subjectId,
+              classGroupId: row.classGroupId,
+              subjectName: slot.subjectName,
+              classLabel:
+                classMetaById.get(row.classGroupId)?.classLabel ||
+                row.classGroupId,
+              teacherNames: slot.teacherNames,
+            };
+          })
+          .filter((item): item is ReviewTeachingConflict => item !== null);
+
+        const homeroomId = String(watchedHomeroom || "").trim();
+        const homeroomMeta = homeroomId
+          ? classMetaById.get(homeroomId) || null
+          : null;
+        const nextHomeroomConflict =
+          homeroomId && homeroomMeta?.homeroomTeacherName
+            ? {
+                classGroupId: homeroomId,
+                classLabel: homeroomMeta.classLabel,
+                teacherName: homeroomMeta.homeroomTeacherName,
+              }
+            : null;
+
+        if (!cancelled) {
+          setReviewTeachingConflicts(nextTeachingConflicts);
+          setReviewHomeroomConflict(nextHomeroomConflict);
+          setReviewConflictError(null);
+        }
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setReviewTeachingConflicts([]);
+          setReviewHomeroomConflict(null);
+          setReviewConflictError(
+            e instanceof Error
+              ? e.message
+              : "Could not check current teaching and homeroom conflicts."
+          );
+        }
+      } finally {
+        if (!cancelled) setReviewConflictLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentStep, watchedAssignments, watchedHomeroom]);
 
   React.useEffect(() => {
     let alive = true;
@@ -1339,71 +1569,126 @@ export default function CreateTeacherModal({
                   secure email invite so they can set a password and sign in.
                 </p>
 
-                <div className="rounded-xl border border-violet-400/20 bg-violet-500/10 p-4 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-200/90">
-                    If a teaching slot is already taken
-                  </p>
-                  <p className="text-xs text-white/60 leading-relaxed">
-                    For each subject and class, if someone else already teaches it this term, choose how to proceed.
-                  </p>
-                  <Controller
-                    name="teachingAssignmentResolution"
-                    control={control}
-                    render={({ field }) => (
-                      <RadioGroup
-                        value={field.value ?? "add_alongside"}
-                        onValueChange={field.onChange}
-                        className="grid gap-2"
-                      >
-                        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left hover:bg-white/[0.07]">
-                          <RadioGroupItem
-                            value="add_alongside"
-                            id="tar-coteach"
-                            className="mt-0.5"
-                          />
-                          <span className="min-w-0">
-                            <span className="text-sm font-medium text-white">
-                              Add as co-teacher
+                {reviewConflictLoading ? (
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/65">
+                    Checking existing teaching and homeroom assignments…
+                  </div>
+                ) : null}
+
+                {reviewConflictError ? (
+                  <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
+                    {reviewConflictError}
+                  </div>
+                ) : null}
+
+                {reviewHomeroomConflict ? (
+                  <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-4 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-100/90">
+                      Homeroom already assigned
+                    </p>
+                    <p className="text-sm leading-relaxed text-amber-50/95">
+                      <span className="font-medium">
+                        {reviewHomeroomConflict.classLabel}
+                      </span>{" "}
+                      already has{" "}
+                      <span className="font-medium">
+                        {reviewHomeroomConflict.teacherName}
+                      </span>{" "}
+                      as homeroom teacher. Creating this teacher with that
+                      homeroom will replace the current homeroom teacher.
+                    </p>
+                  </div>
+                ) : null}
+
+                {reviewTeachingConflicts.length > 0 ? (
+                  <div className="rounded-xl border border-violet-400/20 bg-violet-500/10 p-4 space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-200/90">
+                      Teaching slots already assigned
+                    </p>
+                    <p className="text-xs leading-relaxed text-white/60">
+                      These subject and class combinations already have another
+                      teacher in the current academic term. Choose how to handle
+                      those conflicts before creating this teacher.
+                    </p>
+                    <ul className="space-y-2 border-t border-white/10 pt-3">
+                      {reviewTeachingConflicts.map((conflict) => (
+                        <li
+                          key={conflict.key}
+                          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+                        >
+                          <div className="text-sm text-white">
+                            <span className="font-medium text-brand">
+                              {conflict.subjectName}
                             </span>
-                            <span className="mt-0.5 block text-xs text-white/55">
-                              Keep the existing teacher and add this new teacher on the same slot (recommended).
+                            <span className="text-white/40"> · </span>
+                            {conflict.classLabel}
+                          </div>
+                          <div className="mt-1 text-xs text-white/60">
+                            Already assigned to{" "}
+                            {conflict.teacherNames.join(", ")}.
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    <Controller
+                      name="teachingAssignmentResolution"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup
+                          value={field.value ?? "add_alongside"}
+                          onValueChange={field.onChange}
+                          className="grid gap-2"
+                        >
+                          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left hover:bg-white/[0.07]">
+                            <RadioGroupItem
+                              value="add_alongside"
+                              id="tar-coteach"
+                              className="mt-0.5"
+                            />
+                            <span className="min-w-0">
+                              <span className="text-sm font-medium text-white">
+                                Add as co-teacher
+                              </span>
+                              <span className="mt-0.5 block text-xs text-white/55">
+                                Keep the existing teacher and add this new teacher on the same slot.
+                              </span>
                             </span>
-                          </span>
-                        </label>
-                        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left hover:bg-white/[0.07]">
-                          <RadioGroupItem
-                            value="replace"
-                            id="tar-replace"
-                            className="mt-0.5"
-                          />
-                          <span className="min-w-0">
-                            <span className="text-sm font-medium text-white">
-                              Replace the previous teacher
+                          </label>
+                          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left hover:bg-white/[0.07]">
+                            <RadioGroupItem
+                              value="replace"
+                              id="tar-replace"
+                              className="mt-0.5"
+                            />
+                            <span className="min-w-0">
+                              <span className="text-sm font-medium text-white">
+                                Replace the previous teacher
+                              </span>
+                              <span className="mt-0.5 block text-xs text-white/55">
+                                End the other teacher&apos;s assignment for this term and assign this teacher instead.
+                              </span>
                             </span>
-                            <span className="mt-0.5 block text-xs text-white/55">
-                              End the other teacher&apos;s assignment for this term and assign this teacher instead.
+                          </label>
+                          <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left hover:bg-white/[0.07]">
+                            <RadioGroupItem
+                              value="skip"
+                              id="tar-skip"
+                              className="mt-0.5"
+                            />
+                            <span className="min-w-0">
+                              <span className="text-sm font-medium text-white">
+                                Skip conflicting rows
+                              </span>
+                              <span className="mt-0.5 block text-xs text-white/55">
+                                Do not create assignments where another teacher is already assigned; you can fix these later.
+                              </span>
                             </span>
-                          </span>
-                        </label>
-                        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/5 p-3 text-left hover:bg-white/[0.07]">
-                          <RadioGroupItem
-                            value="skip"
-                            id="tar-skip"
-                            className="mt-0.5"
-                          />
-                          <span className="min-w-0">
-                            <span className="text-sm font-medium text-white">
-                              Skip conflicting rows
-                            </span>
-                            <span className="mt-0.5 block text-xs text-white/55">
-                              Do not create assignments where another teacher is already assigned; you can fix these later.
-                            </span>
-                          </span>
-                        </label>
-                      </RadioGroup>
-                    )}
-                  />
-                </div>
+                          </label>
+                        </RadioGroup>
+                      )}
+                    />
+                  </div>
+                ) : null}
 
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-4 text-sm">
                   <div>
@@ -1462,18 +1747,20 @@ export default function CreateTeacherModal({
                       </ul>
                     )}
                   </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.15em] text-white/45 mb-1">
-                      If a slot already has a teacher
+                  {reviewTeachingConflicts.length > 0 ? (
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.15em] text-white/45 mb-1">
+                        Teaching conflict handling
+                      </div>
+                      <div className="text-sm text-white/90">
+                        {watchedAssignmentResolution === "replace"
+                          ? "Replace the previous teacher for conflicting teaching slots"
+                          : watchedAssignmentResolution === "skip"
+                            ? "Skip conflicting teaching assignments and add them later if needed"
+                            : "Add this teacher alongside the existing teacher on conflicting slots"}
+                      </div>
                     </div>
-                    <div className="text-sm text-white/90">
-                      {watchedAssignmentResolution === "replace"
-                        ? "Replace the previous teacher for those slots"
-                        : watchedAssignmentResolution === "skip"
-                          ? "Skip conflicting assignments (add them later from the teacher profile)"
-                          : "Add as co-teacher alongside the existing teacher"}
-                    </div>
-                  </div>
+                  ) : null}
                   <div>
                     <div className="text-xs uppercase tracking-[0.15em] text-white/45 mb-1">
                       Homeroom
@@ -1485,6 +1772,13 @@ export default function CreateTeacherModal({
                           : reviewHomeroomLabel || "Selected"
                         : "None"}
                     </div>
+                    {reviewHomeroomConflict ? (
+                      <div className="mt-1 text-xs text-amber-200/90">
+                        This will replace{" "}
+                        {reviewHomeroomConflict.teacherName} as the current
+                        homeroom teacher.
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </section>
@@ -1522,6 +1816,7 @@ export default function CreateTeacherModal({
                   isSubmitting ||
                   isLoading ||
                   reviewLoading ||
+                  reviewConflictLoading ||
                   reviewLines.length < 1
                 }
                 className="gap-2 bg-brand text-black hover:opacity-90"

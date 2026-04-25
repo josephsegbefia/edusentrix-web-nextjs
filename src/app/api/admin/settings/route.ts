@@ -4,6 +4,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
+import { DEFAULT_SCHOOL_LEO_SETTINGS } from "@/lib/leo/defaults";
 import { SchoolSettings } from "@/models/SchoolSettings";
 
 const TimeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -139,6 +140,7 @@ function buildDefaultSettingsDoc(schoolId: mongoose.Types.ObjectId) {
       channels: { whatsapp: true, sms: false, email: false },
     },
     offlineMode: { enabled: true },
+    leo: { ...DEFAULT_SCHOOL_LEO_SETTINGS },
   };
 }
 

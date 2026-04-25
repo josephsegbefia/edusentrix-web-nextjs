@@ -41,7 +41,6 @@ import {
   Info,
   Plus,
   Trash2,
-  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -1314,7 +1313,7 @@ export default function CreateTeacherModal({
                     onClick={() => void runLeoSuggest()}
                     className="gap-2 border-violet-400/30 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
                   >
-                    <Sparkles className="h-4 w-4" />
+                    <LeoIcon className="h-4 w-4" />
                     {leoLoading ? "Leo is thinking…" : "Ask Leo"}
                   </Button>
                 </LeoCallout>

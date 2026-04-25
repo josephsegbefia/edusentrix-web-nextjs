@@ -937,7 +937,7 @@ function AskAIChat({
     <Card className="border-white/10 bg-white/[0.02]">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-purple-300" />
+          <LeoIcon className="h-4 w-4 text-purple-300" />
           <CardTitle className="text-sm font-semibold text-white/80">
             Ask Leo
           </CardTitle>

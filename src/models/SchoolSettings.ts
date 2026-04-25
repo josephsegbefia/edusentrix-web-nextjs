@@ -168,6 +168,31 @@ export interface ISchoolSettings {
   // Operational
   workingDays: number[]; // 0-6, e.g., [1,2,3,4,5] for Mon-Fri
 
+  /** Leo Copilot (spec: SchoolSettings.leo) */
+  leo?: {
+    accessOverride: "inherit" | "enabled" | "disabled";
+    entitlementBypass: boolean;
+    roleOverrides?: {
+      school_admin?: "inherit" | "enabled" | "disabled";
+      teacher?: "inherit" | "enabled" | "disabled";
+      parent?: "inherit" | "enabled" | "disabled";
+      student?: "inherit" | "enabled" | "disabled";
+      bursar?: "inherit" | "enabled" | "disabled";
+      billing_owner?: "inherit" | "enabled" | "disabled";
+    };
+    allowWriteActions: boolean;
+    allowBulkActions: boolean;
+    allowDrafting: boolean;
+    allowMonitors: boolean;
+    retentionDays: number;
+    defaultModelProfile: "low_cost" | "balanced" | "high_quality";
+    privacyMode: "strict" | "balanced";
+    ui?: {
+      floatingPaneEnabled: boolean;
+      homeSummaryCardsEnabled: boolean;
+    };
+  };
+
   // Feature Flags
   teacherStudio?: {
     enabled: boolean;
@@ -372,6 +397,56 @@ const AssemblyGradeOverrideSchema = new Schema<IAssemblyGradeOverride>(
   { _id: false }
 );
 
+const RoleLeoOverrideSchema = new Schema(
+  {
+    school_admin: { type: String, enum: ["inherit", "enabled", "disabled"] },
+    teacher: { type: String, enum: ["inherit", "enabled", "disabled"] },
+    parent: { type: String, enum: ["inherit", "enabled", "disabled"] },
+    student: { type: String, enum: ["inherit", "enabled", "disabled"] },
+    bursar: { type: String, enum: ["inherit", "enabled", "disabled"] },
+    billing_owner: { type: String, enum: ["inherit", "enabled", "disabled"] },
+  },
+  { _id: false }
+);
+
+const SchoolLeoSettingsSchema = new Schema(
+  {
+    accessOverride: {
+      type: String,
+      enum: ["inherit", "enabled", "disabled"],
+      default: "inherit",
+    },
+    entitlementBypass: { type: Boolean, default: false },
+    roleOverrides: { type: RoleLeoOverrideSchema, default: undefined },
+    allowWriteActions: { type: Boolean, default: false },
+    allowBulkActions: { type: Boolean, default: false },
+    allowDrafting: { type: Boolean, default: true },
+    allowMonitors: { type: Boolean, default: false },
+    retentionDays: { type: Number, min: 1, max: 3650, default: 90 },
+    defaultModelProfile: {
+      type: String,
+      enum: ["low_cost", "balanced", "high_quality"],
+      default: "balanced",
+    },
+    privacyMode: {
+      type: String,
+      enum: ["strict", "balanced"],
+      default: "balanced",
+    },
+    ui: {
+      type: new Schema(
+        {
+          floatingPaneEnabled: { type: Boolean, default: true },
+          homeSummaryCardsEnabled: { type: Boolean, default: false },
+        },
+        { _id: false }
+      ),
+      default: undefined,
+    },
+  },
+  { _id: false }
+);
+
 const SchoolSettingsSchema = new Schema<ISchoolSettings>(
   {
     schoolId: {
@@ -494,6 +569,8 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
         message: "Working days must be unique values between 0-6",
       },
     },
+
+    leo: { type: SchoolLeoSettingsSchema, default: undefined },
 
     // Feature Flags
     teacherStudio: {

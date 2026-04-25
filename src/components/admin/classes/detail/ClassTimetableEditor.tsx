@@ -10,10 +10,10 @@ import {
   ChevronRight,
   ChevronUp,
   Loader2,
-  Sparkles,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -522,7 +522,7 @@ export function ClassTimetableEditor({
               {leoLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <Sparkles className="mr-2 h-4 w-4 text-amber-300" />
+                <LeoIcon className="mr-2 h-4 w-4 text-amber-300" />
               )}
               Ask Leo
             </Button>

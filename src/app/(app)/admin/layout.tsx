@@ -11,6 +11,7 @@ import { SidebarProvider } from "@/providers/sidebar-provider";
 import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
 import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
 import { AdminTrialBanner } from "@/components/billing/AdminTrialBanner";
+import { AdminLeoEntry } from "@/components/leo/AdminLeoEntry";
 import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
 
 export default async function AdminLayout({
@@ -54,6 +55,7 @@ export default async function AdminLayout({
             {children}
           </AdminMainContent>
         </div>
+        <AdminLeoEntry />
       </SidebarProvider>
     </>
   );

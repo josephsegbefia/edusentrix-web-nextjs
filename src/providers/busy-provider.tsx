@@ -15,16 +15,29 @@ type BusyCtx = {
 
 const Ctx = createContext<BusyCtx | null>(null);
 
+function suppressesGlobalBusy(meta: unknown) {
+  return (
+    typeof meta === "object" &&
+    meta !== null &&
+    "suppressGlobalBusy" in meta &&
+    (meta as { suppressGlobalBusy?: unknown }).suppressGlobalBusy === true
+  );
+}
+
 export function BusyProvider({ children }: { children: React.ReactNode }) {
   const [manualCount, setManualCount] = useState(0);
 
   // React Query mutations - always show overlay for mutations
-  const mutating = useIsMutating();
+  const mutating = useIsMutating({
+    predicate: (mutation) => !suppressesGlobalBusy(mutation.options.meta),
+  });
 
   // Count only initial fetches (queries without cached data)
   // Background refetches (queries with cached data) should NOT show overlay
   const initialFetches = useIsFetching({
     predicate: (query) => {
+      if (suppressesGlobalBusy(query.meta)) return false;
+
       // Only count as "busy" if query is fetching AND has no cached data
       // This distinguishes initial fetches from background refetches
       const hasCachedData =

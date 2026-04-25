@@ -4,6 +4,7 @@ import { SubscriptionTier } from "@/models/SubscriptionTier";
 
 const FEATURE_DESCRIPTIONS: Record<string, string> = {
   analytics: "Access advanced analytics and reporting surfaces.",
+  ai_leo_copilot: "Use Leo Copilot assistant (unified AI shell; spec LEO v1).",
   ai_reports: "Use Leo-generated summaries and AI report workflows.",
   parent_payments: "Accept parent fee payments through EduSentrix.",
   disbursements: "Initiate teacher and vendor payouts.",

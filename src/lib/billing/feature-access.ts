@@ -10,6 +10,7 @@ export type SubscriptionFeatureKey =
   | "reports"
   | "analytics"
   | "ai_lesson_notes"
+  | "ai_leo_copilot"
   | "community"
   | "community_hub";
 
@@ -36,6 +37,7 @@ const FEATURE_ALIASES: Record<SubscriptionFeatureKey, string[]> = {
   reports: ["reports"],
   analytics: ["reports", "analytics"],
   ai_lesson_notes: ["reports", "ai_reports", "ai_lesson_notes"],
+  ai_leo_copilot: ["ai_leo_copilot"],
   community: ["community", "community_hub"],
   community_hub: ["community", "community_hub"],
 };

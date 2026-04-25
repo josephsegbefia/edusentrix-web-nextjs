@@ -5,6 +5,8 @@ import { formatMoney } from "@/lib/fees/money";
 import {
   isTeacherStudioEnvEnabled,
 } from "@/lib/features/teacherStudio";
+import { isLeoCopilotServerRuntimeEnabled } from "@/lib/leo/runtime";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 import {
   isTimetableAdminPlannerEnabled,
   isTimetableApiWriteEnabled,
@@ -71,6 +73,12 @@ export default async function PlatformFlagsPage() {
       scope: "Global runtime",
       note: "Enables teacher studio at the environment level.",
     },
+    {
+      key: "feature_leo_copilot_runtime_enabled",
+      enabled: isLeoCopilotServerRuntimeEnabled(),
+      scope: "Global runtime",
+      note: "Server-side Leo Copilot APIs; pair with NEXT_PUBLIC_FEATURE_LEO_COPILOT_RUNTIME_ENABLED for the launcher.",
+    },
   ];
 
   const [tiers, teacherStudioEnabledSchools, teacherStudioDisabledSchools, settingsDocs] =
@@ -112,6 +120,16 @@ export default async function PlatformFlagsPage() {
               className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
             >
               <span>Subscription Tiers</span>
+              <ArrowRight className="ml-3 h-4 w-4" />
+            </Link>
+            <Link
+              href="/platform/leo"
+              className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <span className="flex items-center gap-2">
+                <LeoIcon className="h-4 w-4 text-amber-300" />
+                Leo Copilot
+              </span>
               <ArrowRight className="ml-3 h-4 w-4" />
             </Link>
             <Link

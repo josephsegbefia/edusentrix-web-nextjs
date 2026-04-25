@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Info, Sparkles, UserPlus } from "lucide-react";
+import { Info, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { LeoIcon } from "@/components/icons/LeoIcon";
@@ -351,7 +351,7 @@ export function LeoTeacherAssignmentsPanel({ teacherId, teacherName }: Props) {
           onClick={() => void runLeoSuggest()}
           className="gap-2 border-violet-400/30 bg-violet-500/10 text-violet-100 hover:bg-violet-500/20"
         >
-          <Sparkles className="h-4 w-4" />
+          <LeoIcon className="h-4 w-4" />
           {leoLoading ? "Leo is thinking…" : "Ask Leo"}
         </Button>
       </LeoCallout>

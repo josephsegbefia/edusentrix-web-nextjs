@@ -42,6 +42,7 @@ import { useSchoolPaymentSetup } from "@/hooks/admin/useSchoolPaymentSetup";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { SchoolDailySchedulePanel } from "@/components/admin/settings/school-daily/SchoolDailySchedulePanel";
 import { SchoolTimeZoneSettingsCard } from "@/components/admin/settings/SchoolTimeZoneSettingsCard";
+import { SchoolLeoSettingsCard } from "@/components/admin/settings/SchoolLeoSettingsCard";
 
 type SettingsTab = "school" | "attendance" | "academic" | "features" | "dailySchedule" | "regional";
 
@@ -598,6 +599,8 @@ function SettingsPageContent() {
           {activeTab === "dailySchedule" && <SchoolDailySchedulePanel />}
 
           {activeTab === "features" && (
+            <>
+            <SchoolLeoSettingsCard />
             <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
               <CardContent className="p-6">
                 <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
@@ -650,6 +653,7 @@ function SettingsPageContent() {
                 </div>
               </CardContent>
             </Card>
+            </>
           )}
         </div>
       )}

@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 import {
   premiumSideItem,
   premiumSideItemActive,
@@ -180,6 +181,11 @@ const navSections: NavSection[] = [
         label: "Feature Flags",
         href: "/platform/flags",
         icon: Flag,
+      },
+      {
+        label: "Leo Copilot",
+        href: "/platform/leo",
+        icon: LeoIcon,
       },
       {
         label: "Settings",

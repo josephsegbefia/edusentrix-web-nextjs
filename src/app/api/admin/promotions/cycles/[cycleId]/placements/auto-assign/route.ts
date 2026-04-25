@@ -133,6 +133,13 @@ export async function POST(
       assigned++;
     }
 
+    if (cycle.status === "preview_ready" && needsPlacement.length > 0) {
+      await PromotionCycle.updateOne(
+        { _id: cycleObjId },
+        { $set: { status: "review_in_progress" } }
+      );
+    }
+
     const cycleWithLabel = await PromotionCycle.findById(cycleObjId)
       .select("sourceYearLabel")
       .lean();

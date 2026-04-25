@@ -13,8 +13,9 @@ import {
 import { usePromotionCycles } from "@/hooks/admin/usePromotionCycles";
 import { OverrideDecisionModal } from "./OverrideDecisionModal";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { Users, Loader2, Pencil, Search } from "lucide-react";
+import { AlertTriangle, Loader2, Pencil, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 import {
   PremiumSelect,
   PremiumSelectTrigger,
@@ -33,6 +34,11 @@ const OUTCOME_COLORS: Record<string, string> = {
   graduate: "bg-purple-500/20 text-purple-300 border-purple-500/30",
   hold: "bg-slate-500/20 text-slate-400 border-slate-500/30",
 };
+
+function formatMetric(value: unknown, suffix = "") {
+  if (typeof value !== "number") return "No data";
+  return `${value.toLocaleString()}${suffix}`;
+}
 
 export function ReviewTab() {
   const busy = useBusyToast();
@@ -111,7 +117,21 @@ export function ReviewTab() {
           Check and adjust promotion decisions before finalizing.
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+            <LeoIcon className="h-4 w-4 text-cyan-100" />
+          </div>
+          <div>
+            <p className="font-medium text-white">Leo review lens</p>
+            <p className="mt-1 text-sm text-white/60">
+              Focus first on holds, repeats, missing evidence, and placement conflicts. Promote
+              decisions with clean evidence can usually move forward after spot checks.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-end gap-4">
         <div className="space-y-1">
           <label className="text-xs text-white/50">Cycle</label>
           <PremiumSelect
@@ -154,17 +174,20 @@ export function ReviewTab() {
             </PremiumSelectContent>
           </PremiumSelect>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
-          <Input
-            placeholder="Search student..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-48 border-white/10 bg-white/5 pl-9 text-white"
-          />
+        <div className="min-w-[280px] flex-1 space-y-1">
+          <label className="text-xs text-white/50">Search student</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Input
+              placeholder="Search student..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 w-full min-w-[280px] border-white/10 bg-white/5 pl-9 text-white md:min-w-[360px]"
+            />
+          </div>
         </div>
       </div>
 
@@ -197,6 +220,7 @@ export function ReviewTab() {
                   <th className="px-4 py-3 text-left text-white/70">Student</th>
                   <th className="px-4 py-3 text-left text-white/70">From</th>
                   <th className="px-4 py-3 text-left text-white/70">Outcome</th>
+                  <th className="px-4 py-3 text-left text-white/70">Evidence</th>
                   <th className="px-4 py-3 text-left text-white/70">Target</th>
                   <th className="px-4 py-3 text-left text-white/70">Source</th>
                   <th className="px-4 py-3 w-20" />
@@ -227,6 +251,17 @@ export function ReviewTab() {
                       >
                         {d.finalOutcome}
                       </Badge>
+                      {d.conflicts.length > 0 ? (
+                        <div className="mt-1 flex items-center gap-1 text-xs text-amber-200">
+                          <AlertTriangle className="h-3 w-3" />
+                          {d.conflicts.length} issue{d.conflicts.length === 1 ? "" : "s"}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-white/55">
+                      <div>Avg: {formatMetric(d.evidence.overallAverage, "%")}</div>
+                      <div>Attendance: {formatMetric(d.evidence.attendancePercent, "%")}</div>
+                      <div>Fees: {formatMetric(d.evidence.feeOutstandingMinor)}</div>
                     </td>
                     <td className="px-4 py-3 text-white/70">
                       {d.targetGradeName && d.targetClassGroupName

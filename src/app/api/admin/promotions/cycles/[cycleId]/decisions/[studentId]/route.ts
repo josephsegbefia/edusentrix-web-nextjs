@@ -128,7 +128,12 @@ export async function PATCH(
 
     await PromotionCycle.updateOne(
       { _id: cycleObjId },
-      { $inc: { "totals.overrides": 1 } }
+      {
+        $inc: { "totals.overrides": 1 },
+        ...(cycle.status === "preview_ready"
+          ? { $set: { status: "review_in_progress" } }
+          : {}),
+      }
     );
 
     const cycleWithLabel = await PromotionCycle.findById(cycleObjId)

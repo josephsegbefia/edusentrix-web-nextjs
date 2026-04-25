@@ -211,6 +211,11 @@ export interface ISchoolSettings {
     enabled: boolean;
   };
 
+  promotions?: {
+    autoPreviewEnabled: boolean;
+    autoPreviewLeadDays: number;
+  };
+
   // Metadata
   updatedBy?: Types.ObjectId;
   createdAt: Date;
@@ -588,6 +593,11 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
 
     offlineMode: {
       enabled: { type: Boolean, default: true },
+    },
+
+    promotions: {
+      autoPreviewEnabled: { type: Boolean, default: false },
+      autoPreviewLeadDays: { type: Number, min: 0, max: 60, default: 7 },
     },
 
     // Metadata

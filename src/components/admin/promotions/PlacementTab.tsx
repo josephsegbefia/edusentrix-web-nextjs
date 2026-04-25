@@ -8,9 +8,12 @@ import { usePromotionCycles } from "@/hooks/admin/usePromotionCycles";
 import {
   usePromotionDecisions,
   useAutoAssignPlacements,
+  useManualPromotionPlacement,
+  type PromotionDecisionDTO,
 } from "@/hooks/admin/usePromotionDecisions";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { MapPin, Loader2, Zap } from "lucide-react";
+import { MapPin, Loader2, Pencil, Zap } from "lucide-react";
+import { ManualPlacementModal } from "./ManualPlacementModal";
 import {
   PremiumSelect,
   PremiumSelectTrigger,
@@ -29,6 +32,8 @@ export function PlacementTab() {
   );
 
   const [cycleId, setCycleId] = React.useState<string | null>(null);
+  const [manualDecision, setManualDecision] =
+    React.useState<PromotionDecisionDTO | null>(null);
 
   React.useEffect(() => {
     if (cycles.length && !cycleId) setCycleId(cycles[0].id);
@@ -42,6 +47,7 @@ export function PlacementTab() {
   });
 
   const autoAssign = useAutoAssignPlacements(cycleId);
+  const manualPlacement = useManualPromotionPlacement(cycleId);
 
   const promoteWithoutTarget = (data?.data ?? []).filter(
     (d) => !d.targetGradeId || !d.targetClassGroupId
@@ -58,6 +64,26 @@ export function PlacementTab() {
     } catch {
       // Handled
     }
+  };
+
+  const handleManualPlacement = async (input: {
+    targetGradeId: string;
+    targetClassGroupId: string;
+    reasonText: string;
+    version: number;
+  }) => {
+    if (!manualDecision) return;
+    await busy.promise(
+      manualPlacement.mutateAsync({
+        studentId: manualDecision.studentId,
+        ...input,
+      }),
+      {
+        loading: "Saving placement...",
+        success: "Placement saved",
+        error: (e: Error) => e.message,
+      }
+    );
   };
 
   if (cycles.length === 0) {
@@ -112,7 +138,8 @@ export function PlacementTab() {
       <div className="rounded-xl border border-white/10 bg-white/5 p-6">
         <h4 className="mb-2 font-semibold text-white">Auto-assign placements</h4>
         <p className="mb-4 text-sm text-white/60">
-          Assign promote decisions to target classes using the least-loaded-class algorithm.
+          Let EduSentrix assign promote decisions to the next grade and least-loaded matching class.
+          Any unresolved placements can be set manually below.
         </p>
         <Button
           onClick={handleAutoAssign}
@@ -131,15 +158,35 @@ export function PlacementTab() {
       {promoteWithoutTarget.length > 0 && (
         <div className="rounded-xl border border-white/10">
           <h4 className="border-b border-white/10 px-4 py-3 font-medium text-white">
-            Promote decisions without target
+            Promote decisions that still need placement
           </h4>
           <ul className="divide-y divide-white/5">
             {promoteWithoutTarget.slice(0, 20).map((d) => (
-              <li key={d.id} className="flex items-center justify-between px-4 py-2">
-                <span className="text-white/90">{d.studentName}</span>
-                <span className="text-sm text-white/50">
-                  {d.fromGradeName} {d.fromClassGroupName} → ?
-                </span>
+              <li
+                key={d.id}
+                className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <span className="font-medium text-white/90">{d.studentName}</span>
+                  <span className="ml-2 text-sm text-white/50">
+                    {d.fromGradeName} {d.fromClassGroupName} → ?
+                  </span>
+                  {d.conflicts.length > 0 ? (
+                    <p className="mt-1 text-xs text-amber-200">
+                      Needs attention: {d.conflicts.join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-amber-500/30 text-amber-200 hover:bg-amber-500/10"
+                  onClick={() => setManualDecision(d)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Set placement
+                </Button>
               </li>
             ))}
           </ul>
@@ -156,6 +203,14 @@ export function PlacementTab() {
           <p className="text-sm text-emerald-200">All promote decisions have target placements.</p>
         </div>
       )}
+
+      <ManualPlacementModal
+        open={!!manualDecision}
+        onOpenChange={(open) => !open && setManualDecision(null)}
+        decision={manualDecision}
+        isPending={manualPlacement.isPending}
+        onConfirm={handleManualPlacement}
+      />
     </div>
   );
 }

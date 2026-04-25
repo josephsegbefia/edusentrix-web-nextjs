@@ -10,6 +10,7 @@ import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const schema = z
   .object({
@@ -17,6 +18,7 @@ const schema = z
     term: z.string().min(1, "Term is required"),
     startDate: z.string().min(1, "Start date is required"),
     endDate: z.string().min(1, "End date is required"),
+    isYearEndTerminal: z.boolean().default(false),
   })
   .superRefine((val, ctx) => {
     const start = new Date(val.startDate);
@@ -78,9 +80,11 @@ export default function CreateAcademicPeriodModal({
       term: initialValues?.term || "",
       startDate: initialValues?.startDate || "",
       endDate: initialValues?.endDate || "",
+      isYearEndTerminal: initialValues?.isYearEndTerminal || false,
     }),
     [
       initialValues?.endDate,
+      initialValues?.isYearEndTerminal,
       initialValues?.startDate,
       initialValues?.term,
       initialValues?.yearLabel,
@@ -254,6 +258,27 @@ export default function CreateAcademicPeriodModal({
                         {form.formState.errors.endDate.message}
                       </p>
                     ) : null}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+                        Year-end period
+                      </Label>
+                      <p className="text-sm text-white/60">
+                        Mark this only when the period is the final period of the academic year. Promotions automation uses this flag.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.watch("isYearEndTerminal")}
+                      onCheckedChange={(checked) =>
+                        form.setValue("isYearEndTerminal", checked, {
+                          shouldDirty: true,
+                        })
+                      }
+                    />
                   </div>
                 </div>
 

@@ -6,6 +6,8 @@ export type PromotionCycleDTO = {
   id: string;
   sourceYearLabel: string;
   status: string;
+  sourceAcademicPeriodId?: string | null;
+  targetAcademicPeriodId?: string | null;
   totals: {
     studentsEvaluated: number;
     promote: number;

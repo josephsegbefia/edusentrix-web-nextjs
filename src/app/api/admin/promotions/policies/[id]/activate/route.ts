@@ -9,7 +9,8 @@ import mongoose from "mongoose";
 
 /**
  * POST /api/admin/promotions/policies/:id/activate
- * Activate this policy and deactivate all other policies for the school.
+ * Activate this policy and deactivate only overlapping active policies.
+ * A whole-school policy still replaces all active policies.
  * Requires Idempotency-Key header.
  */
 export async function POST(
@@ -68,11 +69,36 @@ export async function POST(
       );
     }
 
-    // Deactivate all policies for this school
-    await PromotionPolicy.updateMany(
-      { schoolId: schoolIdObj },
-      { $set: { isActive: false, updatedBy: userIdObj, updatedAt: new Date() } }
-    );
+    const selectedGradeIds = (policy.appliesTo?.gradeIds || []).map(String);
+    const hasGradeScope = selectedGradeIds.length > 0;
+
+    if (!hasGradeScope) {
+      await PromotionPolicy.updateMany(
+        { schoolId: schoolIdObj },
+        { $set: { isActive: false, updatedBy: userIdObj, updatedAt: new Date() } }
+      );
+    } else {
+      const activePolicies = await PromotionPolicy.find({
+        schoolId: schoolIdObj,
+        isActive: true,
+        _id: { $ne: policyObjId },
+      }).select("_id appliesTo");
+
+      const overlappingPolicyIds = activePolicies
+        .filter((activePolicy) => {
+          const activeGradeIds = (activePolicy.appliesTo?.gradeIds || []).map(String);
+          if (activeGradeIds.length === 0) return true;
+          return activeGradeIds.some((gradeId) => selectedGradeIds.includes(gradeId));
+        })
+        .map((activePolicy) => activePolicy._id);
+
+      if (overlappingPolicyIds.length > 0) {
+        await PromotionPolicy.updateMany(
+          { _id: { $in: overlappingPolicyIds }, schoolId: schoolIdObj },
+          { $set: { isActive: false, updatedBy: userIdObj, updatedAt: new Date() } }
+        );
+      }
+    }
 
     // Activate this policy
     policy.isActive = true;

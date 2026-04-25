@@ -8,6 +8,7 @@ export interface IAcademicPeriod {
   startDate: Date;
   endDate: Date;
   isCurrent: boolean;
+  isYearEndTerminal?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +26,7 @@ const academicPeriodSchema = new Schema<IAcademicPeriod>(
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     isCurrent: { type: Boolean, default: false },
+    isYearEndTerminal: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

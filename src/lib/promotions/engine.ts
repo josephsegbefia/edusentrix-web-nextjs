@@ -2,7 +2,6 @@
 // PROMO-BE-003: Rule engine per PROMOTION_SERVICE_SPEC §9
 import type { IPromotionPolicy, IPromotionPolicyCriteria } from "@/models/PromotionPolicy";
 import type { EvidenceResult } from "./evidence";
-import { addConflict } from "./conflicts";
 
 export type PromotionOutcome = "promote" | "repeat" | "graduate" | "hold";
 
@@ -36,6 +35,28 @@ function evaluateCriterion(
     default:
       return false;
   }
+}
+
+function evidenceValueForCriterion(
+  criterion: IPromotionPolicyCriteria,
+  evidence: EvidenceResult
+) {
+  if (criterion.key === "attendance_percent") return evidence.attendancePercent;
+  if (criterion.key === "overall_average") return evidence.overallAverage;
+  if (criterion.key === "subjects_passed_percent") return evidence.subjectsPassedPercent;
+  if (criterion.key === "fee_outstanding_minor") return evidence.feeOutstandingMinor;
+  if (criterion.key === "discipline_flags") return evidence.disciplineFlags;
+  return null;
+}
+
+function missingEvidenceCode(key: IPromotionPolicyCriteria["key"]) {
+  if (key === "attendance_percent") return "MISSING_ATTENDANCE_EVIDENCE";
+  if (key === "overall_average" || key === "subjects_passed_percent") {
+    return "MISSING_ACADEMIC_EVIDENCE";
+  }
+  if (key === "fee_outstanding_minor") return "MISSING_FINANCE_EVIDENCE";
+  if (key === "discipline_flags") return "MISSING_DISCIPLINE_EVIDENCE";
+  return "MISSING_EVIDENCE";
 }
 
 /**
@@ -82,21 +103,29 @@ export function evaluatePolicy(
 
   const requiredCriteria = policy.criteria.filter((c) => c.required);
 
+  if (policy.financeHold?.enabled) {
+    if (evidence.feeOutstandingMinor == null) {
+      return {
+        outcome: "hold",
+        reasonCodes: ["MISSING_FINANCE_EVIDENCE"],
+        evidence,
+      };
+    }
+
+    if (evidence.feeOutstandingMinor > policy.financeHold.maxOutstandingMinor) {
+      return {
+        outcome: "hold",
+        reasonCodes: ["FINANCE_HOLD_OUTSTANDING_FEES"],
+        evidence,
+      };
+    }
+  }
+
   for (const c of requiredCriteria) {
-    let val: number | null = null;
-    if (c.key === "attendance_percent") val = evidence.attendancePercent;
-    if (c.key === "overall_average") val = evidence.overallAverage;
-    if (c.key === "subjects_passed_percent") val = evidence.subjectsPassedPercent;
-    if (c.key === "fee_outstanding_minor") val = evidence.feeOutstandingMinor;
-    if (c.key === "discipline_flags") val = evidence.disciplineFlags;
+    const val = evidenceValueForCriterion(c, evidence);
 
     if (val === null) {
-      if (c.key === "attendance_percent") reasonCodes.push("MISSING_ATTENDANCE_EVIDENCE");
-      else if (c.key === "overall_average" || c.key === "subjects_passed_percent")
-        reasonCodes.push("MISSING_ACADEMIC_EVIDENCE");
-      else if (c.key === "fee_outstanding_minor") reasonCodes.push("MISSING_FINANCE_EVIDENCE");
-      else if (c.key === "discipline_flags") reasonCodes.push("MISSING_DISCIPLINE_EVIDENCE");
-      else reasonCodes.push("MISSING_EVIDENCE");
+      reasonCodes.push(missingEvidenceCode(c.key));
 
       return {
         outcome: "hold",
@@ -121,16 +150,17 @@ export function evaluatePolicy(
     for (const c of policy.criteria) {
       const w = c.weight ?? 1;
       totalWeight += w;
-      let val: number | null = null;
-      if (c.key === "attendance_percent") val = evidence.attendancePercent ?? 0;
-      if (c.key === "overall_average") val = evidence.overallAverage ?? 0;
-      if (c.key === "subjects_passed_percent") val = evidence.subjectsPassedPercent ?? 0;
-      if (c.key === "fee_outstanding_minor") val = evidence.feeOutstandingMinor ?? 0;
-      if (c.key === "discipline_flags") val = evidence.disciplineFlags ?? 0;
-      if (val !== null) score += val * w;
+      score += (evidenceValueForCriterion(c, evidence) ?? 0) * w;
     }
     const normalizedScore = totalWeight > 0 ? score / totalWeight : 0;
     if (normalizedScore < policy.thresholds.promote) {
+      if (
+        policy.thresholds.holdForReview != null &&
+        normalizedScore >= policy.thresholds.holdForReview
+      ) {
+        reasonCodes.push("POLICY_SCORE_NEEDS_REVIEW");
+        return { outcome: "hold", reasonCodes, evidence };
+      }
       reasonCodes.push("POLICY_SCORE_BELOW_THRESHOLD");
       return { outcome: "repeat", reasonCodes, evidence };
     }

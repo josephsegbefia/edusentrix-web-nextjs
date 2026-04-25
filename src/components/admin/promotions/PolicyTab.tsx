@@ -10,16 +10,19 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   usePromotionPolicyActive,
+  usePromotionPolicies,
   useCreatePromotionPolicy,
   useActivatePromotionPolicy,
 } from "@/hooks/admin/usePromotionPolicies";
 import { useGradeOptions } from "@/hooks/admin/useGradeOptions";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { BookOpen, CheckCircle, Loader2, Plus } from "lucide-react";
+import { LeoIcon } from "@/components/icons/LeoIcon";
 
 export function PolicyTab() {
   const busy = useBusyToast();
   const { data, isLoading } = usePromotionPolicyActive();
+  const { data: policiesData } = usePromotionPolicies();
   const createPolicy = useCreatePromotionPolicy();
   const activatePolicy = useActivatePromotionPolicy();
   const { data: gradesData } = useGradeOptions();
@@ -33,6 +36,14 @@ export function PolicyTab() {
   const [gradeIds, setGradeIds] = React.useState<string[]>([]);
 
   const activePolicy = data?.data ?? null;
+  const activePolicies = data?.policies ?? [];
+  const policies = policiesData?.data ?? [];
+  const gradeNameById = new Map(grades.map((grade) => [grade._id, grade.name]));
+
+  function scopeLabel(gradeIds?: string[]) {
+    if (!gradeIds?.length) return "All grades";
+    return gradeIds.map((id) => gradeNameById.get(id) ?? "Unknown grade").join(", ");
+  }
 
   const handleCreate = async () => {
     try {
@@ -93,29 +104,53 @@ export function PolicyTab() {
           Define the rules used to evaluate students for promotion.
         </p>
       </div>
-      {activePolicy && (
+      <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+            <LeoIcon className="h-4 w-4 text-cyan-100" />
+          </div>
+          <div>
+            <p className="font-medium text-white">Leo configuration guide</p>
+            <p className="mt-1 text-sm text-white/60">
+              For the first live run, keep the policy simple: attendance, average score, and a
+              clear fee hold. You can use grade scoping to pilot one section before applying it
+              school-wide.
+            </p>
+          </div>
+        </div>
+      </div>
+      {activePolicies.length > 0 && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-200">
             <CheckCircle className="h-4 w-4" />
-            Active Policy
+            Active Scoped Policies
           </h3>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="font-medium text-white">{activePolicy.name}</span>
-            <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-200">
-              v{activePolicy.version}
-            </Badge>
-            <span className="text-sm text-white/50">
-              {activePolicy.criteria.length} criteria • {activePolicy.logic.replace("_", " ")}
-            </span>
+          <div className="grid gap-3 md:grid-cols-2">
+            {activePolicies.map((policy) => (
+              <div key={policy.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-white">{policy.name}</span>
+                  <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/20 text-emerald-200">
+                    v{policy.version}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-sm text-white/55">
+                  Applies to: {scopeLabel(policy.appliesTo.gradeIds)}
+                </p>
+                <p className="mt-1 text-xs text-white/40">
+                  {policy.criteria.length} criteria • {policy.logic.replace("_", " ")}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {!activePolicy && (
+      {!activePolicy && activePolicies.length === 0 && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
           <p className="text-sm text-amber-200">
-            No active policy. Create a policy below and activate it to run previews. Fallback uses
-            Settings attendance % and grading scale pass threshold.
+            No active policy. Create scoped policies below and activate them. If you activate an
+            all-grades policy, it replaces every active scoped policy.
           </p>
         </div>
       )}
@@ -175,7 +210,10 @@ export function PolicyTab() {
         </div>
         {grades.length > 0 && (
           <div className="mt-4 space-y-2">
-            <Label className="text-white/70">Apply to grades (optional; empty = all)</Label>
+            <Label className="text-white/70">Apply to grades</Label>
+            <p className="text-xs text-white/40">
+              Select the grades this policy controls. Leave empty only for a true whole-school default.
+            </p>
             <div className="flex flex-wrap gap-2">
               {grades.map((g) => {
                 const id = (g as { id?: string; _id?: string }).id ?? (g as { _id: string })._id;
@@ -214,6 +252,48 @@ export function PolicyTab() {
           Create Policy
         </Button>
       </div>
+
+      {policies.length > 0 && (
+        <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+          <h3 className="mb-4 text-base font-semibold text-white">All promotion policies</h3>
+          <div className="space-y-3">
+            {policies.map((policy) => (
+              <div
+                key={policy.id}
+                className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-white">{policy.name}</p>
+                    <Badge
+                      variant="outline"
+                      className={
+                        policy.isActive
+                          ? "border-emerald-500/40 bg-emerald-500/20 text-emerald-200"
+                          : "border-white/10 bg-white/5 text-white/55"
+                      }
+                    >
+                      {policy.isActive ? "Active" : "Draft"} • v{policy.version}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-white/50">
+                    Applies to: {scopeLabel(policy.appliesTo.gradeIds)}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleActivate(policy.id)}
+                  disabled={policy.isActive || activatePolicy.isPending}
+                  className="border-indigo-500/40 bg-indigo-500/10 text-indigo-200 hover:bg-indigo-500/20"
+                >
+                  {policy.isActive ? "Active" : "Activate for scope"}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {createPolicy.data?.data &&
         !createPolicy.data.data.isActive &&

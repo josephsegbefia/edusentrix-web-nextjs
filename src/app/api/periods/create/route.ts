@@ -11,6 +11,7 @@ const bodySchema = z.object({
     .date()
     .min(new Date(), "Start date must be in the future"),
   endDate: z.coerce.date().min(new Date(), "End date must be in the future"),
+  isYearEndTerminal: z.boolean().optional().default(false),
 });
 
 export async function POST(request: Request) {
@@ -30,6 +31,13 @@ export async function POST(request: Request) {
     { schoolId, isCurrent: true },
     { $set: { isCurrent: false } }
   );
+
+  if (parsed.data.isYearEndTerminal) {
+    await AcademicPeriod.updateMany(
+      { schoolId, yearLabel: parsed.data.yearLabel, isYearEndTerminal: true },
+      { $set: { isYearEndTerminal: false } }
+    );
+  }
 
   const doc = await AcademicPeriod.create({
     schoolId,

@@ -36,7 +36,7 @@ export async function runRollbackBatch(
   }
 
   const sourcePeriodId = cycle.sourceAcademicPeriodId as Types.ObjectId;
-  const skip = cursor ? parseInt(cursor, 10) : 0;
+  const processedBefore = cursor ? parseInt(cursor, 10) : 0;
 
   const toProcess = await PromotionDecision.find({
     cycleId,
@@ -44,7 +44,6 @@ export async function runRollbackBatch(
     isApplied: true,
   })
     .sort({ _id: 1 })
-    .skip(skip)
     .limit(BATCH_SIZE)
     .lean();
 
@@ -132,19 +131,24 @@ export async function runRollbackBatch(
     }
   }
 
-  const newCursor = skip + toProcess.length;
-  const done = toProcess.length < BATCH_SIZE;
+  const remaining = await PromotionDecision.countDocuments({
+    cycleId,
+    schoolId,
+    isApplied: true,
+  });
+  const newCursor = Math.min(total, processedBefore + toProcess.length);
+  const done = remaining === 0 || errors > 0 || toProcess.length === 0;
 
   await PromotionCycle.updateOne(
     { _id: cycleId },
-    done
+    done && errors === 0
       ? {
           $set: { status: "rolled_back" },
           $unset: { progress: 1 },
         }
       : {
           $set: {
-            status: "rolling_back",
+            status: errors > 0 ? "rollback_failed" : "rolling_back",
             progress: {
               phase: "rollback",
               processed: newCursor,
@@ -157,7 +161,7 @@ export async function runRollbackBatch(
         }
   );
 
-  if (done) {
+  if (done && errors === 0) {
     await PromotionExecutionLog.create({
       schoolId,
       cycleId,

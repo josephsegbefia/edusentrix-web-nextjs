@@ -47,6 +47,11 @@ const OfflineModeSchema = z.object({
   enabled: z.boolean(),
 });
 
+const PromotionsAutomationSchema = z.object({
+  autoPreviewEnabled: z.boolean(),
+  autoPreviewLeadDays: z.number().min(0).max(60),
+});
+
 const UpdateSettingsSchema = z
   .object({
     assembly: AssemblyConfigSchema.nullable().optional(),
@@ -59,6 +64,7 @@ const UpdateSettingsSchema = z
     teacherStudio: TeacherStudioSchema.optional(),
     attendanceNotifications: AttendanceNotificationsSchema.optional(),
     offlineMode: OfflineModeSchema.optional(),
+    promotions: PromotionsAutomationSchema.optional(),
   });
 
 function asArray<T>(value: unknown): T[] {
@@ -109,6 +115,16 @@ function serializeSettings(settings: Record<string, unknown>) {
     offlineMode: (settings.offlineMode as { enabled?: boolean } | undefined) || {
       enabled: true,
     },
+    promotions:
+      (settings.promotions as
+        | {
+            autoPreviewEnabled?: boolean;
+            autoPreviewLeadDays?: number;
+          }
+        | undefined) || {
+        autoPreviewEnabled: false,
+        autoPreviewLeadDays: 7,
+      },
     updatedAt: settings.updatedAt ? new Date(settings.updatedAt as string).toISOString() : null,
   };
 }
@@ -140,6 +156,10 @@ function buildDefaultSettingsDoc(schoolId: mongoose.Types.ObjectId) {
       channels: { whatsapp: true, sms: false, email: false },
     },
     offlineMode: { enabled: true },
+    promotions: {
+      autoPreviewEnabled: false,
+      autoPreviewLeadDays: 7,
+    },
     leo: { ...DEFAULT_SCHOOL_LEO_SETTINGS },
   };
 }

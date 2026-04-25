@@ -6,6 +6,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import Link from "next/link";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { CurrentAppUser } from "@/lib/auth/get-current-user";
@@ -50,8 +51,8 @@ export function AppTopbarUserMenu({
         </DropdownMenuLabel>
         <div className="px-2 pb-2 text-foreground/90 text-sm">{user.email}</div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="rounded-lg premium-hover">
-          Profile
+        <DropdownMenuItem asChild className="rounded-lg premium-hover">
+          <Link href="/profile">Profile</Link>
         </DropdownMenuItem>
         <DropdownMenuItem className="rounded-lg premium-hover">
           Preferences

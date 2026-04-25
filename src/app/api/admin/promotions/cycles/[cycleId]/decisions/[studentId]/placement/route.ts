@@ -147,6 +147,13 @@ export async function PATCH(
     decision.updatedBy = userIdObj;
     await decision.save();
 
+    if (cycle.status === "preview_ready") {
+      await PromotionCycle.updateOne(
+        { _id: cycleObjId },
+        { $set: { status: "review_in_progress" } }
+      );
+    }
+
     const cycleWithLabel = await PromotionCycle.findById(cycleObjId)
       .select("sourceYearLabel")
       .lean();

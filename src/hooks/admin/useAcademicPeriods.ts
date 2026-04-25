@@ -6,6 +6,7 @@ export type AcademicPeriodDTO = {
   yearLabel: string;
   term: string; // e.g. "Term 1"
   isCurrent?: boolean;
+  isYearEndTerminal?: boolean;
   startDate?: string;
   endDate?: string;
 };
@@ -37,6 +38,7 @@ export type CreatePeriodInput = {
   term: string;
   startDate: string;
   endDate: string;
+  isYearEndTerminal?: boolean;
 };
 
 export function useCreatePeriod() {
@@ -51,6 +53,7 @@ export function useCreatePeriod() {
           term: input.term,
           startDate: input.startDate,
           endDate: input.endDate,
+          isYearEndTerminal: input.isYearEndTerminal ?? false,
         }),
       });
       const json = await res.json();

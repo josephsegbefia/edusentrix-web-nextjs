@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionCycle } from "@/models/PromotionCycle";
 import { PromotionExecutionLog } from "@/models/PromotionExecutionLog";
 import { runRollbackBatch } from "@/lib/promotions/rollback-runner";
+import { promotionFeatureFlags } from "@/lib/promotions/feature-flags";
 import { recordPromotionActivity } from "@/lib/promotions/recordPromotionActivity";
 import { logPromotionEvent } from "@/lib/promotions/logging";
 import mongoose from "mongoose";
@@ -21,6 +22,13 @@ export async function POST(
   try {
     const { userId, schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
+
+    if (!promotionFeatureFlags.enabled || !promotionFeatureFlags.rollbackEnabled) {
+      return NextResponse.json(
+        { success: false, error: "Promotion rollback is currently disabled." },
+        { status: 403 }
+      );
+    }
 
     const idempotencyKey = req.headers.get("Idempotency-Key")?.trim();
     if (!idempotencyKey) {

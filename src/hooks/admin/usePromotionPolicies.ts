@@ -26,16 +26,36 @@ export type PromotionPolicyDTO = {
   updatedAt?: string;
 };
 
+export type ActivePromotionPoliciesResponse = {
+  success: boolean;
+  data: PromotionPolicyDTO | null;
+  policies?: PromotionPolicyDTO[];
+};
+
 function generateIdempotencyKey(): string {
   return `promo-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
 export function usePromotionPolicyActive() {
-  return useQuery<{ success: boolean; data: PromotionPolicyDTO | null }>({
+  return useQuery<ActivePromotionPoliciesResponse>({
     queryKey: ["promotionPolicy", "active"],
     queryFn: async () => {
       const res = await fetch("/api/admin/promotions/policies/active");
       if (!res.ok) throw new Error("Failed to fetch active policy");
+      return res.json();
+    },
+  });
+}
+
+export function usePromotionPolicies(params: { activeOnly?: boolean } = {}) {
+  const { activeOnly = false } = params;
+  return useQuery<{ success: boolean; data: PromotionPolicyDTO[] }>({
+    queryKey: ["promotionPolicy", "list", activeOnly],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (activeOnly) searchParams.set("active", "1");
+      const res = await fetch(`/api/admin/promotions/policies?${searchParams}`);
+      if (!res.ok) throw new Error("Failed to fetch promotion policies");
       return res.json();
     },
   });
@@ -78,6 +98,26 @@ export function useActivatePromotionPolicy() {
       );
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? "Failed to activate policy");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["promotionPolicy"] });
+    },
+  });
+}
+
+export function useDeletePromotionPolicy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (policyId: string) => {
+      const res = await fetch(
+        `/api/admin/promotions/policies/${encodeURIComponent(policyId)}`,
+        {
+          method: "DELETE",
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error ?? "Failed to delete policy");
       return json;
     },
     onSuccess: () => {

@@ -28,6 +28,7 @@ export type PeriodStatusResponse = {
       startDate: string;
       endDate: string;
       isCurrent: boolean;
+      isYearEndTerminal?: boolean;
     } | null;
     daysUntilExpiry: number | null;
     daysSinceExpiry: number | null;
@@ -134,7 +135,7 @@ export async function GET() {
       schoolId: schoolIdObj,
       isCurrent: true,
     })
-      .select("yearLabel term startDate endDate isCurrent")
+      .select("yearLabel term startDate endDate isCurrent isYearEndTerminal")
       .lean();
 
     const currentPeriod = Array.isArray(currentPeriodRaw)
@@ -194,6 +195,7 @@ export async function GET() {
               startDate: new Date(currentPeriod.startDate).toISOString(),
               endDate: new Date(currentPeriod.endDate).toISOString(),
               isCurrent: currentPeriod.isCurrent,
+              isYearEndTerminal: Boolean((currentPeriod as any).isYearEndTerminal),
             }
           : null,
         daysUntilExpiry,
@@ -216,4 +218,3 @@ export async function GET() {
     );
   }
 }
-

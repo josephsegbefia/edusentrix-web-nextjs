@@ -110,6 +110,10 @@ export type SchoolSettingsDTO = {
   offlineMode: {
     enabled: boolean;
   };
+  promotions: {
+    autoPreviewEnabled: boolean;
+    autoPreviewLeadDays: number;
+  };
   updatedAt: string | null;
 };
 

@@ -30,9 +30,12 @@ export function PreviewTab() {
 
   const periods = periodsData?.periods ?? [];
   const grades = gradesData ?? [];
+  const activePolicies = policyData?.policies ?? [];
+  const gradeNameById = new Map(grades.map((grade) => [grade._id, grade.name]));
 
   const [sourcePeriodId, setSourcePeriodId] = React.useState("");
   const [targetPeriodId, setTargetPeriodId] = React.useState("");
+  const [policyId, setPolicyId] = React.useState("");
   const [gradeIds, setGradeIds] = React.useState<string[]>([]);
   const [lastResult, setLastResult] = React.useState<{
     cycleId: string;
@@ -46,6 +49,27 @@ export function PreviewTab() {
     }
   }, [periods, sourcePeriodId]);
 
+  React.useEffect(() => {
+    if (!policyId && activePolicies.length === 1) {
+      setPolicyId(activePolicies[0]?.id ?? "");
+    }
+  }, [activePolicies, policyId]);
+
+  const selectedPolicy = activePolicies.find((policy) => policy.id === policyId) ?? null;
+
+  React.useEffect(() => {
+    if (selectedPolicy?.appliesTo.gradeIds?.length) {
+      setGradeIds(selectedPolicy.appliesTo.gradeIds);
+    }
+  }, [selectedPolicy?.id]);
+
+  function scopeLabel(gradeIdsForPolicy?: string[]) {
+    if (!gradeIdsForPolicy?.length) return "All grades";
+    return gradeIdsForPolicy
+      .map((id) => gradeNameById.get(id) ?? "Unknown grade")
+      .join(", ");
+  }
+
   const handleRun = async () => {
     if (!sourcePeriodId) return;
     try {
@@ -53,6 +77,7 @@ export function PreviewTab() {
         preview.mutateAsync({
           sourceAcademicPeriodId: sourcePeriodId,
           targetAcademicPeriodId: targetPeriodId || undefined,
+          policyId: policyId || undefined,
           scope: gradeIds.length > 0 ? { gradeIds } : undefined,
         }),
         {
@@ -73,7 +98,8 @@ export function PreviewTab() {
     }
   };
 
-  const noPolicy = !policyData?.data;
+  const noPolicy = activePolicies.length === 0;
+  const needsPolicySelection = activePolicies.length > 1 && !policyId;
 
   return (
     <div className="space-y-8">
@@ -135,6 +161,33 @@ export function PreviewTab() {
               </PremiumSelectContent>
             </PremiumSelect>
           </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label className="text-white/70">Policy to use</Label>
+            <PremiumSelect
+              value={policyId || "__fallback__"}
+              onValueChange={(v) => setPolicyId(v === "__fallback__" ? "" : v)}
+            >
+              <PremiumSelectTrigger className="h-9 w-full rounded-xl">
+                <PremiumSelectValue placeholder="Select policy" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                {activePolicies.length === 0 ? (
+                  <PremiumSelectItem value="__fallback__">Use fallback settings</PremiumSelectItem>
+                ) : null}
+                {activePolicies.map((policy) => (
+                  <PremiumSelectItem key={policy.id} value={policy.id}>
+                    {policy.name} • {scopeLabel(policy.appliesTo.gradeIds)}
+                  </PremiumSelectItem>
+                ))}
+              </PremiumSelectContent>
+            </PremiumSelect>
+            {activePolicies.length > 1 ? (
+              <p className="text-xs text-white/40">
+                Multiple active policies exist. Select the JHS, primary, preschool, or whole-school
+                policy you want this preview cycle to use.
+              </p>
+            ) : null}
+          </div>
         </div>
 
         {grades.length > 0 && (
@@ -168,7 +221,7 @@ export function PreviewTab() {
 
         <Button
           onClick={handleRun}
-          disabled={preview.isPending || !sourcePeriodId}
+          disabled={preview.isPending || !sourcePeriodId || needsPolicySelection}
           className="mt-4 gap-2"
         >
           {preview.isPending ? (

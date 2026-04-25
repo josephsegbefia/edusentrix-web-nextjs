@@ -129,3 +129,47 @@ export function useAutoAssignPlacements(cycleId: string | null) {
     },
   });
 }
+
+export function useManualPromotionPlacement(cycleId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      studentId,
+      targetGradeId,
+      targetClassGroupId,
+      reasonText,
+      version,
+    }: {
+      studentId: string;
+      targetGradeId: string;
+      targetClassGroupId: string;
+      reasonText: string;
+      version: number;
+    }) => {
+      const res = await fetch(
+        `/api/admin/promotions/cycles/${cycleId}/decisions/${studentId}/placement`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": generateIdempotencyKey(),
+          },
+          body: JSON.stringify({
+            targetGradeId,
+            targetClassGroupId,
+            reasonText,
+            version,
+          }),
+        }
+      );
+      const json = await res.json();
+      if (res.status === 409) throw new Error(json?.message ?? "Data changed. Please refresh.");
+      if (!res.ok) throw new Error(json?.error ?? "Failed to update placement");
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["promotionDecisions", cycleId] });
+      queryClient.invalidateQueries({ queryKey: ["promotionCycle", cycleId] });
+    },
+  });
+}

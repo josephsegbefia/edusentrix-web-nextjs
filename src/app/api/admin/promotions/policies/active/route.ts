@@ -8,7 +8,8 @@ import mongoose from "mongoose";
 
 /**
  * GET /api/admin/promotions/policies/active
- * Returns the active promotion policy for the school, or null if none.
+ * Returns all active promotion policies. `data` is kept as the first active
+ * policy for older UI callers; `policies` is the scope-aware list.
  */
 export async function GET() {
   try {
@@ -20,20 +21,22 @@ export async function GET() {
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
 
-    const policy = await PromotionPolicy.findOne({
+    const policies = await PromotionPolicy.find({
       schoolId: schoolIdObj,
       isActive: true,
     })
+      .sort({ version: -1, createdAt: -1 })
       .lean();
 
-    if (!policy) {
+    if (policies.length === 0) {
       return NextResponse.json({
         success: true,
         data: null,
+        policies: [],
       });
     }
 
-    const data = {
+    const serializePolicy = (policy: (typeof policies)[number]) => ({
       id: String(policy._id),
       schoolId: String(policy.schoolId),
       name: policy.name,
@@ -54,9 +57,11 @@ export async function GET() {
       updatedBy: String(policy.updatedBy),
       createdAt: policy.createdAt?.toISOString(),
       updatedAt: policy.updatedAt?.toISOString(),
-    };
+    });
 
-    return NextResponse.json({ success: true, data });
+    const data = policies.map(serializePolicy);
+
+    return NextResponse.json({ success: true, data: data[0] ?? null, policies: data });
   } catch (error) {
     console.error("Promotion policies/active GET error:", error);
     return NextResponse.json(

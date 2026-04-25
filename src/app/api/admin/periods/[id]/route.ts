@@ -13,6 +13,7 @@ const updateBodySchema = z
     startDate: z.coerce.date().optional(),
     endDate: z.coerce.date().optional(),
     isCurrent: z.boolean().optional(),
+    isYearEndTerminal: z.boolean().optional(),
   })
   .refine(
     (data) =>
@@ -20,7 +21,8 @@ const updateBodySchema = z
       data.term !== undefined ||
       data.startDate !== undefined ||
       data.endDate !== undefined ||
-      data.isCurrent === true,
+      data.isCurrent === true ||
+      data.isYearEndTerminal !== undefined,
     {
       message: "No valid update fields provided",
     }
@@ -132,6 +134,21 @@ export async function PATCH(
       );
       updateData.isCurrent = true;
     }
+    if (parsed.data.isYearEndTerminal !== undefined) {
+      if (parsed.data.isYearEndTerminal) {
+        const nextYearLabel = parsed.data.yearLabel ?? period.yearLabel;
+        await AcademicPeriod.updateMany(
+          {
+            schoolId: schoolIdObj,
+            yearLabel: nextYearLabel,
+            _id: { $ne: periodIdObj },
+            isYearEndTerminal: true,
+          },
+          { $set: { isYearEndTerminal: false } }
+        );
+      }
+      updateData.isYearEndTerminal = parsed.data.isYearEndTerminal;
+    }
 
     if (Object.keys(updateData).length > 0) {
       period.set(updateData);
@@ -147,6 +164,7 @@ export async function PATCH(
         startDate: period.startDate,
         endDate: period.endDate,
         isCurrent: period.isCurrent,
+        isYearEndTerminal: period.isYearEndTerminal,
       },
     });
   } catch (error) {

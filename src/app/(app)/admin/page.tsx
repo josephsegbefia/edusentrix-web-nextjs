@@ -543,6 +543,7 @@ export default function SchoolAdminOverviewPage() {
         term: periodOverview.currentPeriod.term,
         startDate: periodOverview.currentPeriod.startDate,
         endDate: periodOverview.currentPeriod.endDate,
+        isYearEndTerminal: false,
       }
     : periodStatus?.currentPeriod
     ? {
@@ -551,6 +552,7 @@ export default function SchoolAdminOverviewPage() {
         term: periodStatus.currentPeriod.term,
         startDate: periodStatus.currentPeriod.startDate,
         endDate: periodStatus.currentPeriod.endDate,
+        isYearEndTerminal: Boolean(periodStatus.currentPeriod.isYearEndTerminal),
       }
     : m?.period
     ? {
@@ -559,6 +561,7 @@ export default function SchoolAdminOverviewPage() {
         term: m.period.term,
         startDate: m.period.startDate,
         endDate: m.period.endDate,
+        isYearEndTerminal: false,
       }
     : null;
 
@@ -571,6 +574,7 @@ export default function SchoolAdminOverviewPage() {
         endDate: formatDateLong(currentPeriodSource.endDate),
         startDateRaw: toIsoDate(currentPeriodSource.startDate),
         endDateRaw: toIsoDate(currentPeriodSource.endDate),
+        isYearEndTerminal: currentPeriodSource.isYearEndTerminal,
       }
     : {
         id: null,
@@ -580,6 +584,7 @@ export default function SchoolAdminOverviewPage() {
         endDate: "",
         startDateRaw: "",
         endDateRaw: "",
+        isYearEndTerminal: false,
       };
   const progress = termProgress(period.startDateRaw, period.endDateRaw);
   const previousPeriod = periodOverview?.previousPeriod || null;
@@ -875,6 +880,7 @@ export default function SchoolAdminOverviewPage() {
     term: string;
     startDate: string;
     endDate: string;
+    isYearEndTerminal?: boolean;
   }) {
     if (!payload.yearLabel || !payload.term || !payload.startDate || !payload.endDate) {
       busy.error("Please fill all fields");
@@ -890,6 +896,7 @@ export default function SchoolAdminOverviewPage() {
           term: payload.term.trim(),
           startDate: payload.startDate,
           endDate: payload.endDate,
+          isYearEndTerminal: payload.isYearEndTerminal ?? false,
         }),
       }).then(async (res) => {
         if (!res.ok) {
@@ -917,6 +924,7 @@ export default function SchoolAdminOverviewPage() {
     term: string;
     startDate: string;
     endDate: string;
+    isYearEndTerminal?: boolean;
   }) {
     if (!period.id) {
       busy.error("No current academic period is available to edit");
@@ -937,6 +945,7 @@ export default function SchoolAdminOverviewPage() {
           term: payload.term.trim(),
           startDate: payload.startDate,
           endDate: payload.endDate,
+          isYearEndTerminal: payload.isYearEndTerminal ?? false,
         }),
       }).then(async (res) => {
         const json = await res.json().catch(() => ({}));
@@ -1632,6 +1641,9 @@ export default function SchoolAdminOverviewPage() {
                 Academic Year{" "}
                 <span className="text-white/70 font-medium">{period.yearLabel}</span>
               </div>
+              {period.isYearEndTerminal ? (
+                <div className="text-xs text-cyan-300">Final period of academic year</div>
+              ) : null}
               <button
                 type="button"
                 disabled={onboarding.shouldRestrictSchoolAdminNav}
@@ -2694,6 +2706,7 @@ export default function SchoolAdminOverviewPage() {
           term: period.term !== "—" ? period.term : "",
           startDate: period.startDateRaw,
           endDate: period.endDateRaw,
+          isYearEndTerminal: period.isYearEndTerminal,
         }}
         title="Edit Academic Period"
         description="Update the current academic period directly from the dashboard card."

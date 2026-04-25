@@ -12,6 +12,7 @@ const createBodySchema = z.object({
   term: z.string().min(1, "Term is required"),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
+  isYearEndTerminal: z.boolean().optional().default(false),
 }).refine((data) => data.endDate >= data.startDate, {
   message: "End date must be after start date",
   path: ["endDate"],
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { yearLabel, term, startDate, endDate } = parsed.data;
+    const isYearEndTerminal = parsed.data.isYearEndTerminal ?? false;
     const schoolIdObj =
       schoolId instanceof mongoose.Types.ObjectId
         ? schoolId
@@ -88,6 +90,13 @@ export async function POST(req: NextRequest) {
       { $set: { isCurrent: false } }
     );
 
+    if (isYearEndTerminal) {
+      await AcademicPeriod.updateMany(
+        { schoolId: schoolIdObj, yearLabel, isYearEndTerminal: true },
+        { $set: { isYearEndTerminal: false } }
+      );
+    }
+
     const doc = await AcademicPeriod.create({
       schoolId: schoolIdObj,
       yearLabel,
@@ -95,6 +104,7 @@ export async function POST(req: NextRequest) {
       startDate,
       endDate,
       isCurrent: true,
+      isYearEndTerminal,
     });
 
     return NextResponse.json(
@@ -107,6 +117,7 @@ export async function POST(req: NextRequest) {
           startDate: doc.startDate,
           endDate: doc.endDate,
           isCurrent: doc.isCurrent,
+          isYearEndTerminal: doc.isYearEndTerminal,
         },
       },
       { status: 201 }

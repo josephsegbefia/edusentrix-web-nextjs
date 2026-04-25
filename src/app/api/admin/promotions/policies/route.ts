@@ -8,6 +8,71 @@ import { CreatePromotionPolicySchema } from "@/schemas/promotion-policy";
 import { recordPromotionActivity } from "@/lib/promotions/recordPromotionActivity";
 import mongoose from "mongoose";
 
+function serializePolicy(policy: Record<string, unknown>) {
+  const appliesTo = policy.appliesTo as
+    | { stage?: string; gradeIds?: unknown[] }
+    | undefined;
+
+  return {
+    id: String(policy._id),
+    schoolId: String(policy.schoolId),
+    name: policy.name,
+    version: policy.version,
+    isActive: policy.isActive,
+    appliesTo: {
+      stage: appliesTo?.stage,
+      gradeIds: (appliesTo?.gradeIds || []).map(String),
+    },
+    criteria: policy.criteria,
+    logic: policy.logic,
+    thresholds: policy.thresholds,
+    tieBreaker: policy.tieBreaker,
+    attendanceComputation: policy.attendanceComputation,
+    financeHold: policy.financeHold,
+    manualOverrideRules: policy.manualOverrideRules,
+    createdBy: String(policy.createdBy),
+    updatedBy: String(policy.updatedBy),
+    createdAt: (policy.createdAt as Date | undefined)?.toISOString?.(),
+    updatedAt: (policy.updatedAt as Date | undefined)?.toISOString?.(),
+  };
+}
+
+/**
+ * GET /api/admin/promotions/policies
+ * List policies for the school. Optional query: active=1
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { schoolId } = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+    const { searchParams } = new URL(req.url);
+    const active = searchParams.get("active");
+
+    const query: Record<string, unknown> = { schoolId: schoolIdObj };
+    if (active === "1" || active === "true") query.isActive = true;
+
+    const policies = await PromotionPolicy.find(query)
+      .sort({ isActive: -1, version: -1, createdAt: -1 })
+      .lean();
+
+    return NextResponse.json({
+      success: true,
+      data: policies.map((policy) => serializePolicy(policy as Record<string, unknown>)),
+    });
+  } catch (error) {
+    console.error("Promotion policies GET error:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch policies" },
+      { status: 500 }
+    );
+  }
+}
+
 /**
  * POST /api/admin/promotions/policies
  * Create a new promotion policy (draft). Requires Idempotency-Key header.
@@ -95,31 +160,10 @@ export async function POST(req: NextRequest) {
       metadata: { policyId: String(policy._id), name: input.name, version: policy.version },
     });
 
-    const p = policy.toObject();
-    const data = {
-      id: String(p._id),
-      schoolId: String(p.schoolId),
-      name: p.name,
-      version: p.version,
-      isActive: p.isActive,
-      appliesTo: {
-        stage: p.appliesTo?.stage,
-        gradeIds: (p.appliesTo?.gradeIds || []).map(String),
-      },
-      criteria: p.criteria,
-      logic: p.logic,
-      thresholds: p.thresholds,
-      tieBreaker: p.tieBreaker,
-      attendanceComputation: p.attendanceComputation,
-      financeHold: p.financeHold,
-      manualOverrideRules: p.manualOverrideRules,
-      createdBy: String(p.createdBy),
-      updatedBy: String(p.updatedBy),
-      createdAt: p.createdAt?.toISOString(),
-      updatedAt: p.updatedAt?.toISOString(),
-    };
-
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({
+      success: true,
+      data: serializePolicy(policy.toObject() as Record<string, unknown>),
+    });
   } catch (error) {
     console.error("Promotion policies POST error:", error);
     return NextResponse.json(

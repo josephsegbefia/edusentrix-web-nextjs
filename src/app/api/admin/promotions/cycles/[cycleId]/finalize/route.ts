@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionCycle } from "@/models/PromotionCycle";
 import { PromotionExecutionLog } from "@/models/PromotionExecutionLog";
 import { runFinalizeBatch } from "@/lib/promotions/finalize-runner";
+import { promotionFeatureFlags } from "@/lib/promotions/feature-flags";
 import { recordPromotionActivity } from "@/lib/promotions/recordPromotionActivity";
 import { logPromotionEvent } from "@/lib/promotions/logging";
 import mongoose from "mongoose";
@@ -21,6 +22,13 @@ export async function POST(
   try {
     const { userId, schoolId } = await requireSchoolAdmin();
     await connectToDatabase();
+
+    if (!promotionFeatureFlags.enabled || !promotionFeatureFlags.finalizeEnabled) {
+      return NextResponse.json(
+        { success: false, error: "Promotion finalization is currently disabled." },
+        { status: 403 }
+      );
+    }
 
     const idempotencyKey = req.headers.get("Idempotency-Key")?.trim();
     if (!idempotencyKey) {
@@ -127,6 +135,7 @@ export async function POST(
     let cursor: string | undefined = resumeCursor;
     let done = false;
     let totalApplied = 0;
+    let totalErrors = 0;
 
     while (!done) {
       const result = await runFinalizeBatch(
@@ -138,9 +147,37 @@ export async function POST(
       done = result.done;
       cursor = result.nextCursor;
       totalApplied += result.progress.applied;
+      totalErrors += result.progress.errors;
     }
 
     const updated = await PromotionCycle.findById(cycleObjId).lean();
+
+    if (totalErrors > 0) {
+      await PromotionExecutionLog.create({
+        schoolId: schoolIdObj,
+        cycleId: cycleObjId,
+        action: "finalize_failed",
+        actorId: userIdObj,
+        details: { totalApplied, totalErrors },
+        createdAt: new Date(),
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Finalize completed with errors",
+          message:
+            "Some promotion decisions could not be applied. Review decisions with placement conflicts and retry.",
+          data: {
+            id: String(cycleObjId),
+            status: updated?.status ?? "finalize_failed",
+            progress: updated?.progress,
+            totals: updated?.totals,
+          },
+        },
+        { status: 500 }
+      );
+    }
 
     await recordPromotionActivity({
       schoolId: schoolIdObj,
@@ -174,6 +211,17 @@ export async function POST(
     });
   } catch (error) {
     console.error("Finalize cycle error:", error);
+    try {
+      const { cycleId } = await ctx.params;
+      if (cycleId && mongoose.Types.ObjectId.isValid(cycleId)) {
+        await PromotionCycle.updateOne(
+          { _id: new mongoose.Types.ObjectId(cycleId) },
+          { $set: { status: "finalize_failed", updatedAt: new Date() } }
+        );
+      }
+    } catch {
+      // Keep the original finalize failure response.
+    }
     return NextResponse.json(
       {
         success: false,

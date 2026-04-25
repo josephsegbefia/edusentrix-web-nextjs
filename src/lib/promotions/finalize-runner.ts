@@ -34,7 +34,7 @@ export async function runFinalizeBatch(
   }
 
   const sourcePeriodId = cycle.sourceAcademicPeriodId as Types.ObjectId;
-  const skip = cursor ? parseInt(cursor, 10) : 0;
+  const processedBefore = cursor ? parseInt(cursor, 10) : 0;
 
   const toProcess = await PromotionDecision.find({
     cycleId,
@@ -42,7 +42,6 @@ export async function runFinalizeBatch(
     isApplied: false,
   })
     .sort({ _id: 1 })
-    .skip(skip)
     .limit(BATCH_SIZE)
     .lean();
 
@@ -73,6 +72,13 @@ export async function runFinalizeBatch(
       });
 
       if (!student) {
+        await PromotionDecision.updateOne(
+          { _id: d._id },
+          {
+            $set: { isApplied: true, appliedAt: new Date() },
+            $addToSet: { reasonCodes: "STUDENT_NOT_FOUND" },
+          }
+        );
         skipped++;
         continue;
       }
@@ -96,6 +102,10 @@ export async function runFinalizeBatch(
           student.gradeId = d.targetGradeId;
           student.classGroupId = d.targetClassGroupId;
         } else {
+          await PromotionDecision.updateOne(
+            { _id: d._id },
+            { $addToSet: { conflicts: "MISSING_TARGET_PLACEMENT" } }
+          );
           errors++;
           continue;
         }
@@ -147,14 +157,20 @@ export async function runFinalizeBatch(
     }
   }
 
-  const newCursor = skip + toProcess.length;
-  const done = toProcess.length < BATCH_SIZE;
+  const remaining = await PromotionDecision.countDocuments({
+    cycleId,
+    schoolId,
+    isApplied: false,
+  });
+  const newCursor = Math.min(total, processedBefore + toProcess.length);
+  const done = remaining === 0 || errors > 0 || toProcess.length === 0;
+  const status = errors > 0 ? "finalize_failed" : done ? "finalized" : "finalizing";
 
   await PromotionCycle.updateOne(
     { _id: cycleId },
     {
       $set: {
-        status: "finalizing",
+        status,
         progress: {
           phase: "finalize",
           processed: newCursor,
@@ -163,12 +179,14 @@ export async function runFinalizeBatch(
           cursor: String(newCursor),
           updatedAt: new Date(),
         },
-        ...(done ? { status: "finalized", finalizedBy: actorId, finalizedAt: new Date() } : {}),
+        ...(status === "finalized"
+          ? { finalizedBy: actorId, finalizedAt: new Date() }
+          : {}),
       },
     }
   );
 
-  if (done) {
+  if (status === "finalized") {
     await PromotionExecutionLog.create({
       schoolId,
       cycleId,

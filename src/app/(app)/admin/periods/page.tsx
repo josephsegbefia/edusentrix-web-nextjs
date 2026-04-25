@@ -85,6 +85,7 @@ export default function PeriodsPage() {
     term: string;
     startDate: string;
     endDate: string;
+    isYearEndTerminal?: boolean;
   }) => {
     await busy.promise(
       createMutation.mutateAsync(payload),
@@ -197,6 +198,14 @@ export default function PeriodsPage() {
                         <td className="py-4">{getStatusBadge(period)}</td>
                         <td className="py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            {period.isYearEndTerminal ? (
+                              <Badge
+                                variant="outline"
+                                className="border-cyan-500/40 text-cyan-300"
+                              >
+                                Year End
+                              </Badge>
+                            ) : null}
                             <Button
                               variant="ghost"
                               size="sm"

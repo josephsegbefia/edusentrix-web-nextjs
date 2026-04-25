@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 
 import { EmailMessage, type IEmailMessage } from "@/models/EmailMessage";
 import { EmailDispatchJob } from "@/models/EmailDispatchJob";
+import { School } from "@/models/School";
 import { lookupTemplateRegistry } from "../registry";
 import {
   brevoSend,
@@ -19,6 +20,7 @@ import { checkHardSuppression, checkCategoryOptOut } from "../suppressions";
 import { resolveSecureContentMode } from "../sensitivity";
 import { checkRateLimit, recordSend } from "../rate-limiter";
 import type { EmailThreadType } from "@/models/EmailThread";
+import { renderGenericBrandedEmail, stripHtml } from "../branded-template";
 
 export interface SendBrevoEmailInput {
   to: string;
@@ -30,6 +32,15 @@ export interface SendBrevoEmailInput {
 
   schoolId?: string | null;
   schoolName?: string | null;
+  schoolLogo?: string | null;
+  attachments?: Array<{
+    name: string;
+    mimeType?: string | null;
+    sizeBytes?: number | null;
+    storageKey?: string | null;
+    contentBase64?: string;
+    url?: string;
+  }>;
 
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
@@ -67,6 +78,20 @@ export async function sendTrackedBrevoEmail(
   if (!registry) {
     throw new Error(`Unknown template key: ${input.templateKey}`);
   }
+  const branding = await resolveSchoolBranding({
+    schoolId: input.schoolId,
+    schoolName: input.schoolName,
+    schoolLogo: input.schoolLogo,
+    useSchoolBrand: registry.brand === "school",
+  });
+  const attachmentMetadata = normalizeAttachmentMetadata(input.attachments);
+  const htmlContent = renderGenericBrandedEmail({
+    subject: input.subject,
+    htmlContent: input.htmlContent,
+    brand: branding,
+    tone: registry.senderFamily === "billing" ? "billing" : "default",
+  });
+  const textContent = input.textContent || stripHtml(htmlContent);
 
   const suppression = await checkHardSuppression(
     input.to,
@@ -82,8 +107,8 @@ export async function sendTrackedBrevoEmail(
       from: resolveSenderEmail(registry.senderFamily),
       to: input.to,
       subject: input.subject,
-      htmlBody: input.htmlContent,
-      textBody: input.textContent || null,
+      htmlBody: htmlContent,
+      textBody: textContent || null,
       status: "failed",
       messageClass: registry.messageClass,
       trafficClass: registry.trafficClass,
@@ -100,6 +125,7 @@ export async function sendTrackedBrevoEmail(
       recipientRole: input.recipientRole || null,
       recipientEmailVerified: input.recipientEmailVerified ?? null,
       skipReason: `Suppressed: ${suppression.reason}`,
+      attachments: attachmentMetadata,
       batchId: input.batchId || null,
     });
 
@@ -127,8 +153,8 @@ export async function sendTrackedBrevoEmail(
           from: resolveSenderEmail(registry.senderFamily),
           to: input.to,
           subject: input.subject,
-          htmlBody: input.htmlContent,
-          textBody: input.textContent || null,
+          htmlBody: htmlContent,
+          textBody: textContent || null,
           status: "failed",
           messageClass: registry.messageClass,
           trafficClass: registry.trafficClass,
@@ -137,6 +163,7 @@ export async function sendTrackedBrevoEmail(
           secureContentMode: resolveSecureContentMode(registry.sensitivity),
           templateKey: input.templateKey,
           skipReason: `Category opt-out: ${categoryKey}`,
+          attachments: attachmentMetadata,
           batchId: input.batchId || null,
         });
 
@@ -191,8 +218,8 @@ export async function sendTrackedBrevoEmail(
     to: input.to,
     replyTo: replyAlias,
     subject: input.subject,
-    htmlBody: input.htmlContent,
-    textBody: input.textContent || null,
+    htmlBody: htmlContent,
+    textBody: textContent || null,
     status: input.async ? "queued" : "queued",
     messageClass: registry.messageClass,
     trafficClass: registry.trafficClass,
@@ -208,6 +235,7 @@ export async function sendTrackedBrevoEmail(
     recipientUserId: input.recipientUserId || null,
     recipientRole: input.recipientRole || null,
     recipientEmailVerified: input.recipientEmailVerified ?? null,
+    attachments: attachmentMetadata,
     replyAlias,
     routingToken,
   });
@@ -261,8 +289,9 @@ export async function sendTrackedBrevoEmail(
       to: input.to,
       toName: input.toName,
       subject: input.subject,
-      htmlContent: input.htmlContent,
-      textContent: input.textContent,
+      htmlContent,
+      textContent,
+      attachments: normalizeProviderAttachments(input.attachments),
       fromEmail,
       fromName,
       replyTo: replyAlias,
@@ -304,6 +333,52 @@ export async function sendTrackedBrevoEmail(
 
     throw error;
   }
+}
+
+async function resolveSchoolBranding(args: {
+  schoolId?: string | null;
+  schoolName?: string | null;
+  schoolLogo?: string | null;
+  useSchoolBrand: boolean;
+}) {
+  if (!args.useSchoolBrand) return undefined;
+  if (args.schoolName && args.schoolLogo) {
+    return { name: args.schoolName, logoUrl: args.schoolLogo };
+  }
+  if (!args.schoolId) {
+    return args.schoolName ? { name: args.schoolName, logoUrl: args.schoolLogo } : undefined;
+  }
+
+  const school = await School.findById(args.schoolId)
+    .select("name logo")
+    .lean<{ name?: string | null; logo?: string | null } | null>();
+
+  return {
+    name: args.schoolName || school?.name || undefined,
+    logoUrl: args.schoolLogo || school?.logo || undefined,
+  };
+}
+
+function normalizeAttachmentMetadata(
+  attachments: SendBrevoEmailInput["attachments"],
+) {
+  return (attachments || []).map((attachment) => ({
+    name: attachment.name,
+    mimeType: attachment.mimeType || "application/octet-stream",
+    sizeBytes: attachment.sizeBytes ?? null,
+    storageKey: attachment.storageKey || attachment.url || null,
+    generated: false,
+  }));
+}
+
+function normalizeProviderAttachments(
+  attachments: SendBrevoEmailInput["attachments"],
+) {
+  return (attachments || []).map((attachment) => ({
+    name: attachment.name,
+    contentBase64: attachment.contentBase64,
+    url: attachment.url,
+  }));
 }
 
 function resolveMailboxKey(

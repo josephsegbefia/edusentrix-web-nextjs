@@ -26,6 +26,16 @@ export type PlatformEmailMessage = {
   sentAt: string | null;
   receivedAt: string | null;
   createdAt: string;
+  attachments?: PlatformEmailAttachment[];
+};
+
+export type PlatformEmailAttachment = {
+  name: string;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  storageKey?: string | null;
+  contentBase64?: string;
+  url?: string;
 };
 
 export type SuppressionEntry = {
@@ -117,6 +127,7 @@ export function usePlatformCompose() {
       subject: string;
       htmlContent: string;
       textContent?: string;
+      attachments?: PlatformEmailAttachment[];
       senderFamily?: "support" | "billing";
     }) => {
       const res = await fetch("/api/platform/email/compose", {

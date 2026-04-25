@@ -35,9 +35,16 @@ export async function POST(req: NextRequest) {
   const senderRaw = payload.Sender || payload.sender || payload.From || payload.from;
   const sender = parseSenderField(senderRaw);
 
-  const recipientsRaw =
-    payload.Recipients || payload.recipients || payload.To || payload.to;
-  const recipients = parseRecipientsField(recipientsRaw);
+  const recipients = dedupeRecipients([
+    ...parseRecipientsField(payload.Recipients || payload.recipients),
+    ...parseRecipientsField(payload.To || payload.to),
+    ...parseRecipientsField(payload.Cc || payload.cc),
+    ...parseRecipientsField(payload.Bcc || payload.bcc),
+    ...parseRecipientsField(payload.OriginalRecipient || payload.originalRecipient),
+    ...parseRecipientsField(payload.DeliveredTo || payload["delivered-to"]),
+    ...parseRecipientsField(payload.EnvelopeTo || payload["envelope-to"]),
+    ...parseRecipientsField(payload["X-Original-To"] || payload["x-original-to"]),
+  ]);
 
   if (!sender || recipients.length === 0) {
     return NextResponse.json(
@@ -135,7 +142,15 @@ function parseRecipientsField(
       .filter(Boolean) as Array<{ email: string }>;
   }
   if (typeof raw === "string") {
-    return raw
+    const trimmed = raw.trim();
+    if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || trimmed.startsWith("{")) {
+      try {
+        return parseRecipientsField(JSON.parse(trimmed));
+      } catch {
+        // Fall through to comma parsing.
+      }
+    }
+    return trimmed
       .split(",")
       .map((s) => {
         const match = s.trim().match(/<([^>]+)>/);
@@ -146,4 +161,14 @@ function parseRecipientsField(
       .filter(Boolean) as Array<{ email: string }>;
   }
   return [];
+}
+
+function dedupeRecipients(recipients: Array<{ email: string }>) {
+  const seen = new Set<string>();
+  return recipients.filter((recipient) => {
+    const email = recipient.email.trim().toLowerCase();
+    if (!email || seen.has(email)) return false;
+    seen.add(email);
+    return true;
+  });
 }

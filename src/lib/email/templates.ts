@@ -1,11 +1,8 @@
 import "server-only";
-import { EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { formatCurrency } from "@/lib/fees/money";
+import { renderBrandedEmail, stripHtml } from "./branded-template";
 
-const { APP_URL } = process.env;
-const EMAIL_LOGO_URL = APP_URL
-  ? `${APP_URL}${EDUSENTRIX_LOGO_PATH}`
-  : EDUSENTRIX_LOGO_PATH;
+const { APP_URL = "" } = process.env;
 
 export type TemplateKey =
   | "SCHOOL_INVITE"
@@ -63,16 +60,6 @@ export type TemplatePayload = {
 
 type Rendered = { subject: string; htmlContent: string; textContent?: string };
 
-const stripHtml = (html: string) =>
-  html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<\/(p|div|br|li|h\d)>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .trim();
-
 function formatMinorCurrency(minor: number, currency = "GHS") {
   return formatCurrency(minor ?? 0, { currency });
 }
@@ -80,129 +67,115 @@ function formatMinorCurrency(minor: number, currency = "GHS") {
 export const EmailTemplates: {
   [K in TemplateKey]: (data: TemplatePayload[K]) => Rendered;
 } = {
-  SCHOOL_INVITE: (data) => ({
-    subject: `You've been invited to create a school on Edusentrix`,
-    htmlContent: `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
-      <h2 style="color: #4361ee;">You're invited!</h2>
-      <p>Hello,</p>
-      <p>You’ve been invited to onboard your school, <strong>${
-        data.schoolName
-      }</strong>, on Edusentrix.</p>
-      <p>Click the button below to start the setup process:</p>
-      <a href="${data.setupLink}"
-         style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0;">
-        Set Up My School
-      </a>
-      <p style="margin-top: 20px;">This link will expire in 7 days.</p>
-      <p>If you did not request this, you can ignore this message.</p>
-      <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
-    </div>`,
-  }),
+  SCHOOL_INVITE: (data) => {
+    const subject = "You've been invited to create a school on EduSentrix";
+    const htmlContent = renderBrandedEmail({
+      title: "Create your school workspace",
+      eyebrow: "School setup",
+      preheader: `Set up ${data.schoolName} on EduSentrix.`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Hello,</p>
+        <p style="margin:0 0 14px;">You have been invited to onboard <strong>${data.schoolName}</strong> on EduSentrix.</p>
+        <p style="margin:0;">Use the secure link below to start the setup process.</p>
+      `,
+      cta: { label: "Set Up My School", href: data.setupLink },
+      footerNote:
+        "This invitation link expires in 7 days. If you were not expecting this invitation, you can ignore this message.",
+    });
+    return { subject, htmlContent, textContent: stripHtml(htmlContent) };
+  },
 
   APPLICATION_RECEIVED: (data) => {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
-        <h2 style="color: #4361ee;">Application Received</h2>
-        <p>Hello ${data.name},</p>
-        <p>Your application has been received. A customer service agent will get in touch with you soon.</p>
-        <p>Thank you for choosing Edusentrix.</p>
-        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
-      </div>
-    `;
+    const htmlContent = renderBrandedEmail({
+      title: "Application received",
+      eyebrow: "Thank you",
+      preheader: "We have received your EduSentrix application.",
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Hello ${data.name},</p>
+        <p style="margin:0 0 14px;">Your application has been received successfully.</p>
+        <p style="margin:0;">A customer service agent will review it and get in touch with you soon.</p>
+      `,
+      tone: "success",
+    });
     return {
-      subject: `EduSentrix: Application Received`,
+      subject: "EduSentrix: Application Received",
       htmlContent,
       textContent: stripHtml(htmlContent),
     };
   },
 
   SCHOOL_ONBOARDING: (data) => {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
-        <h2 style="color: #4361ee;">Your School is Ready!</h2>
-        <p>Dear ${data.contactPerson},</p>
-        <p>Welcome to Edusentrix! <strong>${
-          data.schoolName
-        }</strong> has been successfully onboarded.</p>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <h3>Next Steps:</h3>
-          <ol>
-            <li>Complete your school profile</li>
-            <li>Add staff members</li>
-            <li>Set up your first classes</li>
+    const htmlContent = renderBrandedEmail({
+      title: "Your school is ready",
+      eyebrow: "Welcome",
+      preheader: `${data.schoolName} has been successfully onboarded.`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Dear ${data.contactPerson},</p>
+        <p style="margin:0 0 14px;">Welcome to EduSentrix. <strong>${data.schoolName}</strong> has been successfully onboarded.</p>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:16px; margin:18px 0;">
+          <p style="margin:0 0 8px; font-weight:800; color:#0f172a;">Recommended next steps</p>
+          <ol style="margin:0; padding-left:20px;">
+            <li>Complete the school profile.</li>
+            <li>Add staff members.</li>
+            <li>Set up classes and academic periods.</li>
           </ol>
         </div>
-        <a href="${APP_URL}/login"
-           style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0;">
-          Access Dashboard
-        </a>
-        <p style="margin-top: 30px;">Need help? <a href="mailto:support@edusentrix.com">Contact our team</a></p>
-        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix. All rights reserved.</p>
-      </div>
-    `;
+        <p style="margin:0;">Need help? Contact our support team anytime.</p>
+      `,
+      cta: { label: "Access Dashboard", href: `${APP_URL}/login` },
+      tone: "success",
+    });
     return {
-      subject: `Welcome to Edusentrix, ${data.schoolName}!`,
+      subject: `Welcome to EduSentrix, ${data.schoolName}!`,
       htmlContent,
       textContent: stripHtml(htmlContent),
     };
   },
 
   ADMIN_CREATED: (data) => {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
-        <h2 style="color: #4361ee;">Admin Account Created</h2>
-        <p>Hello ${data.name},</p>
-        <p>An admin account has been created for you at <strong>${
-          data.schoolName
-        }</strong>.</p>
+    const htmlContent = renderBrandedEmail({
+      title: "Admin account created",
+      eyebrow: "Account access",
+      preheader: `An admin account has been created for ${data.schoolName}.`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Hello ${data.name},</p>
+        <p style="margin:0 0 14px;">An admin account has been created for you at <strong>${data.schoolName}</strong>.</p>
         ${
           data.tempPassword
-            ? `<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                 <p><strong>Login Details:</strong></p>
-                 <p>Email: ${data.email}</p>
-                 <p>Temporary Password: ${data.tempPassword}</p>
+            ? `<div style="background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:16px; margin:18px 0;">
+                 <p style="margin:0 0 8px; font-weight:800; color:#0f172a;">Login details</p>
+                 <p style="margin:0 0 6px;">Email: ${data.email}</p>
+                 <p style="margin:0;">Temporary password: <strong>${data.tempPassword}</strong></p>
                </div>`
             : ""
         }
-        <a href="${APP_URL}/login"
-           style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0;">
-          Login Now
-        </a>
-        <p style="margin-top: 20px;"><strong>Security Tip:</strong> Please change your password after first login.</p>
-        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
-      </div>
-    `;
+        <p style="margin:0;">For security, please change your password after your first login.</p>
+      `,
+      cta: { label: "Login Now", href: `${APP_URL}/login` },
+      footerNote:
+        "If you were not expecting this account, contact your school administrator immediately.",
+    });
     return {
-      subject: `Your Edusentrix Admin Account`,
+      subject: "Your EduSentrix Admin Account",
       htmlContent,
       textContent: stripHtml(htmlContent),
     };
   },
 
   USER_INVITE: (data) => {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
-        <h2 style="color: #4361ee;">Welcome to ${data.schoolName}!</h2>
-        <p>Hello ${data.name},</p>
-        <p>You've been added as a <strong>${data.role}</strong> at ${
-      data.schoolName
-    }.</p>
-        <p>To get started, please set up your account:</p>
-        <a href="${data.setupLink}"
-           style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0;">
-          Complete Setup
-        </a>
-        <p style="margin-top: 20px;">This link will expire in 7 days.</p>
-        <p>If you have any questions, contact your school administrator.</p>
-        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
-      </div>
-    `;
+    const htmlContent = renderBrandedEmail({
+      title: `Welcome to ${data.schoolName}`,
+      eyebrow: "Invitation",
+      preheader: `You have been invited as ${data.role}.`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Hello ${data.name},</p>
+        <p style="margin:0 0 14px;">You have been added as a <strong>${data.role}</strong> at <strong>${data.schoolName}</strong>.</p>
+        <p style="margin:0;">Complete your account setup to start using EduSentrix.</p>
+      `,
+      cta: { label: "Complete Setup", href: data.setupLink },
+      footerNote:
+        "This invitation link expires in 7 days. If you have any questions, contact your school administrator.",
+    });
     return {
       subject: `You've been added to ${data.schoolName}`,
       htmlContent,
@@ -211,33 +184,28 @@ export const EmailTemplates: {
   },
 
   REMINDER: (data) => {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
-        <h2 style="color: #4361ee;">${data.title}</h2>
-        <p>Hello ${data.name},</p>
-        <p>This is a reminder about:</p>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Event:</strong> ${data.title}</p>
-          <p><strong>Date & Time:</strong> ${data.time}</p>
-          <p><strong>Location:</strong> ${data.location || "Online"}</p>
+    const htmlContent = renderBrandedEmail({
+      title: data.title,
+      eyebrow: "Reminder",
+      preheader: `Reminder for ${data.time}.`,
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Hello ${data.name},</p>
+        <p style="margin:0 0 14px;">This is a reminder about the following event:</p>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:16px; margin:18px 0;">
+          <p style="margin:0 0 6px;"><strong>Event:</strong> ${data.title}</p>
+          <p style="margin:0 0 6px;"><strong>Date & Time:</strong> ${data.time}</p>
+          <p style="margin:0;"><strong>Location:</strong> ${data.location || "Online"}</p>
           ${
             data.description
-              ? `<p><strong>Description:</strong> ${data.description}</p>`
+              ? `<p style="margin:10px 0 0;"><strong>Description:</strong> ${data.description}</p>`
               : ""
           }
         </div>
-        ${
-          data.actionLink
-            ? `<a href="${data.actionLink}"
-                 style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 10px 0;">
-                 View Details
-               </a>`
-            : ""
-        }
-        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
-      </div>
-    `;
+      `,
+      cta: data.actionLink
+        ? { label: "View Details", href: data.actionLink }
+        : undefined,
+    });
     return {
       subject: `Reminder: ${data.title}`,
       htmlContent,
@@ -267,46 +235,42 @@ export const EmailTemplates: {
 
     const moreCount = Math.max(0, data.wards.length - 8);
     const actionLink = data.actionLink || `${APP_URL}/parent/fees`;
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto;">
-        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
-        <h2 style="color: #4361ee;">Outstanding Fee Reminder</h2>
-        <p>Hello ${data.guardianName},</p>
-        <p>This is a reminder from <strong>${data.schoolName}</strong> about outstanding school fees.</p>
-        <div style="background: #f8fafc; padding: 14px; border-radius: 8px; margin: 14px 0;">
-          <p style="margin: 0 0 4px 0;"><strong>Total Outstanding:</strong> ${totalFormatted}</p>
-          <p style="margin: 0;"><strong>Wards:</strong> ${data.wards.length}</p>
+    const htmlContent = renderBrandedEmail({
+      title: "Outstanding fee reminder",
+      eyebrow: "Billing",
+      preheader: `${data.schoolName} has sent a fee balance reminder.`,
+      tone: "billing",
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Hello ${data.guardianName},</p>
+        <p style="margin:0 0 14px;">This is a reminder from <strong>${data.schoolName}</strong> about outstanding school fees.</p>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:16px; margin:18px 0;">
+          <p style="margin:0 0 6px;"><strong>Total outstanding:</strong> ${totalFormatted}</p>
+          <p style="margin:0;"><strong>Wards:</strong> ${data.wards.length}</p>
         </div>
         ${
           data.customMessage
-            ? `<p style="background:#fff7ed; border:1px solid #fed7aa; padding:10px; border-radius:8px;">${data.customMessage}</p>`
+            ? `<p style="background:#fff7ed; border:1px solid #fed7aa; padding:12px 14px; border-radius:14px;">${data.customMessage}</p>`
             : ""
         }
-        <table style="width:100%; border-collapse:collapse; margin-top: 12px;">
+        <table style="width:100%; border-collapse:collapse; margin-top:18px; font-size:14px;">
           <thead>
             <tr>
-              <th style="text-align:left; padding:10px 8px; border-bottom: 1px solid #d1d5db;">Student</th>
-              <th style="text-align:left; padding:10px 8px; border-bottom: 1px solid #d1d5db;">Class</th>
-              <th style="text-align:right; padding:10px 8px; border-bottom: 1px solid #d1d5db;">Outstanding</th>
+              <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #d1d5db; color:#0f172a;">Student</th>
+              <th style="text-align:left; padding:10px 8px; border-bottom:1px solid #d1d5db; color:#0f172a;">Class</th>
+              <th style="text-align:right; padding:10px 8px; border-bottom:1px solid #d1d5db; color:#0f172a;">Outstanding</th>
             </tr>
           </thead>
-          <tbody>
-            ${rows}
-          </tbody>
+          <tbody>${rows}</tbody>
         </table>
         ${
           moreCount > 0
-            ? `<p style="font-size: 12px; color: #6b7280; margin-top: 8px;">+${moreCount} more ward(s) not shown in this summary.</p>`
+            ? `<p style="font-size:12px; color:#64748b; margin-top:10px;">+${moreCount} more ward(s) not shown in this summary.</p>`
             : ""
         }
-        <a href="${actionLink}"
-           style="display: inline-block; padding: 12px 24px; background: #4361ee; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 18px 0 10px;">
-          View Fee Details
-        </a>
-        <p>If you have already made payment, please ignore this message.</p>
-        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
-      </div>
-    `;
+        <p style="margin:18px 0 0;">If you have already made payment, please ignore this message.</p>
+      `,
+      cta: { label: "View Fee Details", href: actionLink },
+    });
 
     return {
       subject:
@@ -318,22 +282,24 @@ export const EmailTemplates: {
   },
 
   PASSWORD_OTP: (data) => {
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <img src="${EMAIL_LOGO_URL}" alt="Edusentrix" width="150">
-        <h2 style="color: #4361ee;">Password Reset Code</h2>
-        <p>Hello,</p>
-        <p>You requested a password reset code. Use the code below to reset your password:</p>
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-          <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #4361ee; margin: 0;">${data.code}</p>
+    const htmlContent = renderBrandedEmail({
+      title: "Password reset code",
+      eyebrow: "Security",
+      preheader: "Use this one-time code to reset your EduSentrix password.",
+      bodyHtml: `
+        <p style="margin:0 0 14px;">Hello,</p>
+        <p style="margin:0 0 16px;">You requested a password reset code. Enter the code below to continue:</p>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:24px; border-radius:18px; text-align:center; margin:18px 0;">
+          <p style="font-size:34px; font-weight:900; letter-spacing:10px; color:#4f46e5; margin:0;">${data.code}</p>
         </div>
-        <p style="color: #6c757d; font-size: 0.9em;">This code will expire in 10 minutes.</p>
-        <p>If you did not request this code, please ignore this email or contact support if you have concerns.</p>
-        <p style="font-size: 0.8em; color: #6c757d;">© ${new Date().getFullYear()} Edusentrix</p>
-      </div>
-    `;
+        <p style="margin:0;">This code expires in 10 minutes.</p>
+      `,
+      footerNote:
+        "If you did not request this code, ignore this email or contact support if you have concerns.",
+      tone: "warning",
+    });
     return {
-      subject: `Your Edusentrix Password Reset Code`,
+      subject: "Your EduSentrix Password Reset Code",
       htmlContent,
       textContent: stripHtml(htmlContent),
     };

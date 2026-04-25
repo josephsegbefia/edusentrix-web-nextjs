@@ -33,7 +33,10 @@ export interface InboundReceiveResult {
 export async function receiveBrevoInbound(
   payload: BrevoInboundPayload,
 ): Promise<InboundReceiveResult> {
-  const toAddress = payload.recipients[0]?.email;
+  const routedRecipient = payload.recipients.find((recipient) =>
+    parseReplyAlias(recipient.email),
+  );
+  const toAddress = routedRecipient?.email || payload.recipients[0]?.email;
   if (!toAddress) {
     throw new Error("No recipient address in inbound payload");
   }

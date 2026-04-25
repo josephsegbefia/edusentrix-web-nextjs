@@ -4,6 +4,7 @@ import { EmailMessage } from "@/models/EmailMessage";
 import { spacemailSend } from "../providers/spaceship-provider";
 import { findOrCreateThread, updateThreadAfterMessage } from "../threading";
 import { buildPlatformReplyAlias, generateRoutingToken } from "../routing";
+import { renderGenericBrandedEmail, stripHtml } from "../branded-template";
 
 export interface SendManualSupportEmailInput {
   to: string;
@@ -11,6 +12,14 @@ export interface SendManualSupportEmailInput {
   subject: string;
   htmlContent: string;
   textContent?: string | null;
+  attachments?: Array<{
+    name: string;
+    mimeType?: string | null;
+    sizeBytes?: number | null;
+    storageKey?: string | null;
+    contentBase64?: string;
+    url?: string;
+  }>;
   fromEmail?: string;
   fromName?: string;
 
@@ -50,6 +59,11 @@ export async function sendManualSupportEmail(
 
   const routingToken = thread.routingToken || generateRoutingToken();
   const replyAlias = buildPlatformReplyAlias("support", routingToken);
+  const htmlContent = renderGenericBrandedEmail({
+    subject: input.subject,
+    htmlContent: input.htmlContent,
+  });
+  const textContent = input.textContent || stripHtml(htmlContent);
 
   const message = await EmailMessage.create({
     provider: "spaceship",
@@ -61,14 +75,15 @@ export async function sendManualSupportEmail(
     to: input.to,
     replyTo: replyAlias,
     subject: input.subject,
-    htmlBody: input.htmlContent,
-    textBody: input.textContent || null,
+    htmlBody: htmlContent,
+    textBody: textContent || null,
     status: "queued",
     messageClass: "support",
     trafficClass: "manual",
     priority: "normal",
     sensitivity: "low",
     secureContentMode: "none",
+    attachments: normalizeAttachmentMetadata(input.attachments),
     threadId: thread._id,
     actorId: input.actorId,
     actorName: input.actorName,
@@ -82,8 +97,14 @@ export async function sendManualSupportEmail(
       to: input.to,
       toName: input.toName,
       subject: input.subject,
-      htmlContent: input.htmlContent,
-      textContent: input.textContent,
+      htmlContent,
+      textContent,
+      attachments: input.attachments?.map((attachment) => ({
+        name: attachment.name,
+        contentBase64: attachment.contentBase64,
+        url: attachment.url,
+        mimeType: attachment.mimeType,
+      })),
       fromEmail: input.fromEmail,
       fromName: input.fromName,
       replyTo: replyAlias,
@@ -112,4 +133,16 @@ export async function sendManualSupportEmail(
     });
     throw error;
   }
+}
+
+function normalizeAttachmentMetadata(
+  attachments: SendManualSupportEmailInput["attachments"],
+) {
+  return (attachments || []).map((attachment) => ({
+    name: attachment.name,
+    mimeType: attachment.mimeType || "application/octet-stream",
+    sizeBytes: attachment.sizeBytes ?? null,
+    storageKey: attachment.storageKey || attachment.url || null,
+    generated: false,
+  }));
 }

@@ -33,7 +33,7 @@ export async function GET(
       .sort({ createdAt: 1 })
       .limit(200)
       .select(
-        "_id direction from fromName to subject htmlBody textBody status sentAt receivedAt createdAt templateKey messageClass",
+        "_id direction from fromName to subject htmlBody textBody status sentAt receivedAt createdAt templateKey messageClass attachments",
       )
       .lean();
 
@@ -69,6 +69,7 @@ export async function GET(
           sentAt: m.sentAt?.toISOString() || null,
           receivedAt: m.receivedAt?.toISOString() || null,
           createdAt: m.createdAt.toISOString(),
+          attachments: m.attachments || [],
         })),
       },
     });

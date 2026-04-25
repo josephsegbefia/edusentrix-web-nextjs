@@ -5,8 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { RichTextEditor, extractPlainText } from "@/components/ui/rich-text-editor";
+import {
+  ComposeAttachmentPicker,
+  type ComposeAttachment,
+} from "@/components/email/ComposeAttachmentPicker";
 import { cn } from "@/lib/utils";
 import {
   Inbox,
@@ -25,6 +29,7 @@ import {
   ShieldBan,
   Trash2,
   Plus,
+  FileText,
 } from "lucide-react";
 import {
   usePlatformInbox,
@@ -215,6 +220,19 @@ function PlatformMessageView({
                   dangerouslySetInnerHTML={{ __html: msg.htmlBody }}
                 />
               ) : null}
+              {!!msg.attachments?.length && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {msg.attachments.map((attachment, index) => (
+                    <span
+                      key={`${attachment.name}-${index}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      {attachment.name}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))
         )}
@@ -228,6 +246,7 @@ function PlatformComposeView({ onSent }: { onSent: () => void }) {
   const [to, setTo] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
+  const [attachments, setAttachments] = React.useState<ComposeAttachment[]>([]);
   const [senderFamily, setSenderFamily] = React.useState<"support" | "billing">(
     "support",
   );
@@ -238,13 +257,15 @@ function PlatformComposeView({ onSent }: { onSent: () => void }) {
       await compose.mutateAsync({
         to,
         subject,
-        htmlContent: `<p>${body.replace(/\n/g, "<br/>")}</p>`,
-        textContent: body,
+        htmlContent: body,
+        textContent: extractPlainText(body),
+        attachments,
         senderFamily,
       });
       setTo("");
       setSubject("");
       setBody("");
+      setAttachments([]);
       onSent();
     } catch {
       // handled by mutation state
@@ -293,14 +314,20 @@ function PlatformComposeView({ onSent }: { onSent: () => void }) {
         </div>
         <div className="space-y-2">
           <Label className="text-white/70">Message</Label>
-          <Textarea
+          <RichTextEditor
             placeholder="Write your message..."
             value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={8}
-            className="border-white/10 bg-white/5 text-white placeholder:text-white/30 resize-none"
+            onChange={setBody}
+            toolbarVariant="full"
+            minHeight="220px"
+            maxHeight="420px"
           />
         </div>
+        <ComposeAttachmentPicker
+          attachments={attachments}
+          onChange={setAttachments}
+          disabled={compose.isPending}
+        />
         <div className="flex justify-end">
           <Button
             onClick={handleSend}

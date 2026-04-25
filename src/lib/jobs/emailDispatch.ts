@@ -2,6 +2,7 @@ import "server-only";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { EmailDispatchJob, type IEmailDispatchJob } from "@/models/EmailDispatchJob";
 import { EmailMessage } from "@/models/EmailMessage";
+import { EmailThread } from "@/models/EmailThread";
 import {
   brevoSend,
   resolveSenderEmail,
@@ -92,7 +93,7 @@ async function processOutboundSingle(job: IEmailDispatchJob): Promise<void> {
   const result = await brevoSend({
     to: message.to,
     subject: message.subject,
-    htmlContent: message.htmlBody,
+    htmlContent: message.htmlBody || "",
     textContent: message.textBody || undefined,
     fromEmail: message.from || resolveSenderEmail(registry?.senderFamily || "hello"),
     fromName: message.fromName || undefined,
@@ -130,12 +131,69 @@ async function processOutboundSingle(job: IEmailDispatchJob): Promise<void> {
   });
 }
 
+async function processInboundRoute(job: IEmailDispatchJob): Promise<void> {
+  if (!job.emailMessageId) {
+    await EmailDispatchJob.findByIdAndUpdate(job._id, {
+      $set: { status: "done", lastError: "No emailMessageId" },
+    });
+    return;
+  }
+
+  const message = await EmailMessage.findById(job.emailMessageId);
+  if (!message) {
+    await EmailDispatchJob.findByIdAndUpdate(job._id, {
+      $set: { status: "done", lastError: "EmailMessage not found" },
+    });
+    return;
+  }
+
+  if (message.threadId) {
+    await EmailDispatchJob.findByIdAndUpdate(job._id, {
+      $set: { status: "done", lastError: null },
+    });
+    return;
+  }
+
+  const routingToken = message.routingToken;
+  const thread = routingToken
+    ? await EmailThread.findOne({ routingToken }).select("_id").lean()
+    : null;
+
+  if (!thread) {
+    await EmailDispatchJob.findByIdAndUpdate(job._id, {
+      $set: {
+        status: "failed",
+        lastError: routingToken
+          ? `No thread found for routing token ${routingToken}`
+          : "Inbound message has no routing token",
+        nextRunAt: new Date(Date.now() + 5 * 60 * 1000),
+        lockedAt: null,
+      },
+    });
+    return;
+  }
+
+  await EmailMessage.findByIdAndUpdate(message._id, {
+    $set: {
+      threadId: thread._id,
+      status: "received",
+    },
+  });
+  await updateThreadAfterMessage(String(thread._id), "inbound");
+  await EmailDispatchJob.findByIdAndUpdate(job._id, {
+    $set: { status: "done", lastError: null, lockedAt: null },
+  });
+}
+
 async function processJob(job: IEmailDispatchJob): Promise<void> {
   try {
     switch (job.kind) {
       case "outbound_single":
       case "batch_chunk":
         await processOutboundSingle(job);
+        break;
+      case "inbound_route":
+        await processInboundRoute(job);
         break;
       case "imap_recovery": {
         const { runImapRecoverySync } = await import("@/lib/jobs/imapRecoverySync");

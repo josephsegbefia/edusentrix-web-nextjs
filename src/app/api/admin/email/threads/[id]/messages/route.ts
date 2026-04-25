@@ -43,7 +43,7 @@ export async function GET(
         .skip(skip)
         .limit(limit)
         .select(
-          "_id direction from fromName to subject htmlBody textBody status sentAt receivedAt createdAt templateKey messageClass providerMessageId failureReason",
+          "_id direction from fromName to subject htmlBody textBody status sentAt receivedAt createdAt templateKey messageClass providerMessageId failureReason attachments",
         )
         .lean(),
       EmailMessage.countDocuments({ threadId: thread._id }),
@@ -70,6 +70,7 @@ export async function GET(
         createdAt: m.createdAt.toISOString(),
         templateKey: m.templateKey,
         messageClass: m.messageClass,
+        attachments: m.attachments || [],
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });

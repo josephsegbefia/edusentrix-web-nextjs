@@ -13,6 +13,7 @@ import { buildSchoolReplyAlias, buildPlatformReplyAlias, generateRoutingToken } 
 import { findOrCreateThread, updateThreadAfterMessage } from "./threading";
 import { checkHardSuppression } from "./suppressions";
 import type { EmailThreadType } from "@/models/EmailThread";
+import { renderGenericBrandedEmail, stripHtml } from "./branded-template";
 
 export interface BatchRecipient {
   email: string;
@@ -24,6 +25,7 @@ export interface BatchRecipient {
 export interface CreateBatchInput {
   schoolId?: string | null;
   schoolName?: string | null;
+  schoolLogo?: string | null;
   kind: "bulk" | "digest" | "scheduled_reminder";
   createdBy: string;
   subject: string;
@@ -56,6 +58,16 @@ export async function createEmailBatch(
   if (!registry) {
     throw new Error(`Unknown template key: ${input.templateKey}`);
   }
+  const htmlContent = renderGenericBrandedEmail({
+    subject: input.subject,
+    htmlContent: input.htmlContent,
+    brand:
+      registry.brand === "school"
+        ? { name: input.schoolName, logoUrl: input.schoolLogo }
+        : undefined,
+    tone: registry.senderFamily === "billing" ? "billing" : "default",
+  });
+  const textContent = input.textContent || stripHtml(htmlContent);
 
   const batch = await EmailBatch.create({
     schoolId: input.schoolId || null,
@@ -103,8 +115,8 @@ export async function createEmailBatch(
         from: fromEmail,
         to: recipient.email,
         subject: input.subject,
-        htmlBody: input.htmlContent,
-        textBody: input.textContent || null,
+        htmlBody: htmlContent,
+        textBody: textContent || null,
         status: "failed",
         messageClass: registry.messageClass,
         trafficClass: registry.trafficClass,
@@ -155,8 +167,8 @@ export async function createEmailBatch(
       to: recipient.email,
       replyTo: replyAlias,
       subject: input.subject,
-      htmlBody: input.htmlContent,
-      textBody: input.textContent || null,
+      htmlBody: htmlContent,
+      textBody: textContent || null,
       status: "queued",
       messageClass: registry.messageClass,
       trafficClass: registry.trafficClass,

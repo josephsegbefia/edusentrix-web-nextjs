@@ -36,6 +36,16 @@ export type EmailMessageDTO = {
   createdAt: string;
   templateKey: string | null;
   messageClass: string | null;
+  attachments?: EmailAttachmentDTO[];
+};
+
+export type EmailAttachmentDTO = {
+  name: string;
+  mimeType?: string | null;
+  sizeBytes?: number | null;
+  storageKey?: string | null;
+  contentBase64?: string;
+  url?: string;
 };
 
 export type Pagination = {
@@ -149,6 +159,7 @@ export function useComposeEmail() {
       subject: string;
       htmlContent: string;
       textContent?: string;
+      attachments?: EmailAttachmentDTO[];
       threadType?: string;
       relatedEntityType?: string;
       relatedEntityId?: string;
@@ -264,6 +275,7 @@ export function useCreateBulkSend() {
       subject: string;
       htmlContent: string;
       textContent?: string;
+      attachments?: EmailAttachmentDTO[];
       recipients: Array<{
         email: string;
         name?: string;

@@ -8,6 +8,7 @@ import {
 } from "./templates";
 import { EmailMessage } from "@/models/EmailMessage";
 import { lookupTemplateRegistry } from "./registry";
+import { renderGenericBrandedEmail, stripHtml } from "./branded-template";
 
 const { BREVO_API_KEY, BREVO_FROM_EMAIL, BREVO_FROM_NAME, EMAIL_AUDIT_ENABLED } =
   process.env;
@@ -124,10 +125,16 @@ export async function sendRawEmail(opts: {
   const { to, subject, htmlContent, senderEmail, senderName } = opts;
   const { fromEmail, fromName } = getBrevoConfig();
   const client = getBrevoClient();
+  const brandedHtmlContent = renderGenericBrandedEmail({
+    subject,
+    htmlContent,
+  });
+  const textContent = stripHtml(brandedHtmlContent);
 
   const msg = new SibApiV3Sdk.SendSmtpEmail();
   msg.subject = subject;
-  msg.htmlContent = htmlContent;
+  msg.htmlContent = brandedHtmlContent;
+  msg.textContent = textContent;
 
   msg.sender = {
     email: senderEmail || fromEmail,
@@ -144,7 +151,8 @@ export async function sendRawEmail(opts: {
         templateKey: null,
         to,
         subject,
-        htmlContent,
+        htmlContent: brandedHtmlContent,
+        textContent,
         fromEmail: senderEmail || fromEmail,
         fromName: senderName || fromName,
         status: "sent",
@@ -162,7 +170,8 @@ export async function sendRawEmail(opts: {
         templateKey: null,
         to,
         subject,
-        htmlContent,
+        htmlContent: brandedHtmlContent,
+        textContent,
         fromEmail: senderEmail || fromEmail,
         fromName: senderName || fromName,
         status: "failed",

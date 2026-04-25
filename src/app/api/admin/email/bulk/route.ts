@@ -88,12 +88,14 @@ export async function POST(req: NextRequest) {
     }
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
-    const school = await School.findById(schoolIdObj).select("name").lean();
+    const school = await School.findById(schoolIdObj).select("name logo").lean();
     const schoolName = (school as Record<string, unknown>)?.name as string || "Your School";
+    const schoolLogo = (school as Record<string, unknown>)?.logo as string | undefined;
 
     const result = await createEmailBatch({
       schoolId: String(schoolIdObj),
       schoolName,
+      schoolLogo,
       kind: "bulk",
       createdBy: String(userId),
       subject: parsed.data.subject,

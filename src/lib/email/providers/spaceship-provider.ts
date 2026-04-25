@@ -36,6 +36,12 @@ export interface SpacemailSendInput {
   subject: string;
   htmlContent: string;
   textContent?: string | null;
+  attachments?: Array<{
+    name: string;
+    contentBase64?: string;
+    url?: string;
+    mimeType?: string | null;
+  }>;
   fromEmail?: string;
   fromName?: string;
   replyTo?: string | null;
@@ -70,6 +76,18 @@ export async function spacemailSend(
     html: input.htmlContent,
     ...(input.textContent ? { text: input.textContent } : {}),
     ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+    ...(input.attachments?.length
+      ? {
+          attachments: input.attachments.map((attachment) => ({
+            filename: attachment.name,
+            ...(attachment.contentBase64
+              ? { content: Buffer.from(attachment.contentBase64, "base64") }
+              : {}),
+            ...(attachment.url ? { path: attachment.url } : {}),
+            ...(attachment.mimeType ? { contentType: attachment.mimeType } : {}),
+          })),
+        }
+      : {}),
     headers: {
       ...(input.headers || {}),
       ...(input.inReplyTo ? { "In-Reply-To": input.inReplyTo } : {}),

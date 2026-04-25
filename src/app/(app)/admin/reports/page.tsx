@@ -38,12 +38,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import {
   useGenerateRecurringReport,
@@ -315,6 +315,10 @@ function formatCompactNumber(value: number) {
 function formatCount(value?: number | null) {
   if (typeof value !== "number" || Number.isNaN(value)) return "0";
   return value.toLocaleString();
+}
+
+function hasPositiveValues(items: Array<{ value?: number | null }>) {
+  return items.some((item) => Number(item.value ?? 0) > 0);
 }
 
 function humanizeLabel(value: string) {
@@ -1335,20 +1339,20 @@ function LeoExecutiveBriefCard({
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
             Brief Cadence
           </p>
-          <Select
+          <PremiumSelect
             value={reportType}
             onValueChange={(value) => setReportType(value as RecurringReportType)}
             disabled={!periodId}
           >
-            <SelectTrigger className="w-full border-white/10 bg-white/5 text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="start">
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="biweekly">Biweekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-            </SelectContent>
-          </Select>
+            <PremiumSelectTrigger className="w-full">
+              <PremiumSelectValue />
+            </PremiumSelectTrigger>
+            <PremiumSelectContent align="start">
+              <PremiumSelectItem value="weekly">Weekly</PremiumSelectItem>
+              <PremiumSelectItem value="biweekly">Biweekly</PremiumSelectItem>
+              <PremiumSelectItem value="monthly">Monthly</PremiumSelectItem>
+            </PremiumSelectContent>
+          </PremiumSelect>
         </div>
 
         <Button
@@ -1533,7 +1537,7 @@ function LeoExecutiveBriefCard({
 
 export default function ReportsPage() {
   const busy = useBusyToast();
-  const [scope, setScope] = React.useState<ReportScope>("range");
+  const [scope, setScope] = React.useState<ReportScope>("period");
   const [startDate, setStartDate] = React.useState<Date | null>(() => {
     const end = new Date();
     return new Date(end.getTime() - 29 * DAY_MS);
@@ -1548,6 +1552,12 @@ export default function ReportsPage() {
     useAcademicPeriods();
   const periods = periodsData?.periods ?? [];
   const currentPeriod = periods.find((period) => period.isCurrent) ?? null;
+
+  React.useEffect(() => {
+    if (periods.length === 0) return;
+    if (periodId && periods.some((period) => period._id === periodId)) return;
+    setPeriodId((currentPeriod ?? periods[0])._id);
+  }, [currentPeriod, periodId, periods]);
 
   const activePeriodId =
     scope === "period" ? periodId ?? currentPeriod?._id ?? null : null;
@@ -1633,6 +1643,15 @@ export default function ReportsPage() {
   const attendanceTrend = charts?.attendance.attendanceTrend.points ?? [];
   const invitationsTrend = charts?.invitations.sentTrend.points ?? [];
   const activityTrend = charts?.activity.volumeTrend.points ?? [];
+  const averageBySubject = charts?.academics.averageBySubject ?? [];
+  const assignmentsBySubject = charts?.teachers.assignmentsBySubject ?? [];
+  const hasAssignmentsBySubject = assignmentsBySubject.some((entry) => entry.value > 0);
+  const hasAttendanceTrend = attendanceTrend.some((entry) => entry.total > 0);
+  const hasAcademicAverageBySubject = averageBySubject.some((entry) => entry.count > 0);
+  const assignmentsEmptyLabel =
+    scope === "period"
+      ? "No active teacher assignments found for the selected academic period. This school-wide chart appears after subjects are assigned to teachers."
+      : "No active teacher assignments were created in this date range. Switch to Academic Period for the current assignment picture.";
 
   const formatDateTick = (label: string | number) =>
     formatAxisLabel(String(label), interval);
@@ -1801,7 +1820,8 @@ export default function ReportsPage() {
               Report Filters
             </CardTitle>
             <p className="text-xs text-white/50">
-              Set the time window that powers every chart and export.
+              Defaults to the current academic period. Switch to Custom Range when
+              you need a date-based view.
             </p>
           </div>
           <Badge
@@ -1813,63 +1833,58 @@ export default function ReportsPage() {
           </Badge>
         </CardHeader>
         <CardContent className="relative z-10 space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
-                  Scope
-                </p>
-                <Select
-                  value={scope}
-                  onValueChange={(value) => setScope(value as ReportScope)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select scope" />
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    <SelectItem value="range">Custom Range</SelectItem>
-                    <SelectItem value="period">Academic Period</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
-                  Period
-                </p>
-                <Select
-                  value={activePeriodId ?? undefined}
-                  onValueChange={(value) => setPeriodId(value)}
-                  disabled={scope !== "period" || periodsLoading}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue
-                      placeholder={
-                        periodsLoading ? "Loading periods..." : "Select period"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    {periods.length === 0 && (
-                      <SelectItem value="no-periods" disabled>
-                        No periods available
-                      </SelectItem>
-                    )}
-                    {periods.map((period) => (
-                      <SelectItem key={period._id} value={period._id}>
-                        {period.term} {period.yearLabel}
-                        {period.isCurrent ? " (current)" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="grid items-start gap-4 lg:grid-cols-4">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
+                Scope
+              </p>
+              <PremiumSelect
+                value={scope}
+                onValueChange={(value) => setScope(value as ReportScope)}
+              >
+                <PremiumSelectTrigger className="w-full">
+                  <PremiumSelectValue placeholder="Select scope" />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent align="start">
+                  <PremiumSelectItem value="period">Academic Period</PremiumSelectItem>
+                  <PremiumSelectItem value="range">Custom Range</PremiumSelectItem>
+                </PremiumSelectContent>
+              </PremiumSelect>
             </div>
 
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
-                Date Range
+                Period
               </p>
+              <PremiumSelect
+                value={activePeriodId ?? ""}
+                onValueChange={(value) => setPeriodId(value)}
+                disabled={scope !== "period" || periodsLoading}
+              >
+                <PremiumSelectTrigger className="w-full">
+                  <PremiumSelectValue
+                    placeholder={
+                      periodsLoading ? "Loading periods..." : "Select period"
+                    }
+                  />
+                </PremiumSelectTrigger>
+                <PremiumSelectContent align="start">
+                  {periods.length === 0 && (
+                    <PremiumSelectItem value="no-periods" disabled>
+                      No periods available
+                    </PremiumSelectItem>
+                  )}
+                  {periods.map((period) => (
+                    <PremiumSelectItem key={period._id} value={period._id}>
+                      {period.term} {period.yearLabel}
+                      {period.isCurrent ? " (current)" : ""}
+                    </PremiumSelectItem>
+                  ))}
+                </PremiumSelectContent>
+              </PremiumSelect>
+            </div>
+
+            <div className="lg:col-span-2">
               <DateRangePicker
                 startDate={startDate}
                 endDate={endDate}
@@ -2014,7 +2029,7 @@ export default function ReportsPage() {
                   icon={TrendingUp}
                   tone="emerald"
                   loading={chartsQuery.isLoading}
-                  empty={revenueTrend.length === 0}
+                  empty={!hasPositiveValues(revenueTrend)}
                   emptyLabel="No payments recorded in this range."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2065,7 +2080,7 @@ export default function ReportsPage() {
                   icon={TrendingUp}
                   tone="emerald"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.fees.paymentMethods ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.fees.paymentMethods ?? [])}
                   emptyLabel="No payment method data yet."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2115,7 +2130,7 @@ export default function ReportsPage() {
                   icon={TrendingUp}
                   tone="emerald"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.fees.invoiceStatus ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.fees.invoiceStatus ?? [])}
                   emptyLabel="No invoice data yet."
                 >
                   <ResponsiveContainer width="100%" height={200}>
@@ -2170,7 +2185,7 @@ export default function ReportsPage() {
                   icon={Users}
                   tone="sky"
                   loading={chartsQuery.isLoading}
-                  empty={enrollmentTrend.length === 0}
+                  empty={!hasPositiveValues(enrollmentTrend)}
                   emptyLabel="No enrollments recorded in this range."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2211,7 +2226,7 @@ export default function ReportsPage() {
                   icon={Users}
                   tone="sky"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.students.gradeDistribution ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.students.gradeDistribution ?? [])}
                   emptyLabel="No student distribution data yet."
                 >
                   <ResponsiveContainer width="100%" height={200}>
@@ -2256,7 +2271,7 @@ export default function ReportsPage() {
                   icon={Users}
                   tone="sky"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.students.statusDistribution ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.students.statusDistribution ?? [])}
                   emptyLabel="No student status data yet."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2309,7 +2324,7 @@ export default function ReportsPage() {
                   icon={UserCheck}
                   tone="violet"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.teachers.statusDistribution ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.teachers.statusDistribution ?? [])}
                   emptyLabel="No teacher status data yet."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2359,7 +2374,7 @@ export default function ReportsPage() {
                   icon={UserCheck}
                   tone="violet"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.teachers.departmentDistribution ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.teachers.departmentDistribution ?? [])}
                   emptyLabel="No department data yet."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2404,16 +2419,24 @@ export default function ReportsPage() {
                 </ChartCard>
 
                 <ChartCard
-                  title="Assignments by Subject"
-                  description="Active assignments per subject."
+                  title="School-wide Assignments by Subject"
+                  description="Active teacher assignments per subject across all class groups."
                   icon={UserCheck}
                   tone="violet"
+                  meta={
+                    <Badge
+                      variant="secondary"
+                      className="border border-violet-500/30 bg-violet-500/10 text-violet-200"
+                    >
+                      School-wide
+                    </Badge>
+                  }
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.teachers.assignmentsBySubject ?? []).length === 0}
-                  emptyLabel="No assignments recorded yet."
+                  empty={!hasAssignmentsBySubject}
+                  emptyLabel={assignmentsEmptyLabel}
                 >
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={charts?.teachers.assignmentsBySubject ?? []}>
+                    <BarChart data={assignmentsBySubject}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                       <XAxis
                         dataKey="label"
@@ -2438,7 +2461,7 @@ export default function ReportsPage() {
                         })}
                       />
                       <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                        {(charts?.teachers.assignmentsBySubject ?? []).map((entry, index) => (
+                        {assignmentsBySubject.map((entry, index) => (
                           <Cell
                             key={`${entry.label}-${index}`}
                             fill={TEACHER_COLORS[index % TEACHER_COLORS.length]}
@@ -2465,7 +2488,7 @@ export default function ReportsPage() {
                   icon={ClipboardCheck}
                   tone="amber"
                   loading={chartsQuery.isLoading}
-                  empty={attendanceTrend.length === 0}
+                  empty={!hasAttendanceTrend}
                   emptyLabel="No attendance data recorded in this range."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2501,7 +2524,7 @@ export default function ReportsPage() {
                   icon={ClipboardCheck}
                   tone="amber"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.attendance.statusDistribution ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.attendance.statusDistribution ?? [])}
                   emptyLabel="No attendance status data yet."
                 >
                   <ResponsiveContainer width="100%" height={200}>
@@ -2556,7 +2579,7 @@ export default function ReportsPage() {
                   icon={Mail}
                   tone="cyan"
                   loading={chartsQuery.isLoading}
-                  empty={invitationsTrend.length === 0}
+                  empty={!hasPositiveValues(invitationsTrend)}
                   emptyLabel="No invitations sent in this range."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2597,7 +2620,7 @@ export default function ReportsPage() {
                   icon={Mail}
                   tone="cyan"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.invitations.statusDistribution ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.invitations.statusDistribution ?? [])}
                   emptyLabel="No invitation status data yet."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2640,7 +2663,7 @@ export default function ReportsPage() {
                   icon={Mail}
                   tone="cyan"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.invitations.roleDistribution ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.invitations.roleDistribution ?? [])}
                   emptyLabel="No role data yet."
                 >
                   <ResponsiveContainer width="100%" height={200}>
@@ -2696,11 +2719,11 @@ export default function ReportsPage() {
                   icon={BookOpen}
                   tone="rose"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.academics.averageBySubject ?? []).length === 0}
+                  empty={!hasAcademicAverageBySubject}
                   emptyLabel="No academic performance data yet."
                 >
                   <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={charts?.academics.averageBySubject ?? []}>
+                    <BarChart data={averageBySubject}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                       <XAxis
                         dataKey="label"
@@ -2717,7 +2740,7 @@ export default function ReportsPage() {
                       />
                       <Tooltip content={academicsTooltip} />
                       <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                        {(charts?.academics.averageBySubject ?? []).map((entry, index) => (
+                        {averageBySubject.map((entry, index) => (
                           <Cell
                             key={`${entry.label}-${index}`}
                             fill={ACADEMIC_COLORS[index % ACADEMIC_COLORS.length]}
@@ -2734,7 +2757,7 @@ export default function ReportsPage() {
                   icon={BookOpen}
                   tone="rose"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.academics.passRateDistribution ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.academics.passRateDistribution ?? [])}
                   emptyLabel="No pass rate data yet."
                 >
                   <ResponsiveContainer width="100%" height={200}>
@@ -2789,7 +2812,7 @@ export default function ReportsPage() {
                   icon={ActivityIcon}
                   tone="slate"
                   loading={chartsQuery.isLoading}
-                  empty={activityTrend.length === 0}
+                  empty={!hasPositiveValues(activityTrend)}
                   emptyLabel="No activity logged in this range."
                 >
                   <ResponsiveContainer width="100%" height={220}>
@@ -2835,7 +2858,7 @@ export default function ReportsPage() {
                   icon={ActivityIcon}
                   tone="slate"
                   loading={chartsQuery.isLoading}
-                  empty={(charts?.activity.topTypes ?? []).length === 0}
+                  empty={!hasPositiveValues(charts?.activity.topTypes ?? [])}
                   emptyLabel="No activity types recorded yet."
                 >
                   <ResponsiveContainer width="100%" height={220}>

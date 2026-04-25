@@ -52,6 +52,11 @@ export interface BrevoSendInput {
   subject: string;
   htmlContent: string;
   textContent?: string | null;
+  attachments?: Array<{
+    name: string;
+    contentBase64?: string;
+    url?: string;
+  }>;
   fromEmail?: string;
   fromName?: string;
   replyTo?: string | null;
@@ -103,6 +108,14 @@ export async function brevoSend(
 
   if (input.headers && Object.keys(input.headers).length > 0) {
     msg.headers = input.headers;
+  }
+
+  if (input.attachments?.length) {
+    msg.attachment = input.attachments.map((attachment) => ({
+      name: attachment.name,
+      ...(attachment.contentBase64 ? { content: attachment.contentBase64 } : {}),
+      ...(attachment.url ? { url: attachment.url } : {}),
+    }));
   }
 
   const res = await client.sendTransacEmail(msg);

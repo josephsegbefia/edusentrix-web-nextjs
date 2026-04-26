@@ -10,6 +10,8 @@ export type AdmissionEventKind =
   | "cycle.published"
   | "cycle.paused"
   | "cycle.closed"
+  | "cycle.archived"
+  | "cycle.deleted"
   | "cycle.delegate_assigned"
   | "cycle.delegate_revoked"
   | "form.updated"
@@ -34,6 +36,8 @@ const EVENT_KINDS: AdmissionEventKind[] = [
   "cycle.published",
   "cycle.paused",
   "cycle.closed",
+  "cycle.archived",
+  "cycle.deleted",
   "cycle.delegate_assigned",
   "cycle.delegate_revoked",
   "form.updated",

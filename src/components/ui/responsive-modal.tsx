@@ -53,6 +53,24 @@ export function ResponsiveModal({
 
         {/* Content */}
         <DialogPrimitive.Content
+          onPointerDownOutside={(e) => {
+            if (
+              (e.target as HTMLElement).closest(
+                "[data-custom-date-picker-popover]"
+              )
+            ) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            if (
+              (e.target as HTMLElement).closest(
+                "[data-custom-date-picker-popover]"
+              )
+            ) {
+              e.preventDefault();
+            }
+          }}
           className={cn(
             // Base positioning
             "fixed",

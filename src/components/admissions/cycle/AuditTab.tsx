@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  Archive,
   CheckCircle2,
   ClipboardList,
   FileText,
@@ -13,6 +14,7 @@ import {
   RotateCcw,
   Settings2,
   StickyNote,
+  Trash2,
   UserCheck,
   UserPlus,
   UserX,
@@ -68,6 +70,24 @@ const EVENT_VISUALS: Record<string, EventVisual> = {
     Icon: XCircle,
     iconClass: "text-rose-300",
     title: "Cycle closed",
+  },
+  "cycle.archived": {
+    Icon: Archive,
+    iconClass: "text-white/60",
+    title: "Cycle archived",
+    detail: (e) => {
+      const n = (e.metadata?.applicationCount as number | undefined) ?? 0;
+      return n > 0 ? `${n} application${n === 1 ? "" : "s"} on file` : null;
+    },
+  },
+  "cycle.deleted": {
+    Icon: Trash2,
+    iconClass: "text-rose-300/90",
+    title: "Cycle draft deleted",
+    detail: (e) => {
+      const slug = (e.metadata?.slug as string | undefined) ?? "";
+      return slug ? `Slug: ${slug}` : null;
+    },
   },
   "cycle.delegate_assigned": {
     Icon: UserCheck,

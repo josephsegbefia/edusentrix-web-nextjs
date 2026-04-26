@@ -182,3 +182,30 @@ function makeTransitionMutation(action: "publish" | "pause" | "close") {
 export const usePublishAdmissionCycle = makeTransitionMutation("publish");
 export const usePauseAdmissionCycle = makeTransitionMutation("pause");
 export const useCloseAdmissionCycle = makeTransitionMutation("close");
+
+export type DeleteAdmissionCycleResult =
+  | { action: "deleted"; cycleId: string }
+  | { action: "archived"; cycle: AdmissionCycleDTO };
+
+export function useDeleteAdmissionCycle() {
+  const qc = useQueryClient();
+  return useMutation<DeleteAdmissionCycleResult, Error, { cycleId: string }>({
+    mutationFn: async ({ cycleId }) => {
+      const res = await fetch(`/api/admin/admissions/cycles/${cycleId}`, {
+        method: "DELETE",
+      });
+      const json = (await jsonOrThrow(res)) as {
+        data: DeleteAdmissionCycleResult;
+      };
+      return json.data;
+    },
+    onSuccess: (result, { cycleId }) => {
+      void qc.invalidateQueries({ queryKey: cyclesQueryKey });
+      if (result.action === "deleted") {
+        void qc.removeQueries({ queryKey: ["admissions", "cycle", cycleId] });
+      } else {
+        void qc.invalidateQueries({ queryKey: ["admissions", "cycle", cycleId] });
+      }
+    },
+  });
+}

@@ -7,23 +7,28 @@ import {
   ClipboardList,
   Copy,
   Globe2,
+  Pencil,
   Pause,
   PlayCircle,
   Plus,
   Square,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import {
   type AdmissionCycleDTO,
   useCloseAdmissionCycle,
+  useDeleteAdmissionCycle,
   usePauseAdmissionCycle,
   usePublishAdmissionCycle,
 } from "@/hooks/admissions/useAdmissionCycles";
+import { EditCycleModal } from "./EditCycleModal";
 
 type CyclesTabProps = {
   cycles: AdmissionCycleDTO[];
@@ -55,6 +60,14 @@ function publicCycleUrl(schoolId: string, slug: string) {
   return `${window.location.origin}/apply/${schoolId}/${slug}`;
 }
 
+/** Draft with no submissions — API will hard-delete. Otherwise the cycle is archived. */
+function isEmptyDraft(cycle: AdmissionCycleDTO) {
+  return (
+    cycle.status === "draft" &&
+    (cycle.analytics?.totalSubmissions ?? 0) === 0
+  );
+}
+
 export function CyclesTab({
   cycles,
   isLoading,
@@ -67,8 +80,15 @@ export function CyclesTab({
   const publishCycle = usePublishAdmissionCycle();
   const pauseCycle = usePauseAdmissionCycle();
   const closeCycle = useCloseAdmissionCycle();
+  const deleteCycle = useDeleteAdmissionCycle();
 
   const [copiedCycleId, setCopiedCycleId] = React.useState<string | null>(null);
+  const [editingCycle, setEditingCycle] =
+    React.useState<AdmissionCycleDTO | null>(null);
+
+  const handleEdit = React.useCallback((cycle: AdmissionCycleDTO) => {
+    setEditingCycle(cycle);
+  }, []);
 
   const handleCopyLink = React.useCallback(
     async (cycle: AdmissionCycleDTO) => {
@@ -142,6 +162,38 @@ export function CyclesTab({
       }
     },
     [busy, closeCycle, confirm]
+  );
+
+  const handleRemove = React.useCallback(
+    async (cycle: AdmissionCycleDTO) => {
+      const empty = isEmptyDraft(cycle);
+      const ok = await confirm({
+        title: empty ? "Delete this draft cycle?" : "Remove this cycle?",
+        description: empty
+          ? "This empty draft will be permanently deleted. Forms and invite links for this draft are removed."
+          : "Empty drafts with no applications are deleted. Otherwise the cycle is archived: applications, decisions, and full history stay in your records, but the cycle is no longer active. Which applies depends on this cycle’s state on the server.",
+        confirmLabel: empty ? "Delete" : "Remove",
+        intent: "destructive",
+      });
+      if (ok !== "confirm") return;
+      try {
+        busy.show("Removing cycle…");
+        const res = await deleteCycle.mutateAsync({ cycleId: cycle.id });
+        const { action } = res;
+        busy.hide();
+        if (action === "deleted") {
+          toast.success("Draft cycle permanently deleted.");
+        } else {
+          toast.success(
+            "Cycle archived. Applications and history are preserved in your records."
+          );
+        }
+      } catch (e) {
+        busy.hide();
+        toast.error(e instanceof Error ? e.message : "Failed to remove cycle");
+      }
+    },
+    [busy, confirm, deleteCycle]
   );
 
   return (
@@ -337,6 +389,30 @@ export function CyclesTab({
                         Cycle is closed
                       </span>
                     ) : null}
+
+                    {isAdmin && cycle.status !== "archived" ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2 border-white/10 bg-white/3 text-white hover:bg-white/8"
+                          onClick={() => handleEdit(cycle)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="gap-2 border-rose-500/20 bg-rose-500/5 text-rose-100 hover:bg-rose-500/10"
+                          onClick={() => void handleRemove(cycle)}
+                          disabled={deleteCycle.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {isEmptyDraft(cycle) ? "Delete" : "Remove"}
+                        </Button>
+                      </>
+                    ) : null}
                   </div>
                 </article>
               );
@@ -345,6 +421,14 @@ export function CyclesTab({
         )}
       </section>
       {confirmationDialog}
+      <EditCycleModal
+        open={editingCycle !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingCycle(null);
+        }}
+        cycle={editingCycle}
+        onUpdated={() => setEditingCycle(null)}
+      />
     </>
   );
 }

@@ -102,6 +102,8 @@ export type ActivityType =
   | "admissions.cycle.published"
   | "admissions.cycle.paused"
   | "admissions.cycle.closed"
+  | "admissions.cycle.archived"
+  | "admissions.cycle.deleted"
   | "admissions.form.updated"
   | "admissions.form.reset_to_defaults"
   | "admissions.delegate.assigned"

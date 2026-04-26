@@ -231,6 +231,7 @@ export function CustomDatePicker({
             <>
               {/* Backdrop with blur */}
               <motion.div
+                data-custom-date-picker-popover
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -239,13 +240,16 @@ export function CustomDatePicker({
                 onClick={() => setIsOpen(false)}
               />
 
-              {/* Centered Calendar Modal */}
+              {/* Centered Calendar Modal — must be inside [data-custom-date-picker-popover] so Radix Dialog does not treat clicks as "outside" and steal the event. */}
               <motion.div
+                data-custom-date-picker-popover
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 className="fixed left-1/2 top-1/2 z-[9999] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-card p-5 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
               >
               {/* Header */}
               <div className="mb-4 flex items-center justify-between">
@@ -342,7 +346,10 @@ export function CustomDatePicker({
                       <button
                         key={day}
                         type="button"
-                        onClick={() => handleSelectDay(day)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectDay(day);
+                        }}
                         disabled={dayDisabled}
                         className={cn(
                           "relative flex h-9 items-center justify-center rounded-lg text-sm font-medium transition-all",
@@ -382,7 +389,8 @@ export function CustomDatePicker({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     const today = new Date();
                     setViewDate(today);
                     onChange(today);
@@ -396,10 +404,13 @@ export function CustomDatePicker({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsOpen(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(false);
+                  }}
                   className="text-xs text-white/60 hover:bg-white/10 hover:text-white"
                 >
-                  Close
+                  Cancel
                 </Button>
               </div>
               </motion.div>

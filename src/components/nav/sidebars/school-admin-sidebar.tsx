@@ -36,6 +36,7 @@ import {
   ClipboardList,
   Video,
   Lock,
+  ClipboardSignature,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -120,6 +121,11 @@ const navSections: NavSection[] = [
         label: "Invitations",
         href: "/admin/invitations",
         icon: Mail,
+      },
+      {
+        label: "Admissions",
+        href: "/admin/admissions",
+        icon: ClipboardSignature,
       },
     ],
   },

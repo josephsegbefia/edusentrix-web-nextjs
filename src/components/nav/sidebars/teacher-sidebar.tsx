@@ -31,6 +31,7 @@ import {
   ChevronRight,
   ClipboardList,
   Table2,
+  ClipboardSignature,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -64,6 +65,7 @@ type NavSection = {
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
     feature?: SubscriptionFeatureKey;
+    permission?: Permission;
   }>;
 };
 
@@ -217,6 +219,17 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: "Admissions",
+    items: [
+      {
+        label: "Admissions",
+        href: "/teacher/admissions",
+        icon: ClipboardSignature,
+        permission: PERMISSIONS.admissionsManage,
+      },
+    ],
+  },
+  {
     title: "System",
     items: [
       {
@@ -266,10 +279,13 @@ function NavContent({
             )
             .filter(
               (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
+            )
+            .filter(
+              (item) => !item.permission || can(permissions, item.permission)
             ),
         }))
         .filter((section) => section.items.length > 0),
-    [enabledFeatures, showStudio, homeroomClassGroupId]
+    [enabledFeatures, showStudio, homeroomClassGroupId, permissions]
   );
 
   return (

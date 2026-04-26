@@ -35,11 +35,13 @@ const DEMO_PUBLIC_PREFIXES = [
 const isPublicRoute = createRouteMatcher([
   "/", // landing/marketing
   "/enroll", // enrollment form
+  "/apply(.*)", // public school admission application + tracker pages
   "/auth/callback", // our centralized router after login
   "/favicon.ico",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/banks/search",
+  "/api/public/admissions(.*)", // public admission application APIs
   "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
   "/api/webhooks/brevo(.*)", // Brevo outbound event + inbound parse webhooks
   "/api/cron(.*)", // Cron jobs authenticate with their own secrets
@@ -89,9 +91,11 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       "/",
       "/sign-in",
       "/sign-up",
+      "/apply",
       "/auth/callback",
       "/favicon.ico",
       "/api/banks/search",
+      "/api/public/admissions",
       "/api/uploadthing",
       "/api/webhooks/brevo",
       "/platform-bootstrap",

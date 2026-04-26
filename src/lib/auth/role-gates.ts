@@ -48,3 +48,19 @@ export function gateTeacherApiAccess(roles: MembershipRole[]): GateSuccess | Gat
   }
   return { ok: true };
 }
+
+/**
+ * Allows the school admin and any teacher delegated as `admissions_officer`.
+ * See docs/ADMISSIONS_DEVELOPMENT_SPEC.md §4.
+ */
+export function gateAdmissionsManager(input: {
+  roles: string[];
+  subroles?: string[];
+}): GateSuccess | GateFailure {
+  const isAdmin = input.roles.includes("school_admin");
+  const isOfficer = (input.subroles ?? []).includes("admissions_officer");
+  if (!isAdmin && !isOfficer) {
+    return { ok: false, status: 403, error: "Admissions access required" };
+  }
+  return { ok: true };
+}

@@ -6,6 +6,7 @@ export const TEACHER_SUBROLES = [
   "department_lead",
   "class_coordinator",
   "club_patron",
+  "admissions_officer",
 ] as const;
 
 export type TeacherSubrole = (typeof TEACHER_SUBROLES)[number];
@@ -41,6 +42,7 @@ export const PERMISSIONS = {
   journalView: "teacher.journal.view",
   journalWrite: "teacher.journal.write",
   resourcesView: "teacher.resources.view",
+  admissionsManage: "admissions.manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -107,6 +109,9 @@ const SUBROLE_PERMISSIONS: Record<TeacherSubrole, Permission[]> = {
   club_patron: [
     PERMISSIONS.noticesPublish,
     PERMISSIONS.messagesSend,
+  ],
+  admissions_officer: [
+    PERMISSIONS.admissionsManage,
   ],
 };
 

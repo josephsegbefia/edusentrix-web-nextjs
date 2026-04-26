@@ -42,6 +42,10 @@ import {
   buildPaystackWebhookAuditContext,
   resolveAuditIdempotencyKey,
 } from "@/lib/audit/fromApiRoute";
+import {
+  markFeeFailedByReference,
+  markFeePaidByReference,
+} from "@/lib/admissions/fee-payments";
 
 // ============================================================================
 // Types
@@ -71,6 +75,8 @@ interface PaystackEvent {
       tierId?: string;
       storeOrderId?: string;
       parentUserId?: string;
+      admissionApplicationId?: string;
+      admissionCycleId?: string;
       edusentrixTransactionFeeMinor?: number | string | null;
       edusentrixTransactionFeePercent?: number | string | null;
       edusentrixTransactionFeeCapMinor?: number | string | null;
@@ -147,11 +153,29 @@ export async function POST(req: NextRequest) {
         await handleStoreOrderSuccess(event);
         return NextResponse.json({ received: true });
       }
+      if (
+        metadata?.type === "admissions_fee" &&
+        metadata?.admissionApplicationId
+      ) {
+        await handleAdmissionsFeeSuccess(event);
+        return NextResponse.json({ received: true });
+      }
       if (metadata?.invoiceId && metadata?.studentId && metadata?.schoolId) {
         await handleFeePaymentSuccess(event, req);
         return NextResponse.json({ received: true });
       }
       await handleChargeSuccess(event);
+    }
+
+    if (event.event === "charge.failed") {
+      const { metadata } = event.data;
+      if (
+        metadata?.type === "admissions_fee" &&
+        metadata?.admissionApplicationId
+      ) {
+        await handleAdmissionsFeeFailure(event);
+        return NextResponse.json({ received: true });
+      }
     }
 
     if (
@@ -868,4 +892,46 @@ async function handleChargeSuccess(event: PaystackEvent) {
   }
 
   console.log(`Paystack webhook: Successfully processed donation ${donationId}`);
+}
+
+// ============================================================================
+// Admissions fee handlers (Phase 5 — application fee collection)
+// ============================================================================
+
+async function handleAdmissionsFeeSuccess(event: PaystackEvent) {
+  const { data } = event;
+  if (data.status !== "success") return;
+
+  const outcome = await markFeePaidByReference({
+    reference: data.reference,
+    amountMinor: Math.round(data.amount),
+    currency: data.currency || "GHS",
+    paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
+    channel: data.channel ?? null,
+    paystackMeta: {
+      paystackId: data.id ?? null,
+      status: data.status,
+      gatewayResponse: data.gateway_response ?? null,
+    },
+  });
+
+  if (outcome.status === "not_found") {
+    console.error(
+      `Paystack webhook: admissions fee reference not found: ${data.reference}`
+    );
+    return;
+  }
+  console.log(
+    `Paystack webhook: admissions fee ${outcome.status} for ${outcome.status === "skipped" ? data.reference : outcome.applicationId}`
+  );
+}
+
+async function handleAdmissionsFeeFailure(event: PaystackEvent) {
+  const { data } = event;
+  await markFeeFailedByReference({
+    reference: data.reference,
+    amountMinor: Math.round(data.amount),
+    currency: data.currency || "GHS",
+    failureReason: data.gateway_response || data.status || "Payment failed",
+  });
 }

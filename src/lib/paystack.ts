@@ -400,6 +400,46 @@ export async function initiateTransfer(
   return json.data as PaystackTransfer;
 }
 
+export type PaystackTransactionVerification = {
+  id?: number;
+  reference?: string;
+  status?: string;
+  amount?: number;
+  currency?: string;
+  channel?: string;
+  paid_at?: string | null;
+  customer?: { email?: string };
+  metadata?: Record<string, any> | null;
+};
+
+export async function verifyTransaction(
+  reference: string
+): Promise<PaystackTransactionVerification> {
+  const safeReference = encodeURIComponent(reference.trim());
+  const res = await fetch(
+    `${PAYSTACK_BASE}/transaction/verify/${safeReference}`,
+    {
+      method: "GET",
+      headers: headers(),
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `Paystack transaction verify error (${res.status}): ${text || res.statusText}`
+    );
+  }
+
+  const json = await res.json();
+  if (!json?.status || !json?.data) {
+    throw new Error(`Unexpected Paystack response: ${JSON.stringify(json)}`);
+  }
+
+  return json.data as PaystackTransactionVerification;
+}
+
 export async function verifyTransfer(
   reference: string
 ): Promise<PaystackTransferVerification> {

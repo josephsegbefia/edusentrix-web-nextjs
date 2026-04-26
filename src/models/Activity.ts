@@ -95,7 +95,22 @@ export type ActivityType =
   // Meetings
   | "meeting.created"
   | "meeting.cancelled"
-  | "meeting.deleted";
+  | "meeting.deleted"
+  // Admissions
+  | "admissions.cycle.created"
+  | "admissions.cycle.updated"
+  | "admissions.cycle.published"
+  | "admissions.cycle.paused"
+  | "admissions.cycle.closed"
+  | "admissions.form.updated"
+  | "admissions.form.reset_to_defaults"
+  | "admissions.delegate.assigned"
+  | "admissions.delegate.revoked"
+  | "admissions.application.submitted"
+  | "admissions.application.status_changed"
+  | "admissions.application.decision_recorded"
+  | "admissions.application.provisioned"
+  | "admissions.application.withdrawn";
 
 export interface IActivity {
   _id: Types.ObjectId;

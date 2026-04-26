@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
+import { AdmissionApplication } from "@/models/AdmissionApplication";
+import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { createUploadthing, type FileRouter, UTFiles } from "uploadthing/next";
 import { z } from "zod";
 import { checkLimit } from "@/lib/billing/entitlements";
@@ -11,6 +13,14 @@ import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 const f = createUploadthing();
 const RouteInput = z.object({
   schoolId: z.string().trim().min(1).optional(),
+});
+
+const PublicAdmissionInput = z.object({
+  /** Tracker token of an existing AdmissionApplication, OR */
+  applicantToken: z.string().trim().min(16).optional(),
+  /** Cycle slug + schoolId for first-time uploads while filling the form. */
+  schoolId: z.string().trim().min(1).optional(),
+  cycleSlug: z.string().trim().min(1).optional(),
 });
 
 type UploadMetadata = {
@@ -366,6 +376,91 @@ export const ourFileRouter = {
     .middleware(async ({ files, input }) =>
       buildMetadata("notices", files, input?.schoolId)
     )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  // ─── Public admissions document upload ──────────────────────────────────
+  // Used by the unauthenticated /apply/* page and tracker. We accept either
+  // a tracker token (existing application) OR (schoolId, cycleSlug) so an
+  // applicant can attach files _before_ submitting. We refuse any upload that
+  // can't be tied back to a published cycle to prevent abuse of the route.
+  admissionDocument: f({
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+    "application/msword": { maxFileSize: "16MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      {
+        maxFileSize: "16MB",
+        maxFileCount: 1,
+      },
+  })
+    .input(PublicAdmissionInput)
+    .middleware(async ({ files, input }) => {
+      enforceDemoPolicy("uploadthing", "upload");
+      await connectToDatabase();
+
+      let resolvedSchoolId: string | null = null;
+      if (input.applicantToken) {
+        const app = await AdmissionApplication.findOne({
+          "tracker.token": input.applicantToken,
+        })
+          .select({ schoolId: 1, cycleId: 1, status: 1 })
+          .lean();
+        if (!app) throw new Error("Invalid application token");
+        resolvedSchoolId = String(app.schoolId);
+      } else if (input.schoolId && input.cycleSlug) {
+        const cycle = await AdmissionCycle.findOne({
+          schoolId: input.schoolId,
+          slug: input.cycleSlug,
+        })
+          .select({ schoolId: 1, status: 1 })
+          .lean();
+        if (!cycle) throw new Error("Cycle not found");
+        if (cycle.status !== "published") {
+          throw new Error("Cycle is not accepting applications");
+        }
+        resolvedSchoolId = String(cycle.schoolId);
+      } else {
+        throw new Error("Missing token or cycle reference");
+      }
+
+      const school = await School.findById(resolvedSchoolId)
+        .select("name")
+        .lean<{ name?: string }>();
+      const schoolSlug = slugify(school?.name || resolvedSchoolId || "school");
+      const incomingBytes = files.reduce(
+        (sum, f) => sum + Math.max(0, Number(f.size || 0)),
+        0
+      );
+      const storageLimit = await checkLimit(
+        resolvedSchoolId,
+        "maxStorageBytes",
+        incomingBytes
+      );
+      if (!storageLimit.allowed) {
+        throw new Error("Storage limit reached for this school.");
+      }
+
+      const folder = "admissions/documents";
+      const timestamp = Date.now();
+      const filesWithCustomIds = files.map((file, index) => ({
+        ...file,
+        customId:
+          `${schoolSlug}/${folder}/${timestamp}-${index}-${sanitizeFileName(file.name)}`.slice(
+            0,
+            220
+          ),
+      }));
+
+      return {
+        userId: "public",
+        schoolId: resolvedSchoolId,
+        schoolSlug,
+        folder,
+        [UTFiles]: filesWithCustomIds,
+      };
+    })
     .onUploadComplete(async ({ metadata, file }) =>
       buildUploadResponse(metadata, file)
     ),

@@ -1,5 +1,5 @@
 // src/lib/admissions/templates.ts
-// Cycle templates ("Standard primary", "Standard JHS", "Standard SHS") used by
+// Cycle templates ("Standard Basic", "Standard SHS") used by
 // the CreateCycleModal "Start from a template" flow. A template is a thin
 // preset on top of `buildDefaultAdmissionFormSchema()` that:
 //
@@ -25,7 +25,6 @@ import type {
 export type AdmissionCycleTemplateId =
   | "blank"
   | "standard_primary"
-  | "standard_jhs"
   | "standard_shs";
 
 export type AdmissionCycleTemplate = {
@@ -80,13 +79,13 @@ const TEMPLATES: AdmissionCycleTemplate[] = [
   },
   {
     id: "standard_primary",
-    label: "Standard primary",
+    label: "Standard Basic",
     description:
-      "Pre-school / primary intake. Adds language at home, prior schooling and an optional photograph upload.",
+      "Primary and JHS intake. Adds language at home, prior-school details and report-card uploads.",
     defaults: {
       waitlistEnabled: true,
       welcomeMessage:
-        "Welcome! We're excited that your family is considering us for primary school. The application takes about 10 minutes.",
+        "Welcome! We're excited that your family is considering us. The application takes about 10 minutes.",
     },
     buildSchema: () => {
       let schema = buildDefaultAdmissionFormSchema();
@@ -101,6 +100,30 @@ const TEMPLATES: AdmissionCycleTemplate[] = [
           visible: true,
           order: 0,
           helpText: "Helps us prepare for early literacy and language support.",
+        }
+      );
+      schema = appendField(
+        schema,
+        (s) => s.id === "sec_applicant",
+        {
+          id: "fld_applicant_last_school_name",
+          label: "Most recent school attended",
+          type: "short_text",
+          required: false,
+          visible: true,
+          order: 0,
+        }
+      );
+      schema = appendField(
+        schema,
+        (s) => s.id === "sec_applicant",
+        {
+          id: "fld_applicant_last_grade_completed",
+          label: "Last grade / class completed",
+          type: "short_text",
+          required: false,
+          visible: true,
+          order: 0,
         }
       );
       schema = appendField(
@@ -129,49 +152,10 @@ const TEMPLATES: AdmissionCycleTemplate[] = [
         mimeTypes: ["application/pdf", "image/jpeg", "image/png"],
         maxSizeMb: 5,
       });
-      return schema;
-    },
-  },
-  {
-    id: "standard_jhs",
-    label: "Standard JHS",
-    description:
-      "Junior high intake. Adds last-school details and a transcript / report-card upload requirement.",
-    defaults: {
-      waitlistEnabled: true,
-      welcomeMessage:
-        "Welcome! Please have your child's most recent report card or transcript ready before you start.",
-    },
-    buildSchema: () => {
-      let schema = buildDefaultAdmissionFormSchema();
-      schema = appendField(
-        schema,
-        (s) => s.id === "sec_applicant",
-        {
-          id: "fld_applicant_last_school_name",
-          label: "Most recent school attended",
-          type: "short_text",
-          required: false,
-          visible: true,
-          order: 0,
-        }
-      );
-      schema = appendField(
-        schema,
-        (s) => s.id === "sec_applicant",
-        {
-          id: "fld_applicant_last_grade_completed",
-          label: "Last grade / class completed",
-          type: "short_text",
-          required: false,
-          visible: true,
-          order: 0,
-        }
-      );
       schema = appendDocument(schema, {
         id: "doc_transcript",
         label: "Latest transcript or report card",
-        required: true,
+        required: false,
         helpText: "PDF preferred. Maximum 10 MB.",
         mimeTypes: ["application/pdf", "image/jpeg", "image/png"],
         maxSizeMb: 10,
@@ -234,7 +218,8 @@ export function getAdmissionCycleTemplate(
   id: string | undefined | null
 ): AdmissionCycleTemplate | null {
   if (!id) return null;
-  return TEMPLATES.find((t) => t.id === id) ?? null;
+  const normalizedId = id === "standard_jhs" ? "standard_primary" : id;
+  return TEMPLATES.find((t) => t.id === normalizedId) ?? null;
 }
 
 export const DEFAULT_ACCEPTANCE_FOR_TEMPLATES = DEFAULT_ACCEPTANCE_TEMPLATE;

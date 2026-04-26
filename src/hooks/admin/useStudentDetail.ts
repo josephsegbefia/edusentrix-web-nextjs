@@ -148,7 +148,20 @@ export type StudentDetailDTO = {
     name: string;
     type: string;
     uploadedAt: string;
+    /** Present for files imported from admissions provisioning. */
+    url?: string | null;
+    source?: "admissions" | "school" | string | null;
+    /** Sub-typing for staff vs parent-request uploads on the student record. */
+    recordOrigin?: "staff" | "parent_request";
   }[];
+
+  parentDocumentRequests?: Array<{
+    id: string;
+    label: string;
+    message: string | null;
+    fulfilledAt: string | null;
+    requestedAt: string;
+  }>;
 };
 
 export function useStudentDetail(studentId?: string) {

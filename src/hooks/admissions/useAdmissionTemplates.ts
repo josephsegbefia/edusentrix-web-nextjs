@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 export type AdmissionCycleTemplateDTO = {
-  id: "blank" | "standard_primary" | "standard_jhs" | "standard_shs";
+  id: "blank" | "standard_primary" | "standard_shs";
   label: string;
   description: string;
   defaults: { waitlistEnabled: boolean; welcomeMessage?: string };

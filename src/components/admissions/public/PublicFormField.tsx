@@ -12,6 +12,7 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { cn } from "@/lib/utils";
 import type {
   AdmissionFormField,
@@ -65,7 +66,7 @@ function FieldShell({
     <div className="space-y-1.5">
       <Label
         htmlFor={inputId}
-        className="flex items-center gap-1 text-sm font-medium text-foreground"
+        className="flex items-center gap-1 text-sm font-medium text-white"
       >
         {field.label}
         {field.required ? (
@@ -78,7 +79,7 @@ function FieldShell({
         ) : null}
       </Label>
       {field.helpText ? (
-        <p id={helpId} className="text-xs text-muted-foreground">
+        <p id={helpId} className="text-xs text-white/45">
           {field.helpText}
         </p>
       ) : null}
@@ -97,6 +98,22 @@ function FieldShell({
   );
 }
 
+function parseDateValue(value: Value): Date | null {
+  if (typeof value !== "string" || value.trim() === "") return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDateValue(date: Date | null): string {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function PublicFormField({
   field,
   value,
@@ -106,8 +123,8 @@ export function PublicFormField({
 }: PublicFormFieldProps) {
   const { inputId, helpId, errorId, describedBy } = useFieldA11y(field, error);
   const baseInputClass = cn(
-    "w-full bg-background",
-    error && "border-rose-500 focus-visible:ring-rose-500/30"
+    "w-full border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:ring-indigo-400/30",
+    error && "border-rose-400 focus-visible:ring-rose-400/30"
   );
   const ariaCommon = {
     id: inputId,
@@ -162,7 +179,7 @@ export function PublicFormField({
         <div className="space-y-1.5">
           <label
             htmlFor={inputId}
-            className="flex items-start gap-3 rounded-xl border border-border/60 bg-background px-3 py-3 text-sm text-foreground transition-colors hover:border-border focus-within:border-foreground/40 focus-within:ring-2 focus-within:ring-foreground/10"
+            className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-white transition-colors hover:border-white/20 focus-within:border-indigo-400/40 focus-within:ring-2 focus-within:ring-indigo-400/10"
           >
             <Checkbox
               id={inputId}
@@ -186,7 +203,7 @@ export function PublicFormField({
               {field.helpText ? (
                 <span
                   id={helpId}
-                  className="mt-1 block text-xs text-muted-foreground"
+                  className="mt-1 block text-xs text-white/45"
                 >
                   {field.helpText}
                 </span>
@@ -255,7 +272,7 @@ export function PublicFormField({
             role="group"
             aria-labelledby={`${inputId}-grouplabel`}
             aria-describedby={describedBy}
-            className="grid gap-2 rounded-xl border border-border/60 bg-background p-3 sm:grid-cols-2"
+            className="grid gap-2 rounded-xl border border-white/10 bg-white/5 p-3 sm:grid-cols-2"
           >
             <span id={`${inputId}-grouplabel`} className="sr-only">
               {field.label}
@@ -267,7 +284,7 @@ export function PublicFormField({
                 <label
                   key={opt.value}
                   htmlFor={optId}
-                  className="flex items-center gap-2 text-sm text-foreground"
+                  className="flex items-center gap-2 text-sm text-white/80"
                 >
                   <Checkbox
                     id={optId}
@@ -334,13 +351,11 @@ export function PublicFormField({
           helpId={helpId}
           errorId={errorId}
         >
-          <Input
-            {...ariaCommon}
-            type="date"
-            value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-            className={baseInputClass}
-            autoComplete="bday"
+          <CustomDatePicker
+            value={parseDateValue(value)}
+            onChange={(date) => onChange(formatDateValue(date))}
+            placeholder="Select date"
+            triggerAriaLabel={field.label}
           />
         </FieldShell>
       );
@@ -424,7 +439,7 @@ export function PublicFormField({
         >
           <div
             id={inputId}
-            className="rounded-xl border border-dashed border-border/60 bg-muted/40 p-3 text-xs text-muted-foreground"
+            className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs text-white/45"
           >
             Use the Documents step to upload this file.
           </div>

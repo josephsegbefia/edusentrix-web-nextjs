@@ -64,6 +64,17 @@ export type AdmissionApplicationDetail = AdmissionApplicationListItem & {
   notesPrivate: string | null;
   inviteCode: string | null;
   referrer: string | null;
+  interviewAt: string | null;
+  interviewEndsAt?: string | null;
+  /** Present on newer API responses; treat as [] when missing (cached clients). */
+  supplementalDocumentRequests?: Array<{
+    id: string;
+    token: string;
+    label: string;
+    message: string | null;
+    requestedAt: string;
+    fulfilledAt: string | null;
+  }>;
 };
 
 export type ApplicationsListFilter = {
@@ -140,6 +151,10 @@ export type UpdateApplicationInput = {
   assignedReviewerId?: string | null;
   notesPrivate?: string | null;
   feeStatus?: "not_required" | "pending" | "paid" | "waived";
+  interviewAt?: string | null;
+  interviewEndsAt?: string | null;
+  /** Default true on the server when omitted. */
+  notifyApplicant?: boolean;
 };
 
 export function useUpdateAdmissionApplication() {
@@ -340,6 +355,103 @@ export function useResendTrackerLink() {
         { method: "POST" }
       );
       return jsonOrThrow(res);
+    },
+  });
+}
+
+export function useResendAdmissionReceivedEmail() {
+  return useMutation<
+    { data: { sentTo: string } },
+    Error,
+    { applicationId: string }
+  >({
+    mutationFn: async ({ applicationId }) => {
+      const res = await fetch(
+        `/api/admin/admissions/applications/${applicationId}/resend-received-email`,
+        { method: "POST" }
+      );
+      return jsonOrThrow(res);
+    },
+  });
+}
+
+export function useResendAdmissionPipelineReminder() {
+  return useMutation<
+    { data: { sentTo: string } },
+    Error,
+    { applicationId: string }
+  >({
+    mutationFn: async ({ applicationId }) => {
+      const res = await fetch(
+        `/api/admin/admissions/applications/${applicationId}/resend-pipeline-reminder`,
+        { method: "POST" }
+      );
+      return jsonOrThrow(res);
+    },
+  });
+}
+
+export function useSendAdmissionFeeLinkEmail() {
+  return useMutation<
+    { data: { sentTo: string } },
+    Error,
+    { applicationId: string }
+  >({
+    mutationFn: async ({ applicationId }) => {
+      const res = await fetch(
+        `/api/admin/admissions/applications/${applicationId}/send-fee-link-email`,
+        { method: "POST" }
+      );
+      return jsonOrThrow(res);
+    },
+  });
+}
+
+export function useResendAdmissionInterviewEmail() {
+  return useMutation<
+    { data: { sentTo: string } },
+    Error,
+    { applicationId: string }
+  >({
+    mutationFn: async ({ applicationId }) => {
+      const res = await fetch(
+        `/api/admin/admissions/applications/${applicationId}/resend-interview-email`,
+        { method: "POST" }
+      );
+      return jsonOrThrow(res);
+    },
+  });
+}
+
+export function useRequestSupplementalAdmissionDocument() {
+  const qc = useQueryClient();
+  return useMutation<
+    {
+      data: { uploadUrl: string; token: string; emailSent: boolean };
+    },
+    Error,
+    {
+      applicationId: string;
+      label: string;
+      message?: string | null;
+      sendEmail?: boolean;
+    }
+  >({
+    mutationFn: async ({ applicationId, label, message, sendEmail }) => {
+      const res = await fetch(
+        `/api/admin/admissions/applications/${applicationId}/request-supplemental-document`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ label, message: message ?? null, sendEmail }),
+        }
+      );
+      return jsonOrThrow(res);
+    },
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({
+        queryKey: ["admissions", "application", vars.applicationId],
+      });
     },
   });
 }

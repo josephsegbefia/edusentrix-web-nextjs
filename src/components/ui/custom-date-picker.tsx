@@ -65,6 +65,12 @@ export function CustomDatePicker({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (isOpen) {
+      setViewDate(value || new Date());
+    }
+  }, [isOpen, value]);
+
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
@@ -124,8 +130,23 @@ export function CustomDatePicker({
   const isDisabled = useCallback(
     (day: number) => {
       const date = new Date(year, month, day);
-      if (minDate && date < minDate) return true;
-      if (maxDate && date > maxDate) return true;
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+      if (minDate) {
+        const minDay = new Date(
+          minDate.getFullYear(),
+          minDate.getMonth(),
+          minDate.getDate()
+        ).getTime();
+        if (dayStart < minDay) return true;
+      }
+      if (maxDate) {
+        const maxDay = new Date(
+          maxDate.getFullYear(),
+          maxDate.getMonth(),
+          maxDate.getDate()
+        ).getTime();
+        if (dayStart > maxDay) return true;
+      }
       return false;
     },
     [year, month, minDate, maxDate]
@@ -236,7 +257,7 @@ export function CustomDatePicker({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
+                className="pointer-events-auto fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
                 onClick={() => setIsOpen(false)}
               />
 
@@ -247,7 +268,7 @@ export function CustomDatePicker({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                className="fixed left-1/2 top-1/2 z-[9999] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-card p-5 shadow-2xl"
+                className="pointer-events-auto fixed left-1/2 top-1/2 z-[9999] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-card p-5 shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >

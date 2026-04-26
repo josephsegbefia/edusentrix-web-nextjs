@@ -102,7 +102,7 @@ export type CreateAdmissionCycleInput = {
   decisionDueBy?: string | null;
   capacityByGradeId?: Record<string, number>;
   waitlistEnabled?: boolean;
-  templateId?: "blank" | "standard_primary" | "standard_jhs" | "standard_shs";
+  templateId?: "blank" | "standard_primary" | "standard_shs";
 };
 
 export function useCreateAdmissionCycle() {

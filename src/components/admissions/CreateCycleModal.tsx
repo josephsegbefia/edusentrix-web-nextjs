@@ -67,7 +67,7 @@ export function CreateCycleModal({
   const [intakeGradeIds, setIntakeGradeIds] = React.useState<string[]>([]);
   const [waitlistEnabled, setWaitlistEnabled] = React.useState(true);
   const [templateId, setTemplateId] = React.useState<
-    "blank" | "standard_primary" | "standard_jhs" | "standard_shs"
+    "blank" | "standard_primary" | "standard_shs"
   >("blank");
   const [errorText, setErrorText] = React.useState<string | null>(null);
 

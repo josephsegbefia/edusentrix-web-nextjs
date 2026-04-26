@@ -13,6 +13,8 @@ import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionForm } from "@/models/AdmissionForm";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
+import { School } from "@/models/School";
+import { sendAdmissionApplicationReceivedEmail } from "@/lib/admissions/applicant-notification-emails";
 import {
   generateReferenceCode,
   generateTrackerToken,
@@ -37,6 +39,7 @@ const SubmissionSchema = z.object({
     .array(
       z.object({
         requirementId: z.string().min(1),
+        label: z.string().min(1).optional(),
         fileUrl: z.string().url(),
         fileName: z.string().optional(),
         sizeBytes: z.number().int().nonnegative().optional(),
@@ -178,6 +181,19 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
 
     const trackerToken = generateTrackerToken();
     const additionalEntries = Object.entries(data.additional);
+    const documentLabelByRequirement = new Map(
+      schema.documentRequirements.map((requirement) => [
+        requirement.id,
+        requirement.label,
+      ])
+    );
+    const submittedDocuments = parsed.data.documents.map((document) => ({
+      ...document,
+      label:
+        document.label ??
+        documentLabelByRequirement.get(document.requirementId) ??
+        "Uploaded document",
+    }));
 
     const application = await AdmissionApplication.create({
       schoolId: schoolObjectId,
@@ -209,7 +225,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         occupation: data.guardian.occupation,
       },
       additional: new Map(additionalEntries),
-      documents: parsed.data.documents,
+      documents: submittedDocuments,
       status: "submitted",
       tracker: { token: trackerToken },
       feeStatus: cycle.applicationFee?.enabled ? "pending" : "not_required",
@@ -250,6 +266,30 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       },
       at: new Date(),
     });
+
+    const school = await School.findById(schoolObjectId).select("name").lean<{
+      name?: string;
+    } | null>();
+    const schoolName = school?.name ?? "Our school";
+    try {
+      await sendAdmissionApplicationReceivedEmail({
+        applicationId: String(application._id),
+        referenceCode,
+        guardian: {
+          firstName: application.guardian.firstName,
+          lastName: application.guardian.lastName,
+          email: application.guardian.email,
+        },
+        trackerToken,
+        ctx: {
+          schoolId: String(schoolObjectId),
+          schoolName,
+        },
+        systemOrigin: true,
+      });
+    } catch (emailErr) {
+      console.error("Admission confirmation email failed:", emailErr);
+    }
 
     return NextResponse.json({
       success: true,

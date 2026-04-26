@@ -17,7 +17,24 @@ import {
   Briefcase,
   Plus,
   TrendingUp,
+  ExternalLink,
+  Paperclip,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
 import { ManageGuardiansContent } from "./ManageGuardiansModal";
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
@@ -27,6 +44,7 @@ import { useDocumentSSE } from "@/hooks/admin/useDocumentSSE";
 import { useStudentPromotionHistory } from "@/hooks/admin/useStudentPromotionHistory";
 import { cn } from "@/lib/utils";
 import { PendingInviteBadge } from "@/components/admin/PendingInviteBadge";
+import { UploadStudentDocumentModal } from "./UploadStudentDocumentModal";
 
 type Props = {
   student: StudentDetailDTO;
@@ -56,8 +74,16 @@ function getRelationshipLabel(relationship: string): string {
 }
 
 export function StudentRelationshipsTab({ student }: Props) {
+  const queryClient = useQueryClient();
   const { documents, grade, classGroup } = student;
   const [manageGuardiansOpen, setManageGuardiansOpen] = React.useState(false);
+  const [uploadDocumentOpen, setUploadDocumentOpen] = React.useState(false);
+  const [requestParentOpen, setRequestParentOpen] = React.useState(false);
+  const [parentDocLabel, setParentDocLabel] = React.useState("");
+  const [parentDocMessage, setParentDocMessage] = React.useState("");
+  const [sendParentRequestEmail, setSendParentRequestEmail] =
+    React.useState(true);
+  const [requestingParentDoc, setRequestingParentDoc] = React.useState(false);
 
   // Real-time updates for guardians and documents
   useGuardianSSE(student.id);
@@ -441,7 +467,7 @@ export function StudentRelationshipsTab({ student }: Props) {
           aria-hidden="true"
         />
 
-        <CardHeader className="relative z-10 flex flex-row items-center justify-between gap-4">
+        <CardHeader className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-linear-to-br from-violet-500/20 to-violet-600/20 shadow-inner shadow-white/5">
               <FileText className="h-5 w-5 text-violet-300" />
@@ -456,18 +482,56 @@ export function StudentRelationshipsTab({ student }: Props) {
               </p>
             </div>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="gap-2 rounded-xl border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
-          >
-            <FileText className="h-4 w-4" />
-            Upload Document
-          </Button>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 rounded-xl border-amber-500/30 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
+              onClick={() => setRequestParentOpen(true)}
+            >
+              <Paperclip className="h-4 w-4" />
+              Request from parent…
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 rounded-xl border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+              onClick={() => setUploadDocumentOpen(true)}
+            >
+              <FileText className="h-4 w-4" />
+              Upload Document
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent className="relative z-10 space-y-3">
+          {(student.parentDocumentRequests ?? []).length > 0 ? (
+            <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-amber-200/90">
+                Parent document requests
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {(student.parentDocumentRequests ?? []).map((req) => (
+                  <li
+                    key={req.id}
+                    className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/85"
+                  >
+                    <span className="font-medium text-white">{req.label}</span>
+                    {req.fulfilledAt ? (
+                      <span className="ml-2 text-emerald-300">· Received</span>
+                    ) : (
+                      <span className="ml-2 text-amber-200">
+                        · Awaiting parent upload
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {documents.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/2 p-8">
               <div className="flex flex-col items-center gap-4 text-center">
@@ -486,6 +550,7 @@ export function StudentRelationshipsTab({ student }: Props) {
                   type="button"
                   variant="outline"
                   className="mt-2 gap-2 rounded-xl border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20"
+                  onClick={() => setUploadDocumentOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
                   Upload Document
@@ -514,13 +579,37 @@ export function StudentRelationshipsTab({ student }: Props) {
                         <div className="truncate text-sm font-semibold text-white">
                           {doc.name}
                         </div>
-                        <div className="mt-1 flex items-center gap-2 text-[10px] text-white/50">
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-white/50">
                           <Badge
                             variant="outline"
                             className="border-white/20 bg-white/5 text-[9px]"
                           >
                             {doc.type}
                           </Badge>
+                          {doc.source === "admissions" ? (
+                            <Badge
+                              variant="outline"
+                              className="border-emerald-500/30 bg-emerald-500/10 text-[9px] text-emerald-200"
+                            >
+                              Admissions
+                            </Badge>
+                          ) : null}
+                          {doc.source === "school" ? (
+                            <Badge
+                              variant="outline"
+                              className="border-sky-500/30 bg-sky-500/10 text-[9px] text-sky-200"
+                            >
+                              School upload
+                            </Badge>
+                          ) : null}
+                          {doc.recordOrigin === "parent_request" ? (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-500/30 bg-amber-500/10 text-[9px] text-amber-200"
+                            >
+                              From parent
+                            </Badge>
+                          ) : null}
                           <span>•</span>
                           <span>
                             {new Date(doc.uploadedAt).toLocaleDateString()}
@@ -528,6 +617,24 @@ export function StudentRelationshipsTab({ student }: Props) {
                         </div>
                       </div>
                     </div>
+                    {doc.url ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 gap-1.5 rounded-xl border-violet-500/30 bg-violet-500/10 text-xs text-violet-200 hover:bg-violet-500/20"
+                        asChild
+                      >
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Open
+                        </a>
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -545,6 +652,121 @@ export function StudentRelationshipsTab({ student }: Props) {
       >
         <ManageGuardiansContent studentId={student.id} />
       </ResponsiveModal>
+
+      <UploadStudentDocumentModal
+        open={uploadDocumentOpen}
+        onOpenChange={setUploadDocumentOpen}
+        studentId={student.id}
+        studentName={student.fullName}
+      />
+
+      <Dialog open={requestParentOpen} onOpenChange={setRequestParentOpen}>
+        <DialogContent className="border-white/10 bg-[#0e1420] text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request a document from a parent</DialogTitle>
+            <DialogDescription className="text-white/55">
+              Sends the primary guardian (or first guardian with an email) a
+              secure upload link. The file is attached to this student when
+              submitted—same flow as admissions document requests.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-white/70">Document name</Label>
+              <Input
+                value={parentDocLabel}
+                onChange={(e) => setParentDocLabel(e.target.value)}
+                placeholder="e.g. Updated immunization record"
+                className="mt-1 border-white/10 bg-black/20 text-white"
+              />
+            </div>
+            <div>
+              <Label className="text-white/70">Message (optional)</Label>
+              <Textarea
+                value={parentDocMessage}
+                onChange={(e) => setParentDocMessage(e.target.value)}
+                rows={3}
+                placeholder="Instructions for the family"
+                className="mt-1 border-white/10 bg-black/20 text-white"
+              />
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-white/80">
+              <Checkbox
+                checked={sendParentRequestEmail}
+                onCheckedChange={(v) =>
+                  setSendParentRequestEmail(v === true)
+                }
+              />
+              Email the guardian the upload link
+            </label>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/15 bg-transparent text-white hover:bg-white/10"
+              onClick={() => setRequestParentOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                !parentDocLabel.trim() || requestingParentDoc
+              }
+              className="bg-amber-600 text-white hover:bg-amber-500"
+              onClick={async () => {
+                setRequestingParentDoc(true);
+                try {
+                  const res = await fetch(
+                    `/api/admin/students/${student.id}/request-parent-document`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        label: parentDocLabel.trim(),
+                        message: parentDocMessage.trim() || null,
+                        sendEmail: sendParentRequestEmail,
+                      }),
+                    }
+                  );
+                  const json = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    throw new Error(
+                      typeof json?.error === "string"
+                        ? json.error
+                        : "Could not create request"
+                    );
+                  }
+                  toast.success(
+                    json.data?.emailSent
+                      ? `Request emailed to ${json.data.sentTo ?? "guardian"}. Link: ${json.data.uploadUrl}`
+                      : `Upload link: ${json.data?.uploadUrl}`
+                  );
+                  setRequestParentOpen(false);
+                  setParentDocLabel("");
+                  setParentDocMessage("");
+                  setSendParentRequestEmail(true);
+                  await queryClient.invalidateQueries({
+                    queryKey: ["admin-student-detail", student.id],
+                  });
+                } catch (e) {
+                  toast.error(
+                    e instanceof Error ? e.message : "Request failed"
+                  );
+                } finally {
+                  setRequestingParentDoc(false);
+                }
+              }}
+            >
+              {requestingParentDoc ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Send request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

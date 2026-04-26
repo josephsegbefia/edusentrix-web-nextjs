@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   ClipboardSignature,
   Eye,
+  Inbox,
   Plus,
   ShieldCheck,
   UserPlus,
@@ -110,7 +111,11 @@ export function AdmissionsHero({
               <p className="mt-2 text-2xl font-semibold text-white">
                 {totalSubmissions}
               </p>
-              <p className="mt-1 text-sm text-white/50">Across all cycles</p>
+              <p className="mt-1 text-sm text-white/50">
+                {cycles.length > 0
+                  ? "Open a cycle below for inbox, Kanban & analytics"
+                  : "Across all cycles"}
+              </p>
             </div>
           </div>
 
@@ -164,6 +169,13 @@ export function AdmissionsHero({
         </div>
 
         <div className="mt-6 space-y-3 rounded-[1.4rem] border border-white/10 bg-black/10 p-4">
+          <div className="flex items-center gap-2 text-sm text-white/70">
+            <Inbox className="h-4 w-4 shrink-0 text-cyan-100" />
+            <span>
+              The applications inbox, Kanban board, and analytics tabs appear
+              after you open a cycle — not on this overview screen.
+            </span>
+          </div>
           <div className="flex items-center gap-2 text-sm text-white/70">
             <Eye className="h-4 w-4 text-cyan-100" />
             <span>Public link, QR code, embed, WhatsApp, and direct invites.</span>

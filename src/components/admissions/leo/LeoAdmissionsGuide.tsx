@@ -53,9 +53,6 @@ function overviewGuidance(cycle: AdmissionCycleDTO): Guidance {
     if (!cycle.branding?.welcomeMessage) {
       actions.push("Add a short welcome message to humanize the public page.");
     }
-    if (cycle.intakeGradeIds.length === 0) {
-      actions.push("Restrict intake grades or confirm \"All active grades\" is intentional.");
-    }
     actions.push("Publish to make the link reachable.");
     return {
       tone: "info",

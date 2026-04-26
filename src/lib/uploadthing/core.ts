@@ -4,6 +4,7 @@ import { School } from "@/models/School";
 import { User } from "@/models/User";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
+import { Student } from "@/models/Student";
 import { createUploadthing, type FileRouter, UTFiles } from "uploadthing/next";
 import { z } from "zod";
 import { checkLimit } from "@/lib/billing/entitlements";
@@ -15,13 +16,34 @@ const RouteInput = z.object({
   schoolId: z.string().trim().min(1).optional(),
 });
 
-const PublicAdmissionInput = z.object({
-  /** Tracker token of an existing AdmissionApplication, OR */
-  applicantToken: z.string().trim().min(16).optional(),
-  /** Cycle slug + schoolId for first-time uploads while filling the form. */
-  schoolId: z.string().trim().min(1).optional(),
-  cycleSlug: z.string().trim().min(1).optional(),
-});
+const PublicAdmissionInput = z
+  .object({
+    /** Tracker token of an existing AdmissionApplication, OR */
+    applicantToken: z.string().trim().min(16).optional(),
+    /** Cycle slug + schoolId for first-time uploads while filling the form. */
+    schoolId: z.string().trim().min(1).optional(),
+    cycleSlug: z.string().trim().min(1).optional(),
+    /** Secure token from an admissions-requested supplemental upload email. */
+    supplementalRequestToken: z.string().trim().min(24).optional(),
+    /** Secure token from a school “request document from parent” email. */
+    studentParentDocumentToken: z.string().trim().min(24).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const n = [
+      Boolean(data.supplementalRequestToken),
+      Boolean(data.studentParentDocumentToken),
+      Boolean(data.applicantToken),
+      Boolean(data.schoolId && data.cycleSlug),
+    ].filter(Boolean).length;
+    if (n !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Provide exactly one of supplementalRequestToken, studentParentDocumentToken, applicantToken, or schoolId+cycleSlug",
+        path: ["applicantToken"],
+      });
+    }
+  });
 
 type UploadMetadata = {
   userId: string;
@@ -302,6 +324,36 @@ export const ourFileRouter = {
       buildUploadResponse(metadata, file)
     ),
 
+  studentRecordDocument: f({
+    pdf: { maxFileSize: "16MB", maxFileCount: 1 },
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+    video: { maxFileSize: "64MB", maxFileCount: 1 },
+    "text/csv": { maxFileSize: "8MB", maxFileCount: 1 },
+    "application/vnd.ms-excel": { maxFileSize: "16MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+      maxFileSize: "16MB",
+      maxFileCount: 1,
+    },
+    "application/vnd.ms-powerpoint": { maxFileSize: "16MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": {
+      maxFileSize: "16MB",
+      maxFileCount: 1,
+    },
+    "application/msword": { maxFileSize: "16MB", maxFileCount: 1 },
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      {
+        maxFileSize: "16MB",
+        maxFileCount: 1,
+      },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) =>
+      buildMetadata("documents/students", files, input?.schoolId)
+    )
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
   expenseReceipt: f({
     pdf: { maxFileSize: "8MB", maxFileCount: 1 },
     image: { maxFileSize: "8MB", maxFileCount: 1 },
@@ -401,7 +453,44 @@ export const ourFileRouter = {
       await connectToDatabase();
 
       let resolvedSchoolId: string | null = null;
-      if (input.applicantToken) {
+      let folder = "admissions/documents";
+
+      if (input.supplementalRequestToken) {
+        const app = await AdmissionApplication.findOne({
+          supplementalDocumentRequests: {
+            $elemMatch: {
+              token: input.supplementalRequestToken,
+              fulfilledAt: null,
+            },
+          },
+        })
+          .select({ schoolId: 1, status: 1 })
+          .lean();
+        if (!app) throw new Error("Invalid or completed document request");
+        if (
+          app.status === "accepted" ||
+          app.status === "rejected" ||
+          app.status === "withdrawn" ||
+          app.status === "expired"
+        ) {
+          throw new Error("This application is no longer accepting documents");
+        }
+        resolvedSchoolId = String(app.schoolId);
+      } else if (input.studentParentDocumentToken) {
+        const stu = await Student.findOne({
+          parentDocumentRequests: {
+            $elemMatch: {
+              token: input.studentParentDocumentToken,
+              fulfilledAt: null,
+            },
+          },
+        })
+          .select({ schoolId: 1 })
+          .lean();
+        if (!stu) throw new Error("Invalid or completed document request");
+        resolvedSchoolId = String(stu.schoolId);
+        folder = "students/parent-documents";
+      } else if (input.applicantToken) {
         const app = await AdmissionApplication.findOne({
           "tracker.token": input.applicantToken,
         })
@@ -442,7 +531,6 @@ export const ourFileRouter = {
         throw new Error("Storage limit reached for this school.");
       }
 
-      const folder = "admissions/documents";
       const timestamp = Date.now();
       const filesWithCustomIds = files.map((file, index) => ({
         ...file,

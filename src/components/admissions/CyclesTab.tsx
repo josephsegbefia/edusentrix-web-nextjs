@@ -208,8 +208,10 @@ export function CyclesTab({
               Cycles & application links
             </h3>
             <p className="mt-2 text-sm text-white/50">
-              Each cycle has its own public link, form, and decision queue.
-              Open one to share or to manage applications.
+              Each cycle has its own public link, form, and decision queue. Use{" "}
+              <span className="font-semibold text-white/70">Open cycle</span> to
+              reach the applications inbox, Kanban board, analytics, form
+              builder, and distribution tools.
             </p>
           </div>
           {isAdmin ? (
@@ -277,8 +279,11 @@ export function CyclesTab({
                           {formatDate(cycle.acceptsApplicationsUntil)}
                         </span>
                         <span>
-                          {cycle.intakeGradeIds.length} intake grade
-                          {cycle.intakeGradeIds.length === 1 ? "" : "s"}
+                          {cycle.intakeGradeIds.length
+                            ? `${cycle.intakeGradeIds.length} intake grade${
+                                cycle.intakeGradeIds.length === 1 ? "" : "s"
+                              }`
+                            : "All active grades"}
                         </span>
                         <span>
                           {totalSubs} application{totalSubs === 1 ? "" : "s"}

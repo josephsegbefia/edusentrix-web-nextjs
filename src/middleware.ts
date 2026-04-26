@@ -29,6 +29,8 @@ const DEMO_PUBLIC_PREFIXES = [
   "/favicon.ico",
   "/_next",
   "/api/banks/search",
+  "/upload/parent-document",
+  "/api/public/students/parent-documents",
 ];
 
 // Define public routes (everything else is protected)
@@ -36,12 +38,14 @@ const isPublicRoute = createRouteMatcher([
   "/", // landing/marketing
   "/enroll", // enrollment form
   "/apply(.*)", // public school admission application + tracker pages
+  "/upload/parent-document(.*)", // tokenized guardian upload (not under /parent — avoids parent app layout)
   "/auth/callback", // our centralized router after login
   "/favicon.ico",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/banks/search",
   "/api/public/admissions(.*)", // public admission application APIs
+  "/api/public/students/parent-documents(.*)", // public parent document upload APIs
   "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
   "/api/webhooks/brevo(.*)", // Brevo outbound event + inbound parse webhooks
   "/api/cron(.*)", // Cron jobs authenticate with their own secrets
@@ -51,6 +55,19 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
+  // Legacy / mis-placed URL: was under /parent/* which uses the authenticated
+  // parent app layout. Public uploads live under /upload/parent-document/* only.
+  const pathnameEarly = req.nextUrl.pathname;
+  if (
+    pathnameEarly.startsWith("/parent/upload-document/") &&
+    pathnameEarly.length > "/parent/upload-document/".length
+  ) {
+    const token = pathnameEarly.slice("/parent/upload-document/".length);
+    const url = req.nextUrl.clone();
+    url.pathname = `/upload/parent-document/${token}`;
+    return NextResponse.redirect(url);
+  }
+
   // ─── Demo host: skip Clerk entirely, use demo session cookie ───
   if (isDemoHostMiddleware(req)) {
     const pathname = req.nextUrl.pathname;
@@ -96,6 +113,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       "/favicon.ico",
       "/api/banks/search",
       "/api/public/admissions",
+      "/api/public/students/parent-documents",
+      "/upload/parent-document",
       "/api/uploadthing",
       "/api/webhooks/brevo",
       "/platform-bootstrap",

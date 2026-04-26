@@ -23,7 +23,7 @@ export function useDocumentSSE(studentId: string | undefined) {
         const data = JSON.parse(e.data);
         // If the update is for this student, invalidate the student detail query
         if (data.studentId === studentId) {
-          qc.invalidateQueries({ queryKey: ["student", studentId] });
+          qc.invalidateQueries({ queryKey: ["admin-student-detail", studentId] });
         }
       } catch (err) {
         console.error("Failed to parse document update:", err);

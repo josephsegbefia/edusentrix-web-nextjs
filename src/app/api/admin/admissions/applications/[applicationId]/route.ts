@@ -12,6 +12,11 @@ import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { Grade } from "@/models/Grade";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
 import { serializeApplicationDetail } from "@/lib/admissions/application-service";
+import {
+  sendAdmissionInterviewScheduledEmail,
+  sendAdmissionStatusUpdateEmail,
+} from "@/lib/admissions/applicant-notification-emails";
+import { School } from "@/models/School";
 
 type Params = Promise<{ applicationId: string }>;
 
@@ -31,6 +36,10 @@ const PatchSchema = z.object({
   feeStatus: z
     .enum(["not_required", "pending", "paid", "waived"])
     .optional(),
+  interviewAt: z.union([z.string(), z.null()]).optional(),
+  interviewEndsAt: z.union([z.string(), z.null()]).optional(),
+  /** When false, status/interview change emails are not sent for this update. */
+  notifyApplicant: z.boolean().optional(),
 });
 
 export async function GET(_req: NextRequest, { params }: { params: Params }) {
@@ -123,6 +132,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
     }
 
     const previousStatus = app.status;
+    const beforeInterviewStart = app.interviewAt
+      ? new Date(app.interviewAt).getTime()
+      : null;
+    const beforeInterviewEnd = app.interviewEndsAt
+      ? new Date(app.interviewEndsAt).getTime()
+      : null;
+
     if (parsed.data.status && parsed.data.status !== previousStatus) {
       app.status = parsed.data.status;
       // keep cycle.analytics.byStatus consistent
@@ -148,8 +164,119 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
     if (parsed.data.feeStatus !== undefined) {
       app.feeStatus = parsed.data.feeStatus;
     }
+    if (parsed.data.interviewAt !== undefined) {
+      app.interviewAt =
+        parsed.data.interviewAt === null
+          ? null
+          : new Date(parsed.data.interviewAt);
+      if (parsed.data.interviewAt === null) {
+        app.interviewEndsAt = null;
+      }
+    }
+    if (parsed.data.interviewEndsAt !== undefined) {
+      app.interviewEndsAt =
+        parsed.data.interviewEndsAt === null
+          ? null
+          : new Date(parsed.data.interviewEndsAt);
+    }
+
+    const afterInterviewStart = app.interviewAt
+      ? new Date(app.interviewAt).getTime()
+      : null;
+    const afterInterviewEnd = app.interviewEndsAt
+      ? new Date(app.interviewEndsAt).getTime()
+      : null;
+    const interviewFieldsTouched =
+      parsed.data.interviewAt !== undefined ||
+      parsed.data.interviewEndsAt !== undefined;
+    const interviewChanged =
+      interviewFieldsTouched &&
+      (beforeInterviewStart !== afterInterviewStart ||
+        beforeInterviewEnd !== afterInterviewEnd);
+    const statusChanged = Boolean(
+      parsed.data.status && parsed.data.status !== previousStatus
+    );
+    const notifyApplicant = parsed.data.notifyApplicant !== false;
 
     await app.save();
+
+    if (notifyApplicant) {
+      const school = await School.findById(ctx.schoolId).select("name").lean<{
+        name?: string;
+      } | null>();
+      const schoolName = school?.name ?? "Your school";
+      const emailCtx = {
+        schoolId: String(ctx.schoolId),
+        schoolName,
+        actorId: String(ctx.userId),
+        actorRole: (ctx.isAdmin ? "school_admin" : "admissions_officer") as
+          | "school_admin"
+          | "admissions_officer",
+      };
+      try {
+        if (statusChanged && parsed.data.status) {
+          await sendAdmissionStatusUpdateEmail({
+            applicationId: String(app._id),
+            referenceCode: app.referenceCode,
+            guardian: app.guardian,
+            trackerToken: app.tracker.token,
+            fromStatus: previousStatus,
+            toStatus: parsed.data.status,
+            interviewAt: app.interviewAt ?? null,
+            interviewEndsAt: app.interviewEndsAt ?? null,
+            ctx: emailCtx,
+          });
+          await AdmissionEvent.create({
+            schoolId: ctx.schoolId,
+            cycleId: app.cycleId,
+            applicationId: app._id,
+            actor: {
+              userId: ctx.userId,
+              role: ctx.isAdmin ? "school_admin" : "admissions_officer",
+              label: "Admissions reviewer",
+            },
+            kind: "application.email_sent",
+            metadata: {
+              type: "status_update",
+              to: app.guardian.email,
+            },
+            at: new Date(),
+          });
+        } else if (
+          interviewChanged &&
+          app.interviewAt &&
+          !statusChanged
+        ) {
+          await sendAdmissionInterviewScheduledEmail({
+            applicationId: String(app._id),
+            referenceCode: app.referenceCode,
+            guardian: app.guardian,
+            trackerToken: app.tracker.token,
+            interviewAt: app.interviewAt,
+            interviewEndsAt: app.interviewEndsAt ?? null,
+            ctx: emailCtx,
+          });
+          await AdmissionEvent.create({
+            schoolId: ctx.schoolId,
+            cycleId: app.cycleId,
+            applicationId: app._id,
+            actor: {
+              userId: ctx.userId,
+              role: ctx.isAdmin ? "school_admin" : "admissions_officer",
+              label: "Admissions reviewer",
+            },
+            kind: "application.email_sent",
+            metadata: {
+              type: "interview_scheduled",
+              to: app.guardian.email,
+            },
+            at: new Date(),
+          });
+        }
+      } catch (err) {
+        console.error("Admission applicant notification email failed:", err);
+      }
+    }
 
     if (parsed.data.status && parsed.data.status !== previousStatus) {
       await AdmissionEvent.create({

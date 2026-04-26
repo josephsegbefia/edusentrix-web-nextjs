@@ -43,6 +43,9 @@ import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import CreateStudentModal from "@/components/modals/CreateStudentModal";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import type { CreateStudentInput } from "@/schemas/student";
+import { useQueryClient } from "@tanstack/react-query";
+import EditStudentProfileForm from "@/components/modals/EditStudentProfileForm";
+import AssignStudentClassForm from "@/components/modals/AssignStudentClassForm";
 
 function getInitialTab(sp: URLSearchParams): StudentsTabId {
   const tab = sp.get("tab");
@@ -66,6 +69,7 @@ function getInitialView(sp: URLSearchParams): StudentsViewMode {
 export default function StudentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const [tab, setTab] = React.useState<StudentsTabId>(() =>
     getInitialTab(searchParams)
@@ -86,6 +90,12 @@ export default function StudentsPage() {
   const [importOpen, setImportOpen] = React.useState(false);
   const [showCreateStudent, setShowCreateStudent] = React.useState(false);
   const [creatingStudent, setCreatingStudent] = React.useState(false);
+  const [editStudentId, setEditStudentId] = React.useState<string | null>(
+    null
+  );
+  const [assignClassStudentIds, setAssignClassStudentIds] = React.useState<
+    string[] | null
+  >(null);
   const [advancedFilters, setAdvancedFilters] = React.useState<StudentsFilters>(
     () => {
       const g = searchParams.get("gradeId");
@@ -260,8 +270,8 @@ export default function StudentsPage() {
   }
 
   function handleBulkAssignClass() {
-    void selectedIds;
-    notifyComingSoon("Bulk assign class");
+    if (!selectedIds.length) return;
+    setAssignClassStudentIds([...selectedIds]);
   }
 
   function handleBulkSendMessage() {
@@ -652,14 +662,8 @@ export default function StudentsPage() {
                   onView={(id) => {
                     router.push(`/admin/students/${id}`);
                   }}
-                  onEdit={(id) => {
-                    void id;
-                    notifyComingSoon("Edit student");
-                  }}
-                  onAssignClass={(id) => {
-                    void id;
-                    notifyComingSoon("Assign class");
-                  }}
+                  onEdit={(id) => setEditStudentId(id)}
+                  onAssignClass={(id) => setAssignClassStudentIds([id])}
                   onRecordPayment={(id) => {
                     void id;
                     notifyComingSoon("Record payment");
@@ -681,14 +685,8 @@ export default function StudentsPage() {
                   onView={(id) => {
                     router.push(`/admin/students/${id}`);
                   }}
-                  onEdit={(id) => {
-                    void id;
-                    notifyComingSoon("Edit student");
-                  }}
-                  onAssignClass={(id) => {
-                    void id;
-                    notifyComingSoon("Assign class");
-                  }}
+                  onEdit={(id) => setEditStudentId(id)}
+                  onAssignClass={(id) => setAssignClassStudentIds([id])}
                   onRecordPayment={(id) => {
                     void id;
                     notifyComingSoon("Record payment");
@@ -759,6 +757,53 @@ export default function StudentsPage() {
           onSubmit={handleCreateStudentSubmit}
           isLoading={creatingStudent}
         />
+      </ResponsiveModal>
+
+      <ResponsiveModal
+        open={editStudentId !== null}
+        onClose={() => setEditStudentId(null)}
+        title="Edit student"
+      >
+        {editStudentId ? (
+          <EditStudentProfileForm
+            studentId={editStudentId}
+            onClose={() => setEditStudentId(null)}
+            onSaved={() => {
+              void queryClient.invalidateQueries({ queryKey: ["students"] });
+              void queryClient.invalidateQueries({
+                queryKey: ["admin-student-detail", editStudentId],
+              });
+            }}
+          />
+        ) : null}
+      </ResponsiveModal>
+
+      <ResponsiveModal
+        open={assignClassStudentIds !== null && assignClassStudentIds.length > 0}
+        onClose={() => setAssignClassStudentIds(null)}
+        title={
+          assignClassStudentIds && assignClassStudentIds.length > 1
+            ? `Assign class (${assignClassStudentIds.length} students)`
+            : "Assign class"
+        }
+        widthClass="max-w-lg"
+      >
+        {assignClassStudentIds && assignClassStudentIds.length > 0 ? (
+          <AssignStudentClassForm
+            key={assignClassStudentIds.join(",")}
+            studentIds={assignClassStudentIds}
+            onClose={() => setAssignClassStudentIds(null)}
+            onSaved={() => {
+              void queryClient.invalidateQueries({ queryKey: ["students"] });
+              for (const id of assignClassStudentIds) {
+                void queryClient.invalidateQueries({
+                  queryKey: ["admin-student-detail", id],
+                });
+              }
+              setSelectedIds([]);
+            }}
+          />
+        ) : null}
       </ResponsiveModal>
 
       {/* Import CSV Modal */}

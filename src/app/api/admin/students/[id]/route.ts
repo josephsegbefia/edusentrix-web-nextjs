@@ -13,6 +13,9 @@ import { Student } from "@/models/Student";
 import { Activity } from "@/models/Activity";
 import { Guardian } from "@/models/Guardian";
 import { Grade } from "@/models/Grade";
+import { ClassGroup } from "@/models/ClassGroup";
+import { PatchStudentProfileSchema } from "@/schemas/student";
+import type { IStudent } from "@/models/Student";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { TermResult } from "@/models/TermResult";
 import { Invoice } from "@/models/Invoice";
@@ -109,6 +112,120 @@ export async function GET(
           }
         : null,
     }));
+
+    const enrollmentRaw = (student.enrollmentDocuments ?? []) as Array<{
+      requirementId: string;
+      label: string;
+      fileUrl: string;
+      fileName?: string | null;
+      mimeType?: string | null;
+      uploadedAt?: Date | string | null;
+    }>;
+
+    const documentsFromEnrollment = enrollmentRaw.map((d, i) => {
+      const uploaded =
+        d.uploadedAt instanceof Date
+          ? d.uploadedAt
+          : d.uploadedAt
+            ? new Date(d.uploadedAt)
+            : null;
+      const mime = d.mimeType ?? "";
+      const typeLabel =
+        mime && mime.includes("/")
+          ? mime.split("/")[1] || "file"
+          : mime || "file";
+      const fallbackAt = enrolledAt ?? new Date();
+
+      return {
+        id: `admission:${d.requirementId}:${i}`,
+        name: (d.fileName && String(d.fileName).trim()) || d.label,
+        type: typeLabel,
+        uploadedAt: (uploaded ?? fallbackAt).toISOString(),
+        url: d.fileUrl,
+        source: "admissions" as const,
+      };
+    });
+
+    const STUDENT_RECORD_DOC_LABELS: Record<string, string> = {
+      report_card: "Report card",
+      medical: "Medical",
+      consent: "Consent / permission",
+      identification: "Identification",
+      disciplinary: "Disciplinary",
+      other: "Other",
+      parent_request: "Parent upload (requested)",
+    };
+
+    function labelStudentRecordDocType(slug: string): string {
+      return (
+        STUDENT_RECORD_DOC_LABELS[slug] ??
+        slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+      );
+    }
+
+    const recordsRaw = (student.recordDocuments ?? []) as Array<{
+      _id: mongoose.Types.ObjectId;
+      name: string;
+      type: string;
+      fileUrl: string;
+      uploadedAt?: Date | string | null;
+    }>;
+
+    const documentsFromRecords = recordsRaw.map((d) => {
+      const uploaded =
+        d.uploadedAt instanceof Date
+          ? d.uploadedAt
+          : d.uploadedAt
+            ? new Date(d.uploadedAt)
+            : new Date();
+      const isParentRequest = d.type === "parent_request";
+      return {
+        id: `record:${String(d._id)}`,
+        name: d.name,
+        type: labelStudentRecordDocType(d.type),
+        uploadedAt: uploaded.toISOString(),
+        url: d.fileUrl,
+        source: "school" as const,
+        recordOrigin: isParentRequest
+          ? ("parent_request" as const)
+          : ("staff" as const),
+      };
+    });
+
+    const documentsMerged = [
+      ...documentsFromEnrollment,
+      ...documentsFromRecords,
+    ].sort(
+      (a, b) =>
+        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    );
+
+    const parentDocumentRequestsRaw = (student.parentDocumentRequests ??
+      []) as Array<{
+      _id: mongoose.Types.ObjectId;
+      label: string;
+      message?: string | null;
+      fulfilledAt?: Date | null;
+      requestedAt?: Date | null;
+    }>;
+
+    const parentDocumentRequestsDto = [...parentDocumentRequestsRaw]
+      .sort(
+        (a, b) =>
+          new Date(b.requestedAt ?? 0).getTime() -
+          new Date(a.requestedAt ?? 0).getTime()
+      )
+      .map((r) => ({
+        id: String(r._id),
+        label: r.label,
+        message: r.message ?? null,
+        fulfilledAt: r.fulfilledAt
+          ? new Date(r.fulfilledAt).toISOString()
+          : null,
+        requestedAt: r.requestedAt
+          ? new Date(r.requestedAt).toISOString()
+          : new Date().toISOString(),
+      }));
 
     const dto = {
       id: student._id.toString(),
@@ -253,12 +370,8 @@ export async function GET(
         summary: string;
         recordedBy?: string;
       }[],
-      documents: [] as {
-        id: string;
-        name: string;
-        type: string;
-        uploadedAt: string;
-      }[],
+      documents: documentsMerged,
+      parentDocumentRequests: parentDocumentRequestsDto,
     };
 
     // ── Populate academicSummary from TermResult ──
@@ -526,12 +639,48 @@ export async function GET(
   }
 }
 
+function pickStudentAuditSnapshot(doc: {
+  firstName?: string;
+  middleName?: string | null;
+  lastName?: string;
+  admissionNo?: string | null;
+  sex?: string | null;
+  dateOfBirth?: Date | null;
+  photoUrl?: string | null;
+  status?: string;
+  enrolledAt?: Date | null;
+  gradeId?: unknown;
+  classGroupId?: unknown;
+  gesIndexNumber?: string | null;
+  gesSchoolCode?: string | null;
+}) {
+  return {
+    firstName: doc.firstName,
+    middleName: doc.middleName ?? null,
+    lastName: doc.lastName,
+    admissionNo: doc.admissionNo ?? null,
+    sex: doc.sex ?? null,
+    dateOfBirth: doc.dateOfBirth
+      ? new Date(doc.dateOfBirth).toISOString().slice(0, 10)
+      : null,
+    photoUrl: doc.photoUrl ?? null,
+    status: doc.status,
+    enrolledAt: doc.enrolledAt
+      ? new Date(doc.enrolledAt).toISOString().slice(0, 10)
+      : null,
+    gradeId: doc.gradeId ? String(doc.gradeId) : null,
+    classGroupId: doc.classGroupId ? String(doc.classGroupId) : null,
+    gesIndexNumber: doc.gesIndexNumber ?? null,
+    gesSchoolCode: doc.gesSchoolCode ?? null,
+  };
+}
+
 export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdmin();
     await connectToDatabase();
 
     const { id } = await ctx.params;
@@ -540,21 +689,59 @@ export async function PATCH(
       return new Response("Invalid student id", { status: 400 });
     }
 
-    const body = await req.json();
-    const updates: Record<string, unknown> = {};
-
-    if (typeof body.gesIndexNumber === "string" || body.gesIndexNumber === null) {
-      updates.gesIndexNumber = body.gesIndexNumber?.trim() || null;
+    const rawBody = await req.json();
+    const parsed = PatchStudentProfileSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return Response.json(
+        { success: false, error: parsed.error.flatten() },
+        { status: 400 }
+      );
     }
-    if (typeof body.gesSchoolCode === "string" || body.gesSchoolCode === null) {
-      updates.gesSchoolCode = body.gesSchoolCode?.trim() || null;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return new Response("No valid fields to update", { status: 400 });
-    }
+    const data = parsed.data;
 
     const studentObjId = new mongoose.Types.ObjectId(id);
+    const schoolIdObj =
+      schoolId instanceof mongoose.Types.ObjectId
+        ? schoolId
+        : new mongoose.Types.ObjectId(String(schoolId));
+
+    if (data.gradeId && data.classGroupId) {
+      const grade = await Grade.findOne({
+        _id: data.gradeId,
+        schoolId: schoolIdObj,
+        isActive: true,
+      }).lean();
+      if (!grade) {
+        return new Response("Grade not found or not active", { status: 400 });
+      }
+      const classGroup = await ClassGroup.findOne({
+        _id: data.classGroupId,
+        schoolId: schoolIdObj,
+        gradeId: data.gradeId,
+        isActive: true,
+      }).lean();
+      if (!classGroup) {
+        return new Response(
+          "Class group not found, not active, or does not match grade",
+          { status: 400 }
+        );
+      }
+    }
+
+    if (data.admissionNo !== undefined && data.admissionNo) {
+      const trimmed = data.admissionNo.trim();
+      const dup = await Student.findOne({
+        schoolId: schoolIdObj,
+        admissionNo: trimmed,
+        _id: { $ne: studentObjId },
+      })
+        .select("_id")
+        .lean();
+      if (dup) {
+        return new Response("Admission number already in use", { status: 400 });
+      }
+    }
+
     const academicsStreamKey = `school:${String(schoolId)}:academics`;
     const auditContext = buildSchoolUserAuditContext(req, {
       userId,
@@ -566,25 +753,66 @@ export async function PATCH(
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
-        const before = await Student.findOne({ _id: studentObjId, schoolId })
+        const beforeLean = await Student.findOne({
+          _id: studentObjId,
+          schoolId: schoolIdObj,
+        })
           .session(session)
-          .select("gesIndexNumber gesSchoolCode")
           .lean();
-        if (!before) {
+        if (!beforeLean) {
           throw new Error("STUDENT_NOT_FOUND");
         }
 
-        const afterDoc = await Student.findOneAndUpdate(
-          { _id: studentObjId, schoolId },
-          { $set: updates },
-          { new: true, session }
-        )
-          .select("gesIndexNumber gesSchoolCode")
-          .lean();
+        const before = pickStudentAuditSnapshot(beforeLean as IStudent);
 
-        if (!afterDoc) {
+        const student = await Student.findOne({
+          _id: studentObjId,
+          schoolId: schoolIdObj,
+        }).session(session);
+        if (!student) {
           throw new Error("STUDENT_NOT_FOUND");
         }
+
+        if (data.firstName !== undefined) student.firstName = data.firstName;
+        if (data.middleName !== undefined) {
+          student.middleName = data.middleName?.trim() || null;
+        }
+        if (data.lastName !== undefined) student.lastName = data.lastName;
+        if (data.admissionNo !== undefined) {
+          student.admissionNo = data.admissionNo?.trim() || null;
+        }
+        if (data.sex !== undefined) {
+          student.sex = data.sex ?? "male";
+        }
+        if (data.dateOfBirth !== undefined) {
+          student.dateOfBirth = data.dateOfBirth
+            ? new Date(data.dateOfBirth)
+            : null;
+        }
+        if (data.photoUrl !== undefined) {
+          const p = data.photoUrl;
+          student.photoUrl = !p || p === "" ? null : p;
+        }
+        if (data.status !== undefined) student.status = data.status;
+        if (data.enrolledAt !== undefined) {
+          student.enrolledAt = data.enrolledAt
+            ? new Date(data.enrolledAt)
+            : null;
+        }
+        if (data.gradeId !== undefined && data.classGroupId !== undefined) {
+          student.gradeId = new mongoose.Types.ObjectId(data.gradeId);
+          student.classGroupId = new mongoose.Types.ObjectId(data.classGroupId);
+        }
+        if (data.gesIndexNumber !== undefined) {
+          student.gesIndexNumber = data.gesIndexNumber?.trim() || null;
+        }
+        if (data.gesSchoolCode !== undefined) {
+          student.gesSchoolCode = data.gesSchoolCode?.trim() || null;
+        }
+
+        await student.save({ session });
+
+        const after = pickStudentAuditSnapshot(student.toObject() as IStudent);
 
         await writeTransactionalAuditEvent(session, {
           actionCode: "student.record.updated",
@@ -597,15 +825,9 @@ export async function PATCH(
           },
           context: auditContext,
           payload: {
-            before: {
-              gesIndexNumber: before.gesIndexNumber ?? null,
-              gesSchoolCode: before.gesSchoolCode ?? null,
-            },
-            after: {
-              gesIndexNumber: afterDoc.gesIndexNumber ?? null,
-              gesSchoolCode: afterDoc.gesSchoolCode ?? null,
-            },
-            metadata: { fields: Object.keys(updates) },
+            before,
+            after,
+            metadata: { fields: Object.keys(data) },
           },
           streamKey: academicsStreamKey,
         });
@@ -614,6 +836,21 @@ export async function PATCH(
       if (err instanceof Error && err.message === "STUDENT_NOT_FOUND") {
         return new Response("Student not found", { status: 404 });
       }
+      const msg = err instanceof Error ? err.message : String(err);
+      if (
+        msg.includes("admissionNo") ||
+        msg.includes("duplicate") ||
+        msg.includes("E11000")
+      ) {
+        return new Response("Admission number already in use", { status: 400 });
+      }
+      if (
+        msg.includes("ClassGroup") ||
+        msg.includes("Grade") ||
+        msg.includes("schoolId")
+      ) {
+        return new Response(msg, { status: 400 });
+      }
       throw err;
     } finally {
       await session.endSession();
@@ -621,6 +858,7 @@ export async function PATCH(
 
     return Response.json({ success: true });
   } catch (error: unknown) {
+    if (error instanceof Response) return error;
     console.error("Failed to update student:", error);
     const message =
       error instanceof Error ? error.message : "Failed to update student";

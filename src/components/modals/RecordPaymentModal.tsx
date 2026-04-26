@@ -25,6 +25,34 @@ import {
 } from "@/components/ui/select";
 import { formatMoney, formatCurrencyFromMajor, toMajorUnits } from "@/lib/fees/money";
 
+/** Display copy only — API / schema still use the value keys (e.g. `paystack`). */
+const RECORD_PAYMENT_METHOD_ORDER = [
+  "cash",
+  "mobile_money",
+  "bank_transfer",
+  "paystack",
+  "cheque",
+  "other",
+] as const satisfies readonly CreatePaymentInput["paymentMethod"][];
+
+const PAYMENT_METHOD_UI: Record<
+  CreatePaymentInput["paymentMethod"],
+  { title: string; subtitle?: string }
+> = {
+  cash: { title: "Cash" },
+  mobile_money: {
+    title: "Mobile money",
+    subtitle: "Direct MoMo (MTN, Vodafone, etc.)",
+  },
+  bank_transfer: {
+    title: "Bank transfer",
+    subtitle: "Deposit or wire to school account",
+  },
+  paystack: { title: "Card" },
+  cheque: { title: "Cheque" },
+  other: { title: "Other" },
+};
+
 type Props = {
   onClose: () => void;
   onSubmit: (payload: CreatePaymentInput) => Promise<void>;
@@ -312,32 +340,52 @@ export default function RecordPaymentModal({
                 <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                   Payment Method *
                 </Label>
+                <p className="text-[11px] leading-snug text-white/45">
+                  Choose how the family paid.{" "}
+                  <span className="text-white/55">
+                    &quot;Mobile money&quot; is a direct wallet transfer. &quot;Card&quot; is when they
+                    paid through your online checkout (card, USSD, or mobile money).
+                  </span>
+                </p>
                 <Controller
                   name="paymentMethod"
                   control={control}
                   render={({ field }) => (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {(["cash", "bank_transfer", "mobile_money", "paystack", "cheque", "other"] as const).map((method) => (
-                        <motion.label
-                          key={method}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium transition-all cursor-pointer ${
-                            field.value === method
-                              ? "border-brand bg-brand/20 text-brand"
-                              : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            value={method}
-                            checked={field.value === method}
-                            onChange={() => field.onChange(method)}
-                            className="sr-only"
-                          />
-                          <span className="capitalize">{method.replace("_", " ")}</span>
-                        </motion.label>
-                      ))}
+                      {RECORD_PAYMENT_METHOD_ORDER.map((method) => {
+                        const copy = PAYMENT_METHOD_UI[method];
+                        const selected = field.value === method;
+                        return (
+                          <motion.label
+                            key={method}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`flex flex-1 cursor-pointer flex-col items-stretch rounded-lg border px-3 py-3 text-sm font-medium transition-all ${
+                              selected
+                                ? "border-brand bg-brand/20 text-brand"
+                                : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white/90"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              value={method}
+                              checked={selected}
+                              onChange={() => field.onChange(method)}
+                              className="sr-only"
+                            />
+                            <span className="text-center leading-tight">{copy.title}</span>
+                            {copy.subtitle ? (
+                              <span
+                                className={`mt-1 text-center text-[10px] font-normal leading-snug ${
+                                  selected ? "text-brand/80" : "text-white/40"
+                                }`}
+                              >
+                                {copy.subtitle}
+                              </span>
+                            ) : null}
+                          </motion.label>
+                        );
+                      })}
                     </div>
                   )}
                 />
@@ -555,9 +603,14 @@ export default function RecordPaymentModal({
                   <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
                     Payment Method
                   </p>
-                  <p className="text-sm text-white capitalize">
-                    {paymentMethod.replace("_", " ")}
+                  <p className="text-sm text-white">
+                    {PAYMENT_METHOD_UI[paymentMethod].title}
                   </p>
+                  {PAYMENT_METHOD_UI[paymentMethod].subtitle ? (
+                    <p className="text-xs text-white/50">
+                      {PAYMENT_METHOD_UI[paymentMethod].subtitle}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">

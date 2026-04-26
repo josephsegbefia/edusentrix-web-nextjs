@@ -85,4 +85,8 @@ export type PublicApplicationDTO = {
     instructions: string | null;
     paidAt: string | null;
   };
+  /** When the school schedules an interview / assessment (ISO). */
+  interviewAt: string | null;
+  /** Optional end time for the same slot (ISO). */
+  interviewEndsAt?: string | null;
 };

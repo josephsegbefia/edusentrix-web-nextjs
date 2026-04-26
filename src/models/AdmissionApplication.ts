@@ -102,6 +102,16 @@ export interface IAdmissionApplicationFeePayment {
   paystackMeta?: Record<string, unknown> | null;
 }
 
+export interface IAdmissionSupplementalDocumentRequest {
+  _id?: Types.ObjectId;
+  token: string;
+  label: string;
+  message?: string | null;
+  requestedAt: Date;
+  requestedBy?: Types.ObjectId | null;
+  fulfilledAt?: Date | null;
+}
+
 export interface IAdmissionApplication {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
@@ -124,6 +134,11 @@ export interface IAdmissionApplication {
   feeStatus: AdmissionFeeStatus;
   feePayment?: IAdmissionApplicationFeePayment | null;
   notesPrivate?: string | null;
+  /** Interview / assessment start (local wall time stored as absolute instant). */
+  interviewAt?: Date | null;
+  /** Optional end time on the same day (or later if you span midnight). */
+  interviewEndsAt?: Date | null;
+  supplementalDocumentRequests?: IAdmissionSupplementalDocumentRequest[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -232,6 +247,19 @@ const feePaymentSchema = new Schema<IAdmissionApplicationFeePayment>(
   { _id: false }
 );
 
+const supplementalDocumentRequestSchema =
+  new Schema<IAdmissionSupplementalDocumentRequest>(
+    {
+      token: { type: String, required: true },
+      label: { type: String, required: true },
+      message: { type: String, default: null },
+      requestedAt: { type: Date, default: () => new Date() },
+      requestedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+      fulfilledAt: { type: Date, default: null },
+    },
+    { _id: true }
+  );
+
 const admissionApplicationSchema = new Schema<IAdmissionApplication>(
   {
     schoolId: {
@@ -277,6 +305,12 @@ const admissionApplicationSchema = new Schema<IAdmissionApplication>(
     },
     feePayment: { type: feePaymentSchema, default: null },
     notesPrivate: { type: String, default: null },
+    interviewAt: { type: Date, default: null },
+    interviewEndsAt: { type: Date, default: null },
+    supplementalDocumentRequests: {
+      type: [supplementalDocumentRequestSchema],
+      default: [],
+    },
   },
   { timestamps: true }
 );
@@ -289,6 +323,10 @@ admissionApplicationSchema.index({ schoolId: 1, cycleId: 1, status: 1 });
 admissionApplicationSchema.index({ schoolId: 1, cycleId: 1, createdAt: -1 });
 admissionApplicationSchema.index({ "guardian.email": 1, schoolId: 1 });
 admissionApplicationSchema.index({ "feePayment.reference": 1 }, { sparse: true });
+admissionApplicationSchema.index(
+  { "supplementalDocumentRequests.token": 1 },
+  { unique: true, sparse: true }
+);
 
 export const AdmissionApplication: Model<IAdmissionApplication> =
   (models.AdmissionApplication as Model<IAdmissionApplication>) ||

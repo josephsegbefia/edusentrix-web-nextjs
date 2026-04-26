@@ -108,6 +108,12 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
           ? new Date(application.feePayment.paidAt).toISOString()
           : null,
       },
+      interviewAt: application.interviewAt
+        ? new Date(application.interviewAt).toISOString()
+        : null,
+      interviewEndsAt: application.interviewEndsAt
+        ? new Date(application.interviewEndsAt).toISOString()
+        : null,
     };
 
     return NextResponse.json({ success: true, data: dto });

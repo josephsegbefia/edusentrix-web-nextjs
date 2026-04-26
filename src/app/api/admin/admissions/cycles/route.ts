@@ -11,6 +11,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionForm } from "@/models/AdmissionForm";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
+import { School } from "@/models/School";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { CreateAdmissionCycleSchema } from "@/schemas/admissions";
 import {
@@ -100,6 +101,19 @@ export async function POST(req: NextRequest) {
         }
       })
       .filter(Boolean) as mongoose.Types.ObjectId[];
+
+    if (input.templateId === "standard_shs") {
+      const school = await School.findById(schoolId).select({ type: 1 }).lean();
+      if (school?.type !== "SHS") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "The SHS admissions template is only available to SHS schools.",
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     const template = getAdmissionCycleTemplate(input.templateId ?? null);
     const seededBranding = {

@@ -6,6 +6,7 @@ import {
   Layers3,
   ShieldCheck,
 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAdmissionCycles } from "@/hooks/admissions/useAdmissionCycles";
 import { useAdmissionDelegate } from "@/hooks/admissions/useAdmissionDelegate";
@@ -44,6 +45,12 @@ const TABS: Array<{
 ];
 
 export function AdmissionsWorkspace({ isAdmin }: AdmissionsWorkspaceProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const admissionsBase = pathname.startsWith("/teacher")
+    ? "/teacher/admissions"
+    : "/admin/admissions";
+
   const cyclesQuery = useAdmissionCycles();
   const delegateQuery = useAdmissionDelegate();
   const cycles = cyclesQuery.data?.data ?? [];
@@ -55,13 +62,12 @@ export function AdmissionsWorkspace({ isAdmin }: AdmissionsWorkspaceProps) {
 
   const visibleTabs = TABS.filter((tab) => isAdmin || !tab.adminOnly);
 
-  const handleOpenCycle = React.useCallback((_cycle: AdmissionCycleDTO) => {
-    // Phase 1 focuses on cycle creation + delegation. Phase 2 will route to a
-    // dedicated cycle detail page (/admin/admissions/[cycleId]).
-    if (typeof window !== "undefined") {
-      window.location.assign(`/admin/admissions/${_cycle.id}`);
-    }
-  }, []);
+  const handleOpenCycle = React.useCallback(
+    (_cycle: AdmissionCycleDTO) => {
+      router.push(`${admissionsBase}/${_cycle.id}`);
+    },
+    [admissionsBase, router]
+  );
 
   return (
     <div className="space-y-8 pb-10">

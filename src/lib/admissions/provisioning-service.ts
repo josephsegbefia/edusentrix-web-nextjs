@@ -17,7 +17,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
-import { Student } from "@/models/Student";
+import { Student, type IStudentEnrollmentDocument } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
@@ -65,6 +65,75 @@ export type ProvisionApplicationResult = {
   invitedParent: boolean;
   alreadyProvisioned: boolean;
 };
+
+/** Matches default form seed (`src/lib/admissions/defaults.ts`). */
+const DEFAULT_PASSPORT_PHOTO_REQUIREMENT_ID = "doc_passport_photo";
+
+function isHttpUrl(value: string | null | undefined): boolean {
+  if (!value || typeof value !== "string") return false;
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isLikelyPassportPhotoDocument(doc: {
+  requirementId: string;
+  label: string;
+}): boolean {
+  const rid = doc.requirementId.toLowerCase();
+  const lab = doc.label.toLowerCase();
+  if (rid === DEFAULT_PASSPORT_PHOTO_REQUIREMENT_ID) return true;
+  if (rid.includes("passport") && rid.includes("photo")) return true;
+  if (lab.includes("passport") && (lab.includes("photo") || lab.includes("photograph")))
+    return true;
+  if (lab.includes("passport-sized") || lab.includes("passport size")) return true;
+  return false;
+}
+
+function resolveProvisioningPhotoUrl(application: {
+  applicant: { photoUrl?: string | null };
+  documents?: Array<{
+    requirementId: string;
+    label: string;
+    fileUrl: string;
+  }>;
+}): string | null {
+  if (isHttpUrl(application.applicant?.photoUrl ?? undefined)) {
+    return String(application.applicant!.photoUrl!).trim();
+  }
+  const docs = application.documents ?? [];
+  const passport = docs.find(
+    (d) => isLikelyPassportPhotoDocument(d) && isHttpUrl(d.fileUrl)
+  );
+  return passport?.fileUrl?.trim() ?? null;
+}
+
+function enrollmentDocumentsFromAdmissionApplication(
+  documents: Array<{
+    requirementId: string;
+    label: string;
+    fileUrl: string;
+    fileName?: string;
+    sizeBytes?: number;
+    mimeType?: string;
+    uploadedAt?: Date;
+  }>
+): IStudentEnrollmentDocument[] {
+  return documents
+    .filter((d) => isHttpUrl(d.fileUrl))
+    .map((d) => ({
+      requirementId: d.requirementId,
+      label: d.label,
+      fileUrl: d.fileUrl.trim(),
+      fileName: d.fileName ?? null,
+      mimeType: d.mimeType ?? null,
+      sizeBytes: d.sizeBytes ?? null,
+      uploadedAt: d.uploadedAt ?? null,
+    }));
+}
 
 const RELATIONSHIP_VALUES = new Set([
   "mother",
@@ -334,9 +403,18 @@ export async function provisionApplication(
     targetClassGroupId = picked.id;
   }
 
-  // 1. Create the Student row.
+  // 1. Create the Student row (photo + files from the application).
+  const enrollmentDocuments = enrollmentDocumentsFromAdmissionApplication(
+    application.documents ?? []
+  );
+  const photoUrl = resolveProvisioningPhotoUrl({
+    applicant: application.applicant,
+    documents: application.documents ?? [],
+  });
+
   const student = new Student({
     schoolId: input.schoolId,
+    admissionApplicationId: application._id as Types.ObjectId,
     firstName: application.applicant.firstName,
     lastName: application.applicant.lastName,
     middleName: null,
@@ -344,7 +422,9 @@ export async function provisionApplication(
     classGroupId: targetClassGroupId,
     sex: application.applicant.sex ?? "male",
     dateOfBirth: application.applicant.dateOfBirth ?? null,
-    photoUrl: application.applicant.photoUrl ?? null,
+    photoUrl,
+    enrollmentDocuments:
+      enrollmentDocuments.length > 0 ? enrollmentDocuments : undefined,
     status: "active",
     enrolledAt: new Date(),
   });

@@ -22,6 +22,7 @@ type DocumentUploaderProps = {
 
 type DocumentEndpoint =
   | "teacherDocument"
+  | "studentRecordDocument"
   | "expenseReceipt"
   | "assignmentAttachment"
   | "submissionAttachment"
@@ -30,6 +31,7 @@ type DocumentEndpoint =
 function endpointForCategory(category: string): DocumentEndpoint {
   const normalized = (category || "").toLowerCase().trim();
 
+  if (normalized.includes("student")) return "studentRecordDocument";
   if (normalized.includes("teacher")) return "teacherDocument";
   if (normalized.includes("expense") || normalized.includes("receipt")) {
     return "expenseReceipt";

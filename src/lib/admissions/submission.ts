@@ -18,6 +18,7 @@ export type SubmissionInput = {
   /** Optional documents already uploaded; keyed by requirement id. */
   documents?: Array<{
     requirementId: string;
+    label?: string;
     fileUrl: string;
     fileName?: string;
     sizeBytes?: number;

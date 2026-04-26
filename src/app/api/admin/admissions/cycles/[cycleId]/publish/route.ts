@@ -55,17 +55,6 @@ export async function POST(
       );
     }
 
-    if (cycle.intakeGradeIds.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Add at least one grade to this cycle before publishing it.",
-        },
-        { status: 400 }
-      );
-    }
-
     const userId = toObjectId(ctx.userId);
     const wasFirstPublish = !cycle.publishedAt;
     cycle.status = "published";

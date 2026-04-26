@@ -785,7 +785,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
               <PremiumSelectTrigger className="w-full">
                 <PremiumSelectValue placeholder="Naming pattern" />
               </PremiumSelectTrigger>
-              <PremiumSelectContent className="z-[300]">
+              <PremiumSelectContent className="z-300">
                 <PremiumSelectItem value="letters">
                   <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
                     <span className="min-w-0 flex-1 truncate">
@@ -1021,7 +1021,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
               <PremiumSelectTrigger className="w-full">
                 <PremiumSelectValue placeholder="How to assign subjects" />
               </PremiumSelectTrigger>
-              <PremiumSelectContent className="z-[300]">
+              <PremiumSelectContent className="z-300">
                 <PremiumSelectItem value="all">
                   <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
                     <span className="min-w-0 flex-1 truncate">
@@ -1108,7 +1108,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                   <PremiumSelectTrigger className="w-full">
                     <PremiumSelectValue placeholder="Choose grade" />
                   </PremiumSelectTrigger>
-                  <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
+                  <PremiumSelectContent className="z-300 max-h-72 overflow-y-auto">
                     {selectedGradesOrdered.map((g) => (
                       <PremiumSelectItem key={g._id} value={g._id}>
                         <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
@@ -1146,7 +1146,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
             </div>
           ) : null}
 
-          <div className="space-y-2 rounded-lg border border-violet-500/20 bg-violet-500/[0.06] p-3">
+          <div className="space-y-2 rounded-lg border border-violet-500/20 bg-violet-500/6 p-3">
             <SelectLabelRow
               label="Quick add subject"
               hint={
@@ -1198,7 +1198,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                 <PremiumSelectTrigger className="w-full">
                   <PremiumSelectValue placeholder="Category" />
                 </PremiumSelectTrigger>
-                <PremiumSelectContent className="z-[300]">
+                <PremiumSelectContent className="z-300">
                   <PremiumSelectItem value="__none__">
                     <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
                       <span className="min-w-0 flex-1 truncate">No category</span>
@@ -1310,7 +1310,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
             <div className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
               <div className="max-h-72 overflow-auto">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 z-[1] bg-white/10 backdrop-blur-sm">
+                  <thead className="sticky top-0 z-1 bg-white/10 backdrop-blur-sm">
                     <tr className="border-b border-white/10">
                       <th className="p-2 text-left text-[10px] font-medium uppercase tracking-wider text-white/55">
                         Grade
@@ -1374,10 +1374,10 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                                 }));
                               }}
                             >
-                              <PremiumSelectTrigger className="h-9 min-w-[7rem] text-xs">
+                              <PremiumSelectTrigger className="h-9 min-w-28 text-xs">
                                 <PremiumSelectValue />
                               </PremiumSelectTrigger>
-                              <PremiumSelectContent className="z-[300]">
+                              <PremiumSelectContent className="z-300">
                                 <PremiumSelectItem value="letters">
                                   <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
                                     <span className="min-w-0 flex-1 truncate">
@@ -1471,7 +1471,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                   <PremiumSelectTrigger className="w-full">
                     <PremiumSelectValue placeholder="Grade" />
                   </PremiumSelectTrigger>
-                  <PremiumSelectContent className="z-[300] max-h-72 overflow-y-auto">
+                  <PremiumSelectContent className="z-300 max-h-72 overflow-y-auto">
                     {draft.gradeConfigs.map((gc) => {
                       const gname = gradeMap.get(gc.gradeId) ?? gc.gradeId;
                       return (
@@ -1566,7 +1566,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
               <PremiumSelectTrigger className="w-full">
                 <PremiumSelectValue placeholder="Capacity mode" />
               </PremiumSelectTrigger>
-              <PremiumSelectContent className="z-[300]">
+              <PremiumSelectContent className="z-300">
                 <PremiumSelectItem value="uniform">
                   <span className="flex w-full min-w-0 items-center gap-2 pr-0.5">
                     <span className="min-w-0 flex-1 truncate">
@@ -1605,7 +1605,7 @@ export function CreateClassGroupsModal({ onClose }: Props) {
                   value={capacity}
                   onChange={(e) => setCapacity(e.target.value)}
                   placeholder="e.g. 35 — leave empty for no limit"
-                  className="min-w-[10rem] flex-1 border border-white/10 bg-white/5 text-white"
+                  className="min-w-40 flex-1 border border-white/10 bg-white/5 text-white"
                 />
                 {capacityMode === "custom" ? (
                   <Button

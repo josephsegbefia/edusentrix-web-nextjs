@@ -61,6 +61,16 @@ export type AdmissionApplicationDetailDTO = AdmissionApplicationListItemDTO & {
   notesPrivate: string | null;
   inviteCode: string | null;
   referrer: string | null;
+  interviewAt: string | null;
+  interviewEndsAt: string | null;
+  supplementalDocumentRequests: Array<{
+    id: string;
+    token: string;
+    label: string;
+    message: string | null;
+    requestedAt: string;
+    fulfilledAt: string | null;
+  }>;
 };
 
 export function serializeApplicationListItem(
@@ -147,5 +157,23 @@ export function serializeApplicationDetail(
     notesPrivate: app.notesPrivate ?? null,
     inviteCode: app.inviteCode ?? null,
     referrer: app.referrer ?? null,
+    interviewAt: app.interviewAt
+      ? new Date(app.interviewAt).toISOString()
+      : null,
+    interviewEndsAt: app.interviewEndsAt
+      ? new Date(app.interviewEndsAt).toISOString()
+      : null,
+    supplementalDocumentRequests: (app.supplementalDocumentRequests ?? []).map(
+      (r) => ({
+        id: r._id ? String(r._id) : r.token,
+        token: r.token,
+        label: r.label,
+        message: r.message ?? null,
+        requestedAt: new Date(r.requestedAt).toISOString(),
+        fulfilledAt: r.fulfilledAt
+          ? new Date(r.fulfilledAt).toISOString()
+          : null,
+      })
+    ),
   };
 }

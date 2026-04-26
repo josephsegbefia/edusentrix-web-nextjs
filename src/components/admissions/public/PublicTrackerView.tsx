@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -18,8 +20,10 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns/format";
 import type { PublicApplicationDTO } from "@/lib/admissions/public-shape";
+import { formatAdmissionInterviewRange } from "@/lib/admissions/interview-display";
 import { toast } from "sonner";
 
 const STATUS_LABELS: Record<PublicApplicationDTO["status"], string> = {
@@ -34,25 +38,26 @@ const STATUS_LABELS: Record<PublicApplicationDTO["status"], string> = {
 };
 
 const STATUS_TONE: Record<PublicApplicationDTO["status"], string> = {
-  submitted: "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30",
+  submitted: "border-blue-400/30 bg-blue-500/15 text-blue-200",
   under_review:
-    "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30",
+    "border-amber-400/30 bg-amber-500/15 text-amber-200",
   interview_scheduled:
-    "bg-violet-500/15 text-violet-600 dark:text-violet-300 border-violet-500/30",
+    "border-violet-400/30 bg-violet-500/15 text-violet-200",
   accepted:
-    "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
-  rejected: "bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30",
+    "border-emerald-400/30 bg-emerald-500/15 text-emerald-200",
+  rejected: "border-rose-400/30 bg-rose-500/15 text-rose-200",
   waitlisted:
-    "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30",
+    "border-amber-400/30 bg-amber-500/15 text-amber-200",
   withdrawn:
-    "bg-muted text-muted-foreground border-border/60",
-  expired: "bg-muted text-muted-foreground border-border/60",
+    "border-white/10 bg-white/5 text-white/55",
+  expired: "border-white/10 bg-white/5 text-white/55",
 };
 
 export function PublicTrackerView({ token }: { token: string }) {
   const search = useSearchParams();
   const justSubmitted = search?.get("just_submitted") === "1";
   const feeQuery = search?.get("fee");
+  const focusSection = search?.get("focus");
   const [data, setData] = React.useState<PublicApplicationDTO | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -79,6 +84,14 @@ export function PublicTrackerView({ token }: { token: string }) {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  React.useEffect(() => {
+    if (!data || focusSection !== "fee") return;
+    const el = document.getElementById("admissions-application-fee");
+    window.requestAnimationFrame(() => {
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [data, focusSection]);
 
   // When the user is redirected back from Paystack we kick off a verify so
   // the UI updates without waiting for the webhook.
@@ -125,8 +138,8 @@ export function PublicTrackerView({ token }: { token: string }) {
 
   if (loading) {
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4">
-        <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex min-h-screen items-center justify-center bg-[#080b12] px-4 text-white">
+        <div className="flex flex-col items-center gap-2 text-sm text-white/55">
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading your application…
         </div>
@@ -136,14 +149,14 @@ export function PublicTrackerView({ token }: { token: string }) {
 
   if (error || !data) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16">
-        <Card>
+      <div className="min-h-screen bg-[#080b12] px-4 py-16 text-white">
+        <Card className="mx-auto max-w-md border-white/10 bg-linear-to-br from-white/10 to-transparent shadow-2xl shadow-black/30 backdrop-blur">
           <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
             <XCircle className="h-7 w-7 text-rose-500" />
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-white">
               We could not find that application
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/55">
               {error ??
                 "Double-check the link, or contact the school for help."}
             </p>
@@ -157,89 +170,108 @@ export function PublicTrackerView({ token }: { token: string }) {
   const statusTone = STATUS_TONE[data.status];
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:py-12">
-      {justSubmitted ? (
-        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-200">
-          <PartyPopper className="mt-0.5 h-5 w-5" />
-          <div>
-            <p className="font-semibold">Your application was submitted!</p>
-            <p className="text-xs opacity-90">
-              Bookmark this page or save the URL — it is your private tracker.
-            </p>
+    <div className="min-h-screen bg-[#080b12] px-4 py-6 text-white sm:py-10">
+      <div className="mx-auto w-full max-w-5xl space-y-6">
+        {justSubmitted ? (
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-4 text-sm text-emerald-100 shadow-lg shadow-black/20">
+            <PartyPopper className="mt-0.5 h-5 w-5" />
+            <div>
+              <p className="font-semibold">Your application was submitted!</p>
+              <p className="text-xs text-emerald-100/80">
+                Bookmark this page or save the URL. It is your private tracker.
+              </p>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      <Card>
-        <CardContent className="space-y-5 p-6 sm:p-8">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {data.cycle.schoolName}
-            </p>
-            <h1 className="text-2xl font-semibold text-foreground">
-              {data.cycle.name}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Application reference{" "}
-              <span className="font-mono font-semibold text-foreground">
-                {data.referenceCode}
-              </span>
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
+        <header className="overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-white/10 via-white/5 to-transparent p-5 shadow-2xl shadow-black/30 backdrop-blur sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-200/80">
+                {data.cycle.schoolName} · Admissions tracker
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                {data.cycle.name}
+              </h1>
+              <p className="mt-2 text-sm text-white/55">
+                Reference{" "}
+                <span className="font-mono font-semibold text-white">
+                  {data.referenceCode}
+                </span>
+              </p>
+            </div>
             <Badge className={`${statusTone} border px-3 py-1 text-xs`}>
               {statusLabel}
             </Badge>
+          </div>
+        </header>
+
+        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <CardContent className="space-y-5 p-5 sm:p-7">
             {data.submittedAt ? (
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-1.5 text-xs text-white/45">
+                <Clock className="h-3.5 w-3.5 text-white/35" />
                 Submitted{" "}
                 {format(new Date(data.submittedAt), "MMM d, yyyy 'at' p")}
-              </span>
+              </div>
             ) : null}
-          </div>
 
-          <div className="grid gap-3 rounded-2xl border border-border/60 bg-muted/40 p-4 sm:grid-cols-2">
+          <div className="grid gap-3 rounded-2xl border border-white/10 bg-black/20 p-4 sm:grid-cols-2">
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">
                 Applicant
               </p>
-              <p className="mt-0.5 text-sm font-medium text-foreground">
+              <p className="mt-1 text-sm font-medium text-white">
                 {data.applicant.firstName} {data.applicant.lastName}
               </p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/35">
                 Applying for
               </p>
-              <p className="mt-0.5 text-sm font-medium text-foreground">
+              <p className="mt-1 text-sm font-medium text-white">
                 {data.applicant.intendedGradeName ?? "—"}
               </p>
             </div>
           </div>
 
-          <FeePaymentCard data={data} token={token} />
+          <div id="admissions-application-fee">
+            <FeePaymentCard data={data} token={token} />
+          </div>
+
+          {data.interviewAt ? (
+            <div className="rounded-2xl border border-violet-500/25 bg-violet-500/10 p-4 text-sm text-white">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-200/90">
+                Interview / assessment
+              </p>
+              <p className="mt-1 font-medium">
+                {formatAdmissionInterviewRange(
+                  new Date(data.interviewAt),
+                  data.interviewEndsAt ? new Date(data.interviewEndsAt) : null
+                )}
+              </p>
+            </div>
+          ) : null}
 
           {data.missingDocuments.length > 0 ? (
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-500" />
-                <div className="text-sm text-foreground">
+                <div className="text-sm text-white">
                   <p className="font-medium">Documents still needed</p>
-                  <ul className="mt-1.5 list-disc pl-5 text-xs text-muted-foreground">
+                  <ul className="mt-1.5 list-disc pl-5 text-xs text-white/55">
                     {data.missingDocuments.map((d) => (
                       <li key={d.id}>{d.label}</li>
                     ))}
                   </ul>
-                  <p className="mt-2 text-xs text-muted-foreground">
+                  <p className="mt-2 text-xs text-white/55">
                     Please contact the school admissions office to upload these.
                   </p>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm text-emerald-200">
               <CheckCircle2 className="h-4 w-4" />
               All required documents received.
             </div>
@@ -247,12 +279,12 @@ export function PublicTrackerView({ token }: { token: string }) {
 
           <Timeline status={data.status} />
 
-          <div className="flex flex-col items-stretch gap-2 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col items-stretch gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <Button
               variant="outline"
               size="sm"
               onClick={copyLink}
-              className="sm:w-auto"
+              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white sm:w-auto"
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               Copy tracker link
@@ -261,23 +293,33 @@ export function PublicTrackerView({ token }: { token: string }) {
               variant="ghost"
               size="sm"
               onClick={() => void load()}
-              className="sm:w-auto"
+              className="text-white/70 hover:bg-white/10 hover:text-white sm:w-auto"
             >
               <Send className="mr-2 h-4 w-4" />
               Refresh status
             </Button>
           </div>
         </CardContent>
-      </Card>
+        </Card>
 
-      <div className="mt-4 flex flex-col items-center gap-1 text-center text-xs text-muted-foreground">
-        <a
-          href="/apply/lookup"
-          className="text-foreground/80 underline-offset-2 hover:underline"
-        >
-          Lost your link? Find all your applications
-        </a>
-        <span>Powered by EduSentrix · Keep this link private.</span>
+        <div className="flex flex-col items-center gap-2 text-center text-xs text-white/45">
+          <Link
+            href="/apply/lookup"
+            className="text-white/70 underline-offset-2 hover:text-white hover:underline"
+          >
+            Lost your link? Find all your applications
+          </Link>
+          <div className="flex items-center justify-center gap-2">
+            <Image
+              src="/logo/edusentrix-logo-transparent.png"
+              alt="EduSentrix"
+              width={20}
+              height={20}
+              className="h-5 w-5 object-contain"
+            />
+            <span>Powered by EduSentrix · Keep this link private.</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -314,9 +356,9 @@ function FeePaymentCard({
     return (
       <div className="flex items-start gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-sm">
         <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-500" />
-        <div className="text-foreground">
+        <div className="text-white">
           <p className="font-medium">Application fee received</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-white/55">
             Thank you. Your payment was confirmed
             {fee.paidAt
               ? ` on ${format(new Date(fee.paidAt), "MMM d, yyyy")}`
@@ -332,9 +374,9 @@ function FeePaymentCard({
     return (
       <div className="flex items-start gap-3 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-4 text-sm">
         <Info className="mt-0.5 h-4 w-4 text-blue-500" />
-        <div className="text-foreground">
+        <div className="text-white">
           <p className="font-medium">Application fee waived</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-white/55">
             The school has waived this fee for your application.
           </p>
         </div>
@@ -374,9 +416,9 @@ function FeePaymentCard({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <CreditCard className="mt-0.5 h-4 w-4 text-amber-500" />
-            <div className="text-sm text-foreground">
+            <div className="text-sm text-white">
               <p className="font-medium">Pay your application fee</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/55">
                 {amountLabel} · Secured by Paystack (card, mobile money, bank).
               </p>
             </div>
@@ -399,14 +441,14 @@ function FeePaymentCard({
     <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
       <div className="flex items-start gap-3">
         <Receipt className="mt-0.5 h-4 w-4 text-amber-500" />
-        <div className="text-foreground">
+        <div className="text-white">
           <p className="font-medium">Application fee due — {amountLabel}</p>
           {fee.instructions ? (
-            <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">
+            <p className="mt-1 whitespace-pre-line text-xs text-white/55">
               {fee.instructions}
             </p>
           ) : (
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-white/55">
               Please contact the school admissions office for payment
               instructions.
             </p>
@@ -439,7 +481,7 @@ function Timeline({ status }: { status: PublicApplicationDTO["status"] }) {
 
   return (
     <div>
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
         Progress
       </p>
       <ol className="space-y-3">
@@ -449,13 +491,14 @@ function Timeline({ status }: { status: PublicApplicationDTO["status"] }) {
           return (
             <li key={step.key} className="flex items-start gap-3">
               <div
-                className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border ${
+                className={cn(
+                  "mt-0.5 flex h-6 w-6 items-center justify-center rounded-full border",
                   done
-                    ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-500"
+                    ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
                     : active
-                      ? "border-blue-500/30 bg-blue-500/15 text-blue-500"
-                      : "border-border bg-muted text-muted-foreground"
-                }`}
+                      ? "border-blue-500/30 bg-blue-500/15 text-blue-300"
+                      : "border-white/10 bg-white/5 text-white/35"
+                )}
               >
                 {done ? (
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -466,13 +509,14 @@ function Timeline({ status }: { status: PublicApplicationDTO["status"] }) {
                 )}
               </div>
               <p
-                className={`text-sm ${
+                className={cn(
+                  "text-sm",
                   done
-                    ? "text-foreground"
+                    ? "text-white"
                     : active
-                      ? "font-medium text-foreground"
-                      : "text-muted-foreground"
-                }`}
+                      ? "font-medium text-white"
+                      : "text-white/45"
+                )}
               >
                 {step.label}
               </p>

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/premium-select";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { LeoIcon } from "@/components/icons/LeoIcon";
+import { admissionsAdminFieldClass } from "@/components/admissions/admissions-admin-ui";
 import { cn } from "@/lib/utils";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
@@ -216,6 +217,7 @@ export function CreateCycleModal({
               }}
               placeholder="e.g. 2026-2027"
               required
+              className={admissionsAdminFieldClass}
             />
             <p className="text-xs text-white/45">
               Forms a link like{" "}

@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import type { AdmissionCycleDTO } from "@/hooks/admissions/useAdmissionCycles";
+import { admissionsAdminFieldClass } from "@/components/admissions/admissions-admin-ui";
 import { cn } from "@/lib/utils";
 
 type DistributionTabProps = {
@@ -108,7 +109,7 @@ function PublicLinkCard({
         <Input
           value={applyUrl}
           readOnly
-          className="h-9 font-mono text-xs"
+          className={cn(admissionsAdminFieldClass, "h-9 font-mono text-xs")}
           onFocus={(e) => e.currentTarget.select()}
         />
         <Button
@@ -416,7 +417,10 @@ function DirectInviteCard({ cycle }: { cycle: AdmissionCycleDTO }) {
                   )
                 )
               }
-              className="h-9 max-w-xs flex-1"
+              className={cn(
+                admissionsAdminFieldClass,
+                "h-9 max-w-xs flex-1"
+              )}
             />
             <Input
               placeholder="Name (optional)"
@@ -428,7 +432,10 @@ function DirectInviteCard({ cycle }: { cycle: AdmissionCycleDTO }) {
                   )
                 )
               }
-              className="h-9 max-w-xs flex-1"
+              className={cn(
+                admissionsAdminFieldClass,
+                "h-9 max-w-xs flex-1"
+              )}
             />
             <Button
               variant="ghost"
@@ -452,7 +459,7 @@ function DirectInviteCard({ cycle }: { cycle: AdmissionCycleDTO }) {
         onChange={(e) => setMessage(e.target.value)}
         rows={3}
         placeholder="Optional personal note appended to the email"
-        className="mt-3"
+        className={cn(admissionsAdminFieldClass, "mt-3")}
       />
 
       <div className="mt-3 flex items-center justify-between gap-3">

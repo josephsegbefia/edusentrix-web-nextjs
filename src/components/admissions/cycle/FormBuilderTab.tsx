@@ -42,6 +42,7 @@ import type {
   AdmissionFormSchema,
   AdmissionFormSection,
 } from "@/lib/admissions/types";
+import { admissionsAdminFieldClass } from "@/components/admissions/admissions-admin-ui";
 import { FormBuilderValidations } from "./FormBuilderValidations";
 import { LeoAdmissionsGuide } from "@/components/admissions/leo/LeoAdmissionsGuide";
 
@@ -288,7 +289,7 @@ export function FormBuilderTab({ cycleId }: FormBuilderTabProps) {
             update((prev) => ({ ...prev, consentText: e.target.value }))
           }
           rows={3}
-          className="mt-2"
+          className={cn(admissionsAdminFieldClass, "mt-2")}
         />
       </div>
 
@@ -387,7 +388,7 @@ function SectionEditor({
           <Input
             value={section.title}
             onChange={(e) => onUpdate({ ...section, title: e.target.value })}
-            className="text-base font-semibold"
+            className={cn(admissionsAdminFieldClass, "text-base font-semibold")}
             placeholder="Section title"
           />
           <Textarea
@@ -397,7 +398,7 @@ function SectionEditor({
             }
             rows={2}
             placeholder="Optional helper text shown above the questions"
-            className="text-xs"
+            className={cn(admissionsAdminFieldClass, "text-xs")}
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -497,7 +498,10 @@ function FieldRow({
             <Input
               value={field.label}
               onChange={(e) => onChange({ label: e.target.value })}
-              className="h-8 max-w-md flex-1 text-sm"
+              className={cn(
+                admissionsAdminFieldClass,
+                "h-8 max-w-md flex-1 text-sm"
+              )}
             />
             {locked ? (
               <Badge
@@ -571,7 +575,7 @@ function FieldRow({
             value={field.helpText ?? ""}
             onChange={(e) => onChange({ helpText: e.target.value })}
             placeholder="Helper text (optional)"
-            className="h-8 text-xs"
+            className={cn(admissionsAdminFieldClass, "h-8 text-xs")}
           />
 
           {supportsOptions ? (
@@ -633,7 +637,7 @@ function OptionsEditor({
             }
             disabled={disabled}
             placeholder="Option label"
-            className="h-7 text-xs"
+            className={cn(admissionsAdminFieldClass, "h-7 text-xs")}
           />
           <Button
             variant="ghost"
@@ -710,7 +714,10 @@ function DocumentRequirementsEditor({
                     )
                   )
                 }
-                className="h-8 max-w-xs flex-1"
+                className={cn(
+                  admissionsAdminFieldClass,
+                  "h-8 max-w-xs flex-1"
+                )}
               />
               <Input
                 value={req.helpText ?? ""}
@@ -722,7 +729,10 @@ function DocumentRequirementsEditor({
                   )
                 }
                 placeholder="Helper text"
-                className="h-8 max-w-xs flex-1"
+                className={cn(
+                  admissionsAdminFieldClass,
+                  "h-8 max-w-xs flex-1"
+                )}
               />
               <label className="flex items-center gap-1.5 text-xs text-white/70">
                 <Checkbox
@@ -749,7 +759,7 @@ function DocumentRequirementsEditor({
                     )
                   )
                 }
-                className="h-8 w-20"
+                className={cn(admissionsAdminFieldClass, "h-8 w-20")}
               />
               <span className="text-[11px] text-white/40">MB</span>
               <Button

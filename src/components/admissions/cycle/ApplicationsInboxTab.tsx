@@ -26,6 +26,7 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { admissionsAdminFieldClass } from "@/components/admissions/admissions-admin-ui";
 import { cn } from "@/lib/utils";
 import {
   exportApplicationsToCsv,
@@ -233,7 +234,7 @@ export function ApplicationsInboxTab({ cycleId }: ApplicationsInboxTabProps) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search ref / name / email"
-              className="h-9 w-64 pl-8"
+              className={cn(admissionsAdminFieldClass, "h-9 w-64 pl-8")}
             />
           </div>
           {view === "list" ? (

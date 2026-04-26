@@ -17,6 +17,7 @@ import { format } from "date-fns/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { admissionsAdminFieldClass } from "@/components/admissions/admissions-admin-ui";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -557,6 +558,7 @@ function DecisionForm(props: {
                 ? "Let them know what to expect from the waitlist."
                 : "A short, kind explanation that will appear in the email."
           }
+          className={admissionsAdminFieldClass}
         />
       </div>
 

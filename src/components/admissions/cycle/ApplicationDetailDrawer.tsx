@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { admissionsAdminFieldClass } from "@/components/admissions/admissions-admin-ui";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -436,6 +437,7 @@ function DetailContent({
           onChange={(e) => setNotes(e.target.value)}
           rows={4}
           placeholder="Notes are visible to admissions reviewers only."
+          className={admissionsAdminFieldClass}
         />
         <div className="mt-2 flex justify-end">
           <Button

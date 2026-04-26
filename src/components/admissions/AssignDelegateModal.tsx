@@ -13,6 +13,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { admissionsAdminFieldClass } from "@/components/admissions/admissions-admin-ui";
+import { cn } from "@/lib/utils";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import {
@@ -108,7 +110,7 @@ export function AssignDelegateModal({
               placeholder="Search active teachers by name or email"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="pl-10"
+              className={cn(admissionsAdminFieldClass, "pl-10")}
               autoFocus
             />
           </div>

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { format } from "date-fns";
 import {
+  AlertTriangle,
   CalendarRange,
   Plus,
   Sparkles,
@@ -148,6 +149,7 @@ type EventRecord = {
   editorScope: "calendar" | "event";
   editorIds: string[];
   reminders?: Array<{ minutesBefore: number; channel?: "in_app" }>;
+  academicPeriodId: string | null;
 };
 
 type Occurrence = CalendarOccurrence;
@@ -156,7 +158,14 @@ type GradeOption = { id: string; name: string };
 
 type ClassOption = { id: string; name: string; fullLabel: string };
 
-type PeriodOption = { id: string; yearLabel: string; term: string; startDate: string; endDate: string };
+type PeriodOption = {
+  id: string;
+  yearLabel: string;
+  term: string;
+  startDate: string;
+  endDate: string;
+  isCurrent?: boolean;
+};
 
 type GradeApiItem = { id: string; name: string };
 type ClassApiItem = { id: string; name: string; fullLabel?: string };
@@ -166,6 +175,7 @@ type PeriodApiItem = {
   term: string;
   startDate: string;
   endDate: string;
+  isCurrent?: boolean;
 };
 
 type EditorOption = {
@@ -203,9 +213,45 @@ function parseLocalInput(value: string) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function parseDateOnlyInput(value: string) {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function toDateOnlyValue(date: Date | null) {
   if (!date) return "";
   return format(date, "yyyy-MM-dd");
+}
+
+function toTimeOnlyValue(date: Date | null) {
+  if (!date) return "09:00";
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function mergeDateAndTime(dateValue: string, timeValue: string, fallbackHour: number) {
+  const date = parseDateOnlyInput(dateValue);
+  if (!date) return "";
+  const [hours, minutes] = (timeValue || `${fallbackHour}:00`)
+    .split(":")
+    .map((part) => Number(part));
+  date.setHours(
+    Number.isFinite(hours) ? hours : fallbackHour,
+    Number.isFinite(minutes) ? minutes : 0,
+    0,
+    0
+  );
+  return toLocalInputValue(date);
+}
+
+function eventFallsWithinPeriod(start: Date, end: Date, period: PeriodOption) {
+  const periodStart = startOfDayValue(new Date(period.startDate));
+  const periodEnd = endOfDayValue(new Date(period.endDate));
+  return start >= periodStart && end <= periodEnd;
+}
+
+function describePeriod(period: PeriodOption | null) {
+  return period ? `${period.yearLabel} · ${period.term}` : "No academic period";
 }
 
 function isWeekend(date: Date) {
@@ -302,6 +348,7 @@ const emptyEventForm = (calendarId?: string) => ({
   description: "",
   startDate: toLocalInputValue(new Date()),
   endDate: toLocalInputValue(new Date(Date.now() + 60 * 60 * 1000)),
+  academicPeriodId: "",
   allDay: false,
   location: "",
   color: DEFAULT_COLORS[0],
@@ -339,6 +386,7 @@ export default function AcademicCalendarPage() {
   const [gradeOptions, setGradeOptions] = React.useState<GradeOption[]>([]);
   const [classOptions, setClassOptions] = React.useState<ClassOption[]>([]);
   const [periodOptions, setPeriodOptions] = React.useState<PeriodOption[]>([]);
+  const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>("");
 
   const [calendarModalOpen, setCalendarModalOpen] = React.useState(false);
   const [calendarForm, setCalendarForm] = React.useState({ ...emptyCalendarForm });
@@ -346,12 +394,55 @@ export default function AcademicCalendarPage() {
   const [eventModalOpen, setEventModalOpen] = React.useState(false);
   const [eventForm, setEventForm] = React.useState(() => emptyEventForm());
   const [isEditingEvent, setIsEditingEvent] = React.useState(false);
+  const [previousRecurringEvents, setPreviousRecurringEvents] = React.useState<EventRecord[]>([]);
+  const [dismissedCarryoverKey, setDismissedCarryoverKey] = React.useState<string>("");
   const [publishingCalendarId, setPublishingCalendarId] = React.useState<string | null>(null);
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const activeCalendar = calendars.find((c) => c.id === selectedCalendarId) || null;
   const eventTargetCalendar =
     calendars.find((c) => c.id === eventForm.calendarId) || null;
+  const selectedPeriod =
+    periodOptions.find((period) => period.id === selectedPeriodId) || null;
+  const previousPeriod = React.useMemo(() => {
+    if (!selectedPeriod) return null;
+    return (
+      [...periodOptions]
+        .filter((period) => new Date(period.startDate) < new Date(selectedPeriod.startDate))
+        .sort(
+          (a, b) =>
+            new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        )[0] || null
+    );
+  }, [periodOptions, selectedPeriod]);
+  const inPeriodEvents = React.useMemo(
+    () =>
+      selectedPeriod
+        ? events.filter((event) =>
+            eventFallsWithinPeriod(
+              new Date(event.startDate),
+              new Date(event.endDate),
+              selectedPeriod
+            )
+          )
+        : events,
+    [events, selectedPeriod]
+  );
+  const outsidePeriodEvents = React.useMemo(
+    () =>
+      selectedPeriod
+        ? events.filter(
+            (event) =>
+              event.academicPeriodId === selectedPeriod.id &&
+              !eventFallsWithinPeriod(
+                new Date(event.startDate),
+                new Date(event.endDate),
+                selectedPeriod
+              )
+          )
+        : [],
+    [events, selectedPeriod]
+  );
 
   const rangeStart = React.useMemo(() => startOfMonth(month), [month]);
   const rangeEnd = React.useMemo(() => endOfMonth(month), [month]);
@@ -364,9 +455,40 @@ export default function AcademicCalendarPage() {
       const res = await fetch("/api/academic-calendars?all=1", { cache: "no-store" });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Failed to fetch calendars");
-      setCalendars(json.data as CalendarSummary[]);
-      if (json.data.length > 0) {
-        setSelectedCalendarId((prev) => prev || json.data[0].id);
+      let data = (json.data as CalendarSummary[]).slice(0, 1);
+
+      if (data.length === 0) {
+        const createRes = await fetch("/api/academic-calendars", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Academic Calendar",
+            description: "School-wide academic calendar",
+            color: DEFAULT_COLORS[1],
+            isPublished: true,
+          }),
+        });
+        const createJson = await createRes.json();
+        if (!createRes.ok || !createJson.success) {
+          throw new Error(createJson.error || "Failed to create school calendar");
+        }
+        data = [
+          {
+            id: String(createJson.data.id),
+            name: "Academic Calendar",
+            description: "School-wide academic calendar",
+            academicPeriodId: null,
+            color: DEFAULT_COLORS[1],
+            isPublished: true,
+            editors: [],
+            canEdit: true,
+          },
+        ];
+      }
+
+      setCalendars(data);
+      if (data.length > 0) {
+        setSelectedCalendarId((prev) => prev || data[0].id);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load calendars");
@@ -384,6 +506,9 @@ export default function AcademicCalendarPage() {
           from: rangeStartIso,
           to: rangeEndIso,
         });
+        if (selectedPeriodId) {
+          params.set("academicPeriodId", selectedPeriodId);
+        }
         const res = await fetch(`/api/academic-calendars/${calendarId}/events?${params}`, {
           cache: "no-store",
         });
@@ -397,7 +522,7 @@ export default function AcademicCalendarPage() {
         setLoading(false);
       }
     },
-    [rangeStartIso, rangeEndIso]
+    [rangeStartIso, rangeEndIso, selectedPeriodId]
   );
 
   const fetchEditors = React.useCallback(async () => {
@@ -456,6 +581,7 @@ export default function AcademicCalendarPage() {
             term: p.term,
             startDate: p.startDate,
             endDate: p.endDate,
+            isCurrent: p.isCurrent,
           }))
         );
       }
@@ -463,6 +589,25 @@ export default function AcademicCalendarPage() {
       console.error(error);
     }
   }, []);
+
+  React.useEffect(() => {
+    if (periodOptions.length === 0) return;
+    setSelectedPeriodId((prev) => {
+      if (prev && periodOptions.some((period) => period.id === prev)) return prev;
+      return periodOptions.find((period) => period.isCurrent)?.id || periodOptions[0].id;
+    });
+  }, [periodOptions]);
+
+  React.useEffect(() => {
+    if (!selectedPeriod) return;
+    setMonth((current) => {
+      const periodStart = startOfMonth(new Date(selectedPeriod.startDate));
+      return current.getFullYear() === periodStart.getFullYear() &&
+        current.getMonth() === periodStart.getMonth()
+        ? current
+        : periodStart;
+    });
+  }, [selectedPeriodId, selectedPeriod]);
 
   React.useEffect(() => {
     fetchCalendars();
@@ -475,7 +620,79 @@ export default function AcademicCalendarPage() {
     if (selectedCalendarId) {
       fetchEvents(selectedCalendarId);
     }
-  }, [selectedCalendarId, month, fetchEvents]);
+  }, [selectedCalendarId, selectedPeriodId, month, fetchEvents]);
+
+  React.useEffect(() => {
+    if (!selectedCalendarId || !previousPeriod || !selectedPeriodId) {
+      setPreviousRecurringEvents([]);
+      return;
+    }
+
+    let cancelled = false;
+    const fetchPreviousRecurringEvents = async () => {
+      try {
+        const params = new URLSearchParams({
+          from: rangeStartIso,
+          to: rangeEndIso,
+          academicPeriodId: previousPeriod.id,
+        });
+        const res = await fetch(
+          `/api/academic-calendars/${selectedCalendarId}/events?${params}`,
+          { cache: "no-store" }
+        );
+        const json = await res.json();
+        if (!res.ok || !json.success || cancelled) return;
+        setPreviousRecurringEvents(
+          (json.data.events as EventRecord[]).filter(
+            (event) => event.recurrence && event.recurrence.frequency !== "none"
+          )
+        );
+      } catch {
+        if (!cancelled) setPreviousRecurringEvents([]);
+      }
+    };
+
+    fetchPreviousRecurringEvents();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    previousPeriod,
+    rangeEndIso,
+    rangeStartIso,
+    selectedCalendarId,
+    selectedPeriodId,
+  ]);
+
+  const openCarryoverEvent = (event: EventRecord) => {
+    if (!selectedCalendarId || !selectedPeriod) return;
+    const originalStart = new Date(event.startDate);
+    const originalEnd = new Date(event.endDate);
+    const start = new Date(selectedPeriod.startDate);
+    start.setHours(originalStart.getHours(), originalStart.getMinutes(), 0, 0);
+    const end = new Date(start);
+    end.setHours(originalEnd.getHours(), originalEnd.getMinutes(), 0, 0);
+    if (end <= start) end.setHours(start.getHours() + 1, start.getMinutes(), 0, 0);
+
+    setEventForm({
+      ...emptyEventForm(selectedCalendarId),
+      title: event.title,
+      description: event.description || "",
+      startDate: toLocalInputValue(start),
+      endDate: toLocalInputValue(end),
+      academicPeriodId: selectedPeriod.id,
+      allDay: event.allDay,
+      location: event.location || "",
+      color: event.color || DEFAULT_COLORS[0],
+      eventType: event.eventType,
+      isNonTeachingDay: event.isNonTeachingDay,
+      audience: event.audience,
+      recurrence: event.recurrence || { frequency: "none", interval: 1 },
+      reminders: event.reminders || [],
+    });
+    setIsEditingEvent(false);
+    setEventModalOpen(true);
+  };
 
   const openCalendarModal = (calendar?: CalendarSummary) => {
     if (calendar) {
@@ -507,6 +724,7 @@ export default function AcademicCalendarPage() {
         description: event.description || "",
         startDate: toLocalInputValue(new Date(event.startDate)),
         endDate: toLocalInputValue(new Date(event.endDate)),
+        academicPeriodId: event.academicPeriodId || selectedPeriodId,
         allDay: event.allDay,
         location: event.location || "",
         color: event.color || DEFAULT_COLORS[0],
@@ -528,7 +746,10 @@ export default function AcademicCalendarPage() {
       });
       setIsEditingEvent(true);
     } else {
-      setEventForm(emptyEventForm(selectedCalendarId));
+      setEventForm({
+        ...emptyEventForm(selectedCalendarId),
+        academicPeriodId: selectedPeriodId,
+      });
       setIsEditingEvent(false);
     }
     setEventModalOpen(true);
@@ -548,13 +769,14 @@ export default function AcademicCalendarPage() {
 
       setEventForm({
         ...emptyEventForm(selectedCalendarId),
+        academicPeriodId: selectedPeriodId,
         startDate: toLocalInputValue(start),
         endDate: toLocalInputValue(end),
       });
       setIsEditingEvent(false);
       setEventModalOpen(true);
     },
-    [selectedCalendarId]
+    [selectedCalendarId, selectedPeriodId]
   );
 
   const handleSaveCalendar = async () => {
@@ -671,15 +893,40 @@ export default function AcademicCalendarPage() {
       return;
     }
 
-    const start = parseLocalInput(eventForm.startDate);
-    const end = parseLocalInput(eventForm.endDate);
+    let start = parseLocalInput(eventForm.startDate);
+    let end = parseLocalInput(eventForm.endDate);
     if (!start || !end) {
       toast.error("Start and end dates are required");
       return;
     }
+    if (eventForm.allDay) {
+      start = startOfDayValue(start);
+      end = endOfDayValue(end);
+    }
     if (end < start) {
       toast.error("End date must be after start date");
       return;
+    }
+
+    const targetPeriod =
+      periodOptions.find((period) => period.id === eventForm.academicPeriodId) || null;
+    if (!targetPeriod) {
+      toast.error("Select an academic period for this event");
+      return;
+    }
+
+    if (!eventFallsWithinPeriod(start, end, targetPeriod)) {
+      const periodDecision = await confirm({
+        title: "Leo Period Check",
+        description: `${eventForm.title.trim() || "This event"} falls outside ${describePeriod(targetPeriod)}. It can still be saved to this period, but it will be shown separately and will not roll into future periods.`,
+        confirmLabel: "Save To This Period",
+        cancelLabel: "Review Dates",
+        intent: "warning",
+      });
+
+      if (periodDecision !== "confirm") {
+        return;
+      }
     }
 
     let rangesToCreate: Array<{ start: Date; end: Date }> = [{ start, end }];
@@ -751,10 +998,31 @@ export default function AcademicCalendarPage() {
       }
     }
 
+    const recurrenceForSave =
+      eventForm.recurrence?.frequency && eventForm.recurrence.frequency !== "none"
+        ? {
+            ...eventForm.recurrence,
+            until:
+              !eventForm.recurrence.until ||
+              new Date(eventForm.recurrence.until) > new Date(targetPeriod.endDate)
+                ? endOfDayValue(new Date(targetPeriod.endDate)).toISOString()
+                : eventForm.recurrence.until,
+          }
+        : null;
+
+    if (
+      recurrenceForSave &&
+      (!eventForm.recurrence?.until ||
+        new Date(eventForm.recurrence.until) > new Date(targetPeriod.endDate))
+    ) {
+      toast.info(`Leo clipped this recurring event to ${describePeriod(targetPeriod)}.`);
+    }
+
     const payloadBase = {
       title: eventForm.title.trim(),
       description: eventForm.description.trim() || null,
       allDay: eventForm.allDay,
+      academicPeriodId: eventForm.academicPeriodId,
       location: eventForm.location.trim() || null,
       color: eventForm.color || null,
       coverImageUrl: eventForm.coverImageUrl || null,
@@ -762,7 +1030,7 @@ export default function AcademicCalendarPage() {
       eventType: eventForm.eventType,
       isNonTeachingDay: eventForm.isNonTeachingDay,
       audience: eventForm.audience,
-      recurrence: eventForm.recurrence?.frequency === "none" ? null : eventForm.recurrence,
+      recurrence: recurrenceForSave,
       editorScope: eventForm.editorScope,
       editorIds: eventForm.editorIds,
       reminders: eventForm.reminders,
@@ -844,7 +1112,7 @@ export default function AcademicCalendarPage() {
     if (event) openEventModal(event);
   };
 
-  const selectedCalendarEvents = events.length;
+  const selectedCalendarEvents = inPeriodEvents.length;
 
   return (
     <div className="space-y-6">
@@ -860,10 +1128,6 @@ export default function AcademicCalendarPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="border-white/10" onClick={() => openCalendarModal()}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            New Calendar
-          </Button>
           <Button onClick={() => openEventModal()} className="group">
             <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
             New Event
@@ -874,59 +1138,27 @@ export default function AcademicCalendarPage() {
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">
           <Card className="border-white/10 bg-white/5">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
-                Calendars
+                School Calendar
               </CardTitle>
-              <Button size="icon" variant="ghost" onClick={() => openCalendarModal()} className="group">
-                <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-              </Button>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="rounded-lg border border-white/10 bg-black/20 p-2.5 text-xs text-white/45">
-                Calendar visibility is separate from event status.
-              </div>
-              {calendars.length === 0 && (
-                <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/50">
-                  No calendars yet. Create one to get started.
+              <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-white">
+                      {activeCalendar?.name || "Academic Calendar"}
+                    </div>
+                    <div className="mt-1 text-xs text-white/50">
+                      One school-wide calendar, organised by academic period.
+                    </div>
+                  </div>
+                  <Badge className="bg-emerald-500/15 text-emerald-100">
+                    {activeCalendar?.isPublished ? "Published" : "Draft"}
+                  </Badge>
                 </div>
-              )}
-              {calendars.map((calendar) => (
-                <button
-                  key={calendar.id}
-                  onClick={() => setSelectedCalendarId(calendar.id)}
-                  className={cn(
-                    "w-full rounded-xl border px-3 py-3 text-left transition",
-                    calendar.id === selectedCalendarId
-                      ? "border-brand bg-brand/10"
-                      : "border-white/5 bg-black/20 hover:border-white/20"
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-semibold text-white">{calendar.name}</div>
-                      <div className="text-xs text-white/50">
-                        {calendar.description || "No description"}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {calendar.isPublished ? (
-                        <Eye className="h-4 w-4 text-emerald-300" />
-                      ) : (
-                        <EyeOff className="h-4 w-4 text-white/40" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Badge className="bg-white/10 text-white/60">
-                      {calendar.isPublished ? "Calendar Published" : "Calendar Draft"}
-                    </Badge>
-                    {calendar.color && (
-                      <span className="h-2 w-6 rounded-full" style={{ backgroundColor: calendar.color }} />
-                    )}
-                  </div>
-                </button>
-              ))}
+              </div>
             </CardContent>
           </Card>
 
@@ -938,11 +1170,38 @@ export default function AcademicCalendarPage() {
               <ListFilter className="h-4 w-4 text-white/40" />
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="rounded-xl border border-white/5 bg-black/20 p-3 text-sm text-white/60">
-                {selectedCalendarEvents} event{selectedCalendarEvents === 1 ? "" : "s"} in view
+              <div className="space-y-2">
+                <label className="text-xs text-white/50">Academic period</label>
+                <Select
+                  value={selectedPeriodId || "none"}
+                  onValueChange={(value) => setSelectedPeriodId(value === "none" ? "" : value)}
+                >
+                  <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                    <SelectValue placeholder="Select period" />
+                  </SelectTrigger>
+                  <SelectContent className={premiumSelectContent}>
+                    <SelectItem value="none" className={premiumMenuItem}>
+                      {periodOptions.length === 0 ? "No periods available" : "Select period"}
+                    </SelectItem>
+                    {periodOptions.map((period) => (
+                      <SelectItem key={period.id} value={period.id} className={premiumMenuItem}>
+                        {period.yearLabel} · {period.term}
+                        {period.isCurrent ? " · Current" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <label className="text-xs text-white/50">Range start</label>
+              <div className="rounded-xl border border-white/5 bg-black/20 p-3 text-sm text-white/60">
+                {selectedCalendarEvents} event{selectedCalendarEvents === 1 ? "" : "s"} inside this period
+              </div>
+              {outsidePeriodEvents.length > 0 && (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                  {outsidePeriodEvents.length} anchored event{outsidePeriodEvents.length === 1 ? "" : "s"} sit outside this period&apos;s dates.
+                </div>
+              )}
+              <div className="space-y-2">
+                <label className="text-xs text-white/50">Jump to month</label>
                 <CustomDatePicker
                   value={rangeStart}
                   onChange={(date) => date && setMonth(startOfMonth(date))}
@@ -951,10 +1210,52 @@ export default function AcademicCalendarPage() {
             </CardContent>
           </Card>
 
+          {previousRecurringEvents.length > 0 &&
+            dismissedCarryoverKey !== `${previousPeriod?.id}:${selectedPeriodId}` && (
+              <Card className="border-emerald-400/20 bg-emerald-500/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-emerald-50">
+                    <Sparkles className="h-4 w-4" />
+                    Leo found recurring events
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-emerald-100/75">
+                    {describePeriod(previousPeriod)} had recurring events. Recreate only the ones needed for {describePeriod(selectedPeriod)}.
+                  </p>
+                  <div className="space-y-2">
+                    {previousRecurringEvents.slice(0, 3).map((event) => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        onClick={() => openCarryoverEvent(event)}
+                        className="w-full rounded-xl border border-emerald-300/15 bg-black/20 px-3 py-2 text-left text-sm text-white hover:border-emerald-200/35"
+                      >
+                        <span className="block font-semibold">{event.title}</span>
+                        <span className="block text-xs text-white/45">
+                          Opens with editable dates, times, audience, and recurrence.
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
+                    onClick={() =>
+                      setDismissedCarryoverKey(`${previousPeriod?.id}:${selectedPeriodId}`)
+                    }
+                  >
+                    Dismiss
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
           <Card className="border-white/10 bg-white/5">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
-                Settings
+                Publishing
               </CardTitle>
               <Settings className="h-4 w-4 text-white/40" />
             </CardHeader>
@@ -971,35 +1272,12 @@ export default function AcademicCalendarPage() {
                       }
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    className="group w-full justify-between rounded-xl border-white/15 bg-linear-to-r from-white/10 to-white/5 text-white shadow-lg shadow-black/20 hover:from-white/15 hover:to-white/10"
-                    onClick={() => openCalendarModal(activeCalendar)}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Pencil className="h-4 w-4 text-white/70 transition group-hover:text-white" />
-                      Edit Calendar
-                    </span>
-                    <span className="text-xs text-white/50 transition group-hover:text-white/80">
-                      Update
-                    </span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="group w-full justify-between rounded-xl border-rose-500/30 bg-linear-to-r from-rose-500/15 to-red-500/10 text-rose-200 shadow-lg shadow-rose-950/30 hover:from-rose-500/25 hover:to-red-500/20 hover:text-rose-100"
-                    onClick={() => handleDeleteCalendar(activeCalendar.id)}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Trash2 className="h-4 w-4 transition group-hover:scale-105" />
-                      Delete Calendar
-                    </span>
-                    <span className="text-xs text-rose-200/70 transition group-hover:text-rose-100">
-                      Permanent
-                    </span>
-                  </Button>
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/50">
+                    Events are filtered by academic period. Past periods remain available from the period selector.
+                  </div>
                 </>
               ) : (
-                <div className="text-sm text-white/50">Select a calendar to manage settings.</div>
+                <div className="text-sm text-white/50">Calendar is loading.</div>
               )}
             </CardContent>
           </Card>
@@ -1011,7 +1289,7 @@ export default function AcademicCalendarPage() {
               <div>
                 <CardTitle className="text-lg text-white">{format(month, "MMMM yyyy")}</CardTitle>
                 <p className="text-sm text-white/50">
-                  {activeCalendar ? activeCalendar.name : "Select a calendar"}
+                  {describePeriod(selectedPeriod)}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -1073,6 +1351,46 @@ export default function AcademicCalendarPage() {
 
               {!loading && view === "agenda" && (
                 <AgendaList occurrences={occurrences} onSelectOccurrence={handleSelectOccurrence} />
+              )}
+
+              {!loading && outsidePeriodEvents.length > 0 && (
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-200" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-amber-50">
+                        Anchored here, outside the period dates
+                      </h3>
+                      <p className="mt-1 text-xs text-amber-100/75">
+                        These events belong to {describePeriod(selectedPeriod)}, but their dates fall outside the period window. They stay here and will not show as upcoming events in another period.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-2">
+                    {outsidePeriodEvents.map((event) => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        onClick={() => openEventModal(event)}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/15 bg-black/20 px-3 py-2 text-left hover:border-amber-200/35"
+                      >
+                        <span>
+                          <span className="block text-sm font-semibold text-white">
+                            {event.title}
+                          </span>
+                          <span className="block text-xs text-white/50">
+                            {format(new Date(event.startDate), "MMM d, yyyy")}
+                            {" - "}
+                            {format(new Date(event.endDate), "MMM d, yyyy")}
+                          </span>
+                        </span>
+                        <Badge className="bg-amber-400/15 text-amber-100">
+                          Outside period
+                        </Badge>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -1317,22 +1635,107 @@ export default function AcademicCalendarPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
+              <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Academic Period</Label>
+              <Select
+                value={eventForm.academicPeriodId || "none"}
+                onValueChange={(value) =>
+                  setEventForm((prev) => ({
+                    ...prev,
+                    academicPeriodId: value === "none" ? "" : value,
+                  }))
+                }
+              >
+                <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent className={premiumSelectContent}>
+                  <SelectItem value="none" className={premiumMenuItem}>
+                    Select period
+                  </SelectItem>
+                  {periodOptions.map((period) => (
+                    <SelectItem key={period.id} value={period.id} className={premiumMenuItem}>
+                      {period.yearLabel} · {period.term}
+                      {period.isCurrent ? " · Current" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/55">
+              Leo checks this period before saving. Events outside the period can still be saved, but they are shown in a separate section.
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
               <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Start</Label>
-              <Input
-                type="datetime-local"
-                value={eventForm.startDate}
-                onChange={(e) => setEventForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+              <CustomDatePicker
+                value={parseLocalInput(eventForm.startDate)}
+                onChange={(date) => {
+                  if (!date) return;
+                  const current = parseLocalInput(eventForm.startDate);
+                  setEventForm((prev) => ({
+                    ...prev,
+                    startDate: mergeDateAndTime(
+                      toDateOnlyValue(date),
+                      toTimeOnlyValue(current),
+                      9
+                    ),
+                  }));
+                }}
               />
+              {!eventForm.allDay && (
+                <Input
+                  type="time"
+                  value={toTimeOnlyValue(parseLocalInput(eventForm.startDate))}
+                  onChange={(e) =>
+                    setEventForm((prev) => ({
+                      ...prev,
+                      startDate: mergeDateAndTime(
+                        toDateOnlyValue(parseLocalInput(prev.startDate)),
+                        e.target.value,
+                        9
+                      ),
+                    }))
+                  }
+                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">End</Label>
-              <Input
-                type="datetime-local"
-                value={eventForm.endDate}
-                onChange={(e) => setEventForm((prev) => ({ ...prev, endDate: e.target.value }))}
-                className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+              <CustomDatePicker
+                value={parseLocalInput(eventForm.endDate)}
+                onChange={(date) => {
+                  if (!date) return;
+                  const current = parseLocalInput(eventForm.endDate);
+                  setEventForm((prev) => ({
+                    ...prev,
+                    endDate: mergeDateAndTime(
+                      toDateOnlyValue(date),
+                      toTimeOnlyValue(current),
+                      10
+                    ),
+                  }));
+                }}
               />
+              {!eventForm.allDay && (
+                <Input
+                  type="time"
+                  value={toTimeOnlyValue(parseLocalInput(eventForm.endDate))}
+                  onChange={(e) =>
+                    setEventForm((prev) => ({
+                      ...prev,
+                      endDate: mergeDateAndTime(
+                        toDateOnlyValue(parseLocalInput(prev.endDate)),
+                        e.target.value,
+                        10
+                      ),
+                    }))
+                  }
+                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                />
+              )}
             </div>
           </div>
 
@@ -1700,19 +2103,17 @@ export default function AcademicCalendarPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Until</Label>
-                  <Input
-                    type="date"
-                    value={eventForm.recurrence?.until ? toDateOnlyValue(new Date(eventForm.recurrence.until)) : ""}
-                    onChange={(e) =>
+                  <CustomDatePicker
+                    value={eventForm.recurrence?.until ? new Date(eventForm.recurrence.until) : null}
+                    onChange={(date) =>
                       setEventForm((prev) => ({
                         ...prev,
                         recurrence: {
                           ...(prev.recurrence || { frequency: "none" }),
-                          until: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                          until: date ? endOfDayValue(date).toISOString() : undefined,
                         },
                       }))
                     }
-                    className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
                   />
                 </div>
               </div>

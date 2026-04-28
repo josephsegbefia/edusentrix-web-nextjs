@@ -543,7 +543,10 @@ export default function SchoolAdminOverviewPage() {
         term: periodOverview.currentPeriod.term,
         startDate: periodOverview.currentPeriod.startDate,
         endDate: periodOverview.currentPeriod.endDate,
-        isYearEndTerminal: false,
+        isYearEndTerminal:
+          periodStatus?.currentPeriod?.id === periodOverview.currentPeriod.id
+            ? Boolean(periodStatus.currentPeriod.isYearEndTerminal)
+            : false,
       }
     : periodStatus?.currentPeriod
     ? {
@@ -888,7 +891,7 @@ export default function SchoolAdminOverviewPage() {
     }
     setCreatingPeriod(true);
     try {
-      const fetchPromise = fetch("/api/periods/create", {
+      const fetchPromise = fetch("/api/admin/periods", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -899,16 +902,25 @@ export default function SchoolAdminOverviewPage() {
           isYearEndTerminal: payload.isYearEndTerminal ?? false,
         }),
       }).then(async (res) => {
+        const json = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const msg = await res.text();
-          throw new Error(msg || "Failed to create period");
+          const fieldErrors = json?.errors?.fieldErrors;
+          const firstFieldError =
+            fieldErrors && typeof fieldErrors === "object"
+              ? Object.values(fieldErrors).flat().find(Boolean)
+              : null;
+          throw new Error(
+            json?.error ||
+              (typeof firstFieldError === "string" ? firstFieldError : null) ||
+              "Failed to create period"
+          );
         }
-        return res;
+        return json;
       });
       await busy.promise(fetchPromise, {
         loading: "Creating academic period…",
         success: "Academic period created",
-        error: "Could not create period",
+        error: (e: Error) => e.message || "Could not create period",
       });
       invalidateSetupReadiness(queryClient);
       void queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
@@ -2694,6 +2706,7 @@ export default function SchoolAdminOverviewPage() {
         onOpenChange={setShowCreatePeriod}
         onSubmit={handleCreatePeriod}
         isLoading={creatingPeriod}
+        previousPeriod={currentPeriodSource || previousPeriod}
       />
 
       <CreateAcademicPeriodModal

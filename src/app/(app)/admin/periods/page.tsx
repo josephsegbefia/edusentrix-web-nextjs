@@ -250,6 +250,7 @@ export default function PeriodsPage() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreate}
         isLoading={createMutation.isPending}
+        periods={periods}
       />
     </div>
   );

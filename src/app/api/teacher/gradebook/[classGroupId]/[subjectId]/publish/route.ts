@@ -254,7 +254,6 @@ export async function POST(
               academicPeriodId: period._id,
               subjectId: subjectObjId,
               studentId: student._id,
-              teacherId,
             },
           },
           upsert: true,

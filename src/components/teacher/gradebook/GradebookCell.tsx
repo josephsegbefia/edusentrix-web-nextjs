@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type GradebookCellProps = {
@@ -8,6 +9,8 @@ export type GradebookCellProps = {
   maxScore: number;
   status?: "draft" | "published";
   disabled?: boolean;
+  /** True while this cell's score is being persisted */
+  isSaving?: boolean;
   onSave: (score: number | null) => void;
   onInvalid?: (message: string) => void;
 };
@@ -17,6 +20,7 @@ export function GradebookCell({
   maxScore,
   status = "draft",
   disabled,
+  isSaving = false,
   onSave,
   onInvalid,
 }: GradebookCellProps) {
@@ -24,12 +28,13 @@ export function GradebookCell({
   const [focused, setFocused] = React.useState(false);
 
   React.useEffect(() => {
-    if (!focused) {
-      setDraft(value === null ? "" : String(value));
-    }
-  }, [value, focused]);
+    // While saving, keep showing the user's draft so the value doesn't flicker on refetch.
+    if (focused || isSaving) return;
+    setDraft(value === null ? "" : String(value));
+  }, [value, focused, isSaving]);
 
   const handleBlur = () => {
+    if (isSaving) return;
     setFocused(false);
     const trimmed = draft.trim();
     if (!trimmed) {
@@ -63,6 +68,7 @@ export function GradebookCell({
     }
   };
 
+  const inputLocked = Boolean(disabled || isSaving);
   const statusTone = status === "published" ? "bg-emerald-400" : "bg-amber-400";
 
   return (
@@ -74,7 +80,8 @@ export function GradebookCell({
         min={0}
         max={maxScore}
         value={draft}
-        disabled={disabled}
+        disabled={inputLocked}
+        aria-busy={isSaving}
         onFocus={() => setFocused(true)}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={handleBlur}
@@ -85,19 +92,28 @@ export function GradebookCell({
         }}
         className={cn(
           "h-9 w-full rounded-lg border border-white/10 bg-white/5 px-2 text-center text-sm text-white",
+          isSaving && "pr-8",
           "focus:border-indigo-400/60 focus:outline-none focus:ring-1 focus:ring-indigo-500/40",
-          "disabled:cursor-not-allowed disabled:opacity-50",
+          "disabled:cursor-not-allowed",
+          disabled && !isSaving && "disabled:opacity-50",
+          isSaving && "disabled:opacity-100 disabled:text-white",
           status === "published" ? "border-emerald-500/40" : "border-amber-500/30"
         )}
       />
-      <span
-        className={cn(
-          "pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full",
-          statusTone,
-          disabled ? "opacity-40" : "opacity-90"
-        )}
-        title={status === "published" ? "Published" : "Draft"}
-      />
+      {isSaving ? (
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-300" aria-hidden />
+        </span>
+      ) : (
+        <span
+          className={cn(
+            "pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full",
+            statusTone,
+            disabled ? "opacity-40" : "opacity-90"
+          )}
+          title={status === "published" ? "Published" : "Draft"}
+        />
+      )}
     </div>
   );
 }

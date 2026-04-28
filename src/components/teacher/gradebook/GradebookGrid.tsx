@@ -18,6 +18,7 @@ export type GradebookGridProps = {
   onInvalid?: (message: string) => void;
   draftAssessments?: GradebookAssessment[];
   weights?: { caWeight: number; examWeight: number };
+  isCellSaving?: (studentId: string, assessmentId: string) => boolean;
 };
 
 function formatScore(value: number) {
@@ -74,6 +75,7 @@ export function GradebookGrid({
   onInvalid,
   draftAssessments = [],
   weights,
+  isCellSaving,
 }: GradebookGridProps) {
   const mergedCategories = React.useMemo(
     () => mergeCategories({ categories, draftAssessments, weights }),
@@ -124,6 +126,7 @@ export function GradebookGrid({
                       maxScore={assessment.maxScore}
                       status={student.scores?.[assessment.id]?.status ?? "draft"}
                       disabled={!canEdit}
+                      isSaving={isCellSaving?.(student._id, assessment.id) ?? false}
                       onInvalid={onInvalid}
                       onSave={(score) => onRecord(assessment, student._id, score)}
                     />

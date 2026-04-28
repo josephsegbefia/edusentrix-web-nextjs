@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolMember } from "@/lib/auth/requireSchoolMember";
 import { AcademicCalendar } from "@/models/AcademicCalendar";
 import { AcademicCalendarEvent } from "@/models/AcademicCalendarEvent";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { canEditCalendar } from "@/lib/academic-calendar/permissions";
 import { expandRecurringEvent, clampRange, getRangeDefaults } from "@/lib/academic-calendar/recurrence";
 import { DEFAULT_AUDIENCE_ROLES } from "@/lib/academic-calendar/types";
@@ -15,6 +16,7 @@ const eventSchema = z.object({
   description: z.string().optional().nullable(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
+  academicPeriodId: z.string().optional().nullable(),
   allDay: z.boolean().optional(),
   location: z.string().optional().nullable(),
   color: z.string().optional().nullable(),
@@ -45,11 +47,12 @@ const eventSchema = z.object({
   recurrence: z
     .object({
       frequency: z.enum(["none", "daily", "weekly", "monthly", "yearly"]),
-      interval: z.number().min(1).max(365).optional(),
-      byWeekday: z.array(z.number().min(0).max(6)).optional(),
-      byMonthDay: z.array(z.number().min(1).max(31)).optional(),
-      until: z.coerce.date().optional().nullable(),
-      count: z.number().min(1).max(500).optional(),
+      // Mongo/JSON round-trip sends null for unused numeric/array recurrence fields
+      interval: z.number().min(1).max(365).nullish(),
+      byWeekday: z.array(z.number().min(0).max(6)).nullish(),
+      byMonthDay: z.array(z.number().min(1).max(31)).nullish(),
+      until: z.coerce.date().nullish(),
+      count: z.number().min(1).max(500).nullish(),
     })
     .optional()
     .nullable(),
@@ -64,6 +67,72 @@ const eventSchema = z.object({
     )
     .optional(),
 });
+
+function normalizeAcademicPeriodId(value: string | null | undefined) {
+  if (!value || value === "none") return null;
+  if (!mongoose.Types.ObjectId.isValid(value)) return null;
+  return new mongoose.Types.ObjectId(value);
+}
+
+async function resolveEventAcademicPeriodId({
+  schoolId,
+  requestedPeriodId,
+  fallbackPeriodId,
+}: {
+  schoolId: mongoose.Types.ObjectId | string;
+  requestedPeriodId?: string | null;
+  fallbackPeriodId?: mongoose.Types.ObjectId | string | null;
+}) {
+  const requested = normalizeAcademicPeriodId(requestedPeriodId);
+  if (requested) {
+    const period = await AcademicPeriod.findOne({ _id: requested, schoolId }).lean();
+    return period ? requested : null;
+  }
+
+  if (fallbackPeriodId && mongoose.Types.ObjectId.isValid(String(fallbackPeriodId))) {
+    return new mongoose.Types.ObjectId(String(fallbackPeriodId));
+  }
+
+  const currentPeriod = await AcademicPeriod.findOne({
+    schoolId,
+    isCurrent: true,
+  }).lean();
+
+  return currentPeriod ? currentPeriod._id : null;
+}
+
+async function clipRecurrenceToPeriod({
+  recurrence,
+  schoolId,
+  academicPeriodId,
+}: {
+  recurrence: z.infer<typeof eventSchema>["recurrence"];
+  schoolId: mongoose.Types.ObjectId | string;
+  academicPeriodId: mongoose.Types.ObjectId | null;
+}) {
+  if (!recurrence || recurrence.frequency === "none" || !academicPeriodId) {
+    return recurrence;
+  }
+
+  const period = await AcademicPeriod.findOne({
+    _id: academicPeriodId,
+    schoolId,
+  }).lean();
+
+  if (!period) return recurrence;
+
+  const periodEnd = new Date(period.endDate);
+  const requestedUntil = recurrence.until ? new Date(recurrence.until) : null;
+
+  if (!requestedUntil || requestedUntil > periodEnd) {
+    return {
+      ...recurrence,
+      until: periodEnd,
+    };
+  }
+
+  return recurrence;
+}
 
 function parseDateParam(value: string | null) {
   if (!value) return null;
@@ -113,11 +182,18 @@ export async function GET(
   const range = clampRange(from || defaults.start, to || defaults.end);
 
   const includeDraft = url.searchParams.get("publishedOnly") !== "1";
+  const academicPeriodId = normalizeAcademicPeriodId(
+    url.searchParams.get("academicPeriodId")
+  );
 
   const eventQuery: Record<string, unknown> = {
     schoolId: context.schoolId,
     calendarId: calendarObjId,
   };
+
+  if (academicPeriodId) {
+    eventQuery.academicPeriodId = academicPeriodId;
+  }
 
   if (!includeDraft) {
     eventQuery.status = "published";
@@ -132,6 +208,7 @@ export async function GET(
       {
         _id: String(event._id),
         calendarId: String(event.calendarId),
+        academicPeriodId: event.academicPeriodId ? String(event.academicPeriodId) : null,
         title: event.title,
         startDate: new Date(event.startDate),
         endDate: new Date(event.endDate),
@@ -159,6 +236,7 @@ export async function GET(
       id: `${event._id}:${occurrence.start.toISOString()}`,
       eventId: String(event._id),
       calendarId: String(event.calendarId),
+      academicPeriodId: event.academicPeriodId ? String(event.academicPeriodId) : null,
       title: event.title,
       startDate: occurrence.start.toISOString(),
       endDate: occurrence.end.toISOString(),
@@ -280,6 +358,16 @@ export async function POST(
 
   const isNonTeachingDay = parsed.data.eventType === "non_teaching_day" || parsed.data.isNonTeachingDay;
   const allDay = parsed.data.allDay ?? isNonTeachingDay ?? false;
+  const academicPeriodId = await resolveEventAcademicPeriodId({
+    schoolId: context.schoolId,
+    requestedPeriodId: parsed.data.academicPeriodId,
+    fallbackPeriodId: calendar.academicPeriodId,
+  });
+  const recurrence = await clipRecurrenceToPeriod({
+    recurrence: parsed.data.recurrence,
+    schoolId: context.schoolId,
+    academicPeriodId,
+  });
 
   const audienceRoles =
     parsed.data.audience?.roles && parsed.data.audience.roles.length > 0
@@ -298,7 +386,7 @@ export async function POST(
   const doc = await AcademicCalendarEvent.create({
     schoolId: context.schoolId,
     calendarId: calendarObjId,
-    academicPeriodId: calendar.academicPeriodId || null,
+    academicPeriodId,
     title: parsed.data.title.trim(),
     description: parsed.data.description?.trim() || null,
     startDate,
@@ -323,11 +411,11 @@ export async function POST(
       ),
       roles: audienceRoles,
     },
-    recurrence: parsed.data.recurrence
+    recurrence: recurrence
       ? {
-          ...parsed.data.recurrence,
-          until: parsed.data.recurrence.until
-            ? new Date(parsed.data.recurrence.until)
+          ...recurrence,
+          until: recurrence.until
+            ? new Date(recurrence.until)
             : null,
         }
       : null,

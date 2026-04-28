@@ -24,13 +24,24 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const includeAll = url.searchParams.get("all") === "1";
+  const academicPeriodId = url.searchParams.get("academicPeriodId");
 
   const query: Record<string, unknown> = {
     schoolId: context.schoolId,
   };
 
+  if (academicPeriodId && academicPeriodId !== "none") {
+    if (!mongoose.Types.ObjectId.isValid(academicPeriodId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid academic period." },
+        { status: 400 }
+      );
+    }
+    query.academicPeriodId = new mongoose.Types.ObjectId(academicPeriodId);
+  }
+
   if (!context.isAdmin && !includeAll) {
-    query.editors = context.userId;
+    query.$or = [{ editors: context.userId }, { isPublished: true }];
   }
 
   const calendars = await AcademicCalendar.find(query)
@@ -87,19 +98,44 @@ export async function POST(req: NextRequest) {
     editorIds: parsed.data.editors || [],
   });
 
-  const doc = await AcademicCalendar.create({
+  if (
+    parsed.data.academicPeriodId &&
+    !mongoose.Types.ObjectId.isValid(parsed.data.academicPeriodId)
+  ) {
+    return NextResponse.json(
+      { error: "Invalid academic period." },
+      { status: 400 }
+    );
+  }
+
+  const academicPeriodId = parsed.data.academicPeriodId
+    ? new mongoose.Types.ObjectId(parsed.data.academicPeriodId)
+    : null;
+
+  const existingCalendar = await AcademicCalendar.findOne({
     schoolId: context.schoolId,
-    academicPeriodId: parsed.data.academicPeriodId
-      ? new mongoose.Types.ObjectId(parsed.data.academicPeriodId)
-      : null,
+    academicPeriodId,
+  }).sort({ createdAt: -1 });
+
+  const calendarPayload = {
+    academicPeriodId,
     name: parsed.data.name.trim(),
     description: parsed.data.description?.trim() || null,
     color: parsed.data.color || null,
     isPublished: parsed.data.isPublished ?? false,
     editors: editorIds,
-    createdBy: context.userId,
     updatedBy: context.userId,
-  });
+  };
+
+  const doc =
+    existingCalendar ||
+    new AcademicCalendar({
+      schoolId: context.schoolId,
+      createdBy: context.userId,
+    });
+
+  doc.set(calendarPayload);
+  await doc.save();
 
   return NextResponse.json(
     {

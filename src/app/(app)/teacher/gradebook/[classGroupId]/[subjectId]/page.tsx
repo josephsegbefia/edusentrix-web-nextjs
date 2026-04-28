@@ -102,11 +102,20 @@ export default function TeacherGradebookDetailPage() {
     setDraftAssessments((prev) => prev.filter((assessment) => !assessmentIds.has(assessment.id)));
   }, [assessmentIds]);
 
+  const [savingCells, setSavingCells] = React.useState<Set<string>>(() => new Set());
+
+  const isCellSaving = React.useCallback(
+    (studentId: string, assessmentId: string) => savingCells.has(`${studentId}::${assessmentId}`),
+    [savingCells]
+  );
+
   const handleRecord = React.useCallback(
     async (assessment: GradebookAssessment, studentId: string, score: number | null) => {
       if (!classGroupId || !subjectId) return;
       if (!canRecord) return;
 
+      const key = `${studentId}::${assessment.id}`;
+      setSavingCells((prev) => new Set(prev).add(key));
       try {
         await recordMutation.mutateAsync({
           classGroupId,
@@ -121,6 +130,12 @@ export default function TeacherGradebookDetailPage() {
         });
       } catch (err) {
         busyToast.error(err instanceof Error ? err.message : "Failed to save mark");
+      } finally {
+        setSavingCells((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
       }
     },
     [classGroupId, subjectId, canRecord, recordMutation, busyToast]
@@ -304,6 +319,7 @@ export default function TeacherGradebookDetailPage() {
               onRecord={handleRecord}
               onInvalid={(message) => busyToast.error(message)}
               draftAssessments={draftAssessments}
+              isCellSaving={isCellSaving}
               weights={
                 gradingScale
                   ? { caWeight: gradingScale.caWeight, examWeight: gradingScale.examWeight }

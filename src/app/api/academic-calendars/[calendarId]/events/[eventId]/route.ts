@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolMember } from "@/lib/auth/requireSchoolMember";
 import { AcademicCalendar } from "@/models/AcademicCalendar";
 import { AcademicCalendarEvent } from "@/models/AcademicCalendarEvent";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { canEditCalendar } from "@/lib/academic-calendar/permissions";
 import { DEFAULT_AUDIENCE_ROLES } from "@/lib/academic-calendar/types";
 import { resolveEditorIds } from "@/lib/academic-calendar/editors";
@@ -14,6 +15,7 @@ const updateSchema = z.object({
   description: z.string().optional().nullable(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
+  academicPeriodId: z.string().optional().nullable(),
   allDay: z.boolean().optional(),
   location: z.string().optional().nullable(),
   color: z.string().optional().nullable(),
@@ -44,11 +46,11 @@ const updateSchema = z.object({
   recurrence: z
     .object({
       frequency: z.enum(["none", "daily", "weekly", "monthly", "yearly"]),
-      interval: z.number().min(1).max(365).optional(),
-      byWeekday: z.array(z.number().min(0).max(6)).optional(),
-      byMonthDay: z.array(z.number().min(1).max(31)).optional(),
-      until: z.coerce.date().optional().nullable(),
-      count: z.number().min(1).max(500).optional(),
+      interval: z.number().min(1).max(365).nullish(),
+      byWeekday: z.array(z.number().min(0).max(6)).nullish(),
+      byMonthDay: z.array(z.number().min(1).max(31)).nullish(),
+      until: z.coerce.date().nullish(),
+      count: z.number().min(1).max(500).nullish(),
     })
     .optional()
     .nullable(),
@@ -63,6 +65,45 @@ const updateSchema = z.object({
     )
     .optional(),
 });
+
+function normalizeAcademicPeriodId(value: string | null | undefined) {
+  if (!value || value === "none") return null;
+  if (!mongoose.Types.ObjectId.isValid(value)) return null;
+  return new mongoose.Types.ObjectId(value);
+}
+
+async function clipRecurrenceToPeriod({
+  recurrence,
+  schoolId,
+  academicPeriodId,
+}: {
+  recurrence: z.infer<typeof updateSchema>["recurrence"];
+  schoolId: mongoose.Types.ObjectId | string;
+  academicPeriodId: mongoose.Types.ObjectId | null;
+}) {
+  if (!recurrence || recurrence.frequency === "none" || !academicPeriodId) {
+    return recurrence;
+  }
+
+  const period = await AcademicPeriod.findOne({
+    _id: academicPeriodId,
+    schoolId,
+  }).lean();
+
+  if (!period) return recurrence;
+
+  const periodEnd = new Date(period.endDate);
+  const requestedUntil = recurrence.until ? new Date(recurrence.until) : null;
+
+  if (!requestedUntil || requestedUntil > periodEnd) {
+    return {
+      ...recurrence,
+      until: periodEnd,
+    };
+  }
+
+  return recurrence;
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -144,6 +185,29 @@ export async function PATCH(
   }
   if (parsed.data.startDate !== undefined) update.startDate = startDate;
   if (parsed.data.endDate !== undefined) update.endDate = endDate;
+  let academicPeriodId =
+    event.academicPeriodId && mongoose.Types.ObjectId.isValid(String(event.academicPeriodId))
+      ? new mongoose.Types.ObjectId(String(event.academicPeriodId))
+      : null;
+  if (parsed.data.academicPeriodId !== undefined) {
+    const requestedAcademicPeriodId = normalizeAcademicPeriodId(
+      parsed.data.academicPeriodId
+    );
+    if (requestedAcademicPeriodId) {
+      const period = await AcademicPeriod.findOne({
+        _id: requestedAcademicPeriodId,
+        schoolId: context.schoolId,
+      }).lean();
+      if (!period) {
+        return NextResponse.json(
+          { error: "Academic period not found" },
+          { status: 400 }
+        );
+      }
+    }
+    academicPeriodId = requestedAcademicPeriodId;
+    update.academicPeriodId = requestedAcademicPeriodId;
+  }
   if (parsed.data.location !== undefined) {
     update.location = parsed.data.location?.trim() || null;
   }
@@ -193,11 +257,16 @@ export async function PATCH(
   }
 
   if (parsed.data.recurrence !== undefined) {
-    update.recurrence = parsed.data.recurrence
+    const recurrence = await clipRecurrenceToPeriod({
+      recurrence: parsed.data.recurrence,
+      schoolId: context.schoolId,
+      academicPeriodId,
+    });
+    update.recurrence = recurrence
       ? {
-          ...parsed.data.recurrence,
-          until: parsed.data.recurrence.until
-            ? new Date(parsed.data.recurrence.until)
+          ...recurrence,
+          until: recurrence.until
+            ? new Date(recurrence.until)
             : null,
         }
       : null;

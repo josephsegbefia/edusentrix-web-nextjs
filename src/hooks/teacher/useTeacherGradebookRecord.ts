@@ -16,6 +16,7 @@ export function useTeacherGradebookRecord() {
   const qc = useQueryClient();
 
   return useMutation({
+    meta: { suppressGlobalBusy: true },
     mutationFn: async (payload: GradebookRecordInput) => {
       const { classGroupId, subjectId, assessment, records } = payload;
       const res = await fetch(`/api/teacher/gradebook/${classGroupId}/${subjectId}/record`, {

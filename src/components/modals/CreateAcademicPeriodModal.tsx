@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 
 const schema = z
   .object({
@@ -53,16 +54,202 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
+type PeriodSeed = {
+  yearLabel?: string | null;
+  term?: string | null;
+  startDate?: string | Date | null;
+  endDate?: string | Date | null;
+  isYearEndTerminal?: boolean | null;
+};
+
 type CreateAcademicPeriodModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (payload: FormValues) => Promise<void>;
   isLoading?: boolean;
   initialValues?: Partial<FormValues> | null;
+  periods?: PeriodSeed[];
+  previousPeriod?: PeriodSeed | null;
   title?: string;
   description?: string;
   submitLabel?: string;
 };
+
+function toYmd(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseYmd(value: string): Date | null {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  if (!year || !month || !day) return null;
+  const d = new Date(year, month - 1, day);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function defaultAcademicYear(today = new Date()): string {
+  const year = today.getFullYear();
+  const startsNewYear = today.getMonth() >= 7;
+  const start = startsNewYear ? year : year - 1;
+  return `${start}/${start + 1}`;
+}
+
+function advanceAcademicYear(label: string): string {
+  const slashMatch = label.match(/(\d{4})\s*\/\s*(\d{4})/);
+  if (slashMatch) {
+    const start = Number(slashMatch[1]) + 1;
+    const end = Number(slashMatch[2]) + 1;
+    return `${start}/${end}`;
+  }
+  const dashMatch = label.match(/(\d{4})\s*-\s*(\d{4})/);
+  if (dashMatch) {
+    const start = Number(dashMatch[1]) + 1;
+    const end = Number(dashMatch[2]) + 1;
+    return `${start}-${end}`;
+  }
+  const singleYear = label.match(/\b(\d{4})\b/);
+  if (singleYear) return String(Number(singleYear[1]) + 1);
+  return defaultAcademicYear();
+}
+
+function ordinal(n: number): string {
+  if (n === 1) return "1st";
+  if (n === 2) return "2nd";
+  if (n === 3) return "3rd";
+  return `${n}th`;
+}
+
+function inferTermNumber(term?: string | null): number | null {
+  if (!term) return null;
+  const lower = term.toLowerCase();
+  const digit = lower.match(/\b([1-3])\b/);
+  if (digit) return Number(digit[1]);
+  if (/\bfirst\b|\b1st\b/.test(lower)) return 1;
+  if (/\bsecond\b|\b2nd\b/.test(lower)) return 2;
+  if (/\bthird\b|\b3rd\b/.test(lower)) return 3;
+  return null;
+}
+
+function nextTermLabel(previousTerm?: string | null): string {
+  if (!previousTerm) return "1st Term";
+  const current = inferTermNumber(previousTerm) ?? 0;
+  const next = current >= 3 ? 1 : current + 1;
+  const trimmed = previousTerm.trim();
+  if (/^term\s+\d/i.test(trimmed)) return `Term ${next}`;
+  if (/^\d+(st|nd|rd|th)\s+term/i.test(trimmed)) return `${ordinal(next)} Term`;
+  if (/^first\s+term/i.test(trimmed)) return next === 2 ? "Second Term" : "First Term";
+  if (/^second\s+term/i.test(trimmed)) return next === 3 ? "Third Term" : "Second Term";
+  if (/^third\s+term/i.test(trimmed)) return "First Term";
+  return `${ordinal(next)} Term`;
+}
+
+function resetTermLabel(previousTerm?: string | null): string {
+  if (!previousTerm) return "1st Term";
+  const trimmed = previousTerm.trim();
+  if (/^term\s+\d/i.test(trimmed)) return "Term 1";
+  if (/^\d+(st|nd|rd|th)\s+term/i.test(trimmed)) return "1st Term";
+  if (/^(first|second|third)\s+term/i.test(trimmed)) return "First Term";
+  return "1st Term";
+}
+
+function latestPeriod(periods: PeriodSeed[] = []): PeriodSeed | null {
+  return periods
+    .filter((period) => period.endDate || period.startDate)
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date(a.endDate || a.startDate || 0).getTime();
+      const bTime = new Date(b.endDate || b.startDate || 0).getTime();
+      return bTime - aTime;
+    })[0] ?? null;
+}
+
+function buildLeoPeriodDefaults(input: {
+  initialValues?: Partial<FormValues> | null;
+  periods?: PeriodSeed[];
+  previousPeriod?: PeriodSeed | null;
+}): { values: FormValues; note: string | null } {
+  if (input.initialValues) {
+    return {
+      values: {
+        yearLabel: input.initialValues.yearLabel || "",
+        term: input.initialValues.term || "",
+        startDate: toYmd(input.initialValues.startDate || ""),
+        endDate: toYmd(input.initialValues.endDate || ""),
+        isYearEndTerminal: input.initialValues.isYearEndTerminal || false,
+      },
+      note: null,
+    };
+  }
+
+  const previous = input.previousPeriod ?? latestPeriod(input.periods);
+  if (!previous) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = addDays(start, 89);
+    return {
+      values: {
+        yearLabel: defaultAcademicYear(start),
+        term: "1st Term",
+        startDate: toYmd(start),
+        endDate: toYmd(end),
+        isYearEndTerminal: false,
+      },
+      note: "Leo filled this as the first academic period using 1st Term and the current academic year.",
+    };
+  }
+
+  const previousTermNo = inferTermNumber(previous.term);
+  const shouldAdvanceYear = Boolean(previous.isYearEndTerminal) || previousTermNo === 3;
+  const previousEnd = previous.endDate ? new Date(previous.endDate) : new Date();
+  const previousStart = previous.startDate ? new Date(previous.startDate) : null;
+  const durationDays =
+    previousStart && !Number.isNaN(previousStart.getTime()) && !Number.isNaN(previousEnd.getTime())
+      ? Math.max(
+          28,
+          Math.round((previousEnd.getTime() - previousStart.getTime()) / 86400000)
+        )
+      : 89;
+  const nextStart = Number.isNaN(previousEnd.getTime())
+    ? new Date()
+    : addDays(previousEnd, 1);
+  nextStart.setHours(0, 0, 0, 0);
+  const nextEnd = addDays(nextStart, durationDays);
+  const previousYear = previous.yearLabel || defaultAcademicYear(nextStart);
+  const nextYear = shouldAdvanceYear
+    ? advanceAcademicYear(previousYear)
+    : previousYear;
+  const nextTerm = shouldAdvanceYear
+    ? resetTermLabel(previous.term)
+    : nextTermLabel(previous.term);
+
+  return {
+    values: {
+      yearLabel: nextYear,
+      term: nextTerm,
+      startDate: toYmd(nextStart),
+      endDate: toYmd(nextEnd),
+      isYearEndTerminal: nextTerm.includes("3") || /^third/i.test(nextTerm),
+    },
+    note: shouldAdvanceYear
+      ? `Leo detected that the previous period ended the academic year, so it advanced ${previousYear} to ${nextYear} and restarted at ${nextTerm}.`
+      : `Leo followed the previous term naming pattern and suggested ${nextTerm}.`,
+  };
+}
 
 export default function CreateAcademicPeriodModal({
   open,
@@ -70,26 +257,22 @@ export default function CreateAcademicPeriodModal({
   onSubmit,
   isLoading,
   initialValues,
+  periods,
+  previousPeriod,
   title = "Create Academic Period",
   description = "Set the academic year, term, and key dates for this period.",
   submitLabel = "Create Period",
 }: CreateAcademicPeriodModalProps) {
-  const resolvedDefaults = React.useMemo(
-    () => ({
-      yearLabel: initialValues?.yearLabel || "",
-      term: initialValues?.term || "",
-      startDate: initialValues?.startDate || "",
-      endDate: initialValues?.endDate || "",
-      isYearEndTerminal: initialValues?.isYearEndTerminal || false,
-    }),
+  const leoDefaults = React.useMemo(
+    () => buildLeoPeriodDefaults({ initialValues, periods, previousPeriod }),
     [
-      initialValues?.endDate,
-      initialValues?.isYearEndTerminal,
-      initialValues?.startDate,
-      initialValues?.term,
-      initialValues?.yearLabel,
+      initialValues,
+      periods,
+      previousPeriod,
     ]
   );
+  const resolvedDefaults = leoDefaults.values;
+  const leoNote = leoDefaults.note;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as Resolver<FormValues>,
@@ -100,6 +283,8 @@ export default function CreateAcademicPeriodModal({
   const isPending = Boolean(isLoading || form.formState.isSubmitting);
 
   const startDate = form.watch("startDate");
+  const startDateValue = parseYmd(startDate);
+  const endDateValue = parseYmd(form.watch("endDate"));
 
   React.useEffect(() => {
     if (!open) return;
@@ -192,6 +377,15 @@ export default function CreateAcademicPeriodModal({
                 onSubmit={form.handleSubmit(handleSubmit)}
                 className="space-y-6"
               >
+                {leoNote ? (
+                  <div className="rounded-xl border border-brand/25 bg-brand/10 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+                      Leo suggestion
+                    </p>
+                    <p className="mt-1 text-sm text-white/75">{leoNote}</p>
+                  </div>
+                ) : null}
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
@@ -228,13 +422,16 @@ export default function CreateAcademicPeriodModal({
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                      Start date *
-                    </Label>
-                    <Input
-                      type="date"
+                    <CustomDatePicker
+                      label="Start date *"
+                      value={startDateValue}
+                      onChange={(date) =>
+                        form.setValue("startDate", toYmd(date), {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }
                       className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
-                      {...form.register("startDate")}
                     />
                     {form.formState.errors.startDate ? (
                       <p className="text-xs text-rose-300">
@@ -244,14 +441,17 @@ export default function CreateAcademicPeriodModal({
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-                      End date *
-                    </Label>
-                    <Input
-                      type="date"
-                      min={startDate || undefined}
+                    <CustomDatePicker
+                      label="End date *"
+                      value={endDateValue}
+                      onChange={(date) =>
+                        form.setValue("endDate", toYmd(date), {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }
+                      minDate={startDateValue || undefined}
                       className="border border-white/10 bg-white/5 text-white focus:border-brand focus:ring-1 focus:ring-brand"
-                      {...form.register("endDate")}
                     />
                     {form.formState.errors.endDate ? (
                       <p className="text-xs text-rose-300">

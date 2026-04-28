@@ -80,6 +80,8 @@ Do **not** offer delegation for `parent`, `student`, `school_admin`, or `billing
 - **Capabilities that previously depended only on a subrole** must be **re-homed**: default them into **baseline `teacher` / `staff` behavior** where low-risk, move them behind an appropriate **delegation module + preset**, or keep them **`school_admin` only** until a module exists.
 - **Data:** migration may **clear** legacy `subroles` fields or leave them unused; they are **not** part of RBAC going forward.
 
+**Implementation (teacher RBAC):** `resolvePermissions` grants capabilities from **membership roles only**; subroles are not merged into `permissions[]`. Baseline **`teacher`** includes the former low-risk subrole capabilities (homeroom attendance, gradebook publish/lock/export, at-risk analytics, etc.) **except** `admissions.manage`, which stays **`school_admin` or `Delegation` only**. `requireTeacher` may still attach `subroles` to context for UI/diagnostics; they must not drive gates. Admissions **weekly digest** recipients include users with an active **`admissions` delegation** as well as legacy `admissions_officer` membership rows.
+
 ## 4. Delegation Levels
 
 Delegation should support module-level presets first, with action-level permissions underneath.
@@ -916,6 +918,9 @@ type DelegationAuditEvent = {
   actorUserId: ObjectId;
   actorRole: "admin" | "delegate";
   actorDelegationId?: ObjectId | null;
+  /** Resolved display name of the acting user when `actorRole === "delegate"` (also stored in `Activity.metadata`). */
+  actorDisplayName?: string | null;
+  actorEmail?: string | null;
   module: string;
   action: string;
   entityType?: string | null;
@@ -928,6 +933,19 @@ type DelegationAuditEvent = {
   createdAt: Date;
 };
 ```
+
+### Delegate identity in metadata
+
+Persist human-readable names on the existing `Activity` document (`metadata` map) so exports and admin UIs do not need extra joins:
+
+- **`actorDisplayName` / `actorEmail`** — when the actor is a **delegate** (`metadata.actorRole === "delegate"`), the server resolves these from `User` for the acting `userId` before insert.
+- **`delegateStaffDisplayName` / `delegateStaffEmail`** — for **delegation lifecycle** events (`delegation.created`, `delegation.updated`, `delegation.revoked`, `delegation.expired`, `delegation.migrated`), the server resolves these from `metadata.staffUserId` (the staff member receiving, holding, or losing delegated access).
+
+Lifecycle audit writes must include `staffUserId` in `metadata` where the affected delegate is known.
+
+**Request context:** when available, API handlers may pass **client** `ipAddress` / `userAgent` into `recordActivity`; these are stored on `Activity.metadata` (best-effort from `x-forwarded-for` / `user-agent`, not a security guarantee).
+
+**Admin / school UI:** activity feeds (dashboard, “view all”, delegations “Recent activity”, student activity log) should render `metadata.actorDisplayName` and the delegate badge via `formatActivityActorPrimary`, and show **Staff:** `delegateStaffDisplayName` when present so reviewers see both the acting account and the affected delegate in one glance.
 
 Audit logs must be append-only.
 

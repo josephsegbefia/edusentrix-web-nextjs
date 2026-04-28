@@ -3,12 +3,16 @@
  * List and record donations for a campaign.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingCampaign, IFundraisingCampaign } from "@/models/FundraisingCampaign";
 import { FundraisingDonation, DonationStatus, PaymentMethod } from "@/models/FundraisingDonation";
 import { User } from "@/models/User";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import { recordDonationInLedger } from "@/lib/finance/writeLedgerEntry";
 import mongoose from "mongoose";
 import { z } from "zod";
@@ -19,7 +23,7 @@ interface RouteContext {
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("fundraising");
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -134,7 +138,10 @@ const RecordDonationSchema = z.object({
 
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.edit",
+    ]);
+    const { userId, schoolId } = authCtx;
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -222,6 +229,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
       entityType: "fundraising_campaign",
       entityId: String(campaignIdObj),
       description: `Recorded offline donation of ${data.amountMinor / 100} via ${data.paymentMethod}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "fundraising",
+        action: "donation.received",
+      }),
       metadata: {
         donationId: String(donation._id),
         amountMinor: data.amountMinor,

@@ -3,7 +3,10 @@
  * Admin API for single campaign - get, update, delete.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingCampaign } from "@/models/FundraisingCampaign";
 import { FundraisingDonation } from "@/models/FundraisingDonation";
@@ -58,7 +61,7 @@ const UpdateCampaignSchema = z.object({
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("fundraising");
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -154,7 +157,9 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.edit",
+    ]);
     await connectToDatabase();
 
     const { id } = await context.params;
@@ -276,7 +281,9 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.edit",
+    ]);
     await connectToDatabase();
 
     const { id } = await context.params;

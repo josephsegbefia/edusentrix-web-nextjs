@@ -1,6 +1,9 @@
 // src/app/api/admin/subjects/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Subject } from "@/models/Subject";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -25,7 +28,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("subjects");
     await connectToDatabase();
 
     const { id } = await params;
@@ -228,7 +231,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "subjects.edit",
+    ]);
     await connectToDatabase();
 
     const { id } = await params;

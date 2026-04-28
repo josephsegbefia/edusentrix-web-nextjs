@@ -3,7 +3,7 @@
  * Get aggregated poll results.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { CommunityPoll } from "@/models/CommunityPoll";
 import { CommunityPollVote } from "@/models/CommunityPollVote";
@@ -15,7 +15,7 @@ interface RouteContext {
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("polls");
     await connectToDatabase();
 
     void CommunityPoll.modelName;

@@ -3,7 +3,10 @@
  * Admin API for community polls - list and create.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { CommunityPoll, ICommunityPoll, PollStatus } from "@/models/CommunityPoll";
 import { PollTemplate } from "@/models/PollTemplate";
@@ -75,7 +78,7 @@ const CreatePollSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("polls");
     await connectToDatabase();
 
     void CommunityPoll.modelName;
@@ -170,7 +173,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "polls.create",
+    ]);
     await connectToDatabase();
 
     const body = await req.json();

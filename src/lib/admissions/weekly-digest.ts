@@ -13,6 +13,7 @@ import { sendTrackedBrevoEmail } from "@/lib/email/services/send-brevo-email";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
+import { Delegation } from "@/models/Delegation";
 import {
   buildSchoolDigestPayload,
   type SchoolDigestPayload,
@@ -271,6 +272,8 @@ export async function listDigestRecipients(
   schoolId: Types.ObjectId
 ): Promise<DigestRecipient[]> {
   await connectToDatabase();
+  const now = new Date();
+
   const memberships = await UserMembership.find({
     schoolId,
     status: "active",
@@ -282,9 +285,40 @@ export async function listDigestRecipients(
     .select({ userId: 1, roles: 1 })
     .lean();
 
-  if (memberships.length === 0) return [];
+  const delegationRows = await Delegation.find({
+    schoolId,
+    module: "admissions",
+    status: "active",
+    $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+  })
+    .select({ staffUserId: 1 })
+    .lean();
 
-  const userIds = memberships.map((m) => m.userId);
+  type Row = { userId: Types.ObjectId; isAdmin: boolean };
+  const byUser = new Map<string, Row>();
+
+  for (const m of memberships) {
+    const uid = m.userId as Types.ObjectId;
+    const key = String(uid);
+    const isAdmin = (m.roles ?? []).includes("school_admin");
+    const prev = byUser.get(key);
+    byUser.set(key, {
+      userId: uid,
+      isAdmin: Boolean(prev?.isAdmin || isAdmin),
+    });
+  }
+
+  for (const d of delegationRows) {
+    const uid = d.staffUserId as Types.ObjectId;
+    const key = String(uid);
+    if (!byUser.has(key)) {
+      byUser.set(key, { userId: uid, isAdmin: false });
+    }
+  }
+
+  if (byUser.size === 0) return [];
+
+  const userIds = [...byUser.values()].map((r) => r.userId);
   const users = await User.find({ _id: { $in: userIds } })
     .select({ _id: 1, email: 1, firstName: 1 })
     .lean();
@@ -300,15 +334,14 @@ export async function listDigestRecipients(
   }
 
   const recipients: DigestRecipient[] = [];
-  for (const m of memberships) {
-    const u = userMap.get(String(m.userId));
+  for (const row of byUser.values()) {
+    const u = userMap.get(String(row.userId));
     if (!u?.email) continue;
-    const isAdmin = (m.roles ?? []).includes("school_admin");
     recipients.push({
-      userId: m.userId as Types.ObjectId,
+      userId: row.userId,
       email: u.email,
       firstName: u.firstName ?? null,
-      role: isAdmin ? "school_admin" : "admissions_officer",
+      role: row.isAdmin ? "school_admin" : "admissions_officer",
     });
   }
   return recipients;

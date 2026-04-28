@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { InvoiceEvent } from "@/models/InvoiceEvent";
@@ -116,7 +116,8 @@ function normalizeRef(value?: string | null) {
 }
 
 export async function POST(req: NextRequest) {
-  const { schoolId, userId, roles } = await requireFinanceStaff();
+  const { schoolId, userId, roles } =
+    await requireFinanceStaffOrDelegatedAnyPermission(["fees.record_payment"]);
   await connectToDatabase();
 
   if (!schoolId) {

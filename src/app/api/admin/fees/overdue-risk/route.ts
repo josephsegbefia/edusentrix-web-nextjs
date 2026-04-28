@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { buildOverdueRiskSnapshot } from "@/lib/fees/overdue-risk";
 
 function parseLimit(value: string | null, fallback: number) {
@@ -12,7 +12,7 @@ function parseLimit(value: string | null, fallback: number) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("fees");
     await connectToDatabase();
 
     if (!schoolId) {

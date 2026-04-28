@@ -12,7 +12,7 @@ import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionForm } from "@/models/AdmissionForm";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
 import { School } from "@/models/School";
-import { recordActivity } from "@/lib/audit/recordActivity";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 import { CreateAdmissionCycleSchema } from "@/schemas/admissions";
 import {
   serializeAdmissionCycle,
@@ -23,6 +23,7 @@ import {
   DEFAULT_REJECTION_TEMPLATE,
 } from "@/lib/admissions/defaults";
 import { getAdmissionCycleTemplate } from "@/lib/admissions/templates";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 function toObjectId(value: unknown): mongoose.Types.ObjectId {
   if (value instanceof mongoose.Types.ObjectId) return value;
@@ -32,6 +33,7 @@ function toObjectId(value: unknown): mongoose.Types.ObjectId {
 export async function GET() {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.view");
     await connectToDatabase();
 
     const cycles = await AdmissionCycle.find({ schoolId: ctx.schoolId })
@@ -57,6 +59,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.manage_cycle");
     await connectToDatabase();
 
     const body = await req.json();
@@ -175,14 +178,17 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await recordActivity({
-      schoolId,
-      userId,
+    await recordAdmissionsManagerActivity({
+      ctx,
       type: "admissions.cycle.created",
       entityType: "AdmissionCycle",
       entityId: cycle._id,
       description: `Created admission cycle: ${cycle.name}`,
-      metadata: { cycleId: String(cycle._id), slug: cycle.slug },
+      delegationAction: "admissions.cycle.created",
+      metadata: {
+        cycleId: String(cycle._id),
+        slug: cycle.slug,
+      },
     });
 
     return NextResponse.json({

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // GET /api/admin/grades/[gradeId]/overview
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ gradeId: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("grades");
     await connectToDatabase();
 
     const { gradeId } = await params;

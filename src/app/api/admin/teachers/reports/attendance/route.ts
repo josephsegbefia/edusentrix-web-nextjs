@@ -1,6 +1,6 @@
 // src/app/api/admin/teachers/reports/attendance/route.ts
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAttendance } from "@/models/TeacherAttendance";
@@ -33,7 +33,7 @@ function endOfDay(d: Date): Date {
  * Query params: startDate (ISO string), endDate (ISO string), status (optional filter)
  */
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("reports");
   await connectToDatabase();
 
   const schoolIdObj =

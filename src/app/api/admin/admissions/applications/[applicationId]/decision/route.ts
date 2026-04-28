@@ -8,10 +8,12 @@ import mongoose from "mongoose";
 import { z } from "zod";
 
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 import {
   recordDecision,
   DecisionServiceError,
 } from "@/lib/admissions/decision-service";
+import { auditClientMetaFromRequest } from "@/lib/audit/auditClientMetaFromRequest";
 
 type Params = Promise<{ applicationId: string }>;
 
@@ -47,6 +49,12 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       );
     }
 
+    requireAdmissionsPermission(ctx, "admissions.decide");
+    if (parsed.data.sendEmail !== false) {
+      requireAdmissionsPermission(ctx, "admissions.send_email");
+    }
+
+    const client = auditClientMetaFromRequest(req);
     const result = await recordDecision({
       applicationId,
       schoolId: ctx.schoolId,
@@ -58,6 +66,12 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       targetGradeId: parsed.data.targetGradeId ?? null,
       targetClassGroupId: parsed.data.targetClassGroupId ?? null,
       sendEmail: parsed.data.sendEmail ?? true,
+      activityAudit: {
+        isDelegatedActor: ctx.isDelegate,
+        activeDelegationId: ctx.activeDelegationId,
+        ipAddress: client.ipAddress,
+        userAgent: client.userAgent,
+      },
     });
 
     return NextResponse.json({ success: true, data: result });

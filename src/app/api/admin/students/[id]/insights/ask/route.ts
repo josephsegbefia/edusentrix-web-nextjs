@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { buildStudentInsightsDTO } from "@/lib/insights/buildStudentInsightsDTO";
 import { AIInsightCache } from "@/models/AIInsightCache";
@@ -12,7 +12,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "students.edit",
+    ]);
     const { id: studentId } = await params;
 
     if (!schoolId) {

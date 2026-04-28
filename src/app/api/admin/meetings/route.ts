@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose, { Types } from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireMeetingsPermission,
+  resolveMeetingsCapabilities,
+} from "@/lib/meetings/requireMeetingsPermission";
 import {
   resolveMeetingParticipantsForCreate,
   type MeetingRecipientRole,
@@ -14,6 +17,7 @@ import {
   provisionLiveKitRoom,
 } from "@/lib/meetings/livekit";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { meetingsActorAuditMetadata } from "@/lib/meetings/meetings-actor-audit-metadata";
 import { AcademicCalendar } from "@/models/AcademicCalendar";
 import { AcademicCalendarEvent } from "@/models/AcademicCalendarEvent";
 import { Meeting, type MeetingHostRole } from "@/models/Meeting";
@@ -104,8 +108,10 @@ function meetingMatchesSearch(input: {
 
 export async function GET(req: NextRequest) {
   try {
-    const context = await requireSchoolAdmin();
+    const context = await requireMeetingsPermission("meetings.view");
     await connectToDatabase();
+
+    const capabilities = await resolveMeetingsCapabilities(context);
 
     const query = buildMeetingQuery(req, context.schoolId);
     const search = (req.nextUrl.searchParams.get("q") || "").trim();
@@ -116,7 +122,7 @@ export async function GET(req: NextRequest) {
       .lean();
 
     if (meetings.length === 0) {
-      return NextResponse.json({ success: true, data: [] });
+      return NextResponse.json({ success: true, data: [], capabilities });
     }
 
     const meetingIds = meetings.map((meeting) => meeting._id);
@@ -141,7 +147,7 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    return NextResponse.json({ success: true, data: filtered });
+    return NextResponse.json({ success: true, data: filtered, capabilities });
   } catch (error) {
     if (error instanceof Response) return error;
     console.error("Failed to fetch meetings:", error);
@@ -157,7 +163,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const context = await requireSchoolAdmin();
+    const context = await requireMeetingsPermission("meetings.create");
     await connectToDatabase();
 
     const parsed = createMeetingSchema.safeParse(await req.json());
@@ -234,7 +240,7 @@ export async function POST(req: NextRequest) {
         status: "scheduled",
         visibility: "invite_only",
         hostUserId: context.userId,
-        hostRole: "school_admin",
+        hostRole: context.isSchoolAdmin ? "school_admin" : "teacher",
         provider: liveKitEnabled ? "livekit" : "none",
         providerStatus: liveKitEnabled ? "pending" : "not_configured",
         reminderMinutesBefore: [],
@@ -347,6 +353,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      const actorMeta = await meetingsActorAuditMetadata(context, "meeting.created");
       await recordActivity({
         schoolId: context.schoolId,
         userId: context.userId,
@@ -355,6 +362,7 @@ export async function POST(req: NextRequest) {
         entityId: meeting._id,
         description: `Scheduled meeting: ${parsed.data.title.trim()}`,
         metadata: {
+          ...actorMeta,
           calendarId: String(calendarId),
           participantCount: participants.length,
           kind: parsed.data.kind || "general",

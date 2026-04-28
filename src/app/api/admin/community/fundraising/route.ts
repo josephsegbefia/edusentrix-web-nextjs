@@ -3,7 +3,10 @@
  * Admin API for fundraising campaigns - list and create.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingCampaign, CampaignStatus } from "@/models/FundraisingCampaign";
 import { User } from "@/models/User";
@@ -71,7 +74,7 @@ const CreateCampaignSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("fundraising");
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -159,7 +162,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.create",
+    ]);
     await connectToDatabase();
 
     const body = await req.json();

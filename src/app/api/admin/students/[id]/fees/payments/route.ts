@@ -2,7 +2,7 @@
 // src/app/api/admin/students/[id]/fees/payments/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Payment } from "@/models/Payment";
 import { PaymentAllocation } from "@/models/PaymentAllocation";
@@ -13,7 +13,7 @@ export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId } = await requireFinanceStaff();
+  const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("fees");
   await connectToDatabase();
 
   try {

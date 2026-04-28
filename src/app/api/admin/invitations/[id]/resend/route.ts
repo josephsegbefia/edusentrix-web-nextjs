@@ -1,11 +1,12 @@
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { clerkClient } from "@clerk/nextjs/server";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import { School } from "@/models/School";
 import mongoose from "mongoose";
 import {
@@ -23,7 +24,10 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "invitations.resend",
+    ]);
+    const { schoolId, userId } = authCtx;
     await connectToDatabase();
 
     if (!schoolId) {
@@ -197,6 +201,12 @@ export async function POST(
         entityType: "Invitation",
         entityId: new mongoose.Types.ObjectId(invitationId),
         description: `Resent invitation to ${invitation.email}`,
+        ...delegationAuditFields({
+          isDelegatedActor: !authCtx.isSchoolAdmin,
+          activeDelegationId: authCtx.activeDelegationId,
+          module: "invitations",
+          action: "invitation.resent",
+        }),
         metadata: {
           email: invitation.email,
           role: invitation.role,
@@ -212,6 +222,12 @@ export async function POST(
         entityType: "invitation",
         entityId: invitationId,
         description: `Resent invitation to ${invitation.email}`,
+        ...delegationAuditFields({
+          isDelegatedActor: !authCtx.isSchoolAdmin,
+          activeDelegationId: authCtx.activeDelegationId,
+          module: "invitations",
+          action: "invitation.resent",
+        }),
         metadata: {
           invitationId,
           email: invitation.email,

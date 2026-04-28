@@ -7,8 +7,11 @@ import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
 import { School } from "@/models/School";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 import { sendAdmissionDocumentRequestEmail } from "@/lib/admissions/applicant-notification-emails";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
+import { auditClientMetaFromRequest } from "@/lib/audit/auditClientMetaFromRequest";
 
 type Params = Promise<{ applicationId: string }>;
 
@@ -21,6 +24,7 @@ const BodySchema = z.object({
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.request_document");
     const { applicationId } = await params;
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return NextResponse.json(
@@ -118,6 +122,22 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         emailSent: sendEmail,
       },
       at: new Date(),
+    });
+
+    const client = auditClientMetaFromRequest(req);
+    await recordAdmissionsManagerActivity({
+      ctx,
+      type: "admissions.application.document_requested",
+      entityId: app._id,
+      description: "Requested supplemental document from applicant",
+      delegationAction: "admissions.application.document_requested",
+      metadata: {
+        label: parsed.data.label,
+        emailSent: sendEmail,
+        ...(parsed.data.message ? { hasMessage: true } : {}),
+      },
+      ipAddress: client.ipAddress,
+      userAgent: client.userAgent,
     });
 
     return NextResponse.json({

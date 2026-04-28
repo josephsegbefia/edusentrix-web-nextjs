@@ -9,10 +9,12 @@ import mongoose from "mongoose";
 import { z } from "zod";
 
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 import {
   provisionApplication,
   ProvisioningServiceError,
 } from "@/lib/admissions/provisioning-service";
+import { auditClientMetaFromRequest } from "@/lib/audit/auditClientMetaFromRequest";
 
 type Params = Promise<{ applicationId: string }>;
 
@@ -25,6 +27,7 @@ const Body = z.object({
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.provision_student");
     const { applicationId } = await params;
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return NextResponse.json(
@@ -46,6 +49,11 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       );
     }
 
+    if (parsed.data.sendParentInvite !== false) {
+      requireAdmissionsPermission(ctx, "admissions.send_email");
+    }
+
+    const client = auditClientMetaFromRequest(req);
     const result = await provisionApplication({
       applicationId,
       schoolId: ctx.schoolId,
@@ -55,6 +63,12 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       targetGradeId: parsed.data.targetGradeId ?? null,
       targetClassGroupId: parsed.data.targetClassGroupId ?? null,
       sendParentInvite: parsed.data.sendParentInvite ?? true,
+      activityAudit: {
+        isDelegatedActor: ctx.isDelegate,
+        activeDelegationId: ctx.activeDelegationId,
+        ipAddress: client.ipAddress,
+        userAgent: client.userAgent,
+      },
     });
 
     return NextResponse.json({ success: true, data: result });

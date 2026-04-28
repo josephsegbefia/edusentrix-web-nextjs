@@ -21,6 +21,7 @@ export interface TeacherContext {
   teacherId: Types.ObjectId;
   schoolId: Types.ObjectId;
   roles: MembershipRole[];
+  /** Membership/Teacher labels only; not used for permission checks (see DELEGATIONS_FEATURE_SPEC §3). */
   subroles: TeacherSubrole[];
   permissions: Permission[];
   homeroomClassGroupId?: Types.ObjectId | null;
@@ -78,7 +79,7 @@ export async function requireTeacher(
         schoolId: demo.user.schoolId as Types.ObjectId,
         roles,
         subroles,
-        permissions: resolvePermissions({ roles, subroles }),
+        permissions: resolvePermissions({ roles }),
         homeroomClassGroupId: (
           teacher as { homeroomClassGroupId?: Types.ObjectId | null }
         ).homeroomClassGroupId,
@@ -152,7 +153,7 @@ export async function requireTeacher(
     ? membershipSubroles
     : teacherSubroles || []) as TeacherSubrole[];
 
-  const permissions = resolvePermissions({ roles, subroles });
+  const permissions = resolvePermissions({ roles });
 
   return {
     userId: user._id as Types.ObjectId,

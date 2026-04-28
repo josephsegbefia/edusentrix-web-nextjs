@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { StoreOrder } from "@/models/StoreOrder";
 import { User } from "@/models/User";
 import { Student } from "@/models/Student";
 
 export async function GET() {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("store");
     await connectToDatabase();
 
     const orders = await StoreOrder.find({ schoolId })

@@ -1,7 +1,7 @@
 // src/app/api/admin/promotions/policies/[id]/activate/route.ts
 // PROMO-BE-002: POST activate promotion policy (deactivates all others)
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionPolicy } from "@/models/PromotionPolicy";
 import { recordPromotionActivity } from "@/lib/promotions/recordPromotionActivity";
@@ -18,7 +18,9 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "promotions.operate",
+    ]);
     await connectToDatabase();
 
     const idempotencyKey = req.headers.get("Idempotency-Key")?.trim();

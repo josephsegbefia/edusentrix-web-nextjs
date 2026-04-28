@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { isTimetableApiWriteEnabled } from "@/lib/timetable/feature-flags";
 import { buildTimetableParityReport } from "@/lib/timetable/parity";
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("timetable");
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));

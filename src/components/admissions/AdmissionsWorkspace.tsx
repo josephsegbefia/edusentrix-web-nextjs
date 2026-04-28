@@ -16,6 +16,7 @@ import { DelegationTab } from "./DelegationTab";
 import { CreateCycleModal } from "./CreateCycleModal";
 import { AssignDelegateModal } from "./AssignDelegateModal";
 import type { AdmissionCycleDTO } from "@/hooks/admissions/useAdmissionCycles";
+import { DelegateModuleBanner } from "@/components/delegations/DelegateModuleBanner";
 
 type WorkspaceTab = "cycles" | "delegation";
 
@@ -71,6 +72,7 @@ export function AdmissionsWorkspace({ isAdmin }: AdmissionsWorkspaceProps) {
 
   return (
     <div className="space-y-8 pb-10">
+      {!isAdmin ? <DelegateModuleBanner /> : null}
       <AdmissionsHero
         cycles={cycles}
         delegate={delegate}

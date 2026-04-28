@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { clerkClient } from "@clerk/nextjs/server";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import mongoose from "mongoose";
 import {
   releasePendingBillingOwnerInvitation,
@@ -15,7 +16,10 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "invitations.revoke",
+    ]);
+    const { schoolId, userId } = authCtx;
     await connectToDatabase();
 
     if (!schoolId) {
@@ -126,6 +130,12 @@ export async function POST(
       entityType: "Invitation",
       entityId: new mongoose.Types.ObjectId(invitationId),
       description: `Revoked invitation to ${invitation.email}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "invitations",
+        action: "invitation.revoked",
+      }),
       metadata: {
         email: invitation.email,
         role: invitation.role,

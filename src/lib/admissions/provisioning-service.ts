@@ -30,6 +30,7 @@ import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 
 export class ProvisioningServiceError extends Error {
   status: number;
@@ -53,6 +54,12 @@ export type ProvisionApplicationInput = {
   targetGradeId?: string | null;
   /** When true, send the parent a Clerk invite if they don't have one yet. */
   sendParentInvite?: boolean;
+  activityAudit?: {
+    isDelegatedActor: boolean;
+    activeDelegationId: Types.ObjectId | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  };
 };
 
 export type ProvisionApplicationResult = {
@@ -534,6 +541,30 @@ export async function provisionApplication(
       createdParentUser: createdParent,
     },
     at: new Date(),
+  });
+
+  const actAudit = input.activityAudit;
+  await recordAdmissionsManagerActivity({
+    ctx: {
+      schoolId: input.schoolId,
+      userId: input.actorUserId,
+      isDelegate: actAudit?.isDelegatedActor ?? false,
+      activeDelegationId: actAudit?.activeDelegationId ?? null,
+    },
+    type: "admissions.application.provisioned",
+    entityId: application._id,
+    description: "Provisioned applicant as student",
+    delegationAction: "admissions.application.provisioned",
+    metadata: {
+      studentId: String(student._id),
+      guardianId: String(guardian._id),
+      parentUserId: String(parentUserId),
+      classGroupId: String(targetClassGroupId),
+      gradeId: String(targetGradeId),
+      invitedParent,
+    },
+    ipAddress: actAudit?.ipAddress ?? undefined,
+    userAgent: actAudit?.userAgent ?? undefined,
   });
 
   return {

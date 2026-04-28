@@ -3,7 +3,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { Types } from "mongoose";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import {
+  requireFinanceStaffOrDelegatedAnyPermission,
+  requireFinanceStaffOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SchoolExpense, ExpenseStatus } from "@/models/SchoolExpense";
 
@@ -11,7 +14,7 @@ import { SchoolExpense, ExpenseStatus } from "@/models/SchoolExpense";
 // List all expenses with filters and pagination
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("expenses");
     await connectToDatabase();
 
     const searchParams = req.nextUrl.searchParams;
@@ -109,7 +112,9 @@ export async function GET(req: NextRequest) {
 // Create a new expense (as draft)
 export async function POST(req: NextRequest) {
   try {
-    const { userId, schoolId } = await requireFinanceStaff();
+    const { userId, schoolId } = await requireFinanceStaffOrDelegatedAnyPermission([
+      "expenses.create",
+    ]);
     await connectToDatabase();
 
     const body = await req.json();

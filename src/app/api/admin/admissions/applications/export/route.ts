@@ -8,8 +8,11 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { Grade } from "@/models/Grade";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
+import { auditClientMetaFromRequest } from "@/lib/audit/auditClientMetaFromRequest";
 
 const objectIdString = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
 
@@ -41,6 +44,7 @@ function isoOrEmpty(value: unknown): string {
 export async function POST(req: NextRequest) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.export");
     await connectToDatabase();
 
     const body = await req.json().catch(() => null);
@@ -146,6 +150,28 @@ export async function POST(req: NextRequest) {
 
     const csv = lines.join("\n");
     const filename = `admissions-${Date.now()}.csv`;
+
+    const client = auditClientMetaFromRequest(req);
+    const filterMeta =
+      parsed.data.ids && parsed.data.ids.length > 0
+        ? { filter: "ids" as const, idCount: parsed.data.ids.length }
+        : {
+            filter: "cycle" as const,
+            cycleId: parsed.data.cycleId,
+            ...(parsed.data.status
+              ? { statusFilter: parsed.data.status }
+              : {}),
+          };
+    await recordAdmissionsManagerActivity({
+      ctx,
+      type: "admissions.application.exported",
+      description: `Exported ${apps.length} admissions application(s) to CSV`,
+      delegationAction: "admissions.application.exported",
+      metadata: { rowCount: apps.length, ...filterMeta },
+      ipAddress: client.ipAddress,
+      userAgent: client.userAgent,
+    });
+
     return new Response(csv, {
       status: 200,
       headers: {

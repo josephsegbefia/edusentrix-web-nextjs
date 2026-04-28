@@ -1,6 +1,6 @@
 // src/app/api/admin/documents/teachers/route.ts
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherDocument } from "@/models/TeacherDocument";
 import mongoose from "mongoose";
@@ -20,7 +20,7 @@ const DOCUMENT_TYPES = [
  * Query params: type, teacherId, page, limit, sortBy (expiryDate|createdAt), sortOrder (asc|desc)
  */
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("documents");
   await connectToDatabase();
 
   const schoolIdObj =

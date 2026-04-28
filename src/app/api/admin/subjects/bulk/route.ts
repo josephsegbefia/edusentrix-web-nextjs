@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/subjects/bulk/route.ts
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Subject } from "@/models/Subject";
 
@@ -9,7 +9,9 @@ type Body = { names: string[] };
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "subjects.edit",
+    ]);
     await connectToDatabase();
 
     const body = (await req.json()) as Body;

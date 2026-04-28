@@ -6,10 +6,12 @@ import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { listAdmissionCycleTemplates } from "@/lib/admissions/templates";
 import { School } from "@/models/School";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 export async function GET() {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.manage_cycle");
     await connectToDatabase();
     const school = await School.findById(ctx.schoolId).select({ type: 1 }).lean();
     const templates = listAdmissionCycleTemplates()

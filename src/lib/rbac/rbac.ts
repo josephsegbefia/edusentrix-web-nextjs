@@ -49,6 +49,12 @@ export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 const ALL_PERMISSIONS = Object.values(PERMISSIONS) as Permission[];
 
+/**
+ * Baseline teacher capabilities. Per DELEGATIONS_FEATURE_SPEC §3, **subroles no longer
+ * grant permissions**; former subrole-only grants (except `admissions.manage`) are folded
+ * here so typical teacher workflows stay available. Admissions admin-adjacent access uses
+ * `school_admin` or `Delegation` only.
+ */
 const BASE_ROLE_PERMISSIONS: Record<MembershipRole, Permission[]> = {
   teacher: [
     PERMISSIONS.dashboardView,
@@ -61,7 +67,14 @@ const BASE_ROLE_PERMISSIONS: Record<MembershipRole, Permission[]> = {
     PERMISSIONS.assignmentsPublish,
     PERMISSIONS.gradebookView,
     PERMISSIONS.gradebookRecord,
+    PERMISSIONS.gradebookPublish,
+    PERMISSIONS.gradebookLock,
+    PERMISSIONS.gradebookExport,
     PERMISSIONS.attendancePeriod,
+    PERMISSIONS.attendanceHomeroom,
+    PERMISSIONS.attendanceReview,
+    PERMISSIONS.attendanceNotify,
+    PERMISSIONS.analyticsAtRisk,
     PERMISSIONS.noticesView,
     PERMISSIONS.noticesPublish,
     PERMISSIONS.messagesView,
@@ -70,7 +83,7 @@ const BASE_ROLE_PERMISSIONS: Record<MembershipRole, Permission[]> = {
     PERMISSIONS.analyticsView,
     PERMISSIONS.resourcesView,
     PERMISSIONS.journalView,
-    PERMISSIONS.journalWrite, // All teachers can create lesson notes
+    PERMISSIONS.journalWrite,
   ],
   school_admin: ALL_PERMISSIONS,
   billing_owner: [
@@ -84,6 +97,7 @@ const BASE_ROLE_PERMISSIONS: Record<MembershipRole, Permission[]> = {
   student: [],
 };
 
+/** Historical map; not used by `resolvePermissions` (§3). Kept for docs / tooling. */
 const SUBROLE_PERMISSIONS: Record<TeacherSubrole, Permission[]> = {
   homeroom_teacher: [
     PERMISSIONS.attendanceHomeroom,
@@ -121,19 +135,14 @@ export function isTeacherSubrole(value: string): value is TeacherSubrole {
 
 export function resolvePermissions(input: {
   roles?: MembershipRole[];
+  /** Ignored for authorization (DELEGATIONS_FEATURE_SPEC §3). Kept for API compatibility. */
   subroles?: string[];
 }): Permission[] {
-  const { roles = [], subroles = [] } = input;
+  const { roles = [] } = input;
   const resolved = new Set<Permission>();
 
   for (const role of roles) {
     const perms = BASE_ROLE_PERMISSIONS[role] || [];
-    for (const perm of perms) resolved.add(perm);
-  }
-
-  for (const subrole of subroles) {
-    if (!isTeacherSubrole(subrole)) continue;
-    const perms = SUBROLE_PERMISSIONS[subrole] || [];
     for (const perm of perms) resolved.add(perm);
   }
 

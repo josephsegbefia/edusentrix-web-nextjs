@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
+import { requireSchoolAdminOrTeacherReadOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { TimetableConflict, type TimetableConflictCode } from "@/models/TimetableConflict";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { isTimetableApiWriteEnabled } from "@/lib/timetable/feature-flags";
@@ -50,7 +50,7 @@ export async function GET(
       );
     }
 
-    const authCtx = await requireSchoolAdminOrTeacherRead();
+    const authCtx = await requireSchoolAdminOrTeacherReadOrDelegatedModuleView("timetable");
     await connectToDatabase();
 
     const authSchoolId = new mongoose.Types.ObjectId(String(authCtx.schoolId));

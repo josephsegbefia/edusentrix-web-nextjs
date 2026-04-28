@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School, type ISchool } from "@/models/School";
 import { Assessment } from "@/models/Assessment";
@@ -33,7 +33,7 @@ async function getAcademicDataStatus(schoolId: string | mongoose.Types.ObjectId)
 
 export async function GET() {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("curriculum");
     await connectToDatabase();
 
     const school = (await School.findById(schoolId)
@@ -116,7 +116,7 @@ const UpdateSchema = z.object({
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("curriculum");
     const body = await req.json();
     const parsed = UpdateSchema.safeParse(body);
 
@@ -202,7 +202,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE() {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("curriculum");
     await connectToDatabase();
 
     await School.updateOne(

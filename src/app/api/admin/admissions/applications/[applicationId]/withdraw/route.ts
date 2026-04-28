@@ -11,6 +11,9 @@ import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
+import { auditClientMetaFromRequest } from "@/lib/audit/auditClientMetaFromRequest";
 
 type Params = Promise<{ applicationId: string }>;
 
@@ -21,6 +24,7 @@ const Body = z.object({
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.change_status");
     const { applicationId } = await params;
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return NextResponse.json(
@@ -99,6 +103,21 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         reason: parsed.data.reason ?? null,
       },
       at: new Date(),
+    });
+
+    const client = auditClientMetaFromRequest(req);
+    await recordAdmissionsManagerActivity({
+      ctx,
+      type: "admissions.application.withdrawn",
+      entityId: app._id,
+      description: `Application withdrawn (was ${previousStatus})`,
+      delegationAction: "admissions.application.withdrawn",
+      metadata: {
+        from: previousStatus,
+        reason: parsed.data.reason ?? null,
+      },
+      ipAddress: client.ipAddress,
+      userAgent: client.userAgent,
     });
 
     return NextResponse.json({

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
 import { sendTrackedBrevoEmail } from "@/lib/email";
@@ -66,7 +66,9 @@ function estimateBase64Bytes(value: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "email.send",
+    ]);
     await connectToDatabase();
 
     const parsed = ComposeSchema.safeParse(await req.json());

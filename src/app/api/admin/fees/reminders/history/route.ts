@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Activity } from "@/models/Activity";
 
@@ -92,7 +92,7 @@ function parseDeliveryRows(value: unknown): ReminderDelivery[] {
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("fees");
     await connectToDatabase();
 
     const parsed = QuerySchema.safeParse({

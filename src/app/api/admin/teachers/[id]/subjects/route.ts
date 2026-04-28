@@ -1,6 +1,9 @@
 // src/app/api/admin/teachers/[id]/subjects/route.ts
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
 import { Subject } from "@/models/Subject";
@@ -23,7 +26,7 @@ export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("subjects");
   await connectToDatabase();
 
   const { id } = await ctx.params;
@@ -69,7 +72,8 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId, userId: adminUserId } = await requireSchoolAdmin();
+  const { schoolId, userId: adminUserId } =
+    await requireSchoolAdminOrDelegatedAnyPermission(["subjects.edit"]);
   await connectToDatabase();
 
   const { id } = await ctx.params;

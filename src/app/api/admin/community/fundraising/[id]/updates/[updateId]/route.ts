@@ -5,13 +5,14 @@
  * - DELETE: Delete an update
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingCampaign } from "@/models/FundraisingCampaign";
 import { FundraisingCampaignUpdate } from "@/models/FundraisingCampaignUpdate";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 
 interface RouteContext {
   params: Promise<{ id: string; updateId: string }>;
@@ -30,7 +31,9 @@ const UpdateUpdateSchema = z.object({
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
-    const adminContext = await requireSchoolAdmin();
+    const adminContext = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.post_update",
+    ]);
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -95,6 +98,12 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       userId: String(adminContext.userId),
       type: "campaign.update_edited",
       description: `Edited update "${data.title || existingUpdate.title}" on campaign: ${campaign?.title || "Unknown"}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !adminContext.isSchoolAdmin,
+        activeDelegationId: adminContext.activeDelegationId,
+        module: "fundraising",
+        action: "campaign.update_edited",
+      }),
       metadata: {
         campaignId: id,
         updateId,
@@ -118,7 +127,9 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
-    const adminContext = await requireSchoolAdmin();
+    const adminContext = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.post_update",
+    ]);
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -155,6 +166,12 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       userId: String(adminContext.userId),
       type: "campaign.update_deleted",
       description: `Deleted update "${existingUpdate.title}" from campaign: ${campaign?.title || "Unknown"}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !adminContext.isSchoolAdmin,
+        activeDelegationId: adminContext.activeDelegationId,
+        module: "fundraising",
+        action: "campaign.update_deleted",
+      }),
       metadata: {
         campaignId: id,
         updateId,

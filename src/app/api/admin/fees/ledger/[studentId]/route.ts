@@ -7,7 +7,7 @@ import { Student } from "@/models/Student";
 import { Invoice } from "@/models/Invoice";
 import { Payment } from "@/models/Payment";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 
 const ACTIVE_INVOICE_STATUSES = [
   "issued",
@@ -64,7 +64,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ studentId: string }> }
 ) {
-  const { schoolId } = await requireFinanceStaff();
+  const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("fees");
   await connectToDatabase();
 
   const { studentId } = await params;

@@ -37,6 +37,7 @@ import {
   Video,
   Lock,
   ClipboardSignature,
+  Share2,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -126,6 +127,11 @@ const navSections: NavSection[] = [
         label: "Admissions",
         href: "/admin/admissions",
         icon: ClipboardSignature,
+      },
+      {
+        label: "Delegations",
+        href: "/admin/delegations",
+        icon: Share2,
       },
     ],
   },

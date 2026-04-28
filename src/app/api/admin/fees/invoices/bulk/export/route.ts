@@ -1,13 +1,15 @@
 // src/app/api/admin/fees/invoices/bulk/export/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
 import { formatMoney } from "@/lib/fees/money";
 
 export async function POST(req: NextRequest) {
-  const { schoolId } = await requireFinanceStaff();
+  const { schoolId } = await requireFinanceStaffOrDelegatedAnyPermission([
+    "fees.export",
+  ]);
   await connectToDatabase();
 
   try {

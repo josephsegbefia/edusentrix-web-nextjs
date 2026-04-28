@@ -1,6 +1,6 @@
 // src/app/api/admin/students/[id]/academics/assessments/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Assessment } from "@/models/Assessment";
 import { SubjectGrade } from "@/models/SubjectGrade";
@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("students");
     await connectToDatabase();
 
     if (!schoolId) {

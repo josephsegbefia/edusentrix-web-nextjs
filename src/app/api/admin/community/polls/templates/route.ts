@@ -3,7 +3,10 @@
  * Admin API for poll templates - list and create.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PollTemplate, IPollTemplate, TemplateCategory } from "@/models/PollTemplate";
 import mongoose from "mongoose";
@@ -68,7 +71,7 @@ const CreateTemplateSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("polls");
     await connectToDatabase();
 
     void PollTemplate.modelName;
@@ -156,7 +159,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "polls.create",
+    ]);
     await connectToDatabase();
 
     const body = await req.json();

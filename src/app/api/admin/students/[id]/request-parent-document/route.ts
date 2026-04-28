@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { School } from "@/models/School";
@@ -27,7 +27,9 @@ function toOid(id: string) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Params }) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+    "students.edit",
+  ]);
   await connectToDatabase();
 
   const { id } = await params;

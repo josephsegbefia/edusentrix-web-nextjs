@@ -1,27 +1,28 @@
 // src/app/api/admin/admissions/delegate/route.ts
-// School-level "current admissions delegate" management.
+// School-level admissions delegate — backed by `Delegation` (module `admissions`).
 //
 // GET    — current delegate (any admissions manager can read)
 // POST   — assign a teacher (school admin only)
 // DELETE — revoke (school admin only)
-//
-// See docs/ADMISSIONS_DEVELOPMENT_SPEC.md §5.5.
 
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { UserMembership } from "@/models/UserMembership";
 import { User } from "@/models/User";
 import { Teacher } from "@/models/Teacher";
+import { Delegation } from "@/models/Delegation";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { AssignAdmissionsDelegateSchema } from "@/schemas/admissions";
 import {
-  ADMISSIONS_OFFICER_SUBROLE_KEY,
-  grantAdmissionsOfficer,
   revokeAdmissionsOfficer,
+  ADMISSIONS_OFFICER_SUBROLE_KEY,
 } from "@/lib/admissions/access";
+import { UserMembership } from "@/models/UserMembership";
+import { revokeOtherActiveDelegationsForModule } from "@/lib/delegations/service";
+import { resolvePresetPermissions } from "@/lib/delegations/registry";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 type DelegateDTO = {
   userId: string;
@@ -41,16 +42,19 @@ function toObjectId(value: unknown): mongoose.Types.ObjectId {
 async function loadCurrentDelegate(
   schoolId: mongoose.Types.ObjectId
 ): Promise<DelegateDTO | null> {
-  const membership = await UserMembership.findOne({
+  const now = new Date();
+  const delegation = await Delegation.findOne({
     schoolId,
-    subroles: ADMISSIONS_OFFICER_SUBROLE_KEY,
+    module: "admissions",
     status: "active",
+    $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
   })
     .sort({ updatedAt: -1 })
     .lean();
-  if (!membership) return null;
 
-  const userId = toObjectId(membership.userId);
+  if (!delegation) return null;
+
+  const userId = toObjectId(delegation.staffUserId);
   const [user, teacher] = await Promise.all([
     User.findById(userId)
       .select({ firstName: 1, lastName: 1, email: 1, photoUrl: 1 })
@@ -69,15 +73,29 @@ async function loadCurrentDelegate(
     lastName: String(user.lastName ?? ""),
     email: String(user.email ?? ""),
     photoUrl: (user.photoUrl as string | undefined) ?? null,
-    assignedAt: membership.updatedAt
-      ? new Date(membership.updatedAt).toISOString()
+    assignedAt: delegation.updatedAt
+      ? new Date(delegation.updatedAt).toISOString()
       : null,
   };
+}
+
+/** Clear legacy subroles for anyone still holding admissions_officer (migration hygiene). */
+async function stripLegacyAdmissionsOfficers(schoolId: mongoose.Types.ObjectId) {
+  const holders = await UserMembership.find({
+    schoolId,
+    subroles: ADMISSIONS_OFFICER_SUBROLE_KEY,
+  })
+    .select({ userId: 1 })
+    .lean();
+  for (const h of holders) {
+    await revokeAdmissionsOfficer({ schoolId, userId: toObjectId(h.userId) });
+  }
 }
 
 export async function GET() {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.view");
     await connectToDatabase();
     const delegate = await loadCurrentDelegate(toObjectId(ctx.schoolId));
     return NextResponse.json({ success: true, data: delegate });
@@ -156,34 +174,66 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Only one active delegate at a time. Revoke any current holder first.
-    const currentHolders = await UserMembership.find({
+    await stripLegacyAdmissionsOfficers(schoolId);
+
+    await revokeOtherActiveDelegationsForModule({
       schoolId,
-      subroles: ADMISSIONS_OFFICER_SUBROLE_KEY,
-      userId: { $ne: teacherUserId },
-    })
-      .select({ userId: 1 })
-      .lean();
-    for (const holder of currentHolders) {
-      await revokeAdmissionsOfficer({
-        schoolId,
-        userId: toObjectId(holder.userId),
-      });
+      module: "admissions",
+      keepStaffUserId: teacherUserId,
+      revokedByUserId: adminUserId,
+      reason: "Replaced admissions delegate",
+    });
+
+    const permissions = resolvePresetPermissions("admissions", "decision_maker");
+    if (!permissions) {
+      return NextResponse.json(
+        { success: false, error: "Invalid delegation preset" },
+        { status: 500 }
+      );
     }
 
-    await grantAdmissionsOfficer({ schoolId, userId: teacherUserId });
+    await Delegation.updateMany(
+      {
+        schoolId,
+        staffUserId: teacherUserId,
+        module: "admissions",
+        status: "active",
+      },
+      {
+        $set: {
+          status: "revoked",
+          revokedAt: new Date(),
+          revokedByUserId: adminUserId,
+          revokeReason: "Replaced",
+        },
+      }
+    );
+
+    await Delegation.create({
+      schoolId,
+      staffUserId: teacherUserId,
+      staffTeacherId: teacher._id,
+      module: "admissions",
+      preset: "decision_maker",
+      permissions,
+      status: "active",
+      startsAt: new Date(),
+      grantedByUserId: adminUserId,
+      grantNote: "Assigned via Admissions delegation UI",
+    });
 
     await recordActivity({
       schoolId,
       userId: adminUserId,
-      type: "admissions.delegate.assigned",
-      entityType: "User",
+      type: "delegation.created",
+      entityType: "Delegation",
       entityId: teacherUserId,
-      description: "Assigned admissions delegate",
+      description: "Granted admissions delegation (decision_maker)",
       metadata: {
+        module: "admissions",
+        preset: "decision_maker",
+        staffUserId: String(teacherUserId),
         teacherId: String(teacher._id),
-        userId: String(teacherUserId),
-        revokedFrom: currentHolders.map((h) => String(h.userId)),
       },
     });
 
@@ -207,31 +257,33 @@ export async function DELETE() {
     const schoolId = toObjectId(ctx.schoolId);
     const adminUserId = toObjectId(ctx.userId);
 
-    const holders = await UserMembership.find({
-      schoolId,
-      subroles: ADMISSIONS_OFFICER_SUBROLE_KEY,
-    })
-      .select({ userId: 1 })
-      .lean();
-
-    if (holders.length === 0) {
-      return NextResponse.json({ success: true, data: null });
-    }
-
-    for (const holder of holders) {
-      await revokeAdmissionsOfficer({
+    const now = new Date();
+    const result = await Delegation.updateMany(
+      {
         schoolId,
-        userId: toObjectId(holder.userId),
-      });
-    }
+        module: "admissions",
+        status: "active",
+        $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+      },
+      {
+        $set: {
+          status: "revoked",
+          revokedAt: now,
+          revokedByUserId: adminUserId,
+          revokeReason: "Revoked by admin",
+        },
+      }
+    );
+
+    await stripLegacyAdmissionsOfficers(schoolId);
 
     await recordActivity({
       schoolId,
       userId: adminUserId,
-      type: "admissions.delegate.revoked",
-      entityType: "User",
-      description: "Revoked admissions delegate",
-      metadata: { revokedFrom: holders.map((h) => String(h.userId)) },
+      type: "delegation.revoked",
+      entityType: "School",
+      description: "Revoked all admissions delegations",
+      metadata: { modifiedCount: result.modifiedCount },
     });
 
     return NextResponse.json({ success: true, data: null });

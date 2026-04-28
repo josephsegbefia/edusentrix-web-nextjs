@@ -1,8 +1,8 @@
 // src/lib/auth/requireAdmissionsManager.ts
 // Auth helper for the Admissions feature.
-// Allows: school_admin (always) OR teacher with `admissions_officer` subrole.
+// Allows: school_admin (always) OR active `Delegation` with module `admissions`.
 //
-// See docs/ADMISSIONS_DEVELOPMENT_SPEC.md §4.
+// See docs/DELEGATIONS_FEATURE_SPEC.md §3 (subroles are not used for access).
 
 import { auth } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
@@ -11,16 +11,25 @@ import { UserMembership, type IUserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
-import { gateAdmissionsManager } from "@/lib/auth/role-gates";
+import {
+  findActiveDelegationsForUser,
+  findActiveDelegationIdForAnyPermission,
+  isDelegationActive,
+} from "@/lib/delegations/service";
 
 export interface AdmissionsManagerContext {
   userId: Types.ObjectId;
   schoolId: Types.ObjectId;
   roles: string[];
+  /** Membership subroles (informational only; not used for admissions authorization). */
   subroles: string[];
   isAdmin: boolean;
-  /** True when the user is an admissions officer but NOT also a school admin. */
+  /** True when the user has admissions access via delegation but is not a school admin. */
   isDelegate: boolean;
+  /** Effective admissions permission strings for non-admins (from active delegations only). */
+  admissionsPermissions: string[];
+  /** Active delegation document used for admissions access, when `isDelegate`. */
+  activeDelegationId: Types.ObjectId | null;
 }
 
 function legacyRoleToArray(role?: string): string[] {
@@ -33,23 +42,54 @@ function legacyRoleToArray(role?: string): string[] {
   return ["staff"];
 }
 
+function buildAdmissionsPermissionsFromDelegations(
+  delegations: Awaited<ReturnType<typeof findActiveDelegationsForUser>>
+): string[] {
+  const permSet = new Set<string>();
+  for (const d of delegations) {
+    if (d.module === "admissions" && isDelegationActive(d)) {
+      for (const p of d.permissions ?? []) permSet.add(p);
+    }
+  }
+  return Array.from(permSet);
+}
+
 export async function requireAdmissionsManager(): Promise<AdmissionsManagerContext> {
   const demo = await tryResolveDemoGuard();
   if (demo.isDemo && demo.user.schoolId) {
+    await connectToDatabase();
     const roles = [...demo.membership.roles] as string[];
     const subroles = [...(demo.membership.subroles ?? [])] as string[];
-    const gate = gateAdmissionsManager({ roles, subroles });
-    if (!gate.ok) {
-      throw NextResponse.json({ error: gate.error }, { status: gate.status });
-    }
     const isAdmin = roles.includes("school_admin");
+    const delegations = !isAdmin
+      ? await findActiveDelegationsForUser(
+          demo.user.schoolId as Types.ObjectId,
+          demo.user._id as Types.ObjectId
+        )
+      : [];
+    const admissionsPermissions = !isAdmin ? buildAdmissionsPermissionsFromDelegations(delegations) : [];
+    if (!isAdmin && admissionsPermissions.length === 0) {
+      throw NextResponse.json({ error: "Admissions access required" }, { status: 403 });
+    }
+    const schoolIdDemo = demo.user.schoolId as Types.ObjectId;
+    const userIdDemo = demo.user._id as Types.ObjectId;
+    const activeDelegationId =
+      !isAdmin && admissionsPermissions.length > 0
+        ? await findActiveDelegationIdForAnyPermission({
+            schoolId: schoolIdDemo,
+            staffUserId: userIdDemo,
+            permissions: admissionsPermissions,
+          })
+        : null;
     return {
-      userId: demo.user._id as Types.ObjectId,
-      schoolId: demo.user.schoolId as Types.ObjectId,
+      userId: userIdDemo,
+      schoolId: schoolIdDemo,
       roles,
       subroles,
       isAdmin,
-      isDelegate: !isAdmin && subroles.includes("admissions_officer"),
+      isDelegate: !isAdmin && admissionsPermissions.length > 0,
+      admissionsPermissions,
+      activeDelegationId,
     };
   }
 
@@ -100,18 +140,41 @@ export async function requireAdmissionsManager(): Promise<AdmissionsManagerConte
   const roles = (membership.roles ?? []) as string[];
   const subroles = (membership.subroles ?? []) as string[];
 
-  const gate = gateAdmissionsManager({ roles, subroles });
-  if (!gate.ok) {
-    throw NextResponse.json({ error: gate.error }, { status: gate.status });
+  const isAdmin = roles.includes("school_admin");
+
+  const schoolIdObj = user.schoolId as Types.ObjectId;
+  const userIdObj = user._id as Types.ObjectId;
+
+  const delegations = !isAdmin
+    ? await findActiveDelegationsForUser(schoolIdObj, userIdObj)
+    : [];
+
+  const admissionsPermissions = !isAdmin ? buildAdmissionsPermissionsFromDelegations(delegations) : [];
+
+  if (!isAdmin && admissionsPermissions.length === 0) {
+    throw NextResponse.json(
+      { error: "Admissions access required" },
+      { status: 403 }
+    );
   }
 
-  const isAdmin = roles.includes("school_admin");
+  const activeDelegationId =
+    !isAdmin && admissionsPermissions.length > 0
+      ? await findActiveDelegationIdForAnyPermission({
+          schoolId: schoolIdObj,
+          staffUserId: userIdObj,
+          permissions: admissionsPermissions,
+        })
+      : null;
+
   return {
-    userId: user._id as Types.ObjectId,
-    schoolId: user.schoolId as Types.ObjectId,
+    userId: userIdObj,
+    schoolId: schoolIdObj,
     roles,
     subroles,
     isAdmin,
-    isDelegate: !isAdmin && subroles.includes("admissions_officer"),
+    isDelegate: !isAdmin && admissionsPermissions.length > 0,
+    admissionsPermissions,
+    activeDelegationId,
   };
 }

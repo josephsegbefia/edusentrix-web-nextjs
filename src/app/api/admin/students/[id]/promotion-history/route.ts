@@ -1,7 +1,7 @@
 // src/app/api/admin/students/[id]/promotion-history/route.ts
 // PROMO-FE-009: Student promotion history
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionDecision } from "@/models/PromotionDecision";
 import { PromotionCycle } from "@/models/PromotionCycle";
@@ -16,7 +16,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("promotions");
     if (!schoolId) {
       return NextResponse.json(
         { success: false, error: "School ID not found" },

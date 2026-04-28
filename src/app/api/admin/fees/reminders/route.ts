@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { randomUUID } from "crypto";
 import { z } from "zod";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import {
+  requireFinanceStaffOrDelegatedAnyPermission,
+  requireFinanceStaffOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { Student } from "@/models/Student";
@@ -17,6 +20,7 @@ import {
 } from "@/lib/notifications/fee-reminders";
 import { getWhatsAppProviderState } from "@/lib/notifications/whatsapp";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import { getAppUrl } from "@/lib/utils/getAppUrl";
 
 const OUTSTANDING_STATUSES = ["issued", "partially_paid", "overdue"] as const;
@@ -376,7 +380,7 @@ function summarizeAudience(params: {
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("fees");
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
@@ -446,7 +450,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId, userId } = await requireFinanceStaff();
+    const authCtx = await requireFinanceStaffOrDelegatedAnyPermission([
+      "fees.send_reminder",
+    ]);
+    const { schoolId, userId } = authCtx;
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
@@ -710,6 +717,12 @@ export async function POST(req: NextRequest) {
       type: "fee.reminder_sent",
       entityType: "fee_reminder_campaign",
       description: `Fee reminders sent via ${body.channel}: ${sent}/${recipients.length} successful`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isFinanceStaff,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "fees",
+        action: "fee.reminder_sent",
+      }),
       metadata: {
         runId,
         channel: body.channel,

@@ -1,6 +1,9 @@
 // src/app/api/admin/staff-attendance/ai-insights/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { buildStaffAttendanceContext } from "@/lib/staffAttendance/buildStaffAttendanceContext";
 import { AICachedInsight } from "@/models/AICachedInsight";
@@ -19,7 +22,8 @@ type StaffAttendanceInsights = {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } =
+      await requireSchoolAdminOrDelegatedModuleView("staff_attendance");
     const dateStr = request.nextUrl.searchParams.get("date");
 
     if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -89,7 +93,10 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "staff_attendance.record",
+      "staff_attendance.edit",
+    ]);
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(

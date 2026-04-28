@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { TimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import {
@@ -105,7 +105,9 @@ export async function PATCH(
       );
     }
 
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "timetable.edit",
+    ]);
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
@@ -344,7 +346,9 @@ export async function DELETE(
       );
     }
 
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "timetable.edit",
+    ]);
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));

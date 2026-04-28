@@ -20,6 +20,10 @@ import {
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { motion } from "framer-motion";
 import { ActivityViewAllModal } from "./ActivityViewAllModal";
+import {
+  formatActivityActorPrimary,
+  formatActivityDelegateStaffSummary,
+} from "@/lib/audit/activityActorPresentation";
 
 function getActivityIcon(type: string) {
   if (type.includes("student")) return GraduationCap;
@@ -108,11 +112,11 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
             {activities.map((activity, index) => {
               const Icon = getActivityIcon(activity.type);
               const colorClass = getActivityColor(activity.type);
-              const performerName = activity.performedBy
-                ? `${activity.performedBy.firstName || ""} ${
-                    activity.performedBy.lastName || ""
-                  }`.trim() || activity.performedBy.email
-                : "System";
+              const performerName = formatActivityActorPrimary(
+                activity.performedBy,
+                activity.metadata
+              );
+              const delegateStaff = formatActivityDelegateStaffSummary(activity.metadata);
 
               return (
                 <motion.div
@@ -131,14 +135,19 @@ export function ActivityFeed({ limit = 5 }: { limit?: number }) {
                     <div className="text-sm text-white/90 font-medium">
                       {activity.description}
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-white/50">
-                      <span>{performerName}</span>
-                      <span>•</span>
-                      <span>
-                        {formatDistanceToNow(new Date(activity.createdAt), {
-                          addSuffix: true,
-                        })}
-                      </span>
+                    <div className="mt-1 space-y-0.5 text-xs text-white/50">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span>{performerName}</span>
+                        <span>•</span>
+                        <span>
+                          {formatDistanceToNow(new Date(activity.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                      </div>
+                      {delegateStaff ? (
+                        <div className="text-[11px] text-white/40">Staff: {delegateStaff}</div>
+                      ) : null}
                     </div>
                   </div>
                 </motion.div>

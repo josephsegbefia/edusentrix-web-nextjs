@@ -8,7 +8,7 @@ import {
   isClassTimetableManagerForReadUser,
   requireClassTimetableEditor,
 } from "@/lib/auth/requireClassTimetableEditor";
-import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
+import { requireSchoolAdminOrTeacherReadOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { ClassGroup } from "@/models/ClassGroup";
 import { SchoolSettings } from "@/models/SchoolSettings";
 import { Subject } from "@/models/Subject";
@@ -211,7 +211,7 @@ export async function GET(
     }
 
     const { id } = await ctx.params;
-    const read = await requireSchoolAdminOrTeacherRead();
+    const read = await requireSchoolAdminOrTeacherReadOrDelegatedModuleView("timetable");
     await connectToDatabase();
 
     const classObjId = toObjectIdOrNull(id);

@@ -3,7 +3,7 @@
  * Reject a campaign - admin only.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingCampaign } from "@/models/FundraisingCampaign";
 import mongoose from "mongoose";
@@ -19,7 +19,9 @@ const RejectSchema = z.object({
 
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.publish",
+    ]);
     await connectToDatabase();
 
     const { id } = await context.params;

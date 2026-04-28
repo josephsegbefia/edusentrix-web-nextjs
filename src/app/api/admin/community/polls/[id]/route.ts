@@ -4,7 +4,10 @@
  * V2: Enforces edit/lock policy based on poll status.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { CommunityPoll } from "@/models/CommunityPoll";
 import { CommunityPollVote } from "@/models/CommunityPollVote";
@@ -75,7 +78,7 @@ const FullUpdateSchema = z.object({
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("polls");
     await connectToDatabase();
 
     void CommunityPoll.modelName;
@@ -164,7 +167,9 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "polls.edit",
+    ]);
     await connectToDatabase();
 
     const { id } = await context.params;
@@ -290,7 +295,9 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "polls.edit",
+    ]);
     await connectToDatabase();
 
     const { id } = await context.params;

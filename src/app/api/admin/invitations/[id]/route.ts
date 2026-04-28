@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -14,7 +14,9 @@ export async function DELETE(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "invitations.revoke",
+    ]);
     await connectToDatabase();
 
     if (!schoolId) {

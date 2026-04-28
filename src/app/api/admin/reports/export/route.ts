@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import { formatAmount } from "@/lib/fees/money";
 import { Activity } from "@/models/Activity";
 import { Invitation } from "@/models/Invitation";
@@ -750,7 +751,10 @@ const REPORT_BUILDERS: Record<
 };
 
 export async function GET(req: NextRequest) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+    "reports.export",
+  ]);
+  const { schoolId, userId } = authCtx;
   await connectToDatabase();
 
   if (!schoolId) {
@@ -845,6 +849,12 @@ export async function GET(req: NextRequest) {
       entityType: "ReportExport",
       entityId: exportDoc._id,
       description: `Generated ${definition.label}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "reports",
+        action: "report.generated",
+      }),
       metadata: {
         reportKey: exportDoc.reportKey,
         reportLabel: definition.label,

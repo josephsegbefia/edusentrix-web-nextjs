@@ -5,13 +5,17 @@ import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
 import { School } from "@/models/School";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 import { sendAdmissionPipelineReminderEmail } from "@/lib/admissions/applicant-notification-emails";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
+import { auditClientMetaFromRequest } from "@/lib/audit/auditClientMetaFromRequest";
 
 type Params = Promise<{ applicationId: string }>;
 
-export async function POST(_req: NextRequest, { params }: { params: Params }) {
+export async function POST(req: NextRequest, { params }: { params: Params }) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.send_email");
     const { applicationId } = await params;
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return NextResponse.json(
@@ -67,6 +71,18 @@ export async function POST(_req: NextRequest, { params }: { params: Params }) {
       kind: "application.email_sent",
       metadata: { type: "pipeline_reminder", to: app.guardian.email },
       at: new Date(),
+    });
+
+    const client = auditClientMetaFromRequest(req);
+    await recordAdmissionsManagerActivity({
+      ctx,
+      type: "admissions.application.email_sent",
+      entityId: app._id,
+      description: "Sent admissions pipeline reminder email",
+      delegationAction: "admissions.application.email_sent",
+      metadata: { emailType: "pipeline_reminder", to: app.guardian.email },
+      ipAddress: client.ipAddress,
+      userAgent: client.userAgent,
     });
 
     return NextResponse.json({

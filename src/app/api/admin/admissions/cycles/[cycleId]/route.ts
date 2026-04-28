@@ -14,9 +14,10 @@ import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
 import { AdmissionForm } from "@/models/AdmissionForm";
 import { AdmissionInviteLink } from "@/models/AdmissionInviteLink";
-import { recordActivity } from "@/lib/audit/recordActivity";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 import { UpdateAdmissionCycleSchema } from "@/schemas/admissions";
 import { serializeAdmissionCycle } from "@/lib/admissions/service";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 function toObjectId(value: unknown): mongoose.Types.ObjectId {
   if (value instanceof mongoose.Types.ObjectId) return value;
@@ -33,6 +34,7 @@ export async function GET(
 ) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.view");
     const { cycleId } = await context.params;
     if (!isValidObjectId(cycleId)) {
       return NextResponse.json(
@@ -73,6 +75,7 @@ export async function PATCH(
 ) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.manage_cycle");
     const { cycleId } = await context.params;
     if (!isValidObjectId(cycleId)) {
       return NextResponse.json(
@@ -197,14 +200,17 @@ export async function PATCH(
       metadata: { fields: Object.keys(input) },
     });
 
-    await recordActivity({
-      schoolId: ctx.schoolId,
-      userId,
+    await recordAdmissionsManagerActivity({
+      ctx,
       type: "admissions.cycle.updated",
       entityType: "AdmissionCycle",
       entityId: cycle._id,
       description: `Updated admission cycle: ${cycle.name}`,
-      metadata: { cycleId: String(cycle._id), fields: Object.keys(input) },
+      delegationAction: "admissions.cycle.updated",
+      metadata: {
+        cycleId: String(cycle._id),
+        fields: Object.keys(input),
+      },
     });
 
     return NextResponse.json({
@@ -235,6 +241,7 @@ export async function DELETE(
 ) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.manage_cycle");
     const { cycleId } = await context.params;
     if (!isValidObjectId(cycleId)) {
       return NextResponse.json(
@@ -291,14 +298,17 @@ export async function DELETE(
         metadata: { applicationCount: appCount, priorStatus },
       });
 
-      await recordActivity({
-        schoolId,
-        userId,
+      await recordAdmissionsManagerActivity({
+        ctx,
         type: "admissions.cycle.archived",
         entityType: "AdmissionCycle",
         entityId: cycle._id,
         description: `Archived admission cycle: ${cycle.name}`,
-        metadata: { cycleId: String(cycle._id), applicationCount: appCount },
+        delegationAction: "admissions.cycle.archived",
+        metadata: {
+          cycleId: String(cycle._id),
+          applicationCount: appCount,
+        },
       });
 
       return NextResponse.json({
@@ -343,14 +353,17 @@ export async function DELETE(
       await session.endSession();
     }
 
-    await recordActivity({
-      schoolId,
-      userId,
+    await recordAdmissionsManagerActivity({
+      ctx,
       type: "admissions.cycle.deleted",
       entityType: "AdmissionCycle",
       entityId: deletedCycleId,
       description: `Deleted draft admission cycle: ${nameSnapshot}`,
-      metadata: { cycleId: String(deletedCycleId), slug: slugSnapshot },
+      delegationAction: "admissions.cycle.deleted",
+      metadata: {
+        cycleId: String(deletedCycleId),
+        slug: slugSnapshot,
+      },
     });
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 // src/app/api/admin/teachers/reports/assignments/route.ts
 import { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
@@ -29,7 +29,7 @@ function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
  * Query params: periodId (optional), subjectId (optional), status (optional)
  */
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("reports");
   await connectToDatabase();
 
   const schoolIdObj =

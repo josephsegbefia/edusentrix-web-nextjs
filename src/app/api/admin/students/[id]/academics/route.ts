@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NextRequest } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { Student } from "@/models/Student";
 import mongoose from "mongoose";
 import { buildStudentAcademicsDTO } from "@/lib/academics/buildStudentAcademicsDTO";
@@ -13,7 +13,7 @@ export async function GET(
   const { id } = await context.params;
 
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("students");
     await connectToDatabase();
 
     if (!schoolId) {

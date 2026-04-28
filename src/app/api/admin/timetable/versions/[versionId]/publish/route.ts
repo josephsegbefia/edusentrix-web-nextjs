@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import {
   buildSchoolUserAuditContext,
   resolveAuditIdempotencyKey,
@@ -45,7 +45,9 @@ export async function POST(
       );
     }
 
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "timetable.edit",
+    ]);
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));

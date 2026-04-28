@@ -1,6 +1,6 @@
 // src/app/api/admin/subjects/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Subject } from "@/models/Subject";
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("subjects");
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));

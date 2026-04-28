@@ -12,12 +12,13 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionForm } from "@/models/AdmissionForm";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
-import { recordActivity } from "@/lib/audit/recordActivity";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 import { UpdateAdmissionFormSchema } from "@/schemas/admissions";
 import {
   serializeAdmissionForm,
   validatePlatformRequiredFields,
 } from "@/lib/admissions/service";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 function toObjectId(value: unknown): mongoose.Types.ObjectId {
   if (value instanceof mongoose.Types.ObjectId) return value;
@@ -34,6 +35,7 @@ export async function GET(
 ) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.view");
     const { cycleId } = await context.params;
     if (!isValidObjectId(cycleId)) {
       return NextResponse.json(
@@ -89,6 +91,7 @@ export async function PUT(
 ) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.manage_form");
     const { cycleId } = await context.params;
     if (!isValidObjectId(cycleId)) {
       return NextResponse.json(
@@ -171,14 +174,17 @@ export async function PUT(
       metadata: { version: nextVersion },
     });
 
-    await recordActivity({
-      schoolId: ctx.schoolId,
-      userId,
+    await recordAdmissionsManagerActivity({
+      ctx,
       type: "admissions.form.updated",
       entityType: "AdmissionForm",
       entityId: form._id,
       description: `Updated admissions form schema (v${nextVersion})`,
-      metadata: { cycleId: String(cycle._id), version: nextVersion },
+      delegationAction: "admissions.form.updated",
+      metadata: {
+        cycleId: String(cycle._id),
+        version: nextVersion,
+      },
     });
 
     return NextResponse.json({

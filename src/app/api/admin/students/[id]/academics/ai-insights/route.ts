@@ -1,6 +1,9 @@
 // src/app/api/admin/students/[id]/academics/ai-insights/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { buildStudentAcademicsDTO } from "@/lib/academics/buildStudentAcademicsDTO";
 import { AICachedInsight } from "@/models/AICachedInsight";
@@ -60,7 +63,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("students");
     const { id: studentId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const termId = searchParams.get("termId") || null;
@@ -148,7 +151,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "students.edit",
+    ]);
     const { id: studentId } = await params;
 
     if (!process.env.OPENAI_API_KEY) {

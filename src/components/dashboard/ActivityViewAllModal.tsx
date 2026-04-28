@@ -32,6 +32,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/useToast";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import {
+  formatActivityActorPrimary,
+  formatActivityDelegateStaffSummary,
+} from "@/lib/audit/activityActorPresentation";
 
 function getActivityIcon(type: string) {
   if (type.includes("student")) return GraduationCap;
@@ -116,14 +120,27 @@ export function ActivityViewAllModal({
   const filteredActivities = React.useMemo(() => {
     if (!debouncedSearch.trim()) return activities;
     const query = debouncedSearch.toLowerCase();
-    return activities.filter(
-      (activity) =>
+    return activities.filter((activity) => {
+      const meta = activity.metadata ?? {};
+      const actorDisplay =
+        typeof meta.actorDisplayName === "string" ? meta.actorDisplayName.toLowerCase() : "";
+      const staffDisplay =
+        typeof meta.delegateStaffDisplayName === "string"
+          ? meta.delegateStaffDisplayName.toLowerCase()
+          : "";
+      const staffEmail =
+        typeof meta.delegateStaffEmail === "string" ? meta.delegateStaffEmail.toLowerCase() : "";
+      return (
         activity.description.toLowerCase().includes(query) ||
         activity.type.toLowerCase().includes(query) ||
         activity.performedBy?.email.toLowerCase().includes(query) ||
         activity.performedBy?.firstName?.toLowerCase().includes(query) ||
-        activity.performedBy?.lastName?.toLowerCase().includes(query)
-    );
+        activity.performedBy?.lastName?.toLowerCase().includes(query) ||
+        actorDisplay.includes(query) ||
+        staffDisplay.includes(query) ||
+        staffEmail.includes(query)
+      );
+    });
   }, [activities, debouncedSearch]);
 
   const handleDelete = async (activity: Activity) => {
@@ -202,11 +219,11 @@ export function ActivityViewAllModal({
             filteredActivities.map((activity) => {
               const Icon = getActivityIcon(activity.type);
               const colorClass = getActivityColor(activity.type);
-              const performerName = activity.performedBy
-                ? `${activity.performedBy.firstName || ""} ${
-                    activity.performedBy.lastName || ""
-                  }`.trim() || activity.performedBy.email
-                : "System";
+              const performerName = formatActivityActorPrimary(
+                activity.performedBy,
+                activity.metadata
+              );
+              const delegateStaff = formatActivityDelegateStaffSummary(activity.metadata);
               const canDelete = isActivityDeletable(activity);
               const activityDate = new Date(activity.createdAt);
 
@@ -224,18 +241,23 @@ export function ActivityViewAllModal({
                     <div className="text-sm text-white/90 font-medium">
                       {activity.description}
                     </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-white/50">
-                      <span>{performerName}</span>
-                      <span>•</span>
-                      <span>
-                        {formatDistanceToNow(activityDate, {
-                          addSuffix: true,
-                        })}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        {format(activityDate, "MMM d, yyyy 'at' h:mm a")}
-                      </span>
+                    <div className="mt-1 space-y-0.5 text-xs text-white/50">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <span>{performerName}</span>
+                        <span>•</span>
+                        <span>
+                          {formatDistanceToNow(activityDate, {
+                            addSuffix: true,
+                          })}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {format(activityDate, "MMM d, yyyy 'at' h:mm a")}
+                        </span>
+                      </div>
+                      {delegateStaff ? (
+                        <div className="text-[11px] text-white/40">Staff: {delegateStaff}</div>
+                      ) : null}
                     </div>
                   </div>
                   {canDelete && (

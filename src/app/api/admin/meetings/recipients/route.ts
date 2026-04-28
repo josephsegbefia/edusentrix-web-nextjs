@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireMeetingsAnyPermission,
+} from "@/lib/meetings/requireMeetingsPermission";
 import {
   searchMeetingRecipients,
   type MeetingRecipientRole,
@@ -14,7 +16,10 @@ const ALLOWED_ROLES = new Set<MeetingRecipientRole>([
 
 export async function GET(req: NextRequest) {
   try {
-    const context = await requireSchoolAdmin();
+    const context = await requireMeetingsAnyPermission([
+      "meetings.invite",
+      "meetings.create",
+    ]);
     await connectToDatabase();
 
     const role = (req.nextUrl.searchParams.get("role") || "parent") as MeetingRecipientRole;

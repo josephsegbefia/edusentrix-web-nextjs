@@ -96,6 +96,8 @@ export type ActivityType =
   | "meeting.created"
   | "meeting.cancelled"
   | "meeting.deleted"
+  | "meeting.livekit_ready"
+  | "meeting.livekit_provision_failed"
   // Admissions
   | "admissions.cycle.created"
   | "admissions.cycle.updated"
@@ -112,7 +114,18 @@ export type ActivityType =
   | "admissions.application.status_changed"
   | "admissions.application.decision_recorded"
   | "admissions.application.provisioned"
-  | "admissions.application.withdrawn";
+  | "admissions.application.withdrawn"
+  | "admissions.application.email_sent"
+  | "admissions.application.note_added"
+  | "admissions.application.document_requested"
+  | "admissions.application.reviewer_assigned"
+  | "admissions.application.exported"
+  // Delegations platform
+  | "delegation.created"
+  | "delegation.updated"
+  | "delegation.revoked"
+  | "delegation.expired"
+  | "delegation.migrated";
 
 export interface IActivity {
   _id: Types.ObjectId;

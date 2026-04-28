@@ -6,12 +6,16 @@
  * - DELETE: Disable public sharing
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingCampaign, IFundraisingCampaign } from "@/models/FundraisingCampaign";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import { getBaseUrlFromRequest } from "@/lib/utils/getBaseUrl";
 import { z } from "zod";
 
@@ -25,7 +29,7 @@ interface RouteContext {
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const adminContext = await requireSchoolAdmin();
+    const adminContext = await requireSchoolAdminOrDelegatedModuleView("fundraising");
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -77,7 +81,9 @@ const ShareSettingsSchema = z.object({
 
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
-    const adminContext = await requireSchoolAdmin();
+    const adminContext = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.edit",
+    ]);
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -145,6 +151,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
       userId: String(adminContext.userId),
       type: "campaign.shared",
       description: `${regenerate ? "Regenerated" : "Enabled"} public donation link for campaign: ${campaign.title}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !adminContext.isSchoolAdmin,
+        activeDelegationId: adminContext.activeDelegationId,
+        module: "fundraising",
+        action: "campaign.shared",
+      }),
       metadata: {
         campaignId: id,
         campaignTitle: campaign.title,
@@ -176,7 +188,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
-    const adminContext = await requireSchoolAdmin();
+    const adminContext = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.edit",
+    ]);
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -211,6 +225,12 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       userId: String(adminContext.userId),
       type: "campaign.unshared",
       description: `Disabled public donation link for campaign: ${campaign.title}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !adminContext.isSchoolAdmin,
+        activeDelegationId: adminContext.activeDelegationId,
+        module: "fundraising",
+        action: "campaign.unshared",
+      }),
       metadata: {
         campaignId: id,
         campaignTitle: campaign.title,

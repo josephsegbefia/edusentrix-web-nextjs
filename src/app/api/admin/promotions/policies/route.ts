@@ -1,7 +1,10 @@
 // src/app/api/admin/promotions/policies/route.ts
 // PROMO-BE-002: POST create promotion policy
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionPolicy } from "@/models/PromotionPolicy";
 import { CreatePromotionPolicySchema } from "@/schemas/promotion-policy";
@@ -43,7 +46,7 @@ function serializePolicy(policy: Record<string, unknown>) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("promotions");
     await connectToDatabase();
 
     const schoolIdObj =
@@ -79,7 +82,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "promotions.operate",
+    ]);
     await connectToDatabase();
 
     const idempotencyKey = req.headers.get("Idempotency-Key")?.trim();

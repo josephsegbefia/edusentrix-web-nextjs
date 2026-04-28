@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { ReportTemplate } from "@/models/ReportTemplate";
 import { School, type ISchool } from "@/models/School";
@@ -8,7 +9,7 @@ import { getReportTemplatePreset } from "@/constants/curriculum-report-templates
 
 export async function GET() {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("reports");
     await connectToDatabase();
 
     const templates = await ReportTemplate.find({ schoolId })

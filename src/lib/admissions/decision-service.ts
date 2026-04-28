@@ -21,6 +21,7 @@ import {
   defaultBody,
   interpolate,
 } from "./decision-emails";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 
 export type AdmissionDecisionOutcome = "accepted" | "rejected" | "waitlisted";
 
@@ -38,6 +39,13 @@ export type RecordDecisionInput = {
   targetClassGroupId?: string | null;
   /** When true, send the applicant the email immediately. */
   sendEmail?: boolean;
+  /** School-wide Activity row + delegate audit (DELEGATIONS_FEATURE_SPEC §18). */
+  activityAudit?: {
+    isDelegatedActor: boolean;
+    activeDelegationId: Types.ObjectId | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  };
 };
 
 export type RecordDecisionResult = {
@@ -207,6 +215,32 @@ export async function recordDecision(
         : null,
     },
     at: decidedAt,
+  });
+
+  const audit = input.activityAudit;
+  await recordAdmissionsManagerActivity({
+    ctx: {
+      schoolId: input.schoolId,
+      userId: input.decidedBy,
+      isDelegate: audit?.isDelegatedActor ?? false,
+      activeDelegationId: audit?.activeDelegationId ?? null,
+    },
+    type: "admissions.application.decision_recorded",
+    entityId: application._id,
+    description: `Admissions decision: ${input.outcome}`,
+    delegationAction: "admissions.application.decision_recorded",
+    metadata: {
+      outcome: input.outcome,
+      previousStatus,
+      newStatus,
+      cycleId: String(application.cycleId),
+      targetGradeId: targetGradeId ? String(targetGradeId) : null,
+      targetClassGroupId: targetClassGroupId
+        ? String(targetClassGroupId)
+        : null,
+    },
+    ipAddress: audit?.ipAddress ?? undefined,
+    userAgent: audit?.userAgent ?? undefined,
   });
 
   let emailSent = false;

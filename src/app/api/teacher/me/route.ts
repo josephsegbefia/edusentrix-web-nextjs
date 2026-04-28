@@ -14,6 +14,13 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { User } from "@/models/User";
 import { SchoolSettings } from "@/models/SchoolSettings";
 import { isTeacherStudioEnvEnabled } from "@/lib/features/teacherStudio";
+import type { IDelegation } from "@/models/Delegation";
+import {
+  findActiveDelegationsForUser,
+  mergedDelegationPermissions,
+  toDelegationNavItems,
+} from "@/lib/delegations/service";
+import type { DelegationNavItem } from "@/lib/delegations/types";
 
 function parseTermNumber(term?: string | null) {
   if (!term) return null;
@@ -165,6 +172,21 @@ export async function GET() {
       (settings as { offlineMode?: { enabled?: boolean } } | null)?.offlineMode
         ?.enabled ?? true;
 
+    const delegationPermStrings = await mergedDelegationPermissions(
+      context.schoolId,
+      context.userId
+    );
+    const delegationRows = await findActiveDelegationsForUser(
+      context.schoolId,
+      context.userId
+    );
+    const delegationsNav: DelegationNavItem[] = toDelegationNavItems(
+      delegationRows as IDelegation[]
+    );
+    const permissions = Array.from(
+      new Set([...context.permissions, ...delegationPermStrings])
+    );
+
     return Response.json({
       success: true,
       data: {
@@ -210,7 +232,8 @@ export async function GET() {
           },
           offlineModeEnabled,
         },
-        permissions: context.permissions,
+        permissions,
+        delegations: delegationsNav,
       },
     });
   } catch (e: unknown) {

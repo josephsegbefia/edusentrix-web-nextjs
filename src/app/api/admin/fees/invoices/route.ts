@@ -2,6 +2,7 @@
 // src/app/api/admin/fees/invoices/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invoice } from "@/models/Invoice";
 import { InvoiceLineItem } from "@/models/InvoiceLineItem";
@@ -16,7 +17,7 @@ import { toMinorUnits } from "@/lib/fees/money";
 import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireFinanceStaff();
+  const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("fees");
   await connectToDatabase();
 
   try {

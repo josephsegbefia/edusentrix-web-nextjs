@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { DelegationNavItem } from "@/lib/delegations/types";
 
 export type TeacherContextResponse = {
   success: boolean;
@@ -42,6 +43,7 @@ export type TeacherContextResponse = {
       offlineModeEnabled?: boolean;
     };
     permissions: string[];
+    delegations?: DelegationNavItem[];
   };
 };
 

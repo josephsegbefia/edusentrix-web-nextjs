@@ -1,13 +1,14 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { clerkClient } from "@clerk/nextjs/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import {
   getAppUrl,
   getInvitationAcceptUrl,
@@ -35,7 +36,7 @@ type InvitationInvitedBy = {
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("invitations");
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -139,7 +140,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedModuleView("invitations");
+    const { schoolId, userId } = authCtx;
     await enforceSchoolLimit({
       schoolId,
       limitKey: "maxInvitationsPerMonth",
@@ -289,6 +291,12 @@ export async function POST(req: NextRequest) {
       entityType: "invitation",
       entityId: String(created._id),
       description: `Invited bursar: ${normalizedEmail}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "invitations",
+        action: "invitation.sent",
+      }),
       metadata: {
         email: normalizedEmail,
         role: "bursar",

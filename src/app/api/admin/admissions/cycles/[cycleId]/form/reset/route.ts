@@ -5,11 +5,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionForm } from "@/models/AdmissionForm";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
-import { recordActivity } from "@/lib/audit/recordActivity";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 import {
   getDefaultAdmissionFormSchema,
   serializeAdmissionForm,
@@ -30,6 +31,7 @@ export async function POST(
 ) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.manage_form");
     const { cycleId } = await context.params;
     if (!isValidObjectId(cycleId)) {
       return NextResponse.json(
@@ -88,14 +90,17 @@ export async function POST(
       metadata: { version: nextVersion },
     });
 
-    await recordActivity({
-      schoolId: ctx.schoolId,
-      userId,
+    await recordAdmissionsManagerActivity({
+      ctx,
       type: "admissions.form.reset_to_defaults",
       entityType: "AdmissionForm",
       entityId: form._id,
       description: `Reset admissions form to defaults (v${nextVersion})`,
-      metadata: { cycleId: String(cycle._id), version: nextVersion },
+      delegationAction: "admissions.form.reset_to_defaults",
+      metadata: {
+        cycleId: String(cycle._id),
+        version: nextVersion,
+      },
     });
 
     return NextResponse.json({

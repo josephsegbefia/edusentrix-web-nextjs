@@ -7,8 +7,9 @@ import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
-import { recordActivity } from "@/lib/audit/recordActivity";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
 import { serializeAdmissionCycle } from "@/lib/admissions/service";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 function toObjectId(value: unknown): mongoose.Types.ObjectId {
   if (value instanceof mongoose.Types.ObjectId) return value;
@@ -25,6 +26,7 @@ export async function POST(
 ) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.manage_cycle");
     const { cycleId } = await context.params;
     if (!isValidObjectId(cycleId)) {
       return NextResponse.json(
@@ -74,14 +76,18 @@ export async function POST(
       metadata: { firstPublish: wasFirstPublish },
     });
 
-    await recordActivity({
-      schoolId: ctx.schoolId,
-      userId,
+    await recordAdmissionsManagerActivity({
+      ctx,
       type: "admissions.cycle.published",
       entityType: "AdmissionCycle",
       entityId: cycle._id,
       description: `Published admission cycle: ${cycle.name}`,
-      metadata: { cycleId: String(cycle._id), slug: cycle.slug },
+      delegationAction: "admissions.cycle.published",
+      metadata: {
+        cycleId: String(cycle._id),
+        slug: cycle.slug,
+        firstPublish: wasFirstPublish,
+      },
     });
 
     return NextResponse.json({

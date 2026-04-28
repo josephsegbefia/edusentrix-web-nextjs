@@ -7,6 +7,7 @@ import ActiveLink from "../active/ActiveLink";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import type { DelegationModule } from "@/lib/delegations/types";
 import {
   LayoutDashboard,
   School,
@@ -15,6 +16,7 @@ import {
   BookOpen,
   CalendarDays,
   Calendar,
+  CalendarRange,
   ClipboardCheck,
   CheckSquare,
   FileText,
@@ -23,6 +25,7 @@ import {
   Megaphone,
   AlertTriangle,
   BarChart3,
+  Heart,
   Video,
   Settings,
   Menu,
@@ -67,6 +70,20 @@ type NavSection = {
     feature?: SubscriptionFeatureKey;
     permission?: Permission;
   }>;
+};
+
+const DELEGATION_SIDEBAR_ICONS: Partial<
+  Record<DelegationModule, React.ComponentType<{ className?: string }>>
+> = {
+  admissions: ClipboardSignature,
+  polls: Megaphone,
+  fundraising: Heart,
+  meetings: Video,
+  academic_calendar: CalendarRange,
+  documents: FileText,
+  supplies: ClipboardList,
+  store: BookOpen,
+  reports: BarChart3,
 };
 
 const navSections: NavSection[] = [
@@ -219,17 +236,6 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: "Admissions",
-    items: [
-      {
-        label: "Admissions",
-        href: "/teacher/admissions",
-        icon: ClipboardSignature,
-        permission: PERMISSIONS.admissionsManage,
-      },
-    ],
-  },
-  {
     title: "System",
     items: [
       {
@@ -288,75 +294,172 @@ function NavContent({
     [enabledFeatures, showStudio, homeroomClassGroupId, permissions]
   );
 
+  const delegationItems = React.useMemo(
+    () => data?.data?.delegations ?? [],
+    [data?.data?.delegations]
+  );
+
+  const navBlocks = React.useMemo(() => {
+    type Block =
+      | { type: "static"; section: NavSection }
+      | { type: "delegated" };
+    const blocks: Block[] = [];
+    const systemIdx = sections.findIndex((s) => s.title === "System");
+    if (systemIdx === -1) {
+      for (const s of sections) blocks.push({ type: "static", section: s });
+      if (delegationItems.length > 0) blocks.push({ type: "delegated" });
+    } else {
+      for (const s of sections.slice(0, systemIdx)) {
+        blocks.push({ type: "static", section: s });
+      }
+      if (delegationItems.length > 0) blocks.push({ type: "delegated" });
+      for (const s of sections.slice(systemIdx)) {
+        blocks.push({ type: "static", section: s });
+      }
+    }
+    return blocks;
+  }, [sections, delegationItems]);
+
   return (
     <nav className={cn("space-y-5", collapsed && "space-y-3")}>
-      {sections.map((section, sectionIdx) => (
-        <div key={section.title}>
-          {!collapsed && (
-            <div className="mb-2 px-3.5">
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
-                {section.title}
-              </h3>
+      {navBlocks.map((block, blockIdx) => {
+        if (block.type === "static") {
+          const section = block.section;
+          return (
+            <div key={section.title}>
+              {!collapsed && (
+                <div className="mb-2 px-3.5">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+                    {section.title}
+                  </h3>
+                </div>
+              )}
+
+              <div className={cn("space-y-0.5", collapsed && "space-y-1.5")}>
+                {section.items.map(({ label, href, icon: Icon, exact }) => {
+                  const active =
+                    exact
+                      ? pathname === href
+                      : pathname === href || pathname.startsWith(href + "/");
+
+                  if (collapsed) {
+                    return (
+                      <Tooltip key={href} delayDuration={0}>
+                        <TooltipTrigger asChild>
+                          <ActiveLink
+                            href={href}
+                            exact={exact}
+                            onClick={onItemClick}
+                            className={cn(
+                              "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
+                              "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
+                              active &&
+                                "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                            )}
+                            activeClassName="nav-active"
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                          </ActiveLink>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
+                          {label}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+
+                  return (
+                    <ActiveLink
+                      key={href}
+                      href={href}
+                      exact={exact}
+                      onClick={onItemClick}
+                      className={cn(
+                        premiumSideItem,
+                        active && premiumSideItemActive
+                      )}
+                      activeClassName="nav-active"
+                    >
+                      <Icon className={cn("h-4 w-4 shrink-0", active && "text-emerald-300")} />
+                      <span className="truncate">{label}</span>
+                    </ActiveLink>
+                  );
+                })}
+              </div>
+
+              {blockIdx < navBlocks.length - 1 && (
+                <Separator className={cn("mt-5 bg-white/4", collapsed && "mt-3")} />
+              )}
             </div>
-          )}
+          );
+        }
 
-          <div className={cn("space-y-0.5", collapsed && "space-y-1.5")}>
-            {section.items.map(({ label, href, icon: Icon, exact }) => {
-              const active =
-                exact
-                  ? pathname === href
-                  : pathname === href || pathname.startsWith(href + "/");
+        return (
+          <div key="delegated">
+            {!collapsed && (
+              <div className="mb-2 px-3.5">
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30">
+                  Delegated
+                </h3>
+              </div>
+            )}
 
-              if (collapsed) {
+            <div className={cn("space-y-0.5", collapsed && "space-y-1.5")}>
+              {delegationItems.map((item) => {
+                const Icon = DELEGATION_SIDEBAR_ICONS[item.module] ?? FileText;
+                const href = item.href;
+                const active =
+                  pathname === href || pathname.startsWith(href + "/");
+
+                if (collapsed) {
+                  return (
+                    <Tooltip key={`${item.module}-${href}`} delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <ActiveLink
+                          href={href}
+                          onClick={onItemClick}
+                          className={cn(
+                            "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
+                            "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
+                            active &&
+                              "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                          )}
+                          activeClassName="nav-active"
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                        </ActiveLink>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
+                        {item.label}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
                 return (
-                  <Tooltip key={href} delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <ActiveLink
-                        href={href}
-                        exact={exact}
-                        onClick={onItemClick}
-                        className={cn(
-                          "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
-                          "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
-                          active &&
-                            "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
-                        )}
-                        activeClassName="nav-active"
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                      </ActiveLink>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
-                      {label}
-                    </TooltipContent>
-                  </Tooltip>
+                  <ActiveLink
+                    key={`${item.module}-${href}`}
+                    href={href}
+                    onClick={onItemClick}
+                    className={cn(
+                      premiumSideItem,
+                      active && premiumSideItemActive
+                    )}
+                    activeClassName="nav-active"
+                  >
+                    <Icon className={cn("h-4 w-4 shrink-0", active && "text-emerald-300")} />
+                    <span className="truncate">{item.label}</span>
+                  </ActiveLink>
                 );
-              }
+              })}
+            </div>
 
-              return (
-                <ActiveLink
-                  key={href}
-                  href={href}
-                  exact={exact}
-                  onClick={onItemClick}
-                  className={cn(
-                    premiumSideItem,
-                    active && premiumSideItemActive
-                  )}
-                  activeClassName="nav-active"
-                >
-                  <Icon className={cn("h-4 w-4 shrink-0", active && "text-emerald-300")} />
-                  <span className="truncate">{label}</span>
-                </ActiveLink>
-              );
-            })}
+            {blockIdx < navBlocks.length - 1 && (
+              <Separator className={cn("mt-5 bg-white/4", collapsed && "mt-3")} />
+            )}
           </div>
-
-          {sectionIdx < sections.length - 1 && (
-            <Separator className={cn("mt-5 bg-white/4", collapsed && "mt-3")} />
-          )}
-        </div>
-      ))}
+        );
+      })}
     </nav>
   );
 }

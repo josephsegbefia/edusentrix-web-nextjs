@@ -12,6 +12,7 @@ import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { buildCycleAnalyticsSnapshot } from "@/lib/admissions/analytics";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 type Params = { cycleId: string };
 
@@ -21,6 +22,7 @@ export async function GET(
 ) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.view");
     await connectToDatabase();
     const { cycleId } = await params;
 

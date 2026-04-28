@@ -17,6 +17,12 @@ import {
   sendAdmissionStatusUpdateEmail,
 } from "@/lib/admissions/applicant-notification-emails";
 import { School } from "@/models/School";
+import {
+  enforceApplicationPatchPermissions,
+  requireAdmissionsPermission,
+} from "@/lib/admissions/admissions-api-permissions";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
+import { auditClientMetaFromRequest } from "@/lib/audit/auditClientMetaFromRequest";
 
 type Params = Promise<{ applicationId: string }>;
 
@@ -45,6 +51,7 @@ const PatchSchema = z.object({
 export async function GET(_req: NextRequest, { params }: { params: Params }) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.view");
     const { applicationId } = await params;
     if (!mongoose.Types.ObjectId.isValid(applicationId)) {
       return NextResponse.json(
@@ -119,6 +126,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
       );
     }
 
+    enforceApplicationPatchPermissions(ctx, parsed.data);
+
     await connectToDatabase();
     const app = await AdmissionApplication.findOne({
       _id: applicationId,
@@ -131,7 +140,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
       );
     }
 
+    const client = auditClientMetaFromRequest(req);
     const previousStatus = app.status;
+    const previousAssignedReviewerId =
+      app.assignedReviewerId?.toString() ?? null;
     const beforeInterviewStart = app.interviewAt
       ? new Date(app.interviewAt).getTime()
       : null;
@@ -242,6 +254,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
             },
             at: new Date(),
           });
+          await recordAdmissionsManagerActivity({
+            ctx,
+            type: "admissions.application.email_sent",
+            entityId: app._id,
+            description: "Sent admissions status update email",
+            delegationAction: "admissions.application.email_sent",
+            metadata: {
+              emailType: "status_update",
+              to: app.guardian.email,
+              fromStatus: previousStatus,
+              toStatus: parsed.data.status,
+            },
+            ipAddress: client.ipAddress,
+            userAgent: client.userAgent,
+          });
         } else if (
           interviewChanged &&
           app.interviewAt &&
@@ -272,6 +299,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
             },
             at: new Date(),
           });
+          await recordAdmissionsManagerActivity({
+            ctx,
+            type: "admissions.application.email_sent",
+            entityId: app._id,
+            description: "Sent interview scheduled email",
+            delegationAction: "admissions.application.email_sent",
+            metadata: {
+              emailType: "interview_scheduled",
+              to: app.guardian.email,
+            },
+            ipAddress: client.ipAddress,
+            userAgent: client.userAgent,
+          });
         }
       } catch (err) {
         console.error("Admission applicant notification email failed:", err);
@@ -292,6 +332,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
         metadata: { from: previousStatus, to: parsed.data.status },
         at: new Date(),
       });
+      await recordAdmissionsManagerActivity({
+        ctx,
+        type: "admissions.application.status_changed",
+        entityId: app._id,
+        description: "Changed admissions application status",
+        delegationAction: "admissions.application.status_changed",
+        metadata: { from: previousStatus, to: parsed.data.status },
+        ipAddress: client.ipAddress,
+        userAgent: client.userAgent,
+      });
     } else if (parsed.data.notesPrivate !== undefined) {
       await AdmissionEvent.create({
         schoolId: ctx.schoolId,
@@ -305,6 +355,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
         kind: "application.note_added",
         at: new Date(),
       });
+      await recordAdmissionsManagerActivity({
+        ctx,
+        type: "admissions.application.note_added",
+        entityId: app._id,
+        description: "Updated private notes on admissions application",
+        delegationAction: "admissions.application.note_added",
+        ipAddress: client.ipAddress,
+        userAgent: client.userAgent,
+      });
+    }
+
+    if (parsed.data.assignedReviewerId !== undefined) {
+      const nextAssignedReviewerId =
+        app.assignedReviewerId?.toString() ?? null;
+      if (previousAssignedReviewerId !== nextAssignedReviewerId) {
+        await recordAdmissionsManagerActivity({
+          ctx,
+          type: "admissions.application.reviewer_assigned",
+          entityId: app._id,
+          description: "Assigned admissions application reviewer",
+          delegationAction: "admissions.application.reviewer_assigned",
+          metadata: {
+            from: previousAssignedReviewerId,
+            to: nextAssignedReviewerId,
+          },
+          ipAddress: client.ipAddress,
+          userAgent: client.userAgent,
+        });
+      }
     }
 
     const grade = app.applicant?.intendedGradeId

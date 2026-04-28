@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { EmailThread } from "@/models/EmailThread";
 
@@ -9,7 +9,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("email");
     await connectToDatabase();
 
     const { id } = await ctx.params;
@@ -58,7 +58,7 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("email");
     await connectToDatabase();
 
     const { id } = await ctx.params;

@@ -13,6 +13,7 @@ import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { Grade } from "@/models/Grade";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
 import { serializeApplicationListItem } from "@/lib/admissions/application-service";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -21,6 +22,7 @@ function escapeRegex(value: string): string {
 export async function GET(req: NextRequest) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.view");
     await connectToDatabase();
 
     const url = new URL(req.url);

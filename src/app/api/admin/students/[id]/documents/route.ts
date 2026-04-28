@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { deleteUploadedFile } from "@/lib/uploads/delete";
@@ -38,7 +38,9 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+    "students.edit",
+  ]);
   await connectToDatabase();
 
   const { id } = await ctx.params;

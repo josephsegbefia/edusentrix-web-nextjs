@@ -14,20 +14,30 @@ const BURSAR_ALLOWED_PREFIXES = [
 ];
 const BILLING_OWNER_ALLOWED_PREFIXES = ["/admin/settings/payment-setup"];
 
-function isAllowedBursarPath(pathname: string): boolean {
+function isAllowedBursarPath(
+  pathname: string,
+  extraPrefixes: string[] = []
+): boolean {
   if (pathname === "/admin" || pathname === "/admin/") return true;
-  return BURSAR_ALLOWED_PREFIXES.some(
+  const all = [...BURSAR_ALLOWED_PREFIXES, ...extraPrefixes];
+  return all.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
 }
 
-export function AdminRolePathGuard({ role }: { role?: AppRole }) {
+export function AdminRolePathGuard({
+  role,
+  bursarExtraAllowedPrefixes = [],
+}: {
+  role?: AppRole;
+  bursarExtraAllowedPrefixes?: string[];
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
   React.useEffect(() => {
     if (role === "bursar") {
-      if (!isAllowedBursarPath(pathname)) {
+      if (!isAllowedBursarPath(pathname, bursarExtraAllowedPrefixes)) {
         router.replace(BURSAR_HOME_PATH);
         return;
       }
@@ -49,7 +59,7 @@ export function AdminRolePathGuard({ role }: { role?: AppRole }) {
         router.replace(BILLING_OWNER_HOME_PATH);
       }
     }
-  }, [role, pathname, router]);
+  }, [role, pathname, router, bursarExtraAllowedPrefixes]);
 
   return null;
 }

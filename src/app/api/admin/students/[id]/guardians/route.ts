@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/students/[id]/guardians/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
@@ -13,6 +16,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import { writeRetryableAuditEvent } from "@/lib/audit/writeRetryableAuditEvent";
 import {
   buildSchoolUserAuditContext,
@@ -54,7 +58,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("students");
     await connectToDatabase();
 
     const { id } = await ctx.params;
@@ -135,7 +139,10 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "students.edit",
+    ]);
+    const { schoolId, userId } = authCtx;
     await connectToDatabase();
 
     const { id } = await ctx.params;
@@ -409,6 +416,12 @@ export async function POST(
       entityType: "student",
       entityId: String(studentIdObj),
       description: `Added guardian: ${validated.firstName} ${validated.lastName} (${validated.relationship}) for student`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "students",
+        action: "guardian.created",
+      }),
       metadata: {
         guardianId: String(guardian._id),
         studentId: String(studentIdObj),

@@ -3,7 +3,10 @@
  * Admin API for individual poll template - get, update, delete.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PollTemplate } from "@/models/PollTemplate";
 import mongoose from "mongoose";
@@ -60,7 +63,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("polls");
     await connectToDatabase();
 
     const { id } = await ctx.params;
@@ -126,7 +129,9 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "polls.edit",
+    ]);
     await connectToDatabase();
 
     const { id } = await ctx.params;
@@ -234,7 +239,9 @@ export async function DELETE(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "polls.edit",
+    ]);
     await connectToDatabase();
 
     const { id } = await ctx.params;

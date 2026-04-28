@@ -13,10 +13,12 @@ import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Student } from "@/models/Student";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 export async function GET(req: NextRequest) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.view");
     const url = new URL(req.url);
     const gradeId = url.searchParams.get("gradeId");
 

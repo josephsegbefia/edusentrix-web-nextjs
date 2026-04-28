@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { writeRetryableAuditEvent } from "@/lib/audit/writeRetryableAuditEvent";
 import {
@@ -25,7 +25,8 @@ function escapeCsvField(value: string): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId, userId, roles } = await requireFinanceStaff();
+    const { schoolId, userId, roles } =
+      await requireFinanceStaffOrDelegatedModuleView("students");
     await connectToDatabase();
 
     if (!mongoose.models.Grade) {

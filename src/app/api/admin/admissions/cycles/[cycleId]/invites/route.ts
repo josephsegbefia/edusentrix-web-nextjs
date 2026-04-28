@@ -9,6 +9,7 @@ import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { School } from "@/models/School";
 import { sendRawEmail } from "@/lib/email/brevo";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 
 type Params = Promise<{ cycleId: string }>;
 
@@ -33,6 +34,7 @@ function originFromRequest(req: NextRequest): string {
 export async function POST(req: NextRequest, { params }: { params: Params }) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.send_email");
     const { cycleId } = await params;
     if (!mongoose.Types.ObjectId.isValid(cycleId)) {
       return NextResponse.json(

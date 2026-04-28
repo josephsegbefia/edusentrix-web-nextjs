@@ -1,7 +1,7 @@
 // src/app/api/admin/promotions/cycles/route.ts
 // PROMO-BE-004: GET promotion cycles with pagination
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionCycle } from "@/models/PromotionCycle";
 import mongoose from "mongoose";
@@ -18,7 +18,7 @@ function parsePositiveInt(val: string | null, defaultVal: number): number {
  */
 export async function GET(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("promotions");
     await connectToDatabase();
 
     const schoolIdObj =

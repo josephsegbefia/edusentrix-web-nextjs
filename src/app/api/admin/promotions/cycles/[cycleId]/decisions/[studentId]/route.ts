@@ -1,7 +1,7 @@
 // src/app/api/admin/promotions/cycles/[cycleId]/decisions/[studentId]/route.ts
 // PROMO-BE-005: PATCH override decision outcome
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionDecision } from "@/models/PromotionDecision";
 import { PromotionCycle } from "@/models/PromotionCycle";
@@ -25,7 +25,9 @@ export async function PATCH(
   ctx: { params: Promise<{ cycleId: string; studentId: string }> }
 ) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "promotions.operate",
+    ]);
     await connectToDatabase();
 
     const idempotencyKey = req.headers.get("Idempotency-Key")?.trim();

@@ -4,11 +4,12 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import mongoose, { Types } from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { CommunityPoll, ICommunityPoll, IPollQuestion } from "@/models/CommunityPoll";
 import { CommunityPollVote, ICommunityPollVote, IPollVoteAnswer } from "@/models/CommunityPollVote";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -73,7 +74,10 @@ function formatAnswerForExport(
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "polls.export",
+    ]);
+    const { userId, schoolId } = authCtx;
     await connectToDatabase();
 
     void CommunityPoll.modelName;
@@ -146,6 +150,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
       entityType: "community_poll",
       entityId: String(pollIdObj),
       description: `Exported poll results: ${poll.title}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "polls",
+        action: "poll.exported",
+      }),
       metadata: {
         pollId: String(pollIdObj),
         voteCount: votes.length,

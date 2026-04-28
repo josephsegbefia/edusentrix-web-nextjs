@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
 import { EmailBatch } from "@/models/EmailBatch";
@@ -76,7 +79,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "email.send",
+    ]);
     await connectToDatabase();
 
     const parsed = BulkSendSchema.safeParse(await req.json());
@@ -151,7 +156,9 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "email.send",
+    ]);
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);

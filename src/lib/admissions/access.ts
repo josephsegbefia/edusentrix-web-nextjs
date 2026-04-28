@@ -8,13 +8,13 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { UserMembership } from "@/models/UserMembership";
 import { Teacher } from "@/models/Teacher";
 import type { Types } from "mongoose";
+import { findActiveDelegationsForUser, isDelegationActive } from "@/lib/delegations/service";
 
 const ADMISSIONS_OFFICER_SUBROLE = "admissions_officer" as const;
 
 /**
- * Adds the `admissions_officer` subrole to a teacher's UserMembership and
- * mirrors it onto the Teacher document for backward compatibility with the
- * legacy `Teacher.subroles` permission resolver.
+ * Legacy data helper only: writes `admissions_officer` on membership/teacher.
+ * Authorization does not use subroles (see DELEGATIONS_FEATURE_SPEC §3); prefer `Delegation`.
  */
 export async function grantAdmissionsOfficer(input: {
   schoolId: Types.ObjectId;
@@ -52,7 +52,7 @@ export async function revokeAdmissionsOfficer(input: {
 
 /**
  * Returns whether the given user has admissions access for the school
- * (either as the school admin or as a teacher delegate).
+ * (school admin or active admissions delegation). Subroles are not used.
  */
 export async function hasAdmissionsAccess(input: {
   schoolId: Types.ObjectId;
@@ -64,14 +64,21 @@ export async function hasAdmissionsAccess(input: {
     userId: input.userId,
     status: "active",
   })
-    .select("roles subroles")
+    .select("roles")
     .lean();
   if (!membership) return false;
   const roles = (membership.roles ?? []) as string[];
-  const subroles = (membership.subroles ?? []) as string[];
-  return (
-    roles.includes("school_admin") ||
-    subroles.includes(ADMISSIONS_OFFICER_SUBROLE)
+  if (roles.includes("school_admin")) return true;
+
+  const delegations = await findActiveDelegationsForUser(
+    input.schoolId,
+    input.userId
+  );
+  return delegations.some(
+    (d) =>
+      d.module === "admissions" &&
+      isDelegationActive(d) &&
+      (d.permissions?.length ?? 0) > 0
   );
 }
 

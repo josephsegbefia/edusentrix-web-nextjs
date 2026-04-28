@@ -20,6 +20,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useActivities } from "@/hooks/admin/useActivities";
+import {
+  formatActivityActorPrimary,
+  formatActivityDelegateStaffSummary,
+} from "@/lib/audit/activityActorPresentation";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { ActivityType } from "@/models/Activity";
 
@@ -119,10 +123,8 @@ export function ActivityFeed({
           {activities.map((activity) => {
             const Icon = getActivityIcon(activity.type);
             const colorClass = getActivityColor(activity.type);
-            const userName = activity.user
-              ? `${activity.user.firstName || ""} ${activity.user.lastName || ""}`.trim() ||
-                activity.user.email
-              : "System";
+            const userName = formatActivityActorPrimary(activity.user, activity.metadata);
+            const delegateStaff = formatActivityDelegateStaffSummary(activity.metadata);
 
             return (
               <div
@@ -134,14 +136,19 @@ export function ActivityFeed({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-white/90">{activity.description}</div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-white/50">
-                    <span>{userName}</span>
-                    <span>•</span>
-                    <span>
-                      {formatDistanceToNow(new Date(activity.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </span>
+                  <div className="mt-1 space-y-0.5 text-xs text-white/50">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <span>{userName}</span>
+                      <span>•</span>
+                      <span>
+                        {formatDistanceToNow(new Date(activity.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </span>
+                    </div>
+                    {delegateStaff ? (
+                      <div className="text-[11px] text-white/40">Staff: {delegateStaff}</div>
+                    ) : null}
                   </div>
                 </div>
               </div>

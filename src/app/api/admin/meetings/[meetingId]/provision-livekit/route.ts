@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireMeetingsPermission,
+} from "@/lib/meetings/requireMeetingsPermission";
 import {
   serializeMeetings,
   type MeetingSerializeParticipantRow,
@@ -12,6 +14,8 @@ import {
   isLiveKitConfigured,
   provisionLiveKitRoom,
 } from "@/lib/meetings/livekit";
+import { recordActivity } from "@/lib/audit/recordActivity";
+import { meetingsActorAuditMetadata } from "@/lib/meetings/meetings-actor-audit-metadata";
 import { Meeting } from "@/models/Meeting";
 import { MeetingParticipant } from "@/models/MeetingParticipant";
 
@@ -20,7 +24,7 @@ export async function POST(
   ctx: { params: Promise<{ meetingId: string }> }
 ) {
   try {
-    const context = await requireSchoolAdmin();
+    const context = await requireMeetingsPermission("meetings.start");
     await connectToDatabase();
 
     const { meetingId } = await ctx.params;
@@ -132,6 +136,21 @@ export async function POST(
         }
       );
 
+      const failMeta = await meetingsActorAuditMetadata(context, "meeting.livekit_provision_failed");
+      await recordActivity({
+        schoolId: context.schoolId,
+        userId: context.userId,
+        type: "meeting.livekit_provision_failed",
+        entityType: "Meeting",
+        entityId: meeting._id,
+        description: `LiveKit provisioning failed: ${meeting.title}`,
+        metadata: {
+          ...failMeta,
+          providerRoomName: roomName,
+          error: message,
+        },
+      });
+
       return NextResponse.json(
         { success: false, error: message, providerProvisionError: message },
         { status: 502 }
@@ -150,6 +169,20 @@ export async function POST(
     const [serialized] = await serializeMeetings({
       meetings: [updated as MeetingSerializeRow],
       participants: participants as MeetingSerializeParticipantRow[],
+    });
+
+    const okMeta = await meetingsActorAuditMetadata(context, "meeting.livekit_ready");
+    await recordActivity({
+      schoolId: context.schoolId,
+      userId: context.userId,
+      type: "meeting.livekit_ready",
+      entityType: "Meeting",
+      entityId: meeting._id,
+      description: `LiveKit room ready: ${meeting.title}`,
+      metadata: {
+        ...okMeta,
+        providerRoomName: roomName,
+      },
     });
 
     return NextResponse.json({ success: true, data: serialized });

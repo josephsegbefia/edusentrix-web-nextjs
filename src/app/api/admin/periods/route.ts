@@ -4,6 +4,10 @@ import { z } from "zod";
 import mongoose from "mongoose";
 import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
+import {
+  requireSchoolAdminOrDelegatedModuleView,
+  requireSchoolAdminOrDelegatedAnyPermission,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 
@@ -28,7 +32,16 @@ function rangesOverlap(
 }
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdminOrTeacherRead();
+  let schoolId: mongoose.Types.ObjectId;
+  try {
+    const ctx = await requireSchoolAdminOrTeacherRead();
+    schoolId = ctx.schoolId;
+  } catch (err) {
+    if (!(err instanceof Response)) throw err;
+    if (err.status === 401) throw err;
+    const d = await requireSchoolAdminOrDelegatedModuleView("academic_periods");
+    schoolId = d.schoolId;
+  }
   await connectToDatabase();
 
   try {
@@ -49,7 +62,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    let schoolId: mongoose.Types.ObjectId;
+    try {
+      const ctx = await requireFinanceStaff();
+      schoolId = ctx.schoolId;
+    } catch (err) {
+      if (!(err instanceof Response)) throw err;
+      if (err.status === 401) throw err;
+      const d = await requireSchoolAdminOrDelegatedAnyPermission([
+        "academic_periods.edit",
+      ]);
+      schoolId = d.schoolId;
+    }
     await connectToDatabase();
 
     const raw = await req.json();

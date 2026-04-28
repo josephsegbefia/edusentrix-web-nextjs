@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AcademicPeriod, IAcademicPeriod } from "@/models/AcademicPeriod";
 import { Activity } from "@/models/Activity";
@@ -126,7 +126,7 @@ async function resolveDateRange(
 }
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("reports");
   await connectToDatabase();
 
   if (!schoolId) {

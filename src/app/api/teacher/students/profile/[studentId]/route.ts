@@ -230,6 +230,7 @@ export async function GET(
         createdAt: item.createdAt
           ? new Date(item.createdAt).toISOString()
           : new Date().toISOString(),
+        metadata: (item.metadata ?? {}) as Record<string, unknown>,
         user: userDto,
       };
     });

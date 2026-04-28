@@ -39,6 +39,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { cn } from "@/lib/utils";
+import { DelegateModuleBanner } from "@/components/delegations/DelegateModuleBanner";
+import type { MeetingsCapabilities } from "@/lib/meetings/meetings-capabilities";
 
 type CalendarOption = {
   id: string;
@@ -450,6 +452,9 @@ function SelectedParticipantPreview({
 }
 
 export default function AdminMeetingsPage() {
+  const [capabilities, setCapabilities] = React.useState<MeetingsCapabilities | null>(
+    null
+  );
   const [calendars, setCalendars] = React.useState<CalendarOption[]>([]);
   const [meetings, setMeetings] = React.useState<MeetingRecord[]>([]);
   const [form, setForm] = React.useState<MeetingFormState>(() => defaultMeetingForm());
@@ -585,6 +590,9 @@ export default function AdminMeetingsPage() {
     }
 
     setMeetings(payload.data || []);
+    if (payload.capabilities && typeof payload.capabilities === "object") {
+      setCapabilities(payload.capabilities as MeetingsCapabilities);
+    }
   }, []);
 
   const fetchRecipients = React.useCallback(
@@ -662,6 +670,13 @@ export default function AdminMeetingsPage() {
   React.useEffect(() => {
     let active = true;
 
+    if (
+      !capabilities ||
+      (!capabilities.canInvite && !capabilities.canCreate)
+    ) {
+      return;
+    }
+
     (async () => {
       try {
         setRecipientLoading((current) => ({ ...current, [activeRecipientRole]: true }));
@@ -688,7 +703,12 @@ export default function AdminMeetingsPage() {
     return () => {
       active = false;
     };
-  }, [activeRecipientRole, debouncedRecipientSearch, fetchRecipients]);
+  }, [
+    activeRecipientRole,
+    capabilities,
+    debouncedRecipientSearch,
+    fetchRecipients,
+  ]);
 
   React.useEffect(() => {
     const nextStart = combineDateAndTime(form.startDate, form.startTime);
@@ -943,9 +963,20 @@ export default function AdminMeetingsPage() {
   };
 
   const publishedCalendarCount = calendars.filter((calendar) => calendar.isPublished).length;
+  const canSchedule = Boolean(capabilities?.canCreate);
+  const showDelegateBanner = Boolean(capabilities && !capabilities.isSchoolAdmin);
+  const scheduleReadOnly =
+    !loadingPage && capabilities !== null && !canSchedule;
+  const blockCancel =
+    capabilities !== null && !capabilities.canCancel;
+  const blockEdit =
+    capabilities !== null && !capabilities.canEdit;
+  const blockStart =
+    capabilities !== null && !capabilities.canStart;
 
   return (
     <div className="space-y-6">
+      {showDelegateBanner ? <DelegateModuleBanner /> : null}
       <section className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.18),transparent_38%),linear-gradient(180deg,rgba(8,12,22,0.98),rgba(5,9,19,1))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.32)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
@@ -1000,18 +1031,36 @@ export default function AdminMeetingsPage() {
               Schedule A Meeting
             </CardTitle>
             <p className="text-sm text-white/55">
-              Pick a calendar, set the date and time, then search one audience at a
-              time to build an invite-only meeting.
+              {scheduleReadOnly
+                ? "Scheduling is disabled for your current delegation."
+                : "Pick a calendar, set the date and time, then search one audience at a time to build an invite-only meeting."}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
+            {scheduleReadOnly ? (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-10 text-center">
+                <p className="text-sm font-medium text-white/85">View-only access</p>
+                <p className="mt-2 text-sm text-white/55">
+                  Your delegation lets you review meetings but not schedule or change
+                  them. Ask a school admin if you need organizer permissions.
+                </p>
+              </div>
+            ) : (
+              <>
             {calendars.length === 0 && !loadingCalendars && (
               <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90">
-                No academic calendars exist yet. Create one in{" "}
-                <Link href="/admin/academic-calendar" className="underline underline-offset-4">
-                  Academic Calendar
-                </Link>{" "}
-                before scheduling meetings.
+                No academic calendars exist yet.{" "}
+                {!capabilities || capabilities.isSchoolAdmin ? (
+                  <>
+                    Create one in{" "}
+                    <Link href="/admin/academic-calendar" className="underline underline-offset-4">
+                      Academic Calendar
+                    </Link>{" "}
+                    before scheduling meetings.
+                  </>
+                ) : (
+                  <>Ask a school admin to publish a calendar before new meetings can be scheduled.</>
+                )}
               </div>
             )}
 
@@ -1347,7 +1396,12 @@ export default function AdminMeetingsPage() {
               <Button
                 type="button"
                 onClick={handleCreateMeeting}
-                disabled={saving || calendars.length === 0 || loadingCalendars}
+                disabled={
+                  saving ||
+                  calendars.length === 0 ||
+                  loadingCalendars ||
+                  !canSchedule
+                }
                 className="min-w-[180px] bg-emerald-500 text-black hover:bg-emerald-400"
               >
                 {saving ? (
@@ -1363,6 +1417,8 @@ export default function AdminMeetingsPage() {
                 )}
               </Button>
             </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -1451,7 +1507,9 @@ export default function AdminMeetingsPage() {
                                 <Button
                                   size="sm"
                                   variant="secondary"
-                                  disabled={retryingLiveKitId === meeting.id}
+                                  disabled={
+                                    blockStart || retryingLiveKitId === meeting.id
+                                  }
                                   onClick={() => handleRetryLiveKitProvision(meeting.id)}
                                   className="border border-white/10 bg-white/10 text-white hover:bg-white/15"
                                 >
@@ -1471,7 +1529,9 @@ export default function AdminMeetingsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={cancellingId === meeting.id}
+                                disabled={
+                                  blockCancel || cancellingId === meeting.id
+                                }
                                 onClick={() => handleCancelMeeting(meeting.id)}
                                 className="border-white/10 bg-transparent text-white hover:bg-white/10"
                               >
@@ -1489,7 +1549,9 @@ export default function AdminMeetingsPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={deletingMeetingId === meeting.id}
+                              disabled={
+                                blockEdit || deletingMeetingId === meeting.id
+                              }
                               onClick={() =>
                                 handleDeleteCancelledMeeting(meeting.id, meeting.title)
                               }

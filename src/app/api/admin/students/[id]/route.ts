@@ -2,7 +2,10 @@
 
 import { NextRequest } from "next/server";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
 import {
@@ -40,7 +43,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("students");
     if (!schoolId) {
       return new Response("School ID not found", { status: 400 });
     }
@@ -103,6 +106,7 @@ export async function GET(
       type: item.type as string,
       description: item.description as string,
       createdAt: item.createdAt?.toISOString?.() ?? new Date().toISOString(),
+      metadata: (item.metadata ?? {}) as Record<string, unknown>,
       user: item.userId
         ? {
             id: item.userId._id.toString(),
@@ -680,7 +684,9 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "students.edit",
+    ]);
     await connectToDatabase();
 
     const { id } = await ctx.params;

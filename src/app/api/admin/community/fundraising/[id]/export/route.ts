@@ -4,11 +4,12 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { FundraisingCampaign, IFundraisingCampaign } from "@/models/FundraisingCampaign";
 import { FundraisingDonation, IFundraisingDonation } from "@/models/FundraisingDonation";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -42,7 +43,10 @@ function formatAmount(amountMinor: number): string {
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.export",
+    ]);
+    const { userId, schoolId } = authCtx;
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -125,6 +129,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
       entityType: "fundraising_campaign",
       entityId: String(campaignIdObj),
       description: `Exported campaign donations: ${campaign.title}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "fundraising",
+        action: "campaign.exported",
+      }),
       metadata: {
         campaignId: String(campaignIdObj),
         donationCount: donations.length,

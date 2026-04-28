@@ -14,6 +14,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StudentDetailDTO } from "@/hooks/admin/useStudentDetail";
+import {
+  formatActivityActorPrimary,
+  formatActivityDelegateStaffSummary,
+} from "@/lib/audit/activityActorPresentation";
 
 type Props = {
   student: StudentDetailDTO;
@@ -227,15 +231,29 @@ export function StudentActivityLogTab({ student }: Props) {
                                     >
                                       {item.type}
                                     </Badge>
-                                    {item.user && (
-                                      <div className="flex items-center gap-1.5 text-[10px] text-white/50">
-                                        <User className="h-3 w-3" />
+                                    <div className="flex flex-col gap-0.5 text-[10px] text-white/50">
+                                      <div className="flex items-center gap-1.5">
+                                        <User className="h-3 w-3 shrink-0" />
                                         <span>
-                                          {item.user.firstName}{" "}
-                                          {item.user.lastName}
+                                          {formatActivityActorPrimary(
+                                            item.user
+                                              ? {
+                                                  firstName: item.user.firstName,
+                                                  lastName: item.user.lastName,
+                                                  email: item.user.email,
+                                                }
+                                              : null,
+                                            item.metadata
+                                          )}
                                         </span>
                                       </div>
-                                    )}
+                                      {formatActivityDelegateStaffSummary(item.metadata) ? (
+                                        <span className="pl-4 text-white/40">
+                                          Staff:{" "}
+                                          {formatActivityDelegateStaffSummary(item.metadata)}
+                                        </span>
+                                      ) : null}
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-1.5 text-[10px] text-white/50">

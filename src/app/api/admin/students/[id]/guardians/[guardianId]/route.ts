@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/students/[id]/guardians/[guardianId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -41,7 +42,10 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string; guardianId: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "students.edit",
+    ]);
+    const { schoolId, userId } = authCtx;
     await connectToDatabase();
 
     if (!schoolId) {
@@ -190,6 +194,12 @@ export async function PATCH(
       entityType: "student",
       entityId: String(studentIdObj),
       description: `Updated guardian information`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "students",
+        action: "guardian.updated",
+      }),
       metadata: {
         guardianId: String(guardianIdObj),
         studentId: String(studentIdObj),
@@ -263,7 +273,10 @@ export async function DELETE(
   ctx: { params: Promise<{ id: string; guardianId: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "students.edit",
+    ]);
+    const { schoolId, userId } = authCtx;
     await connectToDatabase();
 
     if (!schoolId) {
@@ -370,6 +383,12 @@ export async function DELETE(
       entityType: "student",
       entityId: String(studentIdObj),
       description: `Removed guardian from student`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "students",
+        action: "guardian.removed",
+      }),
       metadata: {
         guardianId: String(guardianIdObj),
         studentId: String(studentIdObj),

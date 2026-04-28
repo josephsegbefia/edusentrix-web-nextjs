@@ -1,6 +1,7 @@
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Activity, type ActivityType } from "@/models/Activity";
 import mongoose from "mongoose";
+import { enrichDelegationAuditMetadata } from "@/lib/audit/enrichDelegationAuditMetadata";
 
 type RecordActivityParams = {
   schoolId: string | mongoose.Types.ObjectId;
@@ -10,6 +11,14 @@ type RecordActivityParams = {
   entityId?: string | mongoose.Types.ObjectId;
   description: string;
   metadata?: Record<string, unknown>;
+  /** Aligns with DELEGATIONS_FEATURE_SPEC §18 delegated audit context. */
+  actorRole?: "admin" | "delegate";
+  actorDelegationId?: string | mongoose.Types.ObjectId | null;
+  delegationModule?: string;
+  delegationAction?: string;
+  /** Optional §18 request context (store under `metadata`). */
+  ipAddress?: string | null;
+  userAgent?: string | null;
 };
 
 export async function recordActivity(params: RecordActivityParams): Promise<void> {
@@ -33,6 +42,21 @@ export async function recordActivity(params: RecordActivityParams): Promise<void
           : params.entityId
         : undefined;
 
+    const meta: Record<string, unknown> = { ...(params.metadata || {}) };
+    if (params.actorRole) meta.actorRole = params.actorRole;
+    if (params.actorDelegationId !== undefined && params.actorDelegationId !== null) {
+      meta.actorDelegationId =
+        typeof params.actorDelegationId === "string"
+          ? params.actorDelegationId
+          : String(params.actorDelegationId);
+    }
+    if (params.delegationModule) meta.delegationModule = params.delegationModule;
+    if (params.delegationAction) meta.delegationAction = params.delegationAction;
+    if (params.ipAddress) meta.ipAddress = params.ipAddress;
+    if (params.userAgent) meta.userAgent = params.userAgent;
+
+    await enrichDelegationAuditMetadata(meta, userIdObj, params.type);
+
     await Activity.create({
       schoolId: schoolIdObj,
       userId: userIdObj,
@@ -40,7 +64,7 @@ export async function recordActivity(params: RecordActivityParams): Promise<void
       entityType: params.entityType,
       entityId: entityIdObj,
       description: params.description,
-      metadata: params.metadata || {},
+      metadata: meta,
     });
   } catch (error) {
     // Don't fail the main operation if activity logging fails

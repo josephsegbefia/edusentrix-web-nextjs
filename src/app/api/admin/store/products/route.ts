@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import {
+  requireFinanceStaffOrDelegatedAnyPermission,
+  requireFinanceStaffOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { StoreProduct } from "@/models/StoreProduct";
 
 const CreateBody = z.object({
@@ -16,7 +19,7 @@ const CreateBody = z.object({
 
 export async function GET() {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("store");
     await connectToDatabase();
 
     const products = await StoreProduct.find({ schoolId })
@@ -48,7 +51,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireFinanceStaff();
+    const { schoolId } = await requireFinanceStaffOrDelegatedAnyPermission([
+      "store.manage_products",
+    ]);
     await connectToDatabase();
 
     const body = CreateBody.parse(await req.json());

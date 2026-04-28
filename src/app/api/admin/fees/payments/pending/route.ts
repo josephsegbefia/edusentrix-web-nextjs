@@ -5,7 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Payment } from "@/models/Payment";
 import { Invoice } from "@/models/Invoice";
 import { StudentCreditBalance } from "@/models/StudentCreditBalance";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import { requireFinanceStaffOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 
 type QueueKey =
   | "pending_approval"
@@ -80,7 +80,7 @@ function queueFilter(queue: QueueKey, blockedIds: mongoose.Types.ObjectId[]) {
 }
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireFinanceStaff();
+  const { schoolId } = await requireFinanceStaffOrDelegatedModuleView("fees");
   await connectToDatabase();
 
   try {

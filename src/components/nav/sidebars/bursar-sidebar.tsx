@@ -19,6 +19,7 @@ import {
   ShoppingBag,
   ClipboardList,
   Video,
+  LayoutGrid,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -37,6 +38,7 @@ import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBr
 import { useSubscription } from "@/hooks/useSubscription";
 import { hasTierFeature, type SubscriptionFeatureKey } from "@/lib/billing/feature-access";
 import { useSchoolPaymentSetup } from "@/hooks/admin/useSchoolPaymentSetup";
+import type { DelegatedAdminNavItem } from "@/lib/delegations/delegate-admin-access";
 
 type NavSection = {
   title: string;
@@ -129,7 +131,13 @@ const navSections: NavSection[] = [
   },
 ];
 
-function NavContent({ onItemClick }: { onItemClick?: () => void }) {
+function NavContent({
+  onItemClick,
+  delegatedNavItems = [],
+}: {
+  onItemClick?: () => void;
+  delegatedNavItems?: DelegatedAdminNavItem[];
+}) {
   const pathname = usePathname();
   const { data: subscription } = useSubscription();
   const { data: paymentSetup } = useSchoolPaymentSetup({ allowForbidden: true });
@@ -154,6 +162,38 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
 
   return (
     <nav className="space-y-6">
+      {delegatedNavItems.length > 0 ? (
+        <div>
+          <div className="mb-2.5 px-3">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/40">
+              Delegated modules
+            </h3>
+          </div>
+          <div className="space-y-1">
+            {delegatedNavItems.map((item) => {
+              const active =
+                pathname === item.href ||
+                pathname.startsWith(`${item.href}/`);
+              return (
+                <ActiveLink
+                  key={`delegated-${item.module}-${item.href}`}
+                  href={item.href}
+                  onClick={onItemClick}
+                  className={cn(
+                    premiumSideItem,
+                    active && premiumSideItemActive
+                  )}
+                  activeClassName="nav-active"
+                >
+                  <LayoutGrid className="h-4 w-4 shrink-0 text-emerald-300/90" />
+                  <span className="truncate">{item.label}</span>
+                </ActiveLink>
+              );
+            })}
+          </div>
+          <Separator className="mt-6 bg-white/5" />
+        </div>
+      ) : null}
       {navSections.map((section, sectionIdx) => {
         const mergedItems =
           section.title === "Finance Operations"
@@ -206,7 +246,11 @@ function NavContent({ onItemClick }: { onItemClick?: () => void }) {
   );
 }
 
-function DesktopSidebar() {
+function DesktopSidebar({
+  delegatedNavItems,
+}: {
+  delegatedNavItems?: DelegatedAdminNavItem[];
+}) {
   React.useEffect(() => {
     const styleId = "bursar-sidebar-scrollbar-hide";
     if (document.getElementById(styleId)) return;
@@ -230,7 +274,7 @@ function DesktopSidebar() {
         <SidebarSchoolIdentity href="/admin/finance" role="bursar" />
       </div>
       <div className="bursar-sidebar-scroll flex-1 overflow-y-auto p-4">
-        <NavContent />
+        <NavContent delegatedNavItems={delegatedNavItems} />
       </div>
       <div className="shrink-0 border-t border-white/5 px-4 pb-4 pt-3">
         <SidebarFooterBranding />
@@ -242,9 +286,11 @@ function DesktopSidebar() {
 function MobileSidebar({
   open,
   onOpenChange,
+  delegatedNavItems,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  delegatedNavItems?: DelegatedAdminNavItem[];
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -273,7 +319,10 @@ function MobileSidebar({
         </SheetHeader>
 
         <div className="bursar-sidebar-scroll overflow-y-auto p-4">
-          <NavContent onItemClick={() => onOpenChange(false)} />
+          <NavContent
+            onItemClick={() => onOpenChange(false)}
+            delegatedNavItems={delegatedNavItems}
+          />
           <div className="mt-4 border-t border-white/5 pt-4">
             <SidebarFooterBranding />
           </div>
@@ -297,7 +346,11 @@ function MobileMenuButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function BursarSidebar() {
+export default function BursarSidebar({
+  delegatedNavItems,
+}: {
+  delegatedNavItems?: DelegatedAdminNavItem[];
+} = {}) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const pathname = usePathname();
 
@@ -310,8 +363,12 @@ export default function BursarSidebar() {
       <div className="fixed left-4 top-[calc(3.5rem+0.75rem)] z-40 md:hidden">
         <MobileMenuButton onClick={() => setMobileMenuOpen(true)} />
       </div>
-      <DesktopSidebar />
-      <MobileSidebar open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
+      <DesktopSidebar delegatedNavItems={delegatedNavItems} />
+      <MobileSidebar
+        open={mobileMenuOpen}
+        onOpenChange={setMobileMenuOpen}
+        delegatedNavItems={delegatedNavItems}
+      />
     </>
   );
 }

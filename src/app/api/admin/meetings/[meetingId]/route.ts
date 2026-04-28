@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireMeetingsPermission,
+} from "@/lib/meetings/requireMeetingsPermission";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { meetingsActorAuditMetadata } from "@/lib/meetings/meetings-actor-audit-metadata";
 import { deleteLiveKitRoom } from "@/lib/meetings/livekit";
 import { Meeting } from "@/models/Meeting";
 import { MeetingParticipant } from "@/models/MeetingParticipant";
@@ -19,7 +22,7 @@ export async function PATCH(
   ctx: { params: Promise<{ meetingId: string }> }
 ) {
   try {
-    const context = await requireSchoolAdmin();
+    const context = await requireMeetingsPermission("meetings.cancel");
     await connectToDatabase();
 
     const { meetingId } = await ctx.params;
@@ -81,6 +84,7 @@ export async function PATCH(
           );
         }
 
+        const cancelActorMeta = await meetingsActorAuditMetadata(context, "meeting.cancelled");
         await recordActivity({
           schoolId: context.schoolId,
           userId: context.userId,
@@ -89,6 +93,7 @@ export async function PATCH(
           entityId: meeting._id,
           description: `Cancelled meeting: ${meeting.title}`,
           metadata: {
+            ...cancelActorMeta,
             reason: meeting.cancelReason,
           },
         });
@@ -114,7 +119,7 @@ export async function DELETE(
   ctx: { params: Promise<{ meetingId: string }> }
 ) {
   try {
-    const context = await requireSchoolAdmin();
+    const context = await requireMeetingsPermission("meetings.edit");
     await connectToDatabase();
 
     const { meetingId } = await ctx.params;
@@ -167,6 +172,7 @@ export async function DELETE(
 
     await Meeting.deleteOne({ _id: meetingObjectId });
 
+    const deleteActorMeta = await meetingsActorAuditMetadata(context, "meeting.deleted");
     await recordActivity({
       schoolId: context.schoolId,
       userId: context.userId,
@@ -174,6 +180,7 @@ export async function DELETE(
       entityType: "Meeting",
       entityId: meetingObjectId,
       description: `Deleted cancelled meeting: ${title}`,
+      metadata: deleteActorMeta,
     });
 
     return NextResponse.json({ success: true });

@@ -1,10 +1,11 @@
 // src/app/api/admin/students/[id]/guardians/[guardianId]/set-primary/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { Guardian } from "@/models/Guardian";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import mongoose from "mongoose";
 
 // PATCH - Set guardian as primary
@@ -13,7 +14,10 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string; guardianId: string }> }
 ) {
   try {
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+      "students.edit",
+    ]);
+    const { schoolId, userId } = authCtx;
     await connectToDatabase();
 
     if (!schoolId) {
@@ -98,6 +102,12 @@ export async function PATCH(
       entityType: "student",
       entityId: String(studentIdObj),
       description: `Set guardian as primary contact`,
+      ...delegationAuditFields({
+        isDelegatedActor: !authCtx.isSchoolAdmin,
+        activeDelegationId: authCtx.activeDelegationId,
+        module: "students",
+        action: "guardian.set_primary",
+      }),
       metadata: {
         guardianId: String(guardianIdObj),
         studentId: String(studentIdObj),

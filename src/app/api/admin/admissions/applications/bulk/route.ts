@@ -12,9 +12,12 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireAdmissionsManager } from "@/lib/auth/requireAdmissionsManager";
+import { requireAdmissionsPermission } from "@/lib/admissions/admissions-api-permissions";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
+import { recordAdmissionsManagerActivity } from "@/lib/admissions/recordAdmissionsManagerActivity";
+import { auditClientMetaFromRequest } from "@/lib/audit/auditClientMetaFromRequest";
 
 const objectIdString = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
 
@@ -44,6 +47,7 @@ const BodySchema = z.discriminatedUnion("action", [
 export async function POST(req: NextRequest) {
   try {
     const ctx = await requireAdmissionsManager();
+    requireAdmissionsPermission(ctx, "admissions.change_status");
     await connectToDatabase();
 
     const body = await req.json().catch(() => null);
@@ -59,6 +63,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const client = auditClientMetaFromRequest(req);
     const ids = parsed.data.ids.map((id) => new mongoose.Types.ObjectId(id));
     const apps = await AdmissionApplication.find({
       _id: { $in: ids },
@@ -117,8 +122,20 @@ export async function POST(req: NextRequest) {
           kind: "application.status_changed",
           metadata: { from: previous, to: app.status, bulk: true },
         });
+        await recordAdmissionsManagerActivity({
+          ctx,
+          type: "admissions.application.status_changed",
+          entityId: app._id,
+          description: "Bulk status change on admissions application",
+          delegationAction: "admissions.application.status_changed",
+          metadata: { from: previous, to: app.status, bulk: true },
+          ipAddress: client.ipAddress,
+          userAgent: client.userAgent,
+        });
         updated++;
       } else {
+        const previousReviewerId =
+          app.assignedReviewerId?.toString() ?? null;
         const next = parsed.data.reviewerId
           ? new mongoose.Types.ObjectId(parsed.data.reviewerId)
           : null;
@@ -131,6 +148,21 @@ export async function POST(req: NextRequest) {
         }
         app.assignedReviewerId = next;
         await app.save();
+        const nextReviewerId = app.assignedReviewerId?.toString() ?? null;
+        await recordAdmissionsManagerActivity({
+          ctx,
+          type: "admissions.application.reviewer_assigned",
+          entityId: app._id,
+          description: "Bulk reviewer assignment on admissions application",
+          delegationAction: "admissions.application.reviewer_assigned",
+          metadata: {
+            bulk: true,
+            from: previousReviewerId,
+            to: nextReviewerId,
+          },
+          ipAddress: client.ipAddress,
+          userAgent: client.userAgent,
+        });
         updated++;
       }
     }

@@ -1,7 +1,7 @@
 // src/app/api/admin/promotions/cycles/[cycleId]/rollback/route.ts
 // PROMO-BE-007: POST rollback cycle - restore pre-finalize placements
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionCycle } from "@/models/PromotionCycle";
 import { PromotionExecutionLog } from "@/models/PromotionExecutionLog";
@@ -20,7 +20,9 @@ export async function POST(
   ctx: { params: Promise<{ cycleId: string }> }
 ) {
   try {
-    const { userId, schoolId } = await requireSchoolAdmin();
+    const { userId, schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "promotions.operate",
+    ]);
     await connectToDatabase();
 
     if (!promotionFeatureFlags.enabled || !promotionFeatureFlags.rollbackEnabled) {

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AcademicPeriod, type IAcademicPeriod } from "@/models/AcademicPeriod";
 import { ReportExport } from "@/models/ReportExport";
@@ -146,7 +149,7 @@ function buildFileName(
 }
 
 export async function GET(req: NextRequest) {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("reports");
   await connectToDatabase();
 
   if (!schoolId) {
@@ -252,7 +255,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { schoolId, userId } = await requireSchoolAdmin();
+  const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+    "reports.export",
+  ]);
   await connectToDatabase();
 
   if (!schoolId) {

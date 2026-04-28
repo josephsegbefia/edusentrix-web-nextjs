@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { isTimetableApiWriteEnabled } from "@/lib/timetable/feature-flags";
@@ -43,7 +46,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("timetable");
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
@@ -127,7 +130,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { schoolId, userId } = await requireSchoolAdmin();
+    const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "timetable.edit",
+    ]);
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));

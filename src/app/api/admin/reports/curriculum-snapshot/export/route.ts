@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School, type ISchool } from "@/models/School";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
@@ -24,7 +24,9 @@ export async function GET() {
       );
     }
 
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "reports.export",
+    ]);
     await connectToDatabase();
 
     const school = (await School.findById(schoolId)

@@ -1,6 +1,6 @@
 // src/app/api/admin/subjects/unassign-teacher/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -26,7 +26,8 @@ function toObjectIdOrNull(id: string) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId, userId: adminUserId } = await requireSchoolAdmin();
+    const { schoolId, userId: adminUserId } =
+      await requireSchoolAdminOrDelegatedAnyPermission(["subjects.edit"]);
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));

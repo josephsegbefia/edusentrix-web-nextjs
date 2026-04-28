@@ -1,7 +1,7 @@
 // src/app/api/admin/promotions/policies/active/route.ts
 // PROMO-BE-002: GET active promotion policy
 import { NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionPolicy } from "@/models/PromotionPolicy";
 import mongoose from "mongoose";
@@ -13,7 +13,7 @@ import mongoose from "mongoose";
  */
 export async function GET() {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("promotions");
     await connectToDatabase();
 
     const schoolIdObj =

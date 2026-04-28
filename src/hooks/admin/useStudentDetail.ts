@@ -85,6 +85,7 @@ export type StudentDetailDTO = {
     type: string;
     description: string;
     createdAt: string;
+    metadata?: Record<string, unknown>;
     user: {
       id: string;
       firstName: string | null;

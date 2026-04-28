@@ -5,13 +5,17 @@
  * - POST: Create a new update
  */
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { FundraisingCampaign, IFundraisingCampaign } from "@/models/FundraisingCampaign";
-import { FundraisingCampaignUpdate, IFundraisingCampaignUpdate } from "@/models/FundraisingCampaignUpdate";
+import { FundraisingCampaign } from "@/models/FundraisingCampaign";
+import { FundraisingCampaignUpdate } from "@/models/FundraisingCampaignUpdate";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -38,7 +42,7 @@ interface PopulatedUpdate {
 
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
-    const adminContext = await requireSchoolAdmin();
+    const adminContext = await requireSchoolAdminOrDelegatedModuleView("fundraising");
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -111,7 +115,9 @@ const CreateUpdateSchema = z.object({
 
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
-    const adminContext = await requireSchoolAdmin();
+    const adminContext = await requireSchoolAdminOrDelegatedAnyPermission([
+      "fundraising.post_update",
+    ]);
     await connectToDatabase();
 
     void FundraisingCampaign.modelName;
@@ -162,6 +168,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
       userId: String(adminContext.userId),
       type: "campaign.update_posted",
       description: `Posted update "${data.title}" to campaign: ${campaign.title}`,
+      ...delegationAuditFields({
+        isDelegatedActor: !adminContext.isSchoolAdmin,
+        activeDelegationId: adminContext.activeDelegationId,
+        module: "fundraising",
+        action: "campaign.update_posted",
+      }),
       metadata: {
         campaignId: id,
         campaignTitle: campaign.title,

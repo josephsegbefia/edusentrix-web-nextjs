@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import mongoose from "mongoose";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
 import { Student } from "@/models/Student";
@@ -155,7 +155,9 @@ Produce one concrete ID that matches the hint; if the hint is vague, combine sch
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "students.edit",
+    ]);
     await connectToDatabase();
 
     const schoolIdObj =

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolMember } from "@/lib/auth/requireSchoolMember";
+import { mergedDelegationPermissions } from "@/lib/delegations/service";
 import { AcademicCalendar } from "@/models/AcademicCalendar";
 import { resolveEditorIds } from "@/lib/academic-calendar/editors";
 
@@ -16,7 +17,9 @@ const createSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const context = await requireSchoolMember({ allowedRoles: ["teacher", "bursar"] });
+  const context = await requireSchoolMember({
+    allowedRoles: ["teacher", "bursar", "staff"],
+  });
   await connectToDatabase();
 
   const url = new URL(req.url);
@@ -55,9 +58,17 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const context = await requireSchoolMember({ allowedRoles: ["teacher", "bursar"] });
+  const context = await requireSchoolMember({
+    allowedRoles: ["teacher", "bursar", "staff"],
+  });
   if (!context.isAdmin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    const perms = await mergedDelegationPermissions(
+      context.schoolId,
+      context.userId
+    );
+    if (!perms.includes("calendar.create") && !perms.includes("calendar.edit")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
   }
 
   await connectToDatabase();

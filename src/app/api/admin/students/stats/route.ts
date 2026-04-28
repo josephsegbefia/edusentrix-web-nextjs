@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/admin/students/stats/route.ts
 import { NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -11,7 +11,7 @@ import mongoose from "mongoose";
 import { StudentQuickStats } from "@/types/admin/student";
 
 export async function GET() {
-  const { schoolId } = await requireSchoolAdmin();
+  const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("students");
   await connectToDatabase();
 
   // Ensure models are registered before using populate

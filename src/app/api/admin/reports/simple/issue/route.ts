@@ -3,8 +3,9 @@ import mongoose from "mongoose";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { recordActivity } from "@/lib/audit/recordActivity";
+import { delegationAuditFields } from "@/lib/audit/delegationAuditFields";
 import { School } from "@/models/School";
 import { ReportVerification } from "@/models/ReportVerification";
 
@@ -32,7 +33,10 @@ async function createVerificationId() {
 }
 
 export async function POST(req: NextRequest) {
-  const { userId, schoolId } = await requireSchoolAdmin();
+  const authCtx = await requireSchoolAdminOrDelegatedAnyPermission([
+    "reports.export",
+  ]);
+  const { userId, schoolId } = authCtx;
   await connectToDatabase();
 
   if (!schoolId || !userId) {
@@ -105,6 +109,12 @@ export async function POST(req: NextRequest) {
     entityType: "ReportVerification",
     entityId: verification._id,
     description: "Generated simple report snapshot",
+    ...delegationAuditFields({
+      isDelegatedActor: !authCtx.isSchoolAdmin,
+      activeDelegationId: authCtx.activeDelegationId,
+      module: "reports",
+      action: "report.generated",
+    }),
     metadata: {
       reportType: verification.reportType,
       verificationId,

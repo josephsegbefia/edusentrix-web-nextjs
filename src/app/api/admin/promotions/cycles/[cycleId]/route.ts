@@ -1,7 +1,10 @@
 // src/app/api/admin/promotions/cycles/[cycleId]/route.ts
 // PROMO-BE-004: GET single promotion cycle, DELETE cycle
 import { NextRequest, NextResponse } from "next/server";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PromotionCycle } from "@/models/PromotionCycle";
 import { PromotionDecision } from "@/models/PromotionDecision";
@@ -16,7 +19,7 @@ export async function GET(
   ctx: { params: Promise<{ cycleId: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("promotions");
     await connectToDatabase();
 
     const { cycleId } = await ctx.params;
@@ -111,7 +114,9 @@ export async function DELETE(
   ctx: { params: Promise<{ cycleId: string }> }
 ) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "promotions.operate",
+    ]);
     await connectToDatabase();
 
     const { cycleId } = await ctx.params;

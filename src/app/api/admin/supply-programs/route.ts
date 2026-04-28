@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
+import {
+  requireFinanceStaffOrDelegatedAnyPermission,
+  requireFinanceStaffOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { normalizeAudienceIds } from "@/lib/supply-programs/validateAudience";
 import { SupplyProgram } from "@/models/SupplyProgram";
 
@@ -50,7 +53,9 @@ function serializeProgram(p: {
 
 export async function GET() {
   try {
-    const { schoolId, userId } = await requireFinanceStaff();
+    const { schoolId, userId } = await requireFinanceStaffOrDelegatedModuleView(
+      "supplies"
+    );
     await connectToDatabase();
 
     const programs = await SupplyProgram.find({ schoolId })
@@ -70,7 +75,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId, userId } = await requireFinanceStaff();
+    const { schoolId, userId } = await requireFinanceStaffOrDelegatedAnyPermission([
+      "supplies.create_program",
+    ]);
     await connectToDatabase();
 
     const body = CreateBody.parse(await req.json());

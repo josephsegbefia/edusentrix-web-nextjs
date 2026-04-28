@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import {
+  requireSchoolAdminOrDelegatedAnyPermission,
+  requireSchoolAdminOrDelegatedModuleView,
+} from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School, type ISchool } from "@/models/School";
 import { CURRICULUM_GRADE_TEMPLATES } from "@/constants/curriculum-grade-templates";
@@ -9,7 +12,7 @@ import type { CurriculumCode } from "@/constants/curriculum-profiles";
 
 export async function GET() {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("curriculum");
     await connectToDatabase();
 
     const school = (await School.findById(schoolId)
@@ -100,7 +103,9 @@ const HybridSaveSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const { schoolId } = await requireSchoolAdminOrDelegatedAnyPermission([
+      "curriculum.edit",
+    ]);
     const body = await req.json();
     const parsed = HybridSaveSchema.safeParse(body);
 

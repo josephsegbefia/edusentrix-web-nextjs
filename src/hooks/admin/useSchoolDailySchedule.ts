@@ -11,12 +11,28 @@ export type SchoolScheduleHistoryItem = {
   savedBy: string | null;
   label: string | null;
   academicPeriodId: string | null;
+  scheduleMode?: "unified" | "grouped";
+  scheduleGroups?: Array<{
+    id: string;
+    label: string | null;
+    gradeIds: string[];
+    config: SchoolDailyScheduleConfigV2 | null;
+  }> | null;
   config: SchoolDailyScheduleConfigV2 | null;
+};
+
+export type SchoolDailyScheduleGroupDTO = {
+  id: string;
+  label: string | null;
+  gradeIds: string[];
+  config: SchoolDailyScheduleConfigV2;
 };
 
 export type SchoolDailyScheduleDTO = {
   id: string;
-  config: SchoolDailyScheduleConfigV2;
+  scheduleMode: "unified" | "grouped";
+  config: SchoolDailyScheduleConfigV2 | null;
+  scheduleGroups: SchoolDailyScheduleGroupDTO[] | null;
   revision: number;
   history: SchoolScheduleHistoryItem[];
   updatedAt: string | null;
@@ -26,21 +42,28 @@ export type SchoolDailyScheduleDTO = {
 type GetResponse = { success: boolean; data: SchoolDailyScheduleDTO | null; error?: string };
 type SaveResponse = {
   success: boolean;
-  data?: {
-    id: string;
-    config: SchoolDailyScheduleConfigV2;
-    revision?: number;
-    warnings: string[];
-    updatedAt?: string;
-  };
+  data?: SchoolDailyScheduleDTO & { warnings: string[] };
   error?: string;
 };
 
-export type SaveSchoolDailyScheduleInput = {
-  config: SchoolDailyScheduleConfigV2;
-  changeLabel?: string;
-  academicPeriodId?: string;
-};
+export type SaveSchoolDailyScheduleInput =
+  | {
+      scheduleMode: "unified";
+      config: SchoolDailyScheduleConfigV2;
+      changeLabel?: string;
+      academicPeriodId?: string;
+    }
+  | {
+      scheduleMode: "grouped";
+      scheduleGroups: Array<{
+        id: string;
+        label?: string | null;
+        gradeIds: string[];
+        config: SchoolDailyScheduleConfigV2;
+      }>;
+      changeLabel?: string;
+      academicPeriodId?: string;
+    };
 
 export function useSchoolDailySchedule() {
   return useQuery({
@@ -59,15 +82,31 @@ export function useSchoolDailySchedule() {
 export function useSaveSchoolDailySchedule() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ config, changeLabel, academicPeriodId }: SaveSchoolDailyScheduleInput) => {
+    mutationFn: async (input: SaveSchoolDailyScheduleInput) => {
+      const body =
+        input.scheduleMode === "grouped"
+          ? {
+              scheduleMode: "grouped" as const,
+              scheduleGroups: input.scheduleGroups.map((g) => ({
+                id: g.id,
+                label: g.label ?? null,
+                gradeIds: g.gradeIds,
+                config: prepareSchoolDailyConfigForApi(g.config),
+              })),
+              changeLabel: input.changeLabel?.trim() || undefined,
+              academicPeriodId: input.academicPeriodId?.trim() || undefined,
+            }
+          : {
+              scheduleMode: "unified" as const,
+              config: prepareSchoolDailyConfigForApi(input.config),
+              changeLabel: input.changeLabel?.trim() || undefined,
+              academicPeriodId: input.academicPeriodId?.trim() || undefined,
+            };
+
       const res = await fetch("/api/admin/school-daily-schedule", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          config: prepareSchoolDailyConfigForApi(config),
-          changeLabel: changeLabel?.trim() || undefined,
-          academicPeriodId: academicPeriodId?.trim() || undefined,
-        }),
+        body: JSON.stringify(body),
       });
       const json = (await res.json()) as SaveResponse;
       if (!res.ok) {

@@ -30,6 +30,7 @@ import {
   type ClassRoleCategory,
   type ClassRoleDefinitionDTO,
 } from "@/hooks/admin/useClassRoles";
+import type { StudentListItem } from "@/types/admin/student";
 
 type AssignClassRoleModalProps = {
   open: boolean;
@@ -46,6 +47,26 @@ type StudentOption = {
   photoUrl: string | null;
   admissionNo: string | null;
 };
+
+/** Admin students list returns `fullName` + `admissionNumber`, not `lastName` / `admissionNo`. */
+function mapListStudentToOption(s: StudentListItem): StudentOption {
+  const fullName =
+    (s.fullName && s.fullName.trim()) ||
+    [s.firstName, s.middleName].filter((p) => p && String(p).trim()).join(" ");
+
+  const tokens = fullName.split(/\s+/).filter(Boolean);
+  const firstName = (s.firstName && s.firstName.trim()) || tokens[0] || "";
+  const lastName = tokens.length > 1 ? (tokens[tokens.length - 1] as string) : "";
+
+  return {
+    id: s.id,
+    firstName,
+    lastName,
+    fullName: fullName.trim(),
+    photoUrl: s.photoUrl,
+    admissionNo: s.admissionNumber,
+  };
+}
 
 const CATEGORY_ICONS: Record<ClassRoleCategory, React.ElementType> = {
   leadership: Crown,
@@ -93,17 +114,10 @@ export function AssignClassRoleModal({
       });
       if (!res.ok) throw new Error("Failed to fetch students");
       const data = await res.json();
-      // Map to expected format
+      const rows = (data.data || []) as StudentListItem[];
       return {
         success: true,
-        data: (data.data || []).map((s: any) => ({
-          id: s.id,
-          firstName: s.firstName,
-          lastName: s.lastName,
-          fullName: `${s.firstName} ${s.lastName}`.trim(),
-          photoUrl: s.photoUrl || null,
-          admissionNo: s.admissionNo || null,
-        })),
+        data: rows.map(mapListStudentToOption),
       };
     },
     enabled: open && step === 2,

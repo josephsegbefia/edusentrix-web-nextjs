@@ -28,7 +28,7 @@ import { CalendarDays } from "lucide-react";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useSchoolSettings } from "@/hooks/admin/useSchoolSettings";
 import { useSchoolDailySchedule } from "@/hooks/admin/useSchoolDailySchedule";
-import { ensureConfigV2 } from "@/lib/school-day/migrate-v2";
+import { pickDailyConfigV2FromApiDto } from "@/lib/school-day/resolveDailyScheduleDoc";
 import {
   buildClassTimelineFromDailyConfig,
   buildResolvedFromSchoolDailyConfig,
@@ -225,8 +225,8 @@ export function ClassTimetableEditor({
   const settings = settingsQuery.data?.data || null;
   const dailyQuery = useSchoolDailySchedule();
   const dailyV2 = React.useMemo(
-    () => (dailyQuery.data?.config ? ensureConfigV2(dailyQuery.data.config) : null),
-    [dailyQuery.data?.config]
+    () => pickDailyConfigV2FromApiDto(dailyQuery.data ?? null, gradeId ?? null),
+    [dailyQuery.data, gradeId]
   );
 
   const scheduleInput = React.useMemo(

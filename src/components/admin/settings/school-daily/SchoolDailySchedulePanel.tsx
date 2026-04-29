@@ -10,14 +10,20 @@ import {
   useDeleteSchoolDailySchedule,
   useSaveSchoolDailySchedule,
   useSchoolDailySchedule,
+  type SaveSchoolDailyScheduleInput,
 } from "@/hooks/admin/useSchoolDailySchedule";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { SchoolDailyScheduleWizard } from "./SchoolDailyScheduleWizard";
+import {
+  SchoolDailyScheduleMasterWizard,
+  type MasterSeed,
+} from "./SchoolDailyScheduleMasterWizard";
+import { ConfigSummaryView } from "./SchoolDailyConfigSummaryView";
 import { DayTimelineStrip } from "./DayTimelineStrip";
+import { Badge } from "@/components/ui/badge";
 import { effectivePeriodsFor } from "@/lib/school-day/periods";
-import type { SchoolDailyScheduleConfigV2, WeekdayKey } from "@/types/school-daily-schedule";
-import { Pencil, Trash2, CalendarClock, Loader2, Sparkles, History } from "lucide-react";
+import type { WeekdayKey } from "@/types/school-daily-schedule";
+import { Pencil, Trash2, Loader2, Sparkles, History, Clock3, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 
 const SAMPLE_DAYS: WeekdayKey[] = [
@@ -39,137 +45,6 @@ function formatHhmm12(h: string) {
   return `${hour}:${min} ${ap}`;
 }
 
-function ConfigSummaryView({
-  config,
-  gradeNames,
-}: {
-  config: SchoolDailyScheduleConfigV2;
-  gradeNames: (id: string) => string;
-}) {
-  const def = effectivePeriodsFor(config, "monday", null);
-  return (
-    <div className="space-y-4 text-sm text-white/80">
-      <div>
-        <h3 className="mb-2 flex items-center gap-2 text-base font-semibold text-white">
-          <CalendarClock className="h-4 w-4 text-violet-300" />
-          Default day
-        </h3>
-        <ul className="ml-1 space-y-1.5 text-white/70">
-          <li>
-            <span className="text-white/50">First bell (gate):</span> {formatHhmm12(config.dayGateStart)}
-          </li>
-          <li>
-            <span className="text-white/50">Lessons start:</span> {formatHhmm12(config.lessonStart)}
-          </li>
-          <li>
-            <span className="text-white/50">End:</span> {formatHhmm12(config.dayEnd)}
-          </li>
-          <li>
-            <span className="text-white/50">Period length:</span> {config.periodLengthMinutes} min
-            {(config.periodLengthOverrides?.length ?? 0) > 0 ? (
-              <span className="text-white/45">
-                {" "}
-                (overrides:{" "}
-                {config
-                  .periodLengthOverrides!.map((o) => `P${o.periodIndex}=${o.minutes}m`)
-                  .join(", ")}
-                )
-              </span>
-            ) : null}
-          </li>
-          <li>
-            <span className="text-white/50">~Periods (sample weekday):</span> {def.fullPeriods}
-          </li>
-          {(config.openingBlocks?.length ?? 0) > 0 && (
-            <li>
-              <span className="text-white/50">Non-teaching (before P1):</span>{" "}
-              {config.openingBlocks!
-                .map((o) => `${o.name} (${o.startTime}–${o.endTime}, ${o.kind})`)
-                .join(" · ")}
-            </li>
-          )}
-          <li>
-            <span className="text-white/50">Breaks:</span>{" "}
-            {config.breaks.length
-              ? config.breaks
-                  .map((b) => {
-                    const sc =
-                      b.appliesToGradeIds && b.appliesToGradeIds.length
-                        ? ` [${b.appliesToGradeIds.map(gradeNames).filter(Boolean).join(", ") || "grades"}]`
-                        : "";
-                    return `${b.name} (${b.startTime}–${b.endTime})${sc}`;
-                  })
-                  .join(" · ")
-              : "None"}
-          </li>
-        </ul>
-      </div>
-      {!config.allWeekdaysSame && config.weekdayExceptions.length > 0 && (
-        <div>
-          <h3 className="mb-2 font-semibold text-white">Exceptions</h3>
-          <ul className="space-y-2 text-white/70">
-            {config.weekdayExceptions.map((ex) => {
-              const p = effectivePeriodsFor(config, ex.weekday, null);
-              return (
-                <li key={ex.weekday} className="rounded-lg border border-white/5 bg-white/5 px-3 py-2">
-                  <span className="font-medium capitalize text-violet-200">
-                    {ex.weekday}:
-                  </span>{" "}
-                  {formatHhmm12(ex.lessonStart)}–{formatHhmm12(ex.dayEnd)}, {ex.periodLengthMinutes}{" "}
-                  min · ~{p.fullPeriods} period(s) · {ex.breaks.length} break(s)
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-      {config.hasGradeOverrides && config.gradeOverrides.length > 0 && (
-        <div>
-          <h3 className="mb-2 font-semibold text-white">Grade overrides</h3>
-          <ul className="space-y-1.5 text-white/70">
-            {config.gradeOverrides.map((g, idx) => {
-              const gAny = g as { gradeIds?: string[]; gradeId?: string };
-              const ids =
-                gAny.gradeIds && gAny.gradeIds.length > 0
-                  ? gAny.gradeIds
-                  : gAny.gradeId
-                    ? [gAny.gradeId]
-                    : [];
-              const name = ids
-                .map((id) => gradeNames(id) || id)
-                .filter(Boolean)
-                .join(", ");
-              const parts: string[] = [];
-              if (g.dayGateStart) parts.push(`first bell ${g.dayGateStart}`);
-              if (g.lessonStart) parts.push(`lessons start ${g.lessonStart}`);
-              if (g.dayEnd) parts.push(`end ${g.dayEnd}`);
-              if (g.periodLengthMinutes != null) parts.push(`default period ${g.periodLengthMinutes}m`);
-              if (g.openingBlocks && g.openingBlocks.length) {
-                parts.push(
-                  `opening: ${g.openingBlocks.map((o) => o.name).join(", ")}`
-                );
-              }
-              if (g.periodLengthOverrides && g.periodLengthOverrides.length) {
-                parts.push(
-                  `per-period: ${g.periodLengthOverrides
-                    .map((o) => `P${o.periodIndex}=${o.minutes}m`)
-                    .join(", ")}`
-                );
-              }
-              if (g.breaks && g.breaks.length) parts.push("custom breaks");
-              return (
-                <li key={ids.length ? [...ids].sort().join("-") : `go-${idx}`}>
-                  <span className="text-violet-200">{name || "—"}</span>: {parts.join(" · ")}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function SchoolDailySchedulePanel() {
   const { data: school } = useSchool();
   const { data: row, isLoading, isError, refetch } = useSchoolDailySchedule();
@@ -179,8 +54,9 @@ export function SchoolDailySchedulePanel() {
   const busy = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
-  const [wizardOpen, setWizardOpen] = React.useState(false);
-  const [editInitial, setEditInitial] = React.useState<SchoolDailyScheduleConfigV2 | null>(null);
+  const [masterOpen, setMasterOpen] = React.useState(false);
+  const [masterSeed, setMasterSeed] = React.useState<MasterSeed>({ kind: "empty" });
+  const [wizardKey, setWizardKey] = React.useState(0);
 
   const schoolName = school?.data?.name || "your school";
   const gradeNames = React.useCallback(
@@ -188,13 +64,40 @@ export function SchoolDailySchedulePanel() {
     [grades]
   );
 
+  const seedFromRow = React.useCallback((): MasterSeed => {
+    if (!row) return { kind: "empty" };
+    if (row.scheduleMode === "grouped" && row.scheduleGroups?.length) {
+      return {
+        kind: "grouped",
+        groups: row.scheduleGroups.map((g) => ({
+          id: g.id,
+          label: g.label,
+          gradeIds: [...g.gradeIds],
+          config: g.config,
+        })),
+      };
+    }
+    if (row.config) return { kind: "unified", config: row.config };
+    return { kind: "empty" };
+  }, [row]);
+
+  const openMaster = (seed: MasterSeed) => {
+    setMasterSeed(seed);
+    setWizardKey((k) => k + 1);
+    setMasterOpen(true);
+  };
+
   const startNew = () => {
-    setEditInitial(null);
-    setWizardOpen(true);
+    openMaster({ kind: "empty" });
   };
 
   const startEdit = async () => {
-    if (!row?.config) return;
+    if (!row) return;
+    const canEdit =
+      (row.scheduleMode === "grouped" && (row.scheduleGroups?.length ?? 0) > 0) ||
+      (row.scheduleMode === "unified" && !!row.config);
+    if (!canEdit) return;
+
     const res = await confirm({
       title: "Edit daily schedule?",
       description:
@@ -204,8 +107,7 @@ export function SchoolDailySchedulePanel() {
       intent: "warning",
     });
     if (res !== "confirm") return;
-    setEditInitial(row.config);
-    setWizardOpen(true);
+    openMaster(seedFromRow());
   };
 
   const handleDelete = async () => {
@@ -229,30 +131,19 @@ export function SchoolDailySchedulePanel() {
     }
   };
 
-  const handleSave = async (
-    config: SchoolDailyScheduleConfigV2,
-    meta?: { changeLabel?: string; academicPeriodId?: string }
-  ) => {
+  const handleMasterSave = async (payload: SaveSchoolDailyScheduleInput) => {
     try {
-      const out = await busy.promise(
-        save.mutateAsync({
-          config,
-          changeLabel: meta?.changeLabel,
-          academicPeriodId: meta?.academicPeriodId,
-        }),
-        {
-          loading: "Saving…",
-          success: "Daily schedule saved.",
-          error: (e: Error) => e.message,
-        }
-      );
+      const out = await busy.promise(save.mutateAsync(payload), {
+        loading: "Saving…",
+        success: "Daily schedule saved.",
+        error: (e: Error) => e.message,
+      });
       if (out.warnings?.length) {
         for (const w of out.warnings) {
           toast.message("Schedule note", { description: w });
         }
       }
-      setWizardOpen(false);
-      setEditInitial(null);
+      setMasterOpen(false);
       void refetch();
     } catch {
       // busy toast
@@ -274,20 +165,17 @@ export function SchoolDailySchedulePanel() {
     );
   }
 
-  if (wizardOpen) {
+  if (masterOpen) {
     return (
       <>
         {confirmationDialog}
-        <SchoolDailyScheduleWizard
-          key={editInitial ? "edit" : "new"}
-          initial={editInitial}
+        <SchoolDailyScheduleMasterWizard
+          key={wizardKey}
+          seed={masterSeed}
           gradeOptions={grades}
           saving={save.isPending}
-          onCancel={() => {
-            setWizardOpen(false);
-            setEditInitial(null);
-          }}
-          onSave={handleSave}
+          onCancel={() => setMasterOpen(false)}
+          onSave={handleMasterSave}
         />
       </>
     );
@@ -334,6 +222,46 @@ export function SchoolDailySchedulePanel() {
     );
   }
 
+  const isGrouped = row.scheduleMode === "grouped";
+  const previewStripConfig =
+    isGrouped && row.scheduleGroups?.[0]?.config
+      ? row.scheduleGroups[0].config
+      : row.config;
+
+  const scheduleCards =
+    isGrouped && row.scheduleGroups?.length
+      ? row.scheduleGroups.map((g, index) => {
+          const gradesLabel =
+            g.gradeIds.map((id) => gradeNames(id)).filter(Boolean).join(", ") ||
+            "No grades assigned";
+          const label = g.label?.trim() || `Schedule ${index + 1}`;
+          const mondayPeriods = effectivePeriodsFor(g.config, "monday", null);
+          return {
+            id: g.id,
+            label,
+            gradesLabel,
+            config: g.config,
+            meta: `${formatHhmm12(g.config.lessonStart)} - ${formatHhmm12(
+              g.config.dayEnd
+            )} · ${mondayPeriods.fullPeriods} periods · ${g.config.periodLengthMinutes} min base`,
+          };
+        })
+      : row.config
+        ? [
+            {
+              id: row.id,
+              label: "School-wide schedule",
+              gradesLabel: "All active grades",
+              config: row.config,
+              meta: `${formatHhmm12(row.config.lessonStart)} - ${formatHhmm12(
+                row.config.dayEnd
+              )} · ${
+                effectivePeriodsFor(row.config, "monday", null).fullPeriods
+              } periods · ${row.config.periodLengthMinutes} min base`,
+            },
+          ]
+        : [];
+
   return (
     <>
       {confirmationDialog}
@@ -342,7 +270,24 @@ export function SchoolDailySchedulePanel() {
           <CardContent className="p-6">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-white">Your daily schedule</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-lg font-semibold text-white">Your daily schedule</h3>
+                  {isGrouped ? (
+                    <Badge
+                      variant="secondary"
+                      className="border border-violet-400/30 bg-violet-500/15 text-[11px] font-medium text-violet-100"
+                    >
+                      By grade group
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="secondary"
+                      className="border border-white/15 bg-white/10 text-[11px] font-medium text-white/80"
+                    >
+                      School-wide
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-xs text-white/50">
                   Revision {row.revision ?? 0} · Last updated:{" "}
                   {row.updatedAt
@@ -379,10 +324,111 @@ export function SchoolDailySchedulePanel() {
                 </Button>
               </div>
             </div>
-            <div className="mb-4">
-              <DayTimelineStrip config={row.config} gradeOptions={grades} />
-            </div>
-            <ConfigSummaryView config={row.config} gradeNames={gradeNames} />
+            {isGrouped && (!row.scheduleGroups || row.scheduleGroups.length === 0) ? (
+              <p className="mb-4 text-sm text-amber-200/90">
+                Grouped schedules are enabled, but no bands were loaded. Open Edit and save again; if this message
+                persists, contact support.
+              </p>
+            ) : null}
+            {scheduleCards.length > 0 ? (
+              <div className="mb-5 grid gap-3 lg:grid-cols-3">
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-white/40">Saved schedules</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{scheduleCards.length}</p>
+                  <p className="mt-1 text-xs text-white/45">
+                    {isGrouped
+                      ? "Every schedule group saved for this school."
+                      : "The one schedule used by all grades."}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-white/40">Mode</p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {isGrouped ? "Different grade groups" : "School-wide"}
+                  </p>
+                  <p className="mt-1 text-xs text-white/45">
+                    Timetable generation picks the matching schedule for each class grade.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-white/40">Revision</p>
+                  <p className="mt-2 text-lg font-semibold text-white">r{row.revision ?? 0}</p>
+                  <p className="mt-1 text-xs text-white/45">
+                    Last updated{" "}
+                    {row.updatedAt
+                      ? new Date(row.updatedAt).toLocaleDateString(undefined, { dateStyle: "medium" })
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            {scheduleCards.length > 0 ? (
+              <div className="mb-5 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-sm font-semibold text-white">All created daily schedules</h4>
+                  <span className="text-xs text-white/40">
+                    {scheduleCards.length} schedule{scheduleCards.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {scheduleCards.map((schedule) => (
+                    <div key={schedule.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white">{schedule.label}</p>
+                          <p className="mt-1 flex items-center gap-1.5 text-xs text-white/45">
+                            <GraduationCap className="h-3.5 w-3.5 text-violet-300" />
+                            <span>{schedule.gradesLabel}</span>
+                          </p>
+                        </div>
+                        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60">
+                          <Clock3 className="h-3.5 w-3.5 text-cyan-300" />
+                          {schedule.meta}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {previewStripConfig && !(isGrouped && row.scheduleGroups && row.scheduleGroups.length > 0) ? (
+              <div className="mb-4">
+                <DayTimelineStrip config={previewStripConfig} gradeOptions={grades} />
+              </div>
+            ) : isGrouped && row.scheduleGroups && row.scheduleGroups.length > 0 ? (
+              <p className="mb-4 text-xs text-white/45">
+                Each grade group has its own day timeline and breakdown below.
+              </p>
+            ) : !previewStripConfig ? (
+              <p className="mb-4 text-sm text-amber-200/90">
+                No schedule configuration found — open Edit to complete setup.
+              </p>
+            ) : null}
+            {isGrouped && row.scheduleGroups ? (
+              <div className="space-y-10">
+                {row.scheduleGroups.map((g) => {
+                  const gradesLabel =
+                    g.gradeIds.map((id) => gradeNames(id)).filter(Boolean).join(", ") ||
+                    "Grades in this group";
+                  return (
+                    <div key={g.id} className="space-y-4 rounded-xl border border-white/10 bg-white/2 p-4 sm:p-5">
+                      <div>
+                        <h4 className="text-base font-semibold text-white">
+                          {g.label?.trim() || "Schedule group"}
+                        </h4>
+                        <p className="text-xs text-white/45">{gradesLabel}</p>
+                      </div>
+                      <div className="rounded-lg border border-white/5 bg-slate-950/50 p-3">
+                        <DayTimelineStrip config={g.config} gradeOptions={grades} />
+                      </div>
+                      <ConfigSummaryView config={g.config} gradeNames={gradeNames} />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : row.config ? (
+              <ConfigSummaryView config={row.config} gradeNames={gradeNames} />
+            ) : null}
             {row.history && row.history.length > 0 && (
               <div className="mt-4 space-y-2 rounded-lg border border-white/10 bg-slate-950/40 p-4">
                 <h4 className="flex items-center gap-2 text-sm font-medium text-white">
@@ -421,14 +467,33 @@ export function SchoolDailySchedulePanel() {
             )}
             <div className="mt-4 rounded-lg border border-white/5 bg-white/5 p-3 text-xs text-white/45">
               <span className="text-white/60">At a glance — </span>
-              {SAMPLE_DAYS.map((d) => {
-                const p = effectivePeriodsFor(row.config, d, null);
-                return (
-                  <span key={d} className="mr-2 inline-block capitalize">
-                    {d.slice(0, 3)}: ~{p.fullPeriods} periods
-                  </span>
-                );
-              })}
+              {isGrouped && row.scheduleGroups
+                ? row.scheduleGroups.map((g) => (
+                    <span key={g.id} className="mr-3 inline-block">
+                      <span className="text-white/55">
+                        {(g.label?.trim() || "Group").slice(0, 24)}
+                        {": "}
+                      </span>
+                      {SAMPLE_DAYS.map((d) => {
+                        const p = effectivePeriodsFor(g.config, d, null);
+                        return (
+                          <span key={`${g.id}-${d}`} className="mr-2 inline-block capitalize">
+                            {d.slice(0, 3)}: ~{p.fullPeriods}
+                          </span>
+                        );
+                      })}
+                    </span>
+                  ))
+                : previewStripConfig
+                  ? SAMPLE_DAYS.map((d) => {
+                      const p = effectivePeriodsFor(previewStripConfig, d, null);
+                      return (
+                        <span key={d} className="mr-2 inline-block capitalize">
+                          {d.slice(0, 3)}: ~{p.fullPeriods} periods
+                        </span>
+                      );
+                    })
+                  : "—"}
             </div>
           </CardContent>
         </Card>

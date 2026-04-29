@@ -4,8 +4,9 @@ import { buildDayTimeline } from "@/lib/school-day/timeline";
 import { loadResolvedScheduleForSchoolDay } from "@/lib/timetable/load-resolved-schedule";
 import { timeToMinutes } from "@/lib/timetable/scheduleSettings";
 import { hhmmToMinutes, minutesToHhmm } from "@/lib/school-day/time";
-import { SchoolDailySchedule, type ISchoolDailySchedule } from "@/models/SchoolDailySchedule";
+import { SchoolDailySchedule } from "@/models/SchoolDailySchedule";
 import { ensureConfigV2 } from "@/lib/school-day/migrate-v2";
+import { pickRawDailyConfigForGrade } from "@/lib/school-day/resolveDailyScheduleDoc";
 
 export type PublishedScheduleSegmentKind = "break" | "opening" | "assembly" | "dayEnd";
 
@@ -38,9 +39,10 @@ export async function loadPublishedDayScheduleSegments(
   workingDays: number[]
 ): Promise<PublishedDayScheduleSegmentDTO[]> {
   const dailyDoc = await SchoolDailySchedule.findOne({ schoolId })
-    .select("config")
-    .lean<Pick<ISchoolDailySchedule, "config"> | null>();
-  const raw = dailyDoc?.config;
+    .select("config scheduleMode scheduleGroups")
+    .lean()
+    .exec();
+  const raw = pickRawDailyConfigForGrade(dailyDoc, String(gradeId));
   if (raw) {
     const config = ensureConfigV2(raw);
     const gid = String(gradeId);

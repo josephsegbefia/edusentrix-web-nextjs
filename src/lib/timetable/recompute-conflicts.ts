@@ -17,10 +17,7 @@ import {
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { SchoolSettings, type ISchoolSettings } from "@/models/SchoolSettings";
-import {
-  SchoolDailySchedule,
-  type ISchoolDailySchedule,
-} from "@/models/SchoolDailySchedule";
+import { SchoolDailySchedule } from "@/models/SchoolDailySchedule";
 import { Subject } from "@/models/Subject";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
@@ -32,6 +29,7 @@ import {
 } from "@/lib/timetable/scheduleSettings";
 import { schoolSettingsToScheduleInput } from "@/lib/timetable/schoolSettingsScheduleInput";
 import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
+import { pickRawDailyConfigForGrade } from "@/lib/school-day/resolveDailyScheduleDoc";
 import { buildResolvedFromSchoolDailyConfig } from "@/lib/timetable/dailyScheduleTimetable";
 
 const DAY_NAMES = [
@@ -300,8 +298,9 @@ export async function recomputeConflictsForVersion(
     await Promise.all([
     SchoolSettings.findOne({ schoolId: input.schoolId }).lean() as Promise<ISchoolSettings | null>,
     SchoolDailySchedule.findOne({ schoolId: input.schoolId })
-      .select("config")
-      .lean<Pick<ISchoolDailySchedule, "config"> | null>(),
+      .select("config scheduleMode scheduleGroups")
+      .lean()
+      .exec(),
     teacherIds.length
       ? Teacher.find({
           schoolId: input.schoolId,
@@ -423,13 +422,16 @@ export async function recomputeConflictsForVersion(
     }
 
     let resolved: ResolvedScheduleSettings | null = null;
-    if (dailyScheduleDoc?.config) {
-      const fromDaily = buildResolvedFromSchoolDailyConfig(
-        dailyScheduleDoc.config,
-        String(slot.gradeId),
-        slot.dayOfWeek
-      );
-      if (fromDaily?.isConfigured) resolved = fromDaily;
+    if (dailyScheduleDoc) {
+      const raw = pickRawDailyConfigForGrade(dailyScheduleDoc, String(slot.gradeId));
+      if (raw) {
+        const fromDaily = buildResolvedFromSchoolDailyConfig(
+          raw,
+          String(slot.gradeId),
+          slot.dayOfWeek
+        );
+        if (fromDaily?.isConfigured) resolved = fromDaily;
+      }
     }
     if (!resolved && scheduleInput) {
       const fromSettings = getResolvedScheduleSettings(

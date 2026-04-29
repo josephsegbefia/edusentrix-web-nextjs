@@ -14,6 +14,7 @@ const scheduleGroupSchema = new Schema(
     groupId: { type: String, required: true },
     label: { type: String, default: "" },
     gradeIds: [{ type: Schema.Types.ObjectId, ref: "Grade" }],
+    classGroupIds: [{ type: Schema.Types.ObjectId, ref: "ClassGroup" }],
     config: { type: Schema.Types.Mixed, required: true },
   },
   { _id: false }
@@ -74,6 +75,7 @@ export type ISchoolDailySchedule = Omit<
     groupId: string;
     label?: string;
     gradeIds: Types.ObjectId[];
+    classGroupIds?: Types.ObjectId[];
     config: unknown;
   }>;
 };
@@ -85,7 +87,8 @@ const existingSchoolDailyScheduleModel = models.SchoolDailySchedule as
 if (
   existingSchoolDailyScheduleModel &&
   (!existingSchoolDailyScheduleModel.schema.path("scheduleMode") ||
-    !existingSchoolDailyScheduleModel.schema.path("scheduleGroups"))
+    !existingSchoolDailyScheduleModel.schema.path("scheduleGroups") ||
+    !existingSchoolDailyScheduleModel.schema.path("scheduleGroups.classGroupIds"))
 ) {
   deleteModel("SchoolDailySchedule");
 }

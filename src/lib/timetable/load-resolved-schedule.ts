@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 import type { ISchoolSettings } from "@/models/SchoolSettings";
 import { SchoolSettings } from "@/models/SchoolSettings";
-import { SchoolDailySchedule } from "@/models/SchoolDailySchedule";
 import { getResolvedScheduleSettings } from "@/lib/timetable/scheduleSettings";
 import { schoolSettingsToScheduleInput } from "@/lib/timetable/schoolSettingsScheduleInput";
 import { buildResolvedFromSchoolDailyConfig } from "@/lib/timetable/dailyScheduleTimetable";
-import { pickRawDailyConfigForGrade } from "@/lib/school-day/resolveDailyScheduleDoc";
+import { pickRawDailyConfigForClassGroup } from "@/lib/school-day/resolveDailyScheduleDoc";
+import { loadLatestStoredDailyScheduleDoc } from "@/lib/school-day/loadDailyScheduleDoc";
 
 /**
  * Resolved period bands for a class's grade on a given weekday (school + breaks + overrides).
@@ -13,13 +13,15 @@ import { pickRawDailyConfigForGrade } from "@/lib/school-day/resolveDailySchedul
 export async function loadResolvedScheduleForSchoolDay(
   schoolId: mongoose.Types.ObjectId,
   gradeId: mongoose.Types.ObjectId,
-  dayOfWeek: number
+  dayOfWeek: number,
+  classGroupId?: mongoose.Types.ObjectId | null
 ) {
-  const dailyDoc = await SchoolDailySchedule.findOne({ schoolId })
-    .select("config scheduleMode scheduleGroups")
-    .lean()
-    .exec();
-  const rawConfig = pickRawDailyConfigForGrade(dailyDoc, String(gradeId));
+  const dailyDoc = await loadLatestStoredDailyScheduleDoc(schoolId);
+  const rawConfig = pickRawDailyConfigForClassGroup(
+    dailyDoc,
+    classGroupId ? String(classGroupId) : null,
+    String(gradeId)
+  );
   if (rawConfig) {
     const fromDaily = buildResolvedFromSchoolDailyConfig(
       rawConfig,
@@ -27,6 +29,9 @@ export async function loadResolvedScheduleForSchoolDay(
       dayOfWeek
     );
     if (fromDaily?.isConfigured) return fromDaily;
+  }
+  if (dailyDoc?.scheduleMode === "grouped") {
+    return null;
   }
 
   const doc = (await SchoolSettings.findOne({ schoolId })

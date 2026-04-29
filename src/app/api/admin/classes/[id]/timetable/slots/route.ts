@@ -276,7 +276,8 @@ export async function POST(
     const resolved = await loadResolvedScheduleForSchoolDay(
       schoolIdObj,
       gradeId,
-      input.dayOfWeek
+      input.dayOfWeek,
+      classObjId
     );
     if (!resolved) {
       return NextResponse.json(

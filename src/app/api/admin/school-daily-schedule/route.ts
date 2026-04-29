@@ -11,6 +11,7 @@ import {
 } from "@/lib/school-day/validateConfig";
 import { SchoolDailySchedule } from "@/models/SchoolDailySchedule";
 import { Grade } from "@/models/Grade";
+import { ClassGroup } from "@/models/ClassGroup";
 import type { SchoolDailyScheduleConfigV2 } from "@/types/school-daily-schedule";
 
 function jsonError(message: string, status: number) {
@@ -36,6 +37,9 @@ function serializeHistoryEntry(entry: HistoryEntryLean, i: number) {
         label: g.label != null ? String(g.label) : null,
         gradeIds: Array.isArray(g.gradeIds)
           ? (g.gradeIds as unknown[]).map((id) => String(id))
+          : [],
+        classGroupIds: Array.isArray(g.classGroupIds)
+          ? (g.classGroupIds as unknown[]).map((id) => String(id))
           : [],
         config:
           g.config != null
@@ -77,12 +81,14 @@ function serializeDoc(doc: Record<string, unknown>) {
         groupId?: string;
         label?: string;
         gradeIds?: unknown[];
+        classGroupIds?: unknown[];
         config?: unknown;
       }>
     ).map((g) => ({
       id: String(g.groupId ?? g.id ?? ""),
       label: g.label != null && String(g.label).trim() ? String(g.label).trim() : null,
       gradeIds: (g.gradeIds ?? []).map((id) => String(id)),
+      classGroupIds: (g.classGroupIds ?? []).map((id) => String(id)),
       config:
         g.config != null
           ? ensureConfigV2(normalizeLegacySchoolDailyConfig(g.config) as unknown)
@@ -144,6 +150,7 @@ async function validateGroupedSchedule(
         groupId: string;
         label: string;
         gradeIds: mongoose.Types.ObjectId[];
+        classGroupIds: mongoose.Types.ObjectId[];
         config: SchoolDailyScheduleConfigV2;
       }>;
       warnings: string[];
@@ -158,6 +165,22 @@ async function validateGroupedSchedule(
     .select("_id")
     .lean();
   const allIds = new Set(grades.map((g) => String(g._id)));
+  const classGroups = await ClassGroup.find({
+    schoolId: schoolOid,
+    isActive: { $ne: false },
+  })
+    .select("_id gradeId")
+    .lean();
+  const classGroupsByGrade = new Map<string, mongoose.Types.ObjectId[]>();
+  for (const row of classGroups as Array<{
+    _id: mongoose.Types.ObjectId;
+    gradeId: mongoose.Types.ObjectId;
+  }>) {
+    const gradeKey = String(row.gradeId);
+    const list = classGroupsByGrade.get(gradeKey) ?? [];
+    list.push(row._id);
+    classGroupsByGrade.set(gradeKey, list);
+  }
 
   if (allIds.size === 0) {
     return {
@@ -210,6 +233,7 @@ async function validateGroupedSchedule(
       groupId: g.id?.trim() || randomUUID(),
       label: (g.label ?? "").trim(),
       gradeIds: oidList,
+      classGroupIds: oidList.flatMap((id) => classGroupsByGrade.get(String(id)) ?? []),
       config: validated.config,
     });
   }
@@ -267,6 +291,7 @@ export async function PUT(req: NextRequest) {
         id?: string;
         label?: string | null;
         gradeIds: string[];
+        classGroupIds?: string[];
         config: unknown;
       }>;
       changeLabel?: string;
@@ -284,10 +309,11 @@ export async function PUT(req: NextRequest) {
       warnings: string[];
     } | null = null;
     let validatedGroups: Array<{
-      groupId: string;
-      label: string;
-      gradeIds: mongoose.Types.ObjectId[];
-      config: SchoolDailyScheduleConfigV2;
+        groupId: string;
+        label: string;
+        gradeIds: mongoose.Types.ObjectId[];
+        classGroupIds: mongoose.Types.ObjectId[];
+        config: SchoolDailyScheduleConfigV2;
     }> | null = null;
     const groupWarnings: string[] = [];
 
@@ -368,6 +394,7 @@ export async function PUT(req: NextRequest) {
         groupId: g.groupId,
         label: g.label,
         gradeIds: g.gradeIds,
+        classGroupIds: g.classGroupIds,
         config: g.config,
       }));
     }

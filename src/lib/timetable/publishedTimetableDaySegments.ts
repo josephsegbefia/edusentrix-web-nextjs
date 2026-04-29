@@ -4,9 +4,9 @@ import { buildDayTimeline } from "@/lib/school-day/timeline";
 import { loadResolvedScheduleForSchoolDay } from "@/lib/timetable/load-resolved-schedule";
 import { timeToMinutes } from "@/lib/timetable/scheduleSettings";
 import { hhmmToMinutes, minutesToHhmm } from "@/lib/school-day/time";
-import { SchoolDailySchedule } from "@/models/SchoolDailySchedule";
 import { ensureConfigV2 } from "@/lib/school-day/migrate-v2";
-import { pickRawDailyConfigForGrade } from "@/lib/school-day/resolveDailyScheduleDoc";
+import { pickRawDailyConfigForClassGroup } from "@/lib/school-day/resolveDailyScheduleDoc";
+import { loadLatestStoredDailyScheduleDoc } from "@/lib/school-day/loadDailyScheduleDoc";
 
 export type PublishedScheduleSegmentKind = "break" | "opening" | "assembly" | "dayEnd";
 
@@ -36,13 +36,15 @@ function isAssemblyLabel(name: string): boolean {
 export async function loadPublishedDayScheduleSegments(
   schoolId: mongoose.Types.ObjectId,
   gradeId: mongoose.Types.ObjectId,
-  workingDays: number[]
+  workingDays: number[],
+  classGroupId?: mongoose.Types.ObjectId | null
 ): Promise<PublishedDayScheduleSegmentDTO[]> {
-  const dailyDoc = await SchoolDailySchedule.findOne({ schoolId })
-    .select("config scheduleMode scheduleGroups")
-    .lean()
-    .exec();
-  const raw = pickRawDailyConfigForGrade(dailyDoc, String(gradeId));
+  const dailyDoc = await loadLatestStoredDailyScheduleDoc(schoolId);
+  const raw = pickRawDailyConfigForClassGroup(
+    dailyDoc,
+    classGroupId ? String(classGroupId) : null,
+    String(gradeId)
+  );
   if (raw) {
     const config = ensureConfigV2(raw);
     const gid = String(gradeId);
@@ -85,10 +87,13 @@ export async function loadPublishedDayScheduleSegments(
     }
     return dedupeSegments(out);
   }
+  if (dailyDoc?.scheduleMode === "grouped") {
+    return [];
+  }
 
   const out: PublishedDayScheduleSegmentDTO[] = [];
   for (const dayOfWeek of workingDays) {
-    const r = await loadResolvedScheduleForSchoolDay(schoolId, gradeId, dayOfWeek);
+    const r = await loadResolvedScheduleForSchoolDay(schoolId, gradeId, dayOfWeek, classGroupId);
     if (!r?.isConfigured) continue;
     for (const b of r.breaks) {
       out.push({

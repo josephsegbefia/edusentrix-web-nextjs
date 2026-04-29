@@ -319,7 +319,7 @@ export async function GET(
 
     const dayScheduleSegments =
       gradeId != null
-        ? await loadPublishedDayScheduleSegments(schoolIdObj, gradeId, workingDays)
+        ? await loadPublishedDayScheduleSegments(schoolIdObj, gradeId, workingDays, classObjId)
         : [];
 
     let startHour = 6;

@@ -225,9 +225,12 @@ export function ClassTimetableEditor({
   const settings = settingsQuery.data?.data || null;
   const dailyQuery = useSchoolDailySchedule();
   const dailyV2 = React.useMemo(
-    () => pickDailyConfigV2FromApiDto(dailyQuery.data ?? null, gradeId ?? null),
-    [dailyQuery.data, gradeId]
+    () => pickDailyConfigV2FromApiDto(dailyQuery.data ?? null, gradeId ?? null, classId),
+    [dailyQuery.data, gradeId, classId]
   );
+  const groupedDailyScheduleRequiresMatch =
+    dailyQuery.data?.scheduleMode === "grouped" &&
+    (dailyQuery.data.scheduleGroups?.length ?? 0) > 0;
 
   const scheduleInput = React.useMemo(
     () =>
@@ -237,14 +240,16 @@ export function ClassTimetableEditor({
 
   const getResolvedForDay = React.useCallback(
     (dayOfWeek: number) => {
+      if (dailyQuery.isLoading) return null;
       if (dailyV2) {
         const fromDaily = buildResolvedFromSchoolDailyConfig(dailyV2, gradeId ?? null, dayOfWeek);
         if (fromDaily?.isConfigured) return fromDaily;
       }
+      if (groupedDailyScheduleRequiresMatch) return null;
       if (!scheduleInput) return null;
       return getResolvedScheduleSettings(scheduleInput, gradeId ?? undefined, dayOfWeek);
     },
-    [scheduleInput, gradeId, dailyV2]
+    [scheduleInput, gradeId, dailyV2, dailyQuery.isLoading, groupedDailyScheduleRequiresMatch]
   );
 
   const getPeriodOptionsForDay = React.useCallback(
@@ -258,6 +263,7 @@ export function ClassTimetableEditor({
 
   const getTimelineForDay = React.useCallback(
     (dayOfWeek: number): TimelineRow[] => {
+      if (dailyQuery.isLoading) return [];
       if (dailyV2) {
         const fromDaily = buildResolvedFromSchoolDailyConfig(dailyV2, gradeId ?? null, dayOfWeek);
         if (fromDaily?.isConfigured) {
@@ -268,6 +274,7 @@ export function ClassTimetableEditor({
           ) as TimelineRow[];
         }
       }
+      if (groupedDailyScheduleRequiresMatch) return [];
       const resolved = getResolvedForDay(dayOfWeek);
       if (!resolved) return [];
       const periods = getPeriodOptionsFromResolved(resolved);
@@ -289,7 +296,7 @@ export function ClassTimetableEditor({
       ].sort((a, b) => a.startTime.localeCompare(b.startTime));
       return merged;
     },
-    [getResolvedForDay, dailyV2, gradeId]
+    [getResolvedForDay, dailyV2, gradeId, dailyQuery.isLoading, groupedDailyScheduleRequiresMatch]
   );
 
   const workingDays = React.useMemo((): number[] => {
@@ -491,9 +498,13 @@ export function ClassTimetableEditor({
           draft can also contain older or auto-synced lessons—see &quot;Off-grid draft lessons&quot;
           if something errors but you do not see it in the rows.
         </p>
-        {getPeriodOptionsForDay(workingDays[0] ?? 1).length === 0 && !settingsQuery.isLoading ? (
+        {getPeriodOptionsForDay(workingDays[0] ?? 1).length === 0 &&
+        !settingsQuery.isLoading &&
+        !dailyQuery.isLoading ? (
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-            Configure school hours and periods in{" "}
+            {groupedDailyScheduleRequiresMatch
+              ? "This class grade is not assigned to any daily schedule group. Add its grade to a daily schedule in "
+              : "Configure school hours and periods in "}
             <Link href={bellScheduleSettingsHref} className="underline hover:text-amber-100">
               Settings
             </Link>{" "}
@@ -780,8 +791,9 @@ export function ClassTimetableEditor({
                   </div>
                 ) : activeDay !== null ? (
                   <p className="text-xs text-amber-200/85">
-                    {DAY_NAMES[activeDay]} is not configured yet. Set period duration first, then
-                    start/end time and breaks in{" "}
+                    {groupedDailyScheduleRequiresMatch
+                      ? `${DAY_NAMES[activeDay]} is not configured for this class grade. Assign the grade to a daily schedule group in `
+                      : `${DAY_NAMES[activeDay]} is not configured yet. Set period duration first, then start/end time and breaks in `}
                     <Link href={bellScheduleSettingsHref} className="underline hover:text-amber-100">
                       Settings
                     </Link>

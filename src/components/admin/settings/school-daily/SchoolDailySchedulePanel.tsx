@@ -23,7 +23,7 @@ import { DayTimelineStrip } from "./DayTimelineStrip";
 import { Badge } from "@/components/ui/badge";
 import { effectivePeriodsFor } from "@/lib/school-day/periods";
 import type { WeekdayKey } from "@/types/school-daily-schedule";
-import { Pencil, Trash2, Loader2, Sparkles, History, Clock3, GraduationCap } from "lucide-react";
+import { Pencil, Trash2, Loader2, Sparkles, History, Clock3, GraduationCap, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 const SAMPLE_DAYS: WeekdayKey[] = [
@@ -73,12 +73,24 @@ export function SchoolDailySchedulePanel() {
           id: g.id,
           label: g.label,
           gradeIds: [...g.gradeIds],
+          classGroupIds: [...(g.classGroupIds ?? [])],
           config: g.config,
         })),
       };
     }
     if (row.config) return { kind: "unified", config: row.config };
     return { kind: "empty" };
+  }, [row]);
+
+  const groupsDtoFromRow = React.useCallback(() => {
+    if (!row?.scheduleGroups?.length) return [];
+    return row.scheduleGroups.map((g) => ({
+      id: g.id,
+      label: g.label,
+      gradeIds: [...g.gradeIds],
+      classGroupIds: [...(g.classGroupIds ?? [])],
+      config: g.config,
+    }));
   }, [row]);
 
   const openMaster = (seed: MasterSeed) => {
@@ -91,7 +103,7 @@ export function SchoolDailySchedulePanel() {
     openMaster({ kind: "empty" });
   };
 
-  const startEdit = async () => {
+  const startFullSetup = async () => {
     if (!row) return;
     const canEdit =
       (row.scheduleMode === "grouped" && (row.scheduleGroups?.length ?? 0) > 0) ||
@@ -99,15 +111,43 @@ export function SchoolDailySchedulePanel() {
     if (!canEdit) return;
 
     const res = await confirm({
-      title: "Edit daily schedule?",
+      title: "Edit entire daily schedule setup?",
       description:
-        "Changes here update the school’s teaching window, breaks, and period count. Class timetables and automated scheduling will use the new limits — existing drafts may need review.",
+        "You’ll step through scope, groups (if needed), and every band’s day template. Use this when restructuring grade groups or switching between school-wide and grouped mode. To tweak one band only, use Edit on that band’s card.",
       confirmLabel: "Continue",
       cancelLabel: "Back",
       intent: "warning",
     });
     if (res !== "confirm") return;
     openMaster(seedFromRow());
+  };
+
+  const startEditUnified = async () => {
+    if (!row?.config) return;
+    const res = await confirm({
+      title: "Edit school-wide daily schedule?",
+      description:
+        "Changes update bell times, breaks, and period count for all grades using this schedule. Class timetables will use the new limits — review drafts afterward.",
+      confirmLabel: "Continue",
+      cancelLabel: "Back",
+      intent: "warning",
+    });
+    if (res !== "confirm") return;
+    openMaster({ kind: "unified", config: row.config });
+  };
+
+  const startEditGroup = async (groupId: string) => {
+    if (!row?.scheduleGroups?.length) return;
+    const res = await confirm({
+      title: "Edit this band’s schedule?",
+      description:
+        "Only this grade group’s day template (times, periods, breaks) will change. Other bands stay the same until you save on the review step.",
+      confirmLabel: "Continue",
+      cancelLabel: "Back",
+      intent: "warning",
+    });
+    if (res !== "confirm") return;
+    openMaster({ kind: "grouped-partial", focusGroupId: groupId, groups: groupsDtoFromRow() });
   };
 
   const handleDelete = async () => {
@@ -128,6 +168,102 @@ export function SchoolDailySchedulePanel() {
       });
     } catch {
       // toast
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!row?.scheduleGroups?.length) return;
+    const list = row.scheduleGroups;
+    const victim = list.find((g) => g.id === groupId);
+    if (!victim) return;
+
+    if (list.length <= 1) {
+      const res = await confirm({
+        title: "Delete the daily schedule?",
+        description:
+          "This removes your only schedule band and clears the school’s saved daily pattern. Class timetables will have nothing to align to until you set this up again.",
+        confirmLabel: "Delete schedule",
+        cancelLabel: "Cancel",
+        intent: "destructive",
+      });
+      if (res !== "confirm") return;
+      try {
+        await busy.promise(del.mutateAsync(), {
+          loading: "Deleting…",
+          success: "Daily schedule removed.",
+          error: (e: Error) => e.message,
+        });
+      } catch {
+        /* toast */
+      }
+      return;
+    }
+
+    const mergeTarget = list.find((g) => g.id !== groupId);
+    const targetLabel = mergeTarget?.label?.trim() || "another band";
+    const movingGrades =
+      victim.gradeIds.map((id) => gradeNames(id)).filter(Boolean).join(", ") || "these grades";
+
+    const res = await confirm({
+      title: `Remove “${victim.label?.trim() || "this band"}”?`,
+      description:
+        `The API requires every grade to belong to a schedule band. ${movingGrades} will follow “${targetLabel}” for bell times and periods (their old template will be discarded). If you want a different split, use “Full setup”.`,
+      confirmLabel: "Remove band & merge grades",
+      cancelLabel: "Cancel",
+      intent: "destructive",
+    });
+    if (res !== "confirm" || !mergeTarget) return;
+
+    const nextGroups = list
+      .filter((g) => g.id !== groupId)
+      .map((g) => {
+        if (g.id !== mergeTarget.id) {
+          return {
+            id: g.id,
+            label: g.label,
+            gradeIds: [...g.gradeIds],
+            classGroupIds: g.classGroupIds ?? [],
+            config: g.config,
+          };
+        }
+        const mergedGradeIds = [...g.gradeIds];
+        for (const id of victim.gradeIds) {
+          if (!mergedGradeIds.includes(id)) mergedGradeIds.push(id);
+        }
+        return {
+          id: g.id,
+          label: g.label,
+          gradeIds: mergedGradeIds,
+          classGroupIds: g.classGroupIds ?? [],
+          config: g.config,
+        };
+      });
+
+    const covered = new Set<string>();
+    for (const g of nextGroups) for (const id of g.gradeIds) covered.add(id);
+    for (const id of victim.gradeIds) {
+      if (!covered.has(id)) {
+        toast.error("Could not merge grades safely. Use Full setup.");
+        return;
+      }
+    }
+
+    try {
+      await busy.promise(
+        save.mutateAsync({
+          scheduleMode: "grouped",
+          scheduleGroups: nextGroups,
+          changeLabel: `Removed band: ${victim.label?.trim() || groupId}`,
+        }),
+        {
+          loading: "Updating…",
+          success: "Schedule band removed.",
+          error: (e: Error) => e.message,
+        }
+      );
+      void refetch();
+    } catch {
+      /* busy toast */
     }
   };
 
@@ -302,32 +438,19 @@ export function SchoolDailySchedulePanel() {
                 <Button
                   type="button"
                   variant="secondary"
+                  size="sm"
                   className="border border-white/10 bg-white/5 text-white"
-                  onClick={startEdit}
+                  onClick={() => void startFullSetup()}
                 >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
-                  onClick={handleDelete}
-                  disabled={del.isPending}
-                >
-                  {del.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="mr-2 h-4 w-4" />
-                  )}
-                  Delete
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  Full setup
                 </Button>
               </div>
             </div>
             {isGrouped && (!row.scheduleGroups || row.scheduleGroups.length === 0) ? (
               <p className="mb-4 text-sm text-amber-200/90">
-                Grouped schedules are enabled, but no bands were loaded. Open Edit and save again; if this message
-                persists, contact support.
+                Grouped schedules are enabled, but no bands were loaded. Open Full setup and save again; if this
+                message persists, contact support.
               </p>
             ) : null}
             {scheduleCards.length > 0 ? (
@@ -372,7 +495,7 @@ export function SchoolDailySchedulePanel() {
                 </div>
                 <div className="grid gap-3 xl:grid-cols-2">
                   {scheduleCards.map((schedule) => (
-                    <div key={schedule.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                    <div key={schedule.id} className="rounded-xl border border-white/10 bg-white/3 p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <p className="font-semibold text-white">{schedule.label}</p>
@@ -392,7 +515,40 @@ export function SchoolDailySchedulePanel() {
               </div>
             ) : null}
             {previewStripConfig && !(isGrouped && row.scheduleGroups && row.scheduleGroups.length > 0) ? (
-              <div className="mb-4">
+              <div className="mb-4 space-y-3">
+                <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-white">School-wide day</p>
+                    <p className="text-xs text-white/45">Edit or remove the single schedule used by all grades.</p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="border border-white/10 bg-white/5 text-white"
+                      onClick={() => void startEditUnified()}
+                    >
+                      <Pencil className="mr-2 h-3.5 w-3.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                      onClick={() => void handleDelete()}
+                      disabled={del.isPending}
+                    >
+                      {del.isPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      Delete
+                    </Button>
+                  </div>
+                </div>
                 <DayTimelineStrip config={previewStripConfig} gradeOptions={grades} />
               </div>
             ) : isGrouped && row.scheduleGroups && row.scheduleGroups.length > 0 ? (
@@ -401,7 +557,7 @@ export function SchoolDailySchedulePanel() {
               </p>
             ) : !previewStripConfig ? (
               <p className="mb-4 text-sm text-amber-200/90">
-                No schedule configuration found — open Edit to complete setup.
+                No schedule configuration found — open Full setup to complete setup.
               </p>
             ) : null}
             {isGrouped && row.scheduleGroups ? (
@@ -412,11 +568,40 @@ export function SchoolDailySchedulePanel() {
                     "Grades in this group";
                   return (
                     <div key={g.id} className="space-y-4 rounded-xl border border-white/10 bg-white/2 p-4 sm:p-5">
-                      <div>
-                        <h4 className="text-base font-semibold text-white">
-                          {g.label?.trim() || "Schedule group"}
-                        </h4>
-                        <p className="text-xs text-white/45">{gradesLabel}</p>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <h4 className="text-base font-semibold text-white">
+                            {g.label?.trim() || "Schedule group"}
+                          </h4>
+                          <p className="text-xs text-white/45">{gradesLabel}</p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="border border-white/10 bg-white/5 text-white"
+                            onClick={() => void startEditGroup(g.id)}
+                          >
+                            <Pencil className="mr-2 h-3.5 w-3.5" />
+                            Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                            onClick={() => void handleDeleteGroup(g.id)}
+                            disabled={del.isPending || save.isPending}
+                          >
+                            {del.isPending || save.isPending ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="mr-2 h-3.5 w-3.5" />
+                            )}
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                       <div className="rounded-lg border border-white/5 bg-slate-950/50 p-3">
                         <DayTimelineStrip config={g.config} gradeOptions={grades} />

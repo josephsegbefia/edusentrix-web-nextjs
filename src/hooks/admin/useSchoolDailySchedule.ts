@@ -16,6 +16,7 @@ export type SchoolScheduleHistoryItem = {
     id: string;
     label: string | null;
     gradeIds: string[];
+    classGroupIds?: string[];
     config: SchoolDailyScheduleConfigV2 | null;
   }> | null;
   config: SchoolDailyScheduleConfigV2 | null;
@@ -25,6 +26,7 @@ export type SchoolDailyScheduleGroupDTO = {
   id: string;
   label: string | null;
   gradeIds: string[];
+  classGroupIds?: string[];
   config: SchoolDailyScheduleConfigV2;
 };
 
@@ -59,6 +61,7 @@ export type SaveSchoolDailyScheduleInput =
         id: string;
         label?: string | null;
         gradeIds: string[];
+        classGroupIds?: string[];
         config: SchoolDailyScheduleConfigV2;
       }>;
       changeLabel?: string;
@@ -91,6 +94,7 @@ export function useSaveSchoolDailySchedule() {
                 id: g.id,
                 label: g.label ?? null,
                 gradeIds: g.gradeIds,
+                classGroupIds: g.classGroupIds ?? [],
                 config: prepareSchoolDailyConfigForApi(g.config),
               })),
               changeLabel: input.changeLabel?.trim() || undefined,

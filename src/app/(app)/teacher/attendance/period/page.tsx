@@ -88,12 +88,21 @@ export default function PeriodAttendancePage() {
     contextData?.data.features?.attendanceNotificationsEnabled ?? true;
   const searchParams = useSearchParams();
   const { data: classesData, isLoading: classesLoading } = useTeacherClasses();
-  const assignments = (classesData?.data.classes ?? []).map((item) => ({
-    value: `${item._id}__${item.subjectId}`,
-    classGroupId: item._id,
-    subjectId: item.subjectId,
-    label: `${item.name} - ${item.subjectName}`,
-  }));
+  const assignments = React.useMemo(
+    () =>
+      (classesData?.data.classes ?? []).map((item) => ({
+        value: `${item._id}__${item.subjectId}`,
+        classGroupId: item._id,
+        subjectId: item.subjectId,
+        label: `${item.name} - ${item.subjectName}`,
+      })),
+    [classesData?.data.classes]
+  );
+
+  const qpClassGroupId = searchParams.get("classGroupId");
+  const qpSubjectId = searchParams.get("subjectId");
+  const qpDate = searchParams.get("date");
+  const qpPeriod = searchParams.get("period");
 
   const [assignmentValue, setAssignmentValue] = React.useState<string>("");
   const assignment = assignments.find((item) => item.value === assignmentValue);
@@ -121,22 +130,21 @@ export default function PeriodAttendancePage() {
   const attendanceKey = `${classGroupId}|${subjectId}|${dateValue}|${periodNumber}`;
 
   React.useEffect(() => {
-    const qpClassGroupId = searchParams.get("classGroupId");
-    const qpSubjectId = searchParams.get("subjectId");
-    const qpDate = searchParams.get("date");
-    const qpPeriod = searchParams.get("period");
-
     if (qpDate) {
       const parsed = fromDateInputValue(qpDate);
       if (parsed) {
-        setSelectedDate(parsed);
+        setSelectedDate((prev) => {
+          if (prev && toDateInputValue(prev) === toDateInputValue(parsed)) return prev;
+          return parsed;
+        });
       }
     }
 
     if (qpPeriod) {
       const nextPeriod = Number(qpPeriod);
       if (!Number.isNaN(nextPeriod)) {
-        setPeriodNumber(Math.max(1, Math.min(20, nextPeriod)));
+        const clamped = Math.max(1, Math.min(20, nextPeriod));
+        setPeriodNumber((prev) => (prev === clamped ? prev : clamped));
       }
     }
 
@@ -149,9 +157,16 @@ export default function PeriodAttendancePage() {
         item.classGroupId === qpClassGroupId && item.subjectId === qpSubjectId
     );
     if (match) {
-      setAssignmentValue(match.value);
+      setAssignmentValue((prev) => (prev === match.value ? prev : match.value));
     }
-  }, [assignments, assignmentValue, searchParams]);
+  }, [
+    assignments,
+    assignmentValue,
+    qpClassGroupId,
+    qpSubjectId,
+    qpDate,
+    qpPeriod,
+  ]);
 
   React.useEffect(() => {
     if (!attendanceKey || attendanceKey === lastLoadedKeyRef.current) return;

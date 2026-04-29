@@ -202,7 +202,8 @@ export async function PATCH(
     const resolved = await loadResolvedScheduleForSchoolDay(
       schoolIdObj,
       gradeId,
-      dayOfWeek
+      dayOfWeek,
+      classObjId
     );
     if (!resolved) {
       return NextResponse.json(

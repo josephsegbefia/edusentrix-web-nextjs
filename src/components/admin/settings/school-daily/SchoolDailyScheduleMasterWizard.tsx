@@ -40,7 +40,9 @@ type StepId = "scope" | "groups" | "configure-unified" | "configure-group" | "re
 export type MasterSeed =
   | { kind: "empty" }
   | { kind: "unified"; config: SchoolDailyScheduleConfigV2 }
-  | { kind: "grouped"; groups: SchoolDailyScheduleGroupDTO[] };
+  | { kind: "grouped"; groups: SchoolDailyScheduleGroupDTO[] }
+  /** Edit one band’s day template; other groups stay unchanged until you save at review */
+  | { kind: "grouped-partial"; focusGroupId: string; groups: SchoolDailyScheduleGroupDTO[] };
 
 export type SchoolDailyScheduleMasterWizardProps = {
   gradeOptions: Array<{ _id: string; name: string }>;
@@ -81,18 +83,31 @@ export function SchoolDailyScheduleMasterWizard({
     [gradeOptions]
   );
 
+  const partialGroupedEdit = seed.kind === "grouped-partial";
+
   const [scope, setScope] = React.useState<"unified" | "grouped" | null>(() =>
-    seed.kind === "unified" ? "unified" : seed.kind === "grouped" ? "grouped" : null
+    seed.kind === "unified"
+      ? "unified"
+      : seed.kind === "grouped" || seed.kind === "grouped-partial"
+        ? "grouped"
+        : null
   );
 
   const [groups, setGroups] = React.useState<
-    Array<{ id: string; label: string; gradeIds: string[]; config: SchoolDailyScheduleConfigV2 | null }>
+    Array<{
+      id: string;
+      label: string;
+      gradeIds: string[];
+      classGroupIds?: string[];
+      config: SchoolDailyScheduleConfigV2 | null;
+    }>
   >(() => {
-    if (seed.kind === "grouped") {
+    if (seed.kind === "grouped" || seed.kind === "grouped-partial") {
       return seed.groups.map((g) => ({
         id: g.id,
         label: g.label?.trim() || "",
         gradeIds: [...g.gradeIds],
+        classGroupIds: [...(g.classGroupIds ?? [])],
         config: g.config,
       }));
     }
@@ -104,11 +119,18 @@ export function SchoolDailyScheduleMasterWizard({
 
   const [step, setStep] = React.useState<StepId>(() => {
     if (seed.kind === "unified") return "configure-unified";
+    if (seed.kind === "grouped-partial") return "configure-group";
     if (seed.kind === "grouped") return "review";
     return "scope";
   });
 
-  const [groupIdx, setGroupIdx] = React.useState(0);
+  const [groupIdx, setGroupIdx] = React.useState(() => {
+    if (seed.kind === "grouped-partial") {
+      const i = seed.groups.findIndex((g) => g.id === seed.focusGroupId);
+      return Math.max(0, i);
+    }
+    return 0;
+  });
   const [changeLabel, setChangeLabel] = React.useState("");
   const [academicPeriodId, setAcademicPeriodId] = React.useState("");
   const [leoCoach, setLeoCoach] = React.useState<string | null>(null);
@@ -155,8 +177,19 @@ export function SchoolDailyScheduleMasterWizard({
     return gradeOptions.map((g) => g._id).filter((id) => !inGroup.has(id));
   }, [groups, gradeOptions]);
 
-  const totalSteps = scope === "unified" ? 3 : scope === "grouped" ? 4 : 1;
+  const totalSteps = partialGroupedEdit
+    ? 2
+    : scope === "unified"
+      ? 3
+      : scope === "grouped"
+        ? 4
+        : 1;
   const stepNumber = (() => {
+    if (partialGroupedEdit) {
+      if (step === "configure-group") return 1;
+      if (step === "review") return 2;
+      return 1;
+    }
     if (step === "scope") return 1;
     if (step === "groups") return 2;
     if (step === "configure-unified") return 2;
@@ -173,12 +206,12 @@ export function SchoolDailyScheduleMasterWizard({
 
   const pickUnified = () => {
     setScope("unified");
-    setGroups([{ id: newGroupId(), label: "", gradeIds: [], config: null }]);
+    setGroups([{ id: newGroupId(), label: "", gradeIds: [], classGroupIds: [], config: null }]);
   };
 
   const pickGrouped = () => {
     setScope("grouped");
-    setGroups([{ id: newGroupId(), label: "", gradeIds: [], config: null }]);
+    setGroups([{ id: newGroupId(), label: "", gradeIds: [], classGroupIds: [], config: null }]);
   };
 
   const goNext = () => {
@@ -192,6 +225,16 @@ export function SchoolDailyScheduleMasterWizard({
   };
 
   const goBack = () => {
+    if (partialGroupedEdit) {
+      if (step === "review") {
+        setStep("configure-group");
+        return;
+      }
+      if (step === "configure-group") {
+        onCancel();
+        return;
+      }
+    }
     if (step === "review") {
       if (scope === "unified") setStep("configure-unified");
       else if (scope === "grouped") setStep("configure-group");
@@ -203,7 +246,10 @@ export function SchoolDailyScheduleMasterWizard({
   };
 
   const addGroup = () => {
-    setGroups((prev) => [...prev, { id: newGroupId(), label: "", gradeIds: [], config: null }]);
+    setGroups((prev) => [
+      ...prev,
+      { id: newGroupId(), label: "", gradeIds: [], classGroupIds: [], config: null },
+    ]);
   };
 
   const removeGroup = (i: number) => {
@@ -248,6 +294,7 @@ export function SchoolDailyScheduleMasterWizard({
         id: g.id,
         label: g.label || null,
         gradeIds: g.gradeIds,
+        classGroupIds: g.classGroupIds ?? [],
         config: g.config ?? createDefaultV2Config(),
       }));
       const payload: SaveSchoolDailyScheduleInput = {
@@ -262,10 +309,16 @@ export function SchoolDailyScheduleMasterWizard({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-center gap-2 text-xs text-white/50">
+      <div className="flex flex-col items-center justify-center gap-2 text-xs text-white/50">
         <span className="rounded-full bg-white/10 px-3 py-1 font-medium text-white/70">
           Step {stepNumber} of {totalSteps}
         </span>
+        {partialGroupedEdit ? (
+          <p className="max-w-md text-center text-[11px] leading-relaxed text-white/45">
+            You&apos;re editing one grade group&apos;s day. Other bands stay as they are until you confirm on the
+            final step.
+          </p>
+        ) : null}
       </div>
 
       <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
@@ -456,27 +509,43 @@ export function SchoolDailyScheduleMasterWizard({
 
               {step === "configure-group" && scope === "grouped" && groups[groupIdx] && (
                 <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {groups.map((g, i) => (
-                      <Badge
-                        key={g.id}
-                        variant="outline"
-                        className={cn(
-                          "cursor-pointer border-white/15 px-3 py-1",
-                          i === groupIdx ? "border-indigo-400/60 bg-indigo-500/20 text-indigo-100" : "text-white/50"
-                        )}
-                        onClick={() => setGroupIdx(i)}
-                      >
-                        {g.label?.trim() || `Group ${i + 1}`}
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-sm text-white/55">
-                    Configure the school day for:{" "}
-                    <span className="font-medium text-white">
-                      {groups[groupIdx].gradeIds.map(gradeName).filter(Boolean).join(", ") || "—"}
-                    </span>
-                  </p>
+                  {!partialGroupedEdit ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {groups.map((g, i) => (
+                        <Badge
+                          key={g.id}
+                          variant="outline"
+                          className={cn(
+                            "cursor-pointer border-white/15 px-3 py-1",
+                            i === groupIdx ? "border-indigo-400/60 bg-indigo-500/20 text-indigo-100" : "text-white/50"
+                          )}
+                          onClick={() => setGroupIdx(i)}
+                        >
+                          {g.label?.trim() || `Group ${i + 1}`}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-indigo-400/25 bg-indigo-500/10 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200/90">
+                        Editing: {groups[groupIdx].label?.trim() || `Group ${groupIdx + 1}`}
+                      </p>
+                      <p className="mt-1 text-sm text-white/60">
+                        Grades:{" "}
+                        <span className="font-medium text-white">
+                          {groups[groupIdx].gradeIds.map(gradeName).filter(Boolean).join(", ") || "—"}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  {!partialGroupedEdit ? (
+                    <p className="text-sm text-white/55">
+                      Configure the school day for:{" "}
+                      <span className="font-medium text-white">
+                        {groups[groupIdx].gradeIds.map(gradeName).filter(Boolean).join(", ") || "—"}
+                      </span>
+                    </p>
+                  ) : null}
                   <SchoolDailyScheduleWizard
                     key={groups[groupIdx].id + String(groupIdx)}
                     initial={groups[groupIdx].config ?? createDefaultV2Config()}
@@ -484,7 +553,11 @@ export function SchoolDailyScheduleMasterWizard({
                     saving={saving}
                     embedMode
                     finishButtonLabel={
-                      groupIdx < groups.length - 1 ? "Save & next group" : "Save & continue to review"
+                      partialGroupedEdit
+                        ? "Save & continue to review"
+                        : groupIdx < groups.length - 1
+                          ? "Save & next group"
+                          : "Save & continue to review"
                     }
                     onCancel={onCancel}
                     onSave={(config) => {
@@ -493,6 +566,10 @@ export function SchoolDailyScheduleMasterWizard({
                         next[groupIdx] = { ...next[groupIdx], config };
                         return next;
                       });
+                      if (partialGroupedEdit) {
+                        setStep("review");
+                        return;
+                      }
                       if (groupIdx < groups.length - 1) {
                         setGroupIdx((i) => i + 1);
                       } else {
@@ -506,14 +583,37 @@ export function SchoolDailyScheduleMasterWizard({
               {step === "review" && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold text-white">Review & save</h2>
+                  {partialGroupedEdit ? (
+                    <p className="text-sm text-white/55">
+                      Check the updated band below. Your other schedule groups are unchanged and will be saved as they
+                      are now.
+                    </p>
+                  ) : null}
                   {scope === "unified" && unifiedConfigForReview && (
                     <ConfigSummaryView config={unifiedConfigForReview} gradeNames={gradeName} />
                   )}
                   {scope === "grouped" &&
                     groups.map((g, i) => (
-                      <div key={g.id} className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                      <div
+                        key={g.id}
+                        className={cn(
+                          "space-y-3 rounded-xl border bg-white/5 p-4",
+                          partialGroupedEdit && g.id === groups[groupIdx]?.id
+                            ? "border-indigo-400/40 ring-1 ring-indigo-400/20"
+                            : "border-white/10 opacity-80"
+                        )}
+                      >
                         <p className="font-medium text-indigo-200">
                           {g.label?.trim() || `Group ${i + 1}`}
+                          {partialGroupedEdit && g.id === groups[groupIdx]?.id ? (
+                            <Badge variant="outline" className="ml-2 border-indigo-400/40 text-[10px] text-indigo-100">
+                              Updated
+                            </Badge>
+                          ) : partialGroupedEdit ? (
+                            <Badge variant="outline" className="ml-2 border-white/15 text-[10px] text-white/45">
+                              Unchanged
+                            </Badge>
+                          ) : null}
                         </p>
                         <p className="text-xs text-white/45">
                           Grades: {g.gradeIds.map(gradeName).filter(Boolean).join(", ")}

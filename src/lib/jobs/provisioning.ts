@@ -5,6 +5,7 @@ import { ProvisioningJob } from "@/models/ProvisioningJob";
 import { School } from "@/models/School";
 import { createSubaccount, resolvePaystackSettlementBankCode } from "@/lib/paystack";
 import { isLikelyPaystackSubaccountCode } from "@/lib/school-payments/paystack-subaccount-code";
+import { splitPublicAndDetailError } from "@/lib/school-payments/provision-error";
 
 /** Config */
 const MAX_ATTEMPTS = 10;
@@ -65,6 +66,9 @@ export async function provisionPaystackSubaccountForSchool(input: {
         "billing.status": "provisioned",
         "billing.paymentSetup.status": "provisioned",
         "billing.paymentSetup.lastUpdatedAt": new Date(),
+        "billing.paystack.lastError": null,
+        "billing.paystack.lastErrorDetail": null,
+        "billing.paystack.lastErrorAt": null,
         ...(input.lastUpdatedBy
           ? { "billing.paymentSetup.lastUpdatedBy": input.lastUpdatedBy }
           : {}),
@@ -95,10 +99,12 @@ export async function provisionPaystackSubaccountForSchool(input: {
       "billing.status": "provisioned",
       "billing.paymentSetup.status": "provisioned",
       "billing.paymentSetup.reviewReason": null,
-      "billing.paystack.subaccountCode": result.subaccount_code,
-      "billing.paystack.subaccountId": result.id,
-      "billing.paystack.lastError": null,
-      "billing.paymentSetup.lastUpdatedAt": new Date(),
+        "billing.paystack.subaccountCode": result.subaccount_code,
+        "billing.paystack.subaccountId": result.id,
+        "billing.paystack.lastError": null,
+        "billing.paystack.lastErrorDetail": null,
+        "billing.paystack.lastErrorAt": null,
+        "billing.paymentSetup.lastUpdatedAt": new Date(),
       ...(input.lastUpdatedBy
         ? { "billing.paymentSetup.lastUpdatedBy": input.lastUpdatedBy }
         : {}),
@@ -167,7 +173,7 @@ export async function processJob(job: any) {
         break;
     }
   } catch (err: any) {
-    const msg = err?.message || String(err);
+    const { publicMessage, detail } = splitPublicAndDetailError(err);
     const attempts = job.attempts ?? 1;
     const nextRunAt =
       attempts >= MAX_ATTEMPTS
@@ -177,7 +183,7 @@ export async function processJob(job: any) {
     await ProvisioningJob.findByIdAndUpdate(job._id, {
       $set: {
         status: attempts >= MAX_ATTEMPTS ? "done" : "failed",
-        lastError: msg,
+        lastError: publicMessage,
         nextRunAt,
       },
     });
@@ -188,7 +194,9 @@ export async function processJob(job: any) {
         $set: {
           "billing.status": attempts >= MAX_ATTEMPTS ? "failed" : "failed",
           "billing.paymentSetup.status": "failed",
-          "billing.paystack.lastError": msg,
+          "billing.paystack.lastError": publicMessage,
+          "billing.paystack.lastErrorDetail": detail,
+          "billing.paystack.lastErrorAt": new Date(),
           "billing.paymentSetup.lastUpdatedAt": new Date(),
         },
       });

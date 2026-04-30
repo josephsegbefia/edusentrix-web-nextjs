@@ -6,6 +6,29 @@ import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 
 const PAYSTACK_BASE = "https://api.paystack.co";
 
+const PAYSTACK_FETCH_TIMEOUT_MS = 25_000;
+
+function paystackFetchSignal(): AbortSignal | undefined {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+    return AbortSignal.timeout(PAYSTACK_FETCH_TIMEOUT_MS);
+  }
+  return undefined;
+}
+
+async function paystackRequest(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (err: unknown) {
+    const name = err instanceof Error ? err.name : "";
+    if (name === "AbortError" || name === "TimeoutError") {
+      throw new Error(
+        `Paystack request timed out after ${PAYSTACK_FETCH_TIMEOUT_MS / 1000}s. Background provisioning may still complete; check the readiness card or platform diagnostics.`
+      );
+    }
+    throw err;
+  }
+}
+
 const { PAYSTACK_SECRET_KEY } = process.env;
 function headers() {
   const key = (PAYSTACK_SECRET_KEY || "").trim();
@@ -36,10 +59,11 @@ export async function listGhanaBanks(): Promise<
     return [];
   }
 
-  const res = await fetch(`${PAYSTACK_BASE}/bank?country=ghana`, {
+  const res = await paystackRequest(`${PAYSTACK_BASE}/bank?country=ghana`, {
     method: "GET",
     headers: headers(),
     cache: "no-store",
+    signal: paystackFetchSignal(),
   });
   const j = await res.json();
   if (!res.ok || j?.status !== true) {
@@ -233,13 +257,14 @@ export async function createSubaccount(
   };
   if (input.contactEmail) payload.settlement_email = input.contactEmail;
 
-  const res = await fetch(`${PAYSTACK_BASE}/subaccount`, {
+  const res = await paystackRequest(`${PAYSTACK_BASE}/subaccount`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
+    signal: paystackFetchSignal(),
   });
 
   if (!res.ok) {

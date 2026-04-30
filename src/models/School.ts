@@ -60,11 +60,24 @@ export interface ISchool {
       reviewReason?: string | null;
       lastUpdatedAt?: Date | null;
       lastUpdatedBy?: Types.ObjectId | null;
+      pendingPlatformPayout?: {
+        bankName?: string | null;
+        branchName?: string | null;
+        sortCode?: string | null;
+        accountName?: string | null;
+        accountNumber?: string | null;
+        note?: string | null;
+        proposedBy?: Types.ObjectId | null;
+        proposedByEmail?: string | null;
+        proposedAt?: Date | null;
+      } | null;
     };
     paystack?: {
       subaccountCode?: string | null;
       subaccountId?: string | null;
       lastError?: string | null;
+      lastErrorDetail?: string | null;
+      lastErrorAt?: Date | null;
     };
     transactionFees?: {
       mode?: "platform_default" | "custom" | "disabled";
@@ -200,11 +213,28 @@ const schoolSchema = new Schema<ISchool>(
           ref: "User",
           default: null,
         },
+        pendingPlatformPayout: {
+          bankName: { type: String, default: null },
+          branchName: { type: String, default: null },
+          sortCode: { type: String, default: null },
+          accountName: { type: String, default: null },
+          accountNumber: { type: String, default: null },
+          note: { type: String, default: null },
+          proposedBy: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+          },
+          proposedByEmail: { type: String, default: null, trim: true },
+          proposedAt: { type: Date, default: null },
+        },
       },
       paystack: {
         subaccountCode: { type: String, default: null },
         subaccountId: { type: String, default: null },
         lastError: { type: String, default: null },
+        lastErrorDetail: { type: String, default: null },
+        lastErrorAt: { type: Date, default: null },
       },
       transactionFees: {
         mode: {

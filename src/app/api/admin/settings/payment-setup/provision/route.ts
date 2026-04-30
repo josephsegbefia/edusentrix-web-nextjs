@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { enqueueSchoolPaymentProvisioning } from "@/lib/jobs/payment-provisioning";
+import { triggerProvisioningRunnerBestEffort } from "@/lib/jobs/trigger-provisioning-runner";
 import {
   markPaystackSubaccountJobsDoneForSchool,
   provisionPaystackSubaccountForSchool,
 } from "@/lib/jobs/provisioning";
 import { requirePaymentSetupAccess } from "@/lib/auth/requirePaymentSetupAccess";
 import { hasCompleteSchoolBankDetails } from "@/lib/school-payments/payment-setup";
+import { splitPublicAndDetailError } from "@/lib/school-payments/provision-error";
 import { School, type ISchool } from "@/models/School";
 import { ProvisioningJob } from "@/models/ProvisioningJob";
+
+export const maxDuration = 60;
 
 type ProvisioningJobRow = {
   status: "pending" | "running" | "failed" | "done";
@@ -104,9 +108,8 @@ export async function POST() {
       });
       await markPaystackSubaccountJobsDoneForSchool(access.schoolId);
     } catch (syncError) {
-      const message =
-        syncError instanceof Error ? syncError.message : String(syncError);
-      if (message === "School not found") {
+      const { publicMessage, detail } = splitPublicAndDetailError(syncError);
+      if (publicMessage === "School not found") {
         return NextResponse.json(
           { success: false, error: "School not found" },
           { status: 404 }
@@ -116,8 +119,10 @@ export async function POST() {
       await enqueueSchoolPaymentProvisioning({
         schoolId: access.schoolId,
         requestedBy: access.userId,
-        queueAfterSyncFailureMessage: message,
+        queueAfterSyncFailureMessage: publicMessage,
+        queueAfterSyncFailureDetail: detail,
       });
+      await triggerProvisioningRunnerBestEffort();
 
       const latestJob = await loadLatestProvisioningJob(String(access.schoolId));
 
@@ -126,7 +131,7 @@ export async function POST() {
         data: {
           status: "pending_provisioning" as const,
           mode: "async_fallback" as const,
-          syncAttemptError: message,
+          syncAttemptError: publicMessage,
           jobStatus: latestJob?.status || "pending",
           attempts: latestJob?.attempts || 0,
         },
@@ -134,6 +139,8 @@ export async function POST() {
     }
 
     const latestJob = await loadLatestProvisioningJob(String(access.schoolId));
+
+    await triggerProvisioningRunnerBestEffort();
 
     return NextResponse.json({
       success: true,

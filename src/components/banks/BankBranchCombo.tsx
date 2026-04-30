@@ -40,6 +40,7 @@ export function BankBranchCombo(props: {
   const [q, setQ] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [items, setItems] = React.useState<Item[]>([]);
+  const [searchError, setSearchError] = React.useState<string | null>(null);
   const debounceRef = React.useRef<number | null>(null);
 
   const handleOpenChange = React.useCallback((next: boolean) => {
@@ -48,6 +49,7 @@ export function BankBranchCombo(props: {
       setQ("");
       setItems([]);
       setLoading(false);
+      setSearchError(null);
     }
   }, []);
 
@@ -61,22 +63,43 @@ export function BankBranchCombo(props: {
     const delay = trimmed.length === 0 ? 0 : 250;
     debounceRef.current = window.setTimeout(async () => {
       try {
+        setSearchError(null);
         const res = await fetch(
           `/api/banks/search?query=${encodeURIComponent(trimmed)}`,
           { cache: "no-store" }
         );
-        if (!res.ok) {
-          throw new Error(`API error: ${res.status}`);
+        let body: { success?: boolean; data?: unknown; error?: string } = {};
+        try {
+          body = await res.json();
+        } catch {
+          body = {};
         }
-        const result = await res.json();
-        if (result.success && Array.isArray(result.data)) {
-          setItems(result.data);
+        if (!res.ok) {
+          const msg =
+            typeof body.error === "string" && body.error
+              ? body.error
+              : `Request failed (${res.status})`;
+          setItems([]);
+          setSearchError(msg);
+          return;
+        }
+        if (body.success && Array.isArray(body.data)) {
+          setItems(body.data);
+          setSearchError(null);
         } else {
           setItems([]);
+          setSearchError(
+            typeof body.error === "string" && body.error
+              ? body.error
+              : "Invalid response from server."
+          );
         }
       } catch (error) {
         console.error("Bank search error:", error);
         setItems([]);
+        setSearchError(
+          error instanceof Error ? error.message : "Could not search banks."
+        );
       } finally {
         setLoading(false);
       }
@@ -144,13 +167,22 @@ export function BankBranchCombo(props: {
                     Searching branches…
                   </span>
                 </CommandEmpty>
+              ) : searchError ? (
+                <CommandEmpty>
+                  <div className="px-4 py-3 text-center">
+                    <p className="font-medium text-amber-200/90">Could not load banks</p>
+                    <p className="mt-2 text-xs leading-5 text-white/50">{searchError}</p>
+                  </div>
+                </CommandEmpty>
               ) : items.length === 0 ? (
                 <CommandEmpty>
                   <div className="px-4 py-3 text-center">
                     <Landmark className="mx-auto h-7 w-7 text-white/25" />
                     <p className="mt-2 font-medium text-white/75">No branches found</p>
                     <p className="mt-1 text-xs leading-5 text-white/45">
-                      Try the bank name, branch name, or six-digit sort code.
+                      Try the bank name, branch name, or six-digit sort code. If this
+                      environment should have bank data, run the bank seed against this
+                      deployment&apos;s database.
                     </p>
                   </div>
                 </CommandEmpty>

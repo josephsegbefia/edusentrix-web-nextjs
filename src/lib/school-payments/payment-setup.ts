@@ -150,6 +150,20 @@ export function assessSchoolPaymentSetupReview(input: {
   };
 }
 
+/** Approve/reject platform-proposed payout changes: owner when live rail exists; any setup manager before go-live. */
+export function canSchoolUserDecidePlatformPayoutProposal(
+  access: {
+    capabilities: { canManage: boolean; canApprovePayoutChange: boolean };
+  },
+  school: SchoolPaymentShape
+): boolean {
+  const hadRail = Boolean(
+    school.billing?.paystack?.subaccountCode || school.billing?.paystack?.subaccountId
+  );
+  if (hadRail) return access.capabilities.canApprovePayoutChange;
+  return access.capabilities.canManage;
+}
+
 export function getBillingOwnerUserId(
   school: SchoolPaymentShape
 ): string | null {

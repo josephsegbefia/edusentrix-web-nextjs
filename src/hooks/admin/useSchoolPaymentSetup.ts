@@ -78,6 +78,16 @@ export type SchoolPaymentSetupDTO = {
     subaccountId: string | null;
     lastError: string | null;
   };
+  pendingPlatformPayout: {
+    bankName: string;
+    branchName: string;
+    sortCode: string;
+    accountName: string;
+    maskedAccountNumber: string;
+    note: string | null;
+    proposedByEmail: string | null;
+    proposedAt: string | null;
+  } | null;
   provisioning: {
     status: "pending" | "running" | "failed" | "done";
     attempts: number;
@@ -94,6 +104,7 @@ export type SchoolPaymentSetupDTO = {
   audit: {
     approvedByEmail: string | null;
   };
+  canDecidePlatformPayoutProposal: boolean;
 };
 
 export type UpdateSchoolPaymentSetupInput = {
@@ -354,6 +365,32 @@ export function useRemoveFinanceDelegate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["school-payment-setup"] });
+    },
+  });
+}
+
+export function usePlatformPayoutProposalDecision() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { action: "approve" | "reject" }) => {
+      const res = await fetch(
+        "/api/admin/settings/payment-setup/platform-payout-decision",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        }
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Could not update payout proposal");
+      }
+      return json.data as { action: string; message: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-payment-setup"] });
+      invalidateSetupReadiness(queryClient);
     },
   });
 }

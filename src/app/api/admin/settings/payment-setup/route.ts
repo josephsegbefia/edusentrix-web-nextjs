@@ -11,6 +11,7 @@ import {
   getSchoolPaymentSetupMeta,
   hasCompleteSchoolBankDetails,
   isSchoolPaymentReady,
+  canSchoolUserDecidePlatformPayoutProposal,
 } from "@/lib/school-payments/payment-setup";
 import { Invitation } from "@/models/Invitation";
 import { ProvisioningJob } from "@/models/ProvisioningJob";
@@ -173,7 +174,8 @@ function serializePaymentSetup(
       canManage &&
       hasCompleteSchoolBankDetails(school) &&
       !paymentReady &&
-      status !== "review_required",
+      status !== "review_required" &&
+      !school.billing?.paymentSetup?.pendingPlatformPayout?.bankName,
     reviewReason: canManage
       ? school.billing?.paymentSetup?.reviewReason || null
       : null,
@@ -255,6 +257,30 @@ function serializePaymentSetup(
       subaccountId: canManage ? school.billing?.paystack?.subaccountId || null : null,
       lastError: canManage ? school.billing?.paystack?.lastError || null : null,
     },
+    pendingPlatformPayout:
+      canManage && school.billing?.paymentSetup?.pendingPlatformPayout?.bankName
+        ? {
+            bankName: school.billing.paymentSetup.pendingPlatformPayout.bankName || "",
+            branchName:
+              school.billing.paymentSetup.pendingPlatformPayout.branchName || "",
+            sortCode: school.billing.paymentSetup.pendingPlatformPayout.sortCode || "",
+            accountName:
+              school.billing.paymentSetup.pendingPlatformPayout.accountName || "",
+            maskedAccountNumber: school.billing.paymentSetup.pendingPlatformPayout
+              .accountNumber
+              ? maskAccountNumber(
+                  school.billing.paymentSetup.pendingPlatformPayout.accountNumber
+                )
+              : "",
+            note: school.billing.paymentSetup.pendingPlatformPayout.note || null,
+            proposedByEmail:
+              school.billing.paymentSetup.pendingPlatformPayout.proposedByEmail ||
+              null,
+            proposedAt:
+              school.billing.paymentSetup.pendingPlatformPayout.proposedAt?.toISOString?.() ||
+              null,
+          }
+        : null,
     provisioning: latestJob
       ? {
           status: latestJob.status,
@@ -278,6 +304,9 @@ function serializePaymentSetup(
         ? school.billing?.paymentSetup?.approvedByEmail || null
         : null,
     },
+    canDecidePlatformPayoutProposal: canManage
+      ? canSchoolUserDecidePlatformPayoutProposal(access, school)
+      : false,
   };
 }
 
@@ -453,6 +482,8 @@ export async function PATCH(req: NextRequest) {
           subaccountCode: bankChanged ? null : existingPaystack.subaccountCode || null,
           subaccountId: bankChanged ? null : existingPaystack.subaccountId || null,
           lastError: null,
+          lastErrorDetail: null,
+          lastErrorAt: null,
         };
 
         await school.save({ session });

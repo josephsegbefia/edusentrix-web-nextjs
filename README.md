@@ -625,6 +625,8 @@ npm run seed:academics
 npm run seed:academics:dry
 ```
 
+Admin **Payment setup** bank search reads from the `bankbranches` collection. **Run `npm run seed:banks` once per deployment** with `MONGODB_URI` (and optional `MONGO_DB_NAME`) pointing at that environment’s database; if you skip this in staging or production, bank search will return no matches.
+
 ### Admin Scripts
 
 ```bash

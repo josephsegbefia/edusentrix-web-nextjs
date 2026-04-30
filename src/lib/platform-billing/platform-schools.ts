@@ -6,6 +6,7 @@ import { School } from "@/models/School";
 import { SchoolSubscription } from "@/models/SchoolSubscription";
 import { SubscriptionEvent } from "@/models/SubscriptionEvent";
 import { UsageMetric } from "@/models/UsageMetric";
+import { ProvisioningJob } from "@/models/ProvisioningJob";
 import {
   deriveSchoolPaymentSetupStatus,
   getSchoolPaymentSetupMeta,
@@ -157,7 +158,8 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   }
 
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
-  const [school, subscription, usageMetrics, subscriptionEvents] = await Promise.all([
+  const [school, subscription, usageMetrics, subscriptionEvents, latestProvisioningJob] =
+    await Promise.all([
     School.findById(schoolIdObj)
       .select("name status createdBy bank billing city region email")
       .lean<{
@@ -191,11 +193,23 @@ export async function getPlatformSchoolDetail(schoolId: string) {
             ownerName?: string | null;
             ownerEmail?: string | null;
             reviewReason?: string | null;
+            pendingPlatformPayout?: {
+              bankName?: string | null;
+              branchName?: string | null;
+              sortCode?: string | null;
+              accountName?: string | null;
+              accountNumber?: string | null;
+              note?: string | null;
+              proposedByEmail?: string | null;
+              proposedAt?: Date | null;
+            } | null;
           } | null;
           paystack?: {
             subaccountCode?: string | null;
             subaccountId?: string | null;
             lastError?: string | null;
+            lastErrorDetail?: string | null;
+            lastErrorAt?: Date | null;
           } | null;
           transactionFees?: {
             mode?: "platform_default" | "custom" | "disabled";
@@ -249,6 +263,20 @@ export async function getPlatformSchoolDetail(schoolId: string) {
         actorEmail?: string | null;
         createdAt: Date;
       }>>(),
+    ProvisioningJob.findOne({
+      schoolId: schoolIdObj,
+      kind: "paystack_subaccount",
+    })
+      .sort({ updatedAt: -1 })
+      .lean<{
+        _id: mongoose.Types.ObjectId;
+        status?: "pending" | "running" | "failed" | "done";
+        attempts?: number;
+        lastError?: string | null;
+        nextRunAt?: Date | null;
+        createdAt?: Date;
+        updatedAt?: Date;
+      } | null>(),
   ]);
 
   if (!school) {
@@ -301,7 +329,42 @@ export async function getPlatformSchoolDetail(schoolId: string) {
       paystack: {
         subaccountCode: school.billing?.paystack?.subaccountCode || null,
         lastError: school.billing?.paystack?.lastError || null,
+        lastErrorDetail: school.billing?.paystack?.lastErrorDetail || null,
+        lastErrorAt:
+          school.billing?.paystack?.lastErrorAt?.toISOString?.() || null,
       },
+      pendingPlatformPayout: (() => {
+        const p = school.billing?.paymentSetup?.pendingPlatformPayout;
+        if (!p?.bankName?.trim()) return null;
+        return {
+          bankName: p.bankName || null,
+          branchName: p.branchName || null,
+          sortCode: p.sortCode || null,
+          accountName: p.accountName || null,
+          maskedAccountNumber: p.accountNumber
+            ? maskAccountNumber(p.accountNumber)
+            : null,
+          note: p.note || null,
+          proposedByEmail: p.proposedByEmail || null,
+          proposedAt: p.proposedAt?.toISOString?.() || null,
+        };
+      })(),
+      provisioningJob: latestProvisioningJob
+        ? {
+            id: String(latestProvisioningJob._id),
+            status: latestProvisioningJob.status || "pending",
+            attempts: latestProvisioningJob.attempts ?? 0,
+            lastError: latestProvisioningJob.lastError || null,
+            nextRunAt:
+              latestProvisioningJob.nextRunAt?.toISOString?.() || null,
+            createdAt:
+              latestProvisioningJob.createdAt?.toISOString?.() ||
+              new Date().toISOString(),
+            updatedAt:
+              latestProvisioningJob.updatedAt?.toISOString?.() ||
+              new Date().toISOString(),
+          }
+        : null,
     },
     transactionFeePolicy: {
       mode: school.billing?.transactionFees?.mode || "platform_default",

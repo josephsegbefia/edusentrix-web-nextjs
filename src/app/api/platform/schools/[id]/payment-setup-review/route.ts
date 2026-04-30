@@ -88,6 +88,8 @@ export async function POST(
       billing.paystack = {
         ...existingPaystack,
         lastError: null,
+        lastErrorDetail: null,
+        lastErrorAt: null,
       };
 
       await school.save();
@@ -146,6 +148,8 @@ export async function POST(
       lastError:
         note ||
         "Payout setup was sent back after manual review. Please update the bank details and try again.",
+      lastErrorDetail: null,
+      lastErrorAt: new Date(),
     };
 
     await school.save();

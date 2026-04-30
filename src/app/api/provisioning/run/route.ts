@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const runtime = "nodejs";
 

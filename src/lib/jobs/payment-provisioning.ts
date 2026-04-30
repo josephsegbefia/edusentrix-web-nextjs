@@ -7,6 +7,8 @@ export async function enqueueSchoolPaymentProvisioning(input: {
   requestedBy?: mongoose.Types.ObjectId | string | null;
   /** When set, keep this error on the school (e.g. immediate Paystack attempt failed; queued for retry). */
   queueAfterSyncFailureMessage?: string | null;
+  /** Longer technical message for platform operators (stack traces, response bodies). */
+  queueAfterSyncFailureDetail?: string | null;
 }) {
   const schoolId =
     typeof input.schoolId === "string"
@@ -43,6 +45,11 @@ export async function enqueueSchoolPaymentProvisioning(input: {
     });
   }
 
+  const detail =
+    input.queueAfterSyncFailureDetail ??
+    input.queueAfterSyncFailureMessage ??
+    null;
+
   await School.findByIdAndUpdate(schoolId, {
     $set: {
       "billing.status": "unprovisioned",
@@ -50,6 +57,9 @@ export async function enqueueSchoolPaymentProvisioning(input: {
       "billing.paymentSetup.reviewReason": null,
       "billing.paystack.lastError":
         input.queueAfterSyncFailureMessage ?? null,
+      "billing.paystack.lastErrorDetail": detail,
+      "billing.paystack.lastErrorAt":
+        (input.queueAfterSyncFailureMessage || detail) ? now : null,
       "billing.paymentSetup.lastUpdatedAt": now,
       "billing.paymentSetup.lastUpdatedBy": input.requestedBy || null,
     },

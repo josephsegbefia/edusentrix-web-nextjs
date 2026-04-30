@@ -49,6 +49,10 @@ export type ActivityType =
   | "campaign.exported"
   | "payout.approved"
   | "payout.rejected"
+  | "payout.platform_proposal_submitted"
+  | "payout.platform_proposal_withdrawn"
+  | "payout.platform_proposal_approved"
+  | "payout.platform_proposal_rejected"
   // Expenses
   | "expense.created"
   | "expense.updated"

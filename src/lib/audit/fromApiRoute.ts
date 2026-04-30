@@ -117,6 +117,28 @@ export function buildPlatformAdminAuditContext(
   };
 }
 
+/** Platform admin acting on a specific school record (e.g. payout proposal). */
+export function buildPlatformSchoolAuditContext(
+  req: NextRequest,
+  params: {
+    platformAdminId: Types.ObjectId;
+    schoolId: Types.ObjectId;
+    actorEmail?: string | null;
+    actorName?: string | null;
+    idempotencyKey: string;
+  }
+): AuditRequestContext {
+  return {
+    ...buildPlatformAdminAuditContext(req, {
+      platformAdminId: params.platformAdminId,
+      actorEmail: params.actorEmail,
+      actorName: params.actorName,
+      idempotencyKey: params.idempotencyKey,
+    }),
+    schoolId: params.schoolId,
+  };
+}
+
 /** School-scoped routes (finance, academics, etc.). */
 export function buildSchoolUserAuditContext(
   req: NextRequest,

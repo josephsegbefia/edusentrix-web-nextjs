@@ -17,6 +17,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { BankBranchCombo } from "@/components/banks/BankBranchCombo";
 import { formatMoney } from "@/lib/fees/money";
 import { cn } from "@/lib/utils";
 
@@ -53,7 +56,28 @@ type SchoolDetail = {
     paystack: {
       subaccountCode: string | null;
       lastError: string | null;
+      lastErrorDetail: string | null;
+      lastErrorAt: string | null;
     };
+    pendingPlatformPayout: {
+      bankName: string | null;
+      branchName: string | null;
+      sortCode: string | null;
+      accountName: string | null;
+      maskedAccountNumber: string | null;
+      note: string | null;
+      proposedByEmail: string | null;
+      proposedAt: string | null;
+    } | null;
+    provisioningJob: {
+      id: string;
+      status: string;
+      attempts: number;
+      lastError: string | null;
+      nextRunAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+    } | null;
   };
   subscription: {
     tierName: string | null;
@@ -80,6 +104,15 @@ export default function PlatformSchoolDetailPage() {
   const [data, setData] = React.useState<SchoolDetail | null>(null);
   const [reviewNote, setReviewNote] = React.useState("");
   const [reviewAction, setReviewAction] = React.useState<"approve" | "send_back" | null>(null);
+  const [proposalBank, setProposalBank] = React.useState<{
+    bankName: string;
+    branchName: string;
+    sortCode: string;
+  } | null>(null);
+  const [proposalAccountName, setProposalAccountName] = React.useState("");
+  const [proposalAccountNumber, setProposalAccountNumber] = React.useState("");
+  const [proposalNote, setProposalNote] = React.useState("");
+  const [proposalBusy, setProposalBusy] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     if (!schoolId) return;
@@ -139,6 +172,66 @@ export default function PlatformSchoolDetailPage() {
       );
     } finally {
       setReviewAction(null);
+    }
+  }
+
+  async function submitPayoutProposal() {
+    if (
+      !schoolId ||
+      !proposalBank ||
+      !proposalAccountName.trim() ||
+      !proposalAccountNumber.trim()
+    ) {
+      toast.error("Select bank branch and enter full account details.");
+      return;
+    }
+    try {
+      setProposalBusy(true);
+      const res = await fetch(`/api/platform/schools/${schoolId}/payout-proposal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bankName: proposalBank.bankName,
+          branchName: proposalBank.branchName,
+          accountName: proposalAccountName.trim(),
+          accountNumber: proposalAccountNumber.trim(),
+          note: proposalNote.trim() || null,
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to submit proposal");
+      }
+      toast.success("Payout proposal sent. The school must approve it in Payment setup.");
+      setProposalAccountName("");
+      setProposalAccountNumber("");
+      setProposalNote("");
+      setProposalBank(null);
+      await loadData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to submit proposal");
+    } finally {
+      setProposalBusy(false);
+    }
+  }
+
+  async function withdrawPayoutProposal() {
+    if (!schoolId) return;
+    try {
+      setProposalBusy(true);
+      const res = await fetch(`/api/platform/schools/${schoolId}/payout-proposal`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to withdraw proposal");
+      }
+      toast.success("Pending proposal withdrawn.");
+      await loadData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to withdraw proposal");
+    } finally {
+      setProposalBusy(false);
     }
   }
 
@@ -246,6 +339,147 @@ export default function PlatformSchoolDetailPage() {
                   </AlertDescription>
                 </Alert>
               ) : null}
+
+              {(data.paymentSetup.paystack.lastErrorDetail ||
+                data.paymentSetup.paystack.lastErrorAt ||
+                data.paymentSetup.provisioningJob) && (
+                <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                    Operator diagnostics
+                  </p>
+                  <p className="mt-1 text-xs text-white/45">
+                    Not shown to the school. Configure{" "}
+                    <code className="rounded bg-white/10 px-1">INTERNAL_CRON_SECRET</code>{" "}
+                    and POST to{" "}
+                    <code className="rounded bg-white/10 px-1">/api/provisioning/run</code>{" "}
+                    on a schedule so queued jobs finish if the first attempt times out.
+                    Optional: set{" "}
+                    <code className="rounded bg-white/10 px-1">INTERNAL_CRON_URL</code>{" "}
+                    when triggering from workers.
+                  </p>
+                  {data.paymentSetup.paystack.lastErrorAt ? (
+                    <p className="mt-2 text-xs text-white/55">
+                      Last error at:{" "}
+                      {new Date(data.paymentSetup.paystack.lastErrorAt).toLocaleString()}
+                    </p>
+                  ) : null}
+                  {data.paymentSetup.provisioningJob ? (
+                    <p className="mt-2 text-xs text-white/55">
+                      Latest job: {data.paymentSetup.provisioningJob.status} · attempts{" "}
+                      {data.paymentSetup.provisioningJob.attempts}
+                      {data.paymentSetup.provisioningJob.lastError
+                        ? ` · ${data.paymentSetup.provisioningJob.lastError}`
+                        : ""}
+                    </p>
+                  ) : null}
+                  {data.paymentSetup.paystack.lastErrorDetail ? (
+                    <pre className="mt-3 max-h-48 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-emerald-100/90">
+                      {data.paymentSetup.paystack.lastErrorDetail}
+                    </pre>
+                  ) : null}
+                </div>
+              )}
+
+              {data.paymentSetup.pendingPlatformPayout ? (
+                <Alert className="border-sky-500/20 bg-sky-500/10 text-sky-100">
+                  <AlertTitle>Pending platform proposal</AlertTitle>
+                  <AlertDescription className="space-y-2 text-sky-100/85">
+                    <p>
+                      Awaiting school approval: {data.paymentSetup.pendingPlatformPayout.bankName}{" "}
+                      — {data.paymentSetup.pendingPlatformPayout.branchName}, acct{" "}
+                      {data.paymentSetup.pendingPlatformPayout.maskedAccountNumber}
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="border-white/20 text-white hover:bg-white/10"
+                      disabled={proposalBusy}
+                      onClick={() => void withdrawPayoutProposal()}
+                    >
+                      Withdraw proposal
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4">
+                  <p className="text-sm font-semibold text-white">Propose payout correction</p>
+                  <p className="text-xs text-white/55">
+                    Submits bank details for the billing owner (or pre-live admin) to accept
+                    in Admin → Settings → Payment setup. Audited.
+                  </p>
+                  <div className="space-y-2">
+                    <Label className="text-white/70">Bank &amp; branch</Label>
+                    <BankBranchCombo
+                      value={
+                        proposalBank
+                          ? {
+                              bankName: proposalBank.bankName,
+                              branchName: proposalBank.branchName,
+                              sortCode: proposalBank.sortCode,
+                            }
+                          : null
+                      }
+                      onChange={(v) =>
+                        setProposalBank(
+                          v
+                            ? {
+                                bankName: v.bankName,
+                                branchName: v.branchName,
+                                sortCode: v.sortCode,
+                              }
+                            : null
+                        )
+                      }
+                      placeholder="Search Ghana bank branch…"
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-white/70">Account name</Label>
+                      <Input
+                        value={proposalAccountName}
+                        onChange={(e) => setProposalAccountName(e.target.value)}
+                        className="border-white/10 bg-black/30 text-white"
+                        placeholder="As on bank records"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white/70">Account number</Label>
+                      <Input
+                        value={proposalAccountNumber}
+                        onChange={(e) => setProposalAccountNumber(e.target.value)}
+                        className="border-white/10 bg-black/30 text-white"
+                        placeholder="Full account number"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/70">Note to school (optional)</Label>
+                    <Textarea
+                      value={proposalNote}
+                      onChange={(e) => setProposalNote(e.target.value)}
+                      className="min-h-[80px] border-white/10 bg-black/30 text-white"
+                      placeholder="Why this change is needed"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    className="bg-sky-600 text-white hover:bg-sky-500"
+                    disabled={proposalBusy}
+                    onClick={() => void submitPayoutProposal()}
+                  >
+                    {proposalBusy ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      "Submit proposal to school"
+                    )}
+                  </Button>
+                </div>
+              )}
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">

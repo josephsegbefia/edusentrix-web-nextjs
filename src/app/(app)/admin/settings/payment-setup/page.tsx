@@ -49,6 +49,7 @@ import {
   useInviteFinanceDelegate,
   useRemoveFinanceDelegate,
   useRevealPayoutAccount,
+  usePlatformPayoutProposalDecision,
 } from "@/hooks/admin/useSchoolPaymentSetup";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
@@ -288,6 +289,7 @@ export default function PaymentSetupPage() {
   const inviteFinanceDelegate = useInviteFinanceDelegate();
   const removeFinanceDelegate = useRemoveFinanceDelegate();
   const revealPayout = useRevealPayoutAccount();
+  const platformPayoutDecision = usePlatformPayoutProposalDecision();
   const busy = useBusyToast();
 
   const [revealOpen, setRevealOpen] = React.useState(false);
@@ -773,6 +775,102 @@ export default function PaymentSetupPage() {
               <AlertTitle>Manual review required</AlertTitle>
               <AlertDescription className="text-amber-100/85">
                 {data.reviewReason}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {data.pendingPlatformPayout && (
+            <Alert className="border-sky-500/20 bg-sky-500/10 text-sky-100">
+              <Landmark className="h-4 w-4 text-sky-200" />
+              <AlertTitle>Platform payout proposal</AlertTitle>
+              <AlertDescription className="space-y-3 text-sky-100/85">
+                <p>
+                  The platform team suggested new payout details:{" "}
+                  <span className="font-medium text-white">
+                    {data.pendingPlatformPayout.bankName} —{" "}
+                    {data.pendingPlatformPayout.branchName}
+                  </span>
+                  , holder{" "}
+                  <span className="font-medium text-white">
+                    {data.pendingPlatformPayout.accountName}
+                  </span>
+                  , account{" "}
+                  <span className="font-medium text-white">
+                    {data.pendingPlatformPayout.maskedAccountNumber}
+                  </span>
+                  .
+                </p>
+                {data.pendingPlatformPayout.note ? (
+                  <p className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
+                    {data.pendingPlatformPayout.note}
+                  </p>
+                ) : null}
+                {data.pendingPlatformPayout.proposedAt ? (
+                  <p className="text-xs text-white/45">
+                    Proposed{" "}
+                    {formatDistanceToNowStrict(
+                      parseISO(data.pendingPlatformPayout.proposedAt),
+                      { addSuffix: true }
+                    )}
+                    {data.pendingPlatformPayout.proposedByEmail
+                      ? ` by ${data.pendingPlatformPayout.proposedByEmail}`
+                      : ""}
+                    .
+                  </p>
+                ) : null}
+                {data.canDecidePlatformPayoutProposal ? (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+                      disabled={platformPayoutDecision.isPending}
+                      onClick={() =>
+                        void busy.promise(
+                          platformPayoutDecision.mutateAsync({ action: "approve" }),
+                          {
+                            loading: "Applying platform proposal…",
+                            success: "Payout details updated from platform proposal.",
+                            error: (e) =>
+                              e instanceof Error
+                                ? e.message
+                                : "Could not apply proposal",
+                          }
+                        ).then(() => refetch())
+                      }
+                    >
+                      Apply proposal
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="border-white/15 text-white hover:bg-white/10"
+                      disabled={platformPayoutDecision.isPending}
+                      onClick={() =>
+                        void busy.promise(
+                          platformPayoutDecision.mutateAsync({ action: "reject" }),
+                          {
+                            loading: "Dismissing proposal…",
+                            success: "Proposal dismissed. Current bank details kept.",
+                            error: (e) =>
+                              e instanceof Error
+                                ? e.message
+                                : "Could not dismiss proposal",
+                          }
+                        ).then(() => refetch())
+                      }
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-sky-200/80">
+                    Only the billing owner can approve this while the school was
+                    already live for online payments. Contact the billing owner to
+                    continue.
+                  </p>
+                )}
               </AlertDescription>
             </Alert>
           )}

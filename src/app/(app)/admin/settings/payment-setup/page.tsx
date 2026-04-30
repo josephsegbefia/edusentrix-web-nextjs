@@ -700,7 +700,7 @@ export default function PaymentSetupPage() {
                   value={accountName}
                   onChange={(event) => setAccountName(event.target.value)}
                   placeholder="School account name"
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                 />
               </div>
 
@@ -738,7 +738,7 @@ export default function PaymentSetupPage() {
                       ? "Or type a new settlement account"
                       : "Settlement account number"
                   }
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                 />
               </div>
             </div>
@@ -1021,7 +1021,7 @@ export default function PaymentSetupPage() {
                         value={delegateName}
                         onChange={(event) => setDelegateName(event.target.value)}
                         placeholder="Bursar or finance lead"
-                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1031,7 +1031,7 @@ export default function PaymentSetupPage() {
                         onChange={(event) => setDelegateEmail(event.target.value)}
                         inputMode="email"
                         placeholder="finance@school.edu.gh"
-                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                        className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                       />
                     </div>
                     <Button
@@ -1109,7 +1109,7 @@ export default function PaymentSetupPage() {
                     value={ownerName}
                     onChange={(event) => setOwnerName(event.target.value)}
                     placeholder="School owner or financial authority"
-                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1119,7 +1119,7 @@ export default function PaymentSetupPage() {
                     onChange={(event) => setOwnerEmail(event.target.value)}
                     inputMode="email"
                     placeholder="owner@school.edu.gh"
-                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
+                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
                   />
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
@@ -1168,7 +1168,7 @@ export default function PaymentSetupPage() {
             value={revealReason}
             onChange={(e) => setRevealReason(e.target.value)}
             placeholder="Reason for viewing full account number"
-            className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/35"
+            className="min-h-[100px] border-white/10 bg-white/5 text-white placeholder:text-white/35 focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20"
           />
           <DialogFooter className="gap-2 sm:gap-0">
             <Button

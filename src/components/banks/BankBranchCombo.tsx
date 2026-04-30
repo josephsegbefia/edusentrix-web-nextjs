@@ -16,7 +16,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { ChevronsUpDown, Check } from "lucide-react";
+import { ChevronsUpDown, Check, Landmark, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Item = { bankName: string; branchName: string; sortCode: string };
 
@@ -104,35 +105,61 @@ export function BankBranchCombo(props: {
           <Button
             type="button"
             variant="outline"
-            className="w-full justify-between cursor-pointer"
+            className={cn(
+              "h-11 w-full cursor-pointer justify-between rounded-xl border-white/10 bg-black/30 px-3 text-white shadow-inner shadow-black/20 hover:border-cyan-300/25 hover:bg-black/40 hover:text-white",
+              "focus-visible:border-cyan-300/60 focus-visible:ring-cyan-400/20 data-[state=open]:border-cyan-300/40 data-[state=open]:bg-cyan-400/10"
+            )}
             disabled={disabled}
           >
-            <span className="truncate text-left">
-              {value ? label : placeholder}
+            <span className="flex min-w-0 items-center gap-2 truncate text-left">
+              <Landmark className="h-4 w-4 shrink-0 text-cyan-200/75" />
+              <span className={cn("truncate", value ? "text-white" : "text-white/40")}>
+                {value ? label : placeholder}
+              </span>
             </span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-white/40" />
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="premiumMenuContent z-[300] p-0 w-(--radix-popover-trigger-width)"
+          className="z-[300] w-(--radix-popover-trigger-width) overflow-hidden rounded-2xl border border-white/10 bg-slate-950/98 p-0 text-white shadow-2xl shadow-black/50 backdrop-blur-xl"
           align="start"
+          sideOffset={8}
         >
-          <Command shouldFilter={false}>
+          <Command
+            shouldFilter={false}
+            className="bg-transparent text-white [&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-white/10 [&_[cmdk-input-wrapper]]:bg-black/20 [&_[cmdk-input-wrapper]_svg]:text-cyan-200/70 [&_[cmdk-list]]:max-h-80"
+          >
             <CommandInput
               placeholder="Type a bank, branch, or sort code…"
               value={q}
               onValueChange={setQ}
               disabled={disabled}
+              className="text-white placeholder:text-white/35"
             />
             <CommandList>
               {loading ? (
-                <CommandEmpty>Searching…</CommandEmpty>
+                <CommandEmpty>
+                  <span className="inline-flex items-center gap-2 text-white/55">
+                    <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
+                    Searching branches…
+                  </span>
+                </CommandEmpty>
               ) : items.length === 0 ? (
-                <CommandEmpty>No matches</CommandEmpty>
+                <CommandEmpty>
+                  <div className="px-4 py-3 text-center">
+                    <Landmark className="mx-auto h-7 w-7 text-white/25" />
+                    <p className="mt-2 font-medium text-white/75">No branches found</p>
+                    <p className="mt-1 text-xs leading-5 text-white/45">
+                      Try the bank name, branch name, or six-digit sort code.
+                    </p>
+                  </div>
+                </CommandEmpty>
               ) : (
-                <CommandGroup heading="Results">
+                <CommandGroup
+                  heading="Matching bank branches"
+                  className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-white/40"
+                >
                   {items.map((it) => {
-                    const text = `${it.bankName} — ${it.branchName} (${it.sortCode})`;
                     const selected =
                       value?.bankName === it.bankName &&
                       value?.branchName === it.branchName &&
@@ -144,14 +171,23 @@ export function BankBranchCombo(props: {
                           onChange(it);
                           setOpen(false);
                         }}
-                        className="cursor-pointer"
+                        className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-white/80 data-[selected=true]:bg-cyan-400/10 data-[selected=true]:text-white"
                       >
                         <Check
-                          className={`mr-2 h-4 w-4 ${
+                          className={cn(
+                            "mr-1 h-4 w-4 shrink-0 text-cyan-200",
                             selected ? "opacity-100" : "opacity-0"
-                          }`}
+                          )}
                         />
-                        {text}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="truncate font-medium">{it.bankName}</p>
+                            <span className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-400/10 px-2 py-0.5 text-[11px] font-medium text-cyan-100">
+                              {it.sortCode}
+                            </span>
+                          </div>
+                          <p className="mt-1 truncate text-xs text-white/48">{it.branchName}</p>
+                        </div>
                       </CommandItem>
                     );
                   })}

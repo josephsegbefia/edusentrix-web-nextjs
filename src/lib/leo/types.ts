@@ -74,7 +74,8 @@ export type LeoToolKey =
   | "student_risk_summary"
   | "fees_overdue_summary"
   | "report_brief"
-  | "settings_change_impact";
+  | "settings_change_impact"
+  | "library_recommend_books";
 
 export type LeoAssistantDraft = {
   contentText: string;

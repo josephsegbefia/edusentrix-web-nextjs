@@ -1,16 +1,26 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
+import Link from "next/link";
 import {
+  BadgeCheck,
+  BookOpen,
+  Boxes,
+  CheckCircle2,
+  ChevronRight,
   ClipboardList,
+  Layers3,
   Loader2,
   Plus,
+  School,
+  Sparkles,
+  Store,
   Trash2,
-  ChevronRight,
-  BookOpen,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,8 +41,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatMoney } from "@/lib/fees/money";
-import Link from "next/link";
 import { SupplyProgramWizard } from "@/components/admin/supply-programs/SupplyProgramWizard";
+import { cn } from "@/lib/utils";
 
 type ProgramRow = {
   id: string;
@@ -63,6 +73,79 @@ type FormOptions = {
   subjects: { id: string; name: string }[];
   products: { id: string; name: string; priceMinor: number; isActive: boolean }[];
 };
+
+const glassPanel =
+  "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
+
+function PanelChrome({ corner = "top" }: { corner?: "top" | "bottom" }) {
+  return (
+    <>
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 via-transparent to-transparent",
+          corner === "top"
+            ? "bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-cyan-500/8"
+            : "bg-[radial-gradient(ellipse_at_bottom_left,var(--tw-gradient-stops))] from-teal-500/8"
+        )}
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+        aria-hidden="true"
+      />
+    </>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: React.ReactNode;
+  helper: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "cyan" | "emerald" | "amber" | "violet";
+}) {
+  const tones = {
+    cyan: "border-cyan-300/20 bg-cyan-400/10 text-cyan-200",
+    emerald: "border-emerald-300/20 bg-emerald-400/10 text-emerald-200",
+    amber: "border-amber-300/20 bg-amber-400/10 text-amber-200",
+    violet: "border-violet-300/20 bg-violet-400/10 text-violet-200",
+  };
+
+  return (
+    <Card className={glassPanel}>
+      <PanelChrome />
+      <CardContent className="relative z-10 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-white/45">{label}</p>
+            <div className="mt-2 text-3xl font-semibold text-white">{value}</div>
+          </div>
+          <div className={cn("rounded-xl border p-2", tones[tone])}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+        <p className="mt-3 text-sm leading-5 text-white/50">{helper}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function statusTone(status: string) {
+  if (status === "published") return "border-emerald-300/25 bg-emerald-400/10 text-emerald-100";
+  if (status === "draft") return "border-amber-300/25 bg-amber-400/10 text-amber-100";
+  if (status === "archived") return "border-white/15 bg-white/5 text-white/55";
+  return "border-cyan-300/20 bg-cyan-400/10 text-cyan-100";
+}
+
+function audienceLabel(value: string) {
+  return value.replaceAll("_", " ");
+}
 
 export default function AdminSupplyProgramsPage() {
   const [programs, setPrograms] = React.useState<ProgramRow[]>([]);
@@ -229,131 +312,205 @@ export default function AdminSupplyProgramsPage() {
 
   if (loading || !options) {
     return (
-      <div className="flex min-h-[30vh] items-center justify-center gap-2 text-white/60">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        Loading…
+      <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-white/10 bg-slate-950/80 text-white/60">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          Loading supply programs…
+        </div>
       </div>
     );
   }
 
+  const selectedProgram = programs.find((program) => program.id === selectedId) ?? null;
+  const publishedPrograms = programs.filter((program) => program.status === "published").length;
+  const draftPrograms = programs.filter((program) => program.status === "draft").length;
+  const selectedLinesValueMinor = lines.reduce(
+    (sum, line) => sum + line.productPriceMinor * line.quantity,
+    0
+  );
+  const requiredLines = lines.filter((line) => line.required).length;
+
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-4 md:p-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex items-center gap-3">
-          <ClipboardList className="h-8 w-8 text-brand" />
-          <div>
-            <h1 className="text-2xl font-semibold text-white">Supply programs</h1>
-            <p className="text-sm text-white/60">
-              Target lists by grade, class, or student; link store products and subjects.
-              Parents pay via the same Paystack checkout.
-            </p>
+    <div className="space-y-6 sm:space-y-8">
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-teal-500/10 blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
+          aria-hidden="true"
+        />
+        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex min-w-0 gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 shadow-lg shadow-cyan-500/10">
+              <ClipboardList className="h-6 w-6 text-cyan-200" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm text-white/55">Store programs</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                Supply programs
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
+                Build targeted supply lists by grade, class, or student, then connect each
+                requirement to store products and parent checkout.
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {!showWizard ? (
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               onClick={() => setShowWizard(true)}
-              className="bg-brand text-black hover:bg-brand/90"
+              className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
             >
               <Wand2 className="mr-2 h-4 w-4" />
               New program wizard
             </Button>
-          ) : null}
-          <Button
-            asChild
-            variant="outline"
-            className="border-white/20 text-white hover:bg-white/10"
-          >
-            <Link href="/admin/store">
-              <BookOpen className="mr-2 h-4 w-4" />
-              School store
-            </Link>
-          </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="border-white/15 bg-white/5 text-white/80 hover:border-white/25 hover:bg-white/10 hover:text-white"
+            >
+              <Link href="/admin/store">
+                <Store className="mr-2 h-4 w-4" />
+                School store
+              </Link>
+            </Button>
+          </div>
         </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Programs"
+          value={programs.length}
+          helper="Supply list campaigns across all periods."
+          icon={Layers3}
+          tone="cyan"
+        />
+        <StatCard
+          label="Published"
+          value={publishedPrograms}
+          helper="Visible and ready for parent action."
+          icon={BadgeCheck}
+          tone="emerald"
+        />
+        <StatCard
+          label="Drafts"
+          value={draftPrograms}
+          helper="Programs still being prepared."
+          icon={Wand2}
+          tone="amber"
+        />
+        <StatCard
+          label="Products"
+          value={options.products.length}
+          helper="Store products available for mapping."
+          icon={Boxes}
+          tone="violet"
+        />
       </div>
 
       {showWizard ? (
-        <SupplyProgramWizard
-          options={{
-            grades: options.grades,
-            classGroups: options.classGroups,
-          }}
-          onComplete={handleWizardComplete}
-          onCancel={() => setShowWizard(false)}
-        />
+        <div className={glassPanel}>
+          <PanelChrome />
+          <div className="relative z-10 p-4 sm:p-5">
+            <SupplyProgramWizard
+              options={{
+                grades: options.grades,
+                classGroups: options.classGroups,
+              }}
+              onComplete={handleWizardComplete}
+              onCancel={() => setShowWizard(false)}
+            />
+          </div>
+        </div>
       ) : null}
 
-      <Card className="border-white/10 bg-white/5">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-white text-base">Programs</CardTitle>
-          {!showWizard ? (
+      <Card className={glassPanel}>
+        <PanelChrome corner="bottom" />
+        <CardHeader className="relative z-10 border-b border-white/5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-base text-white">Programs</CardTitle>
+              <p className="mt-1 text-sm text-white/50">
+                Select a program to manage its product requirements.
+              </p>
+            </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="border-white/15 text-white/80 hover:bg-white/10"
+              className="w-fit border-white/15 bg-white/5 text-white/80 hover:border-white/25 hover:bg-white/10"
               onClick={() => setShowWizard(true)}
             >
               <Wand2 className="mr-2 h-4 w-4" />
               New program
             </Button>
-          ) : null}
+          </div>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-white/70">Name</TableHead>
-                <TableHead className="text-white/70">Period</TableHead>
-                <TableHead className="text-white/70">Audience</TableHead>
-                <TableHead className="text-white/70">Status</TableHead>
-                <TableHead className="text-white/70 w-[220px]" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {programs.length === 0 ? (
-                <TableRow className="border-white/10">
-                  <TableCell colSpan={5} className="text-white/50">
-                    No programs yet. Use the wizard to create your first draft.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                programs.map((p) => (
-                  <TableRow key={p.id} className="border-white/10">
-                    <TableCell className="text-white">
+        <CardContent className="relative z-10 p-5">
+          {programs.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center">
+              <ClipboardList className="mx-auto h-9 w-9 text-white/30" />
+              <p className="mt-3 font-semibold text-white">No programs yet</p>
+              <p className="mx-auto mt-1 max-w-md text-sm text-white/50">
+                Use the wizard to create a targeted supply program draft.
+              </p>
+            </div>
+          ) : (
+            <ul className="grid gap-3 lg:grid-cols-2">
+              {programs.map((p) => (
+                <li
+                  key={p.id}
+                  className={cn(
+                    "rounded-xl border bg-black/25 p-4 transition-colors",
+                    selectedId === p.id
+                      ? "border-cyan-300/35 bg-cyan-400/10"
+                      : "border-white/10 hover:border-cyan-400/25 hover:bg-black/35"
+                  )}
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
                       <button
                         type="button"
-                        className="text-left font-medium hover:text-brand flex items-center gap-1"
+                        className="flex min-w-0 items-center gap-2 text-left font-medium text-white hover:text-cyan-200"
                         onClick={() =>
                           setSelectedId((cur) => (cur === p.id ? null : p.id))
                         }
                       >
-                        {p.name}
+                        <span className="truncate">{p.name}</span>
                         <ChevronRight
-                          className={`h-4 w-4 transition-transform ${
-                            selectedId === p.id ? "rotate-90 text-brand" : ""
-                          }`}
+                          className={cn(
+                            "h-4 w-4 shrink-0 text-white/35 transition-transform",
+                            selectedId === p.id && "rotate-90 text-cyan-200"
+                          )}
                         />
                       </button>
-                    </TableCell>
-                    <TableCell className="text-white/70 text-sm">
-                      {p.periodLabel || "—"}
-                    </TableCell>
-                    <TableCell className="text-white/70 text-sm capitalize">
-                      {p.audienceMode.replace("_", " ")}
-                    </TableCell>
-                    <TableCell className="text-sm capitalize text-white/80">
-                      {p.status}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex flex-wrap justify-end gap-2">
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Badge variant="outline" className={cn("border capitalize", statusTone(p.status))}>
+                          {p.status}
+                        </Badge>
+                        <Badge variant="outline" className="border-white/15 bg-white/5 capitalize text-white/65">
+                          <School className="mr-1.5 h-3.5 w-3.5 text-white/45" />
+                          {audienceLabel(p.audienceMode)}
+                        </Badge>
+                        <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+                          {p.periodLabel || "No period"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 sm:justify-end">
                         {p.status === "draft" ? (
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="border-emerald-500/40 text-emerald-300"
+                            className="border-emerald-500/30 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/15"
                             onClick={() => void publishProgram(p)}
                           >
                             Publish
@@ -364,7 +521,7 @@ export default function AdminSupplyProgramsPage() {
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="border-white/20"
+                            className="border-white/15 bg-white/5 text-white/70 hover:bg-white/10"
                             onClick={() => void archiveProgram(p)}
                           >
                             Archive
@@ -374,38 +531,61 @@ export default function AdminSupplyProgramsPage() {
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="text-red-300"
+                          className="text-red-300 hover:bg-red-400/10 hover:text-red-200"
                           onClick={() => void deleteProgram(p)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
       {selectedId ? (
-        <Card className="border-brand/30 bg-brand/5">
-          <CardHeader>
-            <CardTitle className="text-white text-base">Lines & products</CardTitle>
-            <p className="text-sm text-white/60">
-              Map each requirement to a store product. Add subject links for textbooks.
-            </p>
+        <Card className={glassPanel}>
+          <PanelChrome />
+          <CardHeader className="relative z-10 border-b border-white/5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base text-white">
+                  <Boxes className="h-4 w-4 text-cyan-200" />
+                  Lines & products
+                </CardTitle>
+                <p className="mt-1 text-sm text-white/50">
+                  {selectedProgram
+                    ? `Managing ${selectedProgram.name}.`
+                    : "Map each requirement to a store product."}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="border-cyan-300/20 bg-cyan-400/10 text-cyan-100">
+                  {lines.length} lines
+                </Badge>
+                <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-emerald-100">
+                  {requiredLines} required
+                </Badge>
+                <Badge variant="outline" className="border-violet-300/20 bg-violet-400/10 text-violet-100">
+                  {formatMoney(selectedLinesValueMinor)}
+                </Badge>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <form onSubmit={addLine} className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="relative z-10 space-y-6 p-5">
+            <form
+              onSubmit={addLine}
+              className="grid gap-4 rounded-xl border border-white/10 bg-black/25 p-4 md:grid-cols-2 lg:grid-cols-4"
+            >
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-white/80">Store product</Label>
                 <PremiumSelect
                   value={newLineProductId || undefined}
                   onValueChange={(v) => setNewLineProductId(v)}
                 >
-                  <PremiumSelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+                  <PremiumSelectTrigger className="w-full border-white/10 bg-black/30 text-white">
                     <PremiumSelectValue placeholder="Select product" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -428,7 +608,7 @@ export default function AdminSupplyProgramsPage() {
                   value={newLineSubjectId || "__none__"}
                   onValueChange={(v) => setNewLineSubjectId(v === "__none__" ? "" : v)}
                 >
-                  <PremiumSelectTrigger className="w-full bg-white/5 border-white/10 text-white">
+                  <PremiumSelectTrigger className="w-full border-white/10 bg-black/30 text-white">
                     <PremiumSelectValue placeholder="None" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
@@ -446,7 +626,7 @@ export default function AdminSupplyProgramsPage() {
                 <Input
                   value={newLineQty}
                   onChange={(e) => setNewLineQty(e.target.value)}
-                  className="bg-white/5 border-white/10"
+                  className="border-white/10 bg-black/30 text-white"
                   inputMode="numeric"
                 />
               </div>
@@ -460,7 +640,10 @@ export default function AdminSupplyProgramsPage() {
                   />
                   Required
                 </label>
-                <Button type="submit" className="bg-brand text-black hover:bg-brand/90">
+                <Button
+                  type="submit"
+                  className="bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700"
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Add line
                 </Button>
@@ -468,7 +651,10 @@ export default function AdminSupplyProgramsPage() {
             </form>
 
             {linesLoading ? (
-              <p className="text-white/50 text-sm">Loading lines…</p>
+              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/50">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading lines…
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -484,27 +670,55 @@ export default function AdminSupplyProgramsPage() {
                 <TableBody>
                   {lines.length === 0 ? (
                     <TableRow className="border-white/10">
-                      <TableCell colSpan={6} className="text-white/50">
-                        No lines yet.
+                      <TableCell colSpan={6} className="py-8 text-center text-white/50">
+                        No lines yet. Add a product requirement above.
                       </TableCell>
                     </TableRow>
                   ) : (
                     lines.map((ln) => (
                       <TableRow key={ln.id} className="border-white/10">
                         <TableCell className="text-white">
-                          <div className="font-medium">{ln.productName}</div>
-                          {ln.notes ? (
-                            <div className="text-xs text-white/50">{ln.notes}</div>
-                          ) : null}
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                              {ln.imageUrl ? (
+                                <Image
+                                  src={ln.imageUrl}
+                                  alt=""
+                                  fill
+                                  sizes="44px"
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center">
+                                  <BookOpen className="h-4 w-4 text-white/25" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium">{ln.productName}</div>
+                              {ln.notes ? (
+                                <div className="text-xs text-white/50">{ln.notes}</div>
+                              ) : null}
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell className="text-white/70 text-sm">
                           {ln.subjectName || "—"}
                         </TableCell>
                         <TableCell className="text-white/80">{ln.quantity}</TableCell>
                         <TableCell className="text-white/80">
-                          {ln.required ? "Yes" : "No"}
+                          {ln.required ? (
+                            <Badge variant="outline" className="border-emerald-300/20 bg-emerald-400/10 text-emerald-100">
+                              <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                              Yes
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-white/15 bg-white/5 text-white/55">
+                              Optional
+                            </Badge>
+                          )}
                         </TableCell>
-                        <TableCell className="text-brand">
+                        <TableCell className="font-semibold text-cyan-200">
                           {formatMoney(ln.productPriceMinor)}
                         </TableCell>
                         <TableCell>
@@ -512,7 +726,7 @@ export default function AdminSupplyProgramsPage() {
                             type="button"
                             size="icon"
                             variant="ghost"
-                            className="text-red-300"
+                            className="text-red-300 hover:bg-red-400/10 hover:text-red-200"
                             onClick={() => void deleteLine(ln)}
                           >
                             <Trash2 className="h-4 w-4" />

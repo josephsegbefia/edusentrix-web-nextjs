@@ -207,6 +207,27 @@ function wantsSettingsChangeImpact(message: string, route?: string | null) {
   );
 }
 
+function wantsLibraryBookRecommendations(message: string) {
+  const text = message.toLowerCase();
+  const libraryHints = [
+    "library",
+    "book",
+    "books",
+    "reading list",
+    "catalogue",
+    "catalog",
+  ];
+  const hasLibrary = libraryHints.some((h) => text.includes(h));
+  const hasGradeHint =
+    text.includes("grade") ||
+    text.includes("jhs") ||
+    text.includes("shs") ||
+    text.includes("form ") ||
+    text.includes("class ") ||
+    /\b[a-f\d]{24}\b/i.test(message);
+  return hasLibrary && hasGradeHint;
+}
+
 function normalizeInput(input: string) {
   return input.trim().toLowerCase().replace(/[!.?]+$/g, "").replace(/\s+/g, " ");
 }
@@ -503,6 +524,17 @@ export async function draftLeoAssistantResponse(args: {
 
   if (args.role === "school_admin" && wantsSetupReadiness(args.userMessage, route)) {
     return executeLeoTool("setup_readiness_summary", {
+      schoolId: args.schoolId,
+      route,
+      userMessage: args.userMessage,
+    });
+  }
+
+  if (
+    (args.role === "school_admin" || args.role === "teacher") &&
+    wantsLibraryBookRecommendations(args.userMessage)
+  ) {
+    return executeLeoTool("library_recommend_books", {
       schoolId: args.schoolId,
       route,
       userMessage: args.userMessage,

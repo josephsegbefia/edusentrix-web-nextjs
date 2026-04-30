@@ -24,6 +24,11 @@ test("isRegisteredAuditAction", () => {
   assert.equal(isRegisteredAuditAction("lesson_note.comment_resolved"), true);
   assert.equal(isRegisteredAuditAction("email.bulk.sent"), true);
   assert.equal(isRegisteredAuditAction("export.generated"), true);
+  assert.equal(isRegisteredAuditAction("library.book.created"), true);
+  assert.equal(isRegisteredAuditAction("library.settings.updated"), true);
+  assert.equal(isRegisteredAuditAction("library.loan.issued"), true);
+  assert.equal(isRegisteredAuditAction("library.loan.returned"), true);
+  assert.equal(isRegisteredAuditAction("library.loan.renewed"), true);
   assert.equal(isRegisteredAuditAction("data.unmasked"), true);
   assert.equal(isRegisteredAuditAction("not.real"), false);
 });

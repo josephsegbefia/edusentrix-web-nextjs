@@ -105,6 +105,26 @@ export async function requireSchoolAdminOrDelegatedAnyPermission(
 }
 
 /**
+ * School admin passes. Delegate must have every listed permission.
+ */
+export async function requireSchoolAdminOrDelegatedAllPermissions(
+  permissions: string[]
+): Promise<SchoolActorDelegationContext> {
+  const ctx = await resolveSchoolActorContext();
+  if (ctx.isSchoolAdmin) return { ...ctx, activeDelegationId: null };
+  const merged = await mergedDelegationPermissions(ctx.schoolId, ctx.userId);
+  if (!permissions.every((p) => merged.includes(p))) {
+    throw NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+  }
+  const activeDelegationId = await findActiveDelegationIdForAnyPermission({
+    schoolId: ctx.schoolId,
+    staffUserId: ctx.userId,
+    permissions,
+  });
+  return { ...ctx, activeDelegationId };
+}
+
+/**
  * Finance staff (school admin / bursar) or a user with any of the given delegated permissions.
  * Unauthenticated users still receive 401 from the delegation path.
  */

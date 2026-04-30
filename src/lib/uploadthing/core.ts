@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
@@ -10,6 +11,7 @@ import { z } from "zod";
 import { checkLimit } from "@/lib/billing/entitlements";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { enforceDemoPolicy } from "@/lib/demo/action-policy";
+import { canUploadLibraryBookCover } from "@/lib/library/library-upload-gate";
 
 const f = createUploadthing();
 const RouteInput = z.object({
@@ -287,6 +289,27 @@ export const ourFileRouter = {
         metadata.role !== "platform_admin"
       ) {
         throw new Error("Only school admins can upload school branding");
+      }
+      return metadata;
+    })
+    .onUploadComplete(async ({ metadata, file }) =>
+      buildUploadResponse(metadata, file)
+    ),
+
+  libraryBookCover: f({
+    image: { maxFileSize: "8MB", maxFileCount: 1 },
+  })
+    .input(RouteInput)
+    .middleware(async ({ files, input }) => {
+      const metadata = await buildMetadata("library/covers", files, input?.schoolId);
+      await connectToDatabase();
+      const ok = await canUploadLibraryBookCover({
+        schoolId: new mongoose.Types.ObjectId(metadata.schoolId),
+        userId: new mongoose.Types.ObjectId(metadata.userId),
+        role: metadata.role,
+      });
+      if (!ok) {
+        throw new Error("Not allowed to upload library covers for this school");
       }
       return metadata;
     })

@@ -27,6 +27,7 @@ import {
   BarChart3,
   Heart,
   Video,
+  Library,
   Settings,
   Menu,
   X,
@@ -81,6 +82,7 @@ const DELEGATION_SIDEBAR_ICONS: Partial<
   meetings: Video,
   academic_calendar: CalendarRange,
   documents: FileText,
+  library: Library,
   supplies: ClipboardList,
   store: BookOpen,
   reports: BarChart3,
@@ -218,6 +220,11 @@ const navSections: NavSection[] = [
   {
     title: "Resources",
     items: [
+      {
+        label: "Library",
+        href: "/teacher/library",
+        icon: Library,
+      },
       {
         label: "Supply lists",
         href: "/teacher/supplies",

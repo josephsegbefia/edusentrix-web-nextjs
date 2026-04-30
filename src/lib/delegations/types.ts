@@ -6,6 +6,7 @@ export type DelegationModule =
   | "meetings"
   | "academic_calendar"
   | "documents"
+  | "library"
   | "supplies"
   | "store"
   | "reports"

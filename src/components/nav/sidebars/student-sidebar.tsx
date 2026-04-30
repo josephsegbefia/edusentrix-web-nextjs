@@ -14,6 +14,7 @@ import {
   UserCircle2,
   Menu,
   X,
+  Library,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -69,6 +70,11 @@ const navSections: NavSection[] = [
         label: "Calendar",
         href: "/student/calendar",
         icon: CalendarDays,
+      },
+      {
+        label: "Library",
+        href: "/student/library",
+        icon: Library,
       },
     ],
   },

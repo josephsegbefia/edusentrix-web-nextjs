@@ -1,0 +1,23 @@
+/** Aligns with spec §8.4 — embedded in `getOrCreate` defaults. */
+export const DEFAULT_LIBRARY_SETTINGS = {
+  defaultLoanDaysStudent: 14,
+  defaultLoanDaysTeacher: 30,
+  defaultLoanDaysStaff: 21,
+  maxBooksPerStudent: 2,
+  maxBooksPerTeacher: 5,
+  maxBooksPerStaff: 3,
+  allowRenewals: true,
+  maxRenewals: 1,
+  renewalDays: 7,
+  enableFines: false,
+  finePerDay: 1,
+  graceDaysAfterDueDate: 0,
+  enableReplacementFees: true,
+  notifyBeforeDueDate: true,
+  dueReminderDaysBefore: 2,
+  notifyOnDueDate: true,
+  notifyAfterOverdue: true,
+  overdueReminderFrequencyDays: 3,
+  notifyParentsForStudentOverdue: true,
+  notifyTeachersForTeacherOverdue: true,
+} as const;

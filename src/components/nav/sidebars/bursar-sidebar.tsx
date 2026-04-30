@@ -20,6 +20,7 @@ import {
   ClipboardList,
   Video,
   LayoutGrid,
+  ChevronDown,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -48,6 +49,12 @@ type NavSection = {
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
     feature?: SubscriptionFeatureKey;
+    allowCollapseWhenActive?: boolean;
+    children?: Array<{
+      label: string;
+      href: string;
+      icon: React.ComponentType<{ className?: string }>;
+    }>;
   }>;
 };
 
@@ -89,12 +96,14 @@ const navSections: NavSection[] = [
         href: "/admin/store",
         icon: ShoppingBag,
         feature: "fees",
-      },
-      {
-        label: "Supply programs",
-        href: "/admin/supplies",
-        icon: ClipboardList,
-        feature: "fees",
+        allowCollapseWhenActive: true,
+        children: [
+          {
+            label: "Supply programs",
+            href: "/admin/supplies",
+            icon: ClipboardList,
+          },
+        ],
       },
       {
         label: "Meetings",
@@ -131,6 +140,17 @@ const navSections: NavSection[] = [
   },
 ];
 
+function pathInNavGroupTree(
+  pathname: string,
+  parentHref: string,
+  children: Array<{ href: string }>
+): boolean {
+  if (pathname === parentHref || pathname.startsWith(`${parentHref}/`)) return true;
+  return children.some(
+    (c) => pathname === c.href || pathname.startsWith(`${c.href}/`)
+  );
+}
+
 function NavContent({
   onItemClick,
   delegatedNavItems = [],
@@ -159,6 +179,34 @@ function NavContent({
       },
     ] as NavSection["items"];
   }, [paymentSetup]);
+
+  const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>(
+    {}
+  );
+
+  React.useEffect(() => {
+    setNavGroupExpanded((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const section of navSections) {
+        const merged =
+          section.title === "Finance Operations"
+            ? [...section.items, ...paymentSetupItems]
+            : section.items;
+        for (const item of merged) {
+          const kids = item.children ?? [];
+          if (kids.length === 0) continue;
+          if (!pathInNavGroupTree(pathname, item.href, kids)) {
+            if (next[item.href] !== undefined) {
+              delete next[item.href];
+              changed = true;
+            }
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [pathname, paymentSetupItems]);
 
   return (
     <nav className="space-y-6">
@@ -213,7 +261,104 @@ function NavContent({
           </div>
 
           <div className="space-y-1">
-            {items.map(({ label, href, icon: Icon, exact }) => {
+            {items.map((item) => {
+              const { label, href, icon: Icon, exact, children, allowCollapseWhenActive } =
+                item;
+              const childList = children ?? [];
+              const routeActive = (path: string, ex?: boolean) =>
+                ex ? pathname === path : pathname === path || pathname.startsWith(`${path}/`);
+
+              if (childList.length > 0) {
+                const inTree = pathInNavGroupTree(pathname, href, childList);
+                const alwaysToggle = !!allowCollapseWhenActive;
+                const groupExpanded = alwaysToggle
+                  ? navGroupExpanded[href] !== undefined
+                    ? navGroupExpanded[href]
+                    : inTree
+                  : inTree || (navGroupExpanded[href] ?? false);
+                const toggleGroup = () => {
+                  if (!alwaysToggle && inTree) return;
+                  if (alwaysToggle) {
+                    const current =
+                      navGroupExpanded[href] !== undefined ? navGroupExpanded[href] : inTree;
+                    setNavGroupExpanded((p) => ({ ...p, [href]: !current }));
+                  } else {
+                    setNavGroupExpanded((p) => ({
+                      ...p,
+                      [href]: !((p[href] ?? false)),
+                    }));
+                  }
+                };
+                const parentActive =
+                  routeActive(href, exact) ||
+                  childList.some((c) => routeActive(c.href));
+
+                return (
+                  <div key={href} className="space-y-0.5">
+                    <div className="flex min-w-0 items-stretch gap-0.5">
+                      <ActiveLink
+                        href={href}
+                        exact={exact}
+                        onClick={onItemClick}
+                        className={cn(
+                          premiumSideItem,
+                          "min-w-0 flex-1 pr-1",
+                          parentActive && premiumSideItemActive
+                        )}
+                        activeClassName="nav-active"
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{label}</span>
+                      </ActiveLink>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleGroup();
+                        }}
+                        className={cn(
+                          premiumSideItem,
+                          "w-9 shrink-0 justify-center px-0 text-white/50 hover:text-white",
+                          !alwaysToggle && inTree && "cursor-default opacity-60"
+                        )}
+                        aria-expanded={groupExpanded}
+                        aria-label={groupExpanded ? `Collapse ${label}` : `Expand ${label}`}
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform duration-200",
+                            !groupExpanded && "-rotate-90"
+                          )}
+                        />
+                      </button>
+                    </div>
+                    {groupExpanded ? (
+                      <div className="relative ml-3.5 space-y-0.5 border-l border-white/10 pl-3">
+                        {childList.map((child) => {
+                          const ChildIcon = child.icon;
+                          const childActive = routeActive(child.href);
+                          return (
+                            <ActiveLink
+                              key={child.href}
+                              href={child.href}
+                              onClick={onItemClick}
+                              className={cn(
+                                premiumSideItem,
+                                childActive && premiumSideItemActive
+                              )}
+                              activeClassName="nav-active"
+                            >
+                              <ChildIcon className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{child.label}</span>
+                            </ActiveLink>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
+
               const active = exact
                 ? pathname === href
                 : pathname === href || pathname.startsWith(`${href}/`);

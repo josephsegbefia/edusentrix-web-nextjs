@@ -5,6 +5,7 @@ import { withLeoResponseCache } from "@/lib/leo/response-cache";
 import { runClassSubjectTeacherLinksTool } from "@/lib/leo/tools/class-subject-teacher-links";
 import { runClassTimetableStatusTool } from "@/lib/leo/tools/class-timetable-status";
 import { runFeesOverdueSummaryTool } from "@/lib/leo/tools/fees-overdue-summary";
+import { runLibraryRecommendBooksTool } from "@/lib/leo/tools/library-recommend-books";
 import { runReportBriefTool } from "@/lib/leo/tools/report-brief";
 import { runSetupReadinessSummaryTool } from "@/lib/leo/tools/setup-readiness-summary";
 import { runSettingsChangeImpactTool } from "@/lib/leo/tools/settings-change-impact";
@@ -92,6 +93,16 @@ export const LEO_TOOL_REGISTRY: Record<LeoToolKey, LeoRegisteredTool> = {
     family: "settings",
     run: (ctx) =>
       runSettingsChangeImpactTool({
+        schoolId: ctx.schoolId,
+        userMessage: ctx.userMessage,
+      }),
+  },
+  library_recommend_books: {
+    key: "library_recommend_books",
+    family: "student",
+    cacheTtlSeconds: 120,
+    run: (ctx) =>
+      runLibraryRecommendBooksTool({
         schoolId: ctx.schoolId,
         userMessage: ctx.userMessage,
       }),

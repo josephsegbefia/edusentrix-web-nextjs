@@ -22,6 +22,7 @@ import {
   ChevronRight,
   ShoppingBag,
   ClipboardList,
+  BookOpen,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -96,6 +97,11 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           label: "Academic Progress",
           href: "/parent/academics",
           icon: GraduationCap,
+        },
+        {
+          label: "Library",
+          href: "/parent/library",
+          icon: BookOpen,
         },
         {
           label: "Attendance",

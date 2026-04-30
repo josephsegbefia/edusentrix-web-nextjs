@@ -38,6 +38,16 @@ import {
   Lock,
   ClipboardSignature,
   Share2,
+  Library,
+  Bookmark,
+  RefreshCw,
+  ScanLine,
+  AlertTriangle,
+  BarChart2,
+  Upload,
+  History,
+  Megaphone,
+  ChevronDown,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -63,14 +73,22 @@ import { useSidebar } from "@/providers/sidebar-provider";
 import { useSchool } from "@/hooks/admin/useSchool";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
 
+type NavItemBase = {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+};
+
+type NavItem = NavItemBase & {
+  children?: NavItemBase[];
+  /** When true, children can be hidden even on a store or supply route. */
+  allowCollapseWhenActive?: boolean;
+};
+
 type NavSection = {
   title: string;
-  items: Array<{
-    label: string;
-    href: string;
-    icon: React.ComponentType<{ className?: string }>;
-    exact?: boolean;
-  }>;
+  items: NavItem[];
 };
 
 const CURRICULUM_SHORT_LABELS: Record<string, string> = {
@@ -228,11 +246,15 @@ const navSections: NavSection[] = [
         label: "School store",
         href: "/admin/store",
         icon: ShoppingBag,
-      },
-      {
-        label: "Supply programs",
-        href: "/admin/supplies",
-        icon: ClipboardList,
+        exact: false,
+        allowCollapseWhenActive: true,
+        children: [
+          {
+            label: "Supply programs",
+            href: "/admin/supplies",
+            icon: ClipboardList,
+          },
+        ],
       },
       {
         label: "Expenses",
@@ -253,6 +275,54 @@ const navSections: NavSection[] = [
         label: "Documents",
         href: "/admin/documents",
         icon: FileText,
+      },
+      {
+        label: "Library",
+        href: "/admin/library",
+        icon: Library,
+        exact: true,
+        children: [
+          {
+            label: "Circulation",
+            href: "/admin/library/circulation",
+            icon: RefreshCw,
+          },
+          {
+            label: "Scan & lookup",
+            href: "/admin/library/scan",
+            icon: ScanLine,
+          },
+          {
+            label: "Overdue & fines",
+            href: "/admin/library/overdue",
+            icon: AlertTriangle,
+          },
+          {
+            label: "Reports",
+            href: "/admin/library/reports",
+            icon: BarChart2,
+          },
+          {
+            label: "CSV import",
+            href: "/admin/library/imports",
+            icon: Upload,
+          },
+          {
+            label: "Borrowing history",
+            href: "/admin/library/history",
+            icon: History,
+          },
+          {
+            label: "Reservations",
+            href: "/admin/library/reservations",
+            icon: Bookmark,
+          },
+          {
+            label: "Patron notices",
+            href: "/admin/library/notices",
+            icon: Megaphone,
+          },
+        ],
       },
     ],
   },
@@ -359,6 +429,17 @@ function CurriculumBadge({ collapsed }: { collapsed: boolean }) {
 const NAV_LOCK_TOOLTIP =
   "Complete school setup on the Dashboard to unlock this section.";
 
+function pathInNavGroupTree(
+  pathname: string,
+  parentHref: string,
+  children: NavItemBase[]
+): boolean {
+  if (pathname === parentHref || pathname.startsWith(`${parentHref}/`)) return true;
+  return children.some(
+    (c) => pathname === c.href || pathname.startsWith(`${c.href}/`)
+  );
+}
+
 function isAdminDashboardItem(href: string, exact?: boolean) {
   return href === "/admin" && !!exact;
 }
@@ -372,6 +453,29 @@ function NavContent({
 }) {
   const pathname = usePathname();
   const { shouldRestrictSchoolAdminNav } = useOnboardingProgress();
+  const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>(
+    {}
+  );
+
+  React.useEffect(() => {
+    setNavGroupExpanded((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const section of navSections) {
+        for (const item of section.items) {
+          const kids = item.children ?? [];
+          if (kids.length === 0) continue;
+          if (!pathInNavGroupTree(pathname, item.href, kids)) {
+            if (next[item.href] !== undefined) {
+              delete next[item.href];
+              changed = true;
+            }
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [pathname]);
 
   return (
     <nav className={cn("space-y-5", collapsed && "space-y-3")}>
@@ -386,12 +490,199 @@ function NavContent({
           )}
 
           <div className={cn("space-y-0.5", collapsed && "space-y-1.5")}>
-            {section.items.map(({ label, href, icon: Icon, exact }) => {
-              const active = exact
-                ? pathname === href
-                : pathname === href || pathname.startsWith(href + "/");
+            {section.items.map((item) => {
+              const { label, href, icon: Icon, exact, children, allowCollapseWhenActive } =
+                item;
+              const childList = children ?? [];
               const locked =
                 shouldRestrictSchoolAdminNav && !isAdminDashboardItem(href, exact);
+
+              const routeActive = (path: string, ex?: boolean) =>
+                ex ? pathname === path : pathname === path || pathname.startsWith(`${path}/`);
+
+              if (childList.length > 0) {
+                const inTree = pathInNavGroupTree(pathname, href, childList);
+                const alwaysToggle = !!allowCollapseWhenActive;
+                const groupExpanded = alwaysToggle
+                  ? navGroupExpanded[href] !== undefined
+                    ? navGroupExpanded[href]
+                    : inTree
+                  : inTree || (navGroupExpanded[href] ?? false);
+                const toggleGroup = () => {
+                  if (!alwaysToggle && inTree) return;
+                  if (alwaysToggle) {
+                    const current =
+                      navGroupExpanded[href] !== undefined ? navGroupExpanded[href] : inTree;
+                    setNavGroupExpanded((p) => ({ ...p, [href]: !current }));
+                  } else {
+                    setNavGroupExpanded((p) => ({
+                      ...p,
+                      [href]: !((p[href] ?? false)),
+                    }));
+                  }
+                };
+                const parentActiveCollapsed = inTree;
+                const parentActiveExpanded =
+                  routeActive(href, exact) ||
+                  childList.some((c) => routeActive(c.href, c.exact));
+
+                if (collapsed) {
+                  if (locked) {
+                    return (
+                      <Tooltip key={href} delayDuration={0}>
+                        <TooltipTrigger asChild>
+                          <span
+                            className={cn(
+                              "flex h-10 w-10 mx-auto cursor-not-allowed items-center justify-center rounded-xl",
+                              "text-white/30 opacity-60"
+                            )}
+                            aria-disabled="true"
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="right"
+                          sideOffset={8}
+                          className={sidebarTooltipClasses}
+                        >
+                          {label} — {NAV_LOCK_TOOLTIP}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+                  return (
+                    <Tooltip key={href} delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <ActiveLink
+                          href={href}
+                          exact={false}
+                          onClick={onItemClick}
+                          className={cn(
+                            "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
+                            "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
+                            parentActiveCollapsed &&
+                              "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                          )}
+                          activeClassName="nav-active"
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                        </ActiveLink>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
+                        {label}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                if (locked) {
+                  return (
+                    <Tooltip key={href} delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={cn(
+                            premiumSideItem,
+                            "cursor-not-allowed opacity-45 pointer-events-auto"
+                          )}
+                          aria-disabled="true"
+                          tabIndex={0}
+                        >
+                          <Icon className="h-4 w-4 shrink-0 text-white/40" />
+                          <span className="truncate">{label}</span>
+                          <Lock className="ml-auto h-3.5 w-3.5 shrink-0 text-white/25" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="right"
+                        sideOffset={8}
+                        className={sidebarTooltipClasses}
+                      >
+                        {NAV_LOCK_TOOLTIP}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                return (
+                  <div key={href} className="space-y-0.5">
+                    <div className="flex min-w-0 items-stretch gap-0.5">
+                      <ActiveLink
+                        href={href}
+                        exact={exact}
+                        onClick={onItemClick}
+                        className={cn(
+                          premiumSideItem,
+                          "min-w-0 flex-1 pr-1",
+                          parentActiveExpanded && premiumSideItemActive
+                        )}
+                        activeClassName="nav-active"
+                      >
+                        <Icon
+                          className={cn(
+                            "h-4 w-4 shrink-0",
+                            parentActiveExpanded && "text-violet-400"
+                          )}
+                        />
+                        <span className="truncate">{label}</span>
+                      </ActiveLink>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleGroup();
+                        }}
+                        className={cn(
+                          premiumSideItem,
+                          "w-9 shrink-0 justify-center px-0 text-white/50 hover:text-white",
+                          !alwaysToggle && inTree && "cursor-default opacity-60"
+                        )}
+                        aria-expanded={groupExpanded}
+                        aria-label={groupExpanded ? `Collapse ${label}` : `Expand ${label}`}
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform duration-200",
+                            !groupExpanded && "-rotate-90"
+                          )}
+                        />
+                      </button>
+                    </div>
+                    {groupExpanded ? (
+                      <div className="relative ml-3.5 space-y-0.5 border-l border-white/10 pl-3">
+                        {childList.map((child) => {
+                          const ChildIcon = child.icon;
+                          const childActive = routeActive(child.href, child.exact);
+                          return (
+                            <ActiveLink
+                              key={child.href}
+                              href={child.href}
+                              exact={child.exact}
+                              onClick={onItemClick}
+                              className={cn(
+                                premiumSideItem,
+                                "text-[13px]",
+                                childActive && premiumSideItemActive
+                              )}
+                              activeClassName="nav-active"
+                            >
+                              <ChildIcon
+                                className={cn(
+                                  "h-3.5 w-3.5 shrink-0",
+                                  childActive && "text-violet-400"
+                                )}
+                              />
+                              <span className="truncate">{child.label}</span>
+                            </ActiveLink>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
+
+              const active = routeActive(href, exact);
 
               if (collapsed) {
                 if (locked) {

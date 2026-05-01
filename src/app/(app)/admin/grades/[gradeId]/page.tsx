@@ -26,9 +26,19 @@ import {
   ChevronDown,
   UserPlus,
   ArrowRight,
+  Save,
+  Trash2,
+  X,
 } from "lucide-react";
 import Link from "next/link";
-import { useGrades, useGradeOverview, useGradeTeachers } from "@/hooks/admin/useGrades";
+import {
+  useClearGradeLearningAreas,
+  useGradeLearningAreas,
+  useGradeOverview,
+  useGradeTeachers,
+  useGrades,
+  useSaveGradeLearningAreas,
+} from "@/hooks/admin/useGrades";
 import {
   useClasses,
   useCreateClass,
@@ -44,6 +54,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import type { CreateClassInput } from "@/components/modals/CreateClassModal";
 import { cn } from "@/lib/utils";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
+import { isPreschoolLearningAreaGrade } from "@/constants/curriculum-subject-templates";
 
 type ClassSortBy = "class" | "students" | "capacity" | "homeroom" | "subjects" | "status";
 
@@ -129,6 +140,226 @@ function getInitialTab(sp: URLSearchParams | null): GradeDetailTabId {
     return raw;
   }
   return "overview";
+}
+
+function PreschoolLearningAreasPanel({
+  gradeId,
+  gradeName,
+}: {
+  gradeId: string;
+  gradeName: string;
+}) {
+  const busy = useBusyToast();
+  const { data, isLoading } = useGradeLearningAreas(gradeId, true);
+  const saveMutation = useSaveGradeLearningAreas(gradeId);
+  const clearMutation = useClearGradeLearningAreas(gradeId);
+  const learningAreas = data?.data;
+  const recommended = learningAreas?.recommended ?? [];
+  const assigned = learningAreas?.assigned ?? [];
+  const [selected, setSelected] = React.useState<string[]>([]);
+  const [customName, setCustomName] = React.useState("");
+
+  React.useEffect(() => {
+    if (!learningAreas) return;
+    const source = assigned.length ? assigned.map((item) => item.name) : recommended;
+    setSelected(source);
+  }, [assigned, learningAreas, recommended]);
+
+  const selectedKeys = React.useMemo(
+    () => new Set(selected.map((name) => name.toLowerCase())),
+    [selected]
+  );
+
+  function toggleLearningArea(name: string, checked: boolean) {
+    setSelected((prev) => {
+      if (checked) {
+        return selectedKeys.has(name.toLowerCase()) ? prev : [...prev, name];
+      }
+      return prev.filter((item) => item.toLowerCase() !== name.toLowerCase());
+    });
+  }
+
+  function addCustomLearningArea() {
+    const name = customName.trim().replace(/\s+/g, " ");
+    if (!name || selectedKeys.has(name.toLowerCase())) return;
+    setSelected((prev) => [...prev, name]);
+    setCustomName("");
+  }
+
+  async function saveLearningAreas() {
+    await busy.promise(
+      saveMutation.mutateAsync({ names: selected, replace: true }),
+      {
+        loading: "Saving learning areas...",
+        success: "Learning areas updated",
+        error: "Could not save learning areas",
+      }
+    );
+  }
+
+  async function clearLearningAreas() {
+    const ok = window.confirm(
+      `Clear all attached learning areas and subjects from classes in ${gradeName}?`
+    );
+    if (!ok) return;
+    await busy.promise(clearMutation.mutateAsync(), {
+      loading: "Clearing learning areas...",
+      success: "Attached areas cleared",
+      error: "Could not clear learning areas",
+    });
+  }
+
+  return (
+    <Card className="relative overflow-hidden rounded-xl border border-teal-500/20 bg-linear-to-br from-slate-900/90 via-slate-950/90 to-black shadow-2xl shadow-black/40 sm:rounded-2xl">
+      <CardHeader className="relative z-10 border-b border-white/5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
+              <BookOpen className="h-5 w-5 text-teal-300" />
+              Preschool Learning Areas
+            </CardTitle>
+            <p className="mt-1 text-xs text-white/50">
+              Choose the learning areas for {gradeName}. Saving replaces the attached list for all active classes in this grade.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={clearLearningAreas}
+            disabled={clearMutation.isPending || isLoading}
+            className="gap-2 border-rose-500/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15"
+          >
+            {clearMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            Clear attached
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="relative z-10 space-y-5 p-4 sm:p-6">
+        {isLoading ? (
+          <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/60">
+            <Loader2 className="h-4 w-4 animate-spin text-teal-300" />
+            Loading learning areas...
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {recommended.map((name) => {
+                const checked = selectedKeys.has(name.toLowerCase());
+                return (
+                  <label
+                    key={name}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition-colors",
+                      checked
+                        ? "border-teal-500/40 bg-teal-500/10 text-teal-100"
+                        : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
+                    )}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(value) =>
+                        toggleLearningArea(name, value === true)
+                      }
+                      className="border-white/30"
+                    />
+                    <span className="min-w-0 flex-1">{name}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                value={customName}
+                onChange={(event) => setCustomName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addCustomLearningArea();
+                  }
+                }}
+                placeholder="Add a custom learning area"
+                className="border-white/10 bg-white/5 text-white placeholder:text-white/35 focus-visible:border-teal-400 focus-visible:ring-teal-400/30"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addCustomLearningArea}
+                className="gap-2 border-white/10 bg-white/5 text-white hover:bg-white/10"
+              >
+                <Plus className="h-4 w-4" />
+                Add
+              </Button>
+            </div>
+
+            {selected.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selected.map((name) => (
+                  <span
+                    key={name}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs text-teal-100"
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => toggleLearningArea(name, false)}
+                      className="rounded-full text-teal-100/70 hover:text-white"
+                      aria-label={`Remove ${name}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {assigned.length > 0 && (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-white/40">
+                  Currently attached
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {assigned.map((area) => (
+                    <Badge
+                      key={area.id}
+                      variant="outline"
+                      className="border-white/10 bg-white/5 text-white/70"
+                    >
+                      {area.name} {area.classesWithSubject}/{learningAreas?.classCount ?? 0}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-white/45">
+                {learningAreas?.classCount ?? 0} active class{learningAreas?.classCount === 1 ? "" : "es"} will receive the saved list.
+              </p>
+              <Button
+                type="button"
+                onClick={saveLearningAreas}
+                disabled={saveMutation.isPending || selected.length === 0}
+                className="gap-2 bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/20 hover:from-teal-600 hover:to-cyan-700"
+              >
+                {saveMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save learning areas
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function GradeDetailContent() {
@@ -291,6 +522,13 @@ function GradeDetailContent() {
   }
 
   const gradeName = grade?.name ?? "Grade";
+  const gradeForLearningAreas = {
+    code: grade?.code ?? overview?.grade.code ?? null,
+    name: grade?.name ?? overview?.grade.name ?? null,
+  };
+  const isPreschoolGrade = isPreschoolLearningAreaGrade(gradeForLearningAreas);
+  const academicUnitLabel = isPreschoolGrade ? "Learning Areas" : "Subjects";
+  const academicUnitLabelLower = isPreschoolGrade ? "learning areas" : "subjects";
   const stats = overview?.stats;
   const totalCapacity = stats?.totalCapacity ?? 0;
   const capacityLabel = totalCapacity > 0 ? `${overview?.stats.totalStudents ?? 0}/${totalCapacity}` : "—";
@@ -329,9 +567,21 @@ function GradeDetailContent() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setBulkAssignOpen(true)} className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (isPreschoolGrade) {
+                    setActiveTab("overview");
+                    return;
+                  }
+                  setBulkAssignOpen(true);
+                }}
+                className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
+              >
                 <BookOpen className="h-4 w-4" />
-                Assign Subjects to Grade
+                {isPreschoolGrade ? "Manage Learning Areas" : "Assign Subjects to Grade"}
               </Button>
               <Button type="button" size="sm" onClick={() => setShowCreateClass(true)} className="gap-2 bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700">
                 <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
@@ -398,7 +648,7 @@ function GradeDetailContent() {
             <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5">
               <AlertCircle className="h-4 w-4 text-rose-400" />
               <span className="text-sm font-medium text-rose-200">
-                {overview.stats.subjectsWithoutTeacher} subject assignment{overview.stats.subjectsWithoutTeacher !== 1 ? "s" : ""} without teacher
+                {overview.stats.subjectsWithoutTeacher} {academicUnitLabelLower} assignment{overview.stats.subjectsWithoutTeacher !== 1 ? "s" : ""} without teacher
               </span>
             </div>
           )}
@@ -411,24 +661,28 @@ function GradeDetailContent() {
       {/* Tab content */}
       {activeTab === "overview" && (
         <>
+      {isPreschoolGrade && (
+        <PreschoolLearningAreasPanel gradeId={gradeId} gradeName={gradeName} />
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Subject overview card */}
         <Card className="relative overflow-hidden rounded-xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 lg:col-span-1">
           <CardHeader className="relative z-10 border-b border-white/5">
             <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
               <BookOpen className="h-5 w-5 text-teal-300" />
-              Subject Overview
+              {academicUnitLabel} Overview
             </CardTitle>
-            <p className="text-xs text-white/50">Which classes have each subject, gaps</p>
+            <p className="text-xs text-white/50">Which classes have each {academicUnitLabelLower.slice(0, -1)}, gaps</p>
           </CardHeader>
           <CardContent className="relative z-10 p-4 sm:p-6">
             {overviewLoading ? (
               <div className="flex flex-col items-center gap-4 py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-teal-400" />
-                <p className="text-xs text-white/50">Loading subjects…</p>
+                <p className="text-xs text-white/50">Loading {academicUnitLabelLower}...</p>
               </div>
             ) : !overview?.subjects?.length ? (
-              <p className="text-sm text-white/50">No subjects assigned to classes in this grade yet.</p>
+              <p className="text-sm text-white/50">No {academicUnitLabelLower} assigned to classes in this grade yet.</p>
             ) : (
               <ul className="space-y-3">
                 {overview.subjects.map((s) => (
@@ -475,9 +729,20 @@ function GradeDetailContent() {
               </div>
               {(selectedClassIds.length > 0) && (
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setBulkAssignOpen(true)} className="gap-1.5 border-white/10">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (isPreschoolGrade) {
+                        setActiveTab("overview");
+                        return;
+                      }
+                      setBulkAssignOpen(true);
+                    }}
+                    className="gap-1.5 border-white/10"
+                  >
                     <BookOpen className="h-3.5 w-3.5" />
-                    Bulk assign subjects
+                    {isPreschoolGrade ? "Manage learning areas" : "Bulk assign subjects"}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => notifyComingSoon("Bulk assign homeroom")} className="gap-1.5 border-white/10">
                     <UserPlus className="h-3.5 w-3.5" />
@@ -542,7 +807,7 @@ function GradeDetailContent() {
                       <SortableHeader label="Homeroom" column="homeroom" sortBy={classSortBy} sortOrder={classSortOrder} onSort={handleClassSort} />
                     </th>
                     <th className="px-4 py-3 text-left">
-                      <SortableHeader label="Subjects" column="subjects" sortBy={classSortBy} sortOrder={classSortOrder} onSort={handleClassSort} />
+                      <SortableHeader label={academicUnitLabel} column="subjects" sortBy={classSortBy} sortOrder={classSortOrder} onSort={handleClassSort} />
                     </th>
                     <th className="px-4 py-3 text-left">
                       <SortableHeader label="Status" column="status" sortBy={classSortBy} sortOrder={classSortOrder} onSort={handleClassSort} />
@@ -606,7 +871,7 @@ function GradeDetailContent() {
             <UserCheck className="h-5 w-5 text-teal-300" />
             Teachers
           </CardTitle>
-          <p className="text-xs text-white/50">Homeroom and subject teachers for classes in this grade</p>
+          <p className="text-xs text-white/50">Homeroom and {academicUnitLabelLower} teachers for classes in this grade</p>
         </CardHeader>
         <CardContent className="relative z-10 p-4 sm:p-6">
           {teachersLoading ? (

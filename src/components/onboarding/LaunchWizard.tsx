@@ -103,7 +103,7 @@ const STEPS = [
   {
     id: 3,
     title: "Curriculum",
-    description: "Choose subjects and define academic periods.",
+    description: "Choose starter subjects and define academic periods.",
     icon: GraduationCap,
   },
 ] as const;
@@ -749,7 +749,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                     </h1>
                     <p className="mt-2 text-sm leading-6 text-white/55">
                       Keep this simple. Confirm the admin profile, set the
-                      school basics, then choose subjects and academic periods.
+                      school basics, then choose starter subjects and academic periods.
                       Payment setup happens later in Settings.
                     </p>
                   </div>
@@ -1108,8 +1108,8 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                         <SurfaceSection
                           icon={BookOpen}
                           eyebrow="Subjects"
-                          title="Subject selection"
-                          description="Start with the recommended curriculum set, then search, review, and toggle exactly what this school should launch with."
+                          title="Basic-school subject selection"
+                          description="Start with the recommended basic-school set. Creche, Nursery, KG1, and KG2 learning areas are configured later from each grade overview."
                         >
                           <div className="space-y-4">
                             <div className="relative">
@@ -1168,7 +1168,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                         </p>
                                         <p className="mt-1 text-xs leading-5 text-white/45">
                                           {isRecommended
-                                            ? "Recommended for this curriculum"
+                                            ? "Recommended starter subject"
                                             : "Custom subject"}
                                         </p>
                                       </div>
@@ -1193,7 +1193,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                         <SurfaceSection
                           icon={GraduationCap}
                           eyebrow="Selection"
-                          title="Selected subjects"
+                          title="Selected starter subjects"
                           description={`${selectedSubjects.length} subject${selectedSubjects.length === 1 ? "" : "s"} will be created for this school.`}
                         >
                           <div className="space-y-4">

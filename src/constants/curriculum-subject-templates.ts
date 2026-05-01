@@ -17,8 +17,115 @@ export interface SubjectTemplateEntry {
   stages?: string[];
 }
 
-/** NaCCA Basic stages: Pre-Primary, Kindergarten, Primary, JHS */
-const NACCA_BASIC_STAGES = ["Pre-Primary", "Kindergarten", "Primary", "JHS"] as const;
+/** NaCCA basic-school subject stages. Preschool stages use learning areas instead. */
+const NACCA_BASIC_STAGES = ["Primary", "JHS"] as const;
+
+export type PreschoolLearningAreaGradeCode =
+  | "CRECHE"
+  | "NURSERY"
+  | "KG1"
+  | "KG2";
+
+export const PRESCHOOL_LEARNING_AREA_TEMPLATES: Record<
+  PreschoolLearningAreaGradeCode,
+  string[]
+> = {
+  CRECHE: [
+    "Communication & Language",
+    "Personal, Social & Emotional Development",
+    "Physical Development",
+    "Fine Motor Skills",
+    "Music & Movement",
+    "Creative Play",
+    "Sensory Play",
+    "Story Time",
+    "Health & Hygiene Routines",
+    "Outdoor Play",
+  ],
+  NURSERY: [
+    "Language & Literacy Readiness",
+    "Phonics Awareness",
+    "Pre-Writing",
+    "Numeracy Readiness",
+    "Creative Arts",
+    "Music & Movement",
+    "Our World / Environmental Awareness",
+    "Religious & Moral Education",
+    "Physical Education",
+    "Practical Life Skills",
+    "Story Time",
+  ],
+  KG1: [
+    "Language & Literacy",
+    "Phonics",
+    "Pre-Reading",
+    "Pre-Writing / Handwriting",
+    "Numeracy",
+    "Creative Arts",
+    "Music & Movement",
+    "Our World and Our People",
+    "Religious & Moral Education",
+    "Physical Education",
+    "Ghanaian Language",
+    "Computing Readiness",
+    "Story Time",
+  ],
+  KG2: [
+    "Language & Literacy",
+    "Reading",
+    "Phonics",
+    "Writing / Handwriting",
+    "Numeracy / Mathematics",
+    "Creative Arts",
+    "Music & Movement",
+    "Our World and Our People",
+    "Religious & Moral Education",
+    "Physical Education",
+    "Ghanaian Language",
+    "Computing Readiness",
+    "Story Time / Library",
+  ],
+};
+
+function normalizeGradeKey(value: string | null | undefined): string {
+  return (value ?? "").trim().toUpperCase().replace(/[\s_-]+/g, "");
+}
+
+export function getPreschoolLearningAreaGradeCode(input: {
+  code?: string | null;
+  name?: string | null;
+}): PreschoolLearningAreaGradeCode | null {
+  const code = normalizeGradeKey(input.code);
+  const name = normalizeGradeKey(input.name);
+  const candidates = [code, name];
+
+  if (candidates.some((value) => value === "CRECHE" || value === "CRÈCHE")) {
+    return "CRECHE";
+  }
+  if (candidates.some((value) => value === "NURSERY")) return "NURSERY";
+  if (candidates.some((value) => value === "KG1" || value === "KINDERGARTEN1")) {
+    return "KG1";
+  }
+  if (candidates.some((value) => value === "KG2" || value === "KINDERGARTEN2")) {
+    return "KG2";
+  }
+  return null;
+}
+
+export function isPreschoolLearningAreaGrade(input: {
+  code?: string | null;
+  name?: string | null;
+}): boolean {
+  return getPreschoolLearningAreaGradeCode(input) !== null;
+}
+
+export function getPreschoolLearningAreaNames(input: {
+  code?: string | null;
+  name?: string | null;
+}): string[] {
+  const gradeCode = getPreschoolLearningAreaGradeCode(input);
+  return gradeCode ? PRESCHOOL_LEARNING_AREA_TEMPLATES[gradeCode] : [];
+}
 
 export const CURRICULUM_SUBJECT_TEMPLATES: Record<
   CurriculumCode,

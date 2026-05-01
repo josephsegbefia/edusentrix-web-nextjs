@@ -1,5 +1,5 @@
 // src/hooks/admin/useGrades.ts
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type GradeDTO = {
   id: string;
@@ -58,6 +58,24 @@ export type GradeOverviewDTO = {
   feeDefaultersCount: number;
 };
 
+export type GradeLearningAreasDTO = {
+  grade: {
+    id: string;
+    name: string;
+    code: string | null;
+    stage: string | null;
+  };
+  label: "Learning areas";
+  recommended: string[];
+  assigned: Array<{
+    id: string;
+    name: string;
+    classesWithSubject: number;
+    classesWithoutSubject: number;
+  }>;
+  classCount: number;
+};
+
 export type GradeFeesDTO = {
   totalBilledMinor: number;
   totalPaidMinor: number;
@@ -112,6 +130,72 @@ export function useGradeOverview(gradeId: string | undefined) {
     },
     enabled: !!gradeId,
     staleTime: 30_000,
+  });
+}
+
+export function useGradeLearningAreas(
+  gradeId: string | undefined,
+  enabled = true
+) {
+  return useQuery<{ success: boolean; data: GradeLearningAreasDTO }>({
+    queryKey: ["grade-learning-areas", gradeId],
+    queryFn: async () => {
+      if (!gradeId) throw new Error("Grade ID is required");
+      const res = await fetch(`/api/admin/grades/${gradeId}/learning-areas`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch learning areas");
+      return res.json();
+    },
+    enabled: !!gradeId && enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useSaveGradeLearningAreas(gradeId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { names: string[]; replace?: boolean }) => {
+      if (!gradeId) throw new Error("Grade ID is required");
+      const res = await fetch(`/api/admin/grades/${gradeId}/learning-areas`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(json?.error || "Failed to save learning areas");
+      }
+      return json as { success: boolean; data: GradeLearningAreasDTO };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grade-learning-areas", gradeId] });
+      queryClient.invalidateQueries({ queryKey: ["grade-overview", gradeId] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["subjects"] });
+    },
+  });
+}
+
+export function useClearGradeLearningAreas(gradeId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      if (!gradeId) throw new Error("Grade ID is required");
+      const res = await fetch(`/api/admin/grades/${gradeId}/learning-areas`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(json?.error || "Failed to clear learning areas");
+      }
+      return json as { success: boolean; data: GradeLearningAreasDTO };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["grade-learning-areas", gradeId] });
+      queryClient.invalidateQueries({ queryKey: ["grade-overview", gradeId] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    },
   });
 }
 

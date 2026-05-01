@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,19 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { X, Loader2, School } from "lucide-react";
-import { useSubjectOptions } from "@/hooks/admin/useSubjectOptions";
-import {
-  PremiumDropdownMenu,
-  PremiumDropdownMenuTrigger,
-  PremiumDropdownMenuContent,
-  PremiumDropdownMenuCheckboxItem,
-  PremiumDropdownMenuLabel,
-} from "@/components/ui/premium-dropdown-menu";
 
 const CreateClassSchema = z.object({
   gradeId: z.string().min(1, "Grade is required"),
   name: z.string().min(1, "Class name is required").max(50),
-  subjectIds: z.array(z.string()),
   capacity: z.number().int().positive().optional(),
 });
 
@@ -41,27 +31,20 @@ export default function CreateClassModal({
   onSubmit,
   isLoading,
 }: Props) {
-  const { data: subjects = [], isLoading: loadingSubjects } = useSubjectOptions();
-
   const {
     register,
     handleSubmit,
     control,
-    watch,
-    setValue,
     formState: { errors },
   } = useForm<CreateClassInput>({
     resolver: zodResolver(CreateClassSchema),
     defaultValues: {
       gradeId,
       name: "",
-      subjectIds: [],
       capacity: undefined,
     },
     mode: "onChange",
   });
-
-  const subjectIds = watch("subjectIds") ?? [];
 
   async function internalSubmit(values: CreateClassInput) {
     try {
@@ -74,18 +57,6 @@ export default function CreateClassModal({
       console.error("Class creation error:", e);
     }
   }
-
-  function toggleSubject(id: string) {
-    setValue(
-      "subjectIds",
-      subjectIds.includes(id)
-        ? subjectIds.filter((s) => s !== id)
-        : [...subjectIds, id],
-      { shouldValidate: true }
-    );
-  }
-
-  const selectedSubjects = subjects.filter((s) => subjectIds.includes(s._id));
 
   return (
     <form onSubmit={handleSubmit(internalSubmit)} className="space-y-6">
@@ -101,6 +72,12 @@ export default function CreateClassModal({
           </p>
         </div>
       </div>
+
+      <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs leading-relaxed text-white/55">
+        Subjects and learning areas already used in this grade are applied to this class
+        automatically (same set as your other classes). The first class in a grade starts
+        with none until you assign them in the grade or class subject flows.
+      </p>
 
       {/* Class name */}
       <div className="space-y-2">
@@ -119,53 +96,6 @@ export default function CreateClassModal({
         {errors.name && (
           <p className="text-xs text-rose-300">{errors.name.message}</p>
         )}
-      </div>
-
-      {/* Subjects (optional) */}
-      <div className="space-y-2">
-        <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-          Subjects (optional)
-        </Label>
-        <PremiumDropdownMenu>
-          <PremiumDropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-between border-white/10 bg-white/5 text-white hover:bg-white/10"
-            >
-              <span className="truncate">
-                {selectedSubjects.length > 0
-                  ? `${selectedSubjects.length} subject${selectedSubjects.length !== 1 ? "s" : ""} selected`
-                  : "Select subjects"}
-              </span>
-            </Button>
-          </PremiumDropdownMenuTrigger>
-          <PremiumDropdownMenuContent align="start" className="max-h-64 overflow-y-auto">
-            <PremiumDropdownMenuLabel className="text-xs text-white/60">
-              Assign subjects to this class
-            </PremiumDropdownMenuLabel>
-            {loadingSubjects ? (
-              <div className="px-3 py-4 text-xs text-white/50">
-                Loading subjects...
-              </div>
-            ) : subjects.length === 0 ? (
-              <div className="px-3 py-4 text-xs text-white/50">
-                No subjects available
-              </div>
-            ) : (
-              subjects.map((subject) => (
-                <PremiumDropdownMenuCheckboxItem
-                  key={subject._id}
-                  checked={subjectIds.includes(subject._id)}
-                  onCheckedChange={() => toggleSubject(subject._id)}
-                  className="text-xs"
-                >
-                  {subject.name}
-                </PremiumDropdownMenuCheckboxItem>
-              ))
-            )}
-          </PremiumDropdownMenuContent>
-        </PremiumDropdownMenu>
       </div>
 
       {/* Capacity (optional) */}

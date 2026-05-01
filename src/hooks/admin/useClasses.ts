@@ -259,9 +259,17 @@ export function useCreateClass() {
       }
       return json.data as ClassGroupDTO;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["grades"] });
+      if (variables?.gradeId) {
+        queryClient.invalidateQueries({
+          queryKey: ["grade-overview", variables.gradeId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["grade-learning-areas", variables.gradeId],
+        });
+      }
     },
   });
 }

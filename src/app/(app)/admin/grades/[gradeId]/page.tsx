@@ -474,7 +474,6 @@ function GradeDetailContent() {
         createClassMutation.mutateAsync({
           gradeId: payload.gradeId,
           name: payload.name,
-          subjectIds: payload.subjectIds,
           capacity: payload.capacity ?? undefined,
         }),
         { loading: "Creating class…", success: "Class created", error: "Could not create class" }

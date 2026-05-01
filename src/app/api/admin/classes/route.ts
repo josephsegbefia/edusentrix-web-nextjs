@@ -68,9 +68,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const subjectIdsObj = (subjectIds || [])
+    let subjectIdsObj = (subjectIds || [])
       .filter(Boolean)
       .map((id) => new mongoose.Types.ObjectId(id));
+
+    /** When not specified (e.g. Add class from grade overview), inherit the grade’s current subject set from sibling classes. */
+    if (subjectIdsObj.length === 0) {
+      const siblings = await ClassGroup.find({
+        schoolId: schoolIdObj,
+        gradeId: gradeIdObj,
+        isActive: true,
+      })
+        .select("subjectIds")
+        .lean();
+
+      const union = new Set<string>();
+      for (const sib of siblings) {
+        const raw = (sib as { subjectIds?: mongoose.Types.ObjectId[] }).subjectIds ?? [];
+        for (const sid of raw) {
+          if (sid) union.add(String(sid));
+        }
+      }
+      subjectIdsObj = Array.from(union).map(
+        (id) => new mongoose.Types.ObjectId(id)
+      );
+    }
 
     const newClass = await ClassGroup.create({
       schoolId: schoolIdObj,

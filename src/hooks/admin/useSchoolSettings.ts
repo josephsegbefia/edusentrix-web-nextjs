@@ -114,6 +114,9 @@ export type SchoolSettingsDTO = {
     autoPreviewEnabled: boolean;
     autoPreviewLeadDays: number;
   };
+  lessonsModule: {
+    parentSummaryVisibleToParents: boolean;
+  };
   updatedAt: string | null;
 };
 

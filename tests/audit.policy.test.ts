@@ -29,6 +29,8 @@ test("isRegisteredAuditAction", () => {
   assert.equal(isRegisteredAuditAction("library.loan.issued"), true);
   assert.equal(isRegisteredAuditAction("library.loan.returned"), true);
   assert.equal(isRegisteredAuditAction("library.loan.renewed"), true);
+  assert.equal(isRegisteredAuditAction("lesson.published"), true);
+  assert.equal(isRegisteredAuditAction("lesson.resource_added"), true);
   assert.equal(isRegisteredAuditAction("data.unmasked"), true);
   assert.equal(isRegisteredAuditAction("not.real"), false);
 });

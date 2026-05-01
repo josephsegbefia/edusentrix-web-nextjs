@@ -3,7 +3,17 @@ import { randomUUID } from "node:crypto";
 import type { Types } from "mongoose";
 import type { AuditRequestContext } from "./types";
 
-function firstIp(req: NextRequest): string | null {
+function requestRoutePath(req: Request): string | null {
+  const n = req as NextRequest;
+  if (typeof n.nextUrl?.pathname === "string") return n.nextUrl.pathname;
+  try {
+    return new URL(req.url).pathname;
+  } catch {
+    return null;
+  }
+}
+
+function firstIp(req: Request): string | null {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0]?.trim() || null;
   return req.headers.get("x-real-ip")?.trim() || null;
@@ -13,10 +23,7 @@ function firstIp(req: NextRequest): string | null {
  * Prefer client-provided idempotency headers; otherwise use a deterministic fallback
  * (Tier 0 replay safety — EDUSENTRIX_AUDIT_HARDENING_SPEC §4.11).
  */
-export function resolveAuditIdempotencyKey(
-  req: NextRequest,
-  fallback: string
-): string {
+export function resolveAuditIdempotencyKey(req: Request, fallback: string): string {
   return (
     req.headers.get("x-idempotency-key")?.trim() ||
     req.headers.get("idempotency-key")?.trim() ||
@@ -24,7 +31,7 @@ export function resolveAuditIdempotencyKey(
   );
 }
 
-function baseRequestIds(req: NextRequest): { requestId: string; correlationId: string } {
+function baseRequestIds(req: Request): { requestId: string; correlationId: string } {
   const requestId =
     req.headers.get("x-request-id")?.trim() ||
     req.headers.get("x-vercel-id")?.trim() ||
@@ -43,7 +50,7 @@ export function resolveFinanceActorRole(roles: string[]): string {
 
 /** Shared by admin fee routes and payment-setup when the actor is finance staff. */
 export function buildFinanceStaffAuditContext(
-  req: NextRequest,
+  req: Request,
   params: {
     userId: Types.ObjectId;
     schoolId: Types.ObjectId;
@@ -65,7 +72,7 @@ export function buildFinanceStaffAuditContext(
 
 /** Paystack (or similar) webhook — no human actor. */
 export function buildPaystackWebhookAuditContext(
-  req: NextRequest,
+  req: Request,
   params: {
     schoolId: Types.ObjectId;
     idempotencyKey: string;
@@ -84,14 +91,14 @@ export function buildPaystackWebhookAuditContext(
     schoolId: params.schoolId,
     ipAddress: firstIp(req),
     userAgent: req.headers.get("user-agent")?.trim() || null,
-    routePath: req.nextUrl.pathname,
+    routePath: requestRoutePath(req),
     clientSurface: "webhook",
   };
 }
 
 /** Platform-scoped routes (e.g. school applications). */
 export function buildPlatformAdminAuditContext(
-  req: NextRequest,
+  req: Request,
   params: {
     platformAdminId: Types.ObjectId;
     actorEmail?: string | null;
@@ -112,14 +119,14 @@ export function buildPlatformAdminAuditContext(
     schoolId: null,
     ipAddress: firstIp(req),
     userAgent: req.headers.get("user-agent")?.trim() || null,
-    routePath: req.nextUrl.pathname,
+    routePath: requestRoutePath(req),
     clientSurface: "api",
   };
 }
 
 /** Platform admin acting on a specific school record (e.g. payout proposal). */
 export function buildPlatformSchoolAuditContext(
-  req: NextRequest,
+  req: Request,
   params: {
     platformAdminId: Types.ObjectId;
     schoolId: Types.ObjectId;
@@ -141,7 +148,7 @@ export function buildPlatformSchoolAuditContext(
 
 /** School-scoped routes (finance, academics, etc.). */
 export function buildSchoolUserAuditContext(
-  req: NextRequest,
+  req: Request,
   params: {
     userId: Types.ObjectId;
     schoolId: Types.ObjectId;
@@ -164,14 +171,14 @@ export function buildSchoolUserAuditContext(
     schoolId: params.schoolId,
     ipAddress: firstIp(req),
     userAgent: req.headers.get("user-agent")?.trim() || null,
-    routePath: req.nextUrl.pathname,
+    routePath: requestRoutePath(req),
     clientSurface: "api",
   };
 }
 
 /** Parent / guardian portal routes scoped to a school. */
 export function buildParentAuditContext(
-  req: NextRequest,
+  req: Request,
   params: {
     userId: Types.ObjectId;
     schoolId: Types.ObjectId;
@@ -188,7 +195,7 @@ export function buildParentAuditContext(
 
 /** Public unauthenticated POST (e.g. submit school application). */
 export function buildPublicApplicationFormAuditContext(
-  req: NextRequest,
+  req: Request,
   params: { idempotencyKey: string; submitterEmail?: string | null }
 ): AuditRequestContext {
   const { requestId, correlationId } = baseRequestIds(req);
@@ -204,7 +211,7 @@ export function buildPublicApplicationFormAuditContext(
     schoolId: null,
     ipAddress: firstIp(req),
     userAgent: req.headers.get("user-agent")?.trim() || null,
-    routePath: req.nextUrl.pathname,
+    routePath: requestRoutePath(req),
     clientSurface: "public_form",
   };
 }

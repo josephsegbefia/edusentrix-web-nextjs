@@ -14,6 +14,7 @@ import {
   GraduationCap,
   Download,
   X,
+  Presentation,
 } from "lucide-react";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
@@ -600,6 +601,14 @@ export default function TeacherLessonNotesPage() {
                         onClick={() => handleDuplicate(note)}
                       >
                         Duplicate to next week
+                      </PremiumDropdownMenuItem>
+                      <PremiumDropdownMenuItem
+                        icon={<Presentation className="h-4 w-4" />}
+                        onClick={() =>
+                          router.push(`/teacher/lessons?createFromNote=${note.id}`)
+                        }
+                      >
+                        New student lesson
                       </PremiumDropdownMenuItem>
                       <PremiumDropdownMenuItem
                         icon={<Download className="h-4 w-4" />}

@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   Library,
+  Presentation,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -75,6 +76,11 @@ const navSections: NavSection[] = [
         label: "Library",
         href: "/student/library",
         icon: Library,
+      },
+      {
+        label: "Lessons",
+        href: "/student/lessons",
+        icon: Presentation,
       },
     ],
   },

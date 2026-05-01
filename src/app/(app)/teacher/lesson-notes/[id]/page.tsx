@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles, Presentation, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LessonNoteReadonlyView } from "@/components/lesson-notes/LessonNoteReadonlyView";
@@ -63,16 +63,39 @@ export default function TeacherLessonNoteDetailPage() {
             Review the published note and respond to section comments from the school.
           </p>
         </div>
-        <Link href="/teacher/lesson-notes">
-          <Button
-            type="button"
-            variant="outline"
-            className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back To Notes
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/teacher/lessons?lessonNoteId=${noteId}`}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+            >
+              <List className="mr-2 h-4 w-4" />
+              Lessons for this note
+            </Button>
+          </Link>
+          <Link href={`/teacher/lessons?createFromNote=${noteId}`}>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-violet-500/20 text-violet-100 hover:bg-violet-500/30"
+            >
+              <Presentation className="mr-2 h-4 w-4" />
+              New student lesson
+            </Button>
+          </Link>
+          <Link href="/teacher/lesson-notes">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back To Notes
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <LessonNoteReadonlyView

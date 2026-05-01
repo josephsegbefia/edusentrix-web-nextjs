@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -19,10 +20,70 @@ export default function TeacherAssignmentCreatePage() {
   const canCreate = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPublish = can(permissions, PERMISSIONS.assignmentsPublish);
   const requestedType = searchParams.get("type");
+  const lessonId = searchParams.get("lessonId");
+  const [seedValues, setSeedValues] = React.useState<Partial<AssignmentFormValues> | null>(null);
+  const [isLoadingSeed, setIsLoadingSeed] = React.useState(false);
   const initialType: AssignmentFormValues["type"] =
     requestedType === "project" || requestedType === "practice"
       ? requestedType
       : "assignment";
+
+  React.useEffect(() => {
+    let ignore = false;
+    if (!lessonId) {
+      setSeedValues(null);
+      return;
+    }
+
+    setIsLoadingSeed(true);
+    void fetch(`/api/teacher/lessons/${lessonId}/assignment-seed?type=${initialType}`, {
+      cache: "no-store",
+    })
+      .then(async (res) => {
+        const json = (await res.json().catch(() => null)) as
+          | {
+              success: true;
+              data: {
+                title: string;
+                instructions: string;
+                type: AssignmentFormValues["type"];
+                subjectId: string | null;
+                classGroupIds: string[];
+                maxScore: number;
+              };
+            }
+          | { success: false; error?: string }
+          | null;
+
+        if (!res.ok || !json || !json.success) {
+          throw new Error(
+            json && "error" in json && typeof json.error === "string"
+              ? json.error
+              : "Failed to load lesson seed"
+          );
+        }
+        if (ignore) return;
+        setSeedValues({
+          title: json.data.title,
+          instructions: json.data.instructions,
+          type: json.data.type,
+          subjectId: json.data.subjectId || "",
+          classGroupIds: json.data.classGroupIds,
+          maxScore: json.data.maxScore,
+        });
+      })
+      .catch((e: unknown) => {
+        if (ignore) return;
+        busyToast.warning(e instanceof Error ? e.message : "Could not prefill from lesson");
+      })
+      .finally(() => {
+        if (!ignore) setIsLoadingSeed(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [lessonId, initialType, busyToast]);
 
   if (!canCreate) {
     return (
@@ -47,6 +108,7 @@ export default function TeacherAssignmentCreatePage() {
       instructions: values.instructions,
       type: values.type,
       subjectId: values.subjectId,
+      sourceLessonId: lessonId || undefined,
       classGroupIds: values.classGroupIds,
       dueDate: values.dueDate.toISOString(),
       latePolicy: values.latePolicy,
@@ -101,12 +163,15 @@ export default function TeacherAssignmentCreatePage() {
         </p>
       </div>
       <AssignmentBuilder
-        initialValues={{ type: initialType }}
+        initialValues={{ type: initialType, ...(seedValues ?? {}) }}
         onSubmit={handleSubmit}
         showPublish={canPublish}
         layout="wizard"
         allowedTypes={["assignment", "project", "practice"]}
       />
+      {isLoadingSeed ? (
+        <p className="text-xs text-white/50">Prefilling from lesson...</p>
+      ) : null}
     </div>
   );
 }

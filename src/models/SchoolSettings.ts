@@ -193,6 +193,12 @@ export interface ISchoolSettings {
     };
   };
 
+  /** Lessons module (delivery layer) — parent portal and related toggles */
+  lessonsModule?: {
+    /** When true, guardians can read `Lesson.parentSummaryHtml` for the ward's published lessons. */
+    parentSummaryVisibleToParents: boolean;
+  };
+
   // Feature Flags
   teacherStudio?: {
     enabled: boolean;
@@ -452,6 +458,13 @@ const SchoolLeoSettingsSchema = new Schema(
   { _id: false }
 );
 
+const LessonsModuleSettingsSchema = new Schema(
+  {
+    parentSummaryVisibleToParents: { type: Boolean, default: false },
+  },
+  { _id: false }
+);
+
 const SchoolSettingsSchema = new Schema<ISchoolSettings>(
   {
     schoolId: {
@@ -576,6 +589,8 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
     },
 
     leo: { type: SchoolLeoSettingsSchema, default: undefined },
+
+    lessonsModule: { type: LessonsModuleSettingsSchema, default: undefined },
 
     // Feature Flags
     teacherStudio: {

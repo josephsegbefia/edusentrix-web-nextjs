@@ -4,6 +4,7 @@
 import * as React from "react";
 import { Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,7 @@ import {
   BookOpen,
   Award,
   CreditCard,
+  ChevronRight,
   Wallet,
   Sparkles,
   Hash,
@@ -620,6 +622,23 @@ function OverviewTab({ wardId }: { wardId: string }) {
           tone={feesProgress >= 100 ? "emerald" : feesProgress >= 50 ? "amber" : "red"}
         />
       </div>
+
+      <Link href={`/parent/wards/${wardId}/lessons`}>
+        <Card className="relative overflow-hidden rounded-2xl border border-teal-500/25 bg-linear-to-br from-teal-950/40 to-transparent shadow-lg transition-colors hover:border-teal-400/40">
+          <CardContent className="flex items-center justify-between gap-4 p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-500/20 text-teal-200">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white">Class lessons</h3>
+                <p className="text-sm text-white/55">See published lessons and family summaries</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-white/40 shrink-0" />
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* Strongest/Weakest Subjects */}
       {(academics?.strongestSubject || academics?.weakestSubject) && (

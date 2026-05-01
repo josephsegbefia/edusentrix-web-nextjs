@@ -71,6 +71,14 @@ export const DEMO_SCOPED_COLLECTIONS: readonly CollectionRegistryEntry[] = [
   { modelName: "Assessment",              schoolIdField: "schoolId", deleteOrder: 5,  seedOrder: 58, description: "Assessments" },
 
   // ── Tier 3: lesson notes ─────────────────────────────────────────
+  { modelName: "LessonReflection",        schoolIdField: "schoolId", deleteOrder: 2, seedOrder: 82, description: "Post-lesson teacher reflections" },
+  { modelName: "LessonAuditLog",          schoolIdField: "schoolId", deleteOrder: 2, seedOrder: 99, description: "Lesson publish/resource audit trail" },
+  { modelName: "StudentLessonProgress",   schoolIdField: "schoolId", deleteOrder: 2, seedOrder: 92, description: "Student lesson view / completion progress" },
+  { modelName: "LessonResource",          schoolIdField: "schoolId", deleteOrder: 2, seedOrder: 82, description: "Lesson attachments (links + library)" },
+  { modelName: "StudentFlashcardProgress", schoolIdField: "schoolId", deleteOrder: 2, seedOrder: 92, description: "Student flashcard study progress" },
+  { modelName: "LessonFlashcard",         schoolIdField: "schoolId", deleteOrder: 3, seedOrder: 82, description: "Lesson flashcards" },
+  { modelName: "LessonFlashcardDeck",     schoolIdField: "schoolId", deleteOrder: 4, seedOrder: 82, description: "Lesson flashcard decks" },
+  { modelName: "Lesson",                  schoolIdField: "schoolId", deleteOrder: 5,  seedOrder: 81, description: "Student-facing lessons (from lesson notes)" },
   { modelName: "LessonNoteReviewComment", schoolIdField: "schoolId", deleteOrder: 5,  seedOrder: 80, description: "Lesson note review comments" },
   { modelName: "LessonNoteApproval",      schoolIdField: "schoolId", deleteOrder: 5,  seedOrder: 80, description: "Lesson note approvals" },
   { modelName: "LessonNote",              schoolIdField: "schoolId", deleteOrder: 6,  seedOrder: 50, description: "Lesson notes" },

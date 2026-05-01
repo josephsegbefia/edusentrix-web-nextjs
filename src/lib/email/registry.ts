@@ -542,6 +542,17 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateRegistryEntry> = {
     brand: "school",
     preferenceClass: "transactional",
   },
+  LESSON_PUBLISHED_STUDENT: {
+    messageClass: "announcement",
+    trafficClass: "transactional",
+    priority: "normal",
+    sensitivity: "low",
+    secureContentMode: "none",
+    senderFamily: "hello",
+    mailboxScope: "school",
+    brand: "school",
+    preferenceClass: "transactional",
+  },
 };
 
 export function lookupTemplateRegistry(

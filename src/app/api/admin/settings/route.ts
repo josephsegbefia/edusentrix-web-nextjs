@@ -52,6 +52,10 @@ const PromotionsAutomationSchema = z.object({
   autoPreviewLeadDays: z.number().min(0).max(60),
 });
 
+const LessonsModuleSettingsPatchSchema = z.object({
+  parentSummaryVisibleToParents: z.boolean(),
+});
+
 const UpdateSettingsSchema = z
   .object({
     assembly: AssemblyConfigSchema.nullable().optional(),
@@ -65,6 +69,7 @@ const UpdateSettingsSchema = z
     attendanceNotifications: AttendanceNotificationsSchema.optional(),
     offlineMode: OfflineModeSchema.optional(),
     promotions: PromotionsAutomationSchema.optional(),
+    lessonsModule: LessonsModuleSettingsPatchSchema.optional(),
   });
 
 function asArray<T>(value: unknown): T[] {
@@ -125,6 +130,12 @@ function serializeSettings(settings: Record<string, unknown>) {
         autoPreviewEnabled: false,
         autoPreviewLeadDays: 7,
       },
+    lessonsModule:
+      (settings.lessonsModule as
+        | { parentSummaryVisibleToParents?: boolean }
+        | undefined) || {
+        parentSummaryVisibleToParents: false,
+      },
     updatedAt: settings.updatedAt ? new Date(settings.updatedAt as string).toISOString() : null,
   };
 }
@@ -159,6 +170,9 @@ function buildDefaultSettingsDoc(schoolId: mongoose.Types.ObjectId) {
     promotions: {
       autoPreviewEnabled: false,
       autoPreviewLeadDays: 7,
+    },
+    lessonsModule: {
+      parentSummaryVisibleToParents: false,
     },
     leo: { ...DEFAULT_SCHOOL_LEO_SETTINGS },
   };

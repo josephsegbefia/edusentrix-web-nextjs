@@ -94,6 +94,9 @@ type SettingsFormData = {
   offlineMode: {
     enabled: boolean;
   };
+  lessonsModule: {
+    parentSummaryVisibleToParents: boolean;
+  };
   assemblyDailyOverrides: AssemblyDailyOverrideDTO[];
   assemblyGradeOverrides: AssemblyGradeOverrideDTO[];
 };
@@ -111,6 +114,7 @@ function buildSettingsFormData(settings: SchoolSettingsDTO): SettingsFormData {
       channels: { whatsapp: true, sms: false, email: false },
     },
     offlineMode: settings.offlineMode || { enabled: true },
+    lessonsModule: settings.lessonsModule || { parentSummaryVisibleToParents: false },
     assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
     assemblyGradeOverrides: settings.assemblyGradeOverrides || [],
   };
@@ -130,6 +134,7 @@ function mergeOperationalFields(
     teacherStudio: next.teacherStudio,
     attendanceNotifications: next.attendanceNotifications,
     offlineMode: next.offlineMode,
+    lessonsModule: next.lessonsModule,
     assemblyDailyOverrides: next.assemblyDailyOverrides,
     assemblyGradeOverrides: next.assemblyGradeOverrides,
   };
@@ -263,6 +268,7 @@ function SettingsPageContent() {
       teacherStudio: formData.teacherStudio,
       attendanceNotifications: formData.attendanceNotifications,
       offlineMode: formData.offlineMode,
+      lessonsModule: formData.lessonsModule,
     };
     try {
       const response = await busy.promise(updateSettings.mutateAsync(payload), {
@@ -609,6 +615,28 @@ function SettingsPageContent() {
                 </h3>
 
                 <div className="space-y-4">
+                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <Label className="flex items-center gap-2 text-white/80">
+                        <Megaphone className="h-4 w-4 text-teal-300" />
+                        Parent lesson summaries
+                      </Label>
+                      <p className="text-xs text-white/50">
+                        Allow guardians to read teacher-written family summaries on published class
+                        lessons (from the parent portal).
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.lessonsModule.parentSummaryVisibleToParents}
+                      onCheckedChange={(checked) =>
+                        updateOperationalForm((current) => ({
+                          ...current,
+                          lessonsModule: { parentSummaryVisibleToParents: checked },
+                        }))
+                      }
+                    />
+                  </div>
+
                   <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
                       <Label className="flex items-center gap-2 text-white/80">

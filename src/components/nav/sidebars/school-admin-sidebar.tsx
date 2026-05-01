@@ -36,7 +36,7 @@ import {
   ClipboardList,
   Video,
   Lock,
-  ClipboardSignature,
+  ScrollText,
   Share2,
   Library,
   Bookmark,
@@ -48,6 +48,7 @@ import {
   History,
   Megaphone,
   ChevronDown,
+  ClipboardSignature,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -170,6 +171,16 @@ const navSections: NavSection[] = [
         label: "Lesson Notes",
         href: "/admin/lesson-notes",
         icon: FileText,
+      },
+      {
+        label: "Lesson analytics",
+        href: "/admin/lessons/analytics",
+        icon: BarChart3,
+      },
+      {
+        label: "Lesson audit log",
+        href: "/admin/lessons/audit",
+        icon: ScrollText,
       },
       {
         label: "Curriculum",

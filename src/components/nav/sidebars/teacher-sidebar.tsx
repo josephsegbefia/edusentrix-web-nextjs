@@ -33,9 +33,11 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   ClipboardList,
   Table2,
   ClipboardSignature,
+  Presentation,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -240,6 +242,11 @@ const navSections: NavSection[] = [
         href: "/teacher/lesson-notes",
         icon: FileText,
       },
+      {
+        label: "Lessons",
+        href: "/teacher/lessons",
+        icon: Presentation,
+      },
     ],
   },
   {
@@ -257,6 +264,26 @@ const navSections: NavSection[] = [
 const sidebarTooltipClasses =
   "bg-white/10 text-white ring-1 ring-white/10 rounded-xl backdrop-blur-md border-0 px-3 py-2.5 text-sm font-medium shadow-lg";
 
+const lessonNavChildren: Array<{
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  permission?: Permission;
+}> = [
+  {
+    label: "Lesson bank",
+    href: "/teacher/lessons/bank",
+    icon: Library,
+    permission: PERMISSIONS.journalView,
+  },
+  {
+    label: "Lesson analytics",
+    href: "/teacher/lessons/analytics",
+    icon: BarChart3,
+    permission: PERMISSIONS.journalView,
+  },
+];
+
 function NavContent({
   onItemClick,
   collapsed,
@@ -265,6 +292,7 @@ function NavContent({
   collapsed: boolean;
 }) {
   const pathname = usePathname();
+  const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>({});
   const { data } = useTeacherContext();
   const { data: subscription } = useSubscription();
   const permissions = data?.data.permissions as Permission[] | undefined;
@@ -300,6 +328,23 @@ function NavContent({
         .filter((section) => section.items.length > 0),
     [enabledFeatures, showStudio, homeroomClassGroupId, permissions]
   );
+
+  const filteredLessonNavChildren = React.useMemo(
+    () =>
+      lessonNavChildren.filter(
+        (item) => !item.permission || can(permissions, item.permission)
+      ),
+    [permissions]
+  );
+
+  React.useEffect(() => {
+    const inLessonsTree =
+      pathname === "/teacher/lessons" ||
+      pathname.startsWith("/teacher/lessons/");
+    if (inLessonsTree) {
+      setNavGroupExpanded((prev) => ({ ...prev, "/teacher/lessons": true }));
+    }
+  }, [pathname]);
 
   const delegationItems = React.useMemo(
     () => data?.data?.delegations ?? [],
@@ -344,6 +389,122 @@ function NavContent({
 
               <div className={cn("space-y-0.5", collapsed && "space-y-1.5")}>
                 {section.items.map(({ label, href, icon: Icon, exact }) => {
+                  if (href === "/teacher/lessons" && filteredLessonNavChildren.length > 0) {
+                    const inTree =
+                      pathname === href ||
+                      pathname.startsWith(`${href}/`) ||
+                      filteredLessonNavChildren.some(
+                        (child) =>
+                          pathname === child.href || pathname.startsWith(`${child.href}/`)
+                      );
+                    const expanded =
+                      navGroupExpanded[href] !== undefined
+                        ? navGroupExpanded[href]
+                        : inTree;
+                    const toggleGroup = () => {
+                      const current =
+                        navGroupExpanded[href] !== undefined ? navGroupExpanded[href] : inTree;
+                      setNavGroupExpanded((p) => ({ ...p, [href]: !current }));
+                    };
+
+                    if (collapsed) {
+                      return (
+                        <Tooltip key={href} delayDuration={0}>
+                          <TooltipTrigger asChild>
+                            <ActiveLink
+                              href={href}
+                              exact={false}
+                              onClick={onItemClick}
+                              className={cn(
+                                "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
+                                "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
+                                inTree &&
+                                  "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                              )}
+                              activeClassName="nav-active"
+                            >
+                              <Icon className="h-4 w-4 shrink-0" />
+                            </ActiveLink>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
+                            {label}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+
+                    return (
+                      <div key={href} className="space-y-0.5">
+                        <div className="flex min-w-0 items-stretch gap-0.5">
+                          <ActiveLink
+                            href={href}
+                            exact={exact}
+                            onClick={onItemClick}
+                            className={cn(
+                              premiumSideItem,
+                              "min-w-0 flex-1 pr-1",
+                              inTree && premiumSideItemActive
+                            )}
+                            activeClassName="nav-active"
+                          >
+                            <Icon className={cn("h-4 w-4 shrink-0", inTree && "text-emerald-300")} />
+                            <span className="truncate">{label}</span>
+                          </ActiveLink>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleGroup();
+                            }}
+                            className={cn(
+                              premiumSideItem,
+                              "w-9 shrink-0 justify-center px-0 text-white/50 hover:text-white"
+                            )}
+                            aria-expanded={expanded}
+                            aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "h-4 w-4 transition-transform duration-200",
+                                !expanded && "-rotate-90"
+                              )}
+                            />
+                          </button>
+                        </div>
+                        {expanded ? (
+                          <div className="relative ml-3.5 space-y-0.5 border-l border-white/10 pl-3">
+                            {filteredLessonNavChildren.map((child) => {
+                              const ChildIcon = child.icon;
+                              const childActive =
+                                pathname === child.href || pathname.startsWith(`${child.href}/`);
+                              return (
+                                <ActiveLink
+                                  key={child.href}
+                                  href={child.href}
+                                  onClick={onItemClick}
+                                  className={cn(
+                                    premiumSideItem,
+                                    "text-[13px]",
+                                    childActive && premiumSideItemActive
+                                  )}
+                                  activeClassName="nav-active"
+                                >
+                                  <ChildIcon
+                                    className={cn(
+                                      "h-3.5 w-3.5 shrink-0",
+                                      childActive && "text-emerald-300"
+                                    )}
+                                  />
+                                  <span className="truncate">{child.label}</span>
+                                </ActiveLink>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  }
+
                   const active =
                     exact
                       ? pathname === href

@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/premium-dropdown-menu";
 import { useSubjectDetail, useUnassignTeacher, type SubjectDTO } from "@/hooks/admin/useSubjects";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { AssignTeacherToSubjectModal } from "@/components/modals/AssignTeacherToSubjectModal";
 import { AssignSubjectToClassesModal } from "@/components/modals/AssignSubjectToClassesModal";
 import { CreateSubjectModal } from "@/components/modals/CreateSubjectModal";
@@ -60,6 +61,7 @@ function SubjectDetailContent() {
 
   const subjectId = params?.subjectId;
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const unassignTeacher = useUnassignTeacher(subjectId);
   const [assignTeacherModalOpen, setAssignTeacherModalOpen] = React.useState(false);
   const [assignClassesModalOpen, setAssignClassesModalOpen] = React.useState(false);
@@ -635,12 +637,13 @@ function SubjectDetailContent() {
                         <PremiumDropdownMenuItem
                           icon={<Trash2 className="h-3.5 w-3.5" />}
                           onClick={async () => {
-                            if (
-                              !window.confirm(
-                                `Remove ${teacher.fullName} from teaching ${subject?.name} in ${teacher.className}? This will also remove the class from Assigned Classes if no other teacher is assigned.`
-                              )
-                            )
-                              return;
+                            const decision = await confirm({
+                              title: "Remove teacher assignment?",
+                              description: `Remove ${teacher.fullName} from teaching ${subject?.name} in ${teacher.className}. This also removes the class from Assigned Classes if no other teacher is assigned.`,
+                              confirmLabel: "Remove assignment",
+                              intent: "destructive",
+                            });
+                            if (decision !== "confirm") return;
                             try {
                               await busy.promise(
                                 unassignTeacher.mutateAsync(teacher.assignmentId),
@@ -689,6 +692,7 @@ function SubjectDetailContent() {
         onOpenChange={setAssignClassesModalOpen}
         subject={subjectForAssign}
       />
+      {confirmationDialog}
     </div>
   );
 }

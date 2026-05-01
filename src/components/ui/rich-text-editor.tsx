@@ -35,6 +35,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { usePromptDialog } from "@/hooks/usePromptDialog";
 
 // ============================================================================
 // Types
@@ -116,11 +117,18 @@ interface EditorToolbarProps {
 }
 
 function EditorToolbar({ editor, variant }: EditorToolbarProps) {
-  if (!editor) return null;
+  const { prompt, promptDialog } = usePromptDialog();
 
-  const setLink = React.useCallback(() => {
+  const setLink = React.useCallback(async () => {
+    if (!editor) return;
     const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("URL", previousUrl);
+    const url = await prompt({
+      title: "Set link",
+      inputLabel: "URL",
+      placeholder: "https://example.com",
+      defaultValue: previousUrl,
+      confirmLabel: "Apply link",
+    });
 
     if (url === null) return;
 
@@ -130,9 +138,12 @@ function EditorToolbar({ editor, variant }: EditorToolbarProps) {
     }
 
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  }, [editor]);
+  }, [editor, prompt]);
+
+  if (!editor) return null;
 
   return (
+    <>
     <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-white/10 bg-white/5 px-2 py-1.5">
       {/* History */}
       <ToolbarButton
@@ -287,6 +298,8 @@ function EditorToolbar({ editor, variant }: EditorToolbarProps) {
         </>
       )}
     </div>
+    {promptDialog}
+    </>
   );
 }
 

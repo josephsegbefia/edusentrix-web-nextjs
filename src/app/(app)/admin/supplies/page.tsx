@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import { formatMoney } from "@/lib/fees/money";
 import { SupplyProgramWizard } from "@/components/admin/supply-programs/SupplyProgramWizard";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { cn } from "@/lib/utils";
 
 type ProgramRow = {
@@ -148,6 +149,7 @@ function audienceLabel(value: string) {
 }
 
 export default function AdminSupplyProgramsPage() {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [programs, setPrograms] = React.useState<ProgramRow[]>([]);
   const [options, setOptions] = React.useState<FormOptions | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -248,7 +250,13 @@ export default function AdminSupplyProgramsPage() {
   }
 
   async function deleteProgram(p: ProgramRow) {
-    if (!confirm(`Delete program "${p.name}"?`)) return;
+    const decision = await confirm({
+      title: "Delete supply program?",
+      description: `Delete "${p.name}" and remove it from this setup? This cannot be undone.`,
+      confirmLabel: "Delete program",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     try {
       const res = await fetch(`/api/admin/supply-programs/${p.id}`, {
         method: "DELETE",
@@ -296,7 +304,13 @@ export default function AdminSupplyProgramsPage() {
 
   async function deleteLine(line: LineRow) {
     if (!selectedId) return;
-    if (!confirm("Remove this line?")) return;
+    const decision = await confirm({
+      title: "Remove supply line?",
+      description: `Remove "${line.productName}" from this supply program.`,
+      confirmLabel: "Remove line",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     try {
       const res = await fetch(
         `/api/admin/supply-programs/${selectedId}/lines/${line.id}`,
@@ -741,6 +755,7 @@ export default function AdminSupplyProgramsPage() {
           </CardContent>
         </Card>
       ) : null}
+      {confirmationDialog}
     </div>
   );
 }

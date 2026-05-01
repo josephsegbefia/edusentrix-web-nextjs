@@ -51,6 +51,7 @@ import { ClassDistributionList } from "@/components/admin/students/ClassDistribu
 import { GradeDetailTabs, type GradeDetailTabId } from "@/components/admin/grades/GradeDetailTabs";
 import { GradeFeesSection } from "@/components/admin/grades/GradeFeesSection";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import type { CreateClassInput } from "@/components/modals/CreateClassModal";
 import { cn } from "@/lib/utils";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
@@ -150,6 +151,7 @@ function PreschoolLearningAreasPanel({
   gradeName: string;
 }) {
   const busy = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data, isLoading } = useGradeLearningAreas(gradeId, true);
   const saveMutation = useSaveGradeLearningAreas(gradeId);
   const clearMutation = useClearGradeLearningAreas(gradeId);
@@ -198,10 +200,13 @@ function PreschoolLearningAreasPanel({
   }
 
   async function clearLearningAreas() {
-    const ok = window.confirm(
-      `Clear all attached learning areas and subjects from classes in ${gradeName}?`
-    );
-    if (!ok) return;
+    const decision = await confirm({
+      title: "Clear learning areas?",
+      description: `This will remove all attached learning areas and subjects from active classes in ${gradeName}. You can save the recommended learning areas again afterwards.`,
+      confirmLabel: "Clear attached areas",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     await busy.promise(clearMutation.mutateAsync(), {
       loading: "Clearing learning areas...",
       success: "Attached areas cleared",
@@ -210,6 +215,7 @@ function PreschoolLearningAreasPanel({
   }
 
   return (
+    <>
     <Card className="relative overflow-hidden rounded-xl border border-teal-500/20 bg-linear-to-br from-slate-900/90 via-slate-950/90 to-black shadow-2xl shadow-black/40 sm:rounded-2xl">
       <CardHeader className="relative z-10 border-b border-white/5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -359,6 +365,8 @@ function PreschoolLearningAreasPanel({
         )}
       </CardContent>
     </Card>
+    {confirmationDialog}
+    </>
   );
 }
 

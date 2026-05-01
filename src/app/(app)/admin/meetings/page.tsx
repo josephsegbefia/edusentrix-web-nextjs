@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/premium-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { cn } from "@/lib/utils";
 import { DelegateModuleBanner } from "@/components/delegations/DelegateModuleBanner";
 import type { MeetingsCapabilities } from "@/lib/meetings/meetings-capabilities";
@@ -452,6 +453,7 @@ function SelectedParticipantPreview({
 }
 
 export default function AdminMeetingsPage() {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [capabilities, setCapabilities] = React.useState<MeetingsCapabilities | null>(
     null
   );
@@ -903,13 +905,13 @@ export default function AdminMeetingsPage() {
   };
 
   const handleDeleteCancelledMeeting = async (meetingId: string, title: string) => {
-    if (
-      !window.confirm(
-        `Permanently remove “${title}” from the queue? This also deletes the linked calendar entry and invite records.`
-      )
-    ) {
-      return;
-    }
+    const decision = await confirm({
+      title: "Permanently remove meeting?",
+      description: `Remove "${title}" from the queue. This also deletes the linked calendar entry and invite records.`,
+      confirmLabel: "Remove meeting",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
 
     setDeletingMeetingId(meetingId);
     try {
@@ -1652,6 +1654,7 @@ export default function AdminMeetingsPage() {
           </CardContent>
         </Card>
       </div>
+      {confirmationDialog}
     </div>
   );
 }

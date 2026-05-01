@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useTeacherRubrics, type RubricSummary } from "@/hooks/teacher/useTeacherRubrics";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,6 +84,7 @@ function rubricTotalWeight(criteria: Criterion[]) {
 
 export default function TeacherRubricsPage() {
   const busyToast = useBusyToast();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: contextData } = useTeacherContext();
   const permissions = contextData?.data.permissions as Permission[] | undefined;
   const canManageRubrics = can(permissions, PERMISSIONS.assignmentsCreate);
@@ -241,10 +243,13 @@ export default function TeacherRubricsPage() {
   };
 
   const deleteRubric = async (id: string) => {
-    if (typeof window !== "undefined") {
-      const confirmed = window.confirm("Delete this rubric? This action cannot be undone.");
-      if (!confirmed) return;
-    }
+    const decision = await confirm({
+      title: "Delete rubric?",
+      description: "This rubric will be permanently deleted. This action cannot be undone.",
+      confirmLabel: "Delete rubric",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
 
     await busyToast.promise(
       fetch(`/api/teacher/studio/rubrics/${id}`, { method: "DELETE" }).then(async (res) => {
@@ -589,6 +594,7 @@ export default function TeacherRubricsPage() {
           </Card>
         </div>
       </div>
+      {confirmationDialog}
     </div>
   );
 }

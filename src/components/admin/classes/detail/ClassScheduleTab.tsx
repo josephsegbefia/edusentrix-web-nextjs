@@ -19,6 +19,7 @@ import {
   useClassPublishedTimetable,
   useDeleteClassPublishedTimetable,
 } from "@/hooks/admin/useClassPublishedTimetable";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { isTimetableRebootEnabled } from "@/lib/timetable/feature-flags";
 
 type ClassScheduleTabProps = {
@@ -33,6 +34,7 @@ type ClassScheduleTabProps = {
  * class view.
  */
 export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleTabProps) {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const [periodId, setPeriodId] = React.useState<string>("");
   const [view, setView] = React.useState<"published" | "edit">("published");
 
@@ -106,13 +108,14 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
 
   const onDeletePublished = async () => {
     if (!canManage) return;
-    if (
-      !window.confirm(
-        "Remove this class’s lessons from the published school timetable? Other classes are not affected. You can rebuild from the editor afterwards."
-      )
-    ) {
-      return;
-    }
+    const decision = await confirm({
+      title: "Remove published timetable?",
+      description:
+        "Remove this class's lessons from the published school timetable. Other classes are not affected, and you can rebuild from the editor afterwards.",
+      confirmLabel: "Remove timetable",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
     try {
       await deletePublished.mutateAsync(periodId);
       toast.success("This class was removed from the published timetable.");
@@ -174,6 +177,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
           dayScheduleSegments={p.dayScheduleSegments ?? []}
           calendarKey={periodId}
         />
+        {confirmationDialog}
       </div>
     );
   }
@@ -195,6 +199,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
         academicPeriodId={periodId}
         onAcademicPeriodIdChange={setPeriodId}
       />
+      {confirmationDialog}
     </div>
   );
 }

@@ -9,6 +9,9 @@ export type TeacherLessonUpdateInput = {
   teachingMode?: LessonTeachingModeDto;
   /** Caregiver-facing HTML; omit to leave unchanged. Pass null to clear. */
   parentSummaryHtml?: string | null;
+  /** Owner-only; validated against school scheme settings and class/subject. */
+  schemeId?: string | null;
+  schemeItemIds?: string[] | null;
 };
 
 export function useTeacherLessonUpdate() {

@@ -63,6 +63,10 @@ export interface ILesson {
    */
   collaboratorTeacherIds?: Types.ObjectId[];
 
+  /** Copied from lesson note / editable on lesson; optional curriculum alignment. */
+  schemeId?: Types.ObjectId;
+  schemeItemIds?: Types.ObjectId[];
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,6 +116,8 @@ const lessonSchema = new Schema<ILesson>(
     teachingMode: { type: lessonTeachingModeSchema, default: null },
     parentSummaryHtml: { type: String, default: null, maxlength: 48_000 },
     collaboratorTeacherIds: [{ type: Schema.Types.ObjectId, ref: "Teacher", index: true }],
+    schemeId: { type: Schema.Types.ObjectId, ref: "SchemeOfWork", index: true },
+    schemeItemIds: [{ type: Schema.Types.ObjectId, ref: "SchemeItem", index: true }],
   },
   { timestamps: true }
 );
@@ -119,6 +125,7 @@ const lessonSchema = new Schema<ILesson>(
 lessonSchema.index({ schoolId: 1, teacherId: 1, updatedAt: -1 });
 lessonSchema.index({ schoolId: 1, lessonNoteId: 1, createdAt: -1 });
 lessonSchema.index({ schoolId: 1, classGroupId: 1, status: 1 });
+lessonSchema.index({ schoolId: 1, schemeId: 1 });
 
 export const Lesson: Model<ILesson> =
   (models.Lesson as Model<ILesson>) || model<ILesson>("Lesson", lessonSchema);

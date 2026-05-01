@@ -12,6 +12,7 @@ import { recordLessonAudit } from "@/lib/lessons/lesson-audit";
 import { Student } from "@/models/Student";
 import { StudentLessonProgress } from "@/models/StudentLessonProgress";
 import { completionRatioPercent } from "@/lib/lessons/completion-percent";
+import { resolveLessonNoteSchemeFields } from "@/lib/lesson-notes/validate-lesson-note-scheme";
 
 const CreateLessonBodySchema = z.object({
   lessonNoteId: z.string().min(1),
@@ -211,10 +212,16 @@ export async function POST(req: Request) {
       schoolId: context.schoolId,
       teacherId: context.teacherId,
     })
-      .select("_id classGroupId subjectId academicPeriodId topic")
+      .select("_id classGroupId subjectId academicPeriodId topic schemeId schemeItemIds")
       .lean()) as Pick<
       ILessonNote,
-      "_id" | "classGroupId" | "subjectId" | "academicPeriodId" | "topic"
+      | "_id"
+      | "classGroupId"
+      | "subjectId"
+      | "academicPeriodId"
+      | "topic"
+      | "schemeId"
+      | "schemeItemIds"
     > | null;
 
     if (!note) {
@@ -249,6 +256,25 @@ export async function POST(req: Request) {
 
     const title = parsed.data.title?.trim() || note.topic;
 
+    let schemeOid: mongoose.Types.ObjectId | undefined;
+    let schemeItemOids: mongoose.Types.ObjectId[] | undefined;
+    if (note.schemeId) {
+      const resolved = await resolveLessonNoteSchemeFields({
+        schoolId: context.schoolId,
+        teacherId: context.teacherId,
+        classGroupId: note.classGroupId,
+        subjectId: note.subjectId,
+        schemeId: String(note.schemeId),
+        schemeItemIds: note.schemeItemIds?.map((id) => String(id)) ?? [],
+      });
+      if (resolved.ok && resolved.schemeObjectId) {
+        schemeOid = resolved.schemeObjectId;
+        if (resolved.schemeItemObjectIds.length > 0) {
+          schemeItemOids = resolved.schemeItemObjectIds;
+        }
+      }
+    }
+
     const created = await Lesson.create({
       schoolId: context.schoolId,
       teacherId: context.teacherId,
@@ -259,6 +285,8 @@ export async function POST(req: Request) {
       title,
       scheduledAt,
       status: "draft",
+      ...(schemeOid ? { schemeId: schemeOid } : {}),
+      ...(schemeItemOids ? { schemeItemIds: schemeItemOids } : {}),
     });
 
     void recordLessonAudit({

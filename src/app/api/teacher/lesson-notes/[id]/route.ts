@@ -17,6 +17,10 @@ import {
   formatUserDisplayName,
   getLessonNoteReviewSections,
 } from "@/lib/lesson-notes/review";
+import {
+  assertLessonNoteRequiresSchemeLink,
+  resolveLessonNoteSchemeFields,
+} from "@/lib/lesson-notes/validate-lesson-note-scheme";
 
 // ============================================================================
 // Zod Schemas (same as in route.ts, but all optional for PATCH)
@@ -182,6 +186,9 @@ const UpdateLessonNoteSchema = z.object({
   // Legacy fields
   objectives: z.string().max(2000).optional().nullable(),
   content: z.string().max(8000).optional().nullable(),
+
+  schemeId: z.string().optional().nullable(),
+  schemeItemIds: z.array(z.string()).optional().nullable(),
 });
 
 // ============================================================================
@@ -274,6 +281,8 @@ function formatLessonNoteResponse(
     // Timestamps
     createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
     updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
+    schemeId: entry.schemeId ? String(entry.schemeId) : null,
+    schemeItemIds: (entry.schemeItemIds || []).map((id) => String(id)),
     reviewComments,
     openCommentCount: countOpenReviewComments(reviewComments as never[]),
   };
@@ -466,8 +475,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       schoolId: context.schoolId,
       teacherId: context.teacherId,
     })
-      .select("classGroupId subjectId status templateType")
-      .lean() as Pick<ILessonNote, "classGroupId" | "subjectId" | "status" | "templateType"> | null;
+      .select("classGroupId subjectId status templateType schemeId schemeItemIds")
+      .lean() as Pick<
+      ILessonNote,
+      "classGroupId" | "subjectId" | "status" | "templateType" | "schemeId" | "schemeItemIds"
+    > | null;
 
     if (!existing) {
       return Response.json({ success: false, error: "Lesson note not found" }, { status: 404 });
@@ -526,6 +538,86 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if (!assignment) {
         return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
       }
+    }
+
+    if (
+      (parsed.data.classGroupId || "subjectId" in parsed.data) &&
+      existing.schemeId
+    ) {
+      const revalidate = await resolveLessonNoteSchemeFields({
+        schoolId: context.schoolId,
+        teacherId: context.teacherId,
+        classGroupId: classGroupObjId,
+        subjectId: subjectObjId,
+        schemeId: String(existing.schemeId),
+        schemeItemIds: existing.schemeItemIds?.map((id) => String(id)) ?? [],
+      });
+      if (!revalidate.ok) {
+        return Response.json(
+          { success: false, error: revalidate.error },
+          { status: revalidate.status }
+        );
+      }
+    }
+
+    const touchedScheme =
+      "schemeId" in parsed.data || "schemeItemIds" in parsed.data;
+
+    let resolvedScheme: {
+      schemeObjectId: mongoose.Types.ObjectId | null;
+      schemeItemObjectIds: mongoose.Types.ObjectId[];
+    } | null = null;
+
+    if (touchedScheme) {
+      const schemeStr =
+        parsed.data.schemeId !== undefined
+          ? parsed.data.schemeId
+          : existing.schemeId
+            ? String(existing.schemeId)
+            : null;
+      const itemStrs =
+        parsed.data.schemeItemIds !== undefined
+          ? parsed.data.schemeItemIds ?? []
+          : existing.schemeItemIds?.map((id) => String(id)) ?? [];
+
+      const schemeResolution = await resolveLessonNoteSchemeFields({
+        schoolId: context.schoolId,
+        teacherId: context.teacherId,
+        classGroupId: classGroupObjId,
+        subjectId: subjectObjId,
+        schemeId: schemeStr,
+        schemeItemIds: schemeStr ? itemStrs : [],
+      });
+
+      if (!schemeResolution.ok) {
+        return Response.json(
+          { success: false, error: schemeResolution.error },
+          { status: schemeResolution.status }
+        );
+      }
+      resolvedScheme = schemeResolution;
+
+      if (!schemeResolution.schemeObjectId) {
+        unsetData.schemeId = "";
+        unsetData.schemeItemIds = "";
+      } else {
+        updateData.schemeId = schemeResolution.schemeObjectId;
+        updateData.schemeItemIds = schemeResolution.schemeItemObjectIds;
+      }
+    }
+
+    const nextStatusForPolicy =
+      parsed.data.status ?? existing.status;
+    const finalSchemeIdForPolicy: mongoose.Types.ObjectId | null = touchedScheme
+      ? resolvedScheme?.schemeObjectId ?? null
+      : (existing.schemeId as mongoose.Types.ObjectId | undefined) ?? null;
+    const policy = await assertLessonNoteRequiresSchemeLink({
+      schoolId: context.schoolId,
+      nextStatus: nextStatusForPolicy,
+      schemeIdAfter: finalSchemeIdForPolicy,
+    });
+    if (!policy.ok) {
+      return Response.json({ success: false, error: policy.error }, { status: policy.status });
     }
 
     // Basic fields

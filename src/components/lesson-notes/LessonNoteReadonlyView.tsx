@@ -201,6 +201,17 @@ function ContextSection({ note }: { note: LessonNoteDetail }) {
         <div className="mt-2 text-lg font-semibold text-white">{note.topic || "—"}</div>
       </div>
 
+      {note.schemeId ? (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-100/90">
+          Linked to a scheme of work.
+          {(note.schemeItemIds?.length ?? 0) > 0 ? (
+            <span className="mt-1 block text-xs text-white/55">
+              {note.schemeItemIds!.length} scheme item(s) tagged
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
         <Badge className="bg-indigo-500/20 text-indigo-200">
           {TEMPLATE_LABELS[note.templateType]}

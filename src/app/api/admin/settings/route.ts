@@ -56,6 +56,18 @@ const LessonsModuleSettingsPatchSchema = z.object({
   parentSummaryVisibleToParents: z.boolean(),
 });
 
+const AcademicPlanningSettingsPatchSchema = z.object({
+  enableSchemeOfWork: z.boolean(),
+  requireSchemeLinkForLessonNotes: z.boolean(),
+  allowTeacherSchemeCreation: z.boolean(),
+  requireSchemeApproval: z.boolean(),
+  allowSchemeImport: z.boolean(),
+  allowPdfSchemeImport: z.boolean(),
+  allowAiSchemeDrafting: z.boolean(),
+  defaultSchemeApprovalRole: z.enum(["school_admin", "academic_head", "department_head"]),
+  coverageUpdateMode: z.enum(["manual", "suggested", "automatic"]),
+});
+
 const UpdateSettingsSchema = z
   .object({
     assembly: AssemblyConfigSchema.nullable().optional(),
@@ -70,6 +82,7 @@ const UpdateSettingsSchema = z
     offlineMode: OfflineModeSchema.optional(),
     promotions: PromotionsAutomationSchema.optional(),
     lessonsModule: LessonsModuleSettingsPatchSchema.optional(),
+    academicPlanning: AcademicPlanningSettingsPatchSchema.optional(),
   });
 
 function asArray<T>(value: unknown): T[] {
@@ -136,6 +149,30 @@ function serializeSettings(settings: Record<string, unknown>) {
         | undefined) || {
         parentSummaryVisibleToParents: false,
       },
+    academicPlanning:
+      (settings.academicPlanning as
+        | {
+            enableSchemeOfWork?: boolean;
+            requireSchemeLinkForLessonNotes?: boolean;
+            allowTeacherSchemeCreation?: boolean;
+            requireSchemeApproval?: boolean;
+            allowSchemeImport?: boolean;
+            allowPdfSchemeImport?: boolean;
+            allowAiSchemeDrafting?: boolean;
+            defaultSchemeApprovalRole?: "school_admin" | "academic_head" | "department_head";
+            coverageUpdateMode?: "manual" | "suggested" | "automatic";
+          }
+        | undefined) || {
+        enableSchemeOfWork: false,
+        requireSchemeLinkForLessonNotes: false,
+        allowTeacherSchemeCreation: true,
+        requireSchemeApproval: true,
+        allowSchemeImport: true,
+        allowPdfSchemeImport: false,
+        allowAiSchemeDrafting: false,
+        defaultSchemeApprovalRole: "school_admin",
+        coverageUpdateMode: "manual",
+      },
     updatedAt: settings.updatedAt ? new Date(settings.updatedAt as string).toISOString() : null,
   };
 }
@@ -173,6 +210,17 @@ function buildDefaultSettingsDoc(schoolId: mongoose.Types.ObjectId) {
     },
     lessonsModule: {
       parentSummaryVisibleToParents: false,
+    },
+    academicPlanning: {
+      enableSchemeOfWork: false,
+      requireSchemeLinkForLessonNotes: false,
+      allowTeacherSchemeCreation: true,
+      requireSchemeApproval: true,
+      allowSchemeImport: true,
+      allowPdfSchemeImport: false,
+      allowAiSchemeDrafting: false,
+      defaultSchemeApprovalRole: "school_admin",
+      coverageUpdateMode: "manual",
     },
     leo: { ...DEFAULT_SCHOOL_LEO_SETTINGS },
   };

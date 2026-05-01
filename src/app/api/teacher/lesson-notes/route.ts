@@ -11,6 +11,10 @@ import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { normalizeLessonNoteRequestBody } from "@/lib/lesson-notes/normalize-payload";
+import {
+  assertLessonNoteRequiresSchemeLink,
+  resolveLessonNoteSchemeFields,
+} from "@/lib/lesson-notes/validate-lesson-note-scheme";
 
 // ============================================================================
 // Zod Schemas
@@ -178,6 +182,9 @@ const LessonNoteSchema = z.object({
   // Legacy fields (for backwards compatibility)
   objectives: z.string().max(2000).optional().nullable(),
   content: z.string().max(8000).optional().nullable(),
+
+  schemeId: z.string().optional().nullable(),
+  schemeItemIds: z.array(z.string()).optional().nullable(),
 });
 
 // ============================================================================
@@ -265,6 +272,8 @@ function formatLessonNoteResponse(
     // Timestamps
     createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
     updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
+    schemeId: entry.schemeId ? String(entry.schemeId) : null,
+    schemeItemIds: (entry.schemeItemIds || []).map((id) => String(id)),
   };
 }
 
@@ -515,6 +524,9 @@ export async function POST(req: Request) {
       // Legacy fields
       objectives,
       content,
+
+      schemeId: schemeIdRaw,
+      schemeItemIds: schemeItemsRaw,
     } = parsed.data;
 
     const classGroupObjId = toObjectIdOrNull(classGroupId);
@@ -546,6 +558,30 @@ export async function POST(req: Request) {
       if (!assignment) {
         return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
       }
+    }
+
+    const schemeResolution = await resolveLessonNoteSchemeFields({
+      schoolId: context.schoolId,
+      teacherId: context.teacherId,
+      classGroupId: classGroupObjId,
+      subjectId: subjectObjId,
+      schemeId: schemeIdRaw ?? null,
+      schemeItemIds: schemeItemsRaw ?? null,
+    });
+    if (!schemeResolution.ok) {
+      return Response.json(
+        { success: false, error: schemeResolution.error },
+        { status: schemeResolution.status }
+      );
+    }
+
+    const schemePolicy = await assertLessonNoteRequiresSchemeLink({
+      schoolId: context.schoolId,
+      nextStatus: status || "draft",
+      schemeIdAfter: schemeResolution.schemeObjectId,
+    });
+    if (!schemePolicy.ok) {
+      return Response.json({ success: false, error: schemePolicy.error }, { status: schemePolicy.status });
     }
 
     const weekDate = normalizeWeekOf(new Date(weekOf));
@@ -654,6 +690,12 @@ export async function POST(req: Request) {
       // Legacy fields (for backwards compatibility) - always provide a value
       objectives: legacyObjectives,
       content: legacyContent || topic, // Use topic as fallback content
+
+      schemeId: schemeResolution.schemeObjectId ?? undefined,
+      schemeItemIds:
+        schemeResolution.schemeItemObjectIds.length > 0
+          ? schemeResolution.schemeItemObjectIds
+          : undefined,
     });
 
     return Response.json({

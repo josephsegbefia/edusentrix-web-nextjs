@@ -199,6 +199,19 @@ export interface ISchoolSettings {
     parentSummaryVisibleToParents: boolean;
   };
 
+  /** Curriculum & Scheme of Work module settings */
+  academicPlanning?: {
+    enableSchemeOfWork: boolean;
+    requireSchemeLinkForLessonNotes: boolean;
+    allowTeacherSchemeCreation: boolean;
+    requireSchemeApproval: boolean;
+    allowSchemeImport: boolean;
+    allowPdfSchemeImport: boolean;
+    allowAiSchemeDrafting: boolean;
+    defaultSchemeApprovalRole: "school_admin" | "academic_head" | "department_head";
+    coverageUpdateMode: "manual" | "suggested" | "automatic";
+  };
+
   // Feature Flags
   teacherStudio?: {
     enabled: boolean;
@@ -465,6 +478,29 @@ const LessonsModuleSettingsSchema = new Schema(
   { _id: false }
 );
 
+const AcademicPlanningSettingsSchema = new Schema(
+  {
+    enableSchemeOfWork: { type: Boolean, default: false },
+    requireSchemeLinkForLessonNotes: { type: Boolean, default: false },
+    allowTeacherSchemeCreation: { type: Boolean, default: true },
+    requireSchemeApproval: { type: Boolean, default: true },
+    allowSchemeImport: { type: Boolean, default: true },
+    allowPdfSchemeImport: { type: Boolean, default: false },
+    allowAiSchemeDrafting: { type: Boolean, default: false },
+    defaultSchemeApprovalRole: {
+      type: String,
+      enum: ["school_admin", "academic_head", "department_head"],
+      default: "school_admin",
+    },
+    coverageUpdateMode: {
+      type: String,
+      enum: ["manual", "suggested", "automatic"],
+      default: "manual",
+    },
+  },
+  { _id: false }
+);
+
 const SchoolSettingsSchema = new Schema<ISchoolSettings>(
   {
     schoolId: {
@@ -591,6 +627,7 @@ const SchoolSettingsSchema = new Schema<ISchoolSettings>(
     leo: { type: SchoolLeoSettingsSchema, default: undefined },
 
     lessonsModule: { type: LessonsModuleSettingsSchema, default: undefined },
+    academicPlanning: { type: AcademicPlanningSettingsSchema, default: undefined },
 
     // Feature Flags
     teacherStudio: {

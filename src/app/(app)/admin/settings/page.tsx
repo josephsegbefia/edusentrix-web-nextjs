@@ -325,7 +325,7 @@ function SettingsPageContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 max-w-full space-y-6">
       {/* Page Header */}
       <div className="relative">
         <div
@@ -410,7 +410,7 @@ function SettingsPageContent() {
 
       {/* Tab Content */}
       {formData && (
-        <div className="space-y-6">
+        <div className="min-w-0 max-w-full space-y-6">
           {activeTab === "school" && (
             <div className="space-y-4">
               <SchoolIdentitySettingsCard />

@@ -11,6 +11,7 @@ import {
   CalendarDays,
   MonitorPlay,
   Users,
+  ListTree,
 } from "lucide-react";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
@@ -293,6 +294,28 @@ export default function TeacherLessonDetailPage() {
           </div>
         </div>
       </div>
+
+      {lesson.schemeId ? (
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-sm">
+          <ListTree className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+          <div>
+            <p className="font-medium text-white">Scheme alignment</p>
+            <p className="mt-0.5 text-white/65">
+              This lesson is linked to a scheme of work
+              {(lesson.schemeItemIds?.length ?? 0) > 0
+                ? ` · ${lesson.schemeItemIds!.length} item(s) tagged`
+                : ""}
+              .
+            </p>
+            <Link
+              href="/teacher/schemes"
+              className="mt-2 inline-flex text-xs font-medium text-emerald-200/90 underline-offset-4 hover:underline"
+            >
+              Open schemes
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader>

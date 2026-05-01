@@ -11,6 +11,7 @@ import {
   buildSchoolUserAuditContext,
   resolveAuditIdempotencyKey,
 } from "@/lib/audit/fromApiRoute";
+import { assertLessonNoteRequiresSchemeLink } from "@/lib/lesson-notes/validate-lesson-note-scheme";
 
 // ============================================================================
 // Zod Schemas
@@ -104,7 +105,7 @@ export async function POST(
       _id: noteId,
       schoolId: context.schoolId,
     })
-      .select("teacherId status submittedAt approvedAt approvedBy rejectionReason")
+      .select("teacherId status submittedAt approvedAt approvedBy rejectionReason schemeId")
       .lean()) as Pick<
       ILessonNote,
       | "teacherId"
@@ -113,6 +114,7 @@ export async function POST(
       | "approvedAt"
       | "approvedBy"
       | "rejectionReason"
+      | "schemeId"
     > | null;
 
     if (!note) {
@@ -149,6 +151,18 @@ export async function POST(
             error: `Cannot submit a note with status: ${note.status}`,
           },
           { status: 400 }
+        );
+      }
+
+      const schemePolicy = await assertLessonNoteRequiresSchemeLink({
+        schoolId: context.schoolId,
+        nextStatus: "submitted",
+        schemeIdAfter: (note.schemeId as mongoose.Types.ObjectId | undefined) ?? null,
+      });
+      if (!schemePolicy.ok) {
+        return Response.json(
+          { success: false, error: schemePolicy.error },
+          { status: schemePolicy.status }
         );
       }
 

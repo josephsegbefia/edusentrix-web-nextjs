@@ -38,6 +38,7 @@ import {
   Table2,
   ClipboardSignature,
   Presentation,
+  PieChart,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -246,6 +247,18 @@ const navSections: NavSection[] = [
         label: "Lessons",
         href: "/teacher/lessons",
         icon: Presentation,
+      },
+      {
+        label: "Schemes of Work",
+        href: "/teacher/schemes",
+        icon: ClipboardList,
+        permission: PERMISSIONS.schemeOfWorkRead,
+      },
+      {
+        label: "Coverage",
+        href: "/teacher/coverage",
+        icon: PieChart,
+        permission: PERMISSIONS.schemeOfWorkRead,
       },
     ],
   },

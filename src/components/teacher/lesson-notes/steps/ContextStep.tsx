@@ -18,6 +18,7 @@ import type { LessonNoteFormData, LessonNoteTemplateType } from "@/types/lesson-
 import type { ClassOption } from "../LessonNoteWizard";
 import type { RefinedContextGenerated } from "@/hooks/teacher/useTeacherAIGenerate";
 import type { CurriculumCode } from "@/constants/curriculum-profiles";
+import { LessonNoteSchemeLinkPanel } from "../LessonNoteSchemeLinkPanel";
 
 type ContextStepProps = {
   formData: LessonNoteFormData;
@@ -213,6 +214,8 @@ export function ContextStep({
           className="border-white/10 bg-white/5 text-white"
         />
       </div>
+
+      <LessonNoteSchemeLinkPanel formData={formData} onUpdate={onUpdate} />
     </div>
   );
 }

@@ -329,6 +329,10 @@ export interface LessonNote {
   content?: string;
   objectives?: string;
 
+  /** Optional scheme of work alignment (Phase 2). */
+  schemeId?: string | null;
+  schemeItemIds?: string[];
+
   // Timestamps
   createdAt: string;
   updatedAt: string;
@@ -358,6 +362,9 @@ export interface LessonNoteFormData {
   resources: LessonNoteResource[];
   tags: string[];
   status: LessonNoteStatus;
+
+  schemeId?: string | null;
+  schemeItemIds?: string[];
 }
 
 export const DEFAULT_FORM_DATA: Omit<LessonNoteFormData, "classGroupId"> = {
@@ -380,6 +387,8 @@ export const DEFAULT_FORM_DATA: Omit<LessonNoteFormData, "classGroupId"> = {
   resources: [],
   tags: [],
   status: "draft",
+  schemeId: undefined,
+  schemeItemIds: [],
 };
 
 // ============================================================================
@@ -410,6 +419,9 @@ export interface CreateLessonNotePayload {
   // Legacy fields
   content?: string;
   objectives?: string;
+
+  schemeId?: string | null;
+  schemeItemIds?: string[] | null;
 }
 
 export interface UpdateLessonNotePayload extends Partial<CreateLessonNotePayload> {

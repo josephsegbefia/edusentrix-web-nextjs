@@ -1,0 +1,68 @@
+import { Schema, model, models, type Model, type Types } from "mongoose";
+
+export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
+
+export interface ISchemeImportParsedRow {
+  rowIndex: number;
+  weekNumber: number | null;
+  title: string;
+  learningObjective: string | null;
+  notes: string | null;
+  skipped: boolean;
+  errors: string[];
+}
+
+export interface ISchemeImportJob {
+  _id: Types.ObjectId;
+  schoolId: Types.ObjectId;
+  createdByUserId: Types.ObjectId;
+  status: SchemeImportJobStatus;
+  fileName: string;
+  fileUrl?: string | null;
+  /** UploadThing key when applicable */
+  fileKey?: string | null;
+  parseError?: string | null;
+  parsedRows: ISchemeImportParsedRow[];
+  resultSchemeId?: Types.ObjectId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const parsedRowSchema = new Schema<ISchemeImportParsedRow>(
+  {
+    rowIndex: { type: Number, required: true, min: 0 },
+    weekNumber: { type: Number, default: null },
+    title: { type: String, required: true, trim: true, maxlength: 300 },
+    learningObjective: { type: String, trim: true, maxlength: 5000, default: null },
+    notes: { type: String, trim: true, maxlength: 5000, default: null },
+    skipped: { type: Boolean, default: false },
+    errors: { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
+const schemeImportJobSchema = new Schema<ISchemeImportJob>(
+  {
+    schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
+    createdByUserId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    status: {
+      type: String,
+      enum: ["parsed", "confirmed", "cancelled", "failed"],
+      default: "parsed",
+      index: true,
+    },
+    fileName: { type: String, required: true, trim: true, maxlength: 400 },
+    fileUrl: { type: String, trim: true, maxlength: 2000, default: null },
+    fileKey: { type: String, trim: true, maxlength: 500, default: null },
+    parseError: { type: String, trim: true, maxlength: 4000, default: null },
+    parsedRows: { type: [parsedRowSchema], default: [] },
+    resultSchemeId: { type: Schema.Types.ObjectId, ref: "SchemeOfWork", default: null },
+  },
+  { timestamps: true }
+);
+
+schemeImportJobSchema.index({ schoolId: 1, createdAt: -1 });
+
+export const SchemeImportJob: Model<ISchemeImportJob> =
+  (models.SchemeImportJob as Model<ISchemeImportJob>) ||
+  model<ISchemeImportJob>("SchemeImportJob", schemeImportJobSchema);

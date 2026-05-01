@@ -188,6 +188,11 @@ const navSections: NavSection[] = [
         icon: GraduationCap,
       },
       {
+        label: "Scheme review desk",
+        href: "/admin/schemes",
+        icon: ClipboardList,
+      },
+      {
         label: "Timetable Hub",
         href: "/admin/timetable",
         icon: CalendarDays,

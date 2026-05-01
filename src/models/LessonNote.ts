@@ -221,6 +221,11 @@ export interface ILessonNote {
   content?: string;
   objectives?: string;
 
+  /** Optional link to an approved/active scheme of work (Phase 2 curriculum integration). */
+  schemeId?: Types.ObjectId;
+  /** One or more scheme items this lesson note aligns to (subset of scheme items). */
+  schemeItemIds?: Types.ObjectId[];
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -455,6 +460,9 @@ const LessonNoteSchema = new Schema<ILessonNote>(
     // Legacy fields (for backwards compatibility with existing notes)
     content: { type: String, trim: true, maxlength: 8000 },
     objectives: { type: String, trim: true, maxlength: 2000 },
+
+    schemeId: { type: Schema.Types.ObjectId, ref: "SchemeOfWork", index: true },
+    schemeItemIds: [{ type: Schema.Types.ObjectId, ref: "SchemeItem", index: true }],
   },
   { timestamps: true }
 );

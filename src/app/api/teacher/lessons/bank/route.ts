@@ -184,6 +184,8 @@ export async function GET(req: Request) {
         subjectName: e.subjectId ? subjectNameById.get(String(e.subjectId)) ?? null : null,
         lessonNoteId: String(e.lessonNoteId),
         lessonNoteTopic: noteTopicById.get(String(e.lessonNoteId)) ?? null,
+        schemeId: e.schemeId ? String(e.schemeId) : null,
+        schemeItemIds: (e.schemeItemIds || []).map((id) => String(id)),
         ownerTeacherId: String(e.teacherId),
         ownerDisplayName,
       };

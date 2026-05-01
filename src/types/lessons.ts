@@ -56,6 +56,9 @@ export interface TeacherLessonRow {
   /** HTML authored by teacher; parents may see it when the school enables summaries in Settings → Features. */
   parentSummaryHtml?: string | null;
   collaboratorTeacherIds?: string[];
+  /** Optional curriculum alignment (copied from lesson note or set on lesson). */
+  schemeId?: string | null;
+  schemeItemIds?: string[];
   collaboration?: {
     role: "owner" | "collaborator";
     collaborators: Array<{

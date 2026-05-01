@@ -401,9 +401,9 @@ export function SchoolDailySchedulePanel() {
   return (
     <>
       {confirmationDialog}
-      <div className="space-y-4">
-        <Card className="border border-white/10 bg-slate-950/80">
-          <CardContent className="p-6">
+      <div className="min-w-0 max-w-full space-y-4">
+        <Card className="min-w-0 max-w-full border border-white/10 bg-slate-950/80">
+          <CardContent className="min-w-0 max-w-full p-6">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -454,8 +454,8 @@ export function SchoolDailySchedulePanel() {
               </p>
             ) : null}
             {scheduleCards.length > 0 ? (
-              <div className="mb-5 grid gap-3 lg:grid-cols-3">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <div className="mb-5 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-white/40">Saved schedules</p>
                   <p className="mt-2 text-2xl font-semibold text-white">{scheduleCards.length}</p>
                   <p className="mt-1 text-xs text-white/45">
@@ -464,7 +464,7 @@ export function SchoolDailySchedulePanel() {
                       : "The one schedule used by all grades."}
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-white/40">Mode</p>
                   <p className="mt-2 text-lg font-semibold text-white">
                     {isGrouped ? "Different grade groups" : "School-wide"}
@@ -473,7 +473,7 @@ export function SchoolDailySchedulePanel() {
                     Timetable generation picks the matching schedule for each class grade.
                   </p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-white/40">Revision</p>
                   <p className="mt-2 text-lg font-semibold text-white">r{row.revision ?? 0}</p>
                   <p className="mt-1 text-xs text-white/45">
@@ -493,20 +493,25 @@ export function SchoolDailySchedulePanel() {
                     {scheduleCards.length} schedule{scheduleCards.length === 1 ? "" : "s"}
                   </span>
                 </div>
-                <div className="grid gap-3 xl:grid-cols-2">
+                <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2">
                   {scheduleCards.map((schedule) => (
-                    <div key={schedule.id} className="rounded-xl border border-white/10 bg-white/3 p-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div
+                      key={schedule.id}
+                      className="min-w-0 rounded-xl border border-white/10 bg-white/3 p-4"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                         <div className="min-w-0">
                           <p className="font-semibold text-white">{schedule.label}</p>
-                          <p className="mt-1 flex items-center gap-1.5 text-xs text-white/45">
-                            <GraduationCap className="h-3.5 w-3.5 text-violet-300" />
-                            <span>{schedule.gradesLabel}</span>
+                          <p className="mt-1 flex items-start gap-1.5 text-xs text-white/45">
+                            <GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" />
+                            <span className="min-w-0 break-words">{schedule.gradesLabel}</span>
                           </p>
                         </div>
-                        <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60">
-                          <Clock3 className="h-3.5 w-3.5 text-cyan-300" />
-                          {schedule.meta}
+                        <span className="inline-flex w-full min-w-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs leading-snug text-white/60 sm:max-w-[min(100%,20rem)] sm:shrink-0 sm:justify-end sm:text-right">
+                          <Clock3 className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
+                          <span className="min-w-0 break-words text-left sm:text-right">
+                            {schedule.meta}
+                          </span>
                         </span>
                       </div>
                     </div>
@@ -650,11 +655,12 @@ export function SchoolDailySchedulePanel() {
                 </ul>
               </div>
             )}
-            <div className="mt-4 rounded-lg border border-white/5 bg-white/5 p-3 text-xs text-white/45">
+            <div className="mt-4 min-w-0 rounded-lg border border-white/5 bg-white/5 p-3 text-xs text-white/45">
               <span className="text-white/60">At a glance — </span>
-              {isGrouped && row.scheduleGroups
-                ? row.scheduleGroups.map((g) => (
-                    <span key={g.id} className="mr-3 inline-block">
+              {isGrouped && row.scheduleGroups ? (
+                <span className="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1.5">
+                  {row.scheduleGroups.map((g) => (
+                    <span key={g.id} className="min-w-0 break-words">
                       <span className="text-white/55">
                         {(g.label?.trim() || "Group").slice(0, 24)}
                         {": "}
@@ -662,23 +668,28 @@ export function SchoolDailySchedulePanel() {
                       {SAMPLE_DAYS.map((d) => {
                         const p = effectivePeriodsFor(g.config, d, null);
                         return (
-                          <span key={`${g.id}-${d}`} className="mr-2 inline-block capitalize">
+                          <span key={`${g.id}-${d}`} className="ml-1.5 inline capitalize">
                             {d.slice(0, 3)}: ~{p.fullPeriods}
                           </span>
                         );
                       })}
                     </span>
-                  ))
-                : previewStripConfig
-                  ? SAMPLE_DAYS.map((d) => {
-                      const p = effectivePeriodsFor(previewStripConfig, d, null);
-                      return (
-                        <span key={d} className="mr-2 inline-block capitalize">
-                          {d.slice(0, 3)}: ~{p.fullPeriods} periods
-                        </span>
-                      );
-                    })
-                  : "—"}
+                  ))}
+                </span>
+              ) : previewStripConfig ? (
+                <span className="mt-1 flex min-w-0 flex-wrap gap-x-2 gap-y-1">
+                  {SAMPLE_DAYS.map((d) => {
+                    const p = effectivePeriodsFor(previewStripConfig, d, null);
+                    return (
+                      <span key={d} className="inline capitalize">
+                        {d.slice(0, 3)}: ~{p.fullPeriods} periods
+                      </span>
+                    );
+                  })}
+                </span>
+              ) : (
+                "—"
+              )}
             </div>
           </CardContent>
         </Card>

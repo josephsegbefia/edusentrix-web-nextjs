@@ -14,6 +14,8 @@ type DocumentUploaderProps = {
     bytes: number;
     format?: string;
     mimeType?: string;
+    /** Original client file name (for imports and filenames). */
+    fileName?: string;
   }) => void;
   onError?: (msg: string) => void;
   className?: string;
@@ -107,7 +109,14 @@ export function DocumentUploader({
         setUploadProgress(null);
       }, 500);
 
-      onUploaded({ publicId, url, bytes, format: normalizedFormat, mimeType });
+      onUploaded({
+        publicId,
+        url,
+        bytes,
+        format: normalizedFormat,
+        mimeType,
+        fileName: uploaded.name || file.name,
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Upload error";
       setUploadProgress(null);

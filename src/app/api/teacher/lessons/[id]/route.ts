@@ -29,6 +29,7 @@ import {
   resolveLessonCollaborators,
   validateCollaboratorTeacherIdsInput,
 } from "@/lib/lessons/collaboration";
+import { resolveLessonNoteSchemeFields } from "@/lib/lesson-notes/validate-lesson-note-scheme";
 
 const teachingSegmentSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -55,6 +56,8 @@ const PatchLessonBodySchema = z.object({
   /** Caregiver-facing HTML draft; stored only on this lesson, shown to parents when school enables it. */
   parentSummaryHtml: z.union([z.string().max(48_000), z.null()]).optional(),
   collaboratorTeacherIds: z.array(z.string().min(1)).max(50).optional(),
+  schemeId: z.string().optional().nullable(),
+  schemeItemIds: z.array(z.string()).optional().nullable(),
 });
 
 function toObjectIdOrNull(id: string) {
@@ -215,6 +218,8 @@ function formatLessonDetail(
     teachingMode: formatTeachingModeDto(lesson),
     parentSummaryHtml: lesson.parentSummaryHtml ?? null,
     collaboratorTeacherIds: (lesson.collaboratorTeacherIds ?? []).map((id) => String(id)),
+    schemeId: lesson.schemeId ? String(lesson.schemeId) : null,
+    schemeItemIds: (lesson.schemeItemIds || []).map((id) => String(id)),
     createdAt: lesson.createdAt ? new Date(lesson.createdAt).toISOString() : null,
     updatedAt: lesson.updatedAt ? new Date(lesson.updatedAt).toISOString() : null,
     ...(opts?.classDisplayLabel !== undefined
@@ -343,7 +348,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       _id: lessonId,
       schoolId: context.schoolId,
     })
-      .select("status lessonNoteId classGroupId title teacherId collaboratorTeacherIds subjectId academicPeriodId")
+      .select(
+        "status lessonNoteId classGroupId title teacherId collaboratorTeacherIds subjectId academicPeriodId schemeId schemeItemIds"
+      )
       .lean()) as Pick<
       ILesson,
       | "status"
@@ -354,6 +361,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       | "collaboratorTeacherIds"
       | "subjectId"
       | "academicPeriodId"
+      | "schemeId"
+      | "schemeItemIds"
     > | null;
 
     if (!existing) {
@@ -430,6 +439,47 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       setData.collaboratorTeacherIds = validation.collaboratorTeacherIds;
     }
 
+    if (parsed.data.schemeId !== undefined || parsed.data.schemeItemIds !== undefined) {
+      if (!isOwner) {
+        return Response.json(
+          { success: false, error: "Only lesson owner can edit scheme link" },
+          { status: 403 }
+        );
+      }
+      const schemeStr =
+        parsed.data.schemeId !== undefined
+          ? parsed.data.schemeId
+          : existing.schemeId
+            ? String(existing.schemeId)
+            : null;
+      const itemStrs =
+        parsed.data.schemeItemIds !== undefined
+          ? parsed.data.schemeItemIds ?? []
+          : existing.schemeItemIds?.map((id) => String(id)) ?? [];
+
+      const schemeResolution = await resolveLessonNoteSchemeFields({
+        schoolId: context.schoolId,
+        teacherId: existing.teacherId,
+        classGroupId: existing.classGroupId,
+        subjectId: existing.subjectId,
+        schemeId: schemeStr,
+        schemeItemIds: schemeStr ? itemStrs : [],
+      });
+      if (!schemeResolution.ok) {
+        return Response.json(
+          { success: false, error: schemeResolution.error },
+          { status: schemeResolution.status }
+        );
+      }
+      if (!schemeResolution.schemeObjectId) {
+        unsetData.schemeId = "";
+        unsetData.schemeItemIds = "";
+      } else {
+        setData.schemeId = schemeResolution.schemeObjectId;
+        setData.schemeItemIds = schemeResolution.schemeItemObjectIds;
+      }
+    }
+
     if ("scheduledAt" in parsed.data) {
       if (parsed.data.scheduledAt) {
         const d = new Date(parsed.data.scheduledAt);
@@ -467,6 +517,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         setData.publishedSnapshot = buildPublishedSnapshotFromLessonNote(note);
         setData.publishedAt = new Date();
+
+        if (!existing.schemeId && note.schemeId) {
+          const sync = await resolveLessonNoteSchemeFields({
+            schoolId: context.schoolId,
+            teacherId: existing.teacherId,
+            classGroupId: existing.classGroupId,
+            subjectId: existing.subjectId,
+            schemeId: String(note.schemeId),
+            schemeItemIds: note.schemeItemIds?.map((id) => String(id)) ?? [],
+          });
+          if (sync.ok && sync.schemeObjectId) {
+            setData.schemeId = sync.schemeObjectId;
+            setData.schemeItemIds = sync.schemeItemObjectIds;
+          }
+        }
       } else if (parsed.data.status === "draft") {
         setData.publishedAt = null;
         unsetData.publishedSnapshot = "";
@@ -529,7 +594,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         parsed.data.teachingMode !== undefined ||
         "scheduledAt" in parsed.data ||
         parsed.data.parentSummaryHtml !== undefined ||
-        parsed.data.collaboratorTeacherIds !== undefined)
+        parsed.data.collaboratorTeacherIds !== undefined ||
+        parsed.data.schemeId !== undefined ||
+        parsed.data.schemeItemIds !== undefined)
     ) {
       const fields: string[] = [];
       if (parsed.data.title !== undefined) fields.push("title");
@@ -537,6 +604,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       if ("scheduledAt" in parsed.data) fields.push("scheduledAt");
       if (parsed.data.parentSummaryHtml !== undefined) fields.push("parentSummaryHtml");
       if (parsed.data.collaboratorTeacherIds !== undefined) fields.push("collaboratorTeacherIds");
+      if (parsed.data.schemeId !== undefined || parsed.data.schemeItemIds !== undefined) {
+        fields.push("schemeId", "schemeItemIds");
+      }
       void recordLessonAudit({
         schoolId: context.schoolId,
         lessonId,

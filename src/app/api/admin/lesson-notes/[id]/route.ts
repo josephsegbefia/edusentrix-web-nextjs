@@ -103,6 +103,8 @@ function formatLessonNoteResponse(
     content: entry.content || null,
     createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
     updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
+    schemeId: entry.schemeId ? String(entry.schemeId) : null,
+    schemeItemIds: (entry.schemeItemIds || []).map((id) => String(id)),
     reviewComments,
     openCommentCount: countOpenReviewComments(reviewComments),
   };

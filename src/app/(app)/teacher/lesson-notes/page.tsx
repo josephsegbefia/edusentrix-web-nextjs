@@ -378,6 +378,8 @@ export default function TeacherLessonNotesPage() {
                   resources: noteToEdit.resources,
                   tags: noteToEdit.tags,
                   status: noteToEdit.status as LessonNoteStatus,
+                  schemeId: noteToEdit.schemeId ?? undefined,
+                  schemeItemIds: noteToEdit.schemeItemIds ?? [],
                 }
               : undefined
           }

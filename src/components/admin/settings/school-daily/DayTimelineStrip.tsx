@@ -119,7 +119,7 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
   return (
     <div
       className={cn(
-        "space-y-4 rounded-2xl border border-white/9",
+        "min-w-0 max-w-full space-y-4 rounded-2xl border border-white/9",
         "bg-linear-to-br from-slate-900/75 via-slate-950/92 to-violet-950/18",
         "p-4 shadow-lg shadow-black/20 sm:p-5",
         "ring-1 ring-inset ring-white/4"
@@ -208,7 +208,8 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
                   {rowB.length > 0 ? (
                     <p className="text-[10px] text-white/40">{label}</p>
                   ) : null}
-                  <div className="flex w-full flex-nowrap gap-1.5 sm:gap-2">
+                  <div className="w-full min-w-0 max-w-full overflow-x-auto overflow-y-visible overscroll-x-contain [-webkit-overflow-scrolling:touch] [scrollbar-gutter:stable]">
+                    <div className="flex w-max min-w-full flex-nowrap gap-1.5 sm:gap-2">
                     {row.map(({ seg, minutes }) => {
                       const meta = VARIANT[seg.variant];
                       const dupGapLabel = seg.variant === "gap" && seg.label === meta.label;
@@ -220,7 +221,7 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
                           style={{
                             flexGrow: minutes,
                             flexShrink: 1,
-                            flexBasis: `max(3.25rem, ${(minutes / rowTotalM) * 100}%`,
+                            flexBasis: `max(2.5rem, ${(minutes / rowTotalM) * 100}%`,
                           }}
                           className={cn(
                             "flex min-h-21 min-w-0 max-w-full flex-col justify-between rounded-xl border px-2 py-2 sm:min-h-22 sm:px-2.5 sm:py-2.5",
@@ -257,6 +258,7 @@ export function DayTimelineStrip({ config, gradeOptions }: Props) {
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                 </div>
               )

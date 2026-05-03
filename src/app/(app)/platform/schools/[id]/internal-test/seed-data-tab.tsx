@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InternalTestLeoHint } from "@/components/internal-test/InternalTestLeoHint";
+import { PHRASE_RESET_TEST_DATA } from "@/lib/internal-test/constants";
 
 type JobSummary = {
   id: string;
@@ -176,17 +178,70 @@ export function InternalTestSeedDataTab(props: {
 
   if (!allowSeedGeneration) {
     return (
-      <Alert className="border-white/15 bg-white/5 text-white/80">
-        <AlertTitle className="text-white">Seed generation disabled</AlertTitle>
-        <AlertDescription className="text-white/60">
-          Turn on &quot;Allow seed generation&quot; in Safety controls, save, then return here.
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4">
+        <Alert className="border-white/15 bg-white/5 text-white/80">
+          <AlertTitle className="text-white">Seed generation disabled</AlertTitle>
+          <AlertDescription className="text-white/60">
+            Turn on &quot;Allow seed generation&quot; in Safety controls, save, then return here.
+          </AlertDescription>
+        </Alert>
+        <InternalTestLeoHint>
+          <p className="font-medium text-violet-100">Leo</p>
+          <p className="text-xs text-white/75 md:text-sm">
+            Open the <strong className="text-white/90">Safety controls</strong> tab, find{" "}
+            <strong className="text-white/90">Allow seed generation</strong>, switch it on, then click{" "}
+            <strong className="text-white/90">Save configuration</strong>. Until that saves, this tab stays
+            locked so nobody accidentally runs bulk jobs against the wrong policy.
+          </p>
+        </InternalTestLeoHint>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <InternalTestLeoHint>
+        <p className="font-medium text-violet-100">Leo — Seed data tab field guide</p>
+        <ul className="list-inside list-disc space-y-1 text-xs text-white/75 md:text-sm">
+          <li>
+            <strong className="text-white/90">Academic periods</strong> —{" "}
+            <strong className="text-white/85">Name</strong> is a friendly label;{" "}
+            <strong className="text-white/85">Term label</strong> is stored on the period record.{" "}
+            <strong className="text-white/85">Start / End</strong> must not overlap between period 1 and 2;
+            exactly one row must be marked current (Period 1 is current when second period is off, or use
+            the Period 2 switch).
+          </li>
+          <li>
+            <strong className="text-white/90">Generation scope</strong> — <em>Core only</em> seeds grades,
+            classes, users, fees, notices. <em>Core + extended</em> adds optional modules (curriculum row,
+            poll, campaign, meeting, vendor, store item, AI usage, analytics metric); extended steps can
+            fail without undoing core.
+          </li>
+          <li>
+            <strong className="text-white/90">Counts</strong> — caps are enforced server-side (students per
+            class 1–30, teachers 1–20, parents per student 1–3). Lower numbers mean faster jobs and less noise.
+          </li>
+          <li>
+            <strong className="text-white/90">Run generation</strong> — opens a confirm card: type the{" "}
+            <strong className="text-white/85">exact school name</strong> shown in the prompt (same spelling
+            and spacing as the platform school record) so bulk create cannot be clicked by mistake.
+          </li>
+          <li>
+            <strong className="text-white/90">Recent jobs</strong> — each block shows{" "}
+            <code className="rounded bg-black/35 px-1 text-[11px]">testDataBatchId</code> you need for reset;
+            expand steps to see which module failed.
+          </li>
+          <li>
+            <strong className="text-white/90">Reset batch</strong> — paste the batch id from a job, type the
+            phrase{" "}
+            <code className="rounded bg-black/35 px-1 font-mono text-[11px] text-cyan-100/90">
+              {PHRASE_RESET_TEST_DATA}
+            </code>
+            , then the same activation secret as enable/disable. Only registry-linked seed rows for that
+            batch are removed; manual data stays.
+          </li>
+        </ul>
+      </InternalTestLeoHint>
       <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
           <CardTitle className="text-lg">Academic periods</CardTitle>
@@ -392,6 +447,15 @@ export function InternalTestSeedDataTab(props: {
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
+            <InternalTestLeoHint className="border-amber-500/25 bg-black/30">
+              <p className="text-xs font-medium text-amber-100">Leo — confirmation field</p>
+              <p className="text-xs text-white/75">
+                Paste or type the school name <strong className="text-white">exactly</strong> as shown
+                above (trim accidental spaces in your head, but the comparison is strict). If the button
+                stays disabled, compare character-by-character with the school overview title on the
+                previous page.
+              </p>
+            </InternalTestLeoHint>
             <Input
               value={confirmSchoolName}
               onChange={(e) => setConfirmSchoolName(e.target.value)}
@@ -471,6 +535,25 @@ export function InternalTestSeedDataTab(props: {
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
+            <InternalTestLeoHint className="border-rose-500/25 bg-rose-950/30">
+              <p className="text-xs font-medium text-rose-100">Leo — reset fields</p>
+              <ul className="list-inside list-disc space-y-1 text-xs text-rose-100/85">
+                <li>
+                  <strong className="text-white">testDataBatchId</strong> — copy the{" "}
+                  <code className="rounded bg-black/35 px-1 font-mono text-[11px]">bth_…</code> value from a
+                  finished job in Recent jobs. Wrong id = nothing deleted or wrong batch.
+                </li>
+                <li>
+                  <strong className="text-white">Confirmation phrase</strong> — must match{" "}
+                  <code className="rounded bg-black/35 px-1 font-mono text-[11px]">{PHRASE_RESET_TEST_DATA}</code>{" "}
+                  exactly (all caps, spaces as written).
+                </li>
+                <li>
+                  <strong className="text-white">Activation secret</strong> — same server secret as enable /
+                  disable; proves operator intent alongside the phrase.
+                </li>
+              </ul>
+            </InternalTestLeoHint>
             <div className="space-y-2">
               <Label className="text-white/80">testDataBatchId</Label>
               <Input

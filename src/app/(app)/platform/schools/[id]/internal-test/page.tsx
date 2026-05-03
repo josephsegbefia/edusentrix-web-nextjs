@@ -33,6 +33,11 @@ import type {
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InternalTestLeoHint } from "@/components/internal-test/InternalTestLeoHint";
+import {
+  PHRASE_DISABLE_TEST_SCHOOL,
+  PHRASE_ENABLE_TEST_SCHOOL,
+} from "@/lib/internal-test/constants";
 import { InternalTestSeedDataTab } from "./seed-data-tab";
 import { InternalTestViewAsTab } from "./view-as-tab";
 import { InternalTestAuditActivityTab } from "./audit-activity-tab";
@@ -268,6 +273,37 @@ export default function PlatformSchoolInternalTestPage() {
             <p className="mt-1 text-sm text-white/60">
               Safe QA and demo prep — invitations and payments stay suppressed when configured.
             </p>
+            {!loading && payload && !toolsDisabled ? (
+              <InternalTestLeoHint className="mt-4">
+                <p className="font-medium text-violet-100">
+                  Hi, I&apos;m <span className="text-violet-200">Leo</span>. Quick map of this page
+                </p>
+                <ul className="list-inside list-disc space-y-1 text-xs text-white/75 md:text-sm">
+                  <li>
+                    <strong className="text-white/90">Status</strong> — read-only: environment label,
+                    internal-test mode, and when the school was enabled. Use the School ID when talking to
+                    engineering or copying API paths.
+                  </li>
+                  <li>
+                    <strong className="text-white/90">Enable</strong> (when off) — typed phrase + server
+                    secret only; nothing here is shown to the school.
+                  </li>
+                  <li>
+                    <strong className="text-white/90">Safety controls</strong> — toggles change real
+                    behaviour (invites, channels, payments, badges, seed/impersonation gates). Always hit{" "}
+                    <strong className="text-white">Save configuration</strong> after edits.
+                  </li>
+                  <li>
+                    <strong className="text-white/90">Seed / View as / Activity</strong> — bulk data,
+                    impersonation, and audit tail for this school only.
+                  </li>
+                  <li>
+                    <strong className="text-white/90">Danger zone</strong> — turns internal test off for
+                    the school; existing data stays, but suppressions stop applying to new actions.
+                  </li>
+                </ul>
+              </InternalTestLeoHint>
+            ) : null}
           </div>
           {enabled ? (
             <Badge
@@ -297,14 +333,24 @@ export default function PlatformSchoolInternalTestPage() {
       ) : null}
 
       {toolsDisabled ? (
-        <Alert className="border-amber-500/25 bg-amber-500/10 text-amber-100">
-          <ShieldAlert className="h-4 w-4 text-amber-200" />
-          <AlertTitle>Tools disabled on this deployment</AlertTitle>
-          <AlertDescription className="text-amber-100/85">
-            Set <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">ENABLE_INTERNAL_TEST_TOOLS=true</code>{" "}
-            and restart the server. Internal test APIs stay off until then.
-          </AlertDescription>
-        </Alert>
+        <div className="space-y-3">
+          <Alert className="border-amber-500/25 bg-amber-500/10 text-amber-100">
+            <ShieldAlert className="h-4 w-4 text-amber-200" />
+            <AlertTitle>Tools disabled on this deployment</AlertTitle>
+            <AlertDescription className="text-amber-100/85">
+              Set <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">ENABLE_INTERNAL_TEST_TOOLS=true</code>{" "}
+              and restart the server. Internal test APIs stay off until then.
+            </AlertDescription>
+          </Alert>
+          <InternalTestLeoHint>
+            <p className="text-xs text-white/75">
+              <strong className="text-violet-100">Leo:</strong> This flag is read at request time on the
+              server. After changing <code className="rounded bg-black/35 px-1 text-[11px]">.env</code> on
+              Vercel or your host, redeploy or restart so Next.js picks it up—client-only refreshes will not
+              unlock the routes.
+            </p>
+          </InternalTestLeoHint>
+        </div>
       ) : null}
 
       {!loading && payload ? (
@@ -340,6 +386,16 @@ export default function PlatformSchoolInternalTestPage() {
                   Enabled {new Date(payload.school.internalTest.enabledAt).toLocaleString()}
                 </p>
               ) : null}
+              <InternalTestLeoHint className="mt-4 border-white/10 bg-black/25">
+                <p className="text-xs font-medium text-violet-100/95">Leo — reading this card</p>
+                <p className="text-xs text-white/70">
+                  Nothing here is editable. <strong className="text-white/85">Environment</strong> comes
+                  from the school record. <strong className="text-white/85">Mode</strong> reflects how
+                  this test school was tagged at activation (manual vs seeded workflows). The{" "}
+                  <strong className="text-white/85">School ID</strong> is the Mongo identifier in URLs and
+                  logs.
+                </p>
+              </InternalTestLeoHint>
             </CardContent>
           </Card>
 
@@ -355,6 +411,11 @@ export default function PlatformSchoolInternalTestPage() {
                 </ul>
                 <p className="mt-2 text-xs text-cyan-100/60">
                   Reflects saved configuration unless you have unsaved edits (shown from draft).
+                </p>
+                <p className="mt-3 border-t border-cyan-500/20 pt-3 text-xs text-cyan-100/70">
+                  <span className="font-medium text-cyan-50/90">Leo:</span> This strip is read-only—it mirrors
+                  what outbound delivery will look like once you save (or your current draft if you have
+                  unsaved toggles). It does not run a live send test.
                 </p>
               </AlertDescription>
             </Alert>
@@ -372,6 +433,39 @@ export default function PlatformSchoolInternalTestPage() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
+                <InternalTestLeoHint>
+                  <p className="font-medium text-violet-100">
+                    Leo — what to put in each field below
+                  </p>
+                  <ul className="list-inside list-disc space-y-1.5 text-xs text-white/75 md:text-sm">
+                    <li>
+                      <strong className="text-white/90">Testing mode</strong> — choose how you intend to
+                      use the school: <em>Manual</em> if humans click real admin flows; <em>Seeded</em> if
+                      you rely on generated data; <em>Both</em> is the usual default. This is mainly for
+                      your team&apos;s records and audits, not a hard technical gate on every button.
+                    </li>
+                    <li>
+                      <strong className="text-white/90">Confirmation phrase</strong> — type exactly{" "}
+                      <code className="rounded bg-black/40 px-1 py-0.5 font-mono text-[11px] text-cyan-100/90">
+                        {PHRASE_ENABLE_TEST_SCHOOL}
+                      </code>{" "}
+                      (same spelling and spaces as production docs). Copy-paste is fine.
+                    </li>
+                    <li>
+                      <strong className="text-white/90">Activation secret</strong> — the value of{" "}
+                      <code className="rounded bg-black/40 px-1 py-0.5 text-[11px] text-white/80">
+                        INTERNAL_TEST_ACTIVATION_SECRET
+                      </code>{" "}
+                      from the server environment your browser is talking to. Never share it in tickets or
+                      with schools; it is not their password.
+                    </li>
+                    <li>
+                      <strong className="text-white/90">Notes (optional)</strong> — free text for your
+                      team (ticket link, scenario name, who asked). Helpful when reviewing audit logs
+                      later.
+                    </li>
+                  </ul>
+                </InternalTestLeoHint>
                 <div className="space-y-2">
                   <Label className="text-white/70">Testing mode</Label>
                   <PremiumSelect value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
@@ -465,6 +559,37 @@ export default function PlatformSchoolInternalTestPage() {
                 </TabsList>
 
                 <TabsContent value="settings" className="mt-0 space-y-6 outline-none">
+              <InternalTestLeoHint>
+                <p className="font-medium text-violet-100">Leo — Safety controls cheat sheet</p>
+                <p className="text-xs text-white/70 md:text-sm">
+                  Each switch changes how the <em>school</em> behaves for new and updated records. Real
+                  schools are unaffected. After any change, press{" "}
+                  <strong className="text-white">Save configuration</strong> or nothing is persisted. The
+                  cyan strip above summarizes delivery once saved (or from your unsaved draft when you have
+                  local edits).
+                </p>
+                <ul className="list-inside list-disc space-y-1 border-t border-white/10 pt-2 text-xs text-white/70 md:text-sm">
+                  <li>
+                    <strong className="text-white/85">Email &amp; accounts</strong> — invitation
+                    suppression stops real invite mail for users created under this school; auto-activate and
+                    mark-verified help synthetic accounts behave in the UI without inbox flows.
+                  </li>
+                  <li>
+                    <strong className="text-white/85">Outbound notifications</strong> — SMS, WhatsApp,
+                    push, and parent alerts: turn on per channel when you intentionally want to test that
+                    channel; leave on suppress for quieter QA.
+                  </li>
+                  <li>
+                    <strong className="text-white/85">Payments</strong> — sandbox vs disable collection
+                    pairs with your Paystack keys and product rules; use when you must not move real money.
+                  </li>
+                  <li>
+                    <strong className="text-white/85">Tools &amp; visibility</strong> — impersonation and
+                    seed/reset stay off until you enable them here; the badge warns humans they are in a
+                    test school shell.
+                  </li>
+                </ul>
+              </InternalTestLeoHint>
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="border-white/10 bg-white/5">
                   <CardHeader className="pb-2">
@@ -619,6 +744,14 @@ export default function PlatformSchoolInternalTestPage() {
                   </p>
                 ) : null}
               </div>
+              <InternalTestLeoHint className="border-white/10 bg-black/20">
+                <p className="text-xs text-white/75">
+                  <strong className="text-violet-100">Leo:</strong>{" "}
+                  <strong className="text-white/90">Save configuration</strong> stays faded until something
+                  changed from the last saved snapshot. If you toggled switches and nothing enables, you may
+                  be looking at an already-matching draft—flip a control off and on to confirm.
+                </p>
+              </InternalTestLeoHint>
                 </TabsContent>
 
                 <TabsContent value="seed" className="mt-0 outline-none">
@@ -653,6 +786,29 @@ export default function PlatformSchoolInternalTestPage() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
+                <InternalTestLeoHint className="border-rose-500/20 bg-rose-950/25">
+                  <p className="font-medium text-rose-100">Leo — before you disable</p>
+                  <ul className="list-inside list-disc space-y-1 text-xs text-rose-100/85 md:text-sm">
+                    <li>
+                      <strong className="text-white">Confirmation phrase</strong> — type exactly{" "}
+                      <code className="rounded bg-black/35 px-1 py-0.5 font-mono text-[11px]">
+                        {PHRASE_DISABLE_TEST_SCHOOL}
+                      </code>
+                      . Same rules as enable: exact string, no extra spaces.
+                    </li>
+                    <li>
+                      <strong className="text-white">Activation secret</strong> — same{" "}
+                      <code className="rounded bg-black/35 px-1 py-0.5 text-[11px]">
+                        INTERNAL_TEST_ACTIVATION_SECRET
+                      </code>{" "}
+                      you used to enable. Proves someone with deploy access is performing the action.
+                    </li>
+                    <li>
+                      Disabling does <strong className="text-white">not</strong> delete seeded users or
+                      invoices; it only stops future internal-test suppressions and gates from applying.
+                    </li>
+                  </ul>
+                </InternalTestLeoHint>
                 <div className="space-y-2">
                   <Label className="text-white/80">Confirmation phrase</Label>
                   <Input

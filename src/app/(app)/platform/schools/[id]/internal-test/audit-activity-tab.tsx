@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronLeft, ChevronRight, Loader2, ScrollText } from "lucide-react";
 import { toast } from "sonner";
+import { InternalTestLeoHint } from "@/components/internal-test/InternalTestLeoHint";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -59,6 +60,29 @@ export function InternalTestAuditActivityTab({ schoolId }: { schoolId: string })
 
   return (
     <div className="space-y-4">
+      <InternalTestLeoHint>
+        <p className="font-medium text-violet-100">Leo — Activity tab</p>
+        <ul className="list-inside list-disc space-y-1 text-xs text-white/75 md:text-sm">
+          <li>
+            Each row is a <strong className="text-white/90">platform audit</strong> line scoped to this
+            school whose <code className="rounded bg-black/35 px-1 text-[11px]">action</code> starts with{" "}
+            <code className="rounded bg-black/35 px-1 text-[11px]">internal_test.</code> (enable, config,
+            generation, reset, impersonation, etc.).
+          </li>
+          <li>
+            <strong className="text-white/90">Refresh</strong> — reloads page 1; use after you run seed or
+            impersonation elsewhere.
+          </li>
+          <li>
+            <strong className="text-white/90">Pagination</strong> — newest events first; arrows move pages
+            when there are more than {limit} rows.
+          </li>
+          <li>
+            <strong className="text-white/90">Details JSON</strong> — raw metadata for support; actor is the
+            platform user who triggered the action when available.
+          </li>
+        </ul>
+      </InternalTestLeoHint>
       <p className="text-sm text-white/60">
         Recent internal-test audit lines for this school (actions starting with{" "}
         <code className="rounded bg-black/35 px-1 py-0.5 text-xs">internal_test.</code>

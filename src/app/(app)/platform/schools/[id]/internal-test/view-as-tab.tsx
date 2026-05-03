@@ -13,6 +13,7 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { InternalTestLeoHint } from "@/components/internal-test/InternalTestLeoHint";
 import {
   Table,
   TableBody,
@@ -110,18 +111,51 @@ export function InternalTestViewAsTab({
 
   if (!allowImpersonation) {
     return (
-      <Alert className="border-white/15 bg-black/25 text-white/85">
-        <UserRound className="h-4 w-4 text-white/60" />
-        <AlertTitle className="text-white">Impersonation disabled</AlertTitle>
-        <AlertDescription className="text-white/65">
-          Turn on &quot;Allow impersonation&quot; under Safety controls, save, then return here.
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4">
+        <Alert className="border-white/15 bg-black/25 text-white/85">
+          <UserRound className="h-4 w-4 text-white/60" />
+          <AlertTitle className="text-white">Impersonation disabled</AlertTitle>
+          <AlertDescription className="text-white/65">
+            Turn on &quot;Allow impersonation&quot; under Safety controls, save, then return here.
+          </AlertDescription>
+        </Alert>
+        <InternalTestLeoHint>
+          <p className="font-medium text-violet-100">Leo</p>
+          <p className="text-xs text-white/75 md:text-sm">
+            The <strong className="text-white/90">Allow impersonation</strong> switch lives under Safety
+            controls. You also need <code className="rounded bg-black/35 px-1 text-[11px]">INTERNAL_TEST_IMPERSONATION_SECRET</code>{" "}
+            (or activation secret fallback) on the server so the secure cookie can be signed. Without both,
+            View as stays off even for platform admins.
+          </p>
+        </InternalTestLeoHint>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      <InternalTestLeoHint>
+        <p className="font-medium text-violet-100">Leo — View as tab</p>
+        <ul className="list-inside list-disc space-y-1 text-xs text-white/75 md:text-sm">
+          <li>
+            Only users flagged <strong className="text-white/90">isTestUser</strong> for this school appear.
+            If the table is empty, run a seed job or create test users first.
+          </li>
+          <li>
+            <strong className="text-white/90">Filter by role</strong> — narrows the list; does not change who
+            you can impersonate beyond what is already loaded.
+          </li>
+          <li>
+            <strong className="text-white/90">View as</strong> — sets an HTTP-only cookie tied to your Clerk
+            session; you are redirected to the role&apos;s home (admin, teacher, parent, student). A violet
+            banner shows until you exit; your underlying login is still the platform operator.
+          </li>
+          <li>
+            <strong className="text-white/90">Exit</strong> — use the banner&apos;s button (or end session)
+            to clear the cookie and return to this school&apos;s internal-test page.
+          </li>
+        </ul>
+      </InternalTestLeoHint>
       <p className="text-sm text-white/60">
         Platform admins can open the app as a marked test user. Your session shows a banner until you exit.
       </p>

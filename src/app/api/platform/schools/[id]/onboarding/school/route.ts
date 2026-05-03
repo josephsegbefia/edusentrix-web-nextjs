@@ -42,25 +42,67 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const gate = await requirePlatformAdmin();
-  if (!gate.ok) return gate.res;
+  const { id: schoolIdParam } = await context.params;
+  const routeTag = `POST /api/platform/schools/${schoolIdParam}/onboarding/school`;
 
-  const { id } = await context.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  const gate = await requirePlatformAdmin();
+  if (!gate.ok) {
+    console.log(`${routeTag} error`, {
+      status: gate.res.status,
+      message: "Platform admin gate failed",
+    });
+    return gate.res;
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(schoolIdParam)) {
+    console.log(`${routeTag} error`, { status: 400, message: "Invalid school id", schoolIdParam });
     return NextResponse.json({ error: "Invalid school id" }, { status: 400 });
   }
 
-  const parsed = BodySchema.safeParse(await req.json());
-  if (!parsed.success)
+  let parsed: ReturnType<typeof BodySchema.safeParse>;
+  try {
+    parsed = BodySchema.safeParse(await req.json());
+  } catch (e: unknown) {
+    console.log(`${routeTag} error`, {
+      status: 400,
+      message: "Invalid JSON body",
+      error: e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : e,
+    });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  if (!parsed.success) {
+    console.log(`${routeTag} error`, {
+      status: 400,
+      message: "Invalid payload",
+      zodIssues: parsed.error.issues,
+    });
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
+  } catch (e: unknown) {
+    console.log(`${routeTag} error`, {
+      status: 500,
+      message: "Database connection failed",
+      error: e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : e,
+    });
+    return NextResponse.json(
+      { error: "Database connection failed" },
+      { status: 500 }
+    );
+  }
 
-  const schoolId = new mongoose.Types.ObjectId(id);
+  const schoolId = new mongoose.Types.ObjectId(schoolIdParam);
   const target = (await getOnboardingTargetSchoolAdmin(
     schoolId
   )) as IUser | null;
   if (!target) {
+    console.log(`${routeTag} error`, {
+      status: 409,
+      message: "No school admin found for this school.",
+      schoolId: schoolIdParam,
+    });
     return NextResponse.json(
       { error: "No school admin found for this school." },
       { status: 409 }
@@ -74,6 +116,7 @@ export async function POST(
     const school = await School.findById(schoolId).session(session);
     if (!school) {
       await session.abortTransaction();
+      console.log(`${routeTag} error`, { status: 404, message: "School not found", schoolId: schoolIdParam });
       return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
@@ -94,8 +137,16 @@ export async function POST(
       },
     });
   } catch (e: unknown) {
-    await session.abortTransaction();
+    await session.abortTransaction().catch(() => {});
     const msg = e instanceof Error ? e.message : "Failed to save school profile";
+    console.log(`${routeTag} error`, {
+      status: 500,
+      message: msg,
+      error:
+        e instanceof Error
+          ? { name: e.name, message: e.message, stack: e.stack }
+          : e,
+    });
     return NextResponse.json(
       { error: "Failed to save school profile", details: msg },
       { status: 500 }

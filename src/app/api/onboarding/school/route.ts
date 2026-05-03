@@ -40,23 +40,63 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const routeTag = "POST /api/onboarding/school";
+
   const { userId } = await auth();
-  if (!userId)
+  if (!userId) {
+    console.log(`${routeTag} error`, { status: 401, message: "Unauthorized" });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  const parsed = BodySchema.safeParse(await req.json());
-  if (!parsed.success)
+  let parsed: ReturnType<typeof BodySchema.safeParse>;
+  try {
+    parsed = BodySchema.safeParse(await req.json());
+  } catch (e: unknown) {
+    console.log(`${routeTag} error`, {
+      status: 400,
+      message: "Invalid JSON body",
+      error: e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : e,
+    });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  if (!parsed.success) {
+    console.log(`${routeTag} error`, {
+      status: 400,
+      message: "Invalid payload",
+      zodIssues: parsed.error.issues,
+    });
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
+  } catch (e: unknown) {
+    console.log(`${routeTag} error`, {
+      status: 500,
+      message: "Database connection failed",
+      error: e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : e,
+    });
+    return NextResponse.json(
+      { error: "Database connection failed" },
+      { status: 500 }
+    );
+  }
 
   const meResult = (await User.findOne({
     clerkUserId: userId,
   }).lean()) as IUser | null;
   const me = meResult;
-  if (!me?.schoolId)
+  if (!me?.schoolId) {
+    console.log(`${routeTag} error`, { status: 409, message: "No school bound", clerkUserId: userId });
     return NextResponse.json({ error: "No school bound" }, { status: 409 });
+  }
   if (String(me.schoolId) !== parsed.data.schoolId) {
+    console.log(`${routeTag} error`, {
+      status: 403,
+      message: "Forbidden for this school",
+      userSchoolId: String(me.schoolId),
+      payloadSchoolId: parsed.data.schoolId,
+    });
     return NextResponse.json(
       { error: "Forbidden for this school" },
       { status: 403 }
@@ -70,6 +110,11 @@ export async function POST(req: NextRequest) {
     const school = await School.findById(me.schoolId).session(session);
     if (!school) {
       await session.abortTransaction();
+      console.log(`${routeTag} error`, {
+        status: 404,
+        message: "School not found",
+        schoolId: String(me.schoolId),
+      });
       return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
@@ -91,8 +136,16 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (e: unknown) {
-    await session.abortTransaction();
+    await session.abortTransaction().catch(() => {});
     const msg = e instanceof Error ? e.message : "Failed to save school profile";
+    console.log(`${routeTag} error`, {
+      status: 500,
+      message: msg,
+      error:
+        e instanceof Error
+          ? { name: e.name, message: e.message, stack: e.stack }
+          : e,
+    });
     return NextResponse.json(
       { error: "Failed to save school profile", details: msg },
       { status: 500 }

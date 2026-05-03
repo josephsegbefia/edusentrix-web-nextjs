@@ -50,6 +50,9 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { SidebarPlatformIdentity } from "@/components/platform/SidebarPlatformIdentity";
+import { ApplicationsNavPendingBadge } from "@/components/platform/ApplicationsNavPendingBadge";
+
+const PLATFORM_APPLICATIONS_HREF = "/platform/applications";
 
 type NavSection = {
   title: string;
@@ -78,7 +81,7 @@ const navSections: NavSection[] = [
     items: [
       {
         label: "Applications",
-        href: "/platform/applications",
+        href: PLATFORM_APPLICATIONS_HREF,
         icon: CheckSquare,
       },
       {
@@ -236,13 +239,19 @@ function NavContent({
                         onClick={onItemClick}
                         className={cn(
                           "mx-auto flex h-10 w-10 items-center justify-center rounded-xl",
+                          href === PLATFORM_APPLICATIONS_HREF && "relative",
                           "text-white/50 transition-all duration-200 hover:bg-white/7 hover:text-white",
                           active &&
                             "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
                         )}
                         activeClassName="nav-active"
                       >
-                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="relative inline-flex shrink-0">
+                          <Icon className="h-4 w-4 shrink-0" />
+                          {href === PLATFORM_APPLICATIONS_HREF ? (
+                            <ApplicationsNavPendingBadge collapsed />
+                          ) : null}
+                        </span>
                       </ActiveLink>
                     </TooltipTrigger>
                     <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
@@ -262,7 +271,10 @@ function NavContent({
                   activeClassName="nav-active"
                 >
                   <Icon className={cn("h-4 w-4 shrink-0", active && "text-cyan-300")} />
-                  <span className="truncate">{label}</span>
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  {href === PLATFORM_APPLICATIONS_HREF ? (
+                    <ApplicationsNavPendingBadge collapsed={false} />
+                  ) : null}
                 </ActiveLink>
               );
             })}

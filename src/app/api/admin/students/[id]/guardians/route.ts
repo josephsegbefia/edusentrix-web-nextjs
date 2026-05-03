@@ -25,10 +25,12 @@ import {
 import mongoose from "mongoose";
 import { z } from "zod";
 import {
-  getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
+import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
 
 const CreateGuardianSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -181,6 +183,9 @@ export async function POST(
     const studentIdObj = new mongoose.Types.ObjectId(id);
     const emailLower = validated.email.toLowerCase().trim();
 
+    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
+    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
+
     const parentUserRaw = await User.findOne({
       email: emailLower,
       schoolId: schoolIdObj,
@@ -192,7 +197,7 @@ export async function POST(
     let userIdObj: mongoose.Types.ObjectId;
     const studentName = `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim();
 
-    const inviteParentIfNeeded = async () => {
+    const inviteParentIfNeeded = async (parentMongoId: mongoose.Types.ObjectId) => {
       const existingPendingInvite = await Invitation.findOne({
         schoolId: schoolIdObj,
         email: emailLower,
@@ -207,7 +212,22 @@ export async function POST(
         return;
       }
 
-      const APP_URL = getAppUrl();
+      if (
+        bypassInviteEmail &&
+        internalTestSnapshot?.config?.autoActivateCreatedUsers
+      ) {
+        await User.updateOne(
+          { _id: parentMongoId },
+          {
+            $set: {
+              isTestUser: true,
+              testUserSource: "manual_test_school",
+              pendingOnboarding: false,
+            },
+          }
+        );
+      }
+
       const redirectUrl = getInvitationRedirectUrl();
       let clerkInvitationId: string | undefined;
       let invitationStatus: "pending" | "failed" = "pending";
@@ -236,18 +256,27 @@ export async function POST(
           setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
         });
 
-        await sendTrackedBrevoEmail({
-          to: emailLower,
-          subject: rendered.subject,
-          htmlContent: rendered.htmlContent,
-          textContent: rendered.textContent,
-          templateKey: "PARENT_INVITE",
-          schoolId: String(schoolIdObj),
-          schoolName,
-          actorId: String(userId),
-          actorRole: "school_admin",
-          relatedEntityType: "invitation",
-        });
+        if (!bypassInviteEmail) {
+          await sendTrackedBrevoEmail({
+            to: emailLower,
+            subject: rendered.subject,
+            htmlContent: rendered.htmlContent,
+            textContent: rendered.textContent,
+            templateKey: "PARENT_INVITE",
+            schoolId: String(schoolIdObj),
+            schoolName,
+            actorId: String(userId),
+            actorRole: "school_admin",
+            relatedEntityType: "invitation",
+          });
+        } else {
+          await recordInvitationEmailSuppressed({
+            schoolId: schoolIdObj,
+            actorId: new mongoose.Types.ObjectId(String(userId)),
+            templateKey: "PARENT_INVITE",
+            targetEmail: emailLower,
+          });
+        }
       } catch (clerkError) {
         console.error("Clerk invitation error:", clerkError);
         invitationStatus = "failed";
@@ -269,6 +298,7 @@ export async function POST(
             studentId: id,
             studentName,
             relationship: validated.relationship,
+            invitationEmailSuppressed: bypassInviteEmail,
           },
         });
       } catch (inviteRecordError) {
@@ -304,7 +334,7 @@ export async function POST(
 
       // If this account has not been linked to Clerk yet, send an invite.
       if (!parentUser.clerkUserId) {
-        await inviteParentIfNeeded();
+        await inviteParentIfNeeded(userIdObj);
       }
     } else {
       // Create new user
@@ -324,7 +354,7 @@ export async function POST(
           ? newUser._id
           : new mongoose.Types.ObjectId(String(newUser._id));
 
-      await inviteParentIfNeeded();
+      await inviteParentIfNeeded(userIdObj);
     }
 
     // Ensure UserMembership exists

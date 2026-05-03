@@ -1,5 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { APPLICATIONS_NAV_PENDING_QUERY_KEY } from "@/components/platform/ApplicationsNavPendingBadge";
 import { useState, useEffect } from "react";
 import {
   Sheet,
@@ -519,6 +520,7 @@ export default function ApplicationDrawer({
       qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
       qc.invalidateQueries({ queryKey: ["applications:detail", id] });
       qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
+      qc.invalidateQueries({ queryKey: APPLICATIONS_NAV_PENDING_QUERY_KEY });
       onOpenChange(false);
     },
   });
@@ -557,6 +559,7 @@ export default function ApplicationDrawer({
       qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
       qc.invalidateQueries({ queryKey: ["applications:detail", id] });
       qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
+      qc.invalidateQueries({ queryKey: APPLICATIONS_NAV_PENDING_QUERY_KEY });
       onOpenChange(false);
     },
   });
@@ -670,6 +673,7 @@ export default function ApplicationDrawer({
       qc.invalidateQueries({ queryKey: ["applications:list"] });
       qc.invalidateQueries({ queryKey: ["applications:detail", id] });
       qc.invalidateQueries({ queryKey: ["applications:metrics"] });
+      qc.invalidateQueries({ queryKey: APPLICATIONS_NAV_PENDING_QUERY_KEY });
     },
   });
 

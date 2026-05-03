@@ -18,6 +18,9 @@ import {
   assignPendingBillingOwnerInvitation,
   assignPendingPaymentSetupDelegate,
 } from "@/lib/school-payments/billing-owner-lifecycle";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
+import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
 
 export async function POST(
   req: NextRequest,
@@ -41,6 +44,9 @@ export async function POST(
       schoolId instanceof mongoose.Types.ObjectId
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
+
+    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
+    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
 
     const { id: invitationId } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(invitationId)) {
@@ -135,19 +141,28 @@ export async function POST(
               ? "PARENT_INVITE"
               : "TEACHER_INVITE";
 
-      await sendTrackedBrevoEmail({
-        to: invitation.email,
-        subject: rendered.subject,
-        htmlContent: rendered.htmlContent,
-        textContent: rendered.textContent,
-        templateKey,
-        schoolId: String(schoolIdObj),
-        schoolName,
-        actorId: String(userId),
-        actorRole: "school_admin",
-        relatedEntityType: "invitation",
-        relatedEntityId: invitationId,
-      });
+      if (!bypassInviteEmail) {
+        await sendTrackedBrevoEmail({
+          to: invitation.email,
+          subject: rendered.subject,
+          htmlContent: rendered.htmlContent,
+          textContent: rendered.textContent,
+          templateKey,
+          schoolId: String(schoolIdObj),
+          schoolName,
+          actorId: String(userId),
+          actorRole: "school_admin",
+          relatedEntityType: "invitation",
+          relatedEntityId: invitationId,
+        });
+      } else {
+        await recordInvitationEmailSuppressed({
+          schoolId: schoolIdObj,
+          actorId: new mongoose.Types.ObjectId(String(userId)),
+          templateKey,
+          targetEmail: invitation.email,
+        });
+      }
 
       // Update invitation record
       await Invitation.updateOne(

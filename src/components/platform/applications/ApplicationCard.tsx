@@ -14,6 +14,7 @@ import { RejectionModal } from "./RejectionModal";
 
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { useBusyToast } from "@/hooks/useBusyToast";
+import { APPLICATIONS_NAV_PENDING_QUERY_KEY } from "@/components/platform/ApplicationsNavPendingBadge";
 
 export type ApplicationStatus = "pending" | "approved" | "rejected";
 
@@ -85,6 +86,7 @@ export default function ApplicationCard({
       qc.invalidateQueries({ queryKey });
       qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
       qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
+      qc.invalidateQueries({ queryKey: APPLICATIONS_NAV_PENDING_QUERY_KEY });
     },
   });
 
@@ -126,6 +128,7 @@ export default function ApplicationCard({
       qc.invalidateQueries({ queryKey });
       qc.invalidateQueries({ queryKey: ["applications:list"], exact: false });
       qc.invalidateQueries({ queryKey: ["applications:metrics"], exact: false });
+      qc.invalidateQueries({ queryKey: APPLICATIONS_NAV_PENDING_QUERY_KEY });
     },
   });
 

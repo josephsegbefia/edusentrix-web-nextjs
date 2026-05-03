@@ -31,6 +31,20 @@ export type LessonTeachingModeDto = {
   segments: LessonTeachingSegmentDto[];
 };
 
+export type LessonStudentContentDto = {
+  summaryHtml: string;
+  keyPoints: string[];
+  vocabulary: Array<{ term: string; definition: string }>;
+  studentInstructions: string;
+  practicePrompt: string;
+  estimatedReadingMinutes: number | null;
+  aiGenerated: boolean;
+  teacherReviewed: boolean;
+  aiTool?: string | null;
+  aiGeneratedAt?: string | null;
+  lastEditedAt?: string | null;
+};
+
 export interface TeacherLessonRow {
   id: string;
   schoolId: string;
@@ -53,6 +67,7 @@ export interface TeacherLessonRow {
   subjectName?: string | null;
   /** Present when `includeDisplayNote=1` and `publishedSnapshot` exists. */
   displayNote?: LessonNoteDetail | null;
+  studentContent?: LessonStudentContentDto | null;
   /** HTML authored by teacher; parents may see it when the school enables summaries in Settings → Features. */
   parentSummaryHtml?: string | null;
   collaboratorTeacherIds?: string[];
@@ -195,6 +210,7 @@ export interface StudentLessonDetailResponse {
       scheduledAt: string | null;
     };
     displayNote: LessonNoteDetail;
+    studentContent?: LessonStudentContentDto | null;
     /** Present when the student row exists in `StudentLessonProgress`. */
     progress: {
       completionStatus: StudentLessonCompletionStatus;

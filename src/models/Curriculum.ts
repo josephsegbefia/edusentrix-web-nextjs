@@ -7,6 +7,8 @@ export interface ICurriculum {
   schoolId: Types.ObjectId;
   title: string;
   code: string;
+  /** Optional link to the school's programme (`School.curriculumCode`), e.g. ghana_nacca, cambridge. */
+  schoolCurriculumCode?: string | null;
   description?: string;
   status: CurriculumStatus;
   createdByUserId: Types.ObjectId;
@@ -20,6 +22,7 @@ const curriculumSchema = new Schema<ICurriculum>(
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
     title: { type: String, required: true, trim: true, maxlength: 200 },
     code: { type: String, required: true, trim: true, maxlength: 80 },
+    schoolCurriculumCode: { type: String, trim: true, maxlength: 50, default: null, index: true },
     description: { type: String, trim: true, maxlength: 4000 },
     status: {
       type: String,

@@ -1,22 +1,25 @@
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
-import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
-import { serializeSchemeRow } from "@/lib/schemes/serializers";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
+import { PERMISSIONS } from "@/lib/rbac";
+import { listAdminSchemes } from "@/lib/schemes/scheme-review-service";
 
 export async function GET(req: Request) {
   try {
-    const { schoolId } = await requireSchoolAdmin();
+    const actor = await requireSchoolAdminOrDelegatedAnyPermission([
+      PERMISSIONS.schemeOfWorkRead,
+      PERMISSIONS.schemeOfWorkReview,
+    ]);
     await connectToDatabase();
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status");
-    const query: Record<string, unknown> = { schoolId };
-    if (status && ["draft", "in_review", "approved", "active", "archived"].includes(status)) {
-      query.status = status;
-    }
-    const docs = (await SchemeOfWork.find(query).sort({ updatedAt: -1 }).limit(200).lean()) as
-      | ISchemeOfWork[]
-      | [];
-    return Response.json({ success: true, data: { schemes: docs.map(serializeSchemeRow) } });
+    const { rows, pagination } = await listAdminSchemes({
+      schoolId: actor.schoolId,
+      searchParams,
+    });
+    return Response.json({
+      success: true,
+      data: rows,
+      pagination,
+    });
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     return Response.json(

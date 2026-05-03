@@ -129,7 +129,13 @@ export type ActivityType =
   | "delegation.updated"
   | "delegation.revoked"
   | "delegation.expired"
-  | "delegation.migrated";
+  | "delegation.migrated"
+  // Schemes of work — review desk
+  | "scheme.review.approved"
+  | "scheme.review.revision_requested"
+  | "scheme.review.rejected"
+  | "scheme.activated"
+  | "scheme.archived";
 
 export interface IActivity {
   _id: Types.ObjectId;

@@ -17,6 +17,7 @@ import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
 import { AdminTrialBanner } from "@/components/billing/AdminTrialBanner";
 import { AdminLeoEntry } from "@/components/leo/AdminLeoEntry";
 import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
+import { InternalTestSchoolBadge } from "@/components/internal-test/InternalTestSchoolBadge";
 
 export default async function AdminLayout({
   children,
@@ -56,6 +57,11 @@ export default async function AdminLayout({
               homeHref={shell.homeHref}
             />
             <AdminMainContent isBursar={false}>
+              {user.schoolId ? (
+                <div className="mb-3">
+                  <InternalTestSchoolBadge schoolId={String(user.schoolId)} />
+                </div>
+              ) : null}
               <AdminContextualDelegateBar canManageDelegations={false} />
               {children}
             </AdminMainContent>
@@ -96,6 +102,11 @@ export default async function AdminLayout({
             <SchoolAdminSidebar />
           )}
           <AdminMainContent isBursar={isBursar || isBillingOwner}>
+            {user.schoolId ? (
+              <div className="mb-3">
+                <InternalTestSchoolBadge schoolId={String(user.schoolId)} />
+              </div>
+            ) : null}
             <AdminContextualDelegateBar canManageDelegations={isSchoolAdmin} />
             {children}
           </AdminMainContent>

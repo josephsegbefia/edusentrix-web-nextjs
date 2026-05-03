@@ -1,25 +1,15 @@
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { serializeCurriculumApi } from "@/lib/curricula/serialize-curriculum";
 import { Curriculum, type ICurriculum } from "@/models/Curriculum";
 
 const CreateCurriculumSchema = z.object({
   title: z.string().trim().min(2).max(200),
   code: z.string().trim().min(2).max(80),
   description: z.string().trim().max(4000).optional(),
+  schoolCurriculumCode: z.string().trim().max(50).nullable().optional(),
 });
-
-function serialize(row: ICurriculum) {
-  return {
-    id: String(row._id),
-    title: row.title,
-    code: row.code,
-    description: row.description ?? null,
-    status: row.status,
-    createdAt: new Date(row.createdAt).toISOString(),
-    updatedAt: new Date(row.updatedAt).toISOString(),
-  };
-}
 
 export async function GET() {
   try {
@@ -28,7 +18,10 @@ export async function GET() {
     const docs = (await Curriculum.find({ schoolId: ctx.schoolId })
       .sort({ updatedAt: -1 })
       .lean()) as ICurriculum[];
-    return Response.json({ success: true, data: { curricula: docs.map(serialize) } });
+    return Response.json({
+      success: true,
+      data: { curricula: docs.map((d) => serializeCurriculumApi(d)) },
+    });
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     return Response.json(
@@ -54,11 +47,20 @@ export async function POST(req: Request) {
       title: parsed.data.title,
       code: parsed.data.code,
       description: parsed.data.description || undefined,
+      schoolCurriculumCode:
+        parsed.data.schoolCurriculumCode === undefined
+          ? null
+          : parsed.data.schoolCurriculumCode === null || parsed.data.schoolCurriculumCode === ""
+            ? null
+            : parsed.data.schoolCurriculumCode.trim(),
       status: "draft",
       createdByUserId: ctx.userId,
       updatedByUserId: ctx.userId,
     });
-    return Response.json({ success: true, data: { curriculum: serialize(created.toObject()) } });
+    return Response.json({
+      success: true,
+      data: { curriculum: serializeCurriculumApi(created.toObject() as ICurriculum) },
+    });
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     return Response.json(

@@ -19,6 +19,10 @@ import {
   deriveSchoolPaymentSetupStatus,
   isSchoolPaymentReady,
 } from "@/lib/school-payments/payment-setup";
+import { assertParentCheckoutAllowed } from "@/lib/internal-test/assert-parent-checkout-allowed";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { recordPaymentSandboxUsed } from "@/lib/internal-test/record-payment-sandbox-used";
+import { shouldUseSandboxPayments } from "@/lib/internal-test/shouldUseSandboxPayments";
 
 const BodySchema = z.object({
   invoiceId: z.string().min(1),
@@ -98,6 +102,9 @@ export async function POST(req: NextRequest) {
   try {
     const context = await requireParent();
     await connectToDatabase();
+
+    const checkoutBlock = await assertParentCheckoutAllowed(context.schoolId);
+    if (checkoutBlock) return checkoutBlock;
 
     const body = BodySchema.parse(await req.json());
     if (!mongoose.Types.ObjectId.isValid(body.invoiceId)) {
@@ -259,6 +266,18 @@ export async function POST(req: NextRequest) {
           edusentrixTransactionFeeCapMinor: feeBreakdown.capMinor,
         },
       });
+
+      const paySnap = await loadSchoolInternalTestSnapshot(context.schoolId);
+      const pm = getPaystackKeyMode();
+      if (shouldUseSandboxPayments(paySnap) && pm === "test") {
+        await recordPaymentSandboxUsed({
+          actorId: context.userId,
+          schoolId: context.schoolId,
+          reference: init.reference,
+          paystackKeyMode: pm,
+          channel: "parent_fees",
+        });
+      }
 
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
       await PaymentIntent.findByIdAndUpdate(paymentIntent._id, {

@@ -10,6 +10,7 @@ import { Guardian } from "@/models/Guardian";
 import type { MembershipRole } from "@/lib/roles";
 import { gateParentApiAccess } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
+import { validateInternalTestImpersonationSession } from "@/lib/internal-test/validate-impersonation-session";
 
 export interface ParentContext {
   userId: Types.ObjectId;
@@ -62,6 +63,42 @@ export async function requireParent(
       schoolId: demo.user.schoolId as Types.ObjectId,
       roles,
       isAdmin: roles.includes("school_admin"),
+    };
+  }
+
+  const ita = await validateInternalTestImpersonationSession();
+  if (ita) {
+    const t = ita.target;
+    if (!t.schoolId) {
+      handleFailure(mode, 403, "Invalid impersonation target");
+    }
+    let membership = (await UserMembership.findOne({
+      userId: t._id,
+      schoolId: t.schoolId,
+    }).lean()) as IUserMembership | null;
+    if (!membership) {
+      const createdMembership = await UserMembership.create({
+        userId: t._id,
+        schoolId: t.schoolId,
+        roles: legacyRoleToArray(t.role),
+        status: "active",
+      });
+      membership = createdMembership.toObject() as IUserMembership;
+    }
+    if (membership.status !== "active") {
+      handleFailure(mode, 403, "Membership is not active");
+    }
+    const roles = (membership.roles || []) as MembershipRole[];
+    const isAdmin = roles.includes("school_admin");
+    const parentGate = gateParentApiAccess(roles);
+    if (!parentGate.ok) {
+      handleFailure(mode, parentGate.status, parentGate.error);
+    }
+    return {
+      userId: t._id as Types.ObjectId,
+      schoolId: t.schoolId as Types.ObjectId,
+      roles,
+      isAdmin,
     };
   }
 

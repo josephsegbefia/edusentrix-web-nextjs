@@ -42,6 +42,10 @@ export type TeacherContextResponse = {
       };
       offlineModeEnabled?: boolean;
     };
+    academicPlanning: {
+      enableSchemeOfWork: boolean;
+      allowAiSchemeDrafting: boolean;
+    };
     permissions: string[];
     delegations?: DelegationNavItem[];
   };

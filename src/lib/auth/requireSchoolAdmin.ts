@@ -5,6 +5,7 @@ import { UserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
 import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
+import { validateInternalTestImpersonationSession } from "@/lib/internal-test/validate-impersonation-session";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -25,6 +26,32 @@ export async function requireSchoolAdmin(): Promise<SchoolAdminContext> {
       userId: demo.user._id,
       schoolId: demo.user.schoolId!,
     };
+  }
+
+  const ita = await validateInternalTestImpersonationSession();
+  if (ita) {
+    const t = ita.target;
+    if (!t.schoolId) {
+      throw NextResponse.json({ error: "Invalid impersonation target (no school)" }, { status: 403 });
+    }
+    let membership = await UserMembership.findOne({
+      userId: t._id,
+      schoolId: t.schoolId,
+    });
+    if (!membership) {
+      membership = await UserMembership.create({
+        userId: t._id,
+        schoolId: t.schoolId,
+        roles: legacyRoleToArray(t.role),
+        status: "active",
+      });
+    }
+    const roles = membership.roles || [];
+    const adminGate = gateSchoolAdminRoles(roles);
+    if (!adminGate.ok) {
+      throw NextResponse.json({ error: adminGate.error }, { status: adminGate.status });
+    }
+    return { userId: t._id, schoolId: t.schoolId };
   }
 
   const { userId: clerkUserId } = await auth();

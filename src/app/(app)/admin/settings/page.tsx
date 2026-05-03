@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Sparkles,
   ClipboardCheck,
+  ClipboardList,
   Wifi,
   Landmark,
   ArrowRight,
@@ -97,11 +98,37 @@ type SettingsFormData = {
   lessonsModule: {
     parentSummaryVisibleToParents: boolean;
   };
+  academicPlanning: {
+    enableSchemeOfWork: boolean;
+    requireSchemeLinkForLessonNotes: boolean;
+    allowTeacherSchemeCreation: boolean;
+    requireSchemeApproval: boolean;
+    allowSchemeImport: boolean;
+    allowPdfSchemeImport: boolean;
+    allowAiSchemeDrafting: boolean;
+    defaultSchemeApprovalRole: "school_admin" | "academic_head" | "department_head";
+    coverageUpdateMode: "manual" | "suggested" | "automatic";
+  };
   assemblyDailyOverrides: AssemblyDailyOverrideDTO[];
   assemblyGradeOverrides: AssemblyGradeOverrideDTO[];
 };
 
+const DEFAULT_ACADEMIC_PLANNING: SettingsFormData["academicPlanning"] = {
+  enableSchemeOfWork: false,
+  requireSchemeLinkForLessonNotes: false,
+  allowTeacherSchemeCreation: true,
+  requireSchemeApproval: true,
+  allowSchemeImport: true,
+  allowPdfSchemeImport: false,
+  allowAiSchemeDrafting: false,
+  defaultSchemeApprovalRole: "school_admin",
+  coverageUpdateMode: "manual",
+};
+
 function buildSettingsFormData(settings: SchoolSettingsDTO): SettingsFormData {
+  const ap = settings.academicPlanning
+    ? { ...DEFAULT_ACADEMIC_PLANNING, ...settings.academicPlanning }
+    : DEFAULT_ACADEMIC_PLANNING;
   return {
     assembly: settings.assembly,
     lateArrivalCutoff: settings.lateArrivalCutoff || "",
@@ -115,6 +142,7 @@ function buildSettingsFormData(settings: SchoolSettingsDTO): SettingsFormData {
     },
     offlineMode: settings.offlineMode || { enabled: true },
     lessonsModule: settings.lessonsModule || { parentSummaryVisibleToParents: false },
+    academicPlanning: ap,
     assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
     assemblyGradeOverrides: settings.assemblyGradeOverrides || [],
   };
@@ -135,6 +163,7 @@ function mergeOperationalFields(
     attendanceNotifications: next.attendanceNotifications,
     offlineMode: next.offlineMode,
     lessonsModule: next.lessonsModule,
+    academicPlanning: next.academicPlanning,
     assemblyDailyOverrides: next.assemblyDailyOverrides,
     assemblyGradeOverrides: next.assemblyGradeOverrides,
   };
@@ -269,6 +298,7 @@ function SettingsPageContent() {
       attendanceNotifications: formData.attendanceNotifications,
       offlineMode: formData.offlineMode,
       lessonsModule: formData.lessonsModule,
+      academicPlanning: formData.academicPlanning,
     };
     try {
       const response = await busy.promise(updateSettings.mutateAsync(payload), {
@@ -606,6 +636,70 @@ function SettingsPageContent() {
 
           {activeTab === "features" && (
             <>
+            <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
+              <CardContent className="p-6">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+                  <ClipboardList className="h-5 w-5 text-violet-400" />
+                  Schemes of work &amp; planning
+                </h3>
+                <p className="mb-4 text-sm text-white/55">
+                  Turn on the scheme-of-work module for teachers, then optionally allow AI-assisted Leo
+                  drafts and imports. This is separate from{" "}
+                  <Link
+                    href="/admin/settings/curriculum"
+                    className="text-violet-300 underline-offset-2 hover:underline"
+                  >
+                    school programme
+                  </Link>{" "}
+                  (NaCCA, Cambridge, etc.).
+                </p>
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-white/80">Enable scheme of work</Label>
+                      <p className="text-xs text-white/50">
+                        Teachers can create schemes, coverage, imports, and Leo planner when the options
+                        below are also enabled.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.academicPlanning.enableSchemeOfWork}
+                      onCheckedChange={(checked) =>
+                        updateOperationalForm((current) => ({
+                          ...current,
+                          academicPlanning: {
+                            ...current.academicPlanning,
+                            enableSchemeOfWork: checked,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-white/80">AI-assisted scheme drafting (Leo)</Label>
+                      <p className="text-xs text-white/50">
+                        Requires scheme of work enabled and server AI configuration. Teachers use Leo on
+                        scheme detail.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.academicPlanning.allowAiSchemeDrafting}
+                      disabled={!formData.academicPlanning.enableSchemeOfWork}
+                      onCheckedChange={(checked) =>
+                        updateOperationalForm((current) => ({
+                          ...current,
+                          academicPlanning: {
+                            ...current.academicPlanning,
+                            allowAiSchemeDrafting: checked,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <SchoolLeoSettingsCard />
             <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
               <CardContent className="p-6">

@@ -89,8 +89,8 @@ export default function TeacherLessonsPage() {
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: contextData } = useTeacherContext();
   const permissions = contextData?.data.permissions as Permission[] | undefined;
-  const canView = can(permissions, PERMISSIONS.journalView);
-  const canWrite = can(permissions, PERMISSIONS.journalWrite);
+  const canView = can(permissions, PERMISSIONS.lessonsRead);
+  const canWrite = can(permissions, PERMISSIONS.lessonsUpdate);
 
   const { data: classesData } = useTeacherClasses();
   const classLabelMap = React.useMemo(

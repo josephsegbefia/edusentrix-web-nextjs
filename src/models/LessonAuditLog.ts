@@ -3,11 +3,34 @@ import { Schema, model, models, type Model, type Types } from "mongoose";
 export type LessonAuditAction =
   | "lesson_created_from_note"
   | "lesson_updated"
+  | "lesson_deleted"
   | "lesson_published"
   | "lesson_unpublished"
   | "lesson_archived"
+  | "student_content_updated"
+  | "parent_summary_saved"
+  | "parent_summary_visibility_changed"
   | "resource_added"
+  | "resource_updated"
   | "resource_deleted"
+  | "resources_reordered"
+  | "flashcard_deck_created"
+  | "flashcard_deck_updated"
+  | "flashcard_deck_published"
+  | "flashcard_deck_archived"
+  | "flashcard_added"
+  | "flashcard_updated"
+  | "flashcard_deleted"
+  | "flashcards_reordered"
+  | "reflection_saved"
+  | "teaching_mode_updated"
+  | "teaching_mode_generated"
+  | "collaborator_added"
+  | "collaborator_removed"
+  | "comment_added"
+  | "comment_resolved"
+  | "ai_draft_generated"
+  | "ai_draft_applied"
   | "flashcards_published";
 
 export interface ILessonAuditLog {
@@ -33,11 +56,34 @@ const lessonAuditLogSchema = new Schema<ILessonAuditLog>(
       enum: [
         "lesson_created_from_note",
         "lesson_updated",
+        "lesson_deleted",
         "lesson_published",
         "lesson_unpublished",
         "lesson_archived",
+        "student_content_updated",
+        "parent_summary_saved",
+        "parent_summary_visibility_changed",
         "resource_added",
+        "resource_updated",
         "resource_deleted",
+        "resources_reordered",
+        "flashcard_deck_created",
+        "flashcard_deck_updated",
+        "flashcard_deck_published",
+        "flashcard_deck_archived",
+        "flashcard_added",
+        "flashcard_updated",
+        "flashcard_deleted",
+        "flashcards_reordered",
+        "reflection_saved",
+        "teaching_mode_updated",
+        "teaching_mode_generated",
+        "collaborator_added",
+        "collaborator_removed",
+        "comment_added",
+        "comment_resolved",
+        "ai_draft_generated",
+        "ai_draft_applied",
         "flashcards_published",
       ],
       index: true,

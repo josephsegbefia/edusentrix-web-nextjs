@@ -2,6 +2,8 @@ import { Schema, model, models, type Model, type Types } from "mongoose";
 
 export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
 
+export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai";
+
 export interface ISchemeImportParsedRow {
   rowIndex: number;
   weekNumber: number | null;
@@ -10,6 +12,8 @@ export interface ISchemeImportParsedRow {
   notes: string | null;
   skipped: boolean;
   errors: string[];
+  /** Model-estimated parse confidence for PDF/AI imports (0–1); absent for CSV/XLSX. */
+  confidence?: number | null;
 }
 
 export interface ISchemeImportJob {
@@ -17,6 +21,8 @@ export interface ISchemeImportJob {
   schoolId: Types.ObjectId;
   createdByUserId: Types.ObjectId;
   status: SchemeImportJobStatus;
+  /** Spreadsheet parse vs PDF text + AI extraction. */
+  sourceKind?: SchemeImportSourceKind;
   fileName: string;
   fileUrl?: string | null;
   /** UploadThing key when applicable */
@@ -37,6 +43,7 @@ const parsedRowSchema = new Schema<ISchemeImportParsedRow>(
     notes: { type: String, trim: true, maxlength: 5000, default: null },
     skipped: { type: Boolean, default: false },
     errors: { type: [String], default: [] },
+    confidence: { type: Number, min: 0, max: 1, default: null },
   },
   { _id: false }
 );
@@ -45,6 +52,12 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
   {
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
     createdByUserId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    sourceKind: {
+      type: String,
+      enum: ["spreadsheet", "pdf_ai"],
+      default: "spreadsheet",
+      index: true,
+    },
     status: {
       type: String,
       enum: ["parsed", "confirmed", "cancelled", "failed"],

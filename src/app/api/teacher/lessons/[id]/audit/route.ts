@@ -21,7 +21,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const context = await requireTeacher();
     await connectToDatabase();
 
-    if (!can(context.permissions, PERMISSIONS.journalView)) {
+    if (!can(context.permissions, PERMISSIONS.lessonAuditView)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

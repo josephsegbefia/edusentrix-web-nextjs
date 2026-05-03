@@ -4,6 +4,7 @@ export function serializeSchemeImportJob(job: ISchemeImportJob) {
   return {
     id: String(job._id),
     status: job.status,
+    sourceKind: job.sourceKind ?? "spreadsheet",
     fileName: job.fileName,
     fileUrl: job.fileUrl ?? null,
     parseError: job.parseError ?? null,

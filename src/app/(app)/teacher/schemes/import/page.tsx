@@ -14,6 +14,7 @@ import {
 } from "@/hooks/teacher/useTeacherSchemeImport";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { cn } from "@/lib/utils";
 import type { SchemeImportParsedRowClient } from "@/types/scheme-import";
 
 function TeacherSchemeImportInner() {
@@ -102,13 +103,14 @@ function TeacherSchemeImportInner() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-white/40">Schemes of work</p>
-            <h1 className="text-xl font-semibold text-white">Import from CSV or Excel</h1>
+            <h1 className="text-xl font-semibold text-white">Import from CSV, Excel, or PDF</h1>
             <p className="mt-1 text-sm text-white/65">
-              Upload a spreadsheet with a header row. Expected columns include{" "}
-              <span className="text-white/85">title</span> (or topic), optional{" "}
-              <span className="text-white/85">week</span>,{" "}
+              Spreadsheets: use a header row with <span className="text-white/85">title</span> (or topic),
+              optional <span className="text-white/85">week</span>,{" "}
               <span className="text-white/85">learning objective</span>, and{" "}
-              <span className="text-white/85">notes</span>.
+              <span className="text-white/85">notes</span>. PDFs: text-based files only; the school must
+              enable PDF import — we extract text and suggest rows with confidence scores (review before
+              confirming).
             </p>
           </div>
           <Link
@@ -125,7 +127,7 @@ function TeacherSchemeImportInner() {
               <DocumentUploader
                 schoolId={schoolId}
                 category="teacher"
-                label="Upload .csv, .xlsx"
+                label="Upload .csv, .xlsx, or .pdf"
                 onUploaded={(p) =>
                   handleUploaded({
                     url: p.url,
@@ -140,7 +142,7 @@ function TeacherSchemeImportInner() {
             )}
             {uploadError ? <p className="mt-2 text-sm text-rose-300">{uploadError}</p> : null}
             {createMutation.isPending ? (
-              <p className="mt-2 text-sm text-white/60">Parsing file…</p>
+              <p className="mt-2 text-sm text-white/60">Parsing or extracting…</p>
             ) : null}
           </div>
         ) : null}
@@ -170,6 +172,12 @@ function TeacherSchemeImportInner() {
             <p className="mt-1 text-sm text-white/60">
               Fix validation errors or skip rows. Save edits before confirming.
             </p>
+            {job?.sourceKind === "pdf_ai" ? (
+              <p className="mt-2 text-xs text-amber-200/85">
+                PDF import: confidence scores are AI estimates. Rows below ~55% confidence are highlighted —
+                fix or skip them before creating the draft.
+              </p>
+            ) : null}
             <div className="mt-4 flex flex-wrap gap-3">
               <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-sm">
                 <span className="text-white/55">Draft scheme title</span>
@@ -204,7 +212,7 @@ function TeacherSchemeImportInner() {
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-white/10">
-            <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[800px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-black/30 text-xs uppercase tracking-wide text-white/45">
                   <th className="px-3 py-2">#</th>
@@ -212,13 +220,22 @@ function TeacherSchemeImportInner() {
                   <th className="px-3 py-2">Title</th>
                   <th className="px-3 py-2">Objective</th>
                   <th className="px-3 py-2">Notes</th>
+                  <th className="px-3 py-2">Conf.</th>
                   <th className="px-3 py-2">Skip</th>
                   <th className="px-3 py-2">Issues</th>
                 </tr>
               </thead>
               <tbody>
                 {localRows.map((row, idx) => (
-                  <tr key={row.rowIndex} className="border-b border-white/5">
+                  <tr
+                    key={row.rowIndex}
+                    className={cn(
+                      "border-b border-white/5",
+                      row.confidence != null &&
+                        row.confidence < 0.55 &&
+                        "bg-amber-500/[0.12]"
+                    )}
+                  >
                     <td className="px-3 py-2 text-white/55">{row.rowIndex}</td>
                     <td className="px-3 py-2">
                       <input
@@ -287,6 +304,9 @@ function TeacherSchemeImportInner() {
                         }}
                         className="w-full min-w-[120px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
                       />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-white/65">
+                      {row.confidence != null ? `${Math.round(row.confidence * 100)}%` : "—"}
                     </td>
                     <td className="px-3 py-2 text-center">
                       <input

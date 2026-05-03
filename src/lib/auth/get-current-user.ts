@@ -13,6 +13,7 @@ import {
   resolveTenantUserForClerkSession,
   schoolIdFromClerkMetadata,
 } from "@/lib/auth/resolveTenantUserForClerkSession";
+import { validateInternalTestImpersonationSession } from "@/lib/internal-test/validate-impersonation-session";
 
 export type CurrentAppUser = {
   _id: string;
@@ -24,6 +25,12 @@ export type CurrentAppUser = {
   pendingOnboarding?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  /** Present when a platform operator is viewing the app as a test user (Phase 4). */
+  internalTestImpersonation?: {
+    schoolId: string;
+    targetDisplayName: string;
+    targetRole?: AppRole;
+  };
 };
 
 export async function getCurrentUser(
@@ -32,6 +39,29 @@ export async function getCurrentUser(
   if (!clerkUserId && isDemoMode()) {
     const session = await resolveDemoSessionFromCookie();
     if (session) return resolveDemoPersona(session);
+  }
+
+  const ita = await validateInternalTestImpersonationSession();
+  if (ita) {
+    const doc = ita.target;
+    const name =
+      [doc.firstName, doc.lastName].filter(Boolean).join(" ") || undefined;
+    return {
+      _id: String(doc._id),
+      email: doc.email,
+      name,
+      avatarUrl: doc.avatarUrl,
+      role: doc.role as AppRole | undefined,
+      schoolId: doc.schoolId ? String(doc.schoolId) : undefined,
+      pendingOnboarding: !!doc.pendingOnboarding,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+      internalTestImpersonation: {
+        schoolId: doc.schoolId ? String(doc.schoolId) : "",
+        targetDisplayName: name || doc.email,
+        targetRole: doc.role as AppRole | undefined,
+      },
+    };
   }
 
   let resolvedClerkId: string | null = clerkUserId ?? null;

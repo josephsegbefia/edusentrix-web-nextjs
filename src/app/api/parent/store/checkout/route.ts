@@ -24,6 +24,10 @@ import {
   deriveSchoolPaymentSetupStatus,
   isSchoolPaymentReady,
 } from "@/lib/school-payments/payment-setup";
+import { assertParentCheckoutAllowed } from "@/lib/internal-test/assert-parent-checkout-allowed";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { recordPaymentSandboxUsed } from "@/lib/internal-test/record-payment-sandbox-used";
+import { shouldUseSandboxPayments } from "@/lib/internal-test/shouldUseSandboxPayments";
 
 type SchoolForPaymentCheck = Parameters<typeof isSchoolPaymentReady>[0];
 
@@ -77,6 +81,9 @@ export async function POST(req: NextRequest) {
   try {
     const context = await requireParent();
     await connectToDatabase();
+
+    const checkoutBlock = await assertParentCheckoutAllowed(context.schoolId);
+    if (checkoutBlock) return checkoutBlock;
 
     const body = BodySchema.parse(await req.json());
     if (!mongoose.Types.ObjectId.isValid(body.studentId)) {
@@ -405,6 +412,18 @@ export async function POST(req: NextRequest) {
         $set: { status: "failed", failureReason: msg },
       });
       throw initErr;
+    }
+
+    const paySnap = await loadSchoolInternalTestSnapshot(context.schoolId);
+    const pm = getPaystackKeyMode();
+    if (shouldUseSandboxPayments(paySnap) && pm === "test") {
+      await recordPaymentSandboxUsed({
+        actorId: context.userId,
+        schoolId: context.schoolId,
+        reference: init.reference,
+        paystackKeyMode: pm,
+        channel: "parent_store",
+      });
     }
 
     await StoreOrder.findByIdAndUpdate(order._id, {

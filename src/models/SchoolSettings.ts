@@ -195,8 +195,21 @@ export interface ISchoolSettings {
 
   /** Lessons module (delivery layer) — parent portal and related toggles */
   lessonsModule?: {
+    enabled: boolean;
+    requireApprovedLessonNoteToPublish: boolean;
+    allowTeacherPublishWithoutReview: boolean;
+    enableStudentLessonView: boolean;
+    enableFlashcards: boolean;
+    enableResources: boolean;
+    enableTeachingMode: boolean;
+    enableLessonReflection: boolean;
+    enableLessonAnalytics: boolean;
     /** When true, guardians can read `Lesson.parentSummaryHtml` for the ward's published lessons. */
     parentSummaryVisibleToParents: boolean;
+    enableLeoLessonTools: boolean;
+    requireTeacherReviewForAiContent: boolean;
+    notifyStudentsOnPublish: boolean;
+    notifyParentsOnPublish: boolean;
   };
 
   /** Curriculum & Scheme of Work module settings */
@@ -473,7 +486,20 @@ const SchoolLeoSettingsSchema = new Schema(
 
 const LessonsModuleSettingsSchema = new Schema(
   {
+    enabled: { type: Boolean, default: true },
+    requireApprovedLessonNoteToPublish: { type: Boolean, default: false },
+    allowTeacherPublishWithoutReview: { type: Boolean, default: true },
+    enableStudentLessonView: { type: Boolean, default: true },
+    enableFlashcards: { type: Boolean, default: true },
+    enableResources: { type: Boolean, default: true },
+    enableTeachingMode: { type: Boolean, default: true },
+    enableLessonReflection: { type: Boolean, default: true },
+    enableLessonAnalytics: { type: Boolean, default: true },
     parentSummaryVisibleToParents: { type: Boolean, default: false },
+    enableLeoLessonTools: { type: Boolean, default: false },
+    requireTeacherReviewForAiContent: { type: Boolean, default: true },
+    notifyStudentsOnPublish: { type: Boolean, default: true },
+    notifyParentsOnPublish: { type: Boolean, default: false },
   },
   { _id: false }
 );

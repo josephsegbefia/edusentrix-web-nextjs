@@ -13,6 +13,7 @@ import { Student } from "@/models/Student";
 import { StudentLessonProgress } from "@/models/StudentLessonProgress";
 import { completionRatioPercent } from "@/lib/lessons/completion-percent";
 import { resolveLessonNoteSchemeFields } from "@/lib/lesson-notes/validate-lesson-note-scheme";
+import { assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 
 const CreateLessonBodySchema = z.object({
   lessonNoteId: z.string().min(1),
@@ -61,8 +62,12 @@ export async function GET(req: Request) {
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
 
-    if (!can(context.permissions, PERMISSIONS.journalView)) {
+    if (!can(context.permissions, PERMISSIONS.lessonsRead)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -189,8 +194,12 @@ export async function POST(req: Request) {
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
 
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonsCreate)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

@@ -7,12 +7,13 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { Lesson, type ILesson } from "@/models/Lesson";
 import { LessonResource, type ILessonResource } from "@/models/LessonResource";
 import { recordLessonAudit } from "@/lib/lessons/lesson-audit";
+import { normalizeSafeExternalUrl } from "@/lib/lessons/content-safety";
 
 const PatchBodySchema = z.object({
   title: z.string().trim().min(1).max(220).optional(),
   description: z.string().trim().max(500).optional().nullable(),
   url: z.string().trim().url().max(2000).optional(),
-  visibility: z.enum(["teacher_only", "students", "students_and_parents"]).optional(),
+  visibility: z.enum(["teacher_only", "students", "parents_only", "students_and_parents"]).optional(),
 });
 
 function toObjectIdOrNull(id: string) {
@@ -28,7 +29,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ resour
     const context = await requireTeacher();
     await connectToDatabase();
 
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonResourcesManage)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -76,7 +77,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ resour
       if (existing.kind !== "link") {
         return Response.json({ success: false, error: "URL can only be set on link resources" }, { status: 400 });
       }
-      update.url = parsed.data.url.trim();
+      const safeUrl = normalizeSafeExternalUrl(parsed.data.url);
+      if (!safeUrl) {
+        return Response.json({ success: false, error: "Resource URL must be a safe https URL" }, { status: 400 });
+      }
+      update.url = safeUrl;
     }
 
     if (Object.keys(update).length === 0) {
@@ -84,6 +89,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ resour
     }
 
     await LessonResource.updateOne({ _id: rid }, { $set: update });
+    void recordLessonAudit({
+      schoolId: context.schoolId,
+      lessonId: existing.lessonId,
+      actorId: context.userId,
+      action: "resource_updated",
+      metadata: { resourceId: String(rid), fields: Object.keys(update) },
+      httpRequest: req,
+      actorRole: context.isAdmin ? "school_admin" : "teacher",
+    });
 
     return Response.json({ success: true });
   } catch (e: unknown) {
@@ -99,7 +113,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ resou
     const context = await requireTeacher();
     await connectToDatabase();
 
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonResourcesManage)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

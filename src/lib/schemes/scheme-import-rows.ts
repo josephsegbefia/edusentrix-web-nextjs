@@ -12,15 +12,22 @@ function rowErrors(row: { title: string; weekNumber: number | null }): string[] 
 
 /** Recompute validation errors after client edits. */
 export function normalizeParsedImportRows(rows: ISchemeImportParsedRow[]): ISchemeImportParsedRow[] {
-  return rows.map((r) => ({
-    ...r,
-    title: r.title.trim(),
-    learningObjective: r.learningObjective?.trim() || null,
-    notes: r.notes?.trim() || null,
-    weekNumber: r.weekNumber ?? null,
-    errors: rowErrors({
-      title: r.title,
+  return rows.map((r) => {
+    let confidence: number | null = null;
+    if (typeof r.confidence === "number" && Number.isFinite(r.confidence)) {
+      confidence = Math.min(1, Math.max(0, r.confidence));
+    }
+    return {
+      ...r,
+      title: r.title.trim(),
+      learningObjective: r.learningObjective?.trim() || null,
+      notes: r.notes?.trim() || null,
       weekNumber: r.weekNumber ?? null,
-    }),
-  }));
+      confidence,
+      errors: rowErrors({
+        title: r.title,
+        weekNumber: r.weekNumber ?? null,
+      }),
+    };
+  });
 }

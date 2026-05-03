@@ -147,7 +147,7 @@ export async function GET() {
       .trim();
 
     const settings = await SchoolSettings.findOne({ schoolId: context.schoolId })
-      .select("teacherStudio attendanceNotifications offlineMode")
+      .select("teacherStudio attendanceNotifications offlineMode academicPlanning")
       .lean();
 
     const teacherStudioEnabled = isTeacherStudioEnvEnabled()
@@ -171,6 +171,19 @@ export async function GET() {
     const offlineModeEnabled =
       (settings as { offlineMode?: { enabled?: boolean } } | null)?.offlineMode
         ?.enabled ?? true;
+
+    const rawAp = (
+      settings as {
+        academicPlanning?: {
+          enableSchemeOfWork?: boolean;
+          allowAiSchemeDrafting?: boolean;
+        };
+      } | null
+    )?.academicPlanning;
+    const academicPlanningForTeacher = {
+      enableSchemeOfWork: rawAp?.enableSchemeOfWork ?? false,
+      allowAiSchemeDrafting: rawAp?.allowAiSchemeDrafting ?? false,
+    };
 
     const delegationPermStrings = await mergedDelegationPermissions(
       context.schoolId,
@@ -232,6 +245,7 @@ export async function GET() {
           },
           offlineModeEnabled,
         },
+        academicPlanning: academicPlanningForTeacher,
         permissions,
         delegations: delegationsNav,
       },

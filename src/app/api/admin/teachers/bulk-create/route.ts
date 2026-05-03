@@ -21,6 +21,9 @@ import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
+import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
   if (!id || !id.trim()) return null;
@@ -150,6 +153,9 @@ export async function POST(req: NextRequest) {
     // Fetch school name for emails
     const school = await School.findById(schoolIdObj).select("name").lean();
     const schoolName = school ? (school as any).name : "your school";
+
+    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
+    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
 
     // Process each row
     for (let i = 0; i < normalizedRows.length; i++) {
@@ -409,6 +415,19 @@ export async function POST(req: NextRequest) {
           );
         }
 
+        if (bypassInviteEmail && internalTestSnapshot?.config?.autoActivateCreatedUsers) {
+          await User.updateOne(
+            { _id: teacherIdObj },
+            {
+              $set: {
+                isTestUser: true,
+                testUserSource: "manual_test_school",
+                pendingOnboarding: false,
+              },
+            }
+          );
+        }
+
         // Send Clerk invitation
         let clerkInvitationId: string | undefined;
         let invitationStatus: "pending" | "failed" = "pending";
@@ -434,18 +453,27 @@ export async function POST(req: NextRequest) {
             setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
           });
 
-          await sendTrackedBrevoEmail({
-            to: normalizedEmail,
-            subject: rendered.subject,
-            htmlContent: rendered.htmlContent,
-            textContent: rendered.textContent,
-            templateKey: "TEACHER_INVITE",
-            schoolId: String(schoolIdObj),
-            schoolName,
-            actorId: String(adminUserId),
-            actorRole: "school_admin",
-            relatedEntityType: "invitation",
-          });
+          if (!bypassInviteEmail) {
+            await sendTrackedBrevoEmail({
+              to: normalizedEmail,
+              subject: rendered.subject,
+              htmlContent: rendered.htmlContent,
+              textContent: rendered.textContent,
+              templateKey: "TEACHER_INVITE",
+              schoolId: String(schoolIdObj),
+              schoolName,
+              actorId: String(adminUserId),
+              actorRole: "school_admin",
+              relatedEntityType: "invitation",
+            });
+          } else if (adminUserId) {
+            await recordInvitationEmailSuppressed({
+              schoolId: schoolIdObj,
+              actorId: new mongoose.Types.ObjectId(String(adminUserId)),
+              templateKey: "TEACHER_INVITE",
+              targetEmail: normalizedEmail,
+            });
+          }
         } catch (inviteError) {
           console.error(`Clerk invitation error for ${normalizedEmail}:`, inviteError);
           invitationStatus = "failed";
@@ -471,6 +499,7 @@ export async function POST(req: NextRequest) {
               lastName: row.lastName,
               subjectIds: row.subjectIds?.split(",").map((id) => id.trim()) || [],
               homeroomClassGroupId: row.homeroomClassGroupId,
+              invitationEmailSuppressed: bypassInviteEmail,
             },
           });
         } catch (inviteRecordError) {

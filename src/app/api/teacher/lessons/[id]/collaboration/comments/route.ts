@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     const context = await requireTeacher();
     await connectToDatabase();
-    if (!can(context.permissions, PERMISSIONS.journalView)) {
+    if (!can(context.permissions, PERMISSIONS.lessonsRead)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
     const { id } = await params;
@@ -84,7 +84,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   try {
     const context = await requireTeacher();
     await connectToDatabase();
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonCollaborationComment)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
     const { id } = await params;

@@ -30,6 +30,8 @@ import {
   validateCollaboratorTeacherIdsInput,
 } from "@/lib/lessons/collaboration";
 import { resolveLessonNoteSchemeFields } from "@/lib/lesson-notes/validate-lesson-note-scheme";
+import { assertLessonsModuleEnabled } from "@/lib/lessons/settings";
+import { buildLessonPublishChecklist } from "@/lib/lessons/publish-checklist";
 
 const teachingSegmentSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -216,6 +218,25 @@ function formatLessonDetail(
     publishedAt: lesson.publishedAt ? new Date(lesson.publishedAt).toISOString() : null,
     publishedSnapshot: lesson.publishedSnapshot ?? null,
     teachingMode: formatTeachingModeDto(lesson),
+    studentContent: lesson.studentContent
+      ? {
+          summaryHtml: lesson.studentContent.summaryHtml ?? "",
+          keyPoints: lesson.studentContent.keyPoints ?? [],
+          vocabulary: lesson.studentContent.vocabulary ?? [],
+          studentInstructions: lesson.studentContent.studentInstructions ?? "",
+          practicePrompt: lesson.studentContent.practicePrompt ?? "",
+          estimatedReadingMinutes: lesson.studentContent.estimatedReadingMinutes ?? null,
+          aiGenerated: lesson.studentContent.aiGenerated ?? false,
+          teacherReviewed: lesson.studentContent.teacherReviewed ?? false,
+          aiTool: lesson.studentContent.aiTool ?? null,
+          aiGeneratedAt: lesson.studentContent.aiGeneratedAt
+            ? new Date(lesson.studentContent.aiGeneratedAt).toISOString()
+            : null,
+          lastEditedAt: lesson.studentContent.lastEditedAt
+            ? new Date(lesson.studentContent.lastEditedAt).toISOString()
+            : null,
+        }
+      : null,
     parentSummaryHtml: lesson.parentSummaryHtml ?? null,
     collaboratorTeacherIds: (lesson.collaboratorTeacherIds ?? []).map((id) => String(id)),
     schemeId: lesson.schemeId ? String(lesson.schemeId) : null,
@@ -235,8 +256,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const context = await requireTeacher();
     await connectToDatabase();
     const { id } = await params;
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
 
-    if (!can(context.permissions, PERMISSIONS.journalView)) {
+    if (!can(context.permissions, PERMISSIONS.lessonsRead)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -334,8 +359,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const context = await requireTeacher();
     await connectToDatabase();
     const { id } = await params;
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
 
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonsUpdate)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -499,9 +528,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           { status: 403 }
         );
       }
+      if (parsed.data.status === "published" && !can(context.permissions, PERMISSIONS.lessonsPublish)) {
+        return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
+      }
+      if (parsed.data.status === "archived" && !can(context.permissions, PERMISSIONS.lessonsArchive)) {
+        return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
+      }
       setData.status = parsed.data.status;
 
       if (parsed.data.status === "published") {
+        const checklist = await buildLessonPublishChecklist({
+          schoolId: context.schoolId,
+          lessonId,
+          settings: moduleGate.settings,
+        });
+        if (!checklist.canPublish) {
+          return Response.json(
+            {
+              success: false,
+              error: "Lesson cannot be published yet",
+              data: { checklist: checklist.items },
+            },
+            { status: 409 }
+          );
+        }
         const note = (await LessonNote.findOne({
           _id: existing.lessonNoteId,
           schoolId: context.schoolId,
@@ -621,7 +671,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (
       parsed.data.status === "published" &&
       setData.publishedAt instanceof Date &&
-      existing.classGroupId
+      existing.classGroupId &&
+      moduleGate.settings.notifyStudentsOnPublish
     ) {
       const lessonTitle =
         parsed.data.title !== undefined ? parsed.data.title : existing.title;
@@ -679,8 +730,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     const context = await requireTeacher();
     await connectToDatabase();
     const { id } = await params;
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
 
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonsDelete)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

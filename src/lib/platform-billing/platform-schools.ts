@@ -161,7 +161,9 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   const [school, subscription, usageMetrics, subscriptionEvents, latestProvisioningJob] =
     await Promise.all([
     School.findById(schoolIdObj)
-      .select("name status createdBy bank billing city region email")
+      .select(
+        "name status createdBy bank billing city region email isInternalTestSchool environmentType internalTest"
+      )
       .lean<{
         _id: mongoose.Types.ObjectId;
         name?: string;
@@ -169,6 +171,13 @@ export async function getPlatformSchoolDetail(schoolId: string) {
         city?: string;
         region?: string;
         email?: string;
+        isInternalTestSchool?: boolean;
+        environmentType?: string;
+        internalTest?: {
+          enabled?: boolean;
+          mode?: string;
+          visibleBadgeEnabled?: boolean;
+        } | null;
         createdBy?: mongoose.Types.ObjectId | null;
         bank?: {
           bankName?: string | null;
@@ -301,6 +310,12 @@ export async function getPlatformSchoolDetail(schoolId: string) {
       })
     : null;
 
+  const internalEnabled = Boolean(school.internalTest?.enabled);
+  const internalShowBadge =
+    Boolean(school.isInternalTestSchool) &&
+    internalEnabled &&
+    (school.internalTest?.visibleBadgeEnabled !== false);
+
   return {
     id: String(school._id),
     name: school.name || "Unnamed School",
@@ -308,6 +323,16 @@ export async function getPlatformSchoolDetail(schoolId: string) {
     city: school.city || null,
     region: school.region || null,
     email: school.email || null,
+    isInternalTestSchool: Boolean(school.isInternalTestSchool),
+    environmentType: school.environmentType || "production",
+    internalTest:
+      school.isInternalTestSchool || school.internalTest
+        ? {
+            enabled: internalEnabled,
+            mode: school.internalTest?.mode ?? null,
+            showBadge: internalShowBadge,
+          }
+        : null,
     paymentReady: isSchoolPaymentReady(school),
     paymentSetup: {
       status: paymentSetupStatus,

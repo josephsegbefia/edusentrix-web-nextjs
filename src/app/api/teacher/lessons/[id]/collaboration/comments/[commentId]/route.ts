@@ -27,7 +27,7 @@ export async function PATCH(
   try {
     const context = await requireTeacher();
     await connectToDatabase();
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonCollaborationResolve)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
     const { id, commentId } = await params;

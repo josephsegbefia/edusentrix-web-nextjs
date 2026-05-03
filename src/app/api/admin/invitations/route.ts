@@ -17,6 +17,9 @@ import {
 import mongoose from "mongoose";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
+import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
 
 const createInvitationSchema = z.object({
   email: z.string().email(),
@@ -196,6 +199,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
+    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
+
     const APP_URL = getAppUrl();
     const redirectUrl = getInvitationRedirectUrl();
     let clerkInvitationId: string | undefined;
@@ -232,28 +238,37 @@ export async function POST(req: NextRequest) {
         setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
       });
 
-      await sendTrackedBrevoEmail({
-        to: normalizedEmail,
-        subject: rendered.subject,
-        htmlContent: rendered.htmlContent,
-        textContent: rendered.textContent,
-        templateKey: "BURSAR_INVITE",
-        schoolId: String(schoolIdObj),
-        schoolName,
-        actorId: String(userId),
-        actorRole: "school_admin",
-        relatedEntityType: "invitation",
-      });
-      await trackUsage({
-        schoolId,
-        provider: "email",
-        metricKey: "transactional_emails_sent",
-        quantity: 1,
-        unitLabel: "emails",
-        allocationMethod: "direct",
-        sourceType: "manual",
-        notes: "Bursar invitation email sent.",
-      });
+      if (!bypassInviteEmail) {
+        await sendTrackedBrevoEmail({
+          to: normalizedEmail,
+          subject: rendered.subject,
+          htmlContent: rendered.htmlContent,
+          textContent: rendered.textContent,
+          templateKey: "BURSAR_INVITE",
+          schoolId: String(schoolIdObj),
+          schoolName,
+          actorId: String(userId),
+          actorRole: "school_admin",
+          relatedEntityType: "invitation",
+        });
+        await trackUsage({
+          schoolId,
+          provider: "email",
+          metricKey: "transactional_emails_sent",
+          quantity: 1,
+          unitLabel: "emails",
+          allocationMethod: "direct",
+          sourceType: "manual",
+          notes: "Bursar invitation email sent.",
+        });
+      } else if (userId) {
+        await recordInvitationEmailSuppressed({
+          schoolId: schoolIdObj,
+          actorId: new mongoose.Types.ObjectId(String(userId)),
+          templateKey: "BURSAR_INVITE",
+          targetEmail: normalizedEmail,
+        });
+      }
     } catch (inviteError: unknown) {
       console.error("Bursar invitation error:", inviteError);
       invitationStatus = "failed";
@@ -281,6 +296,7 @@ export async function POST(req: NextRequest) {
         lastName: parsed.data.lastName,
         phone: parsed.data.phone,
         photoUrl: parsed.data.photoUrl,
+        invitationEmailSuppressed: bypassInviteEmail,
       },
     });
 
@@ -303,16 +319,18 @@ export async function POST(req: NextRequest) {
         status: invitationStatus,
       },
     });
-    await trackUsage({
-      schoolId,
-      provider: "internal",
-      metricKey: "invitations_sent",
-      quantity: 1,
-      unitLabel: "invites",
-      allocationMethod: "manual",
-      sourceType: "manual",
-      notes: "Bursar invitation issued.",
-    });
+    if (!bypassInviteEmail) {
+      await trackUsage({
+        schoolId,
+        provider: "internal",
+        metricKey: "invitations_sent",
+        quantity: 1,
+        unitLabel: "invites",
+        allocationMethod: "manual",
+        sourceType: "manual",
+        notes: "Bursar invitation issued.",
+      });
+    }
 
     if (invitationStatus === "failed") {
       return new Response(

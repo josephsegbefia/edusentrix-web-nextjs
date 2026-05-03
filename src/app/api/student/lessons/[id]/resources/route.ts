@@ -8,6 +8,7 @@ import { LibraryBook } from "@/models/LibraryBook";
 import { serializeLibraryBookPatron } from "@/lib/library/library.serialize";
 import type { ILibraryBook } from "@/models/LibraryBook";
 import type { StudentLessonResourceRow, StudentLessonResourcesResponse } from "@/types/lesson-resources";
+import { assertLessonsFeatureEnabled, assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 
 function toObjectIdOrNull(id: string) {
   try {
@@ -22,6 +23,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const context = await requireSchoolMember({ allowedRoles: ["student"] });
     await connectToDatabase();
     const { id } = await params;
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const featureGate = assertLessonsFeatureEnabled(moduleGate.settings, "enableResources", "Lesson resources");
+    if (!featureGate.ok) {
+      return Response.json({ success: false, error: featureGate.error }, { status: featureGate.status });
+    }
 
     const lessonId = toObjectIdOrNull(id);
     if (!lessonId) {
@@ -86,6 +95,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           description: r.description ?? null,
           url: r.url || "#",
           linkType: r.linkType ?? null,
+          order: r.order,
+        };
+      }
+      if (r.kind === "file") {
+        return {
+          id: String(r._id),
+          kind: "file",
+          title: r.title,
+          description: r.description ?? null,
+          fileUrl: r.fileUrl || "#",
+          fileName: r.fileName ?? null,
+          fileSizeBytes: r.fileSizeBytes ?? null,
+          mimeType: r.mimeType ?? null,
+          fileType: r.fileType ?? null,
           order: r.order,
         };
       }

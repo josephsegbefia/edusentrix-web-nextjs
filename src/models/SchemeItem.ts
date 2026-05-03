@@ -1,6 +1,15 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
 
-export type SchemeItemStatus = "draft" | "ready" | "dropped";
+export type SchemeItemStatus =
+  | "not_started"
+  | "in_progress"
+  | "covered"
+  | "skipped"
+  | "moved"
+  | "needs_review"
+  | "draft"
+  | "ready"
+  | "dropped";
 
 /** Planned-vs-taught coverage for a scheme row (see curriculum spec §10.5). */
 export type SchemeItemCoverageStatus =
@@ -16,11 +25,24 @@ export interface ISchemeItem {
   schoolId: Types.ObjectId;
   schemeId: Types.ObjectId;
   weekNumber?: number | null;
+  lessonOrder?: number | null;
   sequence: number;
-  title: string;
+  topic?: string | null;
+  subtopic?: string | null;
+  title?: string | null;
+  strand?: string | null;
+  subStrand?: string | null;
+  contentStandard?: string | null;
+  indicator?: string | null;
+  learningObjectives?: string[];
   learningObjective?: string | null;
+  coreCompetencies?: string[];
+  teachingResources?: string[];
+  assessmentIdeas?: string[];
   notes?: string | null;
   curriculumNodeIds: Types.ObjectId[];
+  plannedStartDate?: Date | null;
+  plannedEndDate?: Date | null;
   suggestedLessonTemplateType?: string | null;
   suggestedDurationMinutes?: number | null;
   status: SchemeItemStatus;
@@ -40,17 +62,40 @@ const schemeItemSchema = new Schema<ISchemeItem>(
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
     schemeId: { type: Schema.Types.ObjectId, ref: "SchemeOfWork", required: true, index: true },
     weekNumber: { type: Number, min: 1, max: 53, default: null },
+    lessonOrder: { type: Number, min: 1, default: null },
     sequence: { type: Number, min: 0, default: 0 },
-    title: { type: String, required: true, trim: true, maxlength: 260 },
+    topic: { type: String, trim: true, maxlength: 260, default: null },
+    subtopic: { type: String, trim: true, maxlength: 260, default: null },
+    title: { type: String, trim: true, maxlength: 260, default: null },
+    strand: { type: String, trim: true, maxlength: 260, default: null },
+    subStrand: { type: String, trim: true, maxlength: 260, default: null },
+    contentStandard: { type: String, trim: true, maxlength: 600, default: null },
+    indicator: { type: String, trim: true, maxlength: 600, default: null },
+    learningObjectives: [{ type: String, trim: true, maxlength: 1000 }],
     learningObjective: { type: String, trim: true, maxlength: 5000, default: null },
+    coreCompetencies: [{ type: String, trim: true, maxlength: 500 }],
+    teachingResources: [{ type: String, trim: true, maxlength: 500 }],
+    assessmentIdeas: [{ type: String, trim: true, maxlength: 1000 }],
     notes: { type: String, trim: true, maxlength: 5000, default: null },
     curriculumNodeIds: [{ type: Schema.Types.ObjectId, ref: "CurriculumNode" }],
+    plannedStartDate: { type: Date, default: null, index: true },
+    plannedEndDate: { type: Date, default: null, index: true },
     suggestedLessonTemplateType: { type: String, trim: true, maxlength: 120, default: null },
     suggestedDurationMinutes: { type: Number, min: 10, max: 360, default: null },
     status: {
       type: String,
-      enum: ["draft", "ready", "dropped"],
-      default: "draft",
+      enum: [
+        "not_started",
+        "in_progress",
+        "covered",
+        "skipped",
+        "moved",
+        "needs_review",
+        "draft",
+        "ready",
+        "dropped",
+      ],
+      default: "not_started",
     },
     coverageStatus: {
       type: String,

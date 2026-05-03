@@ -49,6 +49,7 @@ import {
   Megaphone,
   ChevronDown,
   ClipboardSignature,
+  Layers,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -186,6 +187,11 @@ const navSections: NavSection[] = [
         label: "Curriculum",
         href: "/admin/settings/curriculum",
         icon: GraduationCap,
+      },
+      {
+        label: "Curriculum frameworks",
+        href: "/admin/curricula",
+        icon: Layers,
       },
       {
         label: "Scheme review desk",

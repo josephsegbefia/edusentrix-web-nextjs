@@ -1,6 +1,9 @@
 import { ReactNode } from "react";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/get-current-user";
-import { assertRole } from "@/lib/auth/guards";
+import { connectToDatabase } from "@/db/connectToDatabase";
+import { User } from "@/models/User";
 import PlatformSidebar from "@/components/platform/PlatformSidebar";
 import { AuthRefreshHandler } from "@/components/auth/auth-refresh-handler";
 import { SidebarProvider } from "@/providers/sidebar-provider";
@@ -12,7 +15,14 @@ export default async function PlatformLayout({
   children: ReactNode;
 }) {
   const user = await requireUser();
-  assertRole(user, ["platform_admin"]);
+  const { userId: clerkId } = await auth();
+  if (!clerkId) redirect("/sign-in");
+  await connectToDatabase();
+  const actorRaw = await User.findOne({ clerkUserId: clerkId }).select("role").lean();
+  const actor = Array.isArray(actorRaw) ? actorRaw[0] : actorRaw;
+  if (actor?.role !== "platform_admin") {
+    redirect("/dashboard");
+  }
   return (
     <>
       <AuthRefreshHandler />

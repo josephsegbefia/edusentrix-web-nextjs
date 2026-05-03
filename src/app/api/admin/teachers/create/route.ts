@@ -26,6 +26,9 @@ import {
   deactivateOtherTeachersOnSlot,
   findOtherTeachersOnSlot,
 } from "@/lib/admin/teacher-assignment-slot";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
+import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
 
 type Body = {
   firstName: string;
@@ -483,6 +486,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
+    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
+    if (bypassInviteEmail && internalTestSnapshot?.config?.autoActivateCreatedUsers) {
+      await User.updateOne(
+        { _id: teacherIdObj },
+        {
+          $set: {
+            isTestUser: true,
+            testUserSource: "manual_test_school",
+            pendingOnboarding: false,
+          },
+        }
+      );
+    }
+
     // Send Clerk invitation email and create invitation record
     const redirectUrl = `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
       "/teacher"
@@ -518,28 +536,37 @@ export async function POST(req: NextRequest) {
         setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
       });
 
-      await sendTrackedBrevoEmail({
-        to: normalizedBody.email.toLowerCase().trim(),
-        subject: rendered.subject,
-        htmlContent: rendered.htmlContent,
-        textContent: rendered.textContent,
-        templateKey: "TEACHER_INVITE",
-        schoolId: String(schoolIdObj),
-        schoolName,
-        actorId: String(userId),
-        actorRole: "school_admin",
-        relatedEntityType: "invitation",
-      });
-      await trackUsage({
-        schoolId,
-        provider: "email",
-        metricKey: "transactional_emails_sent",
-        quantity: 1,
-        unitLabel: "emails",
-        allocationMethod: "direct",
-        sourceType: "manual",
-        notes: "Teacher invitation email sent.",
-      });
+      if (!bypassInviteEmail) {
+        await sendTrackedBrevoEmail({
+          to: normalizedBody.email.toLowerCase().trim(),
+          subject: rendered.subject,
+          htmlContent: rendered.htmlContent,
+          textContent: rendered.textContent,
+          templateKey: "TEACHER_INVITE",
+          schoolId: String(schoolIdObj),
+          schoolName,
+          actorId: String(userId),
+          actorRole: "school_admin",
+          relatedEntityType: "invitation",
+        });
+        await trackUsage({
+          schoolId,
+          provider: "email",
+          metricKey: "transactional_emails_sent",
+          quantity: 1,
+          unitLabel: "emails",
+          allocationMethod: "direct",
+          sourceType: "manual",
+          notes: "Teacher invitation email sent.",
+        });
+      } else if (userId) {
+        await recordInvitationEmailSuppressed({
+          schoolId: schoolIdObj,
+          actorId: new mongoose.Types.ObjectId(String(userId)),
+          templateKey: "TEACHER_INVITE",
+          targetEmail: normalizedBody.email.toLowerCase().trim(),
+        });
+      }
     } catch (inviteError) {
       console.error("Teacher invite (Clerk and/or invite email) error:", inviteError);
       invitationStatus = "failed";
@@ -568,6 +595,7 @@ export async function POST(req: NextRequest) {
           subjectIds: mergedSubjectIdStrings,
           teachingAssignments: normalizedBody.teachingAssignments || [],
           homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
+          invitationEmailSuppressed: bypassInviteEmail,
         },
       });
     } catch (inviteRecordError) {
@@ -602,16 +630,18 @@ export async function POST(req: NextRequest) {
       sourceType: "manual",
       notes: "Teacher created through admin workflow.",
     });
-    await trackUsage({
-      schoolId,
-      provider: "internal",
-      metricKey: "invitations_sent",
-      quantity: 1,
-      unitLabel: "invites",
-      allocationMethod: "manual",
-      sourceType: "manual",
-      notes: "Teacher invitation issued during teacher creation.",
-    });
+    if (!bypassInviteEmail) {
+      await trackUsage({
+        schoolId,
+        provider: "internal",
+        metricKey: "invitations_sent",
+        quantity: 1,
+        unitLabel: "invites",
+        allocationMethod: "manual",
+        sourceType: "manual",
+        notes: "Teacher invitation issued during teacher creation.",
+      });
+    }
 
     return Response.json(
       {

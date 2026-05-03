@@ -52,7 +52,7 @@ function StatCard({
 export default function TeacherLessonAnalyticsPage() {
   const { data: contextData } = useTeacherContext();
   const permissions = contextData?.data.permissions as Permission[] | undefined;
-  const canView = can(permissions, PERMISSIONS.journalView);
+  const canView = can(permissions, PERMISSIONS.lessonsRead);
 
   const def = React.useMemo(() => defaultLessonAnalyticsRange(), []);
   const [startDate, setStartDate] = React.useState<Date | null>(def.from);

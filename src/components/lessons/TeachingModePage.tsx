@@ -47,8 +47,8 @@ export function TeachingModePage() {
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: ctx } = useTeacherContext();
   const permissions = ctx?.data.permissions as Permission[] | undefined;
-  const canView = can(permissions, PERMISSIONS.journalView);
-  const canWrite = can(permissions, PERMISSIONS.journalWrite);
+  const canView = can(permissions, PERMISSIONS.lessonsRead);
+  const canWrite = can(permissions, PERMISSIONS.lessonsUpdate);
 
   const { data, isLoading, error, refetch } = useTeacherLesson(lessonId, canView, {
     includeDisplayNote: true,

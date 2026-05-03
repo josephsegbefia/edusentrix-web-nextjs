@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ArrowLeft,
   BadgeCheck,
+  FlaskConical,
   Loader2,
   Rocket,
   ShieldCheck,
@@ -30,6 +31,13 @@ type SchoolDetail = {
   city: string | null;
   region: string | null;
   email: string | null;
+  isInternalTestSchool: boolean;
+  environmentType: string;
+  internalTest: {
+    enabled: boolean;
+    mode: string | null;
+    showBadge: boolean;
+  } | null;
   paymentReady: boolean;
   paymentSetup: {
     status:
@@ -260,19 +268,42 @@ export default function PlatformSchoolDetailPage() {
             Back to Schools
           </Link>
         </Button>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-semibold text-white">{data?.name || "School Overview"}</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-semibold text-white">{data?.name || "School Overview"}</h1>
+            {data?.internalTest?.showBadge ? (
+              <Badge
+                variant="outline"
+                className="border-amber-500/35 bg-amber-500/15 text-sm font-medium text-amber-100"
+              >
+                Internal test school
+              </Badge>
+            ) : null}
+          </div>
           {schoolId ? (
-            <Button
-              asChild
-              size="sm"
-              className="w-fit bg-brand text-black hover:bg-brand/90"
-            >
-              <Link href={`/platform/schools/${schoolId}/onboarding`}>
-                <Rocket className="mr-2 h-4 w-4" />
-                Assisted launch wizard
-              </Link>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="w-fit border-white/10 bg-white/6 text-white hover:bg-white/10"
+              >
+                <Link href={`/platform/schools/${schoolId}/internal-test`}>
+                  <FlaskConical className="mr-2 h-4 w-4 text-cyan-300" />
+                  Internal test
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                className="w-fit bg-brand text-black hover:bg-brand/90"
+              >
+                <Link href={`/platform/schools/${schoolId}/onboarding`}>
+                  <Rocket className="mr-2 h-4 w-4" />
+                  Assisted launch wizard
+                </Link>
+              </Button>
+            </div>
           ) : null}
         </div>
         {data ? (

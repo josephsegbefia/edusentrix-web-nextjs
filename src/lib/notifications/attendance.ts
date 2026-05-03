@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { shouldSuppressParentFacingWhatsApp } from "@/lib/internal-test/shouldSuppressNotification";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import type { AttendanceStatus, AttendanceType } from "@/models/StudentAttendance";
 import { SchoolSettings } from "@/models/SchoolSettings";
@@ -46,6 +48,17 @@ export async function queueAttendanceNotification(input: {
   const schoolIdObj = toObjectIdOrNull(schoolId);
   const studentIdObj = toObjectIdOrNull(studentId);
   if (!studentIdObj) return false;
+
+  if (schoolIdObj) {
+    const snap = await loadSchoolInternalTestSnapshot(schoolIdObj);
+    if (shouldSuppressParentFacingWhatsApp(snap)) {
+      console.info("Attendance WhatsApp suppressed (internal test school)", {
+        studentId,
+        schoolId: String(schoolIdObj),
+      });
+      return false;
+    }
+  }
 
   const schoolWhatsAppEnabled =
     whatsappChannelEnabled ??

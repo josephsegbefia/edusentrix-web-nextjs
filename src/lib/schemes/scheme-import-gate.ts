@@ -1,6 +1,39 @@
 import mongoose from "mongoose";
 import { SchoolSettings } from "@/models/SchoolSettings";
 
+export async function assertSchemeOfWorkEnabled(
+  schoolId: mongoose.Types.ObjectId
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const settings = await SchoolSettings.findOne({ schoolId })
+    .select("academicPlanning")
+    .lean();
+  if (!settings?.academicPlanning?.enableSchemeOfWork) {
+    return { ok: false, status: 403, error: "Scheme of work is not enabled for this school" };
+  }
+  return { ok: true };
+}
+
+export async function assertTeacherSchemeCreationEnabled(
+  schoolId: mongoose.Types.ObjectId,
+  isAdmin: boolean
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const settings = await SchoolSettings.findOne({ schoolId })
+    .select("academicPlanning")
+    .lean();
+  const ap = settings?.academicPlanning;
+  if (!ap?.enableSchemeOfWork) {
+    return { ok: false, status: 403, error: "Scheme of work is not enabled for this school" };
+  }
+  if (!isAdmin && !ap?.allowTeacherSchemeCreation) {
+    return {
+      ok: false,
+      status: 403,
+      error: "Teacher scheme creation is disabled for this school",
+    };
+  }
+  return { ok: true };
+}
+
 export async function assertSchemeImportEnabled(
   schoolId: mongoose.Types.ObjectId
 ): Promise<
@@ -15,6 +48,42 @@ export async function assertSchemeImportEnabled(
   }
   if (!ap?.allowSchemeImport) {
     return { ok: false, status: 403, error: "Scheme import is not allowed for this school" };
+  }
+  return { ok: true };
+}
+
+/** Requires `enableSchemeOfWork` plus `allowAiSchemeDrafting`. */
+export async function assertAiSchemeDraftingEnabled(
+  schoolId: mongoose.Types.ObjectId
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const settings = await SchoolSettings.findOne({ schoolId }).select("academicPlanning").lean();
+  const ap = settings?.academicPlanning;
+  if (!ap?.enableSchemeOfWork) {
+    return { ok: false, status: 403, error: "Scheme of work is not enabled for this school" };
+  }
+  if (!ap?.allowAiSchemeDrafting) {
+    return {
+      ok: false,
+      status: 403,
+      error: "AI-assisted scheme drafting is not enabled for this school",
+    };
+  }
+  return { ok: true };
+}
+
+/** Requires base scheme import plus `allowPdfSchemeImport`. */
+export async function assertPdfSchemeImportEnabled(
+  schoolId: mongoose.Types.ObjectId
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const base = await assertSchemeImportEnabled(schoolId);
+  if (!base.ok) return base;
+  const settings = await SchoolSettings.findOne({ schoolId }).select("academicPlanning").lean();
+  if (!settings?.academicPlanning?.allowPdfSchemeImport) {
+    return {
+      ok: false,
+      status: 403,
+      error: "PDF scheme import is not enabled for this school",
+    };
   }
   return { ok: true };
 }

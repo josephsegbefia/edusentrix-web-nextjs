@@ -3,6 +3,8 @@ import type { CurriculumCode } from "@/constants/curriculum-profiles";
 
 export type SchoolType = "Basic" | "SHS";
 
+export type SchoolEnvironmentType = "production" | "demo" | "internal_test";
+
 export interface ISchool {
   _id: Types.ObjectId;
   name: string;
@@ -30,6 +32,18 @@ export interface ISchool {
   createdBy?: Types.ObjectId | null;
   onboarding?: {
     finishedAt?: Date | null;
+  };
+  environmentType?: SchoolEnvironmentType;
+  isInternalTestSchool?: boolean;
+  internalTest?: {
+    enabled: boolean;
+    enabledAt?: Date | null;
+    enabledBy?: Types.ObjectId | null;
+    disabledAt?: Date | null;
+    disabledBy?: Types.ObjectId | null;
+    mode?: "manual" | "seeded" | "manual_and_seeded";
+    visibleBadgeEnabled: boolean;
+    notes?: string | null;
   };
   billing?: {
     status?: "unprovisioned" | "provisioned" | "failed";
@@ -146,6 +160,26 @@ const schoolSchema = new Schema<ISchool>(
     createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     onboarding: {
       finishedAt: { type: Date, default: null },
+    },
+    environmentType: {
+      type: String,
+      enum: ["production", "demo", "internal_test"],
+      default: "production",
+    },
+    isInternalTestSchool: { type: Boolean, default: false },
+    internalTest: {
+      enabled: { type: Boolean, default: false },
+      enabledAt: { type: Date, default: null },
+      enabledBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+      disabledAt: { type: Date, default: null },
+      disabledBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+      mode: {
+        type: String,
+        enum: ["manual", "seeded", "manual_and_seeded"],
+        default: undefined,
+      },
+      visibleBadgeEnabled: { type: Boolean, default: true },
+      notes: { type: String, default: null, trim: true, maxlength: 2000 },
     },
     billing: {
       status: {

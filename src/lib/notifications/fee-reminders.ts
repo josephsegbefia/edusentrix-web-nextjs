@@ -1,6 +1,12 @@
 import "server-only";
 
+import mongoose from "mongoose";
 import { sendTrackedBrevoEmail } from "@/lib/email";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import {
+  shouldSuppressNotification,
+  shouldSuppressParentFacingWhatsApp,
+} from "@/lib/internal-test/shouldSuppressNotification";
 import { renderTemplate } from "@/lib/email/templates";
 import { sendWhatsAppMessage } from "@/lib/notifications/whatsapp";
 import { normalizePhone } from "@/lib/notifications/teacher-whatsapp-policy";
@@ -45,6 +51,39 @@ export type FeeReminderDispatchResult = {
 export async function dispatchFeeReminder(
   input: FeeReminderDispatchInput
 ): Promise<FeeReminderDispatchResult> {
+  if (input.schoolId && mongoose.Types.ObjectId.isValid(input.schoolId)) {
+    const snap = await loadSchoolInternalTestSnapshot(
+      new mongoose.Types.ObjectId(input.schoolId)
+    );
+    if (
+      input.channel === "email" &&
+      shouldSuppressNotification(snap, "parent_notification")
+    ) {
+      return {
+        success: false,
+        channel: "email",
+        reason: "internal_test_suppressed",
+      };
+    }
+    if (input.channel === "sms" && shouldSuppressNotification(snap, "sms")) {
+      return {
+        success: false,
+        channel: "sms",
+        reason: "internal_test_suppressed",
+      };
+    }
+    if (
+      input.channel === "whatsapp" &&
+      shouldSuppressParentFacingWhatsApp(snap)
+    ) {
+      return {
+        success: false,
+        channel: "whatsapp",
+        reason: "internal_test_suppressed",
+      };
+    }
+  }
+
   if (input.channel === "email") {
     if (!input.email) {
       return { success: false, channel: "email", reason: "missing_email" };

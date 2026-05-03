@@ -7,6 +7,7 @@ import { LessonFlashcardDeck } from "@/models/LessonFlashcardDeck";
 import { LessonFlashcard, type ILessonFlashcard } from "@/models/LessonFlashcard";
 import { StudentFlashcardProgress } from "@/models/StudentFlashcardProgress";
 import type { LessonFlashcardDto, StudentLessonFlashcardsResponse } from "@/types/lesson-flashcards";
+import { assertLessonsFeatureEnabled, assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 
 function toObjectIdOrNull(id: string) {
   try {
@@ -23,6 +24,11 @@ function formatCard(c: ILessonFlashcard): LessonFlashcardDto {
     lessonId: String(c.lessonId),
     front: c.front,
     back: c.back,
+    hint: c.hint ?? null,
+    explanation: c.explanation ?? null,
+    imageUrl: c.imageUrl ?? null,
+    difficulty: c.difficulty ?? null,
+    cardType: c.cardType ?? null,
     order: c.order,
     createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : null,
     updatedAt: c.updatedAt ? new Date(c.updatedAt).toISOString() : null,
@@ -34,6 +40,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const context = await requireSchoolMember({ allowedRoles: ["student"] });
     await connectToDatabase();
     const { id } = await params;
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const featureGate = assertLessonsFeatureEnabled(moduleGate.settings, "enableFlashcards", "Lesson flashcards");
+    if (!featureGate.ok) {
+      return Response.json({ success: false, error: featureGate.error }, { status: featureGate.status });
+    }
 
     const lessonId = toObjectIdOrNull(id);
     if (!lessonId) {
@@ -68,6 +82,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const deck = await LessonFlashcardDeck.findOne({
       schoolId: context.schoolId,
       lessonId,
+      status: "published",
+      $or: [
+        { publishToClassGroupIds: { $size: 0 } },
+        { publishToClassGroupIds: student.classGroupId },
+        { publishToClassGroupIds: { $exists: false } },
+      ],
+      $and: [
+        { $or: [{ availableFrom: { $lte: new Date() } }, { availableFrom: null }, { availableFrom: { $exists: false } }] },
+        { $or: [{ availableUntil: { $gte: new Date() } }, { availableUntil: null }, { availableUntil: { $exists: false } }] },
+      ],
     })
       .select("_id title")
       .lean() as { _id: mongoose.Types.ObjectId; title: string } | null;

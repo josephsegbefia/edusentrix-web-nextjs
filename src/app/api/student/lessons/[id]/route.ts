@@ -13,6 +13,7 @@ import {
 } from "@/lib/lessons/published-snapshot";
 import type { ILessonPublishedSnapshot } from "@/models/Lesson";
 import { StudentLessonProgress } from "@/models/StudentLessonProgress";
+import { assertLessonsFeatureEnabled, assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 
 function toObjectIdOrNull(id: string) {
   try {
@@ -48,6 +49,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const context = await requireSchoolMember({ allowedRoles: ["student"] });
     await connectToDatabase();
     const { id } = await params;
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const featureGate = assertLessonsFeatureEnabled(moduleGate.settings, "enableStudentLessonView", "Student lesson view");
+    if (!featureGate.ok) {
+      return Response.json({ success: false, error: featureGate.error }, { status: featureGate.status });
+    }
 
     const lessonId = toObjectIdOrNull(id);
     if (!lessonId) {
@@ -113,6 +122,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const context = await requireSchoolMember({ allowedRoles: ["student"] });
     await connectToDatabase();
     const { id } = await params;
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const featureGate = assertLessonsFeatureEnabled(moduleGate.settings, "enableStudentLessonView", "Student lesson view");
+    if (!featureGate.ok) {
+      return Response.json({ success: false, error: featureGate.error }, { status: featureGate.status });
+    }
 
     const lessonId = toObjectIdOrNull(id);
     if (!lessonId) {
@@ -196,6 +213,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           scheduledAt: lesson.scheduledAt ? new Date(lesson.scheduledAt).toISOString() : null,
         },
         displayNote,
+        studentContent: lesson.studentContent
+          ? {
+              summaryHtml: lesson.studentContent.summaryHtml ?? "",
+              keyPoints: lesson.studentContent.keyPoints ?? [],
+              vocabulary: lesson.studentContent.vocabulary ?? [],
+              studentInstructions: lesson.studentContent.studentInstructions ?? "",
+              practicePrompt: lesson.studentContent.practicePrompt ?? "",
+              estimatedReadingMinutes: lesson.studentContent.estimatedReadingMinutes ?? null,
+            }
+          : null,
         progress: progressDoc
           ? {
               completionStatus: progressDoc.completionStatus as "not_started" | "viewed" | "completed",

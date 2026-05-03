@@ -5,7 +5,13 @@ import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { SchemeImportJob } from "@/models/SchemeImportJob";
-import { assertSchemeImportEnabled, isTrustedSchemeImportFileUrl } from "@/lib/schemes/scheme-import-gate";
+import {
+  assertPdfSchemeImportEnabled,
+  assertSchemeImportEnabled,
+  isTrustedSchemeImportFileUrl,
+} from "@/lib/schemes/scheme-import-gate";
+import { extractSchemeRowsWithAiFromPdfText } from "@/lib/schemes/scheme-import-pdf-ai";
+import { extractTextFromPdfBuffer } from "@/lib/schemes/scheme-import-pdf-text";
 import { parseSchemeSpreadsheet } from "@/lib/schemes/scheme-import-parse";
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
 
@@ -15,16 +21,15 @@ const PostBodySchema = z.object({
   fileKey: z.string().trim().max(500).optional(),
 });
 
+function isPdfFileName(name: string): boolean {
+  return name.toLowerCase().trim().endsWith(".pdf");
+}
+
 export async function POST(req: Request) {
   try {
     const ctx = await requireTeacher();
     if (!can(ctx.permissions, PERMISSIONS.schemeImportUpload)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
-    }
-
-    const gate = await assertSchemeImportEnabled(ctx.schoolId);
-    if (!gate.ok) {
-      return Response.json({ success: false, error: gate.error }, { status: gate.status });
     }
 
     const parsed = PostBodySchema.safeParse(await req.json());
@@ -63,6 +68,99 @@ export async function POST(req: Request) {
       return Response.json({ success: false, error: "Failed to fetch uploaded file" }, { status: 502 });
     }
 
+    const pdfMode = isPdfFileName(parsed.data.fileName);
+
+    if (pdfMode) {
+      const pdfGate = await assertPdfSchemeImportEnabled(ctx.schoolId);
+      if (!pdfGate.ok) {
+        return Response.json({ success: false, error: pdfGate.error }, { status: pdfGate.status });
+      }
+
+      let rawText: string;
+      try {
+        rawText = await extractTextFromPdfBuffer(buffer);
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "PDF read failed";
+        const job = await SchemeImportJob.create({
+          schoolId: ctx.schoolId,
+          createdByUserId: ctx.userId,
+          status: "failed",
+          sourceKind: "pdf_ai",
+          fileName: parsed.data.fileName,
+          fileUrl: parsed.data.fileUrl,
+          fileKey: parsed.data.fileKey ?? null,
+          parseError: msg,
+          parsedRows: [],
+        });
+        return Response.json({
+          success: true,
+          data: { job: serializeSchemeImportJob(job.toObject()) },
+        });
+      }
+
+      const ai = await extractSchemeRowsWithAiFromPdfText({
+        rawText,
+        schoolId: ctx.schoolId,
+      });
+
+      if (!ai.ok) {
+        const job = await SchemeImportJob.create({
+          schoolId: ctx.schoolId,
+          createdByUserId: ctx.userId,
+          status: "failed",
+          sourceKind: "pdf_ai",
+          fileName: parsed.data.fileName,
+          fileUrl: parsed.data.fileUrl,
+          fileKey: parsed.data.fileKey ?? null,
+          parseError: ai.error,
+          parsedRows: [],
+        });
+        return Response.json({
+          success: true,
+          data: { job: serializeSchemeImportJob(job.toObject()) },
+        });
+      }
+
+      if (ai.rows.length === 0) {
+        const job = await SchemeImportJob.create({
+          schoolId: ctx.schoolId,
+          createdByUserId: ctx.userId,
+          status: "failed",
+          sourceKind: "pdf_ai",
+          fileName: parsed.data.fileName,
+          fileUrl: parsed.data.fileUrl,
+          fileKey: parsed.data.fileKey ?? null,
+          parseError: "No scheme rows could be extracted — try CSV/XLSX or a clearer PDF",
+          parsedRows: [],
+        });
+        return Response.json({
+          success: true,
+          data: { job: serializeSchemeImportJob(job.toObject()) },
+        });
+      }
+
+      const job = await SchemeImportJob.create({
+        schoolId: ctx.schoolId,
+        createdByUserId: ctx.userId,
+        status: "parsed",
+        sourceKind: "pdf_ai",
+        fileName: parsed.data.fileName,
+        fileUrl: parsed.data.fileUrl,
+        fileKey: parsed.data.fileKey ?? null,
+        parsedRows: ai.rows,
+      });
+
+      return Response.json({
+        success: true,
+        data: { job: serializeSchemeImportJob(job.toObject()) },
+      });
+    }
+
+    const gate = await assertSchemeImportEnabled(ctx.schoolId);
+    if (!gate.ok) {
+      return Response.json({ success: false, error: gate.error }, { status: gate.status });
+    }
+
     let parsedRows;
     try {
       parsedRows = parseSchemeSpreadsheet(buffer, parsed.data.fileName);
@@ -72,6 +170,7 @@ export async function POST(req: Request) {
         schoolId: ctx.schoolId,
         createdByUserId: ctx.userId,
         status: "failed",
+        sourceKind: "spreadsheet",
         fileName: parsed.data.fileName,
         fileUrl: parsed.data.fileUrl,
         fileKey: parsed.data.fileKey ?? null,
@@ -89,6 +188,7 @@ export async function POST(req: Request) {
         schoolId: ctx.schoolId,
         createdByUserId: ctx.userId,
         status: "failed",
+        sourceKind: "spreadsheet",
         fileName: parsed.data.fileName,
         fileUrl: parsed.data.fileUrl,
         fileKey: parsed.data.fileKey ?? null,
@@ -105,6 +205,7 @@ export async function POST(req: Request) {
       schoolId: ctx.schoolId,
       createdByUserId: ctx.userId,
       status: "parsed",
+      sourceKind: "spreadsheet",
       fileName: parsed.data.fileName,
       fileUrl: parsed.data.fileUrl,
       fileKey: parsed.data.fileKey ?? null,

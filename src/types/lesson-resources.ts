@@ -1,5 +1,9 @@
 import type { serializeLibraryBookPatron } from "@/lib/library/library.serialize";
-import type { LessonResourceKind, LessonResourceVisibility } from "@/models/LessonResource";
+import type {
+  LessonResourceFileType,
+  LessonResourceKind,
+  LessonResourceVisibility,
+} from "@/models/LessonResource";
 
 export type LessonResourcePatronBook = ReturnType<typeof serializeLibraryBookPatron>;
 
@@ -10,6 +14,12 @@ export interface LessonResourceDto {
   title: string;
   description: string | null;
   url: string | null;
+  fileUrl: string | null;
+  uploadThingKey: string | null;
+  fileName: string | null;
+  fileSizeBytes: number | null;
+  mimeType: string | null;
+  fileType: LessonResourceFileType | null;
   linkType: string | null;
   libraryBookId: string | null;
   visibility: LessonResourceVisibility;
@@ -32,6 +42,18 @@ export type StudentLessonResourceRow =
       description: string | null;
       url: string;
       linkType: string | null;
+      order: number;
+    }
+  | {
+      id: string;
+      kind: "file";
+      title: string;
+      description: string | null;
+      fileUrl: string;
+      fileName: string | null;
+      fileSizeBytes: number | null;
+      mimeType: string | null;
+      fileType: LessonResourceFileType | null;
       order: number;
     }
   | {

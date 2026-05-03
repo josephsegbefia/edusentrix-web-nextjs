@@ -10,8 +10,8 @@ Last updated: 2026-05-01
 - [x] Phase 3 - Lessons Integration (MVP)
 - [x] Phase 4 - Coverage V1
 - [x] Phase 5 - CSV/Excel Import
-- [ ] Phase 6 - PDF Import + AI Extraction
-- [ ] Phase 7 - Advanced Framework + Leo Planner
+- [x] Phase 6 - PDF Import + AI Extraction
+- [x] Phase 7 - Advanced Framework + Leo Planner
 
 ## Phase 1 Delivered
 
@@ -101,6 +101,46 @@ Last updated: 2026-05-01
 - Admin-only import route (teachers + admins with teacher context can use the same flow).
 - Background jobs / queue for huge files.
 - PDF import (Phase 6).
+
+## Phase 6 Delivered
+
+- **`SchemeImportJob.sourceKind`**: `spreadsheet` | **`pdf_ai`**; parsed rows may include **`confidence`** (0–1) for AI-extracted lines.
+- **Gates**: PDF path requires `enableSchemeOfWork`, `allowSchemeImport`, and **`allowPdfSchemeImport`** (`SchoolSettings.academicPlanning`).
+- **Pipeline**: Download PDF from trusted UploadThing URL → **`pdf-parse`** (`PDFParse` / text extraction) → **OpenAI `gpt-4o-mini`** JSON rows with week/title/objectives/notes/confidence → same preview/confirm flow as CSV/XLSX → **draft scheme only**.
+- **API**: Same `POST /api/teacher/scheme-imports` branches on `.pdf` file name; `PATCH` rows accepts optional **`confidence`**; usage tracked via existing OpenAI billing hooks.
+- **UI**: Import page documents PDF; preview highlights rows with **confidence &lt; 55%** (amber); shows confidence % column.
+- **`next.config`**: `serverExternalPackages` includes **`pdf-parse`**.
+
+### Out of scope for Phase 6 MVP
+
+- OCR for scanned PDFs (text-only extraction).
+- Dedicated async job queue for very large PDFs.
+- Non–OpenAI extraction backends.
+
+## Phase 7 Delivered
+
+- **Advanced framework (teacher-facing)**  
+  - `GET /api/teacher/curricula` — active curricula (`curriculumFramework.read`).  
+  - `GET /api/teacher/curriculum-subjects?curriculumId=` — subjects/strands with grade labels.  
+  - `GET /api/teacher/curriculum-nodes?curriculumId=&curriculumSubjectId=` — optional `q` filter for browsing/searching nodes.  
+  - `PATCH /api/teacher/schemes/[id]` — optional `curriculumId` / `curriculumSubjectId` on draft schemes (validated against school data); serializer exposes both on scheme rows.
+
+- **Leo academic planner**  
+  - Gate: `enableSchemeOfWork` + `SchoolSettings.academicPlanning.allowAiSchemeDrafting` (`assertAiSchemeDraftingEnabled`).  
+  - `POST /api/teacher/schemes/[id]/leo-plan` — modes: `draft_from_curriculum`, `missing_objectives`, `pacing`, `uncovered`, `catch_up`, `revision`; OpenAI `gpt-4o-mini` JSON output; **draft-only** response (never writes schemes/items).  
+  - **Audit**: Tier-1 `academic.leo_scheme_plan.requested` via `writeRetryableAuditEvent`.  
+  - **Billing**: `trackUsage` for calls + tokens.  
+  - **Apply drafts**: `POST /api/teacher/schemes/[id]/items/batch` (max 60 rows) so teachers explicitly add AI rows as draft items.
+
+- **UI**: Teacher scheme detail — curriculum link card (draft), Leo planner card with mode + optional node filter, preview, **Add all as draft items**.
+- **Admin UI**: **`/admin/curricula`** (“Curriculum frameworks” in Academics) — create draft frameworks, optional **match school programme** (`schoolCurriculumCode`), **Activate / Archive / Restore**; sidebar link added.
+- **Alignment**: `Curriculum.schoolCurriculumCode` ties a framework to `School.curriculumCode`; teacher list sorts matching frameworks first and labels them in the dropdown.
+
+### Out of scope for Phase 7 MVP
+
+- Full admin UI for curriculum node authoring (models/APIs exist; seeding or admin forms can be extended later).  
+- Automatic activation or submission of schemes from Leo.  
+- Non–OpenAI planner backends.
 
 ## Notes
 

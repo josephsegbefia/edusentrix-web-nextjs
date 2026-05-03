@@ -75,8 +75,8 @@ export default function TeacherLessonDetailPage() {
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: ctx } = useTeacherContext();
   const permissions = ctx?.data.permissions as Permission[] | undefined;
-  const canView = can(permissions, PERMISSIONS.journalView);
-  const canWrite = can(permissions, PERMISSIONS.journalWrite);
+  const canView = can(permissions, PERMISSIONS.lessonsRead);
+  const canWrite = can(permissions, PERMISSIONS.lessonsUpdate);
   const canCreateAssignments = can(permissions, PERMISSIONS.assignmentsCreate);
 
   const { data: classesData } = useTeacherClasses();

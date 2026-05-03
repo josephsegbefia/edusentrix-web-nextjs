@@ -287,13 +287,13 @@ const lessonNavChildren: Array<{
     label: "Lesson bank",
     href: "/teacher/lessons/bank",
     icon: Library,
-    permission: PERMISSIONS.journalView,
+    permission: PERMISSIONS.lessonsRead,
   },
   {
     label: "Lesson analytics",
     href: "/teacher/lessons/analytics",
     icon: BarChart3,
-    permission: PERMISSIONS.journalView,
+    permission: PERMISSIONS.lessonAnalyticsView,
   },
 ];
 

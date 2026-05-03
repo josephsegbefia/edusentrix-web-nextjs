@@ -1,23 +1,33 @@
 import mongoose from "mongoose";
+import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
-import { SchemeOfWork } from "@/models/SchemeOfWork";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
+import { PERMISSIONS } from "@/lib/rbac";
+import { archiveSchemeForSchool } from "@/lib/schemes/scheme-review-service";
 
-export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
+const BodySchema = z.object({
+  note: z.string().trim().max(5000).optional(),
+});
+
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const ctx = await requireSchoolAdmin();
+    const actor = await requireSchoolAdminOrDelegatedAnyPermission([PERMISSIONS.schemeOfWorkArchive]);
     await connectToDatabase();
-    const { id } = await params;
+    const { id } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return Response.json({ success: false, error: "Invalid scheme id" }, { status: 400 });
     }
 
-    const scheme = await SchemeOfWork.findOne({ _id: id, schoolId: ctx.schoolId });
-    if (!scheme) return Response.json({ success: false, error: "Scheme not found" }, { status: 404 });
-    scheme.status = "archived";
-    scheme.archivedAt = new Date();
-    scheme.updatedByUserId = ctx.userId;
-    await scheme.save();
+    const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) return Response.json({ success: false, error: "Validation failed" }, { status: 400 });
+
+    const result = await archiveSchemeForSchool({
+      schoolId: actor.schoolId,
+      userId: actor.userId,
+      schemeId: id,
+      note: parsed.data.note,
+    });
+    if ("error" in result && result.error) return result.error;
     return Response.json({ success: true });
   } catch (error: unknown) {
     if (error instanceof Response) return error;

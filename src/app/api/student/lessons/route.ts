@@ -8,6 +8,7 @@ import { StudentLessonProgress } from "@/models/StudentLessonProgress";
 import { LessonFlashcardDeck } from "@/models/LessonFlashcardDeck";
 import { StudentFlashcardProgress } from "@/models/StudentFlashcardProgress";
 import { completionRatioPercent } from "@/lib/lessons/completion-percent";
+import { assertLessonsFeatureEnabled, assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 
 function parsePagination(searchParams: URLSearchParams): { limit: number; offset: number } {
   const limitRaw = searchParams.get("limit");
@@ -49,6 +50,14 @@ export async function GET(req: Request) {
   try {
     const context = await requireSchoolMember({ allowedRoles: ["student"] });
     await connectToDatabase();
+    const moduleGate = await assertLessonsModuleEnabled(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const featureGate = assertLessonsFeatureEnabled(moduleGate.settings, "enableStudentLessonView", "Student lesson view");
+    if (!featureGate.ok) {
+      return Response.json({ success: false, error: featureGate.error }, { status: featureGate.status });
+    }
 
     const student = (await Student.findOne({
       userId: context.userId,

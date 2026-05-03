@@ -15,6 +15,7 @@ const RowSchema = z.object({
   learningObjective: z.string().trim().max(5000).nullable().optional(),
   notes: z.string().trim().max(5000).nullable().optional(),
   skipped: z.boolean().optional(),
+  confidence: z.union([z.number().min(0).max(1), z.null()]).optional(),
 });
 
 const PatchBodySchema = z.object({
@@ -69,6 +70,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         learningObjective: r.learningObjective ?? null,
         notes: r.notes ?? null,
         skipped: r.skipped ?? false,
+        confidence: r.confidence === undefined ? null : r.confidence,
         errors: [] as string[],
       }))
     );

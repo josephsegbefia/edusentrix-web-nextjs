@@ -22,7 +22,7 @@ function schemeMatchesClassAndSubject(
 function teacherMayUseScheme(scheme: ISchemeOfWork, teacherId: mongoose.Types.ObjectId): boolean {
   const status = scheme.status;
   if (status === "active" || status === "approved") return true;
-  if (status === "draft" || status === "in_review") {
+  if (status === "draft" || status === "submitted" || status === "needs_revision") {
     return scheme.ownerTeacherId ? idsEqual(scheme.ownerTeacherId, teacherId) : false;
   }
   return false;

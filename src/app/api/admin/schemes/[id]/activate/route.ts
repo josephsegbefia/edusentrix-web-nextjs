@@ -1,31 +1,25 @@
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
-import { SchemeOfWork } from "@/models/SchemeOfWork";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
+import { PERMISSIONS } from "@/lib/rbac";
+import { activateSchemeForSchool } from "@/lib/schemes/scheme-review-service";
 
-export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const ctx = await requireSchoolAdmin();
+    const actor = await requireSchoolAdminOrDelegatedAnyPermission([PERMISSIONS.schemeOfWorkActivate]);
     await connectToDatabase();
-    const { id } = await params;
+    const { id } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return Response.json({ success: false, error: "Invalid scheme id" }, { status: 400 });
     }
 
-    const scheme = await SchemeOfWork.findOne({ _id: id, schoolId: ctx.schoolId });
-    if (!scheme) return Response.json({ success: false, error: "Scheme not found" }, { status: 404 });
-    if (!["approved", "active"].includes(scheme.status)) {
-      return Response.json(
-        { success: false, error: "Scheme must be approved before activation" },
-        { status: 409 }
-      );
-    }
-
-    scheme.status = "active";
-    scheme.activatedAt = new Date();
-    scheme.updatedByUserId = ctx.userId;
-    await scheme.save();
-    return Response.json({ success: true });
+    const result = await activateSchemeForSchool({
+      schoolId: actor.schoolId,
+      userId: actor.userId,
+      schemeId: id,
+    });
+    if ("error" in result && result.error) return result.error;
+    return Response.json({ success: true, data: { noop: "noop" in result ? result.noop : false } });
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     return Response.json(

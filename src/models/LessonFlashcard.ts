@@ -7,6 +7,11 @@ export interface ILessonFlashcard {
   deckId: Types.ObjectId;
   front: string;
   back: string;
+  hint?: string;
+  explanation?: string;
+  imageUrl?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  cardType?: "qa" | "term_definition" | "image_prompt" | "concept_example";
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -24,6 +29,15 @@ const lessonFlashcardSchema = new Schema<ILessonFlashcard>(
     },
     front: { type: String, required: true, trim: true, maxlength: 4000 },
     back: { type: String, required: true, trim: true, maxlength: 4000 },
+    hint: { type: String, trim: true, maxlength: 2000 },
+    explanation: { type: String, trim: true, maxlength: 4000 },
+    imageUrl: { type: String, trim: true, maxlength: 2000 },
+    difficulty: { type: String, enum: ["easy", "medium", "hard"], default: "medium" },
+    cardType: {
+      type: String,
+      enum: ["qa", "term_definition", "image_prompt", "concept_example"],
+      default: "qa",
+    },
     order: { type: Number, required: true, default: 0, min: 0 },
   },
   { timestamps: true }

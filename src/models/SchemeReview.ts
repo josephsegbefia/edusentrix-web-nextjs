@@ -1,6 +1,12 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
 
-export type SchemeReviewDecision = "submitted" | "changes_requested" | "approved";
+export type SchemeReviewDecision =
+  | "submitted"
+  | "approved"
+  | "needs_revision"
+  | "rejected"
+  | "activated"
+  | "archived";
 
 export interface ISchemeReview {
   _id: Types.ObjectId;
@@ -8,6 +14,7 @@ export interface ISchemeReview {
   schemeId: Types.ObjectId;
   actorUserId: Types.ObjectId;
   actorTeacherId?: Types.ObjectId | null;
+  actorRole?: string | null;
   decision: SchemeReviewDecision;
   note?: string | null;
   createdAt: Date;
@@ -20,9 +27,10 @@ const schemeReviewSchema = new Schema<ISchemeReview>(
     schemeId: { type: Schema.Types.ObjectId, ref: "SchemeOfWork", required: true, index: true },
     actorUserId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     actorTeacherId: { type: Schema.Types.ObjectId, ref: "Teacher", default: null, index: true },
+    actorRole: { type: String, trim: true, maxlength: 80, default: null },
     decision: {
       type: String,
-      enum: ["submitted", "changes_requested", "approved"],
+      enum: ["submitted", "approved", "needs_revision", "rejected", "activated", "archived"],
       required: true,
     },
     note: { type: String, trim: true, maxlength: 5000, default: null },

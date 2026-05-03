@@ -5,6 +5,7 @@ import type {
   SchemeItemRow,
   SchemeRow,
 } from "@/types/schemes";
+import type { LeoSchemePlanMode, LeoSchemePlanResult } from "@/types/scheme-leo";
 
 type SchemesResponse = { success: boolean; data: { schemes: SchemeRow[] }; error?: string };
 type SchemeItemsResponse = { success: boolean; data: { items: SchemeItemRow[] }; error?: string };
@@ -66,7 +67,14 @@ export function useTeacherSchemeItems(schemeId: string | null) {
 export function useTeacherSchemeCreate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { title: string }) => {
+    mutationFn: async (payload: {
+      title: string;
+      description?: string;
+      academicPeriodId?: string;
+      gradeId?: string;
+      classGroupId?: string;
+      subjectId?: string;
+    }) => {
       const res = await fetch("/api/teacher/schemes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,6 +86,25 @@ export function useTeacherSchemeCreate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-schemes"] });
+    },
+  });
+}
+
+export function useTeacherSchemeDelete() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (schemeId: string) => {
+      const res = await fetch(`/api/teacher/schemes/${schemeId}`, { method: "DELETE" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to delete scheme");
+      return schemeId;
+    },
+    onSuccess: (deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-schemes"] });
+      queryClient.removeQueries({ queryKey: ["teacher-scheme", deletedId] });
+      queryClient.removeQueries({ queryKey: ["teacher-scheme-items", deletedId] });
+      queryClient.removeQueries({ queryKey: ["teacher-coverage-summary", deletedId] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-coverage-dashboard"] });
     },
   });
 }
@@ -162,7 +189,23 @@ export function useTeacherSchemeItemCoverageUpdate(schemeId: string | null) {
 export function useTeacherSchemeItemCreate(schemeId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { title: string }) => {
+    mutationFn: async (payload: {
+      title: string;
+      topic?: string;
+      subtopic?: string;
+      lessonOrder?: number | null;
+      learningObjective?: string | null;
+      learningObjectives?: string[];
+      strand?: string | null;
+      subStrand?: string | null;
+      contentStandard?: string | null;
+      indicator?: string | null;
+      teachingResources?: string[];
+      assessmentIdeas?: string[];
+      plannedStartDate?: string | null;
+      plannedEndDate?: string | null;
+      notes?: string | null;
+    }) => {
       const res = await fetch(`/api/teacher/schemes/${schemeId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -171,6 +214,130 @@ export function useTeacherSchemeItemCreate(schemeId: string) {
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to create scheme item");
       return json.data.item as SchemeItemRow;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-scheme-items", schemeId] });
+    },
+  });
+}
+
+export type CurriculumRow = {
+  id: string;
+  title: string;
+  code: string;
+  schoolCurriculumCode: string | null;
+  description: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  matchesSchoolCurriculum?: boolean;
+};
+
+export type TeacherCurriculaPayload = {
+  curricula: CurriculumRow[];
+  schoolCurriculumCode: string | null;
+};
+
+export function useTeacherCurricula(enabled: boolean) {
+  return useQuery<TeacherCurriculaPayload>({
+    queryKey: ["teacher-curricula"],
+    queryFn: async () => {
+      const res = await fetch("/api/teacher/curricula", { cache: "no-store" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to load curricula");
+      return {
+        curricula: json.data.curricula as CurriculumRow[],
+        schoolCurriculumCode: (json.data.schoolCurriculumCode ?? null) as string | null,
+      };
+    },
+    enabled,
+    staleTime: 120_000,
+  });
+}
+
+export type CurriculumSubjectOption = {
+  id: string;
+  curriculumId: string;
+  subjectId: string;
+  subjectName: string | null;
+  gradeId: string | null;
+  gradeName: string | null;
+  order: number;
+};
+
+export function useTeacherCurriculumSubjects(curriculumId: string | null, enabled: boolean) {
+  return useQuery<CurriculumSubjectOption[]>({
+    queryKey: ["teacher-curriculum-subjects", curriculumId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ curriculumId: curriculumId! });
+      const res = await fetch(`/api/teacher/curriculum-subjects?${params}`, { cache: "no-store" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to load curriculum subjects");
+      return json.data.curriculumSubjects as CurriculumSubjectOption[];
+    },
+    enabled: Boolean(curriculumId) && enabled,
+    staleTime: 120_000,
+  });
+}
+
+export function useTeacherSchemeCurriculumPatch(schemeId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      curriculumId: string | null;
+      curriculumSubjectId: string | null;
+    }) => {
+      const res = await fetch(`/api/teacher/schemes/${schemeId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to update scheme");
+      return json.data.scheme as SchemeRow;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teacher-scheme", schemeId] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-schemes"] });
+    },
+  });
+}
+
+export function useTeacherLeoSchemePlan(schemeId: string | null) {
+  return useMutation({
+    mutationFn: async (payload: { mode: LeoSchemePlanMode; nodeSearch?: string }) => {
+      const res = await fetch(`/api/teacher/schemes/${schemeId}/leo-plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Leo planner failed");
+      return json.data.plan as LeoSchemePlanResult;
+    },
+  });
+}
+
+export function useTeacherSchemeItemsBatch(schemeId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      items: Array<{
+        weekNumber?: number | null;
+        title: string;
+        learningObjective?: string | null;
+        notes?: string | null;
+        curriculumNodeIds?: string[];
+      }>
+    ) => {
+      const res = await fetch(`/api/teacher/schemes/${schemeId}/items/batch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to add items");
+      return json.data.items as SchemeItemRow[];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacher-scheme-items", schemeId] });

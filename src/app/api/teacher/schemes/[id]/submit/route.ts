@@ -34,9 +34,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (String(scheme.ownerTeacherId) !== String(ctx.teacherId)) {
       return Response.json({ success: false, error: "Only owner can submit this scheme" }, { status: 403 });
     }
-    if (scheme.status !== "draft") {
+    if (scheme.status !== "draft" && scheme.status !== "needs_revision" && scheme.status !== "rejected") {
       return Response.json(
-        { success: false, error: "Only draft schemes can be submitted" },
+        { success: false, error: "Only draft, revision-requested, or rejected schemes can be submitted" },
         { status: 409 }
       );
     }
@@ -49,7 +49,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       );
     }
 
-    scheme.status = "in_review";
+    scheme.status = "submitted";
     scheme.submittedAt = new Date();
     scheme.updatedByUserId = ctx.userId;
     await scheme.save();

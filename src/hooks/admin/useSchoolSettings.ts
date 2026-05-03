@@ -117,6 +117,17 @@ export type SchoolSettingsDTO = {
   lessonsModule: {
     parentSummaryVisibleToParents: boolean;
   };
+  academicPlanning: {
+    enableSchemeOfWork: boolean;
+    requireSchemeLinkForLessonNotes: boolean;
+    allowTeacherSchemeCreation: boolean;
+    requireSchemeApproval: boolean;
+    allowSchemeImport: boolean;
+    allowPdfSchemeImport: boolean;
+    allowAiSchemeDrafting: boolean;
+    defaultSchemeApprovalRole: "school_admin" | "academic_head" | "department_head";
+    coverageUpdateMode: "manual" | "suggested" | "automatic";
+  };
   updatedAt: string | null;
 };
 
@@ -167,6 +178,7 @@ export function useUpdateSchoolSettings() {
     onSuccess: (response) => {
       queryClient.setQueryData(["school-settings"], response);
       queryClient.invalidateQueries({ queryKey: ["school-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["teacher-context"] });
       invalidateSetupReadiness(queryClient);
     },
   });

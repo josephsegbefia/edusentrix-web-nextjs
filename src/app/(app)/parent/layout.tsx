@@ -9,6 +9,7 @@ import TrialBanner from "@/components/billing/TrialBanner";
 import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
+import { InternalTestSchoolBadge } from "@/components/internal-test/InternalTestSchoolBadge";
 
 export default async function ParentLayout({
   children,
@@ -16,7 +17,6 @@ export default async function ParentLayout({
   children: ReactNode;
 }) {
   const user = await requireUser();
-  // Allow both parent and school_admin (for testing/impersonation)
   assertRole(user, ["parent", "school_admin"]);
   const snapshot = user.schoolId
     ? await getSchoolSubscriptionSnapshot(user.schoolId)
@@ -39,7 +39,14 @@ export default async function ParentLayout({
       <SidebarProvider>
         <div className="flex min-h-[calc(100vh-3.5rem)]">
           <ParentSidebar />
-          <AdminMainContent isBursar={false}>{children}</AdminMainContent>
+          <AdminMainContent isBursar={false}>
+            {user.schoolId ? (
+              <div className="mb-3">
+                <InternalTestSchoolBadge schoolId={String(user.schoolId)} />
+              </div>
+            ) : null}
+            {children}
+          </AdminMainContent>
         </div>
       </SidebarProvider>
     </>

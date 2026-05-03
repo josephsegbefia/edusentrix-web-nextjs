@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const context = await requireTeacher();
     await connectToDatabase();
 
-    if (!can(context.permissions, PERMISSIONS.journalView)) {
+    if (!can(context.permissions, PERMISSIONS.lessonAnalyticsView)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

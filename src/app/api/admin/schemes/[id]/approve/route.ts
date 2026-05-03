@@ -1,48 +1,35 @@
 import mongoose from "mongoose";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
-import { SchemeOfWork } from "@/models/SchemeOfWork";
-import { SchemeReview } from "@/models/SchemeReview";
+import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
+import { PERMISSIONS } from "@/lib/rbac";
+import { approveSchemeDirect } from "@/lib/schemes/scheme-review-service";
 
 const ReviewNoteSchema = z.object({
   note: z.string().trim().max(5000).optional(),
 });
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const ctx = await requireSchoolAdmin();
+    const actor = await requireSchoolAdminOrDelegatedAnyPermission([
+      PERMISSIONS.schemeOfWorkApprove,
+      PERMISSIONS.schemeOfWorkReview,
+    ]);
     await connectToDatabase();
-    const { id } = await params;
+    const { id } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return Response.json({ success: false, error: "Invalid scheme id" }, { status: 400 });
     }
     const parsed = ReviewNoteSchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return Response.json({ success: false, error: "Validation failed" }, { status: 400 });
 
-    const scheme = await SchemeOfWork.findOne({ _id: id, schoolId: ctx.schoolId });
-    if (!scheme) return Response.json({ success: false, error: "Scheme not found" }, { status: 404 });
-    if (!["in_review", "approved"].includes(scheme.status)) {
-      return Response.json(
-        { success: false, error: "Scheme must be in review before approval" },
-        { status: 409 }
-      );
-    }
-
-    scheme.status = "approved";
-    scheme.approvedAt = new Date();
-    scheme.approvedByUserId = ctx.userId;
-    scheme.updatedByUserId = ctx.userId;
-    await scheme.save();
-
-    await SchemeReview.create({
-      schoolId: ctx.schoolId,
-      schemeId: scheme._id,
-      actorUserId: ctx.userId,
-      decision: "approved",
-      note: parsed.data.note || null,
+    const result = await approveSchemeDirect({
+      schoolId: actor.schoolId,
+      userId: actor.userId,
+      schemeId: id,
+      note: parsed.data.note,
     });
-
+    if ("error" in result && result.error) return result.error;
     return Response.json({ success: true });
   } catch (error: unknown) {
     if (error instanceof Response) return error;

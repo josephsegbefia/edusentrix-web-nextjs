@@ -11,7 +11,8 @@ import { School } from "@/models/School";
 import { InternalTestSchoolConfig } from "@/models/InternalTestSchoolConfig";
 
 const BodySchema = z.object({
-  mode: z.enum(["manual", "seeded", "manual_and_seeded"]),
+  /** Ignored: always stored as `manual` (bulk seeding removed). */
+  mode: z.enum(["manual", "seeded", "manual_and_seeded"]).optional(),
   confirmationPhrase: z.string().min(1),
   activationSecret: z.string().min(1),
   notes: z.string().max(2000).optional().nullable(),
@@ -101,7 +102,7 @@ export async function POST(
           enabledBy: gate.me._id,
           disabledAt: null,
           disabledBy: null,
-          mode: parsed.data.mode,
+          mode: "manual",
           visibleBadgeEnabled: true,
           notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : null,
         },
@@ -118,7 +119,8 @@ export async function POST(
       entityType: "School",
       entityId: schoolId,
       metadata: {
-        mode: parsed.data.mode,
+        mode: "manual",
+        requestedMode: parsed.data.mode ?? null,
         notes: parsed.data.notes ?? null,
       },
     });

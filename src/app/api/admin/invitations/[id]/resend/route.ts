@@ -19,8 +19,10 @@ import {
   assignPendingPaymentSetupDelegate,
 } from "@/lib/school-payments/billing-owner-lifecycle";
 import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { isSyntheticTestEmailAddress } from "@/lib/internal-test/is-synthetic-test-email-address";
 import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
 import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
+import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
 
 export async function POST(
   req: NextRequest,
@@ -47,6 +49,7 @@ export async function POST(
 
     const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
     const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
+    const syntheticFlow = shouldUseSyntheticTestUserFlow(internalTestSnapshot);
 
     const { id: invitationId } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(invitationId)) {
@@ -78,6 +81,22 @@ export async function POST(
         JSON.stringify({
           success: false,
           error: "Cannot resend an accepted invitation",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (
+      syntheticFlow ||
+      invitation.metadata?.syntheticClerkUser === true ||
+      isSyntheticTestEmailAddress(String(invitation.email || ""))
+    ) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error:
+            "Resend is not available for synthetic test invitations. Use the relevant admin flow to add users instead.",
+          code: "SYNTHETIC_INVITE_RESEND_BLOCKED",
         }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );

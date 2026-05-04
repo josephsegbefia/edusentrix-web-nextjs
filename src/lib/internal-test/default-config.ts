@@ -18,8 +18,8 @@ export function buildDefaultInternalTestSchoolConfig(
     disableRealPaymentCollection: true,
     allowImpersonation: true,
     showInternalTestBadge: true,
-    allowSeedGeneration: true,
-    allowResetGeneratedData: true,
+    allowSeedGeneration: false,
+    allowResetGeneratedData: false,
     updatedBy,
   };
 }

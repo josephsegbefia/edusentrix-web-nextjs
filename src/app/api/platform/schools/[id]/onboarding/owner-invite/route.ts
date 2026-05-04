@@ -9,13 +9,24 @@ import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import {
-  getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
-import { assignPendingBillingOwnerInvitation } from "@/lib/school-payments/billing-owner-lifecycle";
+import {
+  assignPendingBillingOwnerInvitation,
+  bindBillingOwnerToSchool,
+  releasePendingBillingOwnerInvitation,
+} from "@/lib/school-payments/billing-owner-lifecycle";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
+import { User } from "@/models/User";
+import { UserMembership } from "@/models/UserMembership";
+import { allocateSyntheticTestEmail } from "@/lib/internal-test/allocate-synthetic-test-email";
+import { createSyntheticClerkAccount } from "@/lib/internal-test/create-synthetic-clerk-account";
+import { getInternalTestDefaultPassword } from "@/lib/internal-test/env";
+import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
+import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
+import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
 
 const BodySchema = z.object({
   ownerName: z.string().trim().min(2, "Owner name is required").max(120),
@@ -111,17 +122,208 @@ export async function POST(
       );
     }
 
+    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
+    const syntheticFlow = shouldUseSyntheticTestUserFlow(internalTestSnapshot);
+
+    if (syntheticFlow) {
+      const pwd = getInternalTestDefaultPassword();
+      if (!pwd) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "INTERNAL_TEST_DEFAULT_PASSWORD is not configured. Set it on the server to create synthetic billing owner accounts.",
+            code: "INTERNAL_TEST_PASSWORD_NOT_CONFIGURED",
+          },
+          { status: 503 }
+        );
+      }
+
+      const inviteEmail = await allocateSyntheticTestEmail(
+        schoolIdObj,
+        "billing_owner"
+      );
+
+      const dupUser = await User.findOne({
+        schoolId: schoolIdObj,
+        email: inviteEmail,
+      })
+        .select("_id")
+        .lean();
+      if (dupUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "A user with this synthetic email already exists for this school.",
+          },
+          { status: 409 }
+        );
+      }
+
+      await assignPendingBillingOwnerInvitation({
+        schoolId,
+        ownerEmail: inviteEmail,
+        ownerName: parsed.data.ownerName,
+        updatedBy: gate.me._id,
+      });
+
+      const ownerName = parsed.data.ownerName.trim();
+      const nameParts = ownerName.split(/\s+/).filter(Boolean);
+      const firstName = nameParts[0] ?? ownerName;
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "User";
+
+      let ownerUserId: mongoose.Types.ObjectId | null = null;
+      try {
+        const ownerUser = await User.create({
+          email: inviteEmail,
+          firstName,
+          lastName,
+          role: "billing_owner",
+          schoolId: schoolIdObj,
+          isTestUser: true,
+          testUserSource: "manual_test_school",
+          pendingOnboarding: false,
+        });
+        ownerUserId =
+          ownerUser._id instanceof mongoose.Types.ObjectId
+            ? ownerUser._id
+            : new mongoose.Types.ObjectId(String(ownerUser._id));
+
+        await UserMembership.findOneAndUpdate(
+          { userId: ownerUserId, schoolId: schoolIdObj },
+          { $addToSet: { roles: "billing_owner" }, $set: { status: "active" } },
+          { upsert: true }
+        );
+
+        const { clerkUserId } = await createSyntheticClerkAccount({
+          email: inviteEmail,
+          password: pwd,
+          firstName,
+          lastName,
+          role: "billing_owner",
+          schoolId: schoolIdObj,
+        });
+
+        await User.updateOne({ _id: ownerUserId }, { $set: { clerkUserId } });
+
+        await bindBillingOwnerToSchool({
+          schoolId: schoolIdObj,
+          userId: ownerUserId,
+          email: inviteEmail,
+          name: parsed.data.ownerName,
+        });
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 365);
+
+        const created = await Invitation.create({
+          email: inviteEmail,
+          role: "billing_owner",
+          schoolId: schoolIdObj,
+          status: "accepted",
+          sentAt: new Date(),
+          acceptedAt: new Date(),
+          expiresAt,
+          resendCount: 0,
+          invitedBy: new mongoose.Types.ObjectId(String(gate.me._id)),
+          metadata: {
+            firstName: parsed.data.ownerName,
+            accessSurface: "payment_setup",
+            paymentAuthorityMode: inviteMode,
+            invitationEmailSuppressed: true,
+            syntheticClerkUser: true,
+          },
+        });
+
+        await recordInvitationEmailSuppressed({
+          schoolId: schoolIdObj,
+          actorId: new mongoose.Types.ObjectId(String(gate.me._id)),
+          templateKey: "BILLING_OWNER_INVITE",
+          targetEmail: inviteEmail,
+        });
+
+        await recordActivity({
+          schoolId: schoolIdObj,
+          userId: new mongoose.Types.ObjectId(String(gate.me._id)),
+          type: "invitation.sent",
+          entityType: "invitation",
+          entityId: String(created._id),
+          description: `Created synthetic billing owner (platform assist): ${inviteEmail}`,
+          metadata: {
+            email: inviteEmail,
+            role: "billing_owner",
+            status: "accepted",
+            syntheticTestUser: true,
+            assistedByPlatform: true,
+          },
+        });
+
+        await trackUsage({
+          schoolId,
+          provider: "internal",
+          metricKey: "invitations_sent",
+          quantity: 1,
+          unitLabel: "invites",
+          allocationMethod: "manual",
+          sourceType: "manual",
+          notes: "Synthetic billing owner created from platform assisted onboarding.",
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            invitationId: String(created._id),
+            email: inviteEmail,
+            role: created.role,
+            status: created.status,
+            mode: inviteMode,
+            expiresAt: created.expiresAt.toISOString(),
+            warning: null,
+            syntheticTestUser: true,
+            userId: String(ownerUserId),
+          },
+        });
+      } catch (syntheticErr) {
+        console.error("Synthetic billing owner creation failed:", syntheticErr);
+        if (ownerUserId) {
+          try {
+            await UserMembership.deleteMany({ userId: ownerUserId });
+            await User.deleteOne({ _id: ownerUserId });
+          } catch {
+            /* ignore */
+          }
+        }
+        await releasePendingBillingOwnerInvitation({
+          schoolId,
+          ownerEmail: inviteEmail,
+          updatedBy: gate.me._id,
+        }).catch(() => undefined);
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              syntheticErr instanceof Error
+                ? syntheticErr.message
+                : "Failed to create synthetic billing owner",
+            code: "SYNTHETIC_BILLING_OWNER_FAILED",
+          },
+          { status: 502 }
+        );
+      }
+    }
+
     const redirectUrl = `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
       "/admin/settings/payment-setup"
     )}`;
     const clerk = await clerkClient();
     let clerkInvitationId: string | undefined;
+    let clerkInvitation: { id: string; url?: string | null } | null = null;
     let invitationStatus: "pending" | "failed" = "pending";
     let invitationError: string | null = null;
     let emailDeliveryWarning: string | null = null;
 
     try {
-      const clerkInvitation = await clerk.invitations.createInvitation({
+      clerkInvitation = await clerk.invitations.createInvitation({
         emailAddress: normalizedEmail,
         redirectUrl,
         notify: false,

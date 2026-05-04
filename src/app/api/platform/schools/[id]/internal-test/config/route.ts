@@ -93,8 +93,12 @@ export async function PATCH(
       );
     }
 
-    const updates = parsed.data;
-    if (Object.keys(updates).length === 0) {
+    const updates = {
+      ...parsed.data,
+      allowSeedGeneration: false,
+      allowResetGeneratedData: false,
+    };
+    if (Object.keys(parsed.data).length === 0) {
       return NextResponse.json({ success: false, error: "No fields to update." }, { status: 400 });
     }
 
@@ -146,9 +150,9 @@ export async function PATCH(
       entityType: "InternalTestSchoolConfig",
       entityId: updatedDoc._id,
       metadata: {
-        changedKeys: Object.keys(updates),
+        changedKeys: Object.keys(parsed.data),
         previous: Object.fromEntries(
-          Object.keys(updates).map((k) => [k, (previous as Record<string, unknown>)[k]])
+          Object.keys(parsed.data).map((k) => [k, (previous as Record<string, unknown>)[k]])
         ),
         next: updates,
       },

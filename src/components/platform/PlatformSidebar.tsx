@@ -18,6 +18,7 @@ import {
   Building2,
   Landmark,
   FlaskConical,
+  TestTube2,
   Presentation,
   BarChart3,
   DatabaseZap,
@@ -93,6 +94,11 @@ const navSections: NavSection[] = [
         label: "Schools",
         href: "/platform/schools",
         icon: Building2,
+      },
+      {
+        label: "Test users",
+        href: "/platform/internal-test/test-users",
+        icon: TestTube2,
       },
       {
         label: "Users",

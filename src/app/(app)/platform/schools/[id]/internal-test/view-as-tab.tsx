@@ -139,7 +139,7 @@ export function InternalTestViewAsTab({
         <ul className="list-inside list-disc space-y-1 text-xs text-white/75 md:text-sm">
           <li>
             Only users flagged <strong className="text-white/90">isTestUser</strong> for this school appear.
-            If the table is empty, run a seed job or create test users first.
+            If the table is empty, create synthetic test users from the school admin flows first.
           </li>
           <li>
             <strong className="text-white/90">Filter by role</strong> — narrows the list; does not change who

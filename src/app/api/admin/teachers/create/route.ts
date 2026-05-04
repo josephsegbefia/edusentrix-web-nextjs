@@ -26,9 +26,13 @@ import {
   deactivateOtherTeachersOnSlot,
   findOtherTeachersOnSlot,
 } from "@/lib/admin/teacher-assignment-slot";
+import { allocateSyntheticTestEmail } from "@/lib/internal-test/allocate-synthetic-test-email";
+import { createSyntheticClerkAccount } from "@/lib/internal-test/create-synthetic-clerk-account";
+import { getInternalTestDefaultPassword } from "@/lib/internal-test/env";
 import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
-import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
 import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
+import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
+import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
 
 type Body = {
   firstName: string;
@@ -123,30 +127,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate required fields
-    if (
-      !normalizedBody.firstName?.trim() ||
-      !normalizedBody.lastName?.trim() ||
-      !normalizedBody.email?.trim()
-    ) {
+    // Validate required fields (names always; email validated after internal-test snapshot)
+    if (!normalizedBody.firstName?.trim() || !normalizedBody.lastName?.trim()) {
       return new Response(
         JSON.stringify({
           error: "Missing required fields",
           details: {
             firstName: !normalizedBody.firstName?.trim(),
             lastName: !normalizedBody.lastName?.trim(),
-            email: !normalizedBody.email?.trim(),
           },
         }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedBody.email.trim())) {
-      return new Response(
-        JSON.stringify({ error: "Invalid email format" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -156,9 +146,55 @@ export async function POST(req: NextRequest) {
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
 
+    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
+    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
+    const syntheticFlow = shouldUseSyntheticTestUserFlow(internalTestSnapshot);
+
+    if (!syntheticFlow) {
+      if (!normalizedBody.email?.trim()) {
+        return new Response(
+          JSON.stringify({
+            error: "Missing required fields",
+            details: {
+              firstName: false,
+              lastName: false,
+              email: true,
+            },
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedBody.email.trim())) {
+        return new Response(
+          JSON.stringify({ error: "Invalid email format" }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    if (syntheticFlow) {
+      const pwd = getInternalTestDefaultPassword();
+      if (!pwd) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "INTERNAL_TEST_DEFAULT_PASSWORD is not configured. Set it on the server to create synthetic test teachers.",
+            code: "INTERNAL_TEST_PASSWORD_NOT_CONFIGURED",
+          }),
+          { status: 503, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    let effectiveEmail = normalizedBody.email?.toLowerCase().trim() || "";
+    if (syntheticFlow) {
+      effectiveEmail = await allocateSyntheticTestEmail(schoolIdObj, "teacher");
+    }
+
     // Same email allowed in different schools; block duplicates within this school
     const existingUser = await User.findOne({
-      email: normalizedBody.email.toLowerCase().trim(),
+      email: effectiveEmail,
       schoolId: schoolIdObj,
     }).lean();
 
@@ -353,13 +389,20 @@ export async function POST(req: NextRequest) {
 
     // Create teacher user
     const teacherUser = new User({
-      email: normalizedBody.email.toLowerCase().trim(),
+      email: effectiveEmail,
       firstName: normalizedBody.firstName.trim(),
       lastName: normalizedBody.lastName.trim(),
       phone: normalizedBody.phone,
       avatarUrl: normalizedBody.photoUrl,
       role: "teacher",
       schoolId: schoolIdObj,
+      ...(syntheticFlow
+        ? {
+            isTestUser: true,
+            testUserSource: "manual_test_school" as const,
+            pendingOnboarding: false,
+          }
+        : {}),
     });
 
     await teacherUser.save();
@@ -486,106 +529,145 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
-    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
-    if (bypassInviteEmail && internalTestSnapshot?.config?.autoActivateCreatedUsers) {
-      await User.updateOne(
-        { _id: teacherIdObj },
-        {
-          $set: {
-            isTestUser: true,
-            testUserSource: "manual_test_school",
-            pendingOnboarding: false,
-          },
-        }
-      );
-    }
-
-    // Send Clerk invitation email and create invitation record
     const redirectUrl = `${getInvitationRedirectUrl()}?next=${encodeURIComponent(
       "/teacher"
     )}`;
     let clerkInvitationId: string | undefined;
-    let invitationStatus: "pending" | "failed" = "pending";
+    let invitationStatus: "pending" | "failed" | "accepted" = "pending";
 
-    try {
-      const clerk = await clerkClient();
-      const clerkInvitation = await clerk.invitations.createInvitation({
-        emailAddress: normalizedBody.email.toLowerCase().trim(),
-        redirectUrl,
-        notify: false,
-        publicMetadata: {
+    if (syntheticFlow) {
+      const password = getInternalTestDefaultPassword();
+      try {
+        const { clerkUserId } = await createSyntheticClerkAccount({
+          email: effectiveEmail,
+          password,
+          firstName: normalizedBody.firstName,
+          lastName: normalizedBody.lastName,
           role: "teacher",
-          schoolId: String(schoolIdObj),
-        },
-        ignoreExisting: true,
-      });
-      clerkInvitationId = clerkInvitation.id;
-
-      // Fetch school name for email
-      const school = await School.findById(schoolIdObj)
-        .select("name")
-        .lean();
-      const schoolName = school ? (school as any).name : "your school";
-
-      const { renderTemplate } = await import("@/lib/email/templates");
-      const rendered = renderTemplate("USER_INVITE", {
-        name: `${normalizedBody.firstName} ${normalizedBody.lastName}`,
-        role: "teacher",
-        schoolName,
-        setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
-      });
-
-      if (!bypassInviteEmail) {
-        await sendTrackedBrevoEmail({
-          to: normalizedBody.email.toLowerCase().trim(),
-          subject: rendered.subject,
-          htmlContent: rendered.htmlContent,
-          textContent: rendered.textContent,
-          templateKey: "TEACHER_INVITE",
-          schoolId: String(schoolIdObj),
-          schoolName,
-          actorId: String(userId),
-          actorRole: "school_admin",
-          relatedEntityType: "invitation",
-        });
-        await trackUsage({
-          schoolId,
-          provider: "email",
-          metricKey: "transactional_emails_sent",
-          quantity: 1,
-          unitLabel: "emails",
-          allocationMethod: "direct",
-          sourceType: "manual",
-          notes: "Teacher invitation email sent.",
-        });
-      } else if (userId) {
-        await recordInvitationEmailSuppressed({
           schoolId: schoolIdObj,
-          actorId: new mongoose.Types.ObjectId(String(userId)),
-          templateKey: "TEACHER_INVITE",
-          targetEmail: normalizedBody.email.toLowerCase().trim(),
         });
+        await User.updateOne(
+          { _id: teacherIdObj },
+          {
+            $set: {
+              clerkUserId,
+              pendingOnboarding: false,
+              isTestUser: true,
+              testUserSource: "manual_test_school",
+            },
+          }
+        );
+        invitationStatus = "accepted";
+        if (userId) {
+          await recordInvitationEmailSuppressed({
+            schoolId: schoolIdObj,
+            actorId: new mongoose.Types.ObjectId(String(userId)),
+            templateKey: "TEACHER_INVITE",
+            targetEmail: effectiveEmail,
+          });
+        }
+      } catch (syntheticErr) {
+        console.error("Synthetic teacher Clerk user error:", syntheticErr);
+        try {
+          await TeacherAssignment.deleteMany({ teacherId: teacherRecord._id });
+          await ClassGroup.updateMany(
+            { homeroomTeacherId: teacherRecord._id, schoolId: schoolIdObj },
+            { $unset: { homeroomTeacherId: 1 } }
+          );
+          await Teacher.deleteOne({ _id: teacherRecord._id });
+          await UserMembership.deleteMany({ userId: teacherIdObj, schoolId: schoolIdObj });
+          await User.deleteOne({ _id: teacherIdObj });
+        } catch (rollbackErr) {
+          console.error("Synthetic teacher rollback error:", rollbackErr);
+        }
+        return new Response(
+          JSON.stringify({
+            error:
+              syntheticErr instanceof Error
+                ? syntheticErr.message
+                : "Failed to create Clerk account for synthetic teacher",
+            code: "SYNTHETIC_CLERK_USER_FAILED",
+          }),
+          { status: 502, headers: { "Content-Type": "application/json" } }
+        );
       }
-    } catch (inviteError) {
-      console.error("Teacher invite (Clerk and/or invite email) error:", inviteError);
-      invitationStatus = "failed";
-      // Don't fail the request if invitation fails - teacher is already created
-      // Admin can resend invitation later if needed
+    } else {
+      try {
+        const clerk = await clerkClient();
+        const clerkInvitation = await clerk.invitations.createInvitation({
+          emailAddress: effectiveEmail,
+          redirectUrl,
+          notify: false,
+          publicMetadata: {
+            role: "teacher",
+            schoolId: String(schoolIdObj),
+          },
+          ignoreExisting: true,
+        });
+        clerkInvitationId = clerkInvitation.id;
+
+        const school = await School.findById(schoolIdObj)
+          .select("name")
+          .lean();
+        const schoolName = school ? (school as any).name : "your school";
+
+        const { renderTemplate } = await import("@/lib/email/templates");
+        const rendered = renderTemplate("USER_INVITE", {
+          name: `${normalizedBody.firstName} ${normalizedBody.lastName}`,
+          role: "teacher",
+          schoolName,
+          setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+        });
+
+        if (!bypassInviteEmail) {
+          await sendTrackedBrevoEmail({
+            to: effectiveEmail,
+            subject: rendered.subject,
+            htmlContent: rendered.htmlContent,
+            textContent: rendered.textContent,
+            templateKey: "TEACHER_INVITE",
+            schoolId: String(schoolIdObj),
+            schoolName,
+            actorId: String(userId),
+            actorRole: "school_admin",
+            relatedEntityType: "invitation",
+          });
+          await trackUsage({
+            schoolId,
+            provider: "email",
+            metricKey: "transactional_emails_sent",
+            quantity: 1,
+            unitLabel: "emails",
+            allocationMethod: "direct",
+            sourceType: "manual",
+            notes: "Teacher invitation email sent.",
+          });
+        } else if (userId) {
+          await recordInvitationEmailSuppressed({
+            schoolId: schoolIdObj,
+            actorId: new mongoose.Types.ObjectId(String(userId)),
+            templateKey: "TEACHER_INVITE",
+            targetEmail: effectiveEmail,
+          });
+        }
+      } catch (inviteError) {
+        console.error("Teacher invite (Clerk and/or invite email) error:", inviteError);
+        invitationStatus = "failed";
+      }
     }
 
-    // Create invitation record
     try {
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+      expiresAt.setDate(expiresAt.getDate() + (syntheticFlow ? 365 : 7));
 
       await Invitation.create({
-        email: normalizedBody.email.toLowerCase().toLowerCase().trim(),
+        email: effectiveEmail,
         role: "teacher",
         schoolId: schoolIdObj,
         status: invitationStatus,
         clerkInvitationId,
         sentAt: new Date(),
+        acceptedAt: invitationStatus === "accepted" ? new Date() : undefined,
         expiresAt,
         resendCount: 0,
         invitedBy: new mongoose.Types.ObjectId(userId),
@@ -595,12 +677,12 @@ export async function POST(req: NextRequest) {
           subjectIds: mergedSubjectIdStrings,
           teachingAssignments: normalizedBody.teachingAssignments || [],
           homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
-          invitationEmailSuppressed: bypassInviteEmail,
+          invitationEmailSuppressed: bypassInviteEmail || syntheticFlow,
+          syntheticClerkUser: syntheticFlow,
         },
       });
     } catch (inviteRecordError) {
       console.error("Failed to create invitation record:", inviteRecordError);
-      // Don't fail the request - invitation record is for tracking only
     }
 
     // Record activity
@@ -610,14 +692,15 @@ export async function POST(req: NextRequest) {
       type: "teacher.created",
       entityType: "teacher",
       entityId: String(teacherRecord._id),
-      description: `Created teacher: ${normalizedBody.firstName} ${normalizedBody.lastName} (${normalizedBody.email})`,
+      description: `Created teacher: ${normalizedBody.firstName} ${normalizedBody.lastName} (${effectiveEmail})`,
       metadata: {
         teacherId: String(teacherRecord._id),
-        email: normalizedBody.email,
+        email: effectiveEmail,
         subjectIds: mergedSubjectIdStrings,
         teachingAssignments: normalizedBody.teachingAssignments || [],
         homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
-        invitationSent: invitationStatus === "pending",
+        invitationSent: invitationStatus === "pending" && !syntheticFlow,
+        syntheticTestUser: syntheticFlow,
       },
     });
     await trackUsage({
@@ -630,7 +713,7 @@ export async function POST(req: NextRequest) {
       sourceType: "manual",
       notes: "Teacher created through admin workflow.",
     });
-    if (!bypassInviteEmail) {
+    if (!bypassInviteEmail && !syntheticFlow) {
       await trackUsage({
         schoolId,
         provider: "internal",
@@ -657,6 +740,7 @@ export async function POST(req: NextRequest) {
           teachingAssignmentWarnings:
             assignmentWarnings.length > 0 ? assignmentWarnings : undefined,
           homeroomClassGroupId: normalizedBody.homeroomClassGroupId || null,
+          syntheticTestUser: syntheticFlow,
         },
       },
       { status: 201 }

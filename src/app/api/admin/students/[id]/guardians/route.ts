@@ -28,9 +28,13 @@ import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
+import { allocateSyntheticTestEmail } from "@/lib/internal-test/allocate-synthetic-test-email";
+import { createSyntheticClerkAccount } from "@/lib/internal-test/create-synthetic-clerk-account";
+import { getInternalTestDefaultPassword } from "@/lib/internal-test/env";
 import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
 import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
 import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
+import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
 
 const CreateGuardianSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -181,18 +185,40 @@ export async function POST(
     }
 
     const studentIdObj = new mongoose.Types.ObjectId(id);
-    const emailLower = validated.email.toLowerCase().trim();
 
     const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
     const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
+    const syntheticFlow = shouldUseSyntheticTestUserFlow(internalTestSnapshot);
+
+    if (syntheticFlow) {
+      const pwd = getInternalTestDefaultPassword();
+      if (!pwd) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "INTERNAL_TEST_DEFAULT_PASSWORD is not configured. Set it on the server to create synthetic parent accounts.",
+            code: "INTERNAL_TEST_PASSWORD_NOT_CONFIGURED",
+          },
+          { status: 503 }
+        );
+      }
+    }
+
+    const lookupEmail = validated.email.toLowerCase().trim();
 
     const parentUserRaw = await User.findOne({
-      email: emailLower,
+      email: lookupEmail,
       schoolId: schoolIdObj,
     }).lean();
     const parentUser = Array.isArray(parentUserRaw)
       ? parentUserRaw[0] || null
       : parentUserRaw;
+
+    let emailLower = lookupEmail;
+    if (syntheticFlow && !parentUser) {
+      emailLower = await allocateSyntheticTestEmail(schoolIdObj, "parent");
+    }
 
     let userIdObj: mongoose.Types.ObjectId;
     const studentName = `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim();
@@ -212,74 +238,94 @@ export async function POST(
         return;
       }
 
-      if (
-        bypassInviteEmail &&
-        internalTestSnapshot?.config?.autoActivateCreatedUsers
-      ) {
-        await User.updateOne(
-          { _id: parentMongoId },
-          {
-            $set: {
-              isTestUser: true,
-              testUserSource: "manual_test_school",
-              pendingOnboarding: false,
-            },
-          }
-        );
-      }
-
       const redirectUrl = getInvitationRedirectUrl();
       let clerkInvitationId: string | undefined;
-      let invitationStatus: "pending" | "failed" = "pending";
+      let invitationStatus: "pending" | "failed" | "accepted" = "pending";
 
-      try {
-        const clerk = await clerkClient();
-        const clerkInvitation = await clerk.invitations.createInvitation({
-          emailAddress: emailLower,
-          redirectUrl,
-          notify: false,
-          publicMetadata: {
+      if (syntheticFlow) {
+        try {
+          const password = getInternalTestDefaultPassword();
+          const { clerkUserId } = await createSyntheticClerkAccount({
+            email: emailLower,
+            password,
+            firstName: validated.firstName,
+            lastName: validated.lastName,
             role: "parent",
-            schoolId: String(schoolIdObj),
-          },
-          ignoreExisting: true,
-        });
-        clerkInvitationId = clerkInvitation.id;
-
-        const school = await School.findById(schoolIdObj).select("name").lean();
-        const schoolName = school ? (school as any).name : "your school";
-
-        const rendered = renderTemplate("USER_INVITE", {
-          name: `${validated.firstName} ${validated.lastName}`,
-          role: "parent",
-          schoolName,
-          setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
-        });
-
-        if (!bypassInviteEmail) {
-          await sendTrackedBrevoEmail({
-            to: emailLower,
-            subject: rendered.subject,
-            htmlContent: rendered.htmlContent,
-            textContent: rendered.textContent,
-            templateKey: "PARENT_INVITE",
-            schoolId: String(schoolIdObj),
-            schoolName,
-            actorId: String(userId),
-            actorRole: "school_admin",
-            relatedEntityType: "invitation",
+            schoolId: schoolIdObj,
           });
-        } else {
+          await User.updateOne(
+            { _id: parentMongoId },
+            {
+              $set: {
+                clerkUserId,
+                email: emailLower,
+                isTestUser: true,
+                testUserSource: "manual_test_school",
+                pendingOnboarding: false,
+              },
+            }
+          );
+          invitationStatus = "accepted";
           await recordInvitationEmailSuppressed({
             schoolId: schoolIdObj,
             actorId: new mongoose.Types.ObjectId(String(userId)),
             templateKey: "PARENT_INVITE",
             targetEmail: emailLower,
           });
+        } catch (clerkError) {
+          console.error("Synthetic parent Clerk error:", clerkError);
+          invitationStatus = "failed";
         }
-      } catch (clerkError) {
-        console.error("Clerk invitation error:", clerkError);
-        invitationStatus = "failed";
+      } else {
+        try {
+          const clerk = await clerkClient();
+          const clerkInvitation = await clerk.invitations.createInvitation({
+            emailAddress: emailLower,
+            redirectUrl,
+            notify: false,
+            publicMetadata: {
+              role: "parent",
+              schoolId: String(schoolIdObj),
+            },
+            ignoreExisting: true,
+          });
+          clerkInvitationId = clerkInvitation.id;
+
+          const school = await School.findById(schoolIdObj).select("name").lean();
+          const schoolName = school ? (school as any).name : "your school";
+
+          const rendered = renderTemplate("USER_INVITE", {
+            name: `${validated.firstName} ${validated.lastName}`,
+            role: "parent",
+            schoolName,
+            setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+          });
+
+          if (!bypassInviteEmail) {
+            await sendTrackedBrevoEmail({
+              to: emailLower,
+              subject: rendered.subject,
+              htmlContent: rendered.htmlContent,
+              textContent: rendered.textContent,
+              templateKey: "PARENT_INVITE",
+              schoolId: String(schoolIdObj),
+              schoolName,
+              actorId: String(userId),
+              actorRole: "school_admin",
+              relatedEntityType: "invitation",
+            });
+          } else {
+            await recordInvitationEmailSuppressed({
+              schoolId: schoolIdObj,
+              actorId: new mongoose.Types.ObjectId(String(userId)),
+              templateKey: "PARENT_INVITE",
+              targetEmail: emailLower,
+            });
+          }
+        } catch (clerkError) {
+          console.error("Clerk invitation error:", clerkError);
+          invitationStatus = "failed";
+        }
       }
 
       try {
@@ -290,7 +336,8 @@ export async function POST(
           status: invitationStatus,
           clerkInvitationId,
           sentAt: new Date(),
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          acceptedAt: invitationStatus === "accepted" ? new Date() : undefined,
+          expiresAt: new Date(Date.now() + (syntheticFlow ? 365 : 7) * 24 * 60 * 60 * 1000),
           invitedBy: new mongoose.Types.ObjectId(userId),
           metadata: {
             firstName: validated.firstName,
@@ -298,7 +345,8 @@ export async function POST(
             studentId: id,
             studentName,
             relationship: validated.relationship,
-            invitationEmailSuppressed: bypassInviteEmail,
+            invitationEmailSuppressed: bypassInviteEmail || syntheticFlow,
+            syntheticClerkUser: syntheticFlow,
           },
         });
       } catch (inviteRecordError) {
@@ -346,6 +394,13 @@ export async function POST(
         avatarUrl: validated.photoUrl || undefined,
         role: "parent",
         schoolId: schoolIdObj,
+        ...(syntheticFlow
+          ? {
+              isTestUser: true,
+              testUserSource: "manual_test_school" as const,
+              pendingOnboarding: false,
+            }
+          : {}),
       });
 
       await newUser.save();

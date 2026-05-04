@@ -19,13 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  PremiumSelect,
-  PremiumSelectContent,
-  PremiumSelectItem,
-  PremiumSelectTrigger,
-  PremiumSelectValue,
-} from "@/components/ui/premium-select";
 import type {
   InternalTestSchoolConfigDTO,
   InternalTestSchoolSummaryDTO,
@@ -38,7 +31,6 @@ import {
   PHRASE_DISABLE_TEST_SCHOOL,
   PHRASE_ENABLE_TEST_SCHOOL,
 } from "@/lib/internal-test/constants";
-import { InternalTestSeedDataTab } from "./seed-data-tab";
 import { InternalTestViewAsTab } from "./view-as-tab";
 import { InternalTestAuditActivityTab } from "./audit-activity-tab";
 
@@ -100,7 +92,6 @@ export default function PlatformSchoolInternalTestPage() {
   const [toolsDisabled, setToolsDisabled] = React.useState(false);
   const [payload, setPayload] = React.useState<ConfigPayload | null>(null);
 
-  const [mode, setMode] = React.useState<"manual" | "seeded" | "manual_and_seeded">("manual_and_seeded");
   const [enablePhrase, setEnablePhrase] = React.useState("");
   const [activationSecret, setActivationSecret] = React.useState("");
   const [activateNotes, setActivateNotes] = React.useState("");
@@ -160,7 +151,7 @@ export default function PlatformSchoolInternalTestPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode,
+          mode: "manual",
           confirmationPhrase: enablePhrase.trim(),
           activationSecret: activationSecret.trim(),
           notes: activateNotes.trim() || null,
@@ -228,8 +219,6 @@ export default function PlatformSchoolInternalTestPage() {
           disableRealPaymentCollection: draft.disableRealPaymentCollection,
           allowImpersonation: draft.allowImpersonation,
           showInternalTestBadge: draft.showInternalTestBadge,
-          allowSeedGeneration: draft.allowSeedGeneration,
-          allowResetGeneratedData: draft.allowResetGeneratedData,
         }),
       });
       const json = await res.json().catch(() => null);
@@ -290,12 +279,12 @@ export default function PlatformSchoolInternalTestPage() {
                   </li>
                   <li>
                     <strong className="text-white/90">Safety controls</strong> — toggles change real
-                    behaviour (invites, channels, payments, badges, seed/impersonation gates). Always hit{" "}
+                    behaviour (invites, channels, payments, badges, impersonation). Always hit{" "}
                     <strong className="text-white">Save configuration</strong> after edits.
                   </li>
                   <li>
-                    <strong className="text-white/90">Seed / View as / Activity</strong> — bulk data,
-                    impersonation, and audit tail for this school only.
+                    <strong className="text-white/90">View as / Activity</strong> — impersonation and audit
+                    tail for this school only.
                   </li>
                   <li>
                     <strong className="text-white/90">Danger zone</strong> — turns internal test off for
@@ -391,7 +380,7 @@ export default function PlatformSchoolInternalTestPage() {
                 <p className="text-xs text-white/70">
                   Nothing here is editable. <strong className="text-white/85">Environment</strong> comes
                   from the school record. <strong className="text-white/85">Mode</strong> reflects how
-                  this test school was tagged at activation (manual vs seeded workflows). The{" "}
+                  this test school was tagged at activation. The{" "}
                   <strong className="text-white/85">School ID</strong> is the Mongo identifier in URLs and
                   logs.
                 </p>
@@ -439,12 +428,6 @@ export default function PlatformSchoolInternalTestPage() {
                   </p>
                   <ul className="list-inside list-disc space-y-1.5 text-xs text-white/75 md:text-sm">
                     <li>
-                      <strong className="text-white/90">Testing mode</strong> — choose how you intend to
-                      use the school: <em>Manual</em> if humans click real admin flows; <em>Seeded</em> if
-                      you rely on generated data; <em>Both</em> is the usual default. This is mainly for
-                      your team&apos;s records and audits, not a hard technical gate on every button.
-                    </li>
-                    <li>
                       <strong className="text-white/90">Confirmation phrase</strong> — type exactly{" "}
                       <code className="rounded bg-black/40 px-1 py-0.5 font-mono text-[11px] text-cyan-100/90">
                         {PHRASE_ENABLE_TEST_SCHOOL}
@@ -466,19 +449,6 @@ export default function PlatformSchoolInternalTestPage() {
                     </li>
                   </ul>
                 </InternalTestLeoHint>
-                <div className="space-y-2">
-                  <Label className="text-white/70">Testing mode</Label>
-                  <PremiumSelect value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
-                    <PremiumSelectTrigger className="border-white/10 bg-black/35 text-white">
-                      <PremiumSelectValue placeholder="Select mode" />
-                    </PremiumSelectTrigger>
-                    <PremiumSelectContent>
-                      <PremiumSelectItem value="manual">Manual workflows only</PremiumSelectItem>
-                      <PremiumSelectItem value="seeded">Seeded data only</PremiumSelectItem>
-                      <PremiumSelectItem value="manual_and_seeded">Manual + seeded</PremiumSelectItem>
-                    </PremiumSelectContent>
-                  </PremiumSelect>
-                </div>
                 <div className="space-y-2">
                   <Label className="text-white/70">Confirmation phrase</Label>
                   <Input
@@ -539,12 +509,6 @@ export default function PlatformSchoolInternalTestPage() {
                     Safety controls
                   </TabsTrigger>
                   <TabsTrigger
-                    value="seed"
-                    className="data-[state=active]:bg-white/15 data-[state=active]:text-white"
-                  >
-                    Seed data
-                  </TabsTrigger>
-                  <TabsTrigger
                     value="view-as"
                     className="data-[state=active]:bg-white/15 data-[state=active]:text-white"
                   >
@@ -584,9 +548,8 @@ export default function PlatformSchoolInternalTestPage() {
                     pairs with your Paystack keys and product rules; use when you must not move real money.
                   </li>
                   <li>
-                    <strong className="text-white/85">Tools &amp; visibility</strong> — impersonation and
-                    seed/reset stay off until you enable them here; the badge warns humans they are in a
-                    test school shell.
+                    <strong className="text-white/85">Tools &amp; visibility</strong> — impersonation and the
+                    badge warn humans they are in a test school shell.
                   </li>
                 </ul>
               </InternalTestLeoHint>
@@ -684,7 +647,7 @@ export default function PlatformSchoolInternalTestPage() {
                 <Card className="border-white/10 bg-white/5">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base text-white">Tools &amp; visibility</CardTitle>
-                    <p className="text-xs text-white/50">Seed/reset and impersonation gates.</p>
+                    <p className="text-xs text-white/50">Impersonation and badge.</p>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <ToggleRow
@@ -700,20 +663,6 @@ export default function PlatformSchoolInternalTestPage() {
                       disabled={saving}
                       onCheckedChange={(v) => setDraft({ ...draft, showInternalTestBadge: v })}
                       description="Surface a visible badge in school-scoped layouts."
-                    />
-                    <ToggleRow
-                      label="Allow seed generation"
-                      checked={draft.allowSeedGeneration}
-                      disabled={saving}
-                      onCheckedChange={(v) => setDraft({ ...draft, allowSeedGeneration: v })}
-                      description="Unlock bulk generators when the job runner is enabled."
-                    />
-                    <ToggleRow
-                      label="Allow reset of generated data"
-                      checked={draft.allowResetGeneratedData}
-                      disabled={saving}
-                      onCheckedChange={(v) => setDraft({ ...draft, allowResetGeneratedData: v })}
-                      description="Enable batch cleanup once generation ships."
                     />
                   </CardContent>
                 </Card>
@@ -752,15 +701,6 @@ export default function PlatformSchoolInternalTestPage() {
                   be looking at an already-matching draft—flip a control off and on to confirm.
                 </p>
               </InternalTestLeoHint>
-                </TabsContent>
-
-                <TabsContent value="seed" className="mt-0 outline-none">
-                  <InternalTestSeedDataTab
-                    schoolId={schoolId ?? ""}
-                    schoolName={payload.school.name}
-                    allowSeedGeneration={draft.allowSeedGeneration}
-                    allowResetGeneratedData={draft.allowResetGeneratedData}
-                  />
                 </TabsContent>
 
                 <TabsContent value="view-as" className="mt-0 outline-none">
@@ -804,8 +744,8 @@ export default function PlatformSchoolInternalTestPage() {
                       you used to enable. Proves someone with deploy access is performing the action.
                     </li>
                     <li>
-                      Disabling does <strong className="text-white">not</strong> delete seeded users or
-                      invoices; it only stops future internal-test suppressions and gates from applying.
+                      Disabling does <strong className="text-white">not</strong> delete users or invoices;
+                      it only stops future internal-test suppressions and gates from applying.
                     </li>
                   </ul>
                 </InternalTestLeoHint>

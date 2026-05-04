@@ -70,7 +70,7 @@ export function InternalTestAuditActivityTab({ schoolId }: { schoolId: string })
             generation, reset, impersonation, etc.).
           </li>
           <li>
-            <strong className="text-white/90">Refresh</strong> — reloads page 1; use after you run seed or
+            <strong className="text-white/90">Refresh</strong> — reloads page 1; use after you run actions or
             impersonation elsewhere.
           </li>
           <li>

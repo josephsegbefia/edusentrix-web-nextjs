@@ -4,3 +4,4 @@ export const PLATFORM_INTERNAL_TEST_MANAGE = "platform.internalTest.manage" as c
 export const PHRASE_ENABLE_TEST_SCHOOL = "ENABLE TEST SCHOOL" as const;
 export const PHRASE_DISABLE_TEST_SCHOOL = "DISABLE TEST SCHOOL" as const;
 export const PHRASE_RESET_TEST_DATA = "RESET TEST DATA" as const;
+export const PHRASE_DELETE_ALL_TEST_USERS = "DELETE ALL TEST USERS" as const;

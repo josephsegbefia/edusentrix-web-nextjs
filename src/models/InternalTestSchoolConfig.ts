@@ -48,8 +48,8 @@ const internalTestSchoolConfigSchema = new Schema<IInternalTestSchoolConfig>(
     disableRealPaymentCollection: { type: Boolean, default: true },
     allowImpersonation: { type: Boolean, default: true },
     showInternalTestBadge: { type: Boolean, default: true },
-    allowSeedGeneration: { type: Boolean, default: true },
-    allowResetGeneratedData: { type: Boolean, default: true },
+    allowSeedGeneration: { type: Boolean, default: false },
+    allowResetGeneratedData: { type: Boolean, default: false },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true }

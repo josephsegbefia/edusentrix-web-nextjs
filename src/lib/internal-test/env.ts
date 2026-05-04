@@ -11,3 +11,11 @@ export function isInternalTestToolsEnabled(): boolean {
 export function getInternalTestActivationSecret(): string {
   return process.env.INTERNAL_TEST_ACTIVATION_SECRET?.trim() ?? "";
 }
+
+/**
+ * Shared password for synthetic `@edusentrix.app` QA users (Clerk).
+ * Required whenever {@link shouldUseSyntheticTestUserFlow} is active for a create-user call.
+ */
+export function getInternalTestDefaultPassword(): string {
+  return process.env.INTERNAL_TEST_DEFAULT_PASSWORD?.trim() ?? "";
+}

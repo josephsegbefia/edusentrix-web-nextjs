@@ -93,6 +93,9 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
   const initials = getInitials(firstName, lastName);
 
   async function internalSubmit(values: InviteBursarFormInput) {
+    if (currentStep !== STEPS.length) {
+      return;
+    }
     setSubmitError(null);
     clearErrors("email");
     try {
@@ -124,6 +127,15 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
     }
   }
 
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!isLastStep) {
+      void handleNext();
+      return;
+    }
+    handleSubmit(internalSubmit)(e);
+  }
+
   function handlePrevious() {
     setCurrentStep((s) => Math.max(s - 1, 1));
   }
@@ -141,7 +153,16 @@ export function InviteBursarModal({ onClose, onSubmit, isLoading }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
+    <form
+      onSubmit={handleFormSubmit}
+      onKeyDown={(e) => {
+        if (!isLastStep && e.key === "Enter") {
+          e.preventDefault();
+          void handleNext();
+        }
+      }}
+      className="space-y-8"
+    >
       <div className="flex items-center justify-between pb-6">
         <div className="text-sm text-white/70">
           Step <span className="font-semibold">{currentStep}</span> of{" "}

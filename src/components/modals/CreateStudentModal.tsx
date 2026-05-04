@@ -235,6 +235,9 @@ export default function CreateStudentModal({
   const isLastStep = currentStep === STEPS.length;
 
   async function internalSubmit(values: CreateStudentInput) {
+    if (currentStep !== STEPS.length) {
+      return;
+    }
     try {
       await onSubmit({
         ...values,
@@ -254,6 +257,15 @@ export default function CreateStudentModal({
     if (isValid) {
       setCurrentStep((s) => Math.min(s + 1, STEPS.length));
     }
+  }
+
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!isLastStep) {
+      void handleNext();
+      return;
+    }
+    handleSubmit(internalSubmit)(e);
   }
 
   function handlePrevious() {
@@ -276,7 +288,16 @@ export default function CreateStudentModal({
 
   return (
     <TooltipProvider delayDuration={200}>
-    <form onSubmit={handleSubmit(internalSubmit)} className="space-y-8">
+    <form
+      onSubmit={handleFormSubmit}
+      onKeyDown={(e) => {
+        if (!isLastStep && e.key === "Enter") {
+          e.preventDefault();
+          void handleNext();
+        }
+      }}
+      className="space-y-8"
+    >
       {/* Step Indicator */}
       <div className="flex items-center justify-between pb-6">
         <div className="text-sm text-white/70">

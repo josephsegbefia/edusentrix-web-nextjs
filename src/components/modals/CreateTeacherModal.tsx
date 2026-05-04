@@ -995,6 +995,9 @@ export default function CreateTeacherModal({
   };
 
   async function internalSubmit(values: CreateTeacherInput) {
+    if (currentStep !== TOTAL_STEPS) {
+      return;
+    }
     const teachingAssignments = (values.teachingAssignments || [])
       .filter((r) => r.subjectId && r.classGroupId)
       .map(({ subjectId, classGroupId }) => ({ subjectId, classGroupId }));

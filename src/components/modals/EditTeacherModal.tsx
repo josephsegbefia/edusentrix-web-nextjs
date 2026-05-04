@@ -222,6 +222,15 @@ export default function EditTeacherModal({
     }
   }
 
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!isLastStep) {
+      void handleNext();
+      return;
+    }
+    handleSubmit(internalSubmit)(e);
+  }
+
   function handlePrevious() {
     setCurrentStep((s) => Math.max(s - 1, 1));
   }
@@ -248,6 +257,9 @@ export default function EditTeacherModal({
   }, [open, isPending, onOpenChange]);
 
   async function internalSubmit(values: UpdateTeacherInput) {
+    if (currentStep !== STEPS.length) {
+      return;
+    }
     // Only send changed values
     const payload: UpdateTeacherInput = {};
 
@@ -433,7 +445,13 @@ export default function EditTeacherModal({
 
             <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
               <form
-                onSubmit={handleSubmit(internalSubmit)}
+                onSubmit={handleFormSubmit}
+                onKeyDown={(e) => {
+                  if (!isLastStep && e.key === "Enter") {
+                    e.preventDefault();
+                    void handleNext();
+                  }
+                }}
                 className="space-y-8"
               >
                 {/* Step Indicator - Simple dots like CreateStudentModal */}

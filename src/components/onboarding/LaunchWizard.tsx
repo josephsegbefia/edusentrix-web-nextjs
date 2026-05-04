@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { addDays } from "date-fns/addDays";
 import { format } from "date-fns/format";
+import { parse as parseDateFns } from "date-fns/parse";
 import Image from "next/image";
 import {
   ArrowLeft,
@@ -124,13 +125,10 @@ export type LaunchWizardProps = {
   platformSchoolId?: string;
 };
 
-function nextAcademicYearLabel(date = new Date()) {
-  const year = date.getFullYear();
-  return `${year}/${year + 1}`;
-}
-
 function dayAtNoon(iso: string): Date {
-  return new Date(`${iso}T12:00:00`);
+  const d = parseDateFns(iso, "yyyy-MM-dd", new Date());
+  d.setHours(12, 0, 0, 0);
+  return d;
 }
 
 function isoAddDays(iso: string, days: number): string {
@@ -191,7 +189,7 @@ function createDefaultPeriodsSequential(termLabels: string[]): Period[] {
     }
 
     const p: Period = {
-      yearLabel: nextAcademicYearLabel(),
+      yearLabel: "",
       term: labels[index],
       startDate: format(start, "yyyy-MM-dd"),
       endDate: format(end, "yyyy-MM-dd"),
@@ -220,7 +218,7 @@ function createPeriodsForTerms(
       existingPeriods.find((period) => period.term === label);
 
     return {
-      yearLabel: existing?.yearLabel || fallback.yearLabel,
+      yearLabel: existing?.yearLabel ?? fallback.yearLabel,
       term: existing?.term || label,
       startDate: existing?.startDate || fallback.startDate,
       endDate: existing?.endDate || fallback.endDate,
@@ -230,8 +228,13 @@ function createPeriodsForTerms(
   return normalizeAcademicPeriodsInOrder(merged);
 }
 
-function parseDateValue(value: string) {
-  return value ? new Date(`${value}T12:00:00`) : null;
+function parseDateValue(value: string): Date | null {
+  const trimmed = value?.trim();
+  if (!trimmed || !/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+  const d = parseDateFns(trimmed, "yyyy-MM-dd", new Date());
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(12, 0, 0, 0);
+  return d;
 }
 
 function SurfaceSection({
@@ -558,7 +561,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
 
       setSubjectPool(refreshedSubjects);
       setSelectedSubjects(refreshedSubjects);
-      setPeriods(createPeriodsForTerms(refreshedTerms));
+      setPeriods((prev) => createPeriodsForTerms(refreshedTerms, prev));
       setActivePeriodIndex(0);
 
       toast.success("School profile saved");
@@ -594,7 +597,12 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     }
 
     for (const period of periodsToSubmit) {
-      if (!period.yearLabel || !period.term || !period.startDate || !period.endDate) {
+      if (
+        !period.yearLabel?.trim() ||
+        !period.term ||
+        !period.startDate ||
+        !period.endDate
+      ) {
         toast.error("Please complete all academic period fields");
         return;
       }
@@ -1315,7 +1323,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                           yearLabel: event.target.value,
                                         })
                                       }
-                                      placeholder="2026/2027"
+                                      placeholder="e.g. 2026/2027"
                                       className={launchInputClass}
                                     />
                                   </div>

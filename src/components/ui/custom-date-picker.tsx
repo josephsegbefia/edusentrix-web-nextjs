@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { isSameDay } from "date-fns/isSameDay";
 
 interface CustomDatePickerProps {
   value?: Date | null;
@@ -71,6 +72,13 @@ export function CustomDatePicker({
     }
   }, [isOpen, value]);
 
+  /** Keep the calendar month in sync when the controlled value updates while closed. */
+  useEffect(() => {
+    if (!isOpen && value) {
+      setViewDate(value);
+    }
+  }, [value, isOpen]);
+
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
@@ -118,11 +126,8 @@ export function CustomDatePicker({
   const isSelected = useCallback(
     (day: number) => {
       if (!value) return false;
-      return (
-        day === value.getDate() &&
-        month === value.getMonth() &&
-        year === value.getFullYear()
-      );
+      const cell = new Date(year, month, day);
+      return isSameDay(cell, value);
     },
     [value, month, year]
   );

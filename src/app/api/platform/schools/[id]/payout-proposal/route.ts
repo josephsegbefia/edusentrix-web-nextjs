@@ -11,6 +11,7 @@ import {
 } from "@/lib/audit/fromApiRoute";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { School } from "@/models/School";
+import { omitUndefinedDeep } from "@/lib/mongoose/omit-undefined-deep";
 
 const ProposeSchema = z.object({
   bankName: z.string().trim().min(1, "Bank is required"),
@@ -78,10 +79,10 @@ export async function POST(
 
         const billing = school.billing || (school.billing = {});
         const paymentSetup = billing.paymentSetup || (billing.paymentSetup = {});
-        paymentSetup.pendingPlatformPayout = {
+        paymentSetup.pendingPlatformPayout = omitUndefinedDeep({
           bankName: body.bankName,
           branchName: body.branchName,
-          sortCode: derivedSortCode,
+          sortCode: derivedSortCode ?? null,
           accountName: body.accountName,
           accountNumber: body.accountNumber,
           note,
@@ -91,7 +92,7 @@ export async function POST(
               ? gate.me.email.toLowerCase().trim()
               : null,
           proposedAt: now,
-        };
+        }) as typeof paymentSetup.pendingPlatformPayout;
         paymentSetup.lastUpdatedAt = now;
         paymentSetup.lastUpdatedBy = gate.me._id;
 

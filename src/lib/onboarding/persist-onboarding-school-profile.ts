@@ -9,6 +9,7 @@ import {
   assessSchoolPaymentSetupReview,
   hasCompleteSchoolBankDetails,
 } from "@/lib/school-payments/payment-setup";
+import { omitUndefinedDeep } from "@/lib/mongoose/omit-undefined-deep";
 
 export type OnboardingSchoolFormBody = {
   name: string;
@@ -101,10 +102,18 @@ export async function persistOnboardingSchoolProfile(
       })
     : { requiresReview: false, reason: null };
   const billing = school.billing || (school.billing = {});
-  const existingPaymentSetup = billing.paymentSetup || {};
+  const rawSetup = billing.paymentSetup;
+  const existingPaymentSetup =
+    rawSetup &&
+    typeof (rawSetup as { toObject?: (opts?: object) => Record<string, unknown> }).toObject ===
+      "function"
+      ? (rawSetup as { toObject: (opts?: object) => Record<string, unknown> }).toObject({
+          depopulate: true,
+        })
+      : { ...(rawSetup as Record<string, unknown> | null | undefined) };
   const paymentSetupUpdatedAt = new Date();
 
-  billing.paymentSetup = {
+  const nextPaymentSetup = omitUndefinedDeep({
     ...existingPaymentSetup,
     ownerUserId: existingPaymentSetup.ownerUserId || billingOwner._id,
     ownerName:
@@ -126,7 +135,9 @@ export async function persistOnboardingSchoolProfile(
     reviewReason: paymentDetailsReady ? review.reason : null,
     lastUpdatedAt: paymentSetupUpdatedAt,
     lastUpdatedBy: auditUserId,
-  };
+  });
+
+  billing.paymentSetup = nextPaymentSetup as typeof billing.paymentSetup;
 
   await school.save({ session });
 

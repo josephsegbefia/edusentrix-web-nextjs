@@ -13,6 +13,7 @@ import {
 } from "@/lib/audit/fromApiRoute";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import { School } from "@/models/School";
+import { omitUndefinedDeep } from "@/lib/mongoose/omit-undefined-deep";
 
 const DecisionSchema = z.object({
   action: z.enum(["approve", "reject"]),
@@ -51,12 +52,12 @@ export async function POST(req: NextRequest) {
         const existingPaystack = billing.paystack || {};
 
         if (body.action === "reject") {
-          billing.paymentSetup = {
+          billing.paymentSetup = omitUndefinedDeep({
             ...existingPaymentSetup,
             pendingPlatformPayout: null,
             lastUpdatedAt: now,
             lastUpdatedBy: access.userId,
-          };
+          }) as typeof billing.paymentSetup;
 
           await school.save({ session });
 
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
         };
 
         billing.status = bankChanged ? "unprovisioned" : billing.status || "unprovisioned";
-        billing.paymentSetup = {
+        billing.paymentSetup = omitUndefinedDeep({
           ...existingPaymentSetup,
           ownerUserId: existingPaymentSetup.ownerUserId || null,
           ownerName: existingPaymentSetup.ownerName || null,
@@ -146,7 +147,7 @@ export async function POST(req: NextRequest) {
           reviewReason: review.reason,
           lastUpdatedAt: now,
           lastUpdatedBy: access.userId,
-        };
+        }) as typeof billing.paymentSetup;
         billing.paystack = {
           ...existingPaystack,
           subaccountCode: bankChanged ? null : existingPaystack.subaccountCode || null,

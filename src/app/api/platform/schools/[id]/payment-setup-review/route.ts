@@ -9,6 +9,7 @@ import {
   sendPaymentSetupNotification,
 } from "@/lib/school-payments/payment-setup-notifications";
 import { School } from "@/models/School";
+import { omitUndefinedDeep } from "@/lib/mongoose/omit-undefined-deep";
 
 const ReviewActionSchema = z
   .object({
@@ -72,7 +73,7 @@ export async function POST(
 
     if (body.action === "approve") {
       billing.status = "unprovisioned";
-      billing.paymentSetup = {
+      billing.paymentSetup = omitUndefinedDeep({
         ...existingPaymentSetup,
         status: "details_submitted",
         approvedAt: now,
@@ -84,7 +85,7 @@ export async function POST(
         reviewReason: null,
         lastUpdatedAt: now,
         lastUpdatedBy: gate.me._id,
-      };
+      }) as typeof billing.paymentSetup;
       billing.paystack = {
         ...existingPaystack,
         lastError: null,
@@ -133,7 +134,7 @@ export async function POST(
     }
 
     billing.status = "failed";
-    billing.paymentSetup = {
+    billing.paymentSetup = omitUndefinedDeep({
       ...existingPaymentSetup,
       status: "failed",
       approvedAt: null,
@@ -142,7 +143,7 @@ export async function POST(
       reviewReason: null,
       lastUpdatedAt: now,
       lastUpdatedBy: gate.me._id,
-    };
+    }) as typeof billing.paymentSetup;
     billing.paystack = {
       ...existingPaystack,
       lastError:

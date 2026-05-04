@@ -22,6 +22,7 @@ import {
   buildFinanceStaffAuditContext,
   resolveAuditIdempotencyKey,
 } from "@/lib/audit/fromApiRoute";
+import { omitUndefinedDeep } from "@/lib/mongoose/omit-undefined-deep";
 
 const UpdatePaymentSetupSchema = z.object({
   bankName: z.string().trim().min(1, "Bank is required"),
@@ -443,7 +444,7 @@ export async function PATCH(req: NextRequest) {
             : null;
 
         billing.status = bankChanged ? "unprovisioned" : billing.status || "unprovisioned";
-        billing.paymentSetup = {
+        billing.paymentSetup = omitUndefinedDeep({
           ...existingPaymentSetup,
           ownerUserId: hasRecordedOwner
             ? existingPaymentSetup.ownerUserId || null
@@ -476,7 +477,7 @@ export async function PATCH(req: NextRequest) {
           reviewReason: review.reason,
           lastUpdatedAt: now,
           lastUpdatedBy: access.userId,
-        };
+        }) as typeof billing.paymentSetup;
         billing.paystack = {
           ...existingPaystack,
           subaccountCode: bankChanged ? null : existingPaystack.subaccountCode || null,

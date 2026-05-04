@@ -1,6 +1,26 @@
 import { Schema, model, models, Types, type Model } from "mongoose";
 import type { CurriculumCode } from "@/constants/curriculum-profiles";
 
+/** Optional nested payout proposal; must not receive explicit `undefined` from app merges. */
+const pendingPlatformPayoutSchema = new Schema(
+  {
+    bankName: { type: String, default: null },
+    branchName: { type: String, default: null },
+    sortCode: { type: String, default: null },
+    accountName: { type: String, default: null },
+    accountNumber: { type: String, default: null },
+    note: { type: String, default: null },
+    proposedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    proposedByEmail: { type: String, default: null, trim: true },
+    proposedAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
 export type SchoolType = "Basic" | "SHS";
 
 export type SchoolEnvironmentType = "production" | "demo" | "internal_test";
@@ -248,19 +268,9 @@ const schoolSchema = new Schema<ISchool>(
           default: null,
         },
         pendingPlatformPayout: {
-          bankName: { type: String, default: null },
-          branchName: { type: String, default: null },
-          sortCode: { type: String, default: null },
-          accountName: { type: String, default: null },
-          accountNumber: { type: String, default: null },
-          note: { type: String, default: null },
-          proposedBy: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
-            default: null,
-          },
-          proposedByEmail: { type: String, default: null, trim: true },
-          proposedAt: { type: Date, default: null },
+          type: pendingPlatformPayoutSchema,
+          default: null,
+          required: false,
         },
       },
       paystack: {

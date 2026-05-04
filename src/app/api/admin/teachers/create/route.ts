@@ -405,7 +405,26 @@ export async function POST(req: NextRequest) {
         : {}),
     });
 
-    await teacherUser.save();
+    if (syntheticFlow) {
+      for (let saveAttempt = 0; saveAttempt < 8; saveAttempt++) {
+        try {
+          await teacherUser.save();
+          break;
+        } catch (saveErr: unknown) {
+          const code = (saveErr as { code?: number })?.code;
+          if (code !== 11000 || saveAttempt >= 7) {
+            throw saveErr;
+          }
+          effectiveEmail = await allocateSyntheticTestEmail(
+            schoolIdObj,
+            "teacher"
+          );
+          teacherUser.set("email", effectiveEmail);
+        }
+      }
+    } else {
+      await teacherUser.save();
+    }
 
     const teacherIdObj =
       teacherUser._id instanceof mongoose.Types.ObjectId

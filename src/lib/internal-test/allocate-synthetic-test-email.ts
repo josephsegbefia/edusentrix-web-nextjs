@@ -1,5 +1,6 @@
 import "server-only";
 import mongoose from "mongoose";
+import { Invitation } from "@/models/Invitation";
 import { User } from "@/models/User";
 import type { InvitationRole } from "@/lib/roles";
 
@@ -30,6 +31,8 @@ function localPartPrefix(role: AllocateSyntheticTestEmailRole): string {
 
 /**
  * Next sequential synthetic email for this school, e.g. `testteacher3@edusentrix.app`.
+ * Scans both {@link User} and {@link Invitation} so we do not reuse an address that is
+ * already tied to an invitation row (or hit races where two writers saw the same max).
  */
 export async function allocateSyntheticTestEmail(
   schoolId: mongoose.Types.ObjectId,
@@ -39,12 +42,13 @@ export async function allocateSyntheticTestEmail(
   const escapedDomain = DOMAIN.replace(/\./g, "\\.");
   const re = new RegExp(`^${prefix}(\\d+)@${escapedDomain}$`, "i");
 
-  const emails = await User.find({ schoolId })
-    .select("email")
-    .lean<{ email: string }[]>();
+  const [userRows, invitationRows] = await Promise.all([
+    User.find({ schoolId }).select("email").lean<{ email: string }[]>(),
+    Invitation.find({ schoolId }).select("email").lean<{ email: string }[]>(),
+  ]);
 
   let max = 0;
-  for (const row of emails) {
+  for (const row of [...userRows, ...invitationRows]) {
     const m = row.email?.match(re);
     if (m) {
       const n = parseInt(m[1], 10);

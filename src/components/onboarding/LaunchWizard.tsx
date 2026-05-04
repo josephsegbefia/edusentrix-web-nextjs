@@ -135,10 +135,23 @@ function isoAddDays(iso: string, days: number): string {
   return format(addDays(dayAtNoon(iso), days), "yyyy-MM-dd");
 }
 
+/** Per row only: end must be strictly after start (ISO yyyy-MM-dd compare). */
+function fixStrictEndAfterStartForAll(out: Period[]): void {
+  for (let i = 0; i < out.length; i++) {
+    if (!out[i].startDate || !out[i].endDate) continue;
+    const { startDate: start, endDate: end } = out[i];
+    if (end <= start) {
+      out[i].endDate = isoAddDays(start, 1);
+    }
+  }
+}
+
 /**
- * Keeps periods in wizard order non-overlapping for the inclusive backend rule
+ * Full timeline reconcile: non-overlapping for the inclusive backend rule
  * (rangesOverlap: touching on the same day counts). Each term starts the day after
  * the previous term ends; end is always strictly after start.
+ * Use on bootstrap / term list rebuild / final submit — not on every field edit,
+ * or later terms' start dates feel "pinned" and ignore the calendar.
  */
 function normalizeAcademicPeriodsInOrder(periods: Period[]): Period[] {
   if (periods.length === 0) return periods;
@@ -153,15 +166,9 @@ function normalizeAcademicPeriodsInOrder(periods: Period[]): Period[] {
         out[i].startDate = isoAddDays(prevEnd, 1);
       }
     }
-
-    let { startDate: start, endDate: end } = out[i];
-    if (end <= start) {
-      end = isoAddDays(start, 1);
-    }
-    out[i].startDate = start;
-    out[i].endDate = end;
   }
 
+  fixStrictEndAfterStartForAll(out);
   return out;
 }
 
@@ -467,7 +474,9 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
       const mapped = current.map((period, periodIndex) =>
         periodIndex === index ? { ...period, ...patch } : period
       );
-      return normalizeAcademicPeriodsInOrder(mapped);
+      const out = mapped.map((p) => ({ ...p }));
+      fixStrictEndAfterStartForAll(out);
+      return out;
     });
   }
 
@@ -592,7 +601,9 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     }
 
     const periodsToSubmit = normalizeAcademicPeriodsInOrder(periods);
-    if (JSON.stringify(periodsToSubmit) !== JSON.stringify(periods)) {
+    const normalizedChanged =
+      JSON.stringify(periodsToSubmit) !== JSON.stringify(periods);
+    if (normalizedChanged) {
       setPeriods(periodsToSubmit);
     }
 
@@ -612,6 +623,12 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
         );
         return;
       }
+    }
+
+    if (normalizedChanged) {
+      toast.info(
+        "Adjusted term dates so periods do not overlap. Review the timeline before completing."
+      );
     }
 
     setSaving(true);
@@ -1259,7 +1276,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           icon={CalendarDays}
                           eyebrow="Academic periods"
                           title="Academic periods"
-                          description="Review each period one at a time, adjust the dates, and choose which period should be current. Terms cannot overlap on the same day—when you change an end date, later terms shift to start the next calendar day automatically."
+                          description="Review each period one at a time, adjust the dates, and choose which period should be current. Terms cannot overlap on the same day when you finish—if needed, we will move later terms to start the day after the previous term ends when you complete this step."
                         >
                           <div className="space-y-4">
                             <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm leading-6 text-white/58">

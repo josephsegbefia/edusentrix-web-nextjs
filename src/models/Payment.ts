@@ -97,7 +97,7 @@ const paymentSchema = new Schema<IPayment>(
       enum: ["cash", "bank_transfer", "mobile_money", "paystack", "cheque", "other"],
       required: true,
     },
-    paystackReference: { type: String, default: undefined, trim: true, sparse: true },
+    paystackReference: { type: String, default: undefined, trim: true },
     paystackTransactionId: { type: String, default: null, trim: true },
     gatewaySettlementId: {
       type: Schema.Types.ObjectId,

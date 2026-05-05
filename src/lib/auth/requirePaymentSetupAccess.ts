@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import type { Types } from "mongoose";
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
@@ -6,6 +7,7 @@ import { UserMembership } from "@/models/UserMembership";
 import { School, type ISchool } from "@/models/School";
 import { normalizePaymentSetupEmail } from "@/lib/school-payments/payment-setup";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -78,6 +80,8 @@ export async function requirePaymentSetupAccess(): Promise<PaymentSetupAccessCon
       { status: 400 }
     );
   }
+
+  await ensureActiveSchoolForTenant(user.schoolId as Types.ObjectId, { mode: "api" });
 
   let membership = await UserMembership.findOne({
     userId: user._id,

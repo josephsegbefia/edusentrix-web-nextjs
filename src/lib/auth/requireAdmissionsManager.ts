@@ -16,6 +16,7 @@ import {
   findActiveDelegationIdForAnyPermission,
   isDelegationActive,
 } from "@/lib/delegations/service";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 export interface AdmissionsManagerContext {
   userId: Types.ObjectId;
@@ -58,6 +59,9 @@ export async function requireAdmissionsManager(): Promise<AdmissionsManagerConte
   const demo = await tryResolveDemoGuard();
   if (demo.isDemo && demo.user.schoolId) {
     await connectToDatabase();
+    await ensureActiveSchoolForTenant(demo.user.schoolId as Types.ObjectId, {
+      mode: "api",
+    });
     const roles = [...demo.membership.roles] as string[];
     const subroles = [...(demo.membership.subroles ?? [])] as string[];
     const isAdmin = roles.includes("school_admin");
@@ -143,6 +147,7 @@ export async function requireAdmissionsManager(): Promise<AdmissionsManagerConte
   const isAdmin = roles.includes("school_admin");
 
   const schoolIdObj = user.schoolId as Types.ObjectId;
+  await ensureActiveSchoolForTenant(schoolIdObj, { mode: "api" });
   const userIdObj = user._id as Types.ObjectId;
 
   const delegations = !isAdmin

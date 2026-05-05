@@ -10,6 +10,7 @@ import { UserMembership, type IUserMembership } from "@/models/UserMembership";
 import type { MembershipRole } from "@/lib/roles";
 import { gateSchoolAdminRoles, gateTeacherApiAccess } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 export type SchoolStaffReadContext = {
   userId: mongoose.Types.ObjectId;
@@ -40,6 +41,9 @@ export async function requireSchoolAdminOrTeacherRead(): Promise<SchoolStaffRead
   const demo = await tryResolveDemoGuard();
   if (demo.isDemo && demo.user.schoolId) {
     await connectToDatabase();
+    await ensureActiveSchoolForTenant(demo.user.schoolId as mongoose.Types.ObjectId, {
+      mode: "api",
+    });
     const roles = (demo.membership.roles || []) as MembershipRole[];
     if (gateSchoolAdminRoles(roles).ok) {
       return {
@@ -107,6 +111,8 @@ export async function requireSchoolAdminOrTeacherRead(): Promise<SchoolStaffRead
   }
 
   const roles = (membership?.roles || []) as MembershipRole[];
+
+  await ensureActiveSchoolForTenant(user.schoolId as mongoose.Types.ObjectId, { mode: "api" });
 
   if (gateSchoolAdminRoles(roles).ok) {
     return {

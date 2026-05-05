@@ -11,6 +11,7 @@ import { UserMembership, IUserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 export type MemberRole =
   | "school_admin"
@@ -74,6 +75,9 @@ export async function requireSchoolMember(
         );
       }
     }
+    await ensureActiveSchoolForTenant(demo.user.schoolId as Types.ObjectId, {
+      mode: "api",
+    });
     return {
       userId: demo.user._id as Types.ObjectId,
       schoolId: demo.user.schoolId as Types.ObjectId,
@@ -149,6 +153,8 @@ export async function requireSchoolMember(
       );
     }
   }
+
+  await ensureActiveSchoolForTenant(user.schoolId as Types.ObjectId, { mode: "api" });
 
   return {
     userId: user._id as Types.ObjectId,

@@ -519,6 +519,16 @@ export default function SignInPage() {
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const authError = searchParams.get("error");
 
+  useEffect(() => {
+    if (authError === "school_disabled" && isLoaded && isSignedIn) {
+      const base =
+        typeof window !== "undefined" ? window.location.origin : "";
+      void signOut({
+        redirectUrl: `${base}/sign-in?error=school_disabled`,
+      });
+    }
+  }, [authError, isLoaded, isSignedIn, signOut]);
+
   const handleSignOutAndContinue = async () => {
     setIsSwitchingAccount(true);
     try {
@@ -529,6 +539,15 @@ export default function SignInPage() {
       setIsSwitchingAccount(false);
     }
   };
+
+  if (isLoaded && isSignedIn && authError === "school_disabled") {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-bg px-4 text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+        <p className="text-sm text-white/70">Ending your session…</p>
+      </div>
+    );
+  }
 
   if (isLoaded && isSignedIn) {
     const activeName =
@@ -614,6 +633,16 @@ export default function SignInPage() {
                 </strong>{" "}
                 for the school you need so we can connect the right workspace,
                 or ask an administrator to resend your invite.
+              </div>
+            ) : null}
+            {authError === "school_disabled" ? (
+              <div
+                role="alert"
+                className="border-b border-rose-500/20 bg-rose-500/10 px-6 py-4 text-sm leading-relaxed text-rose-50/95 sm:px-8"
+              >
+                This school has been suspended and sign-in is blocked for all
+                accounts linked to it. If you believe this is a mistake,
+                contact your school or EduSentrix support.
               </div>
             ) : null}
             {/* Card header */}

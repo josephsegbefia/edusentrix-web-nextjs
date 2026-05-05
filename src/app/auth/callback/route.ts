@@ -4,6 +4,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import { Invitation } from "@/models/Invitation";
+import { School } from "@/models/School";
 import mongoose from "mongoose";
 import {
   resolveTenantUserForClerkSession,
@@ -179,6 +180,21 @@ export async function GET(req: NextRequest) {
         [appUser.firstName, appUser.lastName].filter(Boolean).join(" ") ||
         null,
     });
+  }
+
+  if (
+    appUser.role !== "platform_admin" &&
+    effectiveSchoolId &&
+    mongoose.isValidObjectId(String(effectiveSchoolId))
+  ) {
+    const suspendedSchool = await School.findById(effectiveSchoolId)
+      .select("status")
+      .lean<{ status?: string } | null>();
+    if (suspendedSchool?.status === "deactivated") {
+      const errUrl = new URL("/sign-in", req.url);
+      errUrl.searchParams.set("error", "school_disabled");
+      return NextResponse.redirect(errUrl);
+    }
   }
 
   const dest =

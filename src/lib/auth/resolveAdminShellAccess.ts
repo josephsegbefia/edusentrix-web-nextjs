@@ -2,6 +2,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
+import { School } from "@/models/School";
 import { UserMembership } from "@/models/UserMembership";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { mergedDelegationPermissions } from "@/lib/delegations/service";
@@ -45,8 +46,15 @@ export async function resolveAdminShellAccess(
     redirect("/dashboard");
   }
 
+  await connectToDatabase();
+  const schoolGate = await School.findById(user.schoolId).select("status").lean<{
+    status?: string;
+  } | null>();
+  if (schoolGate?.status === "deactivated") {
+    redirect("/sign-in?error=school_disabled");
+  }
+
   if (user.role === "bursar") {
-    await connectToDatabase();
     const schoolId = new mongoose.Types.ObjectId(user.schoolId);
     const userId = new mongoose.Types.ObjectId(user._id);
     const permissions = await mergedDelegationPermissions(schoolId, userId);
@@ -75,7 +83,6 @@ export async function resolveAdminShellAccess(
     }
   }
 
-  await connectToDatabase();
   const schoolId = new mongoose.Types.ObjectId(user.schoolId);
   const userId = new mongoose.Types.ObjectId(user._id);
 

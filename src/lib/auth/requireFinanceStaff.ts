@@ -6,6 +6,7 @@ import { UserMembership } from "@/models/UserMembership";
 import { NextResponse } from "next/server";
 import { gateFinanceStaffRoles } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -24,6 +25,7 @@ type FinanceStaffContext = {
 export async function requireFinanceStaff(): Promise<FinanceStaffContext> {
   const demo = await tryResolveDemoGuard();
   if (demo.isDemo) {
+    await ensureActiveSchoolForTenant(demo.user.schoolId!, { mode: "api" });
     return {
       userId: demo.user._id,
       schoolId: demo.user.schoolId!,
@@ -74,6 +76,8 @@ export async function requireFinanceStaff(): Promise<FinanceStaffContext> {
       { status: 400 }
     );
   }
+
+  await ensureActiveSchoolForTenant(user.schoolId, { mode: "api" });
 
   return { userId: user._id, schoolId: user.schoolId, roles };
 }

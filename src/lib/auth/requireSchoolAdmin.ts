@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { validateInternalTestImpersonationSession } from "@/lib/internal-test/validate-impersonation-session";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -22,6 +23,7 @@ type SchoolAdminContext = {
 export async function requireSchoolAdmin(): Promise<SchoolAdminContext> {
   const demo = await tryResolveDemoGuard();
   if (demo.isDemo) {
+    await ensureActiveSchoolForTenant(demo.user.schoolId!, { mode: "api" });
     return {
       userId: demo.user._id,
       schoolId: demo.user.schoolId!,
@@ -51,6 +53,7 @@ export async function requireSchoolAdmin(): Promise<SchoolAdminContext> {
     if (!adminGate.ok) {
       throw NextResponse.json({ error: adminGate.error }, { status: adminGate.status });
     }
+    await ensureActiveSchoolForTenant(t.schoolId, { mode: "api" });
     return { userId: t._id, schoolId: t.schoolId };
   }
 
@@ -95,6 +98,8 @@ export async function requireSchoolAdmin(): Promise<SchoolAdminContext> {
       { status: 400 }
     );
   }
+
+  await ensureActiveSchoolForTenant(user.schoolId, { mode: "api" });
 
   return { userId: user._id, schoolId: user.schoolId };
 }

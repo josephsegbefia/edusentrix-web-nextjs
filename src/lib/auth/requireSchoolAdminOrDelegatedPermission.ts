@@ -6,6 +6,7 @@ import {
   findActiveDelegationIdForPermission,
   mergedDelegationPermissions,
 } from "@/lib/delegations/service";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 export type DelegatedAuthResult = {
   isSchoolAdmin: boolean;
@@ -24,6 +25,7 @@ export async function requireSchoolAdminOrDelegatedPermission(input: {
   permission: string;
 }): Promise<DelegatedAuthResult> {
   await connectToDatabase();
+  await ensureActiveSchoolForTenant(input.schoolId, { mode: "api" });
   const membership = await UserMembership.findOne({
     schoolId: input.schoolId,
     userId: input.userId,

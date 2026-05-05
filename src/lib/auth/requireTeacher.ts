@@ -16,6 +16,7 @@ import {
 import { gateTeacherApiAccess } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { validateInternalTestImpersonationSession } from "@/lib/internal-test/validate-impersonation-session";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 export interface TeacherContext {
   userId: Types.ObjectId;
@@ -71,6 +72,9 @@ export async function requireTeacher(
       .select("_id homeroomClassGroupId subroles")
       .lean();
     if (teacher) {
+      await ensureActiveSchoolForTenant(demo.user.schoolId as Types.ObjectId, {
+        mode,
+      });
       const roles = [...demo.membership.roles] as MembershipRole[];
       const subroles = ((teacher as { subroles?: string[] }).subroles ||
         []) as TeacherSubrole[];
@@ -134,6 +138,7 @@ export async function requireTeacher(
       ? membershipSubroles
       : teacherSubroles || []) as TeacherSubrole[];
     const permissions = resolvePermissions({ roles });
+    await ensureActiveSchoolForTenant(t.schoolId as Types.ObjectId, { mode });
     return {
       userId: t._id as Types.ObjectId,
       teacherId: (teacher as { _id: Types.ObjectId })._id,
@@ -213,6 +218,8 @@ export async function requireTeacher(
     : teacherSubroles || []) as TeacherSubrole[];
 
   const permissions = resolvePermissions({ roles });
+
+  await ensureActiveSchoolForTenant(user.schoolId as Types.ObjectId, { mode });
 
   return {
     userId: user._id as Types.ObjectId,

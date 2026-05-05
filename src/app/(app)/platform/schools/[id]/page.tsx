@@ -2,26 +2,37 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
   BadgeCheck,
+  Ban,
   FlaskConical,
   Loader2,
   Rocket,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BankBranchCombo } from "@/components/banks/BankBranchCombo";
 import { formatMoney } from "@/lib/fees/money";
+import { PHRASE_DELETE_SCHOOL_PERMANENTLY } from "@/lib/platform/school-lifecycle-constants";
 import { cn } from "@/lib/utils";
 
 type SchoolDetail = {
@@ -107,9 +118,16 @@ type SchoolDetail = {
 
 export default function PlatformSchoolDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const schoolId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const [loading, setLoading] = React.useState(true);
   const [data, setData] = React.useState<SchoolDetail | null>(null);
+  const [suspendOpen, setSuspendOpen] = React.useState(false);
+  const [activateOpen, setActivateOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [lifecycleBusy, setLifecycleBusy] = React.useState(false);
+  const [deletePhrase, setDeletePhrase] = React.useState("");
+  const [deleteNameConfirm, setDeleteNameConfirm] = React.useState("");
   const [reviewNote, setReviewNote] = React.useState("");
   const [reviewAction, setReviewAction] = React.useState<"approve" | "send_back" | null>(null);
   const [proposalBank, setProposalBank] = React.useState<{
@@ -243,6 +261,84 @@ export default function PlatformSchoolDetailPage() {
     }
   }
 
+  async function suspendSchool() {
+    if (!schoolId) return;
+    try {
+      setLifecycleBusy(true);
+      const res = await fetch(`/api/platform/schools/${schoolId}/suspend`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to suspend school");
+      }
+      toast.success("School suspended. Sign-in is blocked for all accounts in this school.");
+      setSuspendOpen(false);
+      await loadData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to suspend school");
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
+
+  async function activateSchool() {
+    if (!schoolId) return;
+    try {
+      setLifecycleBusy(true);
+      const res = await fetch(`/api/platform/schools/${schoolId}/activate`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to reactivate school");
+      }
+      toast.success("School reactivated.");
+      setActivateOpen(false);
+      await loadData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to reactivate school");
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
+
+  async function permanentDeleteSchool() {
+    if (!schoolId || !data) return;
+    if (deletePhrase.trim() !== PHRASE_DELETE_SCHOOL_PERMANENTLY) {
+      toast.error("Confirmation phrase does not match.");
+      return;
+    }
+    if (deleteNameConfirm.trim() !== data.name.trim()) {
+      toast.error("School name must match exactly.");
+      return;
+    }
+    try {
+      setLifecycleBusy(true);
+      const res = await fetch(`/api/platform/schools/${schoolId}/permanent-delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          confirmationPhrase: deletePhrase.trim(),
+          schoolName: deleteNameConfirm.trim(),
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to delete school");
+      }
+      toast.success("School and linked data were permanently removed.");
+      setDeleteOpen(false);
+      setDeletePhrase("");
+      setDeleteNameConfirm("");
+      router.push("/platform/schools");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete school");
+    } finally {
+      setLifecycleBusy(false);
+    }
+  }
+
   function statusBadgeClass(tone: SchoolDetail["paymentSetup"]["statusTone"]) {
     if (tone === "emerald") {
       return "border-emerald-500/30 bg-emerald-500/15 text-emerald-200";
@@ -327,6 +423,159 @@ export default function PlatformSchoolDetailPage() {
             <Card className="border-white/10 bg-white/5"><CardContent className="p-5"><p className="text-xs uppercase tracking-wide text-white/50">Attributed Cost</p><p className="mt-2 text-xl font-semibold text-white">{formatMoney(data.usage.totalEstimatedCostMinor)}</p><p className="text-xs text-white/50">{data.usage.metricsCount} metrics</p></CardContent></Card>
             <Card className="border-white/10 bg-white/5"><CardContent className="p-5"><p className="text-xs uppercase tracking-wide text-white/50">Payment Setup</p><p className="mt-2 text-xl font-semibold text-white">{data.paymentReady ? "Ready" : "Pending"}</p><p className="text-xs text-white/50">Paystack school settlement</p></CardContent></Card>
           </div>
+
+          <Card className="border-white/10 bg-white/5 text-white">
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-lg">School access</CardTitle>
+              <p className="text-sm text-white/60">
+                Suspending blocks sign-in for everyone linked to this school. Permanent deletion removes
+                MongoDB data, Clerk users, and uploaded files for this school.
+              </p>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {data.status !== "deactivated" ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-rose-500/40 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+                  disabled={lifecycleBusy}
+                  onClick={() => setSuspendOpen(true)}
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  Suspend school
+                </Button>
+              ) : null}
+              {data.status === "deactivated" ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-emerald-600 text-white hover:bg-emerald-500"
+                  disabled={lifecycleBusy}
+                  onClick={() => setActivateOpen(true)}
+                >
+                  Reactivate school
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-white/15 text-white/90 hover:bg-white/10"
+                disabled={lifecycleBusy}
+                onClick={() => {
+                  setDeletePhrase("");
+                  setDeleteNameConfirm("");
+                  setDeleteOpen(true);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete permanently
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Dialog open={suspendOpen} onOpenChange={setSuspendOpen}>
+            <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Suspend this school?</DialogTitle>
+                <DialogDescription className="text-white/65">
+                  No teacher, parent, student, or admin account for this school will be able to sign in until you
+                  reactivate it.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:justify-end">
+                <Button type="button" variant="ghost" onClick={() => setSuspendOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-rose-600 text-white hover:bg-rose-500"
+                  disabled={lifecycleBusy}
+                  onClick={() => void suspendSchool()}
+                >
+                  {lifecycleBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Suspend
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={activateOpen} onOpenChange={setActivateOpen}>
+            <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Reactivate this school?</DialogTitle>
+                <DialogDescription className="text-white/65">
+                  Staff and families will be able to sign in again according to their roles.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:justify-end">
+                <Button type="button" variant="ghost" onClick={() => setActivateOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-emerald-600 text-white hover:bg-emerald-500"
+                  disabled={lifecycleBusy}
+                  onClick={() => void activateSchool()}
+                >
+                  {lifecycleBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Reactivate
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Permanently delete school</DialogTitle>
+                <DialogDescription className="text-white/65">
+                  This removes all database records for this school, deletes school users from Clerk, and deletes
+                  UploadThing and Cloudinary files referenced in those records. This cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <div className="rounded-lg border border-white/10 bg-black/30 p-3 font-mono text-xs text-amber-100/90">
+                  {PHRASE_DELETE_SCHOOL_PERMANENTLY}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-white/80">Type the phrase exactly</Label>
+                  <Input
+                    value={deletePhrase}
+                    onChange={(e) => setDeletePhrase(e.target.value)}
+                    className="border-white/15 bg-white/5 text-white"
+                    placeholder="Confirmation phrase"
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-white/80">School name (exact match)</Label>
+                  <Input
+                    value={deleteNameConfirm}
+                    onChange={(e) => setDeleteNameConfirm(e.target.value)}
+                    className="border-white/15 bg-white/5 text-white"
+                    placeholder={data?.name ?? ""}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:justify-end">
+                <Button type="button" variant="ghost" onClick={() => setDeleteOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-rose-600 text-white hover:bg-rose-500"
+                  disabled={lifecycleBusy}
+                  onClick={() => void permanentDeleteSchool()}
+                >
+                  {lifecycleBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Delete forever
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <Card className="border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black text-white">
             <CardHeader className="space-y-3">

@@ -11,6 +11,7 @@ import type { MembershipRole } from "@/lib/roles";
 import { gateParentApiAccess } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { validateInternalTestImpersonationSession } from "@/lib/internal-test/validate-impersonation-session";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 export interface ParentContext {
   userId: Types.ObjectId;
@@ -57,6 +58,9 @@ export async function requireParent(
 
   const demo = await tryResolveDemoGuard();
   if (demo.isDemo && demo.user.schoolId) {
+    await ensureActiveSchoolForTenant(demo.user.schoolId as Types.ObjectId, {
+      mode,
+    });
     const roles = [...demo.membership.roles] as MembershipRole[];
     return {
       userId: demo.user._id as Types.ObjectId,
@@ -94,6 +98,7 @@ export async function requireParent(
     if (!parentGate.ok) {
       handleFailure(mode, parentGate.status, parentGate.error);
     }
+    await ensureActiveSchoolForTenant(t.schoolId as Types.ObjectId, { mode });
     return {
       userId: t._id as Types.ObjectId,
       schoolId: t.schoolId as Types.ObjectId,
@@ -147,6 +152,8 @@ export async function requireParent(
   if (!parentGate.ok) {
     handleFailure(mode, parentGate.status, parentGate.error);
   }
+
+  await ensureActiveSchoolForTenant(user.schoolId as Types.ObjectId, { mode });
 
   return {
     userId: user._id as Types.ObjectId,

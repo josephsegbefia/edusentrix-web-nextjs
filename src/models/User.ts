@@ -18,11 +18,8 @@ export interface IUser {
   pendingOnboarding?: boolean;
   dateOfBirth?: Date;
   address?: string;
-  /** Platform-only capability keys, e.g. `platform.internalTest.manage`. When absent/empty, platform admins retain full legacy access. */
+  /** Platform-only capability keys for granular operator permissions. When absent/empty, platform admins retain full legacy access. */
   platformPermissionKeys?: string[];
-  /** Synthetic users created under an internal test school (QA / seeding). */
-  isTestUser?: boolean;
-  testUserSource?: "manual_test_school" | "seeded_test_school";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,12 +60,6 @@ const userSchema = new Schema<IUser>(
     address: String,
     platformPermissionKeys: {
       type: [{ type: String, trim: true }],
-      default: undefined,
-    },
-    isTestUser: { type: Boolean, default: false },
-    testUserSource: {
-      type: String,
-      enum: ["manual_test_school", "seeded_test_school"],
       default: undefined,
     },
   },

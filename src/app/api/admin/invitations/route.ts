@@ -5,8 +5,6 @@ import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requi
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invitation } from "@/models/Invitation";
 import { School } from "@/models/School";
-import { User } from "@/models/User";
-import { UserMembership } from "@/models/UserMembership";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 import { renderTemplate } from "@/lib/email/templates";
 import { recordActivity } from "@/lib/audit/recordActivity";
@@ -19,18 +17,6 @@ import {
 import mongoose from "mongoose";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
-import { allocateSyntheticTestEmail } from "@/lib/internal-test/allocate-synthetic-test-email";
-import { createSyntheticClerkAccount } from "@/lib/internal-test/create-synthetic-clerk-account";
-import { getInternalTestDefaultPassword } from "@/lib/internal-test/env";
-import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
-import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
-import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
-import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
-import {
-  assignPendingPaymentSetupDelegate,
-  bindPaymentSetupDelegateToSchool,
-  releasePendingPaymentSetupDelegate,
-} from "@/lib/school-payments/billing-owner-lifecycle";
 
 const createInvitationSchema = z.object({
   email: z.string().email(),
@@ -186,26 +172,7 @@ export async function POST(req: NextRequest) {
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
 
-    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
-    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
-    const syntheticFlow = shouldUseSyntheticTestUserFlow(internalTestSnapshot);
-
-    let effectiveEmail = parsed.data.email.toLowerCase().trim();
-    if (syntheticFlow) {
-      const pwd = getInternalTestDefaultPassword();
-      if (!pwd) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error:
-              "INTERNAL_TEST_DEFAULT_PASSWORD is not configured. Set it on the server to create synthetic bursar accounts.",
-            code: "INTERNAL_TEST_PASSWORD_NOT_CONFIGURED",
-          }),
-          { status: 503, headers: { "Content-Type": "application/json" } }
-        );
-      }
-      effectiveEmail = await allocateSyntheticTestEmail(schoolIdObj, "bursar");
-    }
+    const effectiveEmail = parsed.data.email.toLowerCase().trim();
 
     const existingPending = await Invitation.findOne({
       schoolId: schoolIdObj,
@@ -227,177 +194,6 @@ export async function POST(req: NextRequest) {
         }),
         { status: 409, headers: { "Content-Type": "application/json" } }
       );
-    }
-
-    if (syntheticFlow) {
-      const inviteeName =
-        parsed.data.firstName && parsed.data.lastName
-          ? `${parsed.data.firstName} ${parsed.data.lastName}`.trim()
-          : effectiveEmail;
-
-      const dupUser = await User.findOne({
-        schoolId: schoolIdObj,
-        email: effectiveEmail,
-      })
-        .select("_id")
-        .lean();
-      if (dupUser) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "A user with this synthetic email already exists for this school.",
-          }),
-          { status: 409, headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      await assignPendingPaymentSetupDelegate({
-        schoolId: schoolIdObj,
-        delegateEmail: effectiveEmail,
-        delegateName: inviteeName,
-        updatedBy: new mongoose.Types.ObjectId(String(userId)),
-      });
-
-      let bursarUserId: mongoose.Types.ObjectId | null = null;
-      try {
-        const password = getInternalTestDefaultPassword();
-        const bursarUser = await User.create({
-          email: effectiveEmail,
-          firstName: parsed.data.firstName?.trim() || undefined,
-          lastName: parsed.data.lastName?.trim() || undefined,
-          phone: parsed.data.phone?.trim() || undefined,
-          avatarUrl: parsed.data.photoUrl,
-          role: "bursar",
-          schoolId: schoolIdObj,
-          isTestUser: true,
-          testUserSource: "manual_test_school",
-          pendingOnboarding: false,
-        });
-        bursarUserId =
-          bursarUser._id instanceof mongoose.Types.ObjectId
-            ? bursarUser._id
-            : new mongoose.Types.ObjectId(String(bursarUser._id));
-
-        await UserMembership.findOneAndUpdate(
-          { userId: bursarUserId, schoolId: schoolIdObj },
-          { $addToSet: { roles: "bursar" }, $set: { status: "active" } },
-          { upsert: true }
-        );
-
-        const { clerkUserId } = await createSyntheticClerkAccount({
-          email: effectiveEmail,
-          password: password!,
-          firstName: parsed.data.firstName,
-          lastName: parsed.data.lastName,
-          role: "bursar",
-          schoolId: schoolIdObj,
-        });
-
-        await User.updateOne({ _id: bursarUserId }, { $set: { clerkUserId } });
-
-        await bindPaymentSetupDelegateToSchool({
-          schoolId: schoolIdObj,
-          userId: bursarUserId,
-          email: effectiveEmail,
-          name: inviteeName,
-        });
-
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 365);
-
-        const created = await Invitation.create({
-          email: effectiveEmail,
-          role: "bursar",
-          schoolId: schoolIdObj,
-          status: "accepted",
-          sentAt: new Date(),
-          acceptedAt: new Date(),
-          expiresAt,
-          resendCount: 0,
-          invitedBy: new mongoose.Types.ObjectId(String(userId)),
-          metadata: {
-            firstName: parsed.data.firstName,
-            lastName: parsed.data.lastName,
-            phone: parsed.data.phone,
-            photoUrl: parsed.data.photoUrl,
-            invitationEmailSuppressed: true,
-            syntheticClerkUser: true,
-          },
-        });
-
-        if (userId) {
-          await recordInvitationEmailSuppressed({
-            schoolId: schoolIdObj,
-            actorId: new mongoose.Types.ObjectId(String(userId)),
-            templateKey: "BURSAR_INVITE",
-            targetEmail: effectiveEmail,
-          });
-        }
-
-        await recordActivity({
-          schoolId: schoolIdObj,
-          userId: new mongoose.Types.ObjectId(String(userId)),
-          type: "invitation.sent",
-          entityType: "invitation",
-          entityId: String(created._id),
-          description: `Created synthetic bursar: ${effectiveEmail}`,
-          ...delegationAuditFields({
-            isDelegatedActor: !authCtx.isSchoolAdmin,
-            activeDelegationId: authCtx.activeDelegationId,
-            module: "invitations",
-            action: "invitation.sent",
-          }),
-          metadata: {
-            email: effectiveEmail,
-            role: "bursar",
-            status: "accepted",
-            syntheticTestUser: true,
-          },
-        });
-
-        return Response.json(
-          {
-            success: true,
-            data: {
-              _id: String(created._id),
-              email: created.email,
-              role: created.role,
-              status: created.status,
-              sentAt: created.sentAt.toISOString(),
-              expiresAt: created.expiresAt.toISOString(),
-              syntheticTestUser: true,
-              userId: String(bursarUserId),
-            },
-          },
-          { status: 201 }
-        );
-      } catch (syntheticErr) {
-        console.error("Synthetic bursar creation failed:", syntheticErr);
-        if (bursarUserId) {
-          try {
-            await UserMembership.deleteMany({ userId: bursarUserId });
-            await User.deleteOne({ _id: bursarUserId });
-          } catch {
-            /* ignore */
-          }
-        }
-        await releasePendingPaymentSetupDelegate({
-          schoolId: schoolIdObj,
-          delegateEmail: effectiveEmail,
-          updatedBy: new mongoose.Types.ObjectId(String(userId)),
-        }).catch(() => undefined);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error:
-              syntheticErr instanceof Error
-                ? syntheticErr.message
-                : "Failed to create synthetic bursar",
-            code: "SYNTHETIC_BURSAR_FAILED",
-          }),
-          { status: 502, headers: { "Content-Type": "application/json" } }
-        );
-      }
     }
 
     const APP_URL = getAppUrl();
@@ -436,37 +232,28 @@ export async function POST(req: NextRequest) {
         setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
       });
 
-      if (!bypassInviteEmail) {
-        await sendTrackedBrevoEmail({
-          to: effectiveEmail,
-          subject: rendered.subject,
-          htmlContent: rendered.htmlContent,
-          textContent: rendered.textContent,
-          templateKey: "BURSAR_INVITE",
-          schoolId: String(schoolIdObj),
-          schoolName,
-          actorId: String(userId),
-          actorRole: "school_admin",
-          relatedEntityType: "invitation",
-        });
-        await trackUsage({
-          schoolId,
-          provider: "email",
-          metricKey: "transactional_emails_sent",
-          quantity: 1,
-          unitLabel: "emails",
-          allocationMethod: "direct",
-          sourceType: "manual",
-          notes: "Bursar invitation email sent.",
-        });
-      } else if (userId) {
-        await recordInvitationEmailSuppressed({
-          schoolId: schoolIdObj,
-          actorId: new mongoose.Types.ObjectId(String(userId)),
-          templateKey: "BURSAR_INVITE",
-          targetEmail: effectiveEmail,
-        });
-      }
+      await sendTrackedBrevoEmail({
+        to: effectiveEmail,
+        subject: rendered.subject,
+        htmlContent: rendered.htmlContent,
+        textContent: rendered.textContent,
+        templateKey: "BURSAR_INVITE",
+        schoolId: String(schoolIdObj),
+        schoolName,
+        actorId: String(userId),
+        actorRole: "school_admin",
+        relatedEntityType: "invitation",
+      });
+      await trackUsage({
+        schoolId,
+        provider: "email",
+        metricKey: "transactional_emails_sent",
+        quantity: 1,
+        unitLabel: "emails",
+        allocationMethod: "direct",
+        sourceType: "manual",
+        notes: "Bursar invitation email sent.",
+      });
     } catch (inviteError: unknown) {
       console.error("Bursar invitation error:", inviteError);
       invitationStatus = "failed";
@@ -494,7 +281,6 @@ export async function POST(req: NextRequest) {
         lastName: parsed.data.lastName,
         phone: parsed.data.phone,
         photoUrl: parsed.data.photoUrl,
-        invitationEmailSuppressed: bypassInviteEmail,
       },
     });
 
@@ -517,18 +303,16 @@ export async function POST(req: NextRequest) {
         status: invitationStatus,
       },
     });
-    if (!bypassInviteEmail) {
-      await trackUsage({
-        schoolId,
-        provider: "internal",
-        metricKey: "invitations_sent",
-        quantity: 1,
-        unitLabel: "invites",
-        allocationMethod: "manual",
-        sourceType: "manual",
-        notes: "Bursar invitation issued.",
-      });
-    }
+    await trackUsage({
+      schoolId,
+      provider: "internal",
+      metricKey: "invitations_sent",
+      quantity: 1,
+      unitLabel: "invites",
+      allocationMethod: "manual",
+      sourceType: "manual",
+      notes: "Bursar invitation issued.",
+    });
 
     if (invitationStatus === "failed") {
       return new Response(

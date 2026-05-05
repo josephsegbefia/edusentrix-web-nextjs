@@ -13,11 +13,6 @@ export type SchoolInfo = {
   curriculumCode: string;
   /** IANA time zone (e.g. Africa/Accra). */
   timeZone: string;
-  /**
-   * True when the school uses the synthetic internal-test user flow (Clerk + test emails).
-   * Admin UI uses this to auto-provision student portal accounts on create.
-   */
-  syntheticTestUserFlowActive: boolean;
 };
 
 export type SchoolResponse = {

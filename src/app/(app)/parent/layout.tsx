@@ -12,7 +12,6 @@ import TrialBanner from "@/components/billing/TrialBanner";
 import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
-import { InternalTestSchoolBadge } from "@/components/internal-test/InternalTestSchoolBadge";
 
 export default async function ParentLayout({
   children,
@@ -52,11 +51,6 @@ export default async function ParentLayout({
         <div className="flex min-h-[calc(100vh-3.5rem)]">
           <ParentSidebar />
           <AdminMainContent isBursar={false}>
-            {user.schoolId ? (
-              <div className="mb-3">
-                <InternalTestSchoolBadge schoolId={String(user.schoolId)} />
-              </div>
-            ) : null}
             {children}
           </AdminMainContent>
         </div>

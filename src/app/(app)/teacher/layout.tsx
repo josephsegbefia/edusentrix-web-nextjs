@@ -7,8 +7,6 @@ import TrialBanner from "@/components/billing/TrialBanner";
 import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
-import { InternalTestSchoolBadge } from "@/components/internal-test/InternalTestSchoolBadge";
-
 export default async function TeacherLayout({
   children,
 }: {
@@ -34,9 +32,6 @@ export default async function TeacherLayout({
         <div className="flex min-h-[calc(100vh-3.5rem)]">
           <TeacherSidebar />
           <AdminMainContent isBursar={false}>
-            <div className="mb-3">
-              <InternalTestSchoolBadge schoolId={String(context.schoolId)} />
-            </div>
             {children}
           </AdminMainContent>
         </div>

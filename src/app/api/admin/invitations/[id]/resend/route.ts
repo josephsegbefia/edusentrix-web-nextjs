@@ -18,11 +18,6 @@ import {
   assignPendingBillingOwnerInvitation,
   assignPendingPaymentSetupDelegate,
 } from "@/lib/school-payments/billing-owner-lifecycle";
-import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
-import { isSyntheticTestEmailAddress } from "@/lib/internal-test/is-synthetic-test-email-address";
-import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
-import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
-import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
 
 export async function POST(
   req: NextRequest,
@@ -46,10 +41,6 @@ export async function POST(
       schoolId instanceof mongoose.Types.ObjectId
         ? schoolId
         : new mongoose.Types.ObjectId(String(schoolId));
-
-    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
-    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
-    const syntheticFlow = shouldUseSyntheticTestUserFlow(internalTestSnapshot);
 
     const { id: invitationId } = await ctx.params;
     if (!mongoose.Types.ObjectId.isValid(invitationId)) {
@@ -81,22 +72,6 @@ export async function POST(
         JSON.stringify({
           success: false,
           error: "Cannot resend an accepted invitation",
-        }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    if (
-      syntheticFlow ||
-      invitation.metadata?.syntheticClerkUser === true ||
-      isSyntheticTestEmailAddress(String(invitation.email || ""))
-    ) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error:
-            "Resend is not available for synthetic test invitations. Use the relevant admin flow to add users instead.",
-          code: "SYNTHETIC_INVITE_RESEND_BLOCKED",
         }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
@@ -160,28 +135,19 @@ export async function POST(
               ? "PARENT_INVITE"
               : "TEACHER_INVITE";
 
-      if (!bypassInviteEmail) {
-        await sendTrackedBrevoEmail({
-          to: invitation.email,
-          subject: rendered.subject,
-          htmlContent: rendered.htmlContent,
-          textContent: rendered.textContent,
-          templateKey,
-          schoolId: String(schoolIdObj),
-          schoolName,
-          actorId: String(userId),
-          actorRole: "school_admin",
-          relatedEntityType: "invitation",
-          relatedEntityId: invitationId,
-        });
-      } else {
-        await recordInvitationEmailSuppressed({
-          schoolId: schoolIdObj,
-          actorId: new mongoose.Types.ObjectId(String(userId)),
-          templateKey,
-          targetEmail: invitation.email,
-        });
-      }
+      await sendTrackedBrevoEmail({
+        to: invitation.email,
+        subject: rendered.subject,
+        htmlContent: rendered.htmlContent,
+        textContent: rendered.textContent,
+        templateKey,
+        schoolId: String(schoolIdObj),
+        schoolName,
+        actorId: String(userId),
+        actorRole: "school_admin",
+        relatedEntityType: "invitation",
+        relatedEntityId: invitationId,
+      });
 
       // Update invitation record
       await Invitation.updateOne(

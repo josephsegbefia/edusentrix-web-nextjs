@@ -1,6 +1,5 @@
 import AppTopbar from "@/components/app/AppTopbar";
 import { requireUser } from "@/lib/auth/get-current-user";
-import { InternalTestImpersonationBanner } from "@/components/internal-test/InternalTestImpersonationBanner";
 import { NetworkStatusBanner } from "@/components/system/NetworkStatusBanner";
 import ServiceWorkerRegister from "@/components/system/ServiceWorkerRegister";
 import { isDemoMode } from "@/lib/demo/runtime";
@@ -19,12 +18,6 @@ export default async function AppLayout({
     <div className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
       {isDemo && <DemoBanner />}
       {isDemo && <DemoBlockedInterceptor />}
-      {user.internalTestImpersonation ? (
-        <InternalTestImpersonationBanner
-          displayName={user.internalTestImpersonation.targetDisplayName}
-          schoolId={user.internalTestImpersonation.schoolId}
-        />
-      ) : null}
       <AppTopbar user={user} />
       <NetworkStatusBanner />
       <ServiceWorkerRegister />

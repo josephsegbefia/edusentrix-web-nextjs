@@ -7,8 +7,6 @@ import { User, IUser } from "@/models/User";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { isValidIanaTimeZone } from "@/lib/validation/iana-timezone";
-import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
-import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
 
 const UpdateSchoolProfileSchema = z
   .object({
@@ -90,10 +88,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const internalSnap = await loadSchoolInternalTestSnapshot(schoolIdObj);
-    const syntheticTestUserFlowActive =
-      shouldUseSyntheticTestUserFlow(internalSnap);
-
     return NextResponse.json({
       success: true,
       data: {
@@ -106,7 +100,6 @@ export async function GET(req: NextRequest) {
         gesSchoolCode: school.gesSchoolCode || null,
         curriculumCode: school.curriculumCode || "ghana_nacca",
         timeZone: school.timeZone?.trim() || "Africa/Accra",
-        syntheticTestUserFlowActive,
       },
     });
   } catch (e: unknown) {
@@ -206,11 +199,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const schoolIdForSnap = new mongoose.Types.ObjectId(String(user.schoolId));
-    const internalSnap = await loadSchoolInternalTestSnapshot(schoolIdForSnap);
-    const syntheticTestUserFlowActive =
-      shouldUseSyntheticTestUserFlow(internalSnap);
-
     return NextResponse.json({
       success: true,
       data: {
@@ -223,7 +211,6 @@ export async function PATCH(req: NextRequest) {
         gesSchoolCode: updated.gesSchoolCode || null,
         curriculumCode: updated.curriculumCode || "ghana_nacca",
         timeZone: updated.timeZone?.trim() || "Africa/Accra",
-        syntheticTestUserFlowActive,
       },
     });
   } catch (e: unknown) {

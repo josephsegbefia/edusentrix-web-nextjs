@@ -18,17 +18,9 @@ import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import { parse } from "csv-parse/sync";
 import mongoose from "mongoose";
 import {
-  getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
-import { allocateSyntheticTestEmail } from "@/lib/internal-test/allocate-synthetic-test-email";
-import { createSyntheticClerkAccount } from "@/lib/internal-test/create-synthetic-clerk-account";
-import { getInternalTestDefaultPassword } from "@/lib/internal-test/env";
-import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
-import { recordInvitationEmailSuppressed } from "@/lib/internal-test/record-invitation-suppressed";
-import { shouldBypassInvitation } from "@/lib/internal-test/shouldBypassInvitation";
-import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
 
 function toObjectIdOrNull(id: string): mongoose.Types.ObjectId | null {
   if (!id || !id.trim()) return null;
@@ -127,11 +119,7 @@ export async function POST(req: NextRequest) {
       return normalized as CSVRow;
     });
 
-    const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
-    const syntheticFlowForCsv = shouldUseSyntheticTestUserFlow(internalTestSnapshot);
-    const requiredColumns = syntheticFlowForCsv
-      ? (["firstName", "lastName"] as const)
-      : (["firstName", "lastName", "email"] as const);
+    const requiredColumns = ["firstName", "lastName", "email"] as const;
     const firstRow = normalizedRows[0];
     const missingColumns = requiredColumns.filter(
       (col) =>
@@ -156,29 +144,11 @@ export async function POST(req: NextRequest) {
       error?: string;
     }> = [];
 
-    const APP_URL = getAppUrl();
     const redirectUrl = getInvitationRedirectUrl();
 
     // Fetch school name for emails
     const school = await School.findById(schoolIdObj).select("name").lean();
     const schoolName = school ? (school as any).name : "your school";
-
-    const bypassInviteEmail = shouldBypassInvitation(internalTestSnapshot);
-    const syntheticFlow = syntheticFlowForCsv;
-
-    if (syntheticFlow) {
-      const pwd = getInternalTestDefaultPassword();
-      if (!pwd) {
-        return Response.json(
-          {
-            error:
-              "INTERNAL_TEST_DEFAULT_PASSWORD is not configured. Set it on the server for synthetic bulk teachers.",
-            code: "INTERNAL_TEST_PASSWORD_NOT_CONFIGURED",
-          },
-          { status: 503 }
-        );
-      }
-    }
 
     // Process each row
     for (let i = 0; i < normalizedRows.length; i++) {
@@ -197,32 +167,28 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        if (!syntheticFlow) {
-          if (!row.email?.trim()) {
-            results.push({
-              row: rowNumber,
-              success: false,
-              email: row.email,
-              error: "Missing required field: email",
-            });
-            continue;
-          }
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          const probe = row.email.toLowerCase().trim();
-          if (!emailRegex.test(probe)) {
-            results.push({
-              row: rowNumber,
-              success: false,
-              email: row.email,
-              error: "Invalid email format",
-            });
-            continue;
-          }
+        if (!row.email?.trim()) {
+          results.push({
+            row: rowNumber,
+            success: false,
+            email: row.email,
+            error: "Missing required field: email",
+          });
+          continue;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const probe = row.email.toLowerCase().trim();
+        if (!emailRegex.test(probe)) {
+          results.push({
+            row: rowNumber,
+            success: false,
+            email: row.email,
+            error: "Invalid email format",
+          });
+          continue;
         }
 
-        const normalizedEmail = syntheticFlow
-          ? await allocateSyntheticTestEmail(schoolIdObj, "teacher")
-          : row.email.toLowerCase().trim();
+        const normalizedEmail = row.email.toLowerCase().trim();
 
         const existingUser = await User.findOne({
           email: normalizedEmail,
@@ -414,13 +380,6 @@ export async function POST(req: NextRequest) {
           phone: row.phone?.trim() || undefined,
           role: "teacher",
           schoolId: schoolIdObj,
-          ...(syntheticFlow
-            ? {
-                isTestUser: true,
-                testUserSource: "manual_test_school" as const,
-                pendingOnboarding: false,
-              }
-            : {}),
         });
 
         await teacherUser.save();
@@ -459,116 +418,49 @@ export async function POST(req: NextRequest) {
         }
 
         let clerkInvitationId: string | undefined;
-        let invitationStatus: "pending" | "failed" | "accepted" = "pending";
+        let invitationStatus: "pending" | "failed" = "pending";
 
-        if (syntheticFlow) {
-          const password = getInternalTestDefaultPassword();
-          try {
-            const { clerkUserId } = await createSyntheticClerkAccount({
-              email: normalizedEmail,
-              password,
-              firstName: row.firstName,
-              lastName: row.lastName,
+        try {
+          const clerk = await clerkClient();
+          const clerkInvitation = await clerk.invitations.createInvitation({
+            emailAddress: normalizedEmail,
+            redirectUrl,
+            notify: false,
+            publicMetadata: {
               role: "teacher",
-              schoolId: schoolIdObj,
-            });
-            await User.updateOne(
-              { _id: teacherIdObj },
-              {
-                $set: {
-                  clerkUserId,
-                  pendingOnboarding: false,
-                  isTestUser: true,
-                  testUserSource: "manual_test_school",
-                },
-              }
-            );
-            invitationStatus = "accepted";
-            if (adminUserId) {
-              await recordInvitationEmailSuppressed({
-                schoolId: schoolIdObj,
-                actorId: new mongoose.Types.ObjectId(String(adminUserId)),
-                templateKey: "TEACHER_INVITE",
-                targetEmail: normalizedEmail,
-              });
-            }
-          } catch (syntheticErr) {
-            console.error(`Synthetic Clerk error for ${normalizedEmail}:`, syntheticErr);
-            try {
-              await TeacherAssignment.deleteMany({ teacherId: teacherRecord._id });
-              await ClassGroup.updateMany(
-                { homeroomTeacherId: teacherRecord._id, schoolId: schoolIdObj },
-                { $unset: { homeroomTeacherId: 1 } }
-              );
-              await Teacher.deleteOne({ _id: teacherRecord._id });
-              await UserMembership.deleteMany({ userId: teacherIdObj, schoolId: schoolIdObj });
-              await User.deleteOne({ _id: teacherIdObj });
-            } catch (rollbackErr) {
-              console.error("Bulk synthetic teacher rollback:", rollbackErr);
-            }
-            results.push({
-              row: rowNumber,
-              success: false,
-              email: normalizedEmail,
-              error:
-                syntheticErr instanceof Error
-                  ? syntheticErr.message
-                  : "Failed to create synthetic Clerk user",
-            });
-            continue;
-          }
-        } else {
-          try {
-            const clerk = await clerkClient();
-            const clerkInvitation = await clerk.invitations.createInvitation({
-              emailAddress: normalizedEmail,
-              redirectUrl,
-              notify: false,
-              publicMetadata: {
-                role: "teacher",
-                schoolId: String(schoolIdObj),
-              },
-              ignoreExisting: true,
-            });
-            clerkInvitationId = clerkInvitation.id;
+              schoolId: String(schoolIdObj),
+            },
+            ignoreExisting: true,
+          });
+          clerkInvitationId = clerkInvitation.id;
 
-            const rendered = renderTemplate("USER_INVITE", {
-              name: `${row.firstName} ${row.lastName}`,
-              role: "teacher",
-              schoolName,
-              setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
-            });
+          const rendered = renderTemplate("USER_INVITE", {
+            name: `${row.firstName} ${row.lastName}`,
+            role: "teacher",
+            schoolName,
+            setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+          });
 
-            if (!bypassInviteEmail) {
-              await sendTrackedBrevoEmail({
-                to: normalizedEmail,
-                subject: rendered.subject,
-                htmlContent: rendered.htmlContent,
-                textContent: rendered.textContent,
-                templateKey: "TEACHER_INVITE",
-                schoolId: String(schoolIdObj),
-                schoolName,
-                actorId: String(adminUserId),
-                actorRole: "school_admin",
-                relatedEntityType: "invitation",
-              });
-            } else if (adminUserId) {
-              await recordInvitationEmailSuppressed({
-                schoolId: schoolIdObj,
-                actorId: new mongoose.Types.ObjectId(String(adminUserId)),
-                templateKey: "TEACHER_INVITE",
-                targetEmail: normalizedEmail,
-              });
-            }
-          } catch (inviteError) {
-            console.error(`Clerk invitation error for ${normalizedEmail}:`, inviteError);
-            invitationStatus = "failed";
-          }
+          await sendTrackedBrevoEmail({
+            to: normalizedEmail,
+            subject: rendered.subject,
+            htmlContent: rendered.htmlContent,
+            textContent: rendered.textContent,
+            templateKey: "TEACHER_INVITE",
+            schoolId: String(schoolIdObj),
+            schoolName,
+            actorId: String(adminUserId),
+            actorRole: "school_admin",
+            relatedEntityType: "invitation",
+          });
+        } catch (inviteError) {
+          console.error(`Clerk invitation error for ${normalizedEmail}:`, inviteError);
+          invitationStatus = "failed";
         }
 
         try {
           const expiresAt = new Date();
-          expiresAt.setDate(expiresAt.getDate() + (syntheticFlow ? 365 : 7));
+          expiresAt.setDate(expiresAt.getDate() + 7);
 
           await Invitation.create({
             email: normalizedEmail,
@@ -577,7 +469,7 @@ export async function POST(req: NextRequest) {
             status: invitationStatus,
             clerkInvitationId,
             sentAt: new Date(),
-            acceptedAt: invitationStatus === "accepted" ? new Date() : undefined,
+            acceptedAt: undefined,
             expiresAt,
             resendCount: 0,
             invitedBy: new mongoose.Types.ObjectId(adminUserId),
@@ -586,8 +478,7 @@ export async function POST(req: NextRequest) {
               lastName: row.lastName,
               subjectIds: row.subjectIds?.split(",").map((id) => id.trim()) || [],
               homeroomClassGroupId: row.homeroomClassGroupId,
-              invitationEmailSuppressed: bypassInviteEmail || syntheticFlow,
-              syntheticClerkUser: syntheticFlow,
+              invitationEmailSuppressed: false,
             },
           });
         } catch (inviteRecordError) {

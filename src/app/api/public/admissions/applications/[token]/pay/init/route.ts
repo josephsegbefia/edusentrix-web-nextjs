@@ -20,7 +20,6 @@ import {
   buildAdmissionsFeeReference,
 } from "@/lib/admissions/fee-payments";
 import { initializeTransaction } from "@/lib/paystack";
-import { assertParentCheckoutAllowed } from "@/lib/internal-test/assert-parent-checkout-allowed";
 
 type Params = Promise<{ token: string }>;
 
@@ -80,13 +79,6 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         .select({ name: 1, "billing.paystack": 1 })
         .lean(),
     ]);
-
-    const schoolOid =
-      application.schoolId instanceof mongoose.Types.ObjectId
-        ? application.schoolId
-        : new mongoose.Types.ObjectId(String(application.schoolId));
-    const admissionsBlocked = await assertParentCheckoutAllowed(schoolOid);
-    if (admissionsBlocked) return admissionsBlocked;
 
     if (!cycle?.applicationFee?.enabled) {
       return NextResponse.json(

@@ -4,19 +4,12 @@ import { NextRequest } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
-import { User } from "@/models/User";
-import { UserMembership } from "@/models/UserMembership";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Subject, type ISubject } from "@/models/Subject";
 import mongoose from "mongoose";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
-import { allocateSyntheticTestEmail } from "@/lib/internal-test/allocate-synthetic-test-email";
-import { createSyntheticClerkAccount } from "@/lib/internal-test/create-synthetic-clerk-account";
-import { getInternalTestDefaultPassword } from "@/lib/internal-test/env";
-import { loadSchoolInternalTestSnapshot } from "@/lib/internal-test/load-internal-test-context";
-import { shouldUseSyntheticTestUserFlow } from "@/lib/internal-test/synthetic-test-user-flow";
 
 type Body = {
   firstName: string;
@@ -32,8 +25,6 @@ type Body = {
   enrolledAt?: string; // ISO date string
   subjectAddIds?: string[];
   subjectRemoveIds?: string[];
-  /** When the school uses the synthetic internal-test user flow, provisions a Clerk-backed student portal login. */
-  provisionTestPortalAccount?: boolean;
 };
 
 export async function POST(req: NextRequest) {
@@ -154,102 +145,6 @@ export async function POST(req: NextRequest) {
 
     await student.save();
 
-    let portalAccount: { email: string; userId: string } | undefined;
-
-    if (body.provisionTestPortalAccount === true) {
-      const internalTestSnapshot = await loadSchoolInternalTestSnapshot(schoolIdObj);
-      if (shouldUseSyntheticTestUserFlow(internalTestSnapshot)) {
-        const pwd = getInternalTestDefaultPassword();
-        if (!pwd) {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error:
-                "INTERNAL_TEST_DEFAULT_PASSWORD is not configured. Cannot provision a test student portal account.",
-              code: "INTERNAL_TEST_PASSWORD_NOT_CONFIGURED",
-            }),
-            { status: 503, headers: { "Content-Type": "application/json" } }
-          );
-        }
-
-        const syntheticEmail = await allocateSyntheticTestEmail(
-          schoolIdObj,
-          "student"
-        );
-
-        let studentUserId: mongoose.Types.ObjectId | null = null;
-        try {
-          const studentUser = await User.create({
-            email: syntheticEmail,
-            firstName: body.firstName.trim(),
-            lastName: body.lastName.trim(),
-            role: "student",
-            schoolId: schoolIdObj,
-            isTestUser: true,
-            testUserSource: "manual_test_school",
-            pendingOnboarding: false,
-          });
-          studentUserId =
-            studentUser._id instanceof mongoose.Types.ObjectId
-              ? studentUser._id
-              : new mongoose.Types.ObjectId(String(studentUser._id));
-
-          await UserMembership.findOneAndUpdate(
-            { userId: studentUserId, schoolId: schoolIdObj },
-            { $addToSet: { roles: "student" }, $set: { status: "active" } },
-            { upsert: true }
-          );
-
-          const { clerkUserId } = await createSyntheticClerkAccount({
-            email: syntheticEmail,
-            password: pwd,
-            firstName: body.firstName.trim(),
-            lastName: body.lastName.trim(),
-            role: "student",
-            schoolId: schoolIdObj,
-          });
-
-          await User.updateOne({ _id: studentUserId }, { $set: { clerkUserId } });
-
-          await Student.updateOne(
-            { _id: student._id, schoolId: schoolIdObj },
-            { $set: { userId: studentUserId } }
-          );
-
-          portalAccount = {
-            email: syntheticEmail,
-            userId: String(studentUserId),
-          };
-        } catch (portalErr) {
-          console.error("Synthetic student portal provisioning failed:", portalErr);
-          if (studentUserId) {
-            try {
-              await UserMembership.deleteMany({ userId: studentUserId });
-              await User.deleteOne({ _id: studentUserId });
-            } catch {
-              /* ignore */
-            }
-          }
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error:
-                portalErr instanceof Error
-                  ? portalErr.message
-                  : "Failed to provision test student portal account",
-              code: "SYNTHETIC_STUDENT_PORTAL_FAILED",
-              data: {
-                _id: String(student._id),
-                firstName: student.firstName,
-                lastName: student.lastName,
-              },
-            }),
-            { status: 502, headers: { "Content-Type": "application/json" } }
-          );
-        }
-      }
-    }
-
     await trackUsage({
       schoolId,
       provider: "internal",
@@ -269,7 +164,6 @@ export async function POST(req: NextRequest) {
           _id: String(student._id),
           firstName: student.firstName,
           lastName: student.lastName,
-          ...(portalAccount ? { portalAccount } : {}),
         },
       },
       { status: 201 }

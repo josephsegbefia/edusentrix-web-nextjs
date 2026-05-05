@@ -1076,9 +1076,6 @@ export default function SchoolAdminOverviewPage() {
         dateOfBirth: payload.dateOfBirth
           ? payload.dateOfBirth.toISOString().split("T")[0]
           : undefined,
-        ...(schoolPayload?.data?.syntheticTestUserFlowActive
-          ? { provisionTestPortalAccount: true as const }
-          : {}),
       };
 
       const fetchPromise = fetch("/api/students/create", {

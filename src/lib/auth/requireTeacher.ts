@@ -15,7 +15,6 @@ import {
 } from "@/lib/rbac";
 import { gateTeacherApiAccess } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
-import { validateInternalTestImpersonationSession } from "@/lib/internal-test/validate-impersonation-session";
 import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
 
 export interface TeacherContext {
@@ -91,65 +90,6 @@ export async function requireTeacher(
         isAdmin: roles.includes("school_admin"),
       };
     }
-  }
-
-  const ita = await validateInternalTestImpersonationSession();
-  if (ita) {
-    const t = ita.target;
-    if (!t.schoolId) {
-      handleFailure(mode, 403, "Invalid impersonation target");
-    }
-    let membership = (await UserMembership.findOne({
-      userId: t._id,
-      schoolId: t.schoolId,
-    }).lean()) as IUserMembership | null;
-    if (!membership) {
-      const created = await UserMembership.create({
-        userId: t._id,
-        schoolId: t.schoolId,
-        roles: legacyRoleToArray(t.role),
-        status: "active",
-      });
-      membership = created.toObject() as IUserMembership;
-    }
-    if (membership.status !== "active") {
-      handleFailure(mode, 403, "Membership is not active");
-    }
-    const roles = (membership.roles || []) as MembershipRole[];
-    const isAdmin = roles.includes("school_admin");
-    const teacherGate = gateTeacherApiAccess(roles);
-    if (!teacherGate.ok) {
-      handleFailure(mode, teacherGate.status, teacherGate.error);
-    }
-    const teacher = await Teacher.findOne({
-      userId: t._id,
-      schoolId: t.schoolId,
-    })
-      .select("_id homeroomClassGroupId subroles")
-      .lean();
-    if (!teacher) {
-      handleFailure(mode, 404, "Teacher record not found for impersonation target");
-    }
-    const membershipSubroles = (membership.subroles || []) as TeacherSubrole[];
-    const teacherSubroles = ((teacher as { subroles?: string[] }).subroles || []) as
-      | TeacherSubrole[]
-      | undefined;
-    const subroles = (membershipSubroles.length > 0
-      ? membershipSubroles
-      : teacherSubroles || []) as TeacherSubrole[];
-    const permissions = resolvePermissions({ roles });
-    await ensureActiveSchoolForTenant(t.schoolId as Types.ObjectId, { mode });
-    return {
-      userId: t._id as Types.ObjectId,
-      teacherId: (teacher as { _id: Types.ObjectId })._id,
-      schoolId: t.schoolId as Types.ObjectId,
-      roles,
-      subroles,
-      permissions,
-      homeroomClassGroupId: (teacher as { homeroomClassGroupId?: Types.ObjectId | null })
-        .homeroomClassGroupId,
-      isAdmin,
-    };
   }
 
   const { userId: clerkUserId } = await auth();

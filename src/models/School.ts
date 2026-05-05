@@ -23,7 +23,7 @@ const pendingPlatformPayoutSchema = new Schema(
 
 export type SchoolType = "Basic" | "SHS";
 
-export type SchoolEnvironmentType = "production" | "demo" | "internal_test";
+export type SchoolEnvironmentType = "production" | "demo";
 
 export interface ISchool {
   _id: Types.ObjectId;
@@ -54,17 +54,6 @@ export interface ISchool {
     finishedAt?: Date | null;
   };
   environmentType?: SchoolEnvironmentType;
-  isInternalTestSchool?: boolean;
-  internalTest?: {
-    enabled: boolean;
-    enabledAt?: Date | null;
-    enabledBy?: Types.ObjectId | null;
-    disabledAt?: Date | null;
-    disabledBy?: Types.ObjectId | null;
-    mode?: "manual" | "seeded" | "manual_and_seeded";
-    visibleBadgeEnabled: boolean;
-    notes?: string | null;
-  };
   billing?: {
     status?: "unprovisioned" | "provisioned" | "failed";
     paymentSetup?: {
@@ -183,23 +172,8 @@ const schoolSchema = new Schema<ISchool>(
     },
     environmentType: {
       type: String,
-      enum: ["production", "demo", "internal_test"],
+      enum: ["production", "demo"],
       default: "production",
-    },
-    isInternalTestSchool: { type: Boolean, default: false },
-    internalTest: {
-      enabled: { type: Boolean, default: false },
-      enabledAt: { type: Date, default: null },
-      enabledBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
-      disabledAt: { type: Date, default: null },
-      disabledBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
-      mode: {
-        type: String,
-        enum: ["manual", "seeded", "manual_and_seeded"],
-        default: undefined,
-      },
-      visibleBadgeEnabled: { type: Boolean, default: true },
-      notes: { type: String, default: null, trim: true, maxlength: 2000 },
     },
     billing: {
       status: {

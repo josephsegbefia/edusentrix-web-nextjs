@@ -44,7 +44,6 @@ import CreateStudentModal from "@/components/modals/CreateStudentModal";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import type { CreateStudentInput } from "@/schemas/student";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSchool } from "@/hooks/admin/useSchool";
 import EditStudentProfileForm from "@/components/modals/EditStudentProfileForm";
 import AssignStudentClassForm from "@/components/modals/AssignStudentClassForm";
 
@@ -71,7 +70,6 @@ export default function StudentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { data: schoolPayload } = useSchool();
 
   const [tab, setTab] = React.useState<StudentsTabId>(() =>
     getInitialTab(searchParams)
@@ -330,9 +328,6 @@ export default function StudentsPage() {
         dateOfBirth: payload.dateOfBirth
           ? payload.dateOfBirth.toISOString().split("T")[0]
           : undefined,
-        ...(schoolPayload?.data?.syntheticTestUserFlowActive
-          ? { provisionTestPortalAccount: true as const }
-          : {}),
       };
 
       const fetchPromise = fetch("/api/students/create", {

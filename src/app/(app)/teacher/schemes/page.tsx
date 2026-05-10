@@ -81,7 +81,9 @@ export default function TeacherSchemesPage() {
   const { data: ctxRes } = useTeacherContext();
   const permissions = (ctxRes?.data?.permissions ?? []) as Permission[];
   const teacherId = ctxRes?.data?.teacher?._id ?? "";
-  const canImport = can(permissions, PERMISSIONS.schemeImportUpload);
+  const schoolCurriculumCode = ctxRes?.data?.school?.curriculumCode;
+  const isNaCCASchool = schoolCurriculumCode === "ghana_nacca";
+  const canImport = isNaCCASchool && can(permissions, PERMISSIONS.schemeImportUpload);
   const currentPeriodId = ctxRes?.data?.currentPeriod?.id;
 
   const assignmentOptions = useMemo(() => {
@@ -123,7 +125,7 @@ export default function TeacherSchemesPage() {
   async function handleDeleteScheme(scheme: SchemeRow) {
     const result = await confirm({
       title: "Delete scheme",
-      description: `Permanently delete “${scheme.title}”? All weekly rows and review history for this scheme will be removed. This cannot be undone.`,
+      description: `Permanently delete “${scheme.title}”? All weekly rows and review history for this Scheme of Learning will be removed. This cannot be undone.`,
       confirmLabel: "Delete",
       cancelLabel: "Cancel",
       intent: "destructive",
@@ -146,16 +148,17 @@ export default function TeacherSchemesPage() {
               <BookOpenCheck className="h-3.5 w-3.5 text-emerald-200" />
               Teaching plan
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">Schemes of work</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-white">Schemes of Learning</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-              Create class-specific schemes, prepare weekly work, and submit them for curriculum review.
+              Prepare grade and subject learning plans
+              {isNaCCASchool ? ", import official GES-style documents," : ""} and submit them for review.
             </p>
           </div>
           {canImport ? (
             <Button asChild variant="outline" className="border-white/10 bg-white/[0.06] text-white hover:bg-white/10">
               <Link href="/teacher/schemes/import">
                 <FileSpreadsheet className="h-4 w-4" />
-                Import CSV / Excel
+                Import document
               </Link>
             </Button>
           ) : null}
@@ -165,7 +168,7 @@ export default function TeacherSchemesPage() {
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="New scheme title"
+            placeholder="New Scheme of Learning title"
             className="border-white/10 bg-white/[0.07] text-white placeholder:text-white/35 focus-visible:border-emerald-300/45 focus-visible:ring-emerald-400/20"
           />
           <PremiumSelect value={assignmentKey} onValueChange={setAssignmentKey}>
@@ -193,7 +196,7 @@ export default function TeacherSchemesPage() {
       </section>
 
       {error ? <p className="text-sm text-rose-300">{error.message}</p> : null}
-      {isLoading ? <p className="text-sm text-white/70">Loading schemes...</p> : null}
+      {isLoading ? <p className="text-sm text-white/70">Loading Schemes of Learning...</p> : null}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {data.map((scheme) => {

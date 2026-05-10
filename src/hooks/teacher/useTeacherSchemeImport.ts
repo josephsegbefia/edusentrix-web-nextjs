@@ -67,7 +67,9 @@ export function useTeacherSchemeImportConfirm(jobId: string | null) {
   return useMutation({
     mutationFn: async (payload: {
       schemeTitle: string;
+      academicPeriodId: string;
       gradeId?: string | null;
+      classGroupId?: string | null;
       subjectId?: string | null;
     }) => {
       const res = await fetch(`/api/teacher/scheme-imports/${jobId}/confirm`, {

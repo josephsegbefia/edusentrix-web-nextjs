@@ -44,6 +44,7 @@ import { useBusyToast } from "@/hooks/useBusyToast";
 import { SchoolDailySchedulePanel } from "@/components/admin/settings/school-daily/SchoolDailySchedulePanel";
 import { SchoolTimeZoneSettingsCard } from "@/components/admin/settings/SchoolTimeZoneSettingsCard";
 import { SchoolLeoSettingsCard } from "@/components/admin/settings/SchoolLeoSettingsCard";
+import { AcademicCalendarSettingsPanel } from "@/components/admin/settings/AcademicCalendarSettingsPanel";
 
 type SettingsTab = "school" | "attendance" | "academic" | "features" | "dailySchedule" | "regional";
 
@@ -79,8 +80,6 @@ type SettingsFormData = {
   assembly: AssemblyConfigDTO | null;
   lateArrivalCutoff: string;
   minimumAttendancePercent: number;
-  defaultExamWeekDuration: number;
-  defaultRevisionWeekDuration: number;
   teacherStudio: {
     enabled: boolean;
   };
@@ -133,8 +132,6 @@ function buildSettingsFormData(settings: SchoolSettingsDTO): SettingsFormData {
     assembly: settings.assembly,
     lateArrivalCutoff: settings.lateArrivalCutoff || "",
     minimumAttendancePercent: settings.minimumAttendancePercent,
-    defaultExamWeekDuration: settings.defaultExamWeekDuration,
-    defaultRevisionWeekDuration: settings.defaultRevisionWeekDuration,
     teacherStudio: settings.teacherStudio || { enabled: true },
     attendanceNotifications: settings.attendanceNotifications || {
       enabled: true,
@@ -157,8 +154,6 @@ function mergeOperationalFields(
     assembly: next.assembly,
     lateArrivalCutoff: next.lateArrivalCutoff,
     minimumAttendancePercent: next.minimumAttendancePercent,
-    defaultExamWeekDuration: next.defaultExamWeekDuration,
-    defaultRevisionWeekDuration: next.defaultRevisionWeekDuration,
     teacherStudio: next.teacherStudio,
     attendanceNotifications: next.attendanceNotifications,
     offlineMode: next.offlineMode,
@@ -292,8 +287,6 @@ function SettingsPageContent() {
       assemblyGradeOverrides: formData.assemblyGradeOverrides,
       lateArrivalCutoff: formData.lateArrivalCutoff || null,
       minimumAttendancePercent: formData.minimumAttendancePercent,
-      defaultExamWeekDuration: formData.defaultExamWeekDuration,
-      defaultRevisionWeekDuration: formData.defaultRevisionWeekDuration,
       teacherStudio: formData.teacherStudio,
       attendanceNotifications: formData.attendanceNotifications,
       offlineMode: formData.offlineMode,
@@ -391,7 +384,7 @@ function SettingsPageContent() {
             </div>
           </div>
 
-          {["attendance", "academic", "features"].includes(activeTab) && (
+          {["attendance", "features"].includes(activeTab) && (
             <Button
               type="button"
               onClick={handleSaveOperational}
@@ -577,60 +570,7 @@ function SettingsPageContent() {
             </div>
           )}
 
-          {activeTab === "academic" && (
-            <Card className="border border-white/10 bg-gradient-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
-              <CardContent className="p-6">
-                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-                  <Calendar className="h-5 w-5 text-purple-400" />
-                  Academic Calendar Defaults
-                </h3>
-
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-white/70">Default Exam Week Duration (days)</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={21}
-                      value={formData.defaultExamWeekDuration}
-                      onChange={(e) =>
-                        updateOperationalForm((current) => ({
-                          ...current,
-                          defaultExamWeekDuration: Number(e.target.value),
-                        }))
-                      }
-                      className="border-white/10 bg-white/5 text-white"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-white/70">Default Revision Week Duration (days)</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={14}
-                      value={formData.defaultRevisionWeekDuration}
-                      onChange={(e) =>
-                        updateOperationalForm((current) => ({
-                          ...current,
-                          defaultRevisionWeekDuration: Number(e.target.value),
-                        }))
-                      }
-                      className="border-white/10 bg-white/5 text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
-                  <p className="text-sm text-amber-200">
-                    <strong>Note:</strong> These are default values used when creating new academic
-                    periods. You can customize dates for each term individually in the Academic
-                    Periods page.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {activeTab === "academic" && <AcademicCalendarSettingsPanel />}
 
           {activeTab === "dailySchedule" && <SchoolDailySchedulePanel />}
 

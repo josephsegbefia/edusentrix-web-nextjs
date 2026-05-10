@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Send, Sparkles, Plus, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Send, Sparkles, Plus, ChevronLeft, ChevronRight, Check, FileText } from "lucide-react";
 import {
   useTeacherCoverageSummary,
   useTeacherCurricula,
@@ -43,7 +43,7 @@ import {
 } from "./teacher-scheme-wizard-types";
 
 const LEO_MODE_OPTIONS: { value: LeoSchemePlanMode; label: string }[] = [
-  { value: "draft_from_curriculum", label: "Draft scheme from curriculum" },
+  { value: "draft_from_curriculum", label: "Draft Scheme of Learning from curriculum" },
   { value: "missing_objectives", label: "Suggest missing objectives" },
   { value: "pacing", label: "Pacing review" },
   { value: "uncovered", label: "Uncovered curriculum topics" },
@@ -225,10 +225,10 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
         return (
           <div className="space-y-4">
             <div>
-              <p className="text-xs uppercase tracking-wide text-white/40">This scheme</p>
+              <p className="text-xs uppercase tracking-wide text-white/40">This Scheme of Learning</p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <h2 className="text-xl font-semibold text-white">
-                  {schemeLoading ? "Loading…" : scheme?.title ?? "Scheme"}
+                  {schemeLoading ? "Loading…" : scheme?.title ?? "Scheme of Learning"}
                 </h2>
                 {scheme ? <SchemeStatusBadge status={scheme.status} /> : null}
               </div>
@@ -241,7 +241,7 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
                 href="/teacher/schemes"
                 className="text-sm font-medium text-sky-400 hover:text-sky-300"
               >
-                ← All my schemes
+                ← All Schemes of Learning
               </Link>
               <span className="text-white/25">·</span>
               <Link
@@ -255,7 +255,7 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
               <p className="text-sm font-medium text-white">Submit for review</p>
               <p className="mt-1 text-sm text-white/60">
                 When your weekly plan is ready, send it to your school admin for approval. You can still
-                edit while the scheme is in draft or needs revision.
+                edit while the Scheme of Learning is in draft or needs revision.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
@@ -288,17 +288,16 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
             <div>
               <h2 className="text-lg font-semibold text-white">Curriculum alignment</h2>
               <p className="mt-1 text-sm text-white/65">
-                Connect this scheme to an active curriculum framework so suggestions and coverage line up
+                Connect this Scheme of Learning to an active learning structure so suggestions and coverage line up
                 with your school’s strands.
               </p>
             </div>
             {canBrowseCurriculum && canEditScheme ? (
               <div className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
                 <p className="text-sm text-white/65">
-                  Link an <strong className="text-white/85">active</strong> curriculum framework and strand
-                  (subject / grade band) so Leo can align draft rows with framework nodes. Frameworks are
-                  managed under{" "}
-                  <strong className="text-white/85">Admin → Academics → Curriculum frameworks</strong> —
+                  Link the learning structure derived from an approved Scheme of Learning so Leo can align
+                  draft rows with strands and lesson note outcomes. These structures are managed through{" "}
+                  <strong className="text-white/85">Admin → Academics → Schemes of Learning</strong> —
                   separate from the school&apos;s programme setting (
                   <strong className="text-white/85">Curriculum</strong>: NaCCA, Cambridge, …).
                 </p>
@@ -366,9 +365,9 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
                 </div>
                 {!curricula.length ? (
                   <p className="mt-2 text-xs text-amber-200/90">
-                    No active curriculum frameworks yet. A school admin should add one under{" "}
-                    <strong className="text-amber-100">Admin → Academics → Curriculum frameworks</strong>,
-                    then click <strong className="text-amber-100">Activate</strong>.
+                    No active learning structure yet. A school admin should import and approve a Scheme of
+                    Learning under{" "}
+                    <strong className="text-amber-100">Admin → Academics → Schemes of Learning</strong>.
                   </p>
                 ) : null}
                 {curriculumPatch.error ? (
@@ -400,7 +399,7 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
                       : "None"}
                 </p>
                 <p className="mt-3 text-xs text-white/50">
-                  This scheme is no longer editable. Contact an admin if the curriculum link must change.
+                  This Scheme of Learning is no longer editable. Contact an admin if the curriculum link must change.
                 </p>
               </div>
             ) : null}
@@ -408,7 +407,7 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
               <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
                 You don’t have permission to browse curriculum frameworks, so linking must be done by
                 someone with <strong className="text-amber-50">curriculum framework</strong> access, or an
-                admin can adjust this scheme for you.
+                admin can adjust this Scheme of Learning for you.
               </p>
             ) : null}
           </div>
@@ -469,12 +468,12 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
               ) : null}
               {scheme?.status === "draft" ? (
                 <p className="mt-2 text-xs text-amber-200/90">
-                  Coverage status is managed on the last step after this scheme is approved or active.
+                  Coverage status is managed on the last step after this Scheme of Learning is approved or active.
                 </p>
               ) : null}
               {!canEditScheme ? (
                 <p className="mt-2 text-xs text-white/45">
-                  This scheme is read-only. Add or change rows only while status is draft or needs revision.
+                  This Scheme of Learning is read-only. Add or change rows only while status is draft or needs revision.
                 </p>
               ) : null}
             </div>
@@ -503,7 +502,26 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
                             {item.learningObjective ? (
                               <p className="mt-1 text-sm text-white/70">{item.learningObjective}</p>
                             ) : null}
+                            {item.lessonNoteCount ? (
+                              <p className="mt-2 text-xs text-emerald-200">
+                                {item.lessonNoteCount} lesson note{item.lessonNoteCount === 1 ? "" : "s"} linked
+                              </p>
+                            ) : null}
                           </div>
+                          {scheme?.status === "approved" || scheme?.status === "active" ? (
+                            <Button
+                              type="button"
+                              asChild
+                              size="sm"
+                              variant="outline"
+                              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+                            >
+                              <Link href={`/teacher/lesson-notes?createFromSchemeItem=${item.id}`}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                Lesson note
+                              </Link>
+                            </Button>
+                          ) : null}
                         </div>
                       </article>
                     ))
@@ -525,14 +543,14 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
             </div>
             {!canEditScheme ? (
               <p className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/75">
-                Leo is available only while this scheme is editable (draft or needs revision). Your current
+                Leo is available only while this Scheme of Learning is editable (draft or needs revision). Your current
                 status is locked for structural edits.
               </p>
             ) : (
               <div className="rounded-xl border border-violet-500/25 bg-slate-950/50 p-4">
                 {!schemeOfWorkEnabled ? (
                   <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-100/95">
-                    Scheme of work is turned off for your school. A school admin should enable it under{" "}
+                    Scheme of Learning is turned off for your school. A school admin should enable it under{" "}
                     {canOpenAdminSettings ? (
                       <Link
                         href="/admin/settings?tab=features"
@@ -543,13 +561,13 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
                     ) : (
                       <strong className="text-amber-50">Admin → Settings → Features</strong>
                     )}{" "}
-                    (&quot;Enable scheme of work&quot;).
+                    (&quot;Enable Scheme of Learning&quot;).
                   </p>
                 ) : null}
                 {schemeOfWorkEnabled && !aiSchemeDraftingEnabled ? (
                   <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-100/95">
-                    AI-assisted scheme drafting is off. A school admin can enable{" "}
-                    <strong className="text-amber-50">AI-assisted scheme drafting (Leo)</strong> under{" "}
+                    AI-assisted Scheme of Learning drafting is off. A school admin can enable{" "}
+                    <strong className="text-amber-50">AI-assisted Scheme of Learning drafting (Leo)</strong> under{" "}
                     {canOpenAdminSettings ? (
                       <Link
                         href="/admin/settings?tab=features"
@@ -712,7 +730,7 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
             </div>
             {scheme && scheme.status !== "approved" && scheme.status !== "active" ? (
               <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/95">
-                Coverage tracking turns on when this scheme is <strong className="text-amber-50">approved</strong>{" "}
+                Coverage tracking turns on when this Scheme of Learning is <strong className="text-amber-50">approved</strong>{" "}
                 or <strong className="text-amber-50">active</strong>. Finish your plan and submit it from the
                 Overview step first.
               </p>
@@ -759,7 +777,24 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
                           {item.learningObjective ? (
                             <p className="mt-1 text-sm text-white/70">{item.learningObjective}</p>
                           ) : null}
+                          {item.lessonNoteCount ? (
+                            <p className="mt-2 text-xs text-emerald-200">
+                              {item.lessonNoteCount} lesson note{item.lessonNoteCount === 1 ? "" : "s"} linked
+                            </p>
+                          ) : null}
                         </div>
+                        <Button
+                          type="button"
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+                        >
+                          <Link href={`/teacher/lesson-notes?createFromSchemeItem=${item.id}`}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Lesson note
+                          </Link>
+                        </Button>
                         {canEditCoverage && item.status !== "dropped" ? (
                           <div className="flex shrink-0 flex-col gap-1 sm:w-52">
                             <label className="text-[11px] uppercase tracking-wide text-white/45">
@@ -812,7 +847,7 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
   };
 
   if (!schemeId) {
-    return <p className="text-sm text-white/70">Invalid scheme.</p>;
+    return <p className="text-sm text-white/70">Invalid Scheme of Learning.</p>;
   }
 
   return (
@@ -873,10 +908,10 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
               transition={{ duration: 0.2 }}
             >
               {schemeLoading ? (
-                <p className="text-sm text-white/70">Loading scheme…</p>
+                <p className="text-sm text-white/70">Loading Scheme of Learning…</p>
               ) : schemeError ? (
                 <p className="text-sm text-rose-300">
-                  {schemeError instanceof Error ? schemeError.message : "Failed to load scheme"}
+                  {schemeError instanceof Error ? schemeError.message : "Failed to load Scheme of Learning"}
                 </p>
               ) : (
                 renderStepContent()
@@ -907,7 +942,7 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
             >
               <Link href="/teacher/schemes">
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                All schemes
+                All Schemes of Learning
               </Link>
             </Button>
           )}
@@ -921,7 +956,7 @@ export function TeacherSchemeWizard({ schemeId }: WizardShellProps) {
               className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
             >
               <Link href="/teacher/schemes">
-                Back to my schemes
+                Back to Schemes of Learning
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
@@ -950,7 +985,7 @@ function StatusNarrative({
 }) {
   const lines: Record<string, string> = {
     draft:
-      "You’re building this scheme. Add weekly rows, optionally use Leo, then submit when you’re ready.",
+      "You’re building this Scheme of Learning. Add weekly rows, optionally use Leo, then submit when you’re ready.",
     needs_revision:
       "An admin asked for changes. Update your plan and submit again when you’re ready.",
     rejected: "This submission was not accepted. Adjust your plan and submit again.",
@@ -958,13 +993,13 @@ function StatusNarrative({
     approved:
       "Approved — use the Coverage step to record how each row was taught. Structural edits are locked.",
     active:
-      "This scheme is active. Keep coverage up to date so reporting stays accurate.",
-    archived: "This scheme is archived for reference only.",
+      "This Scheme of Learning is active. Keep coverage up to date so reporting stays accurate.",
+    archived: "This Scheme of Learning is archived for reference only.",
   };
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/75">
-      <p>{lines[schemeStatus] ?? "Review this scheme’s status with your admin if anything looks wrong."}</p>
+      <p>{lines[schemeStatus] ?? "Review this Scheme of Learning status with your admin if anything looks wrong."}</p>
       {canEditScheme ? (
         <p className="mt-2 text-xs text-white/50">
           Steps <strong className="text-white/70">Curriculum</strong> through{" "}

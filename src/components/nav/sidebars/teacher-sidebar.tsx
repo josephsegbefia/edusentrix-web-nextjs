@@ -255,6 +255,18 @@ const navSections: NavSection[] = [
         permission: PERMISSIONS.schemeOfWorkRead,
       },
       {
+        label: "Examinations",
+        href: "/teacher/examinations",
+        icon: ClipboardCheck,
+        permission: PERMISSIONS.examsRead,
+      },
+      {
+        label: "Question Bank",
+        href: "/teacher/question-bank",
+        icon: Library,
+        permission: PERMISSIONS.questionBankRead,
+      },
+      {
         label: "Coverage",
         href: "/teacher/coverage",
         icon: PieChart,

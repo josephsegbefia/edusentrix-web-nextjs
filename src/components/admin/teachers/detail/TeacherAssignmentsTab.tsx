@@ -3,10 +3,8 @@
 
 import * as React from "react";
 import { ClipboardList, Clock, MapPin, BookOpen, Info, Zap } from "lucide-react";
-import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   useAcademicPeriods,
   type AcademicPeriodDTO,
@@ -114,13 +112,6 @@ export function TeacherAssignmentsTab({
               </div>
             </div>
 
-            <Button
-              asChild
-              variant="outline"
-              className="rounded-xl border-purple-500/30 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20"
-            >
-              <Link href="/admin/timetable">Open Timetable Hub</Link>
-            </Button>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
@@ -128,7 +119,7 @@ export function TeacherAssignmentsTab({
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-300" />
               Schedules shown here are pulled from class-group timetable slots.
               Schedule creation and edits are managed from each class&apos;s
-              Schedule tab via the timetable hub.
+              Schedule tab.
             </p>
           </div>
         </CardHeader>

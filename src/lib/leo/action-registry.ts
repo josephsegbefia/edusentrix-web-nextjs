@@ -72,7 +72,7 @@ function routeForIssue(issue: string | null, fallbackRoute: string | null) {
     return "/admin/students";
   }
   if (text.includes("timetable") || text.includes("schedule") || text.includes("publish")) {
-    return "/admin/timetable";
+    return "/admin/classes";
   }
   if (text.includes("setting") || text.includes("leo access")) {
     return "/admin/settings";

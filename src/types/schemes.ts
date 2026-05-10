@@ -78,6 +78,7 @@ export interface SchemeItemRow {
   coverageStatus: SchemeItemCoverageStatus;
   coverageNote: string | null;
   coverageUpdatedAt: string | null;
+  lessonNoteCount?: number;
   createdAt: string;
   updatedAt: string;
 }

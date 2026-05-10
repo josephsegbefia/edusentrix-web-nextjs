@@ -353,6 +353,9 @@ export function RichTextEditor({
     },
     editorProps: {
       attributes: {
+        spellCheck: "true",
+        autoCorrect: "on",
+        autoCapitalize: "sentences",
         class: cn(
           "prose prose-invert prose-sm max-w-none focus:outline-none",
           "prose-headings:text-white prose-headings:font-semibold",

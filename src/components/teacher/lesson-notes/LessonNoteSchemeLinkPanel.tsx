@@ -39,11 +39,49 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
     return data.items.filter((it) => it.schemeId === schemeId);
   }, [data?.items, schemeId]);
 
+  const selectedItems = React.useMemo(
+    () => itemsForScheme.filter((item) => itemIds.includes(item.id)),
+    [itemIds, itemsForScheme]
+  );
+
   const toggleItem = (id: string, checked: boolean) => {
     const next = new Set(itemIds);
     if (checked) next.add(id);
     else next.delete(id);
     onUpdate({ schemeItemIds: Array.from(next) });
+  };
+
+  const applySelectedRows = () => {
+    const primary = selectedItems[0];
+    if (!primary) return;
+    const indicatorText = selectedItems
+      .flatMap((item) => (item.indicator || "").split(/\n|,/))
+      .map((item) => item.trim())
+      .filter(Boolean);
+    const resources = selectedItems
+      .flatMap((item) => item.teachingResources || [])
+      .map((item) => item.trim())
+      .filter(Boolean);
+    onUpdate({
+      topic: formData.topic.trim() ? formData.topic : primary.title || formData.topic,
+      curriculum: {
+        ...formData.curriculum,
+        strand: primary.strand || formData.curriculum.strand,
+        subStrand: primary.subStrand || formData.curriculum.subStrand,
+        contentStandard: primary.contentStandard || formData.curriculum.contentStandard,
+        indicators: indicatorText.length
+          ? indicatorText.map((text) => ({ refNo: text, text }))
+          : formData.curriculum.indicators,
+      },
+      tlms: Array.from(new Set([...formData.tlms, ...resources])),
+      references: Array.from(
+        new Set([
+          ...formData.references,
+          primary.contentStandard,
+          ...indicatorText,
+        ].filter(Boolean) as string[])
+      ),
+    });
   };
 
   if (!data?.enabled) {
@@ -56,7 +94,7 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
       >
         <div className="flex items-center gap-2 text-sm text-white/70">
           <ListTree className="h-4 w-4 text-white/45" />
-          <span>Scheme of work linking is off for this school.</span>
+          <span>Scheme of Learning linking is off for this school.</span>
         </div>
       </div>
     );
@@ -67,9 +105,9 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
       <div className="flex items-center gap-2">
         <ListTree className="h-4 w-4 text-emerald-300/90" />
         <div>
-          <h3 className="text-sm font-semibold text-white">Scheme of work (optional)</h3>
+          <h3 className="text-sm font-semibold text-white">Scheme of Learning (optional)</h3>
           <p className="text-xs text-white/55">
-            Align this note with an approved scheme and specific weekly items.
+            Align this note with an approved Scheme of Learning and specific weekly rows.
             {data.requireSchemeLinkForLessonNotes ? (
               <span className="mt-1 block text-amber-200/90">
                 Your school requires a scheme link before publish or submission.
@@ -82,10 +120,10 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
       {error ? (
         <p className="text-xs text-rose-300">{error.message}</p>
       ) : null}
-      {isLoading ? <p className="text-xs text-white/50">Loading schemes…</p> : null}
+      {isLoading ? <p className="text-xs text-white/50">Loading Schemes of Learning…</p> : null}
 
       <div className="space-y-2">
-        <Label className="text-white/70">Scheme</Label>
+        <Label className="text-white/70">Scheme of Learning</Label>
         <PremiumSelect
           value={schemeId || "__none__"}
           onValueChange={(value) => {
@@ -100,7 +138,7 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
             <PremiumSelectValue placeholder="No scheme linked" />
           </PremiumSelectTrigger>
           <PremiumSelectContent>
-            <PremiumSelectItem value="__none__">No scheme</PremiumSelectItem>
+            <PremiumSelectItem value="__none__">No Scheme of Learning</PremiumSelectItem>
             {data?.schemes.map((s) => (
               <PremiumSelectItem key={s.id} value={s.id}>
                 {s.title}
@@ -113,7 +151,7 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
 
       {schemeId && itemsForScheme.length > 0 ? (
         <div className="space-y-2">
-          <Label className="text-white/70">Scheme items</Label>
+          <Label className="text-white/70">Scheme rows</Label>
           <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-white/10 p-2">
             {itemsForScheme.map((it) => {
               const checked = itemIds.includes(it.id);
@@ -130,6 +168,9 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
                   <span>
                     {it.weekNumber != null ? `W${it.weekNumber} · ` : ""}
                     {it.title}
+                    {it.subStrand ? (
+                      <span className="mt-0.5 block text-xs text-white/45">{it.subStrand}</span>
+                    ) : null}
                   </span>
                 </label>
               );
@@ -138,8 +179,39 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
         </div>
       ) : null}
 
+      {selectedItems.length > 0 ? (
+        <div className="rounded-lg border border-emerald-300/15 bg-emerald-400/10 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-emerald-100/70">
+                Selected scheme row
+              </p>
+              <p className="mt-1 text-sm font-medium text-white">{selectedItems[0].title}</p>
+              <div className="mt-2 space-y-1 text-xs text-white/60">
+                {selectedItems[0].strand ? <p>Strand: {selectedItems[0].strand}</p> : null}
+                {selectedItems[0].subStrand ? <p>Sub-strand: {selectedItems[0].subStrand}</p> : null}
+                {selectedItems[0].contentStandard ? (
+                  <p>Content standard: {selectedItems[0].contentStandard}</p>
+                ) : null}
+                {selectedItems[0].indicator ? <p>Indicators: {selectedItems[0].indicator}</p> : null}
+                {selectedItems[0].teachingResources?.length ? (
+                  <p>Resources: {selectedItems[0].teachingResources.join(", ")}</p>
+                ) : null}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={applySelectedRows}
+              className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-400"
+            >
+              Apply to note
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {schemeId && !isLoading && itemsForScheme.length === 0 ? (
-        <p className="text-xs text-white/50">No items in this scheme yet.</p>
+        <p className="text-xs text-white/50">No rows in this Scheme of Learning yet.</p>
       ) : null}
     </div>
   );

@@ -20,6 +20,16 @@ export type TeacherDashboardResponse = {
         endTime: string | null;
       }>;
     };
+    thisWeekSchemeRows: Array<{
+      id: string;
+      schemeId: string;
+      schemeTitle: string;
+      title: string;
+      weekNumber: number | null;
+      className: string;
+      subjectName: string;
+      coverageStatus: string;
+    }>;
     queues: Array<{
       id: string;
       label: string;

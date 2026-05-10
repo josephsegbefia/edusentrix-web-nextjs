@@ -3,12 +3,12 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import {
   MoreHorizontal,
   Mail,
@@ -62,80 +62,88 @@ export function TeacherRowActions({
   const activateLabel = status === "on_leave" ? "End Leave" : "Activate";
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <PremiumDropdownMenu>
+      <PremiumDropdownMenuTrigger asChild>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-7 w-7 rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+          className="h-7 w-7 cursor-pointer rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed"
           disabled={isChangingStatus}
+          onClick={(e) => e.stopPropagation()}
         >
           <MoreHorizontal className="h-4 w-4" />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
+      </PremiumDropdownMenuTrigger>
+      <PremiumDropdownMenuContent
         align="end"
-        className="min-w-[180px] border border-white/10 bg-slate-950/95 text-xs text-slate-50"
         onClick={(e) => e.stopPropagation()}
       >
-        <DropdownMenuItem onClick={handle(onView)}>
-          <Eye className="h-4 w-4 mr-2" />
+        <PremiumDropdownMenuItem
+          onClick={handle(onView)}
+          icon={<Eye className="h-4 w-4" />}
+        >
           View Profile
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handle(onEdit)}>
-          <Pencil className="h-3.5 w-3.5 mr-2" />
+        </PremiumDropdownMenuItem>
+        <PremiumDropdownMenuItem
+          onClick={handle(onEdit)}
+          icon={<Pencil className="h-3.5 w-3.5" />}
+        >
           Edit details
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handle(onManageAccess)}>
-          <UserCog className="h-3.5 w-3.5 mr-2" />
+        </PremiumDropdownMenuItem>
+        <PremiumDropdownMenuItem
+          onClick={handle(onManageAccess)}
+          icon={<UserCog className="h-3.5 w-3.5" />}
+        >
           Manage Access
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handle(onSendMessage)}>
-          <Mail className="h-3.5 w-3.5 mr-2" />
+        </PremiumDropdownMenuItem>
+        <PremiumDropdownMenuItem
+          onClick={handle(onSendMessage)}
+          icon={<Mail className="h-3.5 w-3.5" />}
+        >
           Send Message
-        </DropdownMenuItem>
+        </PremiumDropdownMenuItem>
 
-        <DropdownMenuSeparator className="bg-white/10" />
+        <PremiumDropdownMenuSeparator />
 
         {/* Status management options */}
         {status === "on_leave" && onUpdateLeave && (
-          <DropdownMenuItem
+          <PremiumDropdownMenuItem
             onClick={handle(onUpdateLeave)}
-            className="text-amber-300 focus:text-amber-200 focus:bg-amber-500/10"
+            variant="warning"
+            icon={<Calendar className="h-3.5 w-3.5" />}
           >
-            <Calendar className="h-3.5 w-3.5 mr-2" />
             Update leave dates
-          </DropdownMenuItem>
+          </PremiumDropdownMenuItem>
         )}
         {canActivate && (
-          <DropdownMenuItem
+          <PremiumDropdownMenuItem
             onClick={handle(onActivate)}
-            className="text-emerald-300 focus:text-emerald-200 focus:bg-emerald-500/10"
+            variant="success"
+            icon={<Power className="h-3.5 w-3.5" />}
           >
-            <Power className="h-3.5 w-3.5 mr-2" />
             {activateLabel}
-          </DropdownMenuItem>
+          </PremiumDropdownMenuItem>
         )}
         {canDeactivate && (
-          <DropdownMenuItem
+          <PremiumDropdownMenuItem
             onClick={handle(onDeactivate)}
-            className="text-amber-300 focus:text-amber-200 focus:bg-amber-500/10"
+            variant="warning"
+            icon={<PowerOff className="h-3.5 w-3.5" />}
           >
-            <PowerOff className="h-3.5 w-3.5 mr-2" />
             Deactivate
-          </DropdownMenuItem>
+          </PremiumDropdownMenuItem>
         )}
         {canDelete && (
-          <DropdownMenuItem
+          <PremiumDropdownMenuItem
             onClick={handle(onDelete)}
-            className="text-red-300 focus:text-red-200 focus:bg-red-500/10"
+            variant="destructive"
+            icon={<Trash2 className="h-3.5 w-3.5" />}
           >
-            <Trash2 className="h-3.5 w-3.5 mr-2" />
             Terminate
-          </DropdownMenuItem>
+          </PremiumDropdownMenuItem>
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PremiumDropdownMenuContent>
+    </PremiumDropdownMenu>
   );
 }

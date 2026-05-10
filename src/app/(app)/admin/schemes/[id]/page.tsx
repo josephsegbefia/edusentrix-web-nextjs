@@ -176,7 +176,7 @@ export default function AdminSchemeReviewDetailPage() {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-white/55">
         <Loader2 className="h-8 w-8 animate-spin text-blue-200" />
-        <p className="text-sm">Loading scheme…</p>
+        <p className="text-sm">Loading Scheme of Learning…</p>
       </div>
     );
   }
@@ -184,7 +184,7 @@ export default function AdminSchemeReviewDetailPage() {
   if (error || !data) {
     return (
       <div className="p-6">
-        <p className="text-rose-300">{error?.message ?? "Scheme not found"}</p>
+        <p className="text-rose-300">{error?.message ?? "Scheme of Learning not found"}</p>
         <Button variant="outline" asChild className="mt-4 border-white/10 bg-white/5 text-white">
           <Link href="/admin/schemes">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -204,7 +204,7 @@ export default function AdminSchemeReviewDetailPage() {
         <Button variant="outline" size="sm" asChild className="border-white/10 bg-white/5 text-white">
           <Link href="/admin/schemes">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Review desk
+            Scheme review desk
           </Link>
         </Button>
       </div>
@@ -238,8 +238,8 @@ export default function AdminSchemeReviewDetailPage() {
           </div>
         </div>
         <p className="mt-4 max-w-3xl text-sm leading-6 text-white/55">
-          Approved schemes have passed academic review. Active schemes are used by Lesson Notes and
-          curriculum coverage tracking.
+          Approved Schemes of Learning have passed academic review. Active schemes are used by
+          Lesson Notes and curriculum coverage tracking.
         </p>
       </section>
 
@@ -249,7 +249,7 @@ export default function AdminSchemeReviewDetailPage() {
             <CardHeader className="border-b border-white/10">
               <CardTitle className="flex items-center gap-2 text-lg text-white">
                 <BookOpen className="h-5 w-5 text-blue-200" />
-                Scheme items
+                Scheme rows
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -273,7 +273,7 @@ export default function AdminSchemeReviewDetailPage() {
                     {data.items.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={10} className="py-8 text-center text-white/45">
-                          No scheme items
+                          No scheme rows
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -458,7 +458,7 @@ export default function AdminSchemeReviewDetailPage() {
             )}
 
             {status === "archived" || status === "rejected" ? (
-              <p className="text-xs text-white/45">No further actions — view only.</p>
+              <p className="text-xs text-white/45">No further actions. This record is view only.</p>
             ) : null}
           </CardContent>
         </Card>
@@ -467,7 +467,7 @@ export default function AdminSchemeReviewDetailPage() {
       <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
         <DialogContent className="border-white/10 bg-slate-950 text-white">
           <DialogHeader>
-            <DialogTitle>Approve scheme</DialogTitle>
+            <DialogTitle>Approve Scheme of Learning</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <Label className="text-white/55">Optional note</Label>
@@ -518,7 +518,7 @@ export default function AdminSchemeReviewDetailPage() {
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent className="border-white/10 bg-slate-950 text-white">
           <DialogHeader>
-            <DialogTitle>Reject scheme</DialogTitle>
+            <DialogTitle>Reject Scheme of Learning</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <Label className="text-white/55">Reason (required)</Label>
@@ -538,7 +538,7 @@ export default function AdminSchemeReviewDetailPage() {
               onClick={() => void onReject()}
               disabled={reviewMut.isPending}
             >
-              Reject scheme
+              Reject Scheme
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -547,11 +547,12 @@ export default function AdminSchemeReviewDetailPage() {
       <Dialog open={activateOpen} onOpenChange={setActivateOpen}>
         <DialogContent className="border-white/10 bg-slate-950 text-white">
           <DialogHeader>
-            <DialogTitle>Activate scheme</DialogTitle>
+            <DialogTitle>Activate Scheme of Learning</DialogTitle>
           </DialogHeader>
           <p className="text-sm leading-6 text-white/65">
-            Active schemes power Lesson Notes suggestions and coverage tracking. Only one active
-            scheme should exist for the same academic context (year, term, grade, class, subject).
+            Active Schemes of Learning power Lesson Notes suggestions and coverage tracking. Only
+            one active scheme should exist for the same academic context: year, term, grade, class,
+            and subject.
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setActivateOpen(false)} className="border-white/10">
@@ -567,7 +568,7 @@ export default function AdminSchemeReviewDetailPage() {
       <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
         <DialogContent className="border-white/10 bg-slate-950 text-white">
           <DialogHeader>
-            <DialogTitle>Archive scheme</DialogTitle>
+            <DialogTitle>Archive Scheme of Learning</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <Label className="text-white/55">Optional note</Label>

@@ -5,12 +5,12 @@ import { cn } from "@/lib/utils";
 import type { TeacherListItemDTO } from "@/types/admin/teacher";
 import { TeacherAvatarStatus } from "./TeacherAvatarStatus";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  PremiumDropdownMenu,
+  PremiumDropdownMenuTrigger,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+} from "@/components/ui/premium-dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
   MoreHorizontal,
@@ -225,77 +225,72 @@ export function TeacherCard({
                 </p>
               </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <PremiumDropdownMenu>
+                <PremiumDropdownMenuTrigger asChild>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    className="h-7 w-7 shrink-0 cursor-pointer rounded-lg bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
+                </PremiumDropdownMenuTrigger>
+                <PremiumDropdownMenuContent
                   align="end"
-                  className="min-w-[180px] rounded-xl border border-white/10 bg-slate-900/95 p-1 text-xs text-slate-50 shadow-xl backdrop-blur-xl"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <DropdownMenuItem
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onView)}
-                    className="gap-2 rounded-lg"
+                    icon={<ExternalLink className="h-3.5 w-3.5" />}
                   >
-                    <ExternalLink className="h-3.5 w-3.5" />
                     View profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                  </PremiumDropdownMenuItem>
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onEdit)}
-                    className="gap-2 rounded-lg"
+                    icon={<Pencil className="h-3.5 w-3.5" />}
                   >
-                    <Pencil className="h-3.5 w-3.5" />
                     Edit details
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem
+                  </PremiumDropdownMenuItem>
+                  <PremiumDropdownMenuSeparator />
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onManageAccess)}
-                    className="gap-2 rounded-lg"
+                    icon={<UserCog className="h-3.5 w-3.5" />}
                   >
-                    <UserCog className="h-3.5 w-3.5" />
                     Manage access
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
+                  </PremiumDropdownMenuItem>
+                  <PremiumDropdownMenuItem
                     onClick={handleAction(onSendMessage)}
-                    className="gap-2 rounded-lg"
+                    icon={<Mail className="h-3.5 w-3.5" />}
                   >
-                    <Mail className="h-3.5 w-3.5" />
                     Send message
-                  </DropdownMenuItem>
+                  </PremiumDropdownMenuItem>
                   {teacher.status === "on_leave" && (
                     <>
-                      <DropdownMenuSeparator className="bg-white/10" />
+                      <PremiumDropdownMenuSeparator />
                       {onUpdateLeave && (
-                        <DropdownMenuItem
+                        <PremiumDropdownMenuItem
                           onClick={handleAction(onUpdateLeave)}
-                          className="gap-2 rounded-lg text-amber-300 focus:text-amber-200 focus:bg-amber-500/10"
+                          variant="warning"
+                          icon={<Calendar className="h-3.5 w-3.5" />}
                         >
-                          <Calendar className="h-3.5 w-3.5" />
                           Update leave dates
-                        </DropdownMenuItem>
+                        </PremiumDropdownMenuItem>
                       )}
                       {onActivate && (
-                        <DropdownMenuItem
+                        <PremiumDropdownMenuItem
                           onClick={handleAction(onActivate)}
-                          className="gap-2 rounded-lg text-emerald-300 focus:text-emerald-200 focus:bg-emerald-500/10"
+                          variant="success"
+                          icon={<Power className="h-3.5 w-3.5" />}
                         >
-                          <Power className="h-3.5 w-3.5" />
                           End leave
-                        </DropdownMenuItem>
+                        </PremiumDropdownMenuItem>
                       )}
                     </>
                   )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </PremiumDropdownMenuContent>
+              </PremiumDropdownMenu>
             </div>
 
             {/* Status + ID badges */}

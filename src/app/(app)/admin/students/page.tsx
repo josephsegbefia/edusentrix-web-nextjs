@@ -66,6 +66,15 @@ function getInitialView(sp: URLSearchParams): StudentsViewMode {
   return v === "table" ? "table" : "cards";
 }
 
+function replaceUrlSearch(params: URLSearchParams) {
+  if (typeof window === "undefined") return;
+  const nextUrl = `${window.location.pathname}?${params.toString()}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}`;
+  if (nextUrl !== currentUrl) {
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }
+}
+
 export default function StudentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -78,7 +87,9 @@ export default function StudentsPage() {
     getInitialView(searchParams)
   );
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = React.useState(
+    Number(searchParams.get("page") ?? "1") || 1
+  );
   const [pageSize, setPageSize] = React.useState(DEFAULT_STUDENTS_PAGE_SIZE);
 
   const [sortBy, setSortBy] = React.useState<StudentsSortBy>("name");
@@ -143,8 +154,8 @@ export default function StudentsPage() {
     if (advancedFilters.gradeId) params.set("gradeId", advancedFilters.gradeId);
     if (advancedFilters.classGroupId) params.set("classGroupId", advancedFilters.classGroupId);
 
-    router.replace(`/admin/students?${params.toString()}`);
-  }, [tab, viewMode, debouncedSearch, page, advancedFilters.gradeId, advancedFilters.classGroupId, router]);
+    replaceUrlSearch(params);
+  }, [tab, viewMode, debouncedSearch, page, advancedFilters.gradeId, advancedFilters.classGroupId]);
 
   React.useEffect(() => {
     if (tab === "recent") {

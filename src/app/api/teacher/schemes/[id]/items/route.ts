@@ -6,6 +6,7 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { SchemeOfWork } from "@/models/SchemeOfWork";
 import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
+import { LessonNote } from "@/models/LessonNote";
 import { serializeSchemeItemRow } from "@/lib/schemes/serializers";
 import { teacherMayEditScheme, teacherMayViewScheme } from "@/lib/schemes/teacher-scheme-access";
 
@@ -55,7 +56,34 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const items = (await SchemeItem.find({ schoolId: ctx.schoolId, schemeId })
       .sort({ weekNumber: 1, sequence: 1, createdAt: 1 })
       .lean()) as ISchemeItem[];
-    return Response.json({ success: true, data: { items: items.map(serializeSchemeItemRow) } });
+    const noteCounts = items.length
+      ? await LessonNote.aggregate([
+          {
+            $match: {
+              schoolId: ctx.schoolId,
+              schemeId,
+              schemeItemIds: { $in: items.map((item) => item._id) },
+            },
+          },
+          { $unwind: "$schemeItemIds" },
+          {
+            $group: {
+              _id: "$schemeItemIds",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [];
+    const noteCountMap = new Map(noteCounts.map((row: { _id: mongoose.Types.ObjectId; count: number }) => [String(row._id), row.count]));
+    return Response.json({
+      success: true,
+      data: {
+        items: items.map((item) => ({
+          ...serializeSchemeItemRow(item),
+          lessonNoteCount: noteCountMap.get(String(item._id)) ?? 0,
+        })),
+      },
+    });
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     return Response.json(

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { School } from "@/models/School";
 import { SchoolSettings } from "@/models/SchoolSettings";
 
 export async function assertSchemeOfWorkEnabled(
@@ -39,9 +40,20 @@ export async function assertSchemeImportEnabled(
 ): Promise<
   { ok: true } | { ok: false; status: number; error: string }
 > {
-  const settings = await SchoolSettings.findOne({ schoolId })
-    .select("academicPlanning")
-    .lean();
+  const [settings, school] = await Promise.all([
+    SchoolSettings.findOne({ schoolId }).select("academicPlanning").lean(),
+    School.findById(schoolId).select("curriculumCode").lean(),
+  ]);
+  if (!school) {
+    return { ok: false, status: 404, error: "School not found" };
+  }
+  if ((school.curriculumCode || "ghana_nacca") !== "ghana_nacca") {
+    return {
+      ok: false,
+      status: 403,
+      error: "Scheme import is only available for Ghana NaCCA schools",
+    };
+  }
   const ap = settings?.academicPlanning;
   if (!ap?.enableSchemeOfWork) {
     return { ok: false, status: 403, error: "Scheme of work is not enabled for this school" };
@@ -71,21 +83,11 @@ export async function assertAiSchemeDraftingEnabled(
   return { ok: true };
 }
 
-/** Requires base scheme import plus `allowPdfSchemeImport`. */
+/** PDF import follows the base scheme-import gate. */
 export async function assertPdfSchemeImportEnabled(
   schoolId: mongoose.Types.ObjectId
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  const base = await assertSchemeImportEnabled(schoolId);
-  if (!base.ok) return base;
-  const settings = await SchoolSettings.findOne({ schoolId }).select("academicPlanning").lean();
-  if (!settings?.academicPlanning?.allowPdfSchemeImport) {
-    return {
-      ok: false,
-      status: 403,
-      error: "PDF scheme import is not enabled for this school",
-    };
-  }
-  return { ok: true };
+  return assertSchemeImportEnabled(schoolId);
 }
 
 /** Only UploadThing / utfs assets (prevents SSRF on arbitrary URLs). */

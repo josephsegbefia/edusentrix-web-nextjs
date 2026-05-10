@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
@@ -21,6 +22,7 @@ import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useTeacherLessonNotes } from "@/hooks/teacher/useTeacherLessonNotes";
 import { useTeacherLessonNoteCreate } from "@/hooks/teacher/useTeacherLessonNoteCreate";
 import { useTeacherLessonNoteDelete } from "@/hooks/teacher/useTeacherLessonNoteDelete";
+import { useLessonNoteFromSchemeItem } from "@/hooks/teacher/useLessonNoteFromSchemeItem";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,8 +113,10 @@ function formatWeekLabel(value?: string | null) {
 // Main Component
 // ============================================================================
 
-export default function TeacherLessonNotesPage() {
+function TeacherLessonNotesInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const createFromSchemeItemId = searchParams.get("createFromSchemeItem");
   const busyToast = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: contextData } = useTeacherContext();
@@ -164,6 +168,7 @@ export default function TeacherLessonNotesPage() {
   // View state
   const [showWizard, setShowWizard] = React.useState(false);
   const [editingNote, setEditingNote] = React.useState<string | null>(null);
+  const [schemePrefillConsumed, setSchemePrefillConsumed] = React.useState(false);
 
   // Filters
   const [selectedClassId, setSelectedClassId] = React.useState<string>("all");
@@ -195,6 +200,18 @@ export default function TeacherLessonNotesPage() {
 
   const createMutation = useTeacherLessonNoteCreate();
   const deleteMutation = useTeacherLessonNoteDelete();
+  const {
+    data: schemePrefill,
+    isLoading: schemePrefillLoading,
+    error: schemePrefillError,
+  } = useLessonNoteFromSchemeItem(createFromSchemeItemId);
+
+  React.useEffect(() => {
+    if (!createFromSchemeItemId || !schemePrefill || schemePrefillConsumed) return;
+    setEditingNote(null);
+    setShowWizard(true);
+    setSchemePrefillConsumed(true);
+  }, [createFromSchemeItemId, schemePrefill, schemePrefillConsumed]);
 
   // Handlers
   const handleCreateNew = () => {
@@ -264,11 +281,13 @@ export default function TeacherLessonNotesPage() {
   const handleWizardComplete = () => {
     setShowWizard(false);
     setEditingNote(null);
+    if (createFromSchemeItemId) router.replace("/teacher/lesson-notes");
   };
 
   const handleWizardCancel = () => {
     setShowWizard(false);
     setEditingNote(null);
+    if (createFromSchemeItemId) router.replace("/teacher/lesson-notes");
   };
 
   // Clear filters
@@ -326,6 +345,7 @@ export default function TeacherLessonNotesPage() {
     const noteToEdit = editingNote
       ? notes.find((n) => n.id === editingNote)
       : null;
+    const schemeInitialData = !editingNote && schemePrefill?.initialData ? schemePrefill.initialData : undefined;
 
     return (
       <div className="space-y-6">
@@ -337,7 +357,9 @@ export default function TeacherLessonNotesPage() {
             <p className="text-sm text-white/60">
               {editingNote
                 ? "Update your lesson note"
-                : "Create a professional lesson note"}
+                : schemePrefill
+                  ? `Based on ${schemePrefill.scheme.title}`
+                  : "Create a professional lesson note"}
             </p>
           </div>
         </div>
@@ -381,7 +403,7 @@ export default function TeacherLessonNotesPage() {
                   schemeId: noteToEdit.schemeId ?? undefined,
                   schemeItemIds: noteToEdit.schemeItemIds ?? [],
                 }
-              : undefined
+              : schemeInitialData
           }
           onComplete={handleWizardComplete}
           onCancel={handleWizardCancel}
@@ -522,6 +544,18 @@ export default function TeacherLessonNotesPage() {
           </p>
         </div>
       )}
+
+      {schemePrefillLoading ? (
+        <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 p-4 text-sm text-blue-100">
+          Preparing lesson note from Scheme of Learning row...
+        </div>
+      ) : null}
+
+      {schemePrefillError ? (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100">
+          {schemePrefillError.message}
+        </div>
+      ) : null}
 
       {/* Notes List */}
       {isLoading ? (
@@ -688,5 +722,13 @@ export default function TeacherLessonNotesPage() {
       {/* Confirmation Dialog */}
       {confirmationDialog}
     </div>
+  );
+}
+
+export default function TeacherLessonNotesPage() {
+  return (
+    <React.Suspense fallback={<div className="p-6 text-sm text-white/60">Loading lesson notes...</div>}>
+      <TeacherLessonNotesInner />
+    </React.Suspense>
   );
 }

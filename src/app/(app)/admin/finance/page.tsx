@@ -4,38 +4,37 @@ import * as React from "react";
 import Link from "next/link";
 import { format } from "date-fns/format";
 import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  BarChart3,
+  Bot,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  CalendarCheck2,
+  Download,
+  FileSearch,
+  Landmark,
+  Mail,
+  Plus,
+  Receipt,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
+import {
   InviteBursarModal,
   type InviteBursarInput,
 } from "@/components/modals/InviteBursarModal";
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  ArrowUpRight,
-  ArrowDownRight,
-  Clock,
-  AlertCircle,
-  RefreshCw,
-  ChevronRight,
-  Landmark,
-  Receipt,
-  Heart,
-  ShoppingBag,
-  Wallet,
-  BarChart3,
-  UserPlus,
-  Plus,
-  Shield,
-  FileSearch,
-  ArrowLeftRight,
-  Users,
-  AlertTriangle,
-  Send,
-} from "lucide-react";
+import { RecordTransactionModal } from "@/components/modals/RecordTransactionModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -43,301 +42,215 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
-import {
-  useFinancialOverview,
-  RangeType,
-  TransactionDTO,
-} from "@/hooks/admin/useFinancialCenter";
-import {
-  useReconciliationIngestions,
-  useReconciliationAlerts,
-  useReconciliationRuns,
-} from "@/hooks/admin/useReconciliation";
-import { useFeeSummary, type DefaulterItem } from "@/hooks/admin/useFeeSummary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useExpenses, type ExpenseDTO } from "@/hooks/admin/useExpenses";
 import { useCreateInvitation } from "@/hooks/admin/useInvitations";
+import {
+  useFinanceCommandCenter,
+  useFinanceLeoExplainQueueItem,
+  useFinanceLeoBrief,
+  useFinancialOverview,
+  type RangeType,
+  type TransactionDTO,
+} from "@/hooks/admin/useFinancialCenter";
+import { useFeeSummary } from "@/hooks/admin/useFeeSummary";
+import {
+  useReconciliationAlerts,
+  useReconciliationIngestions,
+  useReconciliationRuns,
+} from "@/hooks/admin/useReconciliation";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { RecordTransactionModal } from "@/components/modals/RecordTransactionModal";
-import { formatMoney, formatCurrency } from "@/lib/fees/money";
+import { formatCurrency, formatMoney } from "@/lib/fees/money";
+import { cn } from "@/lib/utils";
 
-// ========================
-// Helper Functions
-// ========================
+type QueueSeverity = "info" | "warning" | "critical";
 
-function getCategoryIcon(category: string) {
-  const icons: Record<string, React.ReactNode> = {
-    fees: <DollarSign className="h-4 w-4" />,
-    store: <ShoppingBag className="h-4 w-4" />,
-    fundraising: <Heart className="h-4 w-4" />,
-    expenses: <Receipt className="h-4 w-4" />,
-    other_income: <Wallet className="h-4 w-4" />,
-  };
-  return icons[category] || <DollarSign className="h-4 w-4" />;
+type WorkQueueItem = {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  severity: QueueSeverity;
+  count?: number;
+  amount?: string;
+  amountMinor?: number;
+  leoHint: string;
+};
+
+const rangeOptions: { value: RangeType; label: string }[] = [
+  { value: "today", label: "Today" },
+  { value: "this_week", label: "This week" },
+  { value: "this_month", label: "This month" },
+  { value: "last_30_days", label: "Last 30 days" },
+];
+
+function statusTone(severity: QueueSeverity) {
+  if (severity === "critical") return "border-rose-300/25 bg-rose-500/10 text-rose-100";
+  if (severity === "warning") return "border-amber-300/25 bg-amber-500/10 text-amber-100";
+  return "border-sky-300/20 bg-sky-500/10 text-sky-100";
 }
 
-function getCategoryLabel(category: string) {
-  const labels: Record<string, string> = {
-    fees: "Fees",
-    store: "Store",
-    fundraising: "Fundraising",
-    expenses: "Expenses",
-    other_income: "Other Income",
-    refund: "Refunds",
-    adjustment: "Adjustments",
-  };
-  return labels[category] || category;
-}
-
-// ========================
-// KPI Card Component
-// ========================
-
-function KPICard({
+function WorkflowCard({
   title,
-  value,
-  subValue,
+  description,
+  href,
   icon: Icon,
-  trend,
-  loading,
-  color = "default",
+  metric,
+  cta = "Open",
 }: {
   title: string;
-  value: string;
-  subValue?: string;
+  description: string;
+  href: string;
   icon: React.ComponentType<{ className?: string }>;
-  trend?: { value: number | null; label: string };
-  loading?: boolean;
-  color?: "default" | "green" | "red" | "amber" | "blue";
+  metric?: string;
+  cta?: string;
 }) {
-  const colorStyles = {
-    default: "from-slate-900/60 via-slate-950/60 to-black/60",
-    green: "from-emerald-900/20 via-emerald-950/20 to-black/60",
-    red: "from-red-900/20 via-red-950/20 to-black/60",
-    amber: "from-amber-900/20 via-amber-950/20 to-black/60",
-    blue: "from-blue-900/20 via-blue-950/20 to-black/60",
-  };
-
-  const iconColorStyles = {
-    default: "text-white/40",
-    green: "text-emerald-400",
-    red: "text-red-400",
-    amber: "text-amber-400",
-    blue: "text-blue-400",
-  };
-
-  if (loading) {
-    return (
-      <Card className={`overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br ${colorStyles.default}`}>
-        <CardContent className="p-5">
-          <Skeleton className="h-4 w-24 mb-3" />
-          <Skeleton className="h-8 w-32 mb-2" />
-          <Skeleton className="h-3 w-20" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className={`overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br ${colorStyles[color]} shadow-lg transition-all duration-300 hover:border-white/20 hover:shadow-xl`}>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-white/50">{title}</p>
-          <div className="rounded-lg bg-white/5 p-2">
-            <Icon className={`h-4 w-4 ${iconColorStyles[color]}`} />
-          </div>
-        </div>
-        <p className="mt-2 text-2xl font-bold text-white">{value}</p>
-        <div className="mt-1 flex items-center justify-between">
-          {subValue && <p className="text-xs text-white/40">{subValue}</p>}
-          {trend && trend.value !== null && (
-            <p
-              className={`text-xs flex items-center gap-1 ${
-                trend.value >= 0 ? "text-emerald-400" : "text-red-400"
-              }`}
-            >
-              {trend.value >= 0 ? (
-                <TrendingUp className="h-3 w-3" />
-              ) : (
-                <TrendingDown className="h-3 w-3" />
-              )}
-              {Math.abs(trend.value)}% {trend.label}
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ========================
-// Recent Transaction Row
-// ========================
-
-function TransactionRow({ transaction }: { transaction: TransactionDTO }) {
-  const isInflow = transaction.direction === "inflow";
-
   return (
     <Link
-      href={`/admin/finance/transactions/${transaction._id}`}
-      className="group flex items-center gap-4 rounded-xl border border-white/5 bg-white/2 p-4 transition-all duration-200 hover:border-white/10 hover:bg-white/4"
+      href={href}
+      className="group block rounded-xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-white/20 hover:bg-white/[0.07]"
     >
-      <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-          isInflow
-            ? "bg-emerald-500/10 text-emerald-400"
-            : "bg-red-500/10 text-red-400"
-        }`}
-      >
-        {isInflow ? (
-          <ArrowDownRight className="h-5 w-5" />
-        ) : (
-          <ArrowUpRight className="h-5 w-5" />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-white truncate">
-          {transaction.description || transaction.reference || getCategoryLabel(transaction.category)}
-        </p>
-        <div className="mt-1 flex items-center gap-2 text-xs text-white/50">
-          <span className="capitalize">{getCategoryLabel(transaction.category)}</span>
-          <span>•</span>
-          <span>{format(new Date(transaction.occurredAt), "MMM d, h:mm a")}</span>
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-950/60">
+          <Icon className="h-5 w-5 text-sky-200" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-white">{title}</p>
+            <ArrowRight className="h-4 w-4 shrink-0 text-white/30 transition group-hover:text-white/65" />
+          </div>
+          <p className="mt-1 text-xs leading-5 text-white/50">{description}</p>
+          {metric ? <p className="mt-3 text-sm font-medium text-white/80">{metric}</p> : null}
+          <p className="mt-3 text-xs font-medium text-sky-200">{cta}</p>
         </div>
       </div>
-      <p
-        className={`font-semibold ${
-          isInflow ? "text-emerald-400" : "text-red-400"
-        }`}
-      >
-        {isInflow ? "+" : "-"}
-        {formatCurrency(transaction.netAmountMinor, { currency: transaction.currency })}
-      </p>
-      <ChevronRight className="h-4 w-4 text-white/20 group-hover:text-white/40 transition-colors" />
     </Link>
   );
 }
 
-// ========================
-// Category Breakdown Card
-// ========================
-
-function CategoryBreakdownCard({
-  title,
-  data,
-  type,
+function KpiTile({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  tone = "neutral",
   loading,
+  href,
 }: {
-  title: string;
-  data: Record<string, { total: number; count: number }>;
-  type: "inflow" | "outflow";
+  label: string;
+  value: string;
+  helper: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone?: "neutral" | "good" | "warn" | "bad";
   loading?: boolean;
+  href?: string;
 }) {
-  const entries = Object.entries(data).sort((a, b) => b[1].total - a[1].total);
-  const total = entries.reduce((sum, [_, v]) => sum + v.total, 0);
+  const toneClass = {
+    neutral: "text-sky-200",
+    good: "text-emerald-200",
+    warn: "text-amber-200",
+    bad: "text-rose-200",
+  }[tone];
 
-  if (loading) {
-    return (
-      <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-        <CardHeader className="border-b border-white/5 pb-3">
-          <Skeleton className="h-5 w-32" />
-        </CardHeader>
-        <CardContent className="p-4 space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-10 rounded-lg" />
-          ))}
-        </CardContent>
-      </Card>
-    );
-  }
+  const body = (
+    <div className="rounded-xl border border-white/10 bg-slate-950/55 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-white/45">{label}</p>
+        <Icon className={cn("h-4 w-4", toneClass)} />
+      </div>
+      {loading ? (
+        <div className="mt-4 space-y-2">
+          <Skeleton className="h-7 w-28" />
+          <Skeleton className="h-3 w-36" />
+        </div>
+      ) : (
+        <>
+          <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+          <p className="mt-1 text-xs leading-5 text-white/45">{helper}</p>
+        </>
+      )}
+    </div>
+  );
 
+  return href ? <Link href={href}>{body}</Link> : body;
+}
+
+function RecentTransaction({ transaction }: { transaction: TransactionDTO }) {
+  const inflow = transaction.direction === "inflow";
   return (
-    <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-      <CardHeader className="border-b border-white/5 pb-3">
-        <CardTitle className="text-base font-semibold text-white">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4">
-        {entries.length === 0 ? (
-          <p className="text-sm text-white/40 text-center py-4">No data for this period</p>
-        ) : (
-          <div className="space-y-3">
-            {entries.slice(0, 5).map(([category, values]) => {
-              const percentage = total > 0 ? (values.total / total) * 100 : 0;
-              return (
-                <div key={category} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={type === "inflow" ? "text-emerald-400" : "text-red-400"}>
-                        {getCategoryIcon(category)}
-                      </span>
-                      <span className="text-sm text-white/80">
-                        {getCategoryLabel(category)}
-                      </span>
-                    </div>
-                    <span className="text-sm font-medium text-white">
-                      {formatCurrency(values.total, { maximumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        type === "inflow" ? "bg-emerald-500" : "bg-red-500"
-                      }`}
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+    <Link
+      href={`/admin/finance/transactions/${transaction._id}`}
+      className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-3 transition hover:bg-white/[0.06]"
+    >
+      <div
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+          inflow ? "bg-emerald-500/10 text-emerald-200" : "bg-rose-500/10 text-rose-200"
         )}
-      </CardContent>
-    </Card>
+      >
+        {inflow ? <ArrowDownRight className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-white">
+          {transaction.description || transaction.reference || transaction.category}
+        </p>
+        <p className="mt-0.5 text-xs text-white/45">
+          {transaction.method.replaceAll("_", " ")} · {format(new Date(transaction.occurredAt), "MMM d")}
+        </p>
+      </div>
+      <p className={cn("shrink-0 text-sm font-semibold", inflow ? "text-emerald-200" : "text-rose-200")}>
+        {inflow ? "+" : "-"}
+        {formatCurrency(transaction.netAmountMinor, { currency: transaction.currency })}
+      </p>
+    </Link>
   );
 }
 
-// ========================
-// Tab Types
-// ========================
+function buildLeoBrief(input: {
+  collected: string;
+  outstanding: string;
+  overdueCount: number;
+  pendingCount: number;
+  unmatchedCount: number;
+  criticalAlerts: number;
+}) {
+  const actions: string[] = [];
+  if (input.pendingCount > 0) actions.push(`review ${input.pendingCount} pending finance item(s)`);
+  if (input.unmatchedCount > 0) actions.push(`reconcile ${input.unmatchedCount} unmatched statement line(s)`);
+  if (input.overdueCount > 0) actions.push(`prioritize ${input.overdueCount} overdue account(s)`);
+  if (input.criticalAlerts > 0) actions.push("clear critical reconciliation alerts");
 
-type FinanceTab = "overview" | "transactions" | "fees" | "expenses";
+  return {
+    summary: `Collected ${input.collected}; outstanding fees are ${input.outstanding}.`,
+    recommendation:
+      actions.length > 0
+        ? `Start with ${actions.slice(0, 2).join(", ")}.`
+        : "No urgent finance exceptions are visible from the current data.",
+  };
+}
 
-// ========================
-// Main Page Component
-// ========================
-
-export default function FinancialCenterPage() {
+export default function FinanceCommandCenterPage() {
   const [range, setRange] = React.useState<RangeType>("this_month");
-  const [compare, setCompare] = React.useState(true);
   const [recordModalOpen, setRecordModalOpen] = React.useState(false);
   const [inviteBursarOpen, setInviteBursarOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<FinanceTab>("overview");
 
-  const createInvitation = useCreateInvitation();
   const busy = useBusyToast();
+  const createInvitation = useCreateInvitation();
 
-  const { data, isLoading, refetch } = useFinancialOverview({
-    range,
-    compare,
-  });
-
-  const reconciliationIngestions = useReconciliationIngestions({
-    page: 1,
-    limit: 1,
-  });
+  const commandCenter = useFinanceCommandCenter({ range });
+  const leoBriefQuery = useFinanceLeoBrief(commandCenter.data);
+  const explainQueueItem = useFinanceLeoExplainQueueItem();
+  const overview = useFinancialOverview({ range, compare: true });
+  const feeSummary = useFeeSummary();
+  const reconciliationIngestions = useReconciliationIngestions({ page: 1, limit: 1 });
   const reconciliationAlerts = useReconciliationAlerts(true, true);
   const reconciliationRuns = useReconciliationRuns(1, true);
-
-  const feeSummary = useFeeSummary();
   const expensesPending = useExpenses({ status: "submitted", limit: 5 });
   const expensesRecent = useExpenses({ limit: 5, sortBy: "updatedAt", sortOrder: "desc" });
 
-  const rangeOptions: { value: RangeType; label: string }[] = [
-    { value: "today", label: "Today" },
-    { value: "this_week", label: "This Week" },
-    { value: "this_month", label: "This Month" },
-    { value: "last_30_days", label: "Last 30 Days" },
-  ];
-
+  const data = overview.data;
+  const command = commandCenter.data;
+  const fees = feeSummary.data;
   const reconSummary = reconciliationIngestions.data?.summary || {
     unmatched: 0,
     matched: 0,
@@ -345,14 +258,140 @@ export default function FinancialCenterPage() {
     ignored: 0,
   };
   const activeAlerts = reconciliationAlerts.data?.active || [];
-  const lastRun = reconciliationRuns.data?.[0];
+  const criticalAlertCount = activeAlerts.filter((alert) => alert.severity === "critical").length;
+  const pendingExpenseCount = expensesPending.data?.pagination?.total ?? 0;
+  const pendingApprovalCount = (data?.kpis.pendingCount ?? 0) + pendingExpenseCount;
+  const pendingApprovalMinor =
+    (data?.kpis.pendingAmount ?? 0) +
+    (expensesPending.data?.data || []).reduce((sum, expense) => sum + expense.amountMinor, 0);
+  const trustStatus: "healthy" | "needs_review" | "critical" =
+    command?.trust.status ??
+    (criticalAlertCount > 0 || (data?.kpis.failedCount ?? 0) > 0
+      ? "critical"
+      : reconSummary.unmatched > 0 || reconSummary.ambiguous > 0 || pendingApprovalCount > 0
+        ? "needs_review"
+        : "healthy");
 
-  const tabs: { key: FinanceTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { key: "overview", label: "Overview", icon: Landmark },
-    { key: "transactions", label: "Transactions", icon: ArrowLeftRight },
-    { key: "fees", label: "Fees", icon: DollarSign },
-    { key: "expenses", label: "Expenses", icon: Receipt },
-  ];
+  const fallbackWorkQueue = React.useMemo<WorkQueueItem[]>(() => {
+    const items: WorkQueueItem[] = [];
+    if (pendingApprovalCount > 0) {
+      items.push({
+        id: "pending-approvals",
+        title: "Finance approvals pending",
+        description: "Payments or expenses need human review before the records can be trusted.",
+        href: "/admin/finance/transactions?status=pending",
+        severity: "warning",
+        count: pendingApprovalCount,
+        amount: formatCurrency(pendingApprovalMinor, { maximumFractionDigits: 0 }),
+        amountMinor: pendingApprovalMinor,
+        leoHint: "Leo should explain which pending items are safest to handle first.",
+      });
+    }
+    if (reconSummary.unmatched > 0 || reconSummary.ambiguous > 0) {
+      items.push({
+        id: "reconciliation",
+        title: "Reconciliation needs review",
+        description: "External bank or gateway evidence has not been fully matched to payment records.",
+        href: "/admin/finance/reconciliation/sessions",
+        severity: reconSummary.unmatched > 10 || criticalAlertCount > 0 ? "critical" : "warning",
+        count: reconSummary.unmatched + reconSummary.ambiguous,
+        leoHint: "Leo should rank exact matches ahead of ambiguous matches.",
+      });
+    }
+    if ((fees?.summary.overdueCount ?? 0) > 0) {
+      items.push({
+        id: "overdue-fees",
+        title: "Overdue fee accounts",
+        description: "Families need reminder or follow-up based on overdue invoices.",
+        href: "/admin/fees",
+        severity: "warning",
+        count: fees?.summary.overdueCount,
+        amount: formatMoney(fees?.summary.totalOutstandingMinor ?? 0),
+        amountMinor: fees?.summary.totalOutstandingMinor ?? 0,
+        leoHint: "Leo should draft reminder groups by overdue age and balance size.",
+      });
+    }
+    if ((data?.kpis.failedCount ?? 0) > 0) {
+      items.push({
+        id: "failed-transactions",
+        title: "Failed transactions",
+        description: "Failed finance records should be reviewed before reports are shared.",
+        href: "/admin/finance/transactions?status=failed",
+        severity: "critical",
+        count: data?.kpis.failedCount,
+        amount: formatCurrency(data?.kpis.failedAmount ?? 0, { maximumFractionDigits: 0 }),
+        amountMinor: data?.kpis.failedAmount ?? 0,
+        leoHint: "Leo should explain failure patterns and identify duplicates or retry candidates.",
+      });
+    }
+    if (criticalAlertCount > 0) {
+      items.push({
+        id: "critical-alerts",
+        title: "Critical reconciliation alerts",
+        description: "Reconciliation alerts may affect the reliability of reported collections.",
+        href: "/admin/finance/reconciliation/sessions",
+        severity: "critical",
+        count: criticalAlertCount,
+        leoHint: "Leo should summarize the alert evidence and likely next action.",
+      });
+    }
+    return items;
+  }, [
+    criticalAlertCount,
+    data?.kpis.failedAmount,
+    data?.kpis.failedCount,
+    fees?.summary.overdueCount,
+    fees?.summary.totalOutstandingMinor,
+    pendingApprovalCount,
+    pendingApprovalMinor,
+    reconSummary.ambiguous,
+    reconSummary.unmatched,
+  ]);
+
+  const workQueue = React.useMemo<WorkQueueItem[]>(() => {
+    if (!command?.workQueue?.length) return fallbackWorkQueue;
+    return command.workQueue.map((item) => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      href: item.href,
+      severity: item.severity,
+      count: item.count,
+      amount:
+        item.amountMinor != null
+          ? formatCurrency(item.amountMinor, { maximumFractionDigits: 0 })
+          : undefined,
+      amountMinor: item.amountMinor,
+      leoHint: "Leo should explain the evidence behind this item and recommend the next action.",
+    }));
+  }, [command?.workQueue, fallbackWorkQueue]);
+
+  const leoBrief = buildLeoBrief({
+    collected: formatCurrency(command?.kpis.collectedMinor ?? data?.kpis.totalInflow ?? 0, {
+      maximumFractionDigits: 0,
+    }),
+    outstanding: formatMoney(
+      command?.kpis.outstandingFeesMinor ?? fees?.summary.totalOutstandingMinor ?? 0
+    ),
+    overdueCount: command?.kpis.overdueStudentCount ?? fees?.summary.overdueCount ?? 0,
+    pendingCount: command?.kpis.pendingApprovalCount ?? pendingApprovalCount,
+    unmatchedCount: command?.kpis.unreconciledCount ?? reconSummary.unmatched + reconSummary.ambiguous,
+    criticalAlerts: command?.trust.criticalAlertCount ?? criticalAlertCount,
+  });
+
+  async function explainWorkItem(item: WorkQueueItem) {
+    await explainQueueItem.mutateAsync({
+      item: {
+        title: item.title,
+        description: item.description,
+        severity: item.severity,
+        count: item.count,
+        amountMinor: item.amountMinor,
+        href: item.href,
+      },
+      trustStatus,
+    });
+  }
 
   async function handleInviteBursar(payload: InviteBursarInput) {
     const invitePromise = createInvitation.mutateAsync({
@@ -365,673 +404,632 @@ export default function FinancialCenterPage() {
     });
 
     await busy.promise(invitePromise, {
-      loading: "Sending bursar invitation…",
+      loading: "Sending bursar invitation...",
       success: "Bursar invitation sent",
-      error: (error: Error) =>
-        error.message || "Failed to send bursar invitation",
+      error: (error: Error) => error.message || "Failed to send bursar invitation",
     });
-
     setInviteBursarOpen(false);
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
-      {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-blue-500/20 to-indigo-600/20">
-            <Landmark className="h-6 w-6 text-blue-400" />
+    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-4 md:p-6">
+      <section className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-white/60">
+              <Landmark className="h-3.5 w-3.5 text-sky-200" />
+              Finance Command Center
+            </span>
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium",
+                trustStatus === "healthy"
+                  ? "border-emerald-300/25 bg-emerald-500/10 text-emerald-100"
+                  : trustStatus === "critical"
+                    ? "border-rose-300/25 bg-rose-500/10 text-rose-100"
+                    : "border-amber-300/25 bg-amber-500/10 text-amber-100"
+              )}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {trustStatus === "healthy"
+                ? "Controls healthy"
+                : trustStatus === "critical"
+                  ? "Critical review needed"
+                  : "Needs review"}
+            </span>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white md:text-3xl">Financial Center</h1>
-            <p className="mt-1 text-sm text-white/50">
-              Unified view of all money movements
-            </p>
-          </div>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white md:text-3xl">
+            Finance
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-white/55">
+            See the school&apos;s collection position, exception queues, reconciliation health, and
+            the workflows finance staff need to handle today.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <PremiumSelect value={range} onValueChange={(v) => setRange(v as RangeType)}>
-            <PremiumSelectTrigger className="w-[160px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <PremiumSelect value={range} onValueChange={(value) => setRange(value as RangeType)}>
+            <PremiumSelectTrigger className="w-[160px] border-white/10 bg-white/[0.05] text-white">
               <PremiumSelectValue />
             </PremiumSelectTrigger>
             <PremiumSelectContent>
-              {rangeOptions.map((opt) => (
-                <PremiumSelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
+              {rangeOptions.map((option) => (
+                <PremiumSelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </PremiumSelectItem>
               ))}
             </PremiumSelectContent>
           </PremiumSelect>
           <Button
+            type="button"
             variant="outline"
             size="icon"
-            onClick={() => refetch()}
-            className="border-white/10 bg-white/5 hover:bg-white/10"
+            onClick={() => {
+              void commandCenter.refetch();
+              void overview.refetch();
+            }}
+            className="border-white/10 bg-white/[0.05] text-white hover:bg-white/10"
+            aria-label="Refresh finance data"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            asChild
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
-          >
-            <Link href="/admin/finance/disbursements">
-              <Send className="mr-2 h-4 w-4" />
-              Disbursements
+          <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
+            <Link href="/admin/fees/payments/record">
+              <Plus className="mr-2 h-4 w-4" />
+              Record Payment
             </Link>
           </Button>
-          <Button
-            variant="outline"
-            className="border-white/10 bg-white/5 text-white hover:bg-white/10"
-            onClick={() => setInviteBursarOpen(true)}
-          >
-            <UserPlus className="mr-2 h-4 w-4" />
-            Invite Bursar
+          <Button asChild variant="outline" className="border-white/10 bg-white/[0.05] text-white hover:bg-white/10">
+            <Link href="/admin/fees/invoices/new">
+              <Receipt className="mr-2 h-4 w-4" />
+              Issue Invoices
+            </Link>
           </Button>
-          <Button
-            onClick={() => setRecordModalOpen(true)}
-            className="group bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700"
-          >
-            <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
-            Record Transaction
+          <Button asChild variant="outline" className="border-white/10 bg-white/[0.05] text-white hover:bg-white/10">
+            <Link href="/admin/finance/reconciliation/sessions">
+              <FileSearch className="mr-2 h-4 w-4" />
+              Reconcile
+            </Link>
           </Button>
         </div>
-      </div>
+      </section>
 
-      {/* Tabs */}
-      <div className="mb-6 flex items-center gap-1 overflow-x-auto rounded-xl border border-white/10 bg-white/3 p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all ${
-              activeTab === tab.key
-                ? "bg-white/10 text-white shadow-sm"
-                : "text-white/50 hover:text-white/80 hover:bg-white/5"
-            }`}
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <KpiTile
+          label="Collected"
+          value={formatCurrency(command?.kpis.collectedMinor ?? data?.kpis.totalInflow ?? 0, {
+            maximumFractionDigits: 0,
+          })}
+          helper={`${command?.kpis.collectedCount ?? data?.kpis.inflowCount ?? 0} successful inflow records`}
+          icon={ArrowDownRight}
+          tone="good"
+          loading={commandCenter.isLoading && overview.isLoading}
+          href="/admin/finance/transactions?direction=inflow"
+        />
+        <KpiTile
+          label="Outstanding fees"
+          value={formatMoney(command?.kpis.outstandingFeesMinor ?? fees?.summary.totalOutstandingMinor ?? 0)}
+          helper="Active unpaid receivables"
+          icon={Wallet}
+          tone="warn"
+          loading={commandCenter.isLoading && feeSummary.isLoading}
+          href="/admin/fees"
+        />
+        <KpiTile
+          label="Overdue"
+          value={String(command?.kpis.overdueStudentCount ?? fees?.summary.overdueCount ?? 0)}
+          helper="Accounts past due"
+          icon={AlertCircle}
+          tone="bad"
+          loading={commandCenter.isLoading && feeSummary.isLoading}
+          href="/admin/fees"
+        />
+        <KpiTile
+          label="Pending approval"
+          value={String(command?.kpis.pendingApprovalCount ?? pendingApprovalCount)}
+          helper={formatCurrency(command?.kpis.pendingApprovalMinor ?? pendingApprovalMinor, {
+            maximumFractionDigits: 0,
+          })}
+          icon={Clock}
+          tone="warn"
+          loading={commandCenter.isLoading && (overview.isLoading || expensesPending.isLoading)}
+          href="/admin/finance/transactions?status=pending"
+        />
+        <KpiTile
+          label="Unreconciled"
+          value={String(command?.kpis.unreconciledCount ?? reconSummary.unmatched + reconSummary.ambiguous)}
+          helper={`${command?.trust.unmatchedCount ?? reconSummary.unmatched} unmatched · ${command?.trust.ambiguousCount ?? reconSummary.ambiguous} needs review`}
+          icon={FileSearch}
+          tone={(command?.kpis.unreconciledCount ?? reconSummary.unmatched + reconSummary.ambiguous) > 0 ? "warn" : "good"}
+          loading={commandCenter.isLoading && reconciliationIngestions.isLoading}
+          href="/admin/finance/reconciliation/sessions"
+        />
+        <KpiTile
+          label="Net movement"
+          value={formatCurrency(command?.kpis.netCashMovementMinor ?? data?.kpis.netPosition ?? 0, {
+            maximumFractionDigits: 0,
+          })}
+          helper="Inflow minus outflow"
+          icon={BarChart3}
+          tone={(command?.kpis.netCashMovementMinor ?? data?.kpis.netPosition ?? 0) >= 0 ? "neutral" : "bad"}
+          loading={commandCenter.isLoading && overview.isLoading}
+          href="/admin/finance/transactions"
+        />
+      </section>
 
-      {/* Overview Tab */}
-      {activeTab === "overview" && (
-        <>
-          {/* KPI Cards */}
-          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KPICard
-              title="Total Inflow"
-              value={formatCurrency(data?.kpis.totalInflow || 0, { maximumFractionDigits: 0 })}
-              subValue={`${data?.kpis.inflowCount || 0} transactions`}
-              icon={ArrowDownRight}
-              trend={
-                compare
-                  ? { value: data?.kpis.inflowChange ?? null, label: "vs previous" }
-                  : undefined
-              }
-              loading={isLoading}
-              color="green"
-            />
-            <KPICard
-              title="Total Outflow"
-              value={formatCurrency(data?.kpis.totalOutflow || 0, { maximumFractionDigits: 0 })}
-              subValue={`${data?.kpis.outflowCount || 0} transactions`}
-              icon={ArrowUpRight}
-              trend={
-                compare
-                  ? { value: data?.kpis.outflowChange ?? null, label: "vs previous" }
-                  : undefined
-              }
-              loading={isLoading}
-              color="red"
-            />
-            <KPICard
-              title="Net Position"
-              value={formatCurrency(data?.kpis.netPosition || 0, { maximumFractionDigits: 0 })}
-              subValue={(data?.kpis.netPosition || 0) >= 0 ? "Positive" : "Deficit"}
-              icon={BarChart3}
-              loading={isLoading}
-              color={(data?.kpis.netPosition || 0) >= 0 ? "blue" : "red"}
-            />
-            <KPICard
-              title="Pending"
-              value={String(data?.kpis.pendingCount || 0)}
-              subValue={formatCurrency(data?.kpis.pendingAmount || 0, { maximumFractionDigits: 0 })}
-              icon={Clock}
-              loading={isLoading}
-              color="amber"
-            />
-          </div>
-
-          {/* Reconciliation Summary Card */}
-          <div className="mb-6">
-            <Link href="/admin/finance/reconciliation/sessions" className="block">
-              <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-indigo-900/20 via-violet-950/20 to-black/60 transition-all hover:border-indigo-500/30 hover:bg-indigo-500/5">
-                <CardContent className="p-4">
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-6">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
-                        <Shield className="h-5 w-5 text-indigo-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">Reconciliation</p>
-                        <p className="text-xs text-white/50">
-                          Match payments against bank/gateway evidence
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40">Unmatched</span>
-                        <span className={`font-semibold ${reconSummary.unmatched > 0 ? "text-rose-400" : "text-white/60"}`}>
-                          {reconciliationIngestions.isLoading ? "—" : reconSummary.unmatched}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40">Needs review</span>
-                        <span className={`font-semibold ${reconSummary.ambiguous > 0 ? "text-amber-400" : "text-white/60"}`}>
-                          {reconciliationIngestions.isLoading ? "—" : reconSummary.ambiguous}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40">Alerts</span>
-                        <span className={`font-semibold ${activeAlerts.length > 0 ? "text-amber-400" : "text-white/60"}`}>
-                          {reconciliationAlerts.isLoading ? "—" : activeAlerts.length}
-                        </span>
-                      </div>
-                      {lastRun && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-white/40">Last run</span>
-                          <span className="text-xs text-white/60">
-                            {format(new Date(lastRun.startedAt), "MMM d, h:mm a")}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <span className="ml-auto flex items-center gap-1 text-sm text-indigo-300">
-                      Open Reconciliation
-                      <ChevronRight className="h-4 w-4" />
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-
-          {/* Alerts */}
-          {(data?.kpis.failedCount || 0) > 0 && (
-            <Card className="mb-6 overflow-hidden rounded-2xl border border-red-500/20 bg-red-500/5">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-red-400">
-                    {data?.kpis.failedCount} Failed Transaction{data?.kpis.failedCount !== 1 ? "s" : ""}
-                  </p>
-                  <p className="text-xs text-red-400/70">
-                    Total: {formatCurrency(data?.kpis.failedAmount || 0, { maximumFractionDigits: 0 })} - Review and take action
-                  </p>
-                </div>
-                <Link href="/admin/finance/transactions?status=failed">
-                  <Button variant="outline" size="sm" className="border-red-500/20 text-red-400 hover:bg-red-500/10">
-                    View
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeAlerts.some((a) => a.severity === "critical") && (
-            <Card className="mb-6 overflow-hidden rounded-2xl border border-rose-500/20 bg-rose-500/5">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10">
-                  <AlertTriangle className="h-5 w-5 text-rose-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-rose-400">
-                    Critical reconciliation alerts require attention
-                  </p>
-                  <p className="text-xs text-rose-400/70">
-                    {activeAlerts.filter((a) => a.severity === "critical").length} critical alert(s) in the reconciliation queue
-                  </p>
-                </div>
-                <Link href="/admin/finance/reconciliation/sessions">
-                  <Button variant="outline" size="sm" className="border-rose-500/20 text-rose-400 hover:bg-red-500/10">
-                    View
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Main Grid */}
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <CategoryBreakdownCard
-                  title="Income by Category"
-                  data={data?.breakdowns.inflowByCategory || {}}
-                  type="inflow"
-                  loading={isLoading}
-                />
-                <CategoryBreakdownCard
-                  title="Spending by Category"
-                  data={data?.breakdowns.outflowByCategory || {}}
-                  type="outflow"
-                  loading={isLoading}
-                />
-              </div>
-
-              {/* Quick Links - 4 cards including Reconciliation */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Link href="/admin/finance/transactions" className="block">
-                  <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
-                        <ArrowLeftRight className="h-5 w-5 text-white/60" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">All Transactions</p>
-                        <p className="text-xs text-white/40">View ledger</p>
-                      </div>
-                      <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
-                    </CardContent>
-                  </Card>
-                </Link>
-                <Link href="/admin/fees" className="block">
-                  <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-                        <DollarSign className="h-5 w-5 text-emerald-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">Fees & Payments</p>
-                        <p className="text-xs text-white/40">Collect payments</p>
-                      </div>
-                      <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
-                    </CardContent>
-                  </Card>
-                </Link>
-                <Link href="/admin/expenses" className="block">
-                  <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-white/20 hover:bg-white/5">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
-                        <Receipt className="h-5 w-5 text-amber-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">Expenses</p>
-                        <p className="text-xs text-white/40">Manage spending</p>
-                      </div>
-                      <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
-                    </CardContent>
-                  </Card>
-                </Link>
-                <Link href="/admin/finance/reconciliation/sessions" className="block">
-                  <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60 transition-all hover:border-indigo-500/20 hover:bg-indigo-500/5">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
-                        <FileSearch className="h-5 w-5 text-indigo-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">Reconciliation</p>
-                        <p className="text-xs text-white/40">Match bank/gateway data</p>
-                      </div>
-                      <ChevronRight className="ml-auto h-4 w-4 text-white/20" />
-                    </CardContent>
-                  </Card>
-                </Link>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.75fr)]">
+        <div className="space-y-5">
+          <section className="rounded-xl border border-amber-300/15 bg-amber-500/10 p-4 text-amber-50">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-100" />
+              <div>
+                <p className="text-sm font-semibold">Finance controls are human-confirmed</p>
+                <p className="mt-1 text-sm leading-6 text-amber-50/75">
+                  Leo can explain, rank, and draft finance work. Approvals, cash closure,
+                  reconciliation, reminders, refunds, reversals, and disbursements still require
+                  explicit user confirmation and audit evidence.
+                </p>
               </div>
             </div>
+          </section>
 
-            <div>
-              <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-                <CardHeader className="border-b border-white/5 pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-semibold text-white">
-                      Recent Transactions
-                    </CardTitle>
-                    <Link
-                      href="/admin/finance/transactions"
-                      className="text-xs text-white/50 hover:text-white transition-colors"
-                    >
-                      View all
-                    </Link>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  {isLoading ? (
-                    <div className="space-y-3">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="flex items-center gap-4 p-3">
-                          <Skeleton className="h-10 w-10 rounded-xl" />
-                          <div className="flex-1 space-y-2">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-24" />
-                          </div>
-                          <Skeleton className="h-4 w-16" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (data?.recentTransactions.length || 0) === 0 ? (
-                    <div className="py-8 text-center">
-                      <DollarSign className="mx-auto h-8 w-8 text-white/20" />
-                      <p className="mt-2 text-sm text-white/40">No transactions yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {data?.recentTransactions.slice(0, 8).map((tx) => (
-                        <TransactionRow key={tx._id} transaction={tx} />
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Transactions Tab */}
-      {activeTab === "transactions" && (
-        <div className="space-y-6">
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-            <CardHeader className="border-b border-white/5 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-white">
-                  Recent Transactions
-                </CardTitle>
-                <Link href="/admin/finance/transactions">
-                  <Button variant="outline" size="sm" className="border-white/10 bg-white/5 text-white hover:bg-white/10">
-                    View full ledger
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+          <Card className="border border-white/10 bg-slate-950/55">
+            <CardHeader className="border-b border-white/10 pb-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg text-white">Needs Attention</CardTitle>
+                  <p className="mt-1 text-sm text-white/45">
+                    Ranked finance work from payments, fees, reconciliation, and expenses.
+                  </p>
+                </div>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/55">
+                  {workQueue.length} open
+                </span>
               </div>
             </CardHeader>
             <CardContent className="p-4">
-              {isLoading ? (
+              {overview.isLoading || feeSummary.isLoading || reconciliationIngestions.isLoading ? (
                 <div className="space-y-3">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 p-3">
-                      <Skeleton className="h-10 w-10 rounded-xl" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-3 w-24" />
+                  {[0, 1, 2].map((i) => (
+                    <Skeleton key={i} className="h-20 rounded-xl" />
+                  ))}
+                </div>
+              ) : workQueue.length === 0 ? (
+                <div className="rounded-xl border border-emerald-300/15 bg-emerald-500/10 p-4 text-emerald-50">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <p className="font-medium">No urgent finance exceptions</p>
+                  </div>
+                  <p className="mt-1 text-sm text-emerald-50/70">
+                    Continue monitoring collections and reconciliation as payments come in.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {workQueue.map((item) => (
+                    <div
+                      key={item.id}
+                      className={cn(
+                        "rounded-xl border p-4",
+                        statusTone(item.severity)
+                      )}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{item.title}</p>
+                            {item.count != null ? (
+                              <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">
+                                {item.count}
+                              </span>
+                            ) : null}
+                            {item.amount ? (
+                              <span className="rounded-full bg-black/20 px-2 py-0.5 text-xs">
+                                {item.amount}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-1 text-sm opacity-75">{item.description}</p>
+                          <p className="mt-3 flex items-start gap-2 text-xs opacity-75">
+                            <Bot className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            {item.leoHint}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void explainWorkItem(item)}
+                            disabled={explainQueueItem.isPending}
+                            className="border-white/15 bg-black/10 text-current hover:bg-black/20"
+                          >
+                            <Bot className="mr-1 h-4 w-4" />
+                            Ask Leo
+                          </Button>
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="border-white/15 bg-black/10 text-current hover:bg-black/20"
+                          >
+                            <Link href={item.href}>
+                              Open
+                              <ArrowRight className="ml-1 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
-                      <Skeleton className="h-4 w-16" />
                     </div>
                   ))}
                 </div>
-              ) : (data?.recentTransactions.length || 0) === 0 ? (
-                <div className="py-12 text-center">
-                  <ArrowLeftRight className="mx-auto h-10 w-10 text-white/20" />
-                  <p className="mt-2 text-sm text-white/40">No transactions yet</p>
-                  <Link href="/admin/finance/transactions">
-                    <Button variant="outline" size="sm" className="mt-4 border-white/10 text-white/70 hover:bg-white/5">
-                      View ledger
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {data?.recentTransactions.slice(0, 10).map((tx) => (
-                    <TransactionRow key={tx._id} transaction={tx} />
-                  ))}
-                </div>
               )}
+              {explainQueueItem.data ? (
+                <div className="mt-4 rounded-xl border border-violet-300/15 bg-violet-500/10 p-4 text-violet-50">
+                  <p className="flex items-center gap-2 text-sm font-semibold">
+                    <Bot className="h-4 w-4" />
+                    {explainQueueItem.data.title}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-violet-50/75">
+                    {explainQueueItem.data.explanation}
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {explainQueueItem.data.evidence.map((line) => (
+                      <span key={line} className="rounded-lg border border-violet-200/10 bg-black/10 px-3 py-2 text-xs">
+                        {line}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-violet-50/75">
+                    {explainQueueItem.data.nextAction}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-violet-50/55">
+                    {explainQueueItem.data.guardrail}
+                  </p>
+                </div>
+              ) : explainQueueItem.error ? (
+                <p className="mt-4 rounded-xl border border-rose-300/20 bg-rose-500/10 p-3 text-sm text-rose-50">
+                  {explainQueueItem.error instanceof Error
+                    ? explainQueueItem.error.message
+                    : "Could not explain this queue item"}
+                </p>
+              ) : null}
             </CardContent>
           </Card>
-          <Link href="/admin/finance/reconciliation/sessions" className="block">
-            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-indigo-900/20 via-violet-950/20 to-black/60 transition-all hover:border-indigo-500/30 hover:bg-indigo-500/5">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
-                  <Shield className="h-5 w-5 text-indigo-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white">Reconciliation</p>
-                  <p className="text-xs text-white/50">
-                    Filter transactions by reconciliation status and match bank/gateway evidence
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-indigo-400" />
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-      )}
 
-      {/* Fees Tab */}
-      {activeTab === "fees" && (
-        <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KPICard
-              title="Total Outstanding"
-              value={formatMoney(feeSummary.data?.summary.totalOutstandingMinor ?? 0)}
-              icon={DollarSign}
-              loading={feeSummary.isLoading}
-              color="amber"
-            />
-            <KPICard
-              title="Collection Rate"
-              value={feeSummary.isLoading ? "—" : `${Math.round(feeSummary.data?.summary.collectionRate ?? 0)}%`}
-              icon={BarChart3}
-              loading={feeSummary.isLoading}
-              color="blue"
-            />
-            <KPICard
-              title="Overdue"
-              value={String(feeSummary.data?.summary.overdueCount ?? 0)}
-              icon={AlertCircle}
-              loading={feeSummary.isLoading}
-              color="red"
-            />
-            <KPICard
-              title="Total Billed"
-              value={formatMoney(feeSummary.data?.summary.totalBilledMinor ?? 0)}
-              icon={Receipt}
-              loading={feeSummary.isLoading}
-              color="green"
-            />
-          </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-              <CardHeader className="border-b border-white/5 pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold text-white">
-                    Top Defaulters
-                  </CardTitle>
-                  <Link href="/admin/fees">
-                    <span className="text-xs text-white/50 hover:text-white transition-colors"
-                    >View all</span>
-                  </Link>
-                </div>
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Card className="border border-white/10 bg-slate-950/55">
+              <CardHeader className="border-b border-white/10 pb-4">
+                <CardTitle className="text-base text-white">Fees Collection</CardTitle>
               </CardHeader>
-              <CardContent className="p-4">
-                {feeSummary.isLoading ? (
-                  <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                      <Skeleton key={i} className="h-12 rounded-lg" />
-                    ))}
+              <CardContent className="space-y-4 p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-white/40">Billed</p>
+                    <p className="mt-1 font-semibold text-white">
+                      {formatMoney(command?.fees.totalBilledMinor ?? fees?.summary.totalBilledMinor ?? 0)}
+                    </p>
                   </div>
-                ) : (feeSummary.data?.defaulters?.length || 0) === 0 ? (
-                  <p className="text-sm text-white/40 text-center py-6">No defaulters</p>
-                ) : (
-                  <div className="space-y-2">
-                    {(feeSummary.data?.defaulters || []).slice(0, 5).map((d: DefaulterItem) => (
-                      <Link
-                        key={d.studentId}
-                        href={`/admin/students/${d.studentId}`}
-                        className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 p-3 hover:bg-white/5 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-white/40" />
-                          <span className="text-sm font-medium text-white">
-                            {d.firstName} {d.lastName}
-                            {d.admissionNo && (
-                              <span className="ml-2 text-xs text-white/40">({d.admissionNo})</span>
-                            )}
-                          </span>
-                        </div>
-                        <span className="text-sm font-semibold text-amber-400">
-                          {formatMoney(d.totalOutstandingMinor)}
-                        </span>
-                      </Link>
-                    ))}
+                  <div>
+                    <p className="text-xs text-white/40">Collected</p>
+                    <p className="mt-1 font-semibold text-emerald-100">
+                      {formatMoney(command?.fees.totalCollectedMinor ?? fees?.summary.totalRevenueMinor ?? 0)}
+                    </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-              <CardHeader className="border-b border-white/5 pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-semibold text-white">
-                    Upcoming Due
-                  </CardTitle>
-                  <Link href="/admin/fees">
-                    <span className="text-xs text-white/50 hover:text-white transition-colors"
-                    >View all</span>
-                  </Link>
+                  <div>
+                    <p className="text-xs text-white/40">Collection rate</p>
+                    <p className="mt-1 font-semibold text-sky-100">
+                      {Math.round(command?.fees.collectionRate ?? fees?.summary.collectionRate ?? 0)}%
+                    </p>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="p-4">
-                {feeSummary.isLoading ? (
-                  <div className="space-y-3">
-                    {[...Array(4)].map((_, i) => (
-                      <Skeleton key={i} className="h-12 rounded-lg" />
-                    ))}
-                  </div>
-                ) : (feeSummary.data?.upcomingDue?.length || 0) === 0 ? (
-                  <p className="text-sm text-white/40 text-center py-6">No upcoming due</p>
-                ) : (
-                  <div className="space-y-2">
-                    {(feeSummary.data?.upcomingDue || []).slice(0, 5).map((item: { _id: string; invoiceNumber: string; dueDate: string; totalOutstandingMinor: number; studentId: { firstName: string; lastName: string } }) => (
-                      <div
-                        key={item._id}
-                        className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 p-3"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-white">
-                            {item.studentId.firstName} {item.studentId.lastName}
-                          </p>
-                          <p className="text-xs text-white/40">
-                            {item.invoiceNumber} • Due {format(new Date(item.dueDate), "MMM d")}
-                          </p>
-                        </div>
-                        <span className="text-sm font-semibold text-white">
-                          {formatMoney(item.totalOutstandingMinor)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          <Link href="/admin/fees">
-            <Button
-              variant="outline"
-              className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
-            >
-              <DollarSign className="mr-2 h-4 w-4" />
-              Go to Fees & Payments
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {/* Expenses Tab */}
-      {activeTab === "expenses" && (
-        <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <KPICard
-              title="Pending Approvals"
-              value={String(expensesPending.data?.pagination?.total ?? 0)}
-              subValue="Awaiting approval"
-              icon={Clock}
-              loading={expensesPending.isLoading}
-              color="amber"
-            />
-            <KPICard
-              title="Recent Expenses"
-              value={formatCurrency(
-                (expensesRecent.data?.data || []).reduce((s, e) => s + e.amountMinor, 0)
-              )}
-              subValue={`${expensesRecent.data?.data?.length || 0} in list`}
-              icon={Receipt}
-              loading={expensesRecent.isLoading}
-              color="blue"
-            />
-          </div>
-          <Card className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/60 via-slate-950/60 to-black/60">
-            <CardHeader className="border-b border-white/5 pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold text-white">
-                  Recent Expenses
-                </CardTitle>
-                <Link href="/admin/expenses">
-                  <span className="text-xs text-white/50 hover:text-white transition-colors"
-                  >View all</span>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              {expensesRecent.isLoading ? (
-                <div className="space-y-3">
-                  {[...Array(4)].map((_, i) => (
-                    <Skeleton key={i} className="h-12 rounded-lg" />
-                  ))}
-                </div>
-              ) : (expensesRecent.data?.data?.length || 0) === 0 ? (
-                <p className="text-sm text-white/40 text-center py-6">No expenses yet</p>
-              ) : (
                 <div className="space-y-2">
-                  {(expensesRecent.data?.data || []).slice(0, 5).map((exp: ExpenseDTO) => (
+                  {(command?.fees.topOverdue?.length
+                    ? command.fees.topOverdue.map((item) => ({
+                        studentId: item.studentId,
+                        firstName: item.studentName,
+                        lastName: "",
+                        totalOutstandingMinor: item.amountMinor,
+                      }))
+                    : fees?.defaulters || []
+                  )
+                    .slice(0, 4)
+                    .map((item) => (
                     <Link
-                      key={exp._id}
-                      href={`/admin/expenses/${exp._id}`}
-                      className="flex items-center justify-between rounded-lg border border-white/5 bg-white/2 p-3 hover:bg-white/5 transition-colors"
+                      key={item.studentId}
+                      href={`/admin/students/${item.studentId}`}
+                      className="flex items-center justify-between rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-sm hover:bg-white/[0.06]"
                     >
-                      <div>
-                        <p className="text-sm font-medium text-white">{exp.title}</p>
-                        <p className="text-xs text-white/40">
-                          {exp.expenseNumber} • {format(new Date(exp.expenseDate), "MMM d")}
-                        </p>
-                      </div>
-                      <span className="text-sm font-semibold text-white">
-                        {formatCurrency(exp.amountMinor, { maximumFractionDigits: 0 })} • {exp.status}
+                      <span className="min-w-0 truncate text-white/75">
+                        {item.firstName} {item.lastName}
+                      </span>
+                      <span className="shrink-0 font-medium text-amber-100">
+                        {formatMoney(item.totalOutstandingMinor)}
                       </span>
                     </Link>
                   ))}
+                  {!feeSummary.isLoading && (fees?.defaulters?.length || 0) === 0 ? (
+                    <p className="rounded-lg border border-white/8 bg-white/[0.03] p-3 text-sm text-white/45">
+                      No overdue accounts in the summary.
+                    </p>
+                  ) : null}
                 </div>
-              )}
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm" className="bg-emerald-600 text-white hover:bg-emerald-500">
+                    <Link href="/admin/fees">Open fees</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/[0.04] text-white">
+                    <Link href="/admin/fees/invoices">Invoices</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-white/10 bg-slate-950/55">
+              <CardHeader className="border-b border-white/10 pb-4">
+                <CardTitle className="text-base text-white">Recent Ledger Activity</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 p-4">
+                {overview.isLoading ? (
+                  <>
+                    <Skeleton className="h-14 rounded-lg" />
+                    <Skeleton className="h-14 rounded-lg" />
+                    <Skeleton className="h-14 rounded-lg" />
+                  </>
+                ) : (data?.recentTransactions.length || 0) > 0 ? (
+                  data?.recentTransactions.slice(0, 5).map((transaction) => (
+                    <RecentTransaction key={transaction._id} transaction={transaction} />
+                  ))
+                ) : (
+                  <p className="rounded-lg border border-white/8 bg-white/[0.03] p-3 text-sm text-white/45">
+                    No recent ledger activity for this range.
+                  </p>
+                )}
+                <Button asChild size="sm" variant="outline" className="mt-2 w-full border-white/10 bg-white/[0.04] text-white">
+                  <Link href="/admin/finance/transactions">Open ledger</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <WorkflowCard
+              title="Payments"
+              description="Record, review, approve, and inspect school payment activity."
+              href="/admin/finance/payments"
+              icon={Wallet}
+              metric={`${command?.kpis.collectedCount ?? data?.kpis.inflowCount ?? 0} inflow records in range`}
+              cta="Open payment workflow"
+            />
+            <WorkflowCard
+              title="Reconciliation"
+              description="Match bank and gateway evidence against recorded payments."
+              href="/admin/finance/reconciliation/sessions"
+              icon={FileSearch}
+              metric={`${command?.trust.unmatchedCount ?? reconSummary.unmatched} unmatched · ${command?.trust.ambiguousCount ?? reconSummary.ambiguous} review`}
+            />
+            <WorkflowCard
+              title="Expenses"
+              description="Review submitted expenses, payables, and recent outflows."
+              href="/admin/expenses"
+              icon={Receipt}
+              metric={`${command?.expenses.pendingApprovalCount ?? pendingExpenseCount} awaiting approval`}
+            />
+            <WorkflowCard
+              title="Disbursements"
+              description="Track outgoing payment rails and school payout operations."
+              href="/admin/finance/disbursements"
+              icon={Send}
+              cta="Open disbursements"
+            />
+            <WorkflowCard
+              title="Cash Close"
+              description="Count cash collections, resolve variance, and close the day."
+              href="/admin/finance/cash-close"
+              icon={CalendarCheck2}
+              cta="Close cash"
+            />
+            <WorkflowCard
+              title="Ledger and Audit"
+              description="Inspect immutable finance events, corrections, and approvals."
+              href="/admin/finance/transactions"
+              icon={ClipboardList}
+              cta="Open ledger"
+            />
+            <WorkflowCard
+              title="Reports"
+              description="Export collections, debtors, cashbook, and reconciliation evidence."
+              href="/admin/finance/reports"
+              icon={Download}
+              cta="Open reports"
+            />
+          </div>
+        </div>
+
+        <aside className="space-y-5">
+          <Card className="border border-sky-300/15 bg-sky-500/10">
+            <CardHeader className="border-b border-sky-200/10 pb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-sky-100" />
+                <CardTitle className="text-base text-white">Leo Finance Brief</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 p-4">
+              <p className="text-sm leading-6 text-sky-50/85">
+                {leoBriefQuery.data?.summary || leoBrief.summary}
+              </p>
+              <p className="rounded-lg border border-sky-200/15 bg-black/15 p-3 text-sm leading-6 text-sky-50/75">
+                {leoBriefQuery.data?.recommendedActions?.[0]
+                  ? `${leoBriefQuery.data.recommendedActions[0].title}: ${leoBriefQuery.data.recommendedActions[0].reason}.`
+                  : leoBrief.recommendation}
+              </p>
+              {leoBriefQuery.data?.risks?.length ? (
+                <div className="space-y-1">
+                  {leoBriefQuery.data.risks.slice(0, 3).map((risk) => (
+                    <p key={risk} className="flex items-start gap-2 text-xs leading-5 text-sky-50/65">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      {risk}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+              {leoBriefQuery.data?.evidence?.length ? (
+                <div className="grid gap-2 border-t border-sky-200/10 pt-3">
+                  {leoBriefQuery.data.evidence.slice(0, 4).map((item) => (
+                    <div key={item.label} className="flex items-center justify-between gap-3 text-xs">
+                      <span className="text-sky-50/45">{item.label}</span>
+                      <span className="text-right text-sky-50/75">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <p className="text-xs leading-5 text-sky-50/55">
+                {leoBriefQuery.data?.guardrail ||
+                  "Leo can explain, rank, and draft finance work. Sensitive actions require human confirmation."}
+              </p>
             </CardContent>
           </Card>
-          <Link href="/admin/expenses">
-            <Button
-              variant="outline"
-              className="w-full border-white/10 bg-white/5 text-white hover:bg-white/10"
-            >
-              <Receipt className="mr-2 h-4 w-4" />
-              Go to Expenses
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      )}
 
-      {/* Record Transaction Modal */}
+          <Card className="border border-white/10 bg-slate-950/55">
+            <CardHeader className="border-b border-white/10 pb-4">
+              <CardTitle className="text-base text-white">Trust and Controls</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 p-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/50">Last reconciliation run</span>
+                <span className="text-right text-white/75">
+                  {command?.trust.lastReconciliationAt
+                    ? format(new Date(command.trust.lastReconciliationAt), "MMM d, h:mm a")
+                    : reconciliationRuns.data?.[0]?.startedAt
+                    ? format(new Date(reconciliationRuns.data[0].startedAt), "MMM d, h:mm a")
+                    : "Not available"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/50">Active alerts</span>
+                <span className={(command?.trust.activeAlertCount ?? activeAlerts.length) > 0 ? "text-amber-100" : "text-emerald-100"}>
+                  {command?.trust.activeAlertCount ?? (reconciliationAlerts.isLoading ? "..." : activeAlerts.length)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/50">Failed transactions</span>
+                <span className={(command?.trust.failedTransactionCount ?? data?.kpis.failedCount ?? 0) > 0 ? "text-rose-100" : "text-emerald-100"}>
+                  {command?.trust.failedTransactionCount ?? data?.kpis.failedCount ?? 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-white/50">Maker-checker queue</span>
+                <span className={(command?.trust.makerCheckerPendingCount ?? pendingApprovalCount) > 0 ? "text-amber-100" : "text-emerald-100"}>
+                  {command?.trust.makerCheckerPendingCount ?? pendingApprovalCount}
+                </span>
+              </div>
+              <Button asChild size="sm" variant="outline" className="w-full border-white/10 bg-white/[0.04] text-white">
+                <Link href="/admin/finance/reconciliation/sessions">Review controls</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-white/10 bg-slate-950/55">
+            <CardHeader className="border-b border-white/10 pb-4">
+              <CardTitle className="text-base text-white">Expenses Snapshot</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 p-4">
+              {(command?.expenses.recent?.length
+                ? command.expenses.recent.map((expense) => ({
+                    id: expense.id,
+                    title: expense.title,
+                    amountMinor: expense.amountMinor,
+                    currency: expense.currency,
+                  }))
+                : (expensesRecent.data?.data || []).map((expense: ExpenseDTO) => ({
+                    id: expense._id,
+                    title: expense.title,
+                    amountMinor: expense.amountMinor,
+                    currency: expense.currency,
+                  }))
+              )
+                .slice(0, 4)
+                .map((expense) => (
+                  <Link
+                    key={expense.id}
+                    href={`/admin/expenses/${expense.id}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2 text-sm hover:bg-white/[0.06]"
+                  >
+                    <span className="min-w-0 truncate text-white/75">{expense.title}</span>
+                    <span className="shrink-0 text-white/65">
+                      {formatCurrency(expense.amountMinor, {
+                        currency: expense.currency,
+                        maximumFractionDigits: 0,
+                      })}
+                    </span>
+                  </Link>
+                ))}
+              {!expensesRecent.isLoading && !command?.expenses.recent?.length && (expensesRecent.data?.data?.length || 0) === 0 ? (
+                <p className="rounded-lg border border-white/8 bg-white/[0.03] p-3 text-sm text-white/45">
+                  No recent expenses.
+                </p>
+              ) : null}
+              <Button asChild size="sm" variant="outline" className="mt-2 w-full border-white/10 bg-white/[0.04] text-white">
+                <Link href="/admin/expenses">Open expenses</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-white/10 bg-slate-950/55">
+            <CardHeader className="border-b border-white/10 pb-4">
+              <CardTitle className="text-base text-white">Secondary Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 p-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="justify-start border-white/10 bg-white/[0.04] text-white"
+                onClick={() => setRecordModalOpen(true)}
+              >
+                <Landmark className="mr-2 h-4 w-4" />
+                Record manual ledger entry
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="justify-start border-white/10 bg-white/[0.04] text-white"
+                onClick={() => setInviteBursarOpen(true)}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Invite bursar
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-white/10 bg-slate-950/55">
+            <CardHeader className="border-b border-white/10 pb-4">
+              <CardTitle className="text-base text-white">Permission Guardrails</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 p-4 text-sm text-white/60">
+              {[
+                "Payment approval must be done by an authorized finance user.",
+                "Manual ledger entries, refunds, reversals, and disbursements require audit evidence.",
+                "Cash closure requires a variance note when counted cash differs from expected cash.",
+                "Leo explanations and drafts do not approve, reconcile, send, reverse, refund, or close anything.",
+              ].map((line) => (
+                <p key={line} className="flex items-start gap-2">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
+                  {line}
+                </p>
+              ))}
+            </CardContent>
+          </Card>
+        </aside>
+      </section>
+
       <RecordTransactionModal
         open={recordModalOpen}
         onOpenChange={setRecordModalOpen}
-        onSuccess={() => refetch()}
+        onSuccess={() => {
+          void commandCenter.refetch();
+          void overview.refetch();
+        }}
       />
 
-      {/* Invite Bursar Modal */}
       <ResponsiveModal
         open={inviteBursarOpen}
         onClose={() => setInviteBursarOpen(false)}

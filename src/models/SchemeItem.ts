@@ -40,6 +40,10 @@ export interface ISchemeItem {
   teachingResources?: string[];
   assessmentIdeas?: string[];
   notes?: string | null;
+  rowType?: "teaching" | "revision" | "examination" | "holiday" | "other";
+  sourceRowIndex?: number | null;
+  parseConfidence?: number | null;
+  weekEndingLabel?: string | null;
   curriculumNodeIds: Types.ObjectId[];
   plannedStartDate?: Date | null;
   plannedEndDate?: Date | null;
@@ -77,6 +81,15 @@ const schemeItemSchema = new Schema<ISchemeItem>(
     teachingResources: [{ type: String, trim: true, maxlength: 500 }],
     assessmentIdeas: [{ type: String, trim: true, maxlength: 1000 }],
     notes: { type: String, trim: true, maxlength: 5000, default: null },
+    rowType: {
+      type: String,
+      enum: ["teaching", "revision", "examination", "holiday", "other"],
+      default: "teaching",
+      index: true,
+    },
+    sourceRowIndex: { type: Number, min: 0, default: null },
+    parseConfidence: { type: Number, min: 0, max: 1, default: null },
+    weekEndingLabel: { type: String, trim: true, maxlength: 120, default: null },
     curriculumNodeIds: [{ type: Schema.Types.ObjectId, ref: "CurriculumNode" }],
     plannedStartDate: { type: Date, default: null, index: true },
     plannedEndDate: { type: Date, default: null, index: true },

@@ -949,14 +949,14 @@ function GradeDetailContent() {
               <Calendar className="h-8 w-8 text-amber-300" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-white">View timetable for {gradeName}</h3>
+              <h3 className="text-lg font-semibold text-white">View class schedules for {gradeName}</h3>
               <p className="mt-1 text-sm text-white/60">
-                Open the class-first timetable workflow for this grade
+                Open classes and use each class Schedule tab for timetable work
               </p>
             </div>
             <Button asChild size="lg" className="gap-2 bg-linear-to-r from-amber-500 to-orange-600 text-white hover:from-amber-600 hover:to-orange-700">
-              <Link href={`/admin/timetable?gradeId=${gradeId}`}>
-                Open timetable hub
+              <Link href="/admin/classes">
+                Open classes
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

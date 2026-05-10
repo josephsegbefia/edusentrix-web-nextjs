@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DocumentUploader } from "@/components/upload/DocumentUploader";
+import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import {
   useTeacherSchemeImportCancel,
@@ -16,16 +17,40 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 import type { SchemeImportParsedRowClient } from "@/types/scheme-import";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
+
+function makeSchemeTitle(input: {
+  gradeName?: string;
+  subjectName?: string;
+  periodName?: string;
+}) {
+  const bits = [
+    input.gradeName || "Grade",
+    input.subjectName || "Subject",
+    input.periodName || "Current Term",
+  ];
+  return `${bits.join(" ")} Scheme of Learning`.replace(/\s+/g, " ").trim();
+}
 
 function TeacherSchemeImportInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId");
   const { data: ctxRes } = useTeacherContext();
+  const { data: classesData } = useTeacherClasses();
   const permissions = (ctxRes?.data?.permissions ?? []) as Permission[];
   const schoolId = ctxRes?.data?.school?._id ?? "";
+  const schoolCurriculumCode = ctxRes?.data?.school?.curriculumCode || "ghana_nacca";
+  const currentPeriod = ctxRes?.data?.currentPeriod ?? null;
   const canImport = can(permissions, PERMISSIONS.schemeImportUpload);
   const canConfirm = can(permissions, PERMISSIONS.schemeImportConfirm);
+  const isNaCCASchool = schoolCurriculumCode === "ghana_nacca";
 
   const { data: job, isLoading: jobLoading, error: jobError } = useTeacherSchemeImportJob(jobId);
   const createMutation = useTeacherSchemeImportCreate();
@@ -35,7 +60,30 @@ function TeacherSchemeImportInner() {
 
   const [localRows, setLocalRows] = useState<SchemeImportParsedRowClient[] | null>(null);
   const [schemeTitle, setSchemeTitle] = useState("");
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [assignmentKey, setAssignmentKey] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const assignmentOptions = useMemo(
+    () =>
+      (classesData?.data?.classes || [])
+        .filter((row) => row._id && row.gradeId && row.subjectId)
+        .map((row) => ({
+          key: `${row._id}|${row.subjectId}`,
+          classGroupId: row._id,
+          className: row.name,
+          gradeId: row.gradeId,
+          gradeName: row.gradeName,
+          subjectId: row.subjectId,
+          subjectName: row.subjectName,
+          description: `${row.gradeName}${row.studentCount ? ` · ${row.studentCount} students` : ""}`,
+        }))
+        .filter((row, index, all) => all.findIndex((item) => item.key === row.key) === index),
+    [classesData?.data?.classes]
+  );
+
+  const selectedAssignment = assignmentOptions.find((option) => option.key === assignmentKey);
 
   useEffect(() => {
     if (job?.parsedRows && job.status === "parsed") {
@@ -44,26 +92,56 @@ function TeacherSchemeImportInner() {
   }, [job?.id, job?.parsedRows, job?.status]);
 
   useEffect(() => {
+    if (assignmentKey || assignmentOptions.length !== 1) return;
+    setAssignmentKey(assignmentOptions[0].key);
+  }, [assignmentKey, assignmentOptions]);
+
+  useEffect(() => {
+    if (titleTouched) return;
+    if (selectedAssignment) {
+      setSchemeTitle(
+        makeSchemeTitle({
+          gradeName: selectedAssignment.gradeName,
+          subjectName: selectedAssignment.subjectName,
+          periodName: currentPeriod?.name,
+        }).slice(0, 220)
+      );
+      return;
+    }
     if (!job?.fileName) return;
     const base = job.fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
-    setSchemeTitle((prev) =>
-      prev.trim().length > 0 ? prev : base.slice(0, 220) || "Imported scheme"
-    );
-  }, [job?.fileName]);
+    setSchemeTitle(base.slice(0, 220) || "Imported Scheme of Learning");
+  }, [currentPeriod?.name, job?.fileName, selectedAssignment, titleTouched]);
 
   async function persistRows(rows: SchemeImportParsedRowClient[]) {
     if (!jobId) return;
-    await saveRowsMutation.mutateAsync(rows);
+    setActionError(null);
+    try {
+      await saveRowsMutation.mutateAsync(rows);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not save rows");
+    }
   }
 
   async function confirmDraft() {
-    if (!jobId || !localRows || !schemeTitle.trim()) return;
-    await saveRowsMutation.mutateAsync(localRows);
-    const data = await confirmMutation.mutateAsync({
-      schemeTitle: schemeTitle.trim(),
-    });
-    if (data.scheme?.id) {
-      router.push(`/teacher/schemes/${data.scheme.id}`);
+    if (!jobId || !localRows || !schemeTitle.trim() || !selectedAssignment || !currentPeriod?._id) {
+      return;
+    }
+    setActionError(null);
+    try {
+      await saveRowsMutation.mutateAsync(localRows);
+      const data = await confirmMutation.mutateAsync({
+        schemeTitle: schemeTitle.trim(),
+        academicPeriodId: currentPeriod._id,
+        gradeId: selectedAssignment.gradeId,
+        classGroupId: selectedAssignment.classGroupId,
+        subjectId: selectedAssignment.subjectId,
+      });
+      if (data.scheme?.id) {
+        router.push(`/teacher/schemes/${data.scheme.id}`);
+      }
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Could not create draft scheme");
     }
   }
 
@@ -86,6 +164,28 @@ function TeacherSchemeImportInner() {
     }
   }
 
+  function updateLocalRow(
+    idx: number,
+    patch: Partial<SchemeImportParsedRowClient>
+  ) {
+    setLocalRows((prev) => {
+      if (!prev) return prev;
+      const next = [...prev];
+      next[idx] = { ...next[idx], ...patch };
+      return next;
+    });
+  }
+
+  const parsedStats = localRows
+    ? {
+        total: localRows.length,
+        lowConfidence: localRows.filter((row) => row.confidence != null && row.confidence < 0.55)
+          .length,
+        issues: localRows.filter((row) => row.errors.length > 0).length,
+        skipped: localRows.filter((row) => row.skipped).length,
+      }
+    : null;
+
   if (!canImport) {
     return (
       <div className="mx-auto max-w-3xl p-6 text-white/80">
@@ -97,20 +197,35 @@ function TeacherSchemeImportInner() {
     );
   }
 
+  if (ctxRes?.data?.school && !isNaCCASchool) {
+    return (
+      <div className="mx-auto max-w-3xl p-6 text-white/80">
+        <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-5 text-amber-50">
+          <p className="text-xs uppercase tracking-wide text-amber-100/70">Scheme of Learning import</p>
+          <h1 className="mt-2 text-xl font-semibold">Import is for NaCCA schools only</h1>
+          <p className="mt-2 text-sm leading-6 text-amber-50/80">
+            The current upload/import parser expects GES/NaCCA scheme documents. Use the Schemes of
+            Learning page to create or manage plans manually for this curriculum.
+          </p>
+          <Link href="/teacher/schemes" className="mt-4 inline-block text-sky-300 hover:text-sky-200">
+            Back to schemes
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6">
       <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-white/40">Schemes of work</p>
-            <h1 className="text-xl font-semibold text-white">Import from CSV, Excel, or PDF</h1>
+            <p className="text-xs uppercase tracking-wide text-white/40">Scheme of Learning</p>
+            <h1 className="text-xl font-semibold text-white">Import official scheme document</h1>
             <p className="mt-1 text-sm text-white/65">
-              Spreadsheets: use a header row with <span className="text-white/85">title</span> (or topic),
-              optional <span className="text-white/85">week</span>,{" "}
-              <span className="text-white/85">learning objective</span>, and{" "}
-              <span className="text-white/85">notes</span>. PDFs: text-based files only; the school must
-              enable PDF import — we extract text and suggest rows with confidence scores (review before
-              confirming).
+              Upload a GES/NaCCA-style PDF or spreadsheet. We preserve week,
+              strand, sub-strand, content standard, indicators, and resources so
+              Lesson Notes can be created from the saved rows.
             </p>
           </div>
           <Link
@@ -170,8 +285,29 @@ function TeacherSchemeImportInner() {
           <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
             <h2 className="text-lg font-semibold text-white">Preview</h2>
             <p className="mt-1 text-sm text-white/60">
-              Fix validation errors or skip rows. Save edits before confirming.
+              Review the extracted Scheme of Learning rows. Fix only the fields
+              that look wrong, then create the draft.
             </p>
+            {parsedStats ? (
+              <div className="mt-3 grid gap-2 text-xs sm:grid-cols-4">
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-white/65">
+                  <span className="block text-white/40">Rows</span>
+                  <span className="text-base font-semibold text-white">{parsedStats.total}</span>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-white/65">
+                  <span className="block text-white/40">Issues</span>
+                  <span className="text-base font-semibold text-white">{parsedStats.issues}</span>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-white/65">
+                  <span className="block text-white/40">Low confidence</span>
+                  <span className="text-base font-semibold text-white">{parsedStats.lowConfidence}</span>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-white/65">
+                  <span className="block text-white/40">Skipped</span>
+                  <span className="text-base font-semibold text-white">{parsedStats.skipped}</span>
+                </div>
+              </div>
+            ) : null}
             {job?.sourceKind === "pdf_ai" ? (
               <p className="mt-2 text-xs text-amber-200/85">
                 PDF import: confidence scores are AI estimates. Rows below ~55% confidence are highlighted —
@@ -179,15 +315,54 @@ function TeacherSchemeImportInner() {
               </p>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-3">
+              <label className="flex min-w-[260px] flex-1 flex-col gap-1 text-sm">
+                <span className="text-white/55">Class and subject</span>
+                <PremiumSelect value={assignmentKey || "pick"} onValueChange={(value) => setAssignmentKey(value === "pick" ? "" : value)}>
+                  <PremiumSelectTrigger className="border-white/15 bg-black/30 text-white">
+                    <PremiumSelectValue placeholder="Select assigned class and subject" />
+                  </PremiumSelectTrigger>
+                  <PremiumSelectContent>
+                    <PremiumSelectItem value="pick">Select assigned class and subject</PremiumSelectItem>
+                    {assignmentOptions.map((option) => (
+                      <PremiumSelectItem
+                        key={option.key}
+                        value={option.key}
+                        description={option.description}
+                      >
+                        {option.className} · {option.subjectName}
+                      </PremiumSelectItem>
+                    ))}
+                  </PremiumSelectContent>
+                </PremiumSelect>
+              </label>
+              <label className="flex min-w-[180px] flex-col gap-1 text-sm">
+                <span className="text-white/55">Academic period</span>
+                <div className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-white">
+                  {currentPeriod?.name || "No current period"}
+                </div>
+              </label>
               <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-sm">
                 <span className="text-white/55">Draft scheme title</span>
                 <input
                   value={schemeTitle}
-                  onChange={(e) => setSchemeTitle(e.target.value)}
+                  onChange={(e) => {
+                    setTitleTouched(true);
+                    setSchemeTitle(e.target.value);
+                  }}
                   className="rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-white outline-none"
                 />
               </label>
             </div>
+            {!selectedAssignment || !currentPeriod?._id ? (
+              <p className="mt-3 rounded-lg border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+                Choose the assigned class/subject and ensure a current academic period is set before creating the draft.
+              </p>
+            ) : null}
+            {actionError ? (
+              <p className="mt-3 rounded-lg border border-rose-300/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+                {actionError}
+              </p>
+            ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -212,13 +387,19 @@ function TeacherSchemeImportInner() {
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-white/10">
-            <table className="w-full min-w-[800px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1280px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-white/10 bg-black/30 text-xs uppercase tracking-wide text-white/45">
                   <th className="px-3 py-2">#</th>
                   <th className="px-3 py-2">Week</th>
+                  <th className="px-3 py-2">Week ending</th>
+                  <th className="px-3 py-2">Type</th>
                   <th className="px-3 py-2">Title</th>
-                  <th className="px-3 py-2">Objective</th>
+                  <th className="px-3 py-2">Strand</th>
+                  <th className="px-3 py-2">Sub-strand</th>
+                  <th className="px-3 py-2">Content standard</th>
+                  <th className="px-3 py-2">Indicators</th>
+                  <th className="px-3 py-2">Resources</th>
                   <th className="px-3 py-2">Notes</th>
                   <th className="px-3 py-2">Conf.</th>
                   <th className="px-3 py-2">Skip</th>
@@ -245,64 +426,105 @@ function TeacherSchemeImportInner() {
                         value={row.weekNumber ?? ""}
                         onChange={(e) => {
                           const v = e.target.value;
-                          setLocalRows((prev) => {
-                            if (!prev) return prev;
-                            const next = [...prev];
-                            let w: number | null = null;
-                            if (v !== "") {
-                              const n = Number.parseInt(v, 10);
-                              w = Number.isFinite(n) ? n : null;
-                            }
-                            next[idx] = { ...next[idx], weekNumber: w };
-                            return next;
-                          });
+                          let w: number | null = null;
+                          if (v !== "") {
+                            const n = Number.parseInt(v, 10);
+                            w = Number.isFinite(n) ? n : null;
+                          }
+                          updateLocalRow(idx, { weekNumber: w });
                         }}
                         className="w-16 rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input
+                        value={row.weekEnding ?? ""}
+                        onChange={(e) => updateLocalRow(idx, { weekEnding: e.target.value || null })}
+                        className="w-full min-w-[110px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <select
+                        value={row.rowType ?? "teaching"}
+                        onChange={(e) =>
+                          updateLocalRow(idx, {
+                            rowType: e.target.value as SchemeImportParsedRowClient["rowType"],
+                          })
+                        }
+                        className="rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
+                      >
+                        <option value="teaching">Teaching</option>
+                        <option value="revision">Revision</option>
+                        <option value="examination">Examination</option>
+                        <option value="holiday">Holiday</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
                         value={row.title}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setLocalRows((prev) => {
-                            if (!prev) return prev;
-                            const next = [...prev];
-                            next[idx] = { ...next[idx], title: v };
-                            return next;
-                          });
-                        }}
+                        onChange={(e) => updateLocalRow(idx, { title: e.target.value })}
                         className="w-full min-w-[140px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input
-                        value={row.learningObjective ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setLocalRows((prev) => {
-                            if (!prev) return prev;
-                            const next = [...prev];
-                            next[idx] = { ...next[idx], learningObjective: v || null };
-                            return next;
-                          });
-                        }}
+                        value={row.strand ?? ""}
+                        onChange={(e) => updateLocalRow(idx, { strand: e.target.value || null })}
                         className="w-full min-w-[140px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        value={row.subStrand ?? ""}
+                        onChange={(e) => updateLocalRow(idx, { subStrand: e.target.value || null })}
+                        className="w-full min-w-[160px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        value={row.contentStandard ?? ""}
+                        onChange={(e) =>
+                          updateLocalRow(idx, { contentStandard: e.target.value || null })
+                        }
+                        className="w-full min-w-[150px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <textarea
+                        value={(row.indicators || []).join("\n")}
+                        onChange={(e) =>
+                          updateLocalRow(idx, {
+                            indicators: e.target.value
+                              .split(/\n|,/)
+                              .map((item) => item.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        rows={2}
+                        className="w-full min-w-[150px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <textarea
+                        value={(row.resources || []).join("\n")}
+                        onChange={(e) =>
+                          updateLocalRow(idx, {
+                            resources: e.target.value
+                              .split(/\n|,/)
+                              .map((item) => item.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        rows={2}
+                        className="w-full min-w-[150px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input
                         value={row.notes ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setLocalRows((prev) => {
-                            if (!prev) return prev;
-                            const next = [...prev];
-                            next[idx] = { ...next[idx], notes: v || null };
-                            return next;
-                          });
-                        }}
-                        className="w-full min-w-[120px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
+                        onChange={(e) => updateLocalRow(idx, { notes: e.target.value || null })}
+                        className="w-full min-w-[130px] rounded border border-white/15 bg-black/40 px-2 py-1 text-white"
                       />
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-xs text-white/65">
@@ -312,15 +534,7 @@ function TeacherSchemeImportInner() {
                       <input
                         type="checkbox"
                         checked={row.skipped}
-                        onChange={(e) => {
-                          const v = e.target.checked;
-                          setLocalRows((prev) => {
-                            if (!prev) return prev;
-                            const next = [...prev];
-                            next[idx] = { ...next[idx], skipped: v };
-                            return next;
-                          });
-                        }}
+                        onChange={(e) => updateLocalRow(idx, { skipped: e.target.checked })}
                       />
                     </td>
                     <td className="px-3 py-2 text-xs text-amber-200/90">
@@ -339,7 +553,9 @@ function TeacherSchemeImportInner() {
                 !canConfirm ||
                 saveRowsMutation.isPending ||
                 confirmMutation.isPending ||
-                !schemeTitle.trim()
+                !schemeTitle.trim() ||
+                !selectedAssignment ||
+                !currentPeriod?._id
               }
               onClick={() => confirmDraft()}
               className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"

@@ -8,6 +8,8 @@ import { Student } from "@/models/Student";
 import { StudentAttendance } from "@/models/StudentAttendance";
 import { Submission } from "@/models/Submission";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
+import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { getPublishedWeekTimetable } from "@/lib/timetable/read-model";
 import { getTeacherStudioEnabledForSchool } from "@/lib/features/teacherStudio";
 import { can } from "@/lib/auth/can";
@@ -58,6 +60,17 @@ type TodayScheduleRow = {
   endTime: string | null;
 };
 
+type DashboardSchemeRow = {
+  id: string;
+  schemeId: string;
+  schemeTitle: string;
+  title: string;
+  weekNumber: number | null;
+  className: string;
+  subjectName: string;
+  coverageStatus: string;
+};
+
 function isPopulatedClassGroup(
   value: TeacherDashboardAssignmentLean["classGroupId"]
 ): value is PopulatedClassGroup {
@@ -75,6 +88,17 @@ function toMinutes(time?: string | null) {
   const [hh, mm] = time.split(":").map((v) => Number(v));
   if (Number.isNaN(hh) || Number.isNaN(mm)) return Number.MAX_SAFE_INTEGER;
   return hh * 60 + mm;
+}
+
+function weekBounds(date: Date) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const diff = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - diff);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
 }
 
 export async function GET() {
@@ -106,6 +130,7 @@ export async function GET() {
             date: today.toISOString(),
             schedule: [],
           },
+          thisWeekSchemeRows: [],
           queues: [],
         },
       });
@@ -177,6 +202,25 @@ export async function GET() {
         grade.name,
       ])
     );
+
+    const assignmentPairs = assignments
+      .map((assignment) => {
+        const group = assignment.classGroupId;
+        const subject = assignment.subjectId;
+        const classGroupId = group
+          ? isPopulatedClassGroup(group)
+            ? String(group._id)
+            : String(group)
+          : "";
+        const subjectId = subject
+          ? isPopulatedSubject(subject)
+            ? String(subject._id)
+            : String(subject)
+          : "";
+        if (!classGroupId || !subjectId) return null;
+        return { classGroupId, subjectId };
+      })
+      .filter(Boolean) as Array<{ classGroupId: string; subjectId: string }>;
 
     const totalStudents = Array.from(studentCountMap.values()).reduce(
       (sum, count) => sum + count,
@@ -276,6 +320,75 @@ export async function GET() {
         : 1
       : 0;
 
+    let thisWeekSchemeRows: DashboardSchemeRow[] = [];
+    if (assignmentPairs.length > 0) {
+      const { start: weekStart, end: weekEnd } = weekBounds(today);
+      const activeSchemes = (await SchemeOfWork.find({
+        schoolId: context.schoolId,
+        academicPeriodId: currentPeriod._id,
+        status: "active",
+        $or: assignmentPairs.map((pair) => ({
+          classGroupId: new mongoose.Types.ObjectId(pair.classGroupId),
+          subjectId: new mongoose.Types.ObjectId(pair.subjectId),
+        })),
+      })
+        .select("_id title classGroupId subjectId")
+        .lean()) as ISchemeOfWork[];
+
+      const schemeIds = activeSchemes.map((scheme) => scheme._id);
+      const schemeMap = new Map(activeSchemes.map((scheme) => [String(scheme._id), scheme]));
+      const classNameById = new Map(
+        assignments
+          .map((assignment) => {
+            const group = assignment.classGroupId;
+            if (!isPopulatedClassGroup(group)) return null;
+            const gradeName = group.gradeId ? gradeMap.get(String(group.gradeId)) : "";
+            return [String(group._id), [gradeName, group.name].filter(Boolean).join(" ").trim()] as const;
+          })
+          .filter(Boolean) as Array<readonly [string, string]>
+      );
+      const subjectNameById = new Map(
+        assignments
+          .map((assignment) => {
+            const subject = assignment.subjectId;
+            if (!isPopulatedSubject(subject)) return null;
+            return [String(subject._id), subject.name] as const;
+          })
+          .filter(Boolean) as Array<readonly [string, string]>
+      );
+
+      const items = schemeIds.length
+        ? ((await SchemeItem.find({
+            schoolId: context.schoolId,
+            schemeId: { $in: schemeIds },
+            status: { $ne: "dropped" },
+            coverageStatus: { $nin: ["covered", "skipped"] },
+            $or: [
+              { plannedStartDate: { $lte: weekEnd }, plannedEndDate: { $gte: weekStart } },
+              { plannedStartDate: null, plannedEndDate: { $gte: weekStart, $lte: weekEnd } },
+              { plannedStartDate: { $gte: weekStart, $lte: weekEnd }, plannedEndDate: null },
+            ],
+          })
+            .sort({ plannedStartDate: 1, plannedEndDate: 1, weekNumber: 1, sequence: 1 })
+            .limit(8)
+            .lean()) as ISchemeItem[])
+        : [];
+
+      thisWeekSchemeRows = items.map((item) => {
+        const scheme = schemeMap.get(String(item.schemeId));
+        return {
+          id: String(item._id),
+          schemeId: String(item.schemeId),
+          schemeTitle: scheme?.title || "Scheme of Learning",
+          title: item.title || item.topic || "Scheme row",
+          weekNumber: item.weekNumber ?? null,
+          className: scheme?.classGroupId ? classNameById.get(String(scheme.classGroupId)) || "" : "",
+          subjectName: scheme?.subjectId ? subjectNameById.get(String(scheme.subjectId)) || "" : "",
+          coverageStatus: item.coverageStatus || "not_started",
+        };
+      });
+    }
+
     const queues = [
       ...(showStudio
         ? [
@@ -303,6 +416,13 @@ export async function GET() {
         tone: "indigo",
       },
       {
+        id: "scheme-week",
+        label: "Scheme rows this week",
+        count: thisWeekSchemeRows.length,
+        href: "/teacher/schemes",
+        tone: "emerald",
+      },
+      {
         id: "at-risk",
         label: "Students At Risk",
         count: atRiskCount,
@@ -324,6 +444,7 @@ export async function GET() {
           date: today.toISOString(),
           schedule,
         },
+        thisWeekSchemeRows,
         queues,
       },
     });

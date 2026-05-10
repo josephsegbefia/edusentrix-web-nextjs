@@ -17,7 +17,6 @@ import {
   AlertCircle,
   Search,
   Users,
-  X,
   Sparkles,
   ArrowRight,
   Command,
@@ -46,6 +45,7 @@ import { TeachersCommandPalette } from "@/components/admin/teachers/TeachersComm
 
 import CreateTeacherModal from "@/components/modals/CreateTeacherModal";
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
+import TeacherModalShell from "@/components/modals/TeacherModalShell";
 import { ImportTeachersCSVModal } from "@/components/modals/ImportTeachersCSVModal";
 import { UpdateLeaveModal } from "@/components/modals/UpdateLeaveModal";
 import { TeachersAdvancedFiltersDialog } from "@/components/admin/teachers/TeachersAdvancedFiltersDialog";
@@ -76,70 +76,13 @@ function isTypingTarget(el: EventTarget | null) {
   );
 }
 
-function TeacherModalShell({
-  open,
-  onClose,
-  title,
-  children,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}) {
-  React.useEffect(() => {
-    if (!open) return;
-
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      />
-      <div className="relative z-10 flex min-h-full items-center justify-center p-4">
-        <div className="w-full max-w-[860px] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950 text-white shadow-2xl shadow-black/40">
-          <div className="px-6 pt-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <h1 className="text-lg font-semibold">{title}</h1>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-full text-white/70 hover:bg-white/10 hover:text-white"
-                onClick={onClose}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="mt-5 h-px bg-white/10" />
-          </div>
-          <div className="max-h-[70vh] overflow-y-auto px-6 py-6">
-            {children}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function replaceUrlSearch(params: URLSearchParams) {
+  if (typeof window === "undefined") return;
+  const nextUrl = `${window.location.pathname}?${params.toString()}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}`;
+  if (nextUrl !== currentUrl) {
+    window.history.replaceState(window.history.state, "", nextUrl);
+  }
 }
 
 type StatusActionTarget = "inactive" | "on_leave" | "terminated";
@@ -496,7 +439,7 @@ export default function TeachersPage() {
     if (filters.classGroupId) params.set("classGroupId", filters.classGroupId);
     if (filters.department) params.set("department", filters.department);
 
-    router.replace(`/admin/teachers?${params.toString()}`);
+    replaceUrlSearch(params);
   }, [
     tab,
     viewMode,
@@ -505,7 +448,6 @@ export default function TeachersPage() {
     sortBy,
     sortOrder,
     filters,
-    router,
   ]);
 
   // Keyboard shortcuts: "/" focuses search, Cmd/Ctrl+K opens command palette
@@ -1292,27 +1234,30 @@ export default function TeachersPage() {
             </div>
           </TeacherModalShell>
         ) : editTeacher ? (
-          <EditTeacherModal
+          <TeacherModalShell
             open={!!editTeacherId}
-            onOpenChange={(open) => {
-              if (!open) setEditTeacherId(null);
-            }}
-            teacher={editTeacher}
-            onSubmit={async (payload) => {
-              await busy.promise(
-                updateTeacher.mutateAsync({
-                  teacherId: editTeacherId!,
-                  payload,
-                }),
-                {
-                  loading: "Updating teacher...",
-                  success: "Teacher updated successfully",
-                  error: "Failed to update teacher",
-                }
-              );
-            }}
-            isLoading={updateTeacher.isPending}
-          />
+            title="Edit Teacher"
+            onClose={() => setEditTeacherId(null)}
+          >
+            <EditTeacherModal
+              teacher={editTeacher}
+              onClose={() => setEditTeacherId(null)}
+              onSubmit={async (payload) => {
+                await busy.promise(
+                  updateTeacher.mutateAsync({
+                    teacherId: editTeacherId!,
+                    payload,
+                  }),
+                  {
+                    loading: "Updating teacher...",
+                    success: "Teacher updated successfully",
+                    error: "Failed to update teacher",
+                  }
+                );
+              }}
+              isLoading={updateTeacher.isPending}
+            />
+          </TeacherModalShell>
         ) : (
           <TeacherModalShell
             open

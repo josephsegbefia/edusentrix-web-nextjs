@@ -8,6 +8,7 @@ import { DashboardStats } from "@/components/teacher/DashboardStats";
 import { TodaySchedule } from "@/components/teacher/TodaySchedule";
 import { SmartQueue } from "@/components/teacher/SmartQueue";
 import { QuickActions } from "@/components/teacher/QuickActions";
+import { ThisWeekSchemeRows } from "@/components/teacher/ThisWeekSchemeRows";
 
 export default function TeacherPage() {
   const { data, isLoading, refetch, isFetching } = useTeacherDashboard();
@@ -41,6 +42,8 @@ export default function TeacherPage() {
       </div>
 
       <DashboardStats stats={data?.data.stats} loading={isLoading} />
+
+      <ThisWeekSchemeRows rows={data?.data.thisWeekSchemeRows} loading={isLoading} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <TodaySchedule

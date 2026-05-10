@@ -7,13 +7,21 @@ export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai";
 export interface ISchemeImportParsedRow {
   rowIndex: number;
   weekNumber: number | null;
+  weekEnding?: string | null;
   title: string;
+  strand?: string | null;
+  subStrand?: string | null;
+  contentStandard?: string | null;
+  indicators?: string[];
+  resources?: string[];
   learningObjective: string | null;
   notes: string | null;
+  rowType?: "teaching" | "revision" | "examination" | "holiday" | "other";
   skipped: boolean;
   errors: string[];
   /** Model-estimated parse confidence for PDF/AI imports (0–1); absent for CSV/XLSX. */
   confidence?: number | null;
+  rawText?: string | null;
 }
 
 export interface ISchemeImportJob {
@@ -38,12 +46,24 @@ const parsedRowSchema = new Schema<ISchemeImportParsedRow>(
   {
     rowIndex: { type: Number, required: true, min: 0 },
     weekNumber: { type: Number, default: null },
+    weekEnding: { type: String, trim: true, maxlength: 120, default: null },
     title: { type: String, required: true, trim: true, maxlength: 300 },
+    strand: { type: String, trim: true, maxlength: 300, default: null },
+    subStrand: { type: String, trim: true, maxlength: 300, default: null },
+    contentStandard: { type: String, trim: true, maxlength: 600, default: null },
+    indicators: [{ type: String, trim: true, maxlength: 600 }],
+    resources: [{ type: String, trim: true, maxlength: 500 }],
     learningObjective: { type: String, trim: true, maxlength: 5000, default: null },
     notes: { type: String, trim: true, maxlength: 5000, default: null },
+    rowType: {
+      type: String,
+      enum: ["teaching", "revision", "examination", "holiday", "other"],
+      default: "teaching",
+    },
     skipped: { type: Boolean, default: false },
     errors: { type: [String], default: [] },
     confidence: { type: Number, min: 0, max: 1, default: null },
+    rawText: { type: String, trim: true, maxlength: 4000, default: null },
   },
   { _id: false }
 );

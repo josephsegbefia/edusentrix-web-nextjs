@@ -32,6 +32,7 @@ import { TeacherPerformanceTab } from "@/components/admin/teachers/detail/Teache
 import { TeacherActivityTab } from "@/components/admin/teachers/detail/TeacherActivityTab";
 import { TeacherDutiesTab } from "@/components/admin/teachers/detail/TeacherDutiesTab";
 import EditTeacherModal from "@/components/modals/EditTeacherModal";
+import TeacherModalShell from "@/components/modals/TeacherModalShell";
 import { UpdateLeaveModal } from "@/components/modals/UpdateLeaveModal";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 function getInitialTab(sp: URLSearchParams | null): TeacherDetailTabId {
@@ -392,26 +393,31 @@ function TeacherDetailContent() {
       </div>
 
       {/* Edit Teacher Modal */}
-      {teacher && (
-        <EditTeacherModal
+      {teacher && editOpen && (
+        <TeacherModalShell
           open={editOpen}
-          onOpenChange={setEditOpen}
-          teacher={teacher}
-          onSubmit={async (payload) => {
-            await busy.promise(
-              updateTeacher.mutateAsync({
-                teacherId: teacher.id,
-                payload,
-              }),
-              {
-                loading: "Updating teacher...",
-                success: "Teacher updated successfully",
-                error: "Failed to update teacher",
-              }
-            );
-          }}
-          isLoading={updateTeacher.isPending}
-        />
+          title="Edit Teacher"
+          onClose={() => setEditOpen(false)}
+        >
+          <EditTeacherModal
+            teacher={teacher}
+            onClose={() => setEditOpen(false)}
+            onSubmit={async (payload) => {
+              await busy.promise(
+                updateTeacher.mutateAsync({
+                  teacherId: teacher.id,
+                  payload,
+                }),
+                {
+                  loading: "Updating teacher...",
+                  success: "Teacher updated successfully",
+                  error: "Failed to update teacher",
+                }
+              );
+            }}
+            isLoading={updateTeacher.isPending}
+          />
+        </TeacherModalShell>
       )}
 
       {/* Update Leave Modal */}

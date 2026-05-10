@@ -5,13 +5,21 @@ export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai";
 export interface SchemeImportParsedRowClient {
   rowIndex: number;
   weekNumber: number | null;
+  weekEnding?: string | null;
   title: string;
+  strand?: string | null;
+  subStrand?: string | null;
+  contentStandard?: string | null;
+  indicators?: string[];
+  resources?: string[];
   learningObjective: string | null;
   notes: string | null;
+  rowType?: "teaching" | "revision" | "examination" | "holiday" | "other";
   skipped: boolean;
   errors: string[];
   /** Populated for PDF + AI imports (0–1). */
   confidence?: number | null;
+  rawText?: string | null;
 }
 
 export interface SchemeImportJobRow {

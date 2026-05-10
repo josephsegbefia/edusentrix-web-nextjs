@@ -531,10 +531,10 @@ export const DELEGATION_REGISTRY: Record<DelegationModule, DelegationModuleDefin
     },
   },
   timetable: {
-    label: "Timetable Hub",
-    description: "Timetable planning and publishing.",
-    adminHref: "/admin/timetable",
-    delegateHref: "/admin/timetable",
+    label: "Class schedules",
+    description: "Class schedule planning and publishing.",
+    adminHref: "/admin/classes",
+    delegateHref: "/admin/classes",
     showContextualDelegateButton: true,
     implemented: true,
     presets: {

@@ -4,15 +4,20 @@ import * as React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
+  FileUp,
   Eye,
   Filter,
   Loader2,
   MoreHorizontal,
+  Route,
+  Sparkles,
 } from "lucide-react";
 import { useAdminSchemeQueue } from "@/hooks/admin/useAdminSchemes";
+import { useSchool } from "@/hooks/admin/useSchool";
 import type { AdminSchemeQueueRow, SchemeStatus } from "@/types/schemes";
 import { SchemeStatusBadge } from "@/components/schemes/SchemeStatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +75,27 @@ function formatPeriodLabels(row: AdminSchemeQueueRow) {
   return "—";
 }
 
+function sourceTypeLabel(sourceType?: string) {
+  switch (sourceType) {
+    case "pdf_import":
+      return "PDF import";
+    case "csv_import":
+      return "CSV import";
+    case "excel_import":
+      return "Excel import";
+    case "ai_generated":
+      return "Leo draft";
+    case "manual":
+      return "Manual";
+    default:
+      return "Draft";
+  }
+}
+
+function rowHasCompleteContext(row: AdminSchemeQueueRow) {
+  return Boolean(row.grade?.id && row.subject?.id && (row.academicYear?.id || row.term?.id || row.academicPeriodLabel));
+}
+
 export default function AdminSchemesPage() {
   const [tab, setTab] = React.useState<TabId>("submitted");
   const [page, setPage] = React.useState(1);
@@ -105,6 +131,12 @@ export default function AdminSchemesPage() {
 
   const rows = data?.rows ?? [];
   const pagination = data?.pagination;
+  const incompleteContextCount = rows.filter((row) => !rowHasCompleteContext(row)).length;
+  const importCount = rows.filter((row) => row.sourceType?.includes("import")).length;
+  const { data: schoolRes } = useSchool();
+  const schoolCurriculumCode = schoolRes?.data?.curriculumCode;
+  const schoolLoaded = Boolean(schoolRes?.data);
+  const isNaCCASchool = schoolCurriculumCode === "ghana_nacca";
 
   const { data: periodsJson } = useQuery({
     queryKey: ["admin-periods-picklist"],
@@ -184,7 +216,6 @@ export default function AdminSchemesPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
       <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/12 blur-3xl" aria-hidden />
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70">
@@ -192,14 +223,82 @@ export default function AdminSchemesPage() {
               Academic quality control
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              Scheme review desk
+              Schemes of Learning
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-              Inspect full schemes, weekly objectives, and curriculum alignment before activation.
-              Approved schemes can be activated as the lesson-planning backbone; active schemes feed
-              Lesson Notes and coverage.
+              Review imported or teacher-submitted schemes before they become the lesson-planning
+              backbone. Each scheme must be tied to the right grade, class, subject, and academic
+              period before activation.
             </p>
+            {isNaCCASchool ? (
+              <Button asChild className="mt-4 bg-blue-500 text-white hover:bg-blue-400">
+                <Link href="/admin/schemes/import">
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Import Scheme
+                </Link>
+              </Button>
+            ) : schoolLoaded ? (
+              <p className="mt-4 max-w-2xl rounded-xl border border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-50/85">
+                Upload/import is currently available only for Ghana NaCCA schools. Use manual scheme
+                review and activation for this curriculum.
+              </p>
+            ) : null}
           </div>
+          <div className="grid w-full gap-2 sm:grid-cols-3 lg:max-w-xl">
+            {[
+              {
+                icon: FileUp,
+                label: isNaCCASchool ? "Import" : "Plan",
+                text: isNaCCASchool ? "GES PDF, CSV, or Excel" : "Manual scheme setup",
+              },
+              { icon: ClipboardCheck, label: "Review", text: "Check context and rows" },
+              { icon: Route, label: "Use", text: "Lesson Notes and coverage" },
+            ].map((step) => (
+              <div key={step.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                <step.icon className="h-4 w-4 text-blue-200" />
+                <p className="mt-2 text-sm font-medium text-white">{step.label}</p>
+                <p className="mt-0.5 text-xs text-white/45">{step.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl border border-blue-300/20 bg-blue-500/10 p-2">
+              <Sparkles className="h-5 w-5 text-blue-100" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-white">What admins do here</h2>
+              <p className="mt-1 text-sm leading-6 text-white/55">
+                Confirm the imported rows match the official Scheme of Learning, send unclear work
+                back for revision, approve good drafts, then activate exactly one scheme for each
+                grade, class, subject, and period.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+              {importCount} imported in this view
+            </Badge>
+            {incompleteContextCount > 0 ? (
+              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-amber-100">
+                {incompleteContextCount} need context check
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-emerald-100">
+                Context complete
+              </Badge>
+            )}
+          </div>
+          <p className="mt-3 text-xs leading-5 text-white/45">
+            Leo can help teachers extract rows during import. Admin review is still the final gate
+            before Lesson Notes use the scheme.
+          </p>
         </div>
       </section>
 
@@ -350,12 +449,12 @@ export default function AdminSchemesPage() {
                 <div className="p-10 text-center">
                   <p className="text-base font-medium text-white">
                     {tab === "submitted"
-                      ? "No schemes awaiting review"
-                      : "No schemes found"}
+                      ? "No Schemes of Learning awaiting review"
+                      : "No Schemes of Learning found"}
                   </p>
                   <p className="mt-2 text-sm text-white/50">
                     {tab === "submitted"
-                      ? "You are all caught up. New teacher submissions will appear here."
+                      ? "Teacher imports and submissions appear here after they are sent for review."
                       : "Adjust filters or pick another tab."}
                   </p>
                 </div>
@@ -364,7 +463,8 @@ export default function AdminSchemesPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-white/10 bg-white/5 hover:bg-white/5">
-                        <TableHead className="text-white/55">Scheme</TableHead>
+                        <TableHead className="text-white/55">Scheme of Learning</TableHead>
+                        <TableHead className="text-white/55">Source</TableHead>
                         <TableHead className="text-white/55">Subject</TableHead>
                         <TableHead className="text-white/55">Grade / Class</TableHead>
                         <TableHead className="text-white/55">Year / Term</TableHead>
@@ -389,6 +489,20 @@ export default function AdminSchemesPage() {
                             >
                               {row.title}
                             </Link>
+                            {!rowHasCompleteContext(row) ? (
+                              <div className="mt-1 flex items-center gap-1 text-xs text-amber-200">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                Check grade, subject, and period
+                              </div>
+                            ) : null}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className="whitespace-nowrap border-white/15 bg-white/5 text-xs text-white/65"
+                            >
+                              {sourceTypeLabel(row.sourceType)}
+                            </Badge>
                           </TableCell>
                           <TableCell className="text-white/75">
                             {row.subject?.name ?? "—"}

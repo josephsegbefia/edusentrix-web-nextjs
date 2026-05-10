@@ -9,7 +9,6 @@ import {
   GraduationCap,
   BookOpen,
   Calendar,
-  CalendarDays,
   CalendarRange,
   DollarSign,
   FileText,
@@ -49,7 +48,6 @@ import {
   Megaphone,
   ChevronDown,
   ClipboardSignature,
-  Layers,
 } from "lucide-react";
 import {
   premiumSideItem,
@@ -189,19 +187,19 @@ const navSections: NavSection[] = [
         icon: GraduationCap,
       },
       {
-        label: "Curriculum frameworks",
-        href: "/admin/curricula",
-        icon: Layers,
-      },
-      {
-        label: "Scheme review desk",
+        label: "Schemes of Learning",
         href: "/admin/schemes",
         icon: ClipboardList,
       },
       {
-        label: "Timetable Hub",
-        href: "/admin/timetable",
-        icon: CalendarDays,
+        label: "Examinations",
+        href: "/admin/examinations",
+        icon: ClipboardCheck,
+      },
+      {
+        label: "Question Bank",
+        href: "/admin/question-bank",
+        icon: Library,
       },
       {
         label: "Academic Calendar",

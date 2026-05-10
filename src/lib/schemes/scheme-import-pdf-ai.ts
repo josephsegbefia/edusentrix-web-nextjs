@@ -7,10 +7,18 @@ import { trackUsage } from "@/lib/billing/trackUsage";
 
 const AI_ROW_SCHEMA = z.object({
   weekNumber: z.union([z.number().min(1).max(53), z.null()]).optional(),
+  weekEnding: z.string().nullable().optional(),
   title: z.string(),
+  strand: z.string().nullable().optional(),
+  subStrand: z.string().nullable().optional(),
+  contentStandard: z.string().nullable().optional(),
+  indicators: z.array(z.string()).optional(),
+  resources: z.array(z.string()).optional(),
   learningObjective: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  rowType: z.enum(["teaching", "revision", "examination", "holiday", "other"]).optional(),
   confidence: z.number().min(0).max(1).optional(),
+  rawText: z.string().nullable().optional(),
 });
 
 const AI_PAYLOAD_SCHEMA = z.object({
@@ -55,15 +63,36 @@ export async function extractSchemeRowsWithAiFromPdfText(args: {
       messages: [
         {
           role: "system",
-          content: `You extract scheme-of-work / weekly plan ROWS from messy PDF text for a school.
-Return JSON only with shape: { "rows": [ { "weekNumber": number|null, "title": string, "learningObjective": string|null, "notes": string|null, "confidence": number } ] }
+          content: `You extract Scheme of Learning / scheme-of-work ROWS from messy school PDF text.
+Return JSON only with shape:
+{ "rows": [ {
+  "weekNumber": number|null,
+  "weekEnding": string|null,
+  "title": string,
+  "strand": string|null,
+  "subStrand": string|null,
+  "contentStandard": string|null,
+  "indicators": string[],
+  "resources": string[],
+  "learningObjective": string|null,
+  "notes": string|null,
+  "rowType": "teaching"|"revision"|"examination"|"holiday"|"other",
+  "confidence": number,
+  "rawText": string|null
+} ] }
 Rules:
 - Each row is one teaching block/week/topic line from the document.
 - weekNumber: infer week number (1–53) only when clearly indicated; otherwise null.
-- title: short topic/unit title (required, min 2 chars after trim).
+- weekEnding: preserve the date/text from a "week ending" column if present.
+- title: short topic/unit title. Prefer subStrand; otherwise strand/contentStandard/indicator. Use REVISION or EXAMINATION for those rows.
+- strand/subStrand/contentStandard/indicators/resources: preserve these columns when present.
+- indicators: split multiple indicator codes into separate strings.
+- resources: split comma/newline separated resources into separate strings.
 - learningObjective: objectives/outcomes if present, else null.
-- notes: resources, assessment hints, duration, subtopics — else null.
+- notes: assessment hints, duration, extra remarks, or anything important that does not fit the other fields.
+- rowType: teaching for normal rows, revision for revision rows, examination for exam rows, holiday for holidays.
 - confidence: your certainty this row is a real scheme row (0–1). Lower for guesses.
+- rawText: original row text when useful for review.
 - Skip cover pages, headers-only lines, and footers. Max 80 rows.`,
         },
         {
@@ -112,6 +141,8 @@ Rules:
         : String(r.learningObjective).trim() || null;
     const notes =
       r.notes === undefined || r.notes === null ? null : String(r.notes).trim() || null;
+    const cleanList = (items: string[] | undefined) =>
+      (items || []).map((item) => String(item ?? "").trim()).filter(Boolean).slice(0, 20);
     const confidence =
       typeof r.confidence === "number" && Number.isFinite(r.confidence)
         ? Math.min(1, Math.max(0, r.confidence))
@@ -120,12 +151,31 @@ Rules:
     return {
       rowIndex: i + 2,
       weekNumber,
+      weekEnding:
+        r.weekEnding === undefined || r.weekEnding === null
+          ? null
+          : String(r.weekEnding).trim() || null,
       title,
+      strand:
+        r.strand === undefined || r.strand === null ? null : String(r.strand).trim() || null,
+      subStrand:
+        r.subStrand === undefined || r.subStrand === null
+          ? null
+          : String(r.subStrand).trim() || null,
+      contentStandard:
+        r.contentStandard === undefined || r.contentStandard === null
+          ? null
+          : String(r.contentStandard).trim() || null,
+      indicators: cleanList(r.indicators),
+      resources: cleanList(r.resources),
       learningObjective,
       notes,
+      rowType: r.rowType || "teaching",
       skipped: false,
       errors: rowErrors(title, weekNumber),
       confidence,
+      rawText:
+        r.rawText === undefined || r.rawText === null ? null : String(r.rawText).trim() || null,
     };
   });
 

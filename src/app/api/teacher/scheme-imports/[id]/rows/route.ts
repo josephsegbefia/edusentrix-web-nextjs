@@ -11,11 +11,21 @@ import { normalizeParsedImportRows } from "@/lib/schemes/scheme-import-rows";
 const RowSchema = z.object({
   rowIndex: z.number().int().min(1),
   weekNumber: z.union([z.number().min(1).max(53), z.null()]).optional(),
+  weekEnding: z.string().trim().max(120).nullable().optional(),
   title: z.string().trim().min(2).max(300),
+  strand: z.string().trim().max(300).nullable().optional(),
+  subStrand: z.string().trim().max(300).nullable().optional(),
+  contentStandard: z.string().trim().max(600).nullable().optional(),
+  indicators: z.array(z.string().trim().max(600)).max(20).optional(),
+  resources: z.array(z.string().trim().max(500)).max(20).optional(),
   learningObjective: z.string().trim().max(5000).nullable().optional(),
   notes: z.string().trim().max(5000).nullable().optional(),
+  rowType: z
+    .enum(["teaching", "revision", "examination", "holiday", "other"])
+    .optional(),
   skipped: z.boolean().optional(),
   confidence: z.union([z.number().min(0).max(1), z.null()]).optional(),
+  rawText: z.string().trim().max(4000).nullable().optional(),
 });
 
 const PatchBodySchema = z.object({
@@ -66,11 +76,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       parsed.data.rows.map((r) => ({
         rowIndex: r.rowIndex,
         weekNumber: r.weekNumber ?? null,
+        weekEnding: r.weekEnding ?? null,
         title: r.title,
+        strand: r.strand ?? null,
+        subStrand: r.subStrand ?? null,
+        contentStandard: r.contentStandard ?? null,
+        indicators: r.indicators ?? [],
+        resources: r.resources ?? [],
         learningObjective: r.learningObjective ?? null,
         notes: r.notes ?? null,
+        rowType: r.rowType ?? "teaching",
         skipped: r.skipped ?? false,
         confidence: r.confidence === undefined ? null : r.confidence,
+        rawText: r.rawText ?? null,
         errors: [] as string[],
       }))
     );

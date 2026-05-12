@@ -5,6 +5,8 @@ import { ensureDefaultSubscriptionTiers } from "@/lib/platform-billing/subscript
 import { SchoolSubscription } from "@/models/SchoolSubscription";
 import { School } from "@/models/School";
 
+const SPEC_TIER_CODES = new Set(["starter", "growth", "premium", "enterprise"]);
+
 type SchoolRow = {
   _id: mongoose.Types.ObjectId;
   name?: string;
@@ -16,6 +18,11 @@ type SchoolSubscriptionRow = {
   schoolId: mongoose.Types.ObjectId;
   tierId?: mongoose.Types.ObjectId | null;
   status?: string;
+  lifecycleMode?: string | null;
+  billingCadence?: string | null;
+  startsAt?: Date | null;
+  endsAt?: Date | null;
+  trialEndsAt?: Date | null;
   basePriceMinor?: number;
   manualPriceOverrideMinor?: number | null;
   discountMode?: "none" | "percent" | "fixed";
@@ -23,6 +30,8 @@ type SchoolSubscriptionRow = {
   effectivePriceMinor?: number;
   note?: string | null;
   pilotEndsAt?: Date | null;
+  gracePeriodEndsAt?: Date | null;
+  usageResetPolicy?: string | null;
   updatedAt?: Date | null;
 };
 
@@ -36,7 +45,7 @@ export async function GET() {
       School.find({}).select("name status").sort({ name: 1 }).lean<SchoolRow[]>(),
       SchoolSubscription.find({})
         .select(
-          "schoolId tierId status basePriceMinor manualPriceOverrideMinor discountMode discountValue effectivePriceMinor note pilotEndsAt updatedAt"
+          "schoolId tierId status lifecycleMode billingCadence startsAt endsAt trialEndsAt basePriceMinor manualPriceOverrideMinor discountMode discountValue effectivePriceMinor note pilotEndsAt gracePeriodEndsAt usageResetPolicy updatedAt"
         )
         .lean<SchoolSubscriptionRow[]>(),
     ]);
@@ -51,17 +60,20 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        tiers: tiers.map((tier) => ({
-          id: String(tier._id),
-          code: tier.code,
-          name: tier.name,
-          description: tier.description || null,
-          priceMinor: tier.priceMinor,
-          billingCadence: tier.billingCadence,
-          studentLimit: tier.studentLimit ?? null,
-          provisional: Boolean(tier.provisional),
-          active: Boolean(tier.active),
-        })),
+        tiers: tiers
+          .filter((tier) => SPEC_TIER_CODES.has(tier.code))
+          .map((tier) => ({
+            id: String(tier._id),
+            code: tier.code,
+            name: tier.name,
+            description: tier.description || null,
+            priceMinor: tier.priceMinor,
+            billingCadence: tier.billingCadence,
+            studentLimit: tier.studentLimit ?? null,
+            provisional: Boolean(tier.provisional),
+            active: Boolean(tier.active),
+            version: tier.version ?? 1,
+          })),
         schools: schools.map((school) => {
           const subscription = subscriptionBySchoolId.get(String(school._id));
           return {
@@ -73,6 +85,15 @@ export async function GET() {
                   id: String(subscription._id),
                   tierId: subscription.tierId ? String(subscription.tierId) : null,
                   status: subscription.status || "draft",
+                  lifecycleMode: subscription.lifecycleMode || null,
+                  billingCadence: subscription.billingCadence || null,
+                  startsAt:
+                    subscription.startsAt?.toISOString?.().slice(0, 10) || null,
+                  endsAt:
+                    subscription.endsAt?.toISOString?.().slice(0, 10) || null,
+                  trialEndsAt:
+                    subscription.trialEndsAt?.toISOString?.().slice(0, 10) ||
+                    null,
                   basePriceMinor: subscription.basePriceMinor ?? 0,
                   manualPriceOverrideMinor:
                     subscription.manualPriceOverrideMinor ?? null,
@@ -82,6 +103,11 @@ export async function GET() {
                   note: subscription.note || null,
                   pilotEndsAt:
                     subscription.pilotEndsAt?.toISOString?.().slice(0, 10) || null,
+                  gracePeriodEndsAt:
+                    subscription.gracePeriodEndsAt
+                      ?.toISOString?.()
+                      .slice(0, 10) || null,
+                  usageResetPolicy: subscription.usageResetPolicy || null,
                   updatedAt: subscription.updatedAt?.toISOString?.() || null,
                 }
               : null,

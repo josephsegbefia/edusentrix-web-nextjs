@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   Select,
   SelectContent,
@@ -109,7 +110,8 @@ type SubscriptionTierRecord = {
   name: string;
   description: string | null;
   priceMinor: number;
-  billingCadence: "monthly";
+  billingCadence: "term" | "annual" | "monthly" | "custom";
+  version?: number;
   studentLimit: number | null;
   provisional: boolean;
   active: boolean;
@@ -122,7 +124,24 @@ type SchoolSubscriptionRecord = {
   subscription: {
     id: string;
     tierId: string | null;
-    status: "draft" | "trial" | "active" | "suspended" | "cancelled";
+    status:
+      | "draft"
+      | "trial"
+      | "trialing"
+      | "pilot"
+      | "active"
+      | "past_due"
+      | "grace"
+      | "restricted_read_only"
+      | "suspended"
+      | "cancelled"
+      | "expired"
+      | "archived";
+    lifecycleMode: "trial" | "pilot" | "paid" | "custom" | null;
+    billingCadence: "term" | "annual" | "monthly" | "custom" | null;
+    startsAt: string | null;
+    endsAt: string | null;
+    trialEndsAt: string | null;
     basePriceMinor: number;
     manualPriceOverrideMinor: number | null;
     discountMode: "none" | "percent" | "fixed";
@@ -130,19 +149,70 @@ type SchoolSubscriptionRecord = {
     effectivePriceMinor: number;
     note: string | null;
     pilotEndsAt: string | null;
+    gracePeriodEndsAt: string | null;
+    usageResetPolicy: "term" | "annual" | "custom" | null;
     updatedAt: string | null;
   } | null;
 };
 
 type SubscriptionForm = {
   tierId: string;
-  status: "draft" | "trial" | "active" | "suspended" | "cancelled";
+  status: NonNullable<SchoolSubscriptionRecord["subscription"]>["status"];
+  billingCadence: "term" | "annual" | "monthly" | "custom" | "";
+  startsAt: string;
+  endsAt: string;
+  trialStartsAt: string;
+  trialEndsAt: string;
+  pilotStartsAt: string;
   manualPriceOverrideMinor: string;
   discountMode: "none" | "percent" | "fixed";
   discountValue: string;
   note: string;
   pilotEndsAt: string;
+  gracePeriodEndsAt: string;
+  usageResetPolicy: "term" | "annual" | "custom" | "";
 };
+
+type SubscriptionDateField =
+  | "startsAt"
+  | "endsAt"
+  | "trialStartsAt"
+  | "trialEndsAt"
+  | "pilotStartsAt"
+  | "pilotEndsAt"
+  | "gracePeriodEndsAt";
+
+function dateStringToDate(value: string): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function dateToDateString(date: Date | null): string {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function lifecycleModeFromStatus(
+  status: SubscriptionForm["status"]
+): "trial" | "pilot" | "paid" | null {
+  if (status === "trial" || status === "trialing") return "trial";
+  if (status === "pilot") return "pilot";
+  if (
+    status === "active" ||
+    status === "past_due" ||
+    status === "grace" ||
+    status === "restricted_read_only" ||
+    status === "suspended" ||
+    status === "expired"
+  ) {
+    return "paid";
+  }
+  return null;
+}
 
 function emptyDestination(): PayoutDestination {
   return {
@@ -204,9 +274,23 @@ function subscriptionFormFromRecord(
   record: SchoolSubscriptionRecord | null,
   tiers: SubscriptionTierRecord[]
 ): SubscriptionForm {
+  const currentTierIsAssignable = tiers.some(
+    (tier) => tier.id === record?.subscription?.tierId
+  );
+
   return {
-    tierId: record?.subscription?.tierId || tiers[0]?.id || "",
+    tierId:
+      currentTierIsAssignable && record?.subscription?.tierId
+        ? record.subscription.tierId
+        : tiers[0]?.id || "",
     status: record?.subscription?.status || "draft",
+    billingCadence:
+      record?.subscription?.billingCadence || tiers[0]?.billingCadence || "",
+    startsAt: record?.subscription?.startsAt || "",
+    endsAt: record?.subscription?.endsAt || "",
+    trialStartsAt: "",
+    trialEndsAt: record?.subscription?.trialEndsAt || "",
+    pilotStartsAt: "",
     manualPriceOverrideMinor:
       typeof record?.subscription?.manualPriceOverrideMinor === "number"
         ? String(record.subscription.manualPriceOverrideMinor)
@@ -218,6 +302,8 @@ function subscriptionFormFromRecord(
         : "",
     note: record?.subscription?.note || "",
     pilotEndsAt: record?.subscription?.pilotEndsAt || "",
+    gracePeriodEndsAt: record?.subscription?.gracePeriodEndsAt || "",
+    usageResetPolicy: record?.subscription?.usageResetPolicy || "",
   };
 }
 
@@ -413,11 +499,19 @@ export default function PlatformBillingPage() {
     {
       tierId: "",
       status: "draft",
+      billingCadence: "",
+      startsAt: "",
+      endsAt: "",
+      trialStartsAt: "",
+      trialEndsAt: "",
+      pilotStartsAt: "",
       manualPriceOverrideMinor: "",
       discountMode: "none",
       discountValue: "",
       note: "",
       pilotEndsAt: "",
+      gracePeriodEndsAt: "",
+      usageResetPolicy: "",
     }
   );
 
@@ -582,6 +676,16 @@ export default function PlatformBillingPage() {
       discountValue,
     });
   }, [selectedSubscriptionTier, subscriptionForm]);
+
+  const setSubscriptionDateField = React.useCallback(
+    (field: SubscriptionDateField, date: Date | null) => {
+      setSubscriptionForm((current) => ({
+        ...current,
+        [field]: dateToDateString(date),
+      }));
+    },
+    []
+  );
 
   const requestVerification = React.useCallback(async () => {
     try {
@@ -755,11 +859,21 @@ export default function PlatformBillingPage() {
           body: JSON.stringify({
             tierId: subscriptionForm.tierId,
             status: subscriptionForm.status,
+            lifecycleMode: lifecycleModeFromStatus(subscriptionForm.status),
+            billingCadence: subscriptionForm.billingCadence || null,
+            startsAt: subscriptionForm.startsAt.trim() || null,
+            endsAt: subscriptionForm.endsAt.trim() || null,
+            trialStartsAt: subscriptionForm.trialStartsAt.trim() || null,
+            trialEndsAt: subscriptionForm.trialEndsAt.trim() || null,
+            pilotStartsAt: subscriptionForm.pilotStartsAt.trim() || null,
             manualPriceOverrideMinor,
             discountMode: subscriptionForm.discountMode,
             discountValue,
             note: subscriptionForm.note.trim() || null,
             pilotEndsAt: subscriptionForm.pilotEndsAt.trim() || null,
+            gracePeriodEndsAt:
+              subscriptionForm.gracePeriodEndsAt.trim() || null,
+            usageResetPolicy: subscriptionForm.usageResetPolicy || null,
           }),
         }
       );
@@ -772,7 +886,12 @@ export default function PlatformBillingPage() {
       const updated = json.data as {
         schoolId: string;
         tierId: string;
-        status: "draft" | "trial" | "active" | "suspended" | "cancelled";
+        status: SubscriptionForm["status"];
+        lifecycleMode: "trial" | "pilot" | "paid" | null;
+        billingCadence: SubscriptionForm["billingCadence"] | null;
+        startsAt: string | null;
+        endsAt: string | null;
+        trialEndsAt: string | null;
         basePriceMinor: number;
         manualPriceOverrideMinor: number | null;
         discountMode: "none" | "percent" | "fixed";
@@ -780,6 +899,7 @@ export default function PlatformBillingPage() {
         effectivePriceMinor: number;
         note: string | null;
         pilotEndsAt: string | null;
+        gracePeriodEndsAt: string | null;
         updatedAt: string | null;
       };
 
@@ -792,6 +912,11 @@ export default function PlatformBillingPage() {
                   id: school.subscription?.id || `${school.id}-subscription`,
                   tierId: updated.tierId,
                   status: updated.status,
+                  lifecycleMode: updated.lifecycleMode || null,
+                  billingCadence: updated.billingCadence || null,
+                  startsAt: updated.startsAt,
+                  endsAt: updated.endsAt,
+                  trialEndsAt: updated.trialEndsAt,
                   basePriceMinor: updated.basePriceMinor,
                   manualPriceOverrideMinor: updated.manualPriceOverrideMinor,
                   discountMode: updated.discountMode,
@@ -799,6 +924,8 @@ export default function PlatformBillingPage() {
                   effectivePriceMinor: updated.effectivePriceMinor,
                   note: updated.note,
                   pilotEndsAt: updated.pilotEndsAt,
+                  gracePeriodEndsAt: updated.gracePeriodEndsAt,
+                  usageResetPolicy: subscriptionForm.usageResetPolicy || null,
                   updatedAt: updated.updatedAt,
                 },
               }
@@ -1513,10 +1640,75 @@ export default function PlatformBillingPage() {
                         </SelectTrigger>
                         <SelectContent className="border-white/10 bg-slate-950 text-white">
                           <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="trial">Trial</SelectItem>
+                          <SelectItem value="trialing">Trialing</SelectItem>
+                          <SelectItem value="pilot">Pilot</SelectItem>
                           <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="past_due">Past Due</SelectItem>
+                          <SelectItem value="grace">Grace</SelectItem>
+                          <SelectItem value="restricted_read_only">Read Only</SelectItem>
                           <SelectItem value="suspended">Suspended</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium uppercase tracking-wide text-white/50">
+                        Billing Cadence
+                      </label>
+                      <Select
+                        value={subscriptionForm.billingCadence || "none"}
+                        onValueChange={(value) =>
+                          setSubscriptionForm((current) => ({
+                            ...current,
+                            billingCadence:
+                              value === "none"
+                                ? ""
+                                : (value as SubscriptionForm["billingCadence"]),
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="w-full border-white/10 bg-white/5 text-white">
+                          <SelectValue placeholder="Select cadence" />
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-slate-950 text-white">
+                          <SelectItem value="none">Use tier default</SelectItem>
+                          <SelectItem value="term">Term</SelectItem>
+                          <SelectItem value="annual">Annual</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium uppercase tracking-wide text-white/50">
+                        Usage Reset Policy
+                      </label>
+                      <Select
+                        value={subscriptionForm.usageResetPolicy || "none"}
+                        onValueChange={(value) =>
+                          setSubscriptionForm((current) => ({
+                            ...current,
+                            usageResetPolicy:
+                              value === "none"
+                                ? ""
+                                : (value as SubscriptionForm["usageResetPolicy"]),
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="w-full border-white/10 bg-white/5 text-white">
+                          <SelectValue placeholder="Select reset policy" />
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-slate-950 text-white">
+                          <SelectItem value="none">Not set</SelectItem>
+                          <SelectItem value="term">Term</SelectItem>
+                          <SelectItem value="annual">Annual</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1531,13 +1723,22 @@ export default function PlatformBillingPage() {
                         {selectedSubscriptionTier.description || "No tier description set."}
                       </p>
                       <p className="mt-2 text-white/70">
-                        Base monthly price:{" "}
+                        Base {selectedSubscriptionTier.billingCadence} price:{" "}
                         <span className="font-medium text-white">
                           {formatMoney(selectedSubscriptionTier.priceMinor)}
                         </span>
                       </p>
+                      <p className="mt-1 text-xs text-white/50">
+                        Version {selectedSubscriptionTier.version || 1}
+                      </p>
                     </div>
                   ) : null}
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <CustomDatePicker label="Starts On" value={dateStringToDate(subscriptionForm.startsAt)} onChange={(date) => setSubscriptionDateField("startsAt", date)} placeholder="Select start date" />
+                    <CustomDatePicker label="Ends On" value={dateStringToDate(subscriptionForm.endsAt)} onChange={(date) => setSubscriptionDateField("endsAt", date)} placeholder="Select end date" />
+                    <CustomDatePicker label="Grace Ends On" value={dateStringToDate(subscriptionForm.gracePeriodEndsAt)} onChange={(date) => setSubscriptionDateField("gracePeriodEndsAt", date)} placeholder="Select grace end date" />
+                  </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
@@ -1560,22 +1761,8 @@ export default function PlatformBillingPage() {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium uppercase tracking-wide text-white/50">
-                        Pilot Ends On
-                      </label>
-                      <Input
-                        type="date"
-                        value={subscriptionForm.pilotEndsAt}
-                        onChange={(event) =>
-                          setSubscriptionForm((current) => ({
-                            ...current,
-                            pilotEndsAt: event.target.value,
-                          }))
-                        }
-                        className="border-white/10 bg-white/5 text-white"
-                      />
-                    </div>
+                    <CustomDatePicker label="Pilot Ends On" value={dateStringToDate(subscriptionForm.pilotEndsAt)} onChange={(date) => setSubscriptionDateField("pilotEndsAt", date)} placeholder="Select pilot end date" />
+                    <CustomDatePicker label="Trial Ends On" value={dateStringToDate(subscriptionForm.trialEndsAt)} onChange={(date) => setSubscriptionDateField("trialEndsAt", date)} placeholder="Select trial end date" />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { BookOpenCheck, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
+import { BookOpenCheck, CheckCircle2, FileSpreadsheet, Plus, Route, Trash2 } from "lucide-react";
 import {
   useTeacherSchemeCreate,
   useTeacherSchemeDelete,
@@ -84,7 +84,7 @@ export default function TeacherSchemesPage() {
   const schoolCurriculumCode = ctxRes?.data?.school?.curriculumCode;
   const isNaCCASchool = schoolCurriculumCode === "ghana_nacca";
   const canImport = isNaCCASchool && can(permissions, PERMISSIONS.schemeImportUpload);
-  const currentPeriodId = ctxRes?.data?.currentPeriod?.id;
+  const currentPeriodId = ctxRes?.data?.currentPeriod?._id;
 
   const assignmentOptions = useMemo(() => {
     const rows = classesData?.data?.classes || [];
@@ -92,12 +92,13 @@ export default function TeacherSchemesPage() {
     return rows
       .filter((row) => row._id && row.gradeId && row.subjectId)
       .map((row) => ({
-        key: `${row._id}|${row.subjectId}`,
-        classGroupId: row._id,
+        key: `${row.gradeId}|${row.subjectId}`,
         gradeId: row.gradeId,
+        gradeName: row.gradeName,
         subjectId: row.subjectId,
-        label: `${row.name} · ${row.subjectName}`,
-        description: `${row.studentCount} students${row.isHomeroom ? " · Homeroom" : ""}`,
+        subjectName: row.subjectName,
+        label: `${row.gradeName} · ${row.subjectName}`,
+        description: "Applies to all class groups in this grade",
       }))
       .filter((row) => {
         if (seen.has(row.key)) return false;
@@ -115,7 +116,6 @@ export default function TeacherSchemesPage() {
       title: trimmed,
       academicPeriodId: currentPeriodId,
       gradeId: selectedAssignment.gradeId,
-      classGroupId: selectedAssignment.classGroupId,
       subjectId: selectedAssignment.subjectId,
     });
     setTitle("");
@@ -155,13 +155,33 @@ export default function TeacherSchemesPage() {
             </p>
           </div>
           {canImport ? (
-            <Button asChild variant="outline" className="border-white/10 bg-white/[0.06] text-white hover:bg-white/10">
+            <Button asChild className="bg-emerald-500 text-white hover:bg-emerald-400">
               <Link href="/teacher/schemes/import">
                 <FileSpreadsheet className="h-4 w-4" />
-                Import document
+                Import Scheme
               </Link>
             </Button>
           ) : null}
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          {[
+            { icon: FileSpreadsheet, label: "Upload", text: "Use the official scheme document" },
+            { icon: Route, label: "Tie context", text: "Select exact grade and subject" },
+            { icon: CheckCircle2, label: "Review", text: "Check extracted weekly rows" },
+            { icon: BookOpenCheck, label: "Submit", text: "Send the plan for admin approval" },
+          ].map((step, index) => (
+            <div key={step.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs text-white/65">
+                  {index + 1}
+                </span>
+                <step.icon className="h-4 w-4 text-emerald-200" />
+              </div>
+              <p className="mt-2 text-sm font-medium text-white">{step.label}</p>
+              <p className="mt-0.5 text-xs text-white/45">{step.text}</p>
+            </div>
+          ))}
         </div>
 
         <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)_auto]">
@@ -233,6 +253,7 @@ export default function TeacherSchemesPage() {
                 <CardContent className="space-y-3 text-sm">
                   <p className="text-white/60">
                     {scheme.gradeName || "Grade pending"} · {scheme.subjectName || "Subject pending"}
+                    {!scheme.classGroupId ? " · All class groups" : ""}
                   </p>
                   <div className="flex items-center justify-between border-t border-white/10 pt-3 text-xs text-white/45">
                     <span>{scheme.academicPeriodLabel || "Current period"}</span>

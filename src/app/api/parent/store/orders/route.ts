@@ -28,22 +28,34 @@ export async function GET() {
       ])
     );
 
-    return NextResponse.json({
-      success: true,
-      data: orders.map((o) => ({
+    const mapped = orders.map((o) => ({
         id: String(o._id),
-        status: o.status,
+        orderNumber: String(o._id).slice(-8).toUpperCase(),
+        status: o.status === "paid" ? "confirmed" : o.status === "pending_payment" ? "pending" : o.status,
+        totalAmount: (o.totalMinor || 0) / 100,
         totalMinor: o.totalMinor,
         currency: o.currency || "GHS",
+        items: o.lines.map((l) => ({
+          productId: String(l.productId),
+          productName: l.nameSnapshot,
+          quantity: l.quantity,
+          unitPrice: (l.unitPriceMinor || 0) / 100,
+          total: (l.lineTotalMinor || 0) / 100,
+        })),
         lines: o.lines.map((l) => ({
           name: l.nameSnapshot,
           quantity: l.quantity,
           lineTotalMinor: l.lineTotalMinor,
         })),
+        wardId: String(o.studentId),
         wardName: nameById.get(String(o.studentId)) || "Student",
         createdAt: o.createdAt?.toISOString() || null,
         paidAt: o.paidAt?.toISOString() || null,
-      })),
+      }));
+
+    return NextResponse.json({
+      success: true,
+      data: { orders: mapped },
     });
   } catch (e) {
     if (e instanceof Response) return e;

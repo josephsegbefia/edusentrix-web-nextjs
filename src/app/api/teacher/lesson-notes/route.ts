@@ -528,6 +528,17 @@ export async function POST(req: Request) {
       schemeId: schemeIdRaw,
       schemeItemIds: schemeItemsRaw,
     } = parsed.data;
+    const nextStatus = status || "draft";
+
+    if (!context.isAdmin && !["draft", "submitted"].includes(nextStatus)) {
+      return Response.json(
+        {
+          success: false,
+          error: "Teachers can save drafts or submit lesson notes for admin review.",
+        },
+        { status: 403 }
+      );
+    }
 
     const classGroupObjId = toObjectIdOrNull(classGroupId);
     if (!classGroupObjId) {
@@ -577,7 +588,7 @@ export async function POST(req: Request) {
 
     const schemePolicy = await assertLessonNoteRequiresSchemeLink({
       schoolId: context.schoolId,
-      nextStatus: status || "draft",
+      nextStatus,
       schemeIdAfter: schemeResolution.schemeObjectId,
     });
     if (!schemePolicy.ok) {
@@ -685,7 +696,8 @@ export async function POST(req: Request) {
       tags: tags || [],
 
       // Status
-      status: status || "draft",
+      status: nextStatus,
+      ...(nextStatus === "submitted" ? { submittedAt: new Date() } : {}),
 
       // Legacy fields (for backwards compatibility) - always provide a value
       objectives: legacyObjectives,

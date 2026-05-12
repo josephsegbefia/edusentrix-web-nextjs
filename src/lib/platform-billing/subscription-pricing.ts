@@ -1,11 +1,61 @@
 export type SubscriptionDiscountMode = "none" | "percent" | "fixed";
 
+export type BillingCadence = "term" | "annual" | "monthly" | "custom";
+
+export type SubscriptionLifecycleMode = "trial" | "pilot" | "paid" | "custom";
+
+export const SUBSCRIPTION_STATUSES = [
+  "draft",
+  "trial",
+  "trialing",
+  "pilot",
+  "active",
+  "past_due",
+  "grace",
+  "restricted_read_only",
+  "suspended",
+  "cancelled",
+  "expired",
+  "archived",
+] as const;
+
+export const BILLING_CADENCES = ["term", "annual", "monthly", "custom"] as const;
+
+export const SUBSCRIPTION_LIFECYCLE_MODES = [
+  "trial",
+  "pilot",
+  "paid",
+  "custom",
+] as const;
+
 export type SubscriptionStatus =
-  | "draft"
-  | "trial"
-  | "active"
-  | "suspended"
-  | "cancelled";
+  (typeof SUBSCRIPTION_STATUSES)[number];
+
+export const ACTIVE_SUBSCRIPTION_STATUSES: SubscriptionStatus[] = [
+  "trial",
+  "trialing",
+  "pilot",
+  "active",
+];
+
+export function normalizeSubscriptionStatus(
+  status?: string | null
+): SubscriptionStatus {
+  if (status === "trial") return "trialing";
+
+  return SUBSCRIPTION_STATUSES.includes(status as SubscriptionStatus)
+    ? (status as SubscriptionStatus)
+    : "draft";
+}
+
+export function isActiveSubscriptionStatus(status?: string | null) {
+  const normalized = normalizeSubscriptionStatus(status);
+  return (
+    normalized === "trialing" ||
+    normalized === "pilot" ||
+    normalized === "active"
+  );
+}
 
 export type SubscriptionPricingInput = {
   basePriceMinor: number;

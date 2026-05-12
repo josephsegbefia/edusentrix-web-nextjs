@@ -8,7 +8,7 @@ import { AdmissionCycle } from "@/models/AdmissionCycle";
 import { Student } from "@/models/Student";
 import { createUploadthing, type FileRouter, UTFiles } from "uploadthing/next";
 import { z } from "zod";
-import { checkLimit } from "@/lib/billing/entitlements";
+import { checkUsageLimit } from "@/lib/billing/check-usage-limit";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 import { canUploadLibraryBookCover } from "@/lib/library/library-upload-gate";
@@ -141,11 +141,12 @@ async function buildMetadata(
     0
   );
 
-  const storageLimit = await checkLimit(
-    context.schoolId,
-    "maxStorageBytes",
-    incomingBytes
-  );
+  const storageLimit = await checkUsageLimit({
+    schoolId: context.schoolId,
+    limitKey: "maxStorageBytes",
+    increment: incomingBytes,
+    expensive: true,
+  });
   if (!storageLimit.allowed) {
     throw new Error("Storage limit reached for this subscription.");
   }
@@ -545,11 +546,12 @@ export const ourFileRouter = {
         (sum, f) => sum + Math.max(0, Number(f.size || 0)),
         0
       );
-      const storageLimit = await checkLimit(
-        resolvedSchoolId,
-        "maxStorageBytes",
-        incomingBytes
-      );
+      const storageLimit = await checkUsageLimit({
+        schoolId: resolvedSchoolId,
+        limitKey: "maxStorageBytes",
+        increment: incomingBytes,
+        expensive: true,
+      });
       if (!storageLimit.allowed) {
         throw new Error("Storage limit reached for this school.");
       }

@@ -24,9 +24,11 @@ type TierRecord = {
   name: string;
   description: string | null;
   priceMinor: number;
-  billingCadence: "monthly";
+  billingCadence: "term" | "annual" | "monthly" | "custom";
   studentLimit: number | null;
   features: string[];
+  publicVisible: boolean;
+  version: number;
   provisional: boolean;
   active: boolean;
   sortOrder: number;
@@ -43,8 +45,11 @@ type TierForm = {
   name: string;
   description: string;
   priceMinor: string;
+  billingCadence: "term" | "annual" | "monthly" | "custom";
   studentLimit: string;
   featuresText: string;
+  publicVisible: "true" | "false";
+  version: string;
   provisional: "true" | "false";
   active: "true" | "false";
   sortOrder: string;
@@ -56,8 +61,11 @@ function emptyForm(): TierForm {
     name: "",
     description: "",
     priceMinor: "",
+    billingCadence: "term",
     studentLimit: "",
     featuresText: "",
+    publicVisible: "false",
+    version: "1",
     provisional: "true",
     active: "true",
     sortOrder: "0",
@@ -81,9 +89,12 @@ function formFromTier(tier: TierRecord): TierForm {
     name: tier.name,
     description: tier.description || "",
     priceMinor: String(tier.priceMinor),
+    billingCadence: tier.billingCadence || "term",
     studentLimit:
       typeof tier.studentLimit === "number" ? String(tier.studentLimit) : "",
     featuresText: tier.features.join("\n"),
+    publicVisible: tier.publicVisible ? "true" : "false",
+    version: String(tier.version || 1),
     provisional: tier.provisional ? "true" : "false",
     active: tier.active ? "true" : "false",
     sortOrder: String(tier.sortOrder),
@@ -167,9 +178,12 @@ export default function PlatformBillingTiersPage() {
         name: form.name.trim(),
         description: form.description.trim() || null,
         priceMinor: Number(form.priceMinor || 0),
+        billingCadence: form.billingCadence,
         studentLimit:
           form.studentLimit.trim() === "" ? null : Number(form.studentLimit),
         features: parseFeatures(form.featuresText),
+        publicVisible: form.publicVisible === "true",
+        version: Number(form.version || 1),
         provisional: form.provisional === "true",
         active: form.active === "true",
         sortOrder: Number(form.sortOrder || 0),
@@ -275,7 +289,7 @@ export default function PlatformBillingTiersPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-xs uppercase tracking-wide text-white/50">
-                  Monthly Price (minor units)
+                  Base Price (minor units)
                 </label>
                 <Input
                   type="number"
@@ -311,6 +325,75 @@ export default function PlatformBillingTiersPage() {
                   className="border-white/10 bg-white/5 text-white"
                   placeholder="Leave empty for no cap"
                 />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wide text-white/50">
+                  Billing Cadence
+                </label>
+                <Select
+                  value={form.billingCadence}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      billingCadence: value as TierForm["billingCadence"],
+                    }))
+                  }
+                >
+                  <SelectTrigger className="w-full border-white/10 bg-white/5 text-white">
+                    <SelectValue placeholder="Select cadence" />
+                  </SelectTrigger>
+                  <SelectContent className="border-white/10 bg-slate-950 text-white">
+                    <SelectItem value="term">Term</SelectItem>
+                    <SelectItem value="annual">Annual</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wide text-white/50">
+                  Tier Version
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.version}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      version: event.target.value,
+                    }))
+                  }
+                  className="border-white/10 bg-white/5 text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-wide text-white/50">
+                  Public Visible
+                </label>
+                <Select
+                  value={form.publicVisible}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      publicVisible: value as TierForm["publicVisible"],
+                    }))
+                  }
+                >
+                  <SelectTrigger className="w-full border-white/10 bg-white/5 text-white">
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent className="border-white/10 bg-slate-950 text-white">
+                    <SelectItem value="false">Internal only</SelectItem>
+                    <SelectItem value="true">Public when enabled</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -538,7 +621,10 @@ export default function PlatformBillingTiersPage() {
                         </p>
                         <div className="flex flex-wrap gap-2">
                           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/65">
-                            {formatMoney(tier.priceMinor)} / month
+                            {formatMoney(tier.priceMinor)} / {tier.billingCadence}
+                          </span>
+                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/65">
+                            v{tier.version || 1}
                           </span>
                           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/65">
                             {tier.studentLimit
@@ -548,6 +634,11 @@ export default function PlatformBillingTiersPage() {
                           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/65">
                             {tier.assignedSchoolCount} assigned schools
                           </span>
+                          {tier.publicVisible ? (
+                            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] text-emerald-100">
+                              Public visible
+                            </span>
+                          ) : null}
                         </div>
                         {tier.features.length > 0 ? (
                           <div className="flex flex-wrap gap-2">

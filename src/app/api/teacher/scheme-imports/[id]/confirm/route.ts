@@ -7,6 +7,8 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { SchemeImportJob, type ISchemeImportJob } from "@/models/SchemeImportJob";
 import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { SchemeItem } from "@/models/SchemeItem";
+import { ClassGroup } from "@/models/ClassGroup";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { assertSchemeImportEnabled } from "@/lib/schemes/scheme-import-gate";
 import { deriveCurriculumStructureFromSchemeImport } from "@/lib/schemes/scheme-import-curriculum-derive";
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
@@ -140,6 +142,35 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return Response.json({ success: false, error: "Invalid subjectId" }, { status: 400 });
     }
 
+    if (!ctx.isAdmin) {
+      const gradeClassGroups = await ClassGroup.find({
+        schoolId: ctx.schoolId,
+        gradeId,
+      })
+        .select("_id")
+        .lean<{ _id: mongoose.Types.ObjectId }[]>();
+      if (gradeClassGroups.length === 0) {
+        return Response.json(
+          { success: false, error: "No class groups exist for this grade" },
+          { status: 400 }
+        );
+      }
+      const assignment = await TeacherAssignment.exists({
+        schoolId: ctx.schoolId,
+        teacherId: ctx.teacherId,
+        academicPeriodId,
+        subjectId,
+        classGroupId: { $in: gradeClassGroups.map((group) => group._id) },
+        status: "active",
+      });
+      if (!assignment) {
+        return Response.json(
+          { success: false, error: "You can only import schemes for grades and subjects assigned to you" },
+          { status: 403 }
+        );
+      }
+    }
+
     const importable = job.parsedRows.filter((r) => {
       if (r.skipped || r.errors.length > 0) return false;
       return buildSchemeItemTitle(r).trim().length >= 2;
@@ -156,7 +187,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       academicPeriodId,
       gradeId,
       subjectId,
-      classGroupId,
+      classGroupId: null,
       status: { $in: ["draft", "submitted", "needs_revision", "approved", "active"] },
     })
       .select("_id title status")
@@ -165,7 +196,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return Response.json(
         {
           success: false,
-          error: `A scheme already exists for this class, subject, and period: "${existingScheme.title}". Open it or archive it before importing another.`,
+          error: `A scheme already exists for this grade, subject, and period: "${existingScheme.title}". Open it or archive it before importing another.`,
           data: {
             existingScheme: {
               id: String(existingScheme._id),
@@ -193,7 +224,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       curriculumId: derivedCurriculum.curriculumId,
       curriculumSubjectId: derivedCurriculum.curriculumSubjectId,
       gradeId,
-      classGroupId,
+      classGroupId: null,
       subjectId,
       ownerTeacherId: ctx.teacherId,
       status: "draft",

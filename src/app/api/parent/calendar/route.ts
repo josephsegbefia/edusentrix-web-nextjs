@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireParent, getParentWardIds } from "@/lib/auth/requireParent";
 import { AcademicCalendar } from "@/models/AcademicCalendar";
 import { AcademicCalendarEvent } from "@/models/AcademicCalendarEvent";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Student } from "@/models/Student";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
     const calendarId = url.searchParams.get("calendarId");
 
     const defaults = getRangeDefaults();
-    const range = clampRange(from || defaults.start, to || defaults.end);
+    const requestedRange = clampRange(from || defaults.start, to || defaults.end);
 
     const wardIds = await getParentWardIds(context.userId);
     if (wardIds.length === 0) {
@@ -90,8 +91,45 @@ export async function GET(req: NextRequest) {
       selectedCalendarId = new mongoose.Types.ObjectId(calendarId);
     }
 
+    const currentPeriod = await AcademicPeriod.findOne({
+      schoolId: context.schoolId,
+      isCurrent: true,
+    })
+      .select("_id startDate endDate yearLabel term")
+      .lean();
+
+    if (!currentPeriod) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          calendars: [],
+          events: [],
+          occurrences: [],
+          range: {
+            from: requestedRange.start.toISOString(),
+            to: requestedRange.end.toISOString(),
+          },
+        },
+      });
+    }
+
+    const periodStart = new Date(currentPeriod.startDate);
+    const periodEnd = new Date(currentPeriod.endDate);
+    periodStart.setHours(0, 0, 0, 0);
+    periodEnd.setHours(23, 59, 59, 999);
+
+    const rangeStart = new Date(Math.max(requestedRange.start.getTime(), periodStart.getTime()));
+    const rangeEnd = new Date(Math.min(requestedRange.end.getTime(), periodEnd.getTime()));
+    const range =
+      rangeStart <= rangeEnd
+        ? { start: rangeStart, end: rangeEnd }
+        : { start: rangeStart, end: rangeStart };
+
+    const emptyRange = rangeStart > rangeEnd;
+
     const calendars = await AcademicCalendar.find({
       schoolId: context.schoolId,
+      academicPeriodId: currentPeriod._id,
       isPublished: true,
     })
       .sort({ createdAt: -1 })
@@ -122,11 +160,31 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    if (emptyRange) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          calendars: calendarSummaries,
+          events: [],
+          occurrences: [],
+          range: {
+            from: range.start.toISOString(),
+            to: range.end.toISOString(),
+          },
+        },
+      });
+    }
+
     const calendarIds = calendars.map((c) => c._id);
 
     const eventQuery: Record<string, unknown> = {
       calendarId: selectedCalendarId || { $in: calendarIds },
       schoolId: context.schoolId,
+      $or: [
+        { academicPeriodId: currentPeriod._id },
+        { academicPeriodId: null },
+        { academicPeriodId: { $exists: false } },
+      ],
       status: "published",
     };
 

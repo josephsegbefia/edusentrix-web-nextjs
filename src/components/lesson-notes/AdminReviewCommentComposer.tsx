@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MessageSquarePlus } from "lucide-react";
+import { Highlighter, MessageSquarePlus, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +34,12 @@ export function AdminReviewCommentComposer({
   const [commentType, setCommentType] =
     React.useState<LessonNoteReviewCommentType>("suggestion");
   const [comment, setComment] = React.useState("");
+  const [highlightedText, setHighlightedText] = React.useState("");
+
+  const captureSelection = React.useCallback(() => {
+    const selected = window.getSelection()?.toString().replace(/\s+/g, " ").trim() || "";
+    if (selected) setHighlightedText(selected.slice(0, 500));
+  }, []);
 
   const handleSubmit = async () => {
     if (!comment.trim()) {
@@ -49,12 +55,15 @@ export function AdminReviewCommentComposer({
         sectionKey: section.key,
         sectionLabel: section.label,
         commentType,
-        comment: comment.trim(),
+        comment: highlightedText
+          ? `Highlighted text: "${highlightedText}"\n\n${comment.trim()}`
+          : comment.trim(),
       });
       toast.success("Comment Added", {
         description: `Saved a review note for ${section.label.toLowerCase()}.`,
       });
       setComment("");
+      setHighlightedText("");
       setCommentType("suggestion");
     } catch (error) {
       toast.error("Comment Failed", {
@@ -64,10 +73,36 @@ export function AdminReviewCommentComposer({
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 space-y-3">
+    <div className="space-y-3 rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
       <div className="flex items-center gap-2 text-sm font-medium text-white">
         <MessageSquarePlus className="h-4 w-4 text-sky-300" />
         Add Review Comment
+      </div>
+
+      <div className="rounded-xl border border-sky-300/15 bg-sky-500/10 p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 text-sm text-sky-50/85">
+            <Highlighter className="mt-0.5 h-4 w-4 shrink-0 text-sky-200" />
+            <span>
+              Select text in this section, then capture it to attach a precise highlight to your
+              review note.
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={captureSelection}
+            className="w-fit border-sky-300/20 bg-sky-500/10 text-sky-100 hover:bg-sky-500/20"
+          >
+            <WandSparkles className="mr-2 h-3.5 w-3.5" />
+            Capture selection
+          </Button>
+        </div>
+        {highlightedText ? (
+          <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-white/75">
+            <span className="font-semibold text-sky-100">Highlighted:</span> {highlightedText}
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-2">

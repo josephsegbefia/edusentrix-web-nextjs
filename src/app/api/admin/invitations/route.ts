@@ -16,6 +16,10 @@ import {
 } from "@/lib/utils/getAppUrl";
 import mongoose from "mongoose";
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
+import {
+  requireSchoolWriteAccess,
+  SchoolWriteAccessError,
+} from "@/lib/billing/require-school-write-access";
 import { trackUsage } from "@/lib/billing/trackUsage";
 
 const createInvitationSchema = z.object({
@@ -142,6 +146,7 @@ export async function POST(req: NextRequest) {
   try {
     const authCtx = await requireSchoolAdminOrDelegatedModuleView("invitations");
     const { schoolId, userId } = authCtx;
+    await requireSchoolWriteAccess({ schoolId, action: "invitations.create" });
     await enforceSchoolLimit({
       schoolId,
       limitKey: "maxInvitationsPerMonth",
@@ -341,6 +346,12 @@ export async function POST(req: NextRequest) {
     );
   } catch (e: unknown) {
     if (e instanceof Response) return e;
+    if (e instanceof SchoolWriteAccessError) {
+      return Response.json(
+        { success: false, error: e.message, accessMode: e.accessMode },
+        { status: e.statusCode }
+      );
+    }
     console.error("Failed to create invitation:", e);
     const message =
       e instanceof Error ? e.message : "Failed to create invitation";

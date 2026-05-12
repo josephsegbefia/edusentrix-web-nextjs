@@ -24,6 +24,7 @@ const BodySchema = z.object({
   invoiceId: z.string().min(1),
   preview: z.boolean().optional().default(false),
   returnPath: z.string().trim().optional(),
+  returnUrl: z.string().trim().optional(),
 });
 
 type InvoiceRow = {
@@ -87,6 +88,23 @@ function normalizeParentReturnPath(value: string | undefined) {
       return null;
     }
     return pathWithSearch;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeMobileReturnUrl(value: string | undefined) {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    const allowedProtocols =
+      process.env.NODE_ENV === "production"
+        ? new Set(["jedi:"])
+        : new Set(["jedi:", "exp:", "exps:"]);
+
+    if (!allowedProtocols.has(url.protocol)) return null;
+    return url.toString();
   } catch {
     return null;
   }
@@ -228,9 +246,11 @@ export async function POST(req: NextRequest) {
     paymentIntentId = paymentIntent._id as mongoose.Types.ObjectId;
 
     const appUrl = getAppUrl().replace(/\/$/, "");
-    const callbackPath =
-      normalizeParentReturnPath(body.returnPath) || "/parent/fees";
-    const callbackUrlObject = new URL(callbackPath, appUrl);
+    const mobileReturnUrl = normalizeMobileReturnUrl(body.returnUrl);
+    const callbackPath = normalizeParentReturnPath(body.returnPath) || "/parent/fees";
+    const callbackUrlObject = mobileReturnUrl
+      ? new URL(mobileReturnUrl)
+      : new URL(callbackPath, appUrl);
     callbackUrlObject.searchParams.set("checkout", "paystack");
     const callbackUrl = callbackUrlObject.toString();
     const reference = `EDSX-FEE-${String(paymentIntent._id)}-${Date.now()}`;

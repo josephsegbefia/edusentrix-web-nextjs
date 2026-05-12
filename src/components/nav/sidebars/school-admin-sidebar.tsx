@@ -72,6 +72,7 @@ import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBr
 import { useSidebar } from "@/providers/sidebar-provider";
 import { useSchool } from "@/hooks/admin/useSchool";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
+import { useAdminLessonNotes } from "@/hooks/admin/useAdminLessonNotes";
 
 type NavItemBase = {
   label: string;
@@ -170,6 +171,14 @@ const navSections: NavSection[] = [
         label: "Lesson Notes",
         href: "/admin/lesson-notes",
         icon: FileText,
+        exact: true,
+        children: [
+          {
+            label: "Awaiting review",
+            href: "/admin/lesson-notes/review",
+            icon: ClipboardCheck,
+          },
+        ],
       },
       {
         label: "Lesson analytics",
@@ -473,6 +482,12 @@ function NavContent({
 }) {
   const pathname = usePathname();
   const { shouldRestrictSchoolAdminNav } = useOnboardingProgress();
+  const { data: lessonNoteReviewData } = useAdminLessonNotes(
+    { status: "submitted", limit: 1 },
+    !shouldRestrictSchoolAdminNav
+  );
+  const pendingLessonNoteReviews =
+    lessonNoteReviewData?.data.summary.total ?? 0;
   const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -673,6 +688,9 @@ function NavContent({
                         {childList.map((child) => {
                           const ChildIcon = child.icon;
                           const childActive = routeActive(child.href, child.exact);
+                          const showPendingBadge =
+                            child.href === "/admin/lesson-notes/review" &&
+                            pendingLessonNoteReviews > 0;
                           return (
                             <ActiveLink
                               key={child.href}
@@ -693,6 +711,11 @@ function NavContent({
                                 )}
                               />
                               <span className="truncate">{child.label}</span>
+                              {showPendingBadge ? (
+                                <span className="ml-auto rounded-full border border-sky-300/20 bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-100">
+                                  {pendingLessonNoteReviews > 99 ? "99+" : pendingLessonNoteReviews}
+                                </span>
+                              ) : null}
                             </ActiveLink>
                           );
                         })}

@@ -16,16 +16,25 @@ export async function GET() {
       .select("_id name description priceMinor currency imageUrl")
       .lean();
 
-    return NextResponse.json({
-      success: true,
-      data: products.map((p) => ({
+    const mapped = products.map((p) => ({
         id: String(p._id),
         name: p.name,
-        description: p.description || "",
+        description: p.description || null,
+        price: (p.priceMinor || 0) / 100,
         priceMinor: p.priceMinor,
         currency: p.currency || "GHS",
         imageUrl: p.imageUrl || null,
-      })),
+        category: null,
+        gradeLevel: null,
+        inStock: true,
+      }));
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        products: mapped,
+        categories: [],
+      },
     });
   } catch (e) {
     if (e instanceof Response) return e;

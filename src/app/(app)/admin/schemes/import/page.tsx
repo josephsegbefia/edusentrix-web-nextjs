@@ -34,8 +34,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-function makeTitle(input: { grade?: string; className?: string; subject?: string; period?: string }) {
-  return [input.className || input.grade || "Class", input.subject || "Subject", input.period || "Term"]
+function makeTitle(input: { grade?: string; subject?: string; period?: string }) {
+  return [input.grade || "Grade", input.subject || "Subject", input.period || "Term"]
     .join(" ")
     .concat(" Scheme of Learning")
     .replace(/\s+/g, " ")
@@ -57,7 +57,7 @@ function AdminSchemeImportInner() {
 
   const [localRows, setLocalRows] = useState<SchemeImportParsedRowClient[] | null>(null);
   const [periodId, setPeriodId] = useState("");
-  const [classId, setClassId] = useState("");
+  const [gradeId, setGradeId] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [schemeTitle, setSchemeTitle] = useState("");
   const [titleTouched, setTitleTouched] = useState(false);
@@ -68,8 +68,32 @@ function AdminSchemeImportInner() {
     () => periodsData?.periods.find((p) => p.isCurrent) ?? periodsData?.periods[0] ?? null,
     [periodsData?.periods]
   );
-  const selectedClass = classesData?.data.find((row) => row.id === classId) ?? null;
-  const selectedSubject = selectedClass?.subjects.find((subject) => subject.id === subjectId) ?? null;
+  const gradeOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          (classesData?.data ?? []).map((row) => [
+            row.grade.id,
+            { id: row.grade.id, name: row.grade.name },
+          ])
+        ).values()
+      ).sort((a, b) => a.name.localeCompare(b.name)),
+    [classesData?.data]
+  );
+  const subjectOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          (classesData?.data ?? [])
+            .filter((row) => row.grade.id === gradeId)
+            .flatMap((row) => row.subjects)
+            .map((subject) => [subject.id, subject])
+        ).values()
+      ).sort((a, b) => a.name.localeCompare(b.name)),
+    [classesData?.data, gradeId]
+  );
+  const selectedGrade = gradeOptions.find((grade) => grade.id === gradeId) ?? null;
+  const selectedSubject = subjectOptions.find((subject) => subject.id === subjectId) ?? null;
   const schoolCurriculumCode = schoolRes?.data?.curriculumCode || "ghana_nacca";
   const isNaCCASchool = schoolCurriculumCode === "ghana_nacca";
 
@@ -88,13 +112,12 @@ function AdminSchemeImportInner() {
     const period = periodsData?.periods.find((p) => p._id === periodId);
     setSchemeTitle(
       makeTitle({
-        grade: selectedClass?.grade.name,
-        className: selectedClass?.fullLabel || selectedClass?.name,
+        grade: selectedGrade?.name,
         subject: selectedSubject?.name,
         period: period ? `${period.yearLabel} ${period.term}` : undefined,
       })
     );
-  }, [periodId, periodsData?.periods, selectedClass, selectedSubject, titleTouched]);
+  }, [periodId, periodsData?.periods, selectedGrade, selectedSubject, titleTouched]);
 
   async function handleUploaded(payload: { url: string; fileName?: string; publicId?: string }) {
     setUploadError(null);
@@ -111,15 +134,15 @@ function AdminSchemeImportInner() {
   }
 
   async function confirmImport() {
-    if (!localRows || !jobId || !selectedClass || !selectedSubject || !periodId || !schemeTitle.trim()) return;
+    if (!localRows || !jobId || !selectedGrade || !selectedSubject || !periodId || !schemeTitle.trim()) return;
     setActionError(null);
     try {
       await saveRowsMutation.mutateAsync(localRows);
       const result = await confirmMutation.mutateAsync({
         schemeTitle: schemeTitle.trim(),
         academicPeriodId: periodId,
-        gradeId: selectedClass.grade.id,
-        classGroupId: selectedClass.id,
+        gradeId: selectedGrade.id,
+        classGroupId: null,
         subjectId: selectedSubject.id,
       });
       if (result.scheme?.id) router.push(`/admin/schemes/${result.scheme.id}`);
@@ -136,7 +159,7 @@ function AdminSchemeImportInner() {
       }
     : null;
 
-  const canConfirm = Boolean(localRows?.length && selectedClass && selectedSubject && periodId && schemeTitle.trim());
+  const canConfirm = Boolean(localRows?.length && selectedGrade && selectedSubject && periodId && schemeTitle.trim());
 
   if (schoolRes?.data && !isNaCCASchool) {
     return (
@@ -165,8 +188,8 @@ function AdminSchemeImportInner() {
             <p className="text-xs uppercase tracking-wide text-white/40">Scheme of Learning</p>
             <h1 className="mt-2 text-2xl font-semibold text-white">Import official scheme document</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
-              Upload a GES/NaCCA PDF or spreadsheet, choose the exact class and subject, review
-              the extracted rows, then create an approved Scheme of Learning for activation.
+              Upload a GES/NaCCA PDF or spreadsheet, choose the exact grade and subject, review
+              the extracted rows, then create an approved Scheme of Learning for all class groups in that grade.
             </p>
           </div>
           <Button asChild variant="outline" className="w-fit border-white/10 bg-white/5 text-white">
@@ -238,10 +261,11 @@ function AdminSchemeImportInner() {
         <>
           <section className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-5 md:grid-cols-2">
             <div className="md:col-span-2">
-              <h2 className="text-lg font-semibold text-white">2. Tie to class and subject</h2>
+              <h2 className="text-lg font-semibold text-white">2. Tie to grade and subject</h2>
               <p className="mt-1 text-sm text-white/50">
                 This is the step that prevents confusion: every imported scheme must have one
-                period, class, grade, and subject before it can be created.
+                period, grade, and subject before it can be created. It will apply to all class
+                groups within the selected grade.
               </p>
             </div>
             <PremiumSelect value={periodId} onValueChange={setPeriodId}>
@@ -257,29 +281,29 @@ function AdminSchemeImportInner() {
               </PremiumSelectContent>
             </PremiumSelect>
             <PremiumSelect
-              value={classId}
+              value={gradeId}
               onValueChange={(value) => {
-                setClassId(value);
+                setGradeId(value);
                 setSubjectId("");
               }}
             >
               <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
-                <PremiumSelectValue placeholder="Class" />
+                <PremiumSelectValue placeholder="Grade" />
               </PremiumSelectTrigger>
               <PremiumSelectContent>
-                {(classesData?.data ?? []).map((row) => (
+                {gradeOptions.map((row) => (
                   <PremiumSelectItem key={row.id} value={row.id}>
-                    {row.fullLabel || row.name}
+                    {row.name}
                   </PremiumSelectItem>
                 ))}
               </PremiumSelectContent>
             </PremiumSelect>
-            <PremiumSelect value={subjectId} onValueChange={setSubjectId} disabled={!selectedClass}>
+            <PremiumSelect value={subjectId} onValueChange={setSubjectId} disabled={!selectedGrade}>
               <PremiumSelectTrigger className="border-white/10 bg-white/5 text-white">
                 <PremiumSelectValue placeholder="Subject" />
               </PremiumSelectTrigger>
               <PremiumSelectContent>
-                {(selectedClass?.subjects ?? []).map((subject) => (
+                {subjectOptions.map((subject) => (
                   <PremiumSelectItem key={subject.id} value={subject.id}>
                     {subject.name}
                   </PremiumSelectItem>
@@ -372,12 +396,12 @@ function AdminSchemeImportInner() {
                       </TableCell>
                       <TableCell className="max-w-[300px] text-xs text-white/60">
                         {row.contentStandard || "-"}
-                        {row.indicators.length ? (
-                          <div className="mt-1 text-white/45">{row.indicators.join("; ")}</div>
+                        {(row.indicators || []).length ? (
+                          <div className="mt-1 text-white/45">{(row.indicators || []).join("; ")}</div>
                         ) : null}
                       </TableCell>
                       <TableCell className="max-w-[220px] text-xs text-white/55">
-                        {row.resources.length ? row.resources.join("; ") : "-"}
+                        {(row.resources || []).length ? (row.resources || []).join("; ") : "-"}
                       </TableCell>
                     </TableRow>
                   ))}

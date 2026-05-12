@@ -77,9 +77,9 @@ const DESTINATION_GROUPS: DestinationGroup[] = [
         icon: Building2,
       },
       {
-        href: "/platform/users",
-        label: "Users",
-        description: "Cross-school accounts and access posture.",
+        href: "/platform/staff",
+        label: "Staff",
+        description: "Internal EduSentrix operators, roles, and permissions.",
         icon: Users,
       },
       {

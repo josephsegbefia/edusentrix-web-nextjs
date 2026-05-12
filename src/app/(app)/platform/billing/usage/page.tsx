@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   Select,
   SelectContent,
@@ -62,6 +63,22 @@ type UsageMetricRow = {
   updatedAt: string | null;
 };
 
+type UsageEventRow = {
+  id: string;
+  schoolName: string;
+  providerLabel: string;
+  category: string;
+  metricKey: string;
+  quantity: number;
+  unitLabel: string;
+  estimatedCostMinor: number;
+  sourceType: "manual" | "provider_sync" | "system_estimate";
+  actorEmail: string | null;
+  entityType: string | null;
+  notes: string | null;
+  createdAt: string | null;
+};
+
 type UsageResponse = {
   periodStart: string;
   periodEnd: string;
@@ -69,6 +86,7 @@ type UsageResponse = {
   schools: SchoolOption[];
   aggregates: UsageAggregate[];
   metrics: UsageMetricRow[];
+  events: UsageEventRow[];
 };
 
 type UsageForm = {
@@ -112,6 +130,20 @@ function emptyForm(): UsageForm {
     periodEnd: range.end,
     notes: "",
   };
+}
+
+function dateStringToDate(value: string): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function dateToDateString(date: Date | null): string {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export default function PlatformBillingUsagePage() {
@@ -437,36 +469,28 @@ export default function PlatformBillingUsagePage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
-                  Period Start
-                </label>
-                <Input
-                  type="date"
-                  value={form.periodStart}
-                  onChange={(event) =>
+                <CustomDatePicker
+                  label="Period Start"
+                  value={dateStringToDate(form.periodStart)}
+                  onChange={(date) =>
                     setForm((current) => ({
                       ...current,
-                      periodStart: event.target.value,
+                      periodStart: dateToDateString(date),
                     }))
                   }
-                  className="border-white/10 bg-white/5 text-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wide text-white/50">
-                  Period End
-                </label>
-                <Input
-                  type="date"
-                  value={form.periodEnd}
-                  onChange={(event) =>
+                <CustomDatePicker
+                  label="Period End"
+                  value={dateStringToDate(form.periodEnd)}
+                  onChange={(date) =>
                     setForm((current) => ({
                       ...current,
-                      periodEnd: event.target.value,
+                      periodEnd: dateToDateString(date),
                     }))
                   }
-                  className="border-white/10 bg-white/5 text-white"
                 />
               </div>
             </div>
@@ -644,6 +668,56 @@ export default function PlatformBillingUsagePage() {
               ) : (
                 <p className="text-sm text-white/60">
                   No usage metrics have been attributed yet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-white/5 text-white">
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Usage Events</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loading ? null : (data?.events || []).length > 0 ? (
+                data?.events.map((event) => (
+                  <div
+                    key={event.id}
+                    className="rounded-2xl border border-white/10 bg-black/20 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-medium text-white">
+                          {event.schoolName} • {event.providerLabel}
+                        </p>
+                        <p className="mt-1 text-sm text-white/60">
+                          {event.category} / {event.metricKey} • {event.quantity}{" "}
+                          {event.unitLabel}
+                        </p>
+                        <p className="mt-1 text-xs text-white/50">
+                          {event.sourceType}
+                          {event.actorEmail ? ` • ${event.actorEmail}` : ""}
+                          {event.entityType ? ` • ${event.entityType}` : ""}
+                        </p>
+                        {event.notes ? (
+                          <p className="mt-2 text-xs text-white/60">{event.notes}</p>
+                        ) : null}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-white">
+                          {formatMoney(event.estimatedCostMinor)}
+                        </p>
+                        <p className="mt-1 text-xs text-white/50">
+                          {event.createdAt
+                            ? format(new Date(event.createdAt), "MMM d, yyyy h:mm a")
+                            : "No timestamp"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-white/60">
+                  No usage events were recorded for this period.
                 </p>
               )}
             </CardContent>

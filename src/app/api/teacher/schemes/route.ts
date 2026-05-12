@@ -136,9 +136,21 @@ export async function POST(req: Request) {
     }
 
     if (!ctx.isAdmin) {
-      if (!classGroupId || !subjectId) {
+      if (!effectiveGradeId || !subjectId) {
         return Response.json(
-          { success: false, error: "Select an assigned class and subject for this scheme" },
+          { success: false, error: "Select an assigned grade and subject for this scheme" },
+          { status: 400 }
+        );
+      }
+      const gradeClassGroups = await ClassGroup.find({
+        schoolId: ctx.schoolId,
+        gradeId: effectiveGradeId,
+      })
+        .select("_id")
+        .lean<{ _id: mongoose.Types.ObjectId }[]>();
+      if (gradeClassGroups.length === 0) {
+        return Response.json(
+          { success: false, error: "No class groups exist for this grade" },
           { status: 400 }
         );
       }
@@ -146,16 +158,50 @@ export async function POST(req: Request) {
         schoolId: ctx.schoolId,
         teacherId: ctx.teacherId,
         academicPeriodId: period._id,
-        classGroupId,
+        classGroupId: { $in: gradeClassGroups.map((group) => group._id) },
         subjectId,
         status: "active",
       });
       if (!assignment) {
         return Response.json(
-          { success: false, error: "You can only create schemes for assigned classes and subjects" },
+          { success: false, error: "You can only create schemes for grades and subjects assigned to you" },
           { status: 403 }
         );
       }
+    }
+
+    if (!effectiveGradeId || !subjectId) {
+      return Response.json(
+        { success: false, error: "Select a grade and subject for this Scheme of Learning" },
+        { status: 400 }
+      );
+    }
+
+    const existingScheme = await SchemeOfWork.findOne({
+      schoolId: ctx.schoolId,
+      academicPeriodId: period._id,
+      gradeId: effectiveGradeId,
+      subjectId,
+      classGroupId: null,
+      status: { $in: ["draft", "submitted", "needs_revision", "approved", "active"] },
+    })
+      .select("_id title status")
+      .lean();
+    if (existingScheme) {
+      return Response.json(
+        {
+          success: false,
+          error: `A scheme already exists for this grade, subject, and period: "${existingScheme.title}". Open it or archive it before creating another.`,
+          data: {
+            existingScheme: {
+              id: String(existingScheme._id),
+              title: existingScheme.title,
+              status: existingScheme.status,
+            },
+          },
+        },
+        { status: 409 }
+      );
     }
 
     const created = await SchemeOfWork.create({
@@ -168,7 +214,7 @@ export async function POST(req: Request) {
       academicYearLabel: parsed.data.academicYearLabel || period.yearLabel || undefined,
       termLabel: parsed.data.termLabel || period.term || undefined,
       gradeId: effectiveGradeId,
-      classGroupId,
+      classGroupId: null,
       subjectId,
       ownerTeacherId: ctx.teacherId,
       status: "draft",

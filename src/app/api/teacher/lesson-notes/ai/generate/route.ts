@@ -422,6 +422,7 @@ export async function POST(req: Request) {
     await enforceSchoolLimit({
       schoolId: context.schoolId,
       limitKey: "maxAICallsPerMonth",
+      expensive: true,
       message: "The monthly AI generation limit has been reached for this school.",
     });
 

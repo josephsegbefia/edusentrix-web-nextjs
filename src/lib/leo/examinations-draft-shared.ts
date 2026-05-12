@@ -3,8 +3,8 @@ import "server-only";
 import OpenAI from "openai";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { requireSchoolMember } from "@/lib/auth/requireSchoolMember";
+import { EntitlementError, requireEntitlement } from "@/lib/billing/require-entitlement";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { parseBuilderId } from "@/lib/examinations/builder-service";
 import { ExamPaper } from "@/models/ExamPaper";
@@ -32,13 +32,19 @@ export async function requireExamsLeoContext(): Promise<
   await connectToDatabase();
 
   try {
-    await enforceSchoolLimit({
+    await requireEntitlement({
       schoolId: context.schoolId,
+      featureKey: "ai_leo_copilot",
       limitKey: "maxAICallsPerMonth",
-      message: "The monthly AI generation limit has been reached for this school.",
+      expensive: true,
     });
   } catch (error: unknown) {
-    if (error instanceof Response) return error;
+    if (error instanceof EntitlementError) {
+      return Response.json(
+        { success: false, error: error.message, code: error.code },
+        { status: error.statusCode }
+      );
+    }
     throw error;
   }
 

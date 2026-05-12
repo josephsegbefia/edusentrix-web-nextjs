@@ -3,10 +3,20 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
 
 export async function GET() {
+  if (process.env.ENABLE_PUBLIC_PRICING !== "true") {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Public pricing is not available.",
+      },
+      { status: 404 }
+    );
+  }
+
   try {
     await connectToDatabase();
 
-    const tiers = await SubscriptionTier.find({ active: true })
+    const tiers = await SubscriptionTier.find({ active: true, publicVisible: true })
       .select("code name description priceMinor studentLimit features provisional sortOrder")
       .sort({ sortOrder: 1, priceMinor: 1 })
       .lean();

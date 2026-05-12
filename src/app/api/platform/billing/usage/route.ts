@@ -12,6 +12,7 @@ import {
 } from "@/lib/platform-billing/period-range";
 import { School } from "@/models/School";
 import { UsageMetric } from "@/models/UsageMetric";
+import { UsageEvent } from "@/models/UsageEvent";
 import { User } from "@/models/User";
 
 const UsageMetricSchema = z.object({
@@ -46,13 +47,19 @@ export async function GET(req: NextRequest) {
       parseDateOnly(req.nextUrl.searchParams.get("periodEnd")) ||
       getCurrentMonthRange().periodEnd;
 
-    const [schools, metrics] = await Promise.all([
+    const [schools, metrics, events] = await Promise.all([
       School.find({}).select("name status").sort({ name: 1 }).lean<SchoolRow[]>(),
       UsageMetric.find({
         periodStart: { $gte: periodStart },
         periodEnd: { $lte: periodEnd },
       })
         .sort({ updatedAt: -1 })
+        .lean(),
+      UsageEvent.find({
+        createdAt: { $gte: periodStart, $lte: periodEnd },
+      })
+        .sort({ createdAt: -1 })
+        .limit(100)
         .lean(),
     ]);
 
@@ -146,6 +153,26 @@ export async function GET(req: NextRequest) {
           notes: metric.notes || null,
           updatedAt: metric.updatedAt?.toISOString?.() || null,
         })),
+        events: events.map((event) => ({
+          id: String(event._id),
+          schoolId: String(event.schoolId),
+          schoolName: schoolNameMap.get(String(event.schoolId)) || "Unnamed School",
+          provider: event.provider,
+          providerLabel:
+            PLATFORM_BILLING_PROVIDER_LABELS[
+              event.provider as keyof typeof PLATFORM_BILLING_PROVIDER_LABELS
+            ] || event.provider,
+          category: event.category,
+          metricKey: event.metricKey,
+          quantity: Number(event.quantity || 0),
+          unitLabel: event.unitLabel,
+          estimatedCostMinor: Number(event.estimatedCostMinor || 0),
+          sourceType: event.sourceType,
+          actorEmail: event.actorEmail || null,
+          entityType: event.entityType || null,
+          notes: event.notes || null,
+          createdAt: event.createdAt?.toISOString?.() || null,
+        })),
       },
     });
   } catch (error) {
@@ -220,6 +247,25 @@ export async function POST(req: NextRequest) {
         setDefaultsOnInsert: true,
       }
     );
+
+    await UsageEvent.create({
+      schoolId,
+      provider: body.provider,
+      category: "other",
+      metricKey: body.metricKey,
+      quantity: body.quantity,
+      unitLabel: body.unitLabel,
+      unitCostMinor: body.unitCostMinor,
+      estimatedCostMinor,
+      allocationMethod: body.allocationMethod,
+      sourceType: body.sourceType,
+      actorId: gate.me._id,
+      actorEmail: actor?.email || null,
+      periodStart,
+      periodEnd,
+      notes: body.notes,
+      metadata: { source: "platform_manual_usage_metric" },
+    });
 
     return NextResponse.json({
       success: true,

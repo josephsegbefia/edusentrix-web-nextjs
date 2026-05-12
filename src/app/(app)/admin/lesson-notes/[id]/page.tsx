@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, CheckCheck, RotateCcw } from "lucide-react";
+import { ArrowLeft, CheckCheck, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/useToast";
@@ -13,12 +13,14 @@ import {
 } from "@/hooks/admin/useAdminLessonNotes";
 import { AdminReviewCommentComposer } from "@/components/lesson-notes/AdminReviewCommentComposer";
 import { LessonNoteReadonlyView } from "@/components/lesson-notes/LessonNoteReadonlyView";
+import { ApprovalActionsPanel } from "@/components/teacher/lesson-notes/ApprovalWorkflow";
+import type { LessonNoteStatus } from "@/types/lesson-notes";
 
 export default function AdminLessonNoteDetailPage() {
   const params = useParams<{ id: string }>();
   const toast = useToast();
   const noteId = typeof params?.id === "string" ? params.id : null;
-  const { data, isLoading, error } = useAdminLessonNote(noteId);
+  const { data, isLoading, error, refetch } = useAdminLessonNote(noteId);
   const updateComment = useUpdateAdminLessonNoteComment();
 
   const note = data?.data;
@@ -61,47 +63,57 @@ export default function AdminLessonNoteDetailPage() {
 
   if (error) {
     return (
-      <Card className="border border-rose-500/20 bg-rose-500/10">
-        <CardContent className="p-5 text-sm text-rose-100">
-          {error.message || "Failed to load lesson note."}
-        </CardContent>
-      </Card>
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
+        <Button variant="outline" size="sm" asChild className="w-fit border-white/10 bg-white/5 text-white">
+          <Link href="/admin/lesson-notes">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to inbox
+          </Link>
+        </Button>
+        <Card className="relative overflow-hidden rounded-2xl border border-rose-400/25 bg-linear-to-br from-rose-950/80 to-slate-950/90 shadow-2xl shadow-rose-950/20 backdrop-blur-xl">
+          <CardContent className="p-5 text-sm text-rose-100">
+            {error.message || "Failed to load lesson note."}
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   if (isLoading || !note) {
     return (
-      <div className="space-y-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-40 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
-        ))}
+      <div className="mx-auto flex min-h-[50vh] w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
+        <div className="h-9 w-44 animate-pulse rounded-lg border border-white/10 bg-white/6 backdrop-blur-xl" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-white/55">
+          <Loader2 className="h-8 w-8 animate-spin text-sky-200" />
+          <p className="text-sm">Loading lesson note…</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Lesson Note Review</h1>
-          <p className="text-sm text-white/60">
-            Review sections, add comments, and track teacher responses.
-          </p>
-        </div>
-        <Link href="/admin/lesson-notes">
-          <Button
-            type="button"
-            variant="outline"
-            className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
-          >
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="outline" size="sm" asChild className="border-white/10 bg-white/5 text-white">
+          <Link href="/admin/lesson-notes">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back To Inbox
-          </Button>
-        </Link>
+            Back to inbox
+          </Link>
+        </Button>
       </div>
 
       <LessonNoteReadonlyView
+        surfaceVariant="glass"
         note={note}
+        headerActions={
+          <ApprovalActionsPanel
+            noteId={note.id}
+            currentStatus={note.status as LessonNoteStatus}
+            isAdmin
+            onActionComplete={() => void refetch()}
+            className="max-w-xl"
+          />
+        }
         renderCommentActions={(_, comment) =>
           comment.status === "resolved" ? (
             <Button

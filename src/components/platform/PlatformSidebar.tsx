@@ -51,6 +51,8 @@ import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBr
 import { useSidebar } from "@/providers/sidebar-provider";
 import { SidebarPlatformIdentity } from "@/components/platform/SidebarPlatformIdentity";
 import { ApplicationsNavPendingBadge } from "@/components/platform/ApplicationsNavPendingBadge";
+import type { PlatformPermissionKey } from "@/lib/platform/permissions/registry";
+import { hasAnyRequiredPlatformPermission } from "@/lib/platform/permissions/navigation";
 
 const PLATFORM_APPLICATIONS_HREF = "/platform/applications";
 
@@ -61,7 +63,13 @@ type NavSection = {
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
+    requiredPermissions: PlatformPermissionKey[];
   }>;
+};
+
+type PlatformSidebarProps = {
+  permissions: PlatformPermissionKey[];
+  isLegacyPlatformAdmin?: boolean;
 };
 
 const navSections: NavSection[] = [
@@ -73,6 +81,7 @@ const navSections: NavSection[] = [
         href: "/platform",
         icon: LayoutDashboard,
         exact: true,
+        requiredPermissions: ["platform.schools.read"],
       },
     ],
   },
@@ -83,26 +92,31 @@ const navSections: NavSection[] = [
         label: "Applications",
         href: PLATFORM_APPLICATIONS_HREF,
         icon: CheckSquare,
+        requiredPermissions: ["platform.applications.read"],
       },
       {
         label: "Demo Leads",
         href: "/platform/demo-leads",
         icon: Presentation,
+        requiredPermissions: ["platform.applications.read"],
       },
       {
         label: "Schools",
         href: "/platform/schools",
         icon: Building2,
+        requiredPermissions: ["platform.schools.read"],
       },
       {
-        label: "Users",
-        href: "/platform/users",
+        label: "Staff",
+        href: "/platform/staff",
         icon: Users,
+        requiredPermissions: ["platform.staff.read"],
       },
       {
         label: "Pilot",
         href: "/platform/pilot",
         icon: FlaskConical,
+        requiredPermissions: ["platform.schools.read"],
       },
     ],
   },
@@ -114,41 +128,49 @@ const navSections: NavSection[] = [
         href: "/platform/billing",
         icon: Banknote,
         exact: true,
+        requiredPermissions: ["platform.billing.read"],
       },
       {
         label: "Revenue Analytics",
         href: "/platform/billing/revenue",
         icon: BarChart3,
+        requiredPermissions: ["platform.billing.read"],
       },
       {
         label: "Usage Ledger",
         href: "/platform/billing/usage",
         icon: DatabaseZap,
+        requiredPermissions: ["platform.billing.read"],
       },
       {
         label: "Cost Ledger",
         href: "/platform/billing/costs",
         icon: DatabaseZap,
+        requiredPermissions: ["platform.billing.read"],
       },
       {
         label: "Provider Sync",
         href: "/platform/billing/sync",
         icon: RefreshCw,
+        requiredPermissions: ["platform.billing.read"],
       },
       {
         label: "Billing Events",
         href: "/platform/billing/events",
         icon: Clock3,
+        requiredPermissions: ["platform.billing.read"],
       },
       {
         label: "Subscription Tiers",
         href: "/platform/billing/tiers",
         icon: Flag,
+        requiredPermissions: ["platform.billing.read"],
       },
       {
         label: "Reconciliation",
         href: "/platform/reconciliation",
         icon: Landmark,
+        requiredPermissions: ["platform.billing.read"],
       },
     ],
   },
@@ -159,21 +181,25 @@ const navSections: NavSection[] = [
         label: "Email Inbox",
         href: "/platform/email",
         icon: Inbox,
+        requiredPermissions: ["platform.support.read"],
       },
       {
         label: "Email Templates",
         href: "/platform/emails",
         icon: Mail,
+        requiredPermissions: ["platform.support.read"],
       },
       {
         label: "Webhooks",
         href: "/platform/webhooks",
         icon: Webhook,
+        requiredPermissions: ["platform.system.settings.read"],
       },
       {
         label: "Audit Logs",
         href: "/platform/audit",
         icon: FileWarning,
+        requiredPermissions: ["platform.audit.read"],
       },
     ],
   },
@@ -184,16 +210,19 @@ const navSections: NavSection[] = [
         label: "Feature Flags",
         href: "/platform/flags",
         icon: Flag,
+        requiredPermissions: ["platform.system.featureFlags.read"],
       },
       {
         label: "Leo Copilot",
         href: "/platform/leo",
         icon: LeoIcon,
+        requiredPermissions: ["platform.system.settings.read"],
       },
       {
         label: "Settings",
         href: "/platform/settings",
         icon: Settings,
+        requiredPermissions: ["platform.system.settings.read"],
       },
     ],
   },
@@ -205,15 +234,35 @@ const sidebarTooltipClasses =
 function NavContent({
   onItemClick,
   collapsed,
+  permissions,
+  isLegacyPlatformAdmin,
 }: {
   onItemClick?: () => void;
   collapsed: boolean;
+  permissions: PlatformPermissionKey[];
+  isLegacyPlatformAdmin?: boolean;
 }) {
   const pathname = usePathname();
+  const visibleSections = React.useMemo(
+    () =>
+      navSections
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item) =>
+            hasAnyRequiredPlatformPermission(
+              permissions,
+              item.requiredPermissions,
+              isLegacyPlatformAdmin
+            )
+          ),
+        }))
+        .filter((section) => section.items.length > 0),
+    [isLegacyPlatformAdmin, permissions]
+  );
 
   return (
     <nav className={cn("space-y-5", collapsed && "space-y-3")}>
-      {navSections.map((section, sectionIdx) => (
+      {visibleSections.map((section, sectionIdx) => (
         <div key={section.title}>
           {!collapsed ? (
             <div className="mb-2 px-3.5">
@@ -280,7 +329,7 @@ function NavContent({
             })}
           </div>
 
-          {sectionIdx < navSections.length - 1 ? (
+          {sectionIdx < visibleSections.length - 1 ? (
             <Separator className={cn("mt-5 bg-white/4", collapsed && "mt-3")} />
           ) : null}
         </div>
@@ -289,7 +338,7 @@ function NavContent({
   );
 }
 
-function DesktopSidebar() {
+function DesktopSidebar({ permissions, isLegacyPlatformAdmin }: PlatformSidebarProps) {
   const { collapsed, toggle } = useSidebar();
 
   React.useEffect(() => {
@@ -350,7 +399,11 @@ function DesktopSidebar() {
             collapsed ? "px-1 py-3" : "px-3 py-4"
           )}
         >
-          <NavContent collapsed={collapsed} />
+          <NavContent
+            collapsed={collapsed}
+            permissions={permissions}
+            isLegacyPlatformAdmin={isLegacyPlatformAdmin}
+          />
         </div>
 
         <div
@@ -369,10 +422,12 @@ function DesktopSidebar() {
 function MobileSidebar({
   open,
   onOpenChange,
+  permissions,
+  isLegacyPlatformAdmin,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}) {
+} & PlatformSidebarProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -396,7 +451,12 @@ function MobileSidebar({
         </SheetHeader>
 
         <div className="platform-sidebar-scroll overflow-y-auto p-4">
-          <NavContent onItemClick={() => onOpenChange(false)} collapsed={false} />
+          <NavContent
+            onItemClick={() => onOpenChange(false)}
+            collapsed={false}
+            permissions={permissions}
+            isLegacyPlatformAdmin={isLegacyPlatformAdmin}
+          />
           <div className="mt-4 border-t border-white/5 pt-4">
             <SidebarFooterBranding />
           </div>
@@ -420,7 +480,10 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export default function PlatformSidebar() {
+export default function PlatformSidebar({
+  permissions,
+  isLegacyPlatformAdmin,
+}: PlatformSidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   return (
@@ -428,8 +491,16 @@ export default function PlatformSidebar() {
       <div className="fixed left-4 top-[4.5rem] z-40 md:hidden">
         <MobileMenuButton onClick={() => setMobileMenuOpen(true)} />
       </div>
-      <DesktopSidebar />
-      <MobileSidebar open={mobileMenuOpen} onOpenChange={setMobileMenuOpen} />
+      <DesktopSidebar
+        permissions={permissions}
+        isLegacyPlatformAdmin={isLegacyPlatformAdmin}
+      />
+      <MobileSidebar
+        open={mobileMenuOpen}
+        onOpenChange={setMobileMenuOpen}
+        permissions={permissions}
+        isLegacyPlatformAdmin={isLegacyPlatformAdmin}
+      />
     </>
   );
 }

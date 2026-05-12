@@ -606,8 +606,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
-    const nextStatusForPolicy =
-      parsed.data.status ?? existing.status;
+    const nextStatusForPolicy = parsed.data.status ?? existing.status;
+
+    if (!context.isAdmin && parsed.data.status && !["draft", "submitted"].includes(parsed.data.status)) {
+      return Response.json(
+        {
+          success: false,
+          error: "Teachers can save drafts or submit lesson notes for admin review.",
+        },
+        { status: 403 }
+      );
+    }
     const finalSchemeIdForPolicy: mongoose.Types.ObjectId | null = touchedScheme
       ? resolvedScheme?.schemeObjectId ?? null
       : (existing.schemeId as mongoose.Types.ObjectId | undefined) ?? null;
@@ -736,16 +745,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Status (with restrictions for non-admins)
     if (parsed.data.status) {
-      if (!context.isAdmin) {
-        // Teachers can only set draft or published
-        if (!["draft", "published"].includes(parsed.data.status)) {
-          return Response.json(
-            { success: false, error: "Teachers can only set draft or published status" },
-            { status: 403 }
-          );
-        }
-      }
       updateData.status = parsed.data.status;
+      if (parsed.data.status === "submitted") {
+        updateData.submittedAt = new Date();
+        unsetData.rejectionReason = "";
+      }
     }
 
     // Legacy fields

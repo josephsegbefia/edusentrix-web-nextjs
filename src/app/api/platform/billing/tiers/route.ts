@@ -19,8 +19,14 @@ const CreateSubscriptionTierSchema = z.object({
   name: z.string().trim().min(2).max(80),
   description: z.string().trim().max(240).nullable().optional().default(null),
   priceMinor: z.number().int().min(0),
+  billingCadence: z
+    .enum(["term", "annual", "monthly", "custom"])
+    .optional()
+    .default("term"),
   studentLimit: z.number().int().positive().nullable().optional().default(null),
   features: z.array(z.string().trim().min(1).max(80)).max(24).default([]),
+  publicVisible: z.boolean().default(false),
+  version: z.number().int().min(1).default(1),
   provisional: z.boolean().default(true),
   active: z.boolean().default(true),
   sortOrder: z.number().int().min(0).default(0),
@@ -32,9 +38,11 @@ type SubscriptionTierRow = {
   name: string;
   description?: string | null;
   priceMinor: number;
-  billingCadence: "monthly";
+  billingCadence: "term" | "annual" | "monthly" | "custom";
   studentLimit?: number | null;
   features?: string[];
+  publicVisible?: boolean;
+  version?: number;
   provisional: boolean;
   active: boolean;
   sortOrder: number;
@@ -82,6 +90,8 @@ async function loadTierData() {
       billingCadence: tier.billingCadence,
       studentLimit: tier.studentLimit ?? null,
       features: Array.isArray(tier.features) ? tier.features : [],
+      publicVisible: Boolean(tier.publicVisible),
+      version: tier.version ?? 1,
       provisional: Boolean(tier.provisional),
       active: Boolean(tier.active),
       sortOrder: tier.sortOrder,
@@ -133,9 +143,11 @@ export async function POST(req: NextRequest) {
       name: body.name,
       description: body.description,
       priceMinor: body.priceMinor,
-      billingCadence: "monthly",
+      billingCadence: body.billingCadence,
       studentLimit: body.studentLimit,
       features: normalizeFeatures(body.features),
+      publicVisible: body.publicVisible,
+      version: body.version,
       provisional: body.provisional,
       active: body.active,
       sortOrder: body.sortOrder,

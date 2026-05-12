@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { CheckCircle2, FileUp, Route, Sparkles } from "lucide-react";
 import { DocumentUploader } from "@/components/upload/DocumentUploader";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
@@ -70,14 +71,13 @@ function TeacherSchemeImportInner() {
       (classesData?.data?.classes || [])
         .filter((row) => row._id && row.gradeId && row.subjectId)
         .map((row) => ({
-          key: `${row._id}|${row.subjectId}`,
-          classGroupId: row._id,
+          key: `${row.gradeId}|${row.subjectId}`,
           className: row.name,
           gradeId: row.gradeId,
           gradeName: row.gradeName,
           subjectId: row.subjectId,
           subjectName: row.subjectName,
-          description: `${row.gradeName}${row.studentCount ? ` · ${row.studentCount} students` : ""}`,
+          description: "Applies to all class groups in this grade",
         }))
         .filter((row, index, all) => all.findIndex((item) => item.key === row.key) === index),
     [classesData?.data?.classes]
@@ -134,7 +134,7 @@ function TeacherSchemeImportInner() {
         schemeTitle: schemeTitle.trim(),
         academicPeriodId: currentPeriod._id,
         gradeId: selectedAssignment.gradeId,
-        classGroupId: selectedAssignment.classGroupId,
+        classGroupId: null,
         subjectId: selectedAssignment.subjectId,
       });
       if (data.scheme?.id) {
@@ -235,6 +235,24 @@ function TeacherSchemeImportInner() {
             ← All schemes
           </Link>
         </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+          {[
+            { label: "Upload", icon: FileUp },
+            { label: "Context", icon: Route },
+            { label: "Review", icon: Sparkles },
+            { label: "Create", icon: CheckCircle2 },
+          ].map((step, index) => (
+            <div key={step.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs text-white/65">
+                  {index + 1}
+                </span>
+                <step.icon className="h-4 w-4 text-emerald-200" />
+              </div>
+              <p className="mt-2 text-sm font-medium text-white">{step.label}</p>
+            </div>
+          ))}
+        </div>
 
         {!jobId || job?.status === "failed" ? (
           <div className="mt-4 max-w-xl">
@@ -316,20 +334,20 @@ function TeacherSchemeImportInner() {
             ) : null}
             <div className="mt-4 flex flex-wrap gap-3">
               <label className="flex min-w-[260px] flex-1 flex-col gap-1 text-sm">
-                <span className="text-white/55">Class and subject</span>
+                <span className="text-white/55">Grade and subject</span>
                 <PremiumSelect value={assignmentKey || "pick"} onValueChange={(value) => setAssignmentKey(value === "pick" ? "" : value)}>
                   <PremiumSelectTrigger className="border-white/15 bg-black/30 text-white">
-                    <PremiumSelectValue placeholder="Select assigned class and subject" />
+                    <PremiumSelectValue placeholder="Select assigned grade and subject" />
                   </PremiumSelectTrigger>
                   <PremiumSelectContent>
-                    <PremiumSelectItem value="pick">Select assigned class and subject</PremiumSelectItem>
+                    <PremiumSelectItem value="pick">Select assigned grade and subject</PremiumSelectItem>
                     {assignmentOptions.map((option) => (
                       <PremiumSelectItem
                         key={option.key}
                         value={option.key}
                         description={option.description}
                       >
-                        {option.className} · {option.subjectName}
+                        {option.gradeName} · {option.subjectName}
                       </PremiumSelectItem>
                     ))}
                   </PremiumSelectContent>
@@ -355,7 +373,7 @@ function TeacherSchemeImportInner() {
             </div>
             {!selectedAssignment || !currentPeriod?._id ? (
               <p className="mt-3 rounded-lg border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
-                Choose the assigned class/subject and ensure a current academic period is set before creating the draft.
+                Choose the assigned grade/subject and ensure a current academic period is set before creating the draft.
               </p>
             ) : null}
             {actionError ? (

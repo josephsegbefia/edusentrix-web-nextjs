@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import OpenAI from "openai";
 import { z } from "zod";
 import type { ISchemeImportParsedRow } from "@/models/SchemeImportJob";
+import { EntitlementError, requireEntitlement } from "@/lib/billing/require-entitlement";
 import { trackUsage } from "@/lib/billing/trackUsage";
 
 const AI_ROW_SCHEMA = z.object({
@@ -43,6 +44,20 @@ export async function extractSchemeRowsWithAiFromPdfText(args: {
 }): Promise<{ ok: true; rows: ISchemeImportParsedRow[] } | { ok: false; error: string }> {
   if (!process.env.OPENAI_API_KEY) {
     return { ok: false, error: "AI extraction is not configured (missing OPENAI_API_KEY)" };
+  }
+
+  try {
+    await requireEntitlement({
+      schoolId: args.schoolId,
+      featureKey: "curriculum_scheme",
+      limitKey: "maxAICallsPerMonth",
+      expensive: true,
+    });
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      return { ok: false, error: error.message };
+    }
+    throw error;
   }
 
   const clipped =

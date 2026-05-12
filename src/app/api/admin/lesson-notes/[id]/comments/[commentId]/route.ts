@@ -3,7 +3,10 @@ import { z } from "zod";
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
-import { LessonNoteReviewComment } from "@/models/LessonNoteReviewComment";
+import {
+  LessonNoteReviewComment,
+  type ILessonNoteReviewComment,
+} from "@/models/LessonNoteReviewComment";
 import { User } from "@/models/User";
 import { formatUserDisplayName } from "@/lib/lesson-notes/review";
 import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
@@ -60,7 +63,7 @@ export async function PATCH(
       _id: reviewCommentId,
       schoolId: context.schoolId,
       lessonNoteId: noteId,
-    }).lean();
+    }).lean() as ILessonNoteReviewComment | null;
 
     if (!existing) {
       return Response.json(
@@ -100,9 +103,7 @@ export async function PATCH(
       parsed.data.status === "resolved" && existing.status !== "resolved";
 
     const session = await mongoose.startSession();
-    let updated: Awaited<
-      ReturnType<typeof LessonNoteReviewComment.findOneAndUpdate>
-    > | null = null;
+    let updated: ILessonNoteReviewComment | null = null;
 
     try {
       await session.withTransaction(async () => {
@@ -112,7 +113,7 @@ export async function PATCH(
           lessonNoteId: noteId,
         })
           .session(session)
-          .lean();
+          .lean() as ILessonNoteReviewComment | null;
 
         if (!beforeDoc) {
           throw new Error("COMMENT_NOT_FOUND");
@@ -126,7 +127,7 @@ export async function PATCH(
           },
           { $set: updateData },
           { new: true, session }
-        ).lean();
+        ).lean() as ILessonNoteReviewComment | null;
 
         if (!updated) {
           throw new Error("COMMENT_NOT_FOUND");

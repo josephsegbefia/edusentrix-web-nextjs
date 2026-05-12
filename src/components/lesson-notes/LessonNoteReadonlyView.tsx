@@ -31,8 +31,13 @@ import {
   isSimpleBody,
 } from "@/types/lesson-notes";
 
+const GLASS_PANEL =
+  "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
+
 type LessonNoteReadonlyViewProps = {
   note: LessonNoteDetail;
+  /** Frosted slate panels for school-admin review surfaces. */
+  surfaceVariant?: "default" | "glass";
   headerActions?: React.ReactNode;
   renderSectionActions?: (
     section: LessonNoteReviewSection,
@@ -72,26 +77,44 @@ function SectionCard({
   icon,
   commentCount,
   actions,
+  glass,
   children,
 }: {
   title: string;
   icon: React.ReactNode;
   commentCount: number;
   actions?: React.ReactNode;
+  glass: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20">
-      <CardHeader className="pb-3">
+    <Card
+      className={cn(
+        glass
+          ? GLASS_PANEL
+          : "border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur"
+      )}
+    >
+      <CardHeader className={cn("pb-3", glass && "border-b border-white/10")}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white/70">
+            <div
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-white/70",
+                glass ? "bg-white/6 backdrop-blur-sm" : "bg-white/5"
+              )}
+            >
               {icon}
             </div>
             <div className="space-y-1">
               <CardTitle className="text-lg text-white">{title}</CardTitle>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-white/10 text-white/60">
+                <Badge
+                  className={cn(
+                    "text-white/60",
+                    glass ? "border border-white/10 bg-white/8" : "bg-white/10"
+                  )}
+                >
                   {commentCount} comment{commentCount === 1 ? "" : "s"}
                 </Badge>
               </div>
@@ -108,10 +131,12 @@ function SectionCard({
 function CommentRail({
   section,
   comments,
+  glass,
   renderCommentActions,
 }: {
   section: LessonNoteReviewSection;
   comments: LessonNoteReviewComment[];
+  glass: boolean;
   renderCommentActions?: (
     section: LessonNoteReviewSection,
     comment: LessonNoteReviewComment
@@ -122,7 +147,12 @@ function CommentRail({
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+    <div
+      className={cn(
+        "space-y-3 rounded-2xl border border-white/10 p-4",
+        glass ? "bg-white/4 backdrop-blur-md" : "bg-black/20"
+      )}
+    >
       <div className="flex items-center gap-2 text-sm font-medium text-white">
         <MessageSquare className="h-4 w-4 text-sky-300" />
         Review Comments
@@ -137,8 +167,12 @@ function CommentRail({
               className={cn(
                 "rounded-2xl border p-4",
                 comment.status === "resolved"
-                  ? "border-emerald-500/20 bg-emerald-500/5"
-                  : "border-white/10 bg-white/5"
+                  ? glass
+                    ? "border-emerald-400/25 bg-emerald-500/10 backdrop-blur-sm"
+                    : "border-emerald-500/20 bg-emerald-500/5"
+                  : glass
+                    ? "border-white/10 bg-white/6 backdrop-blur-sm"
+                    : "border-white/10 bg-white/5"
               )}
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -779,26 +813,53 @@ function getSectionIcon(sectionKey: string) {
 
 export function LessonNoteReadonlyView({
   note,
+  surfaceVariant = "default",
   headerActions,
   renderSectionActions,
   renderCommentActions,
   renderSectionFooter,
 }: LessonNoteReadonlyViewProps) {
+  const glass = surfaceVariant === "glass";
   const sections = getLessonNoteReviewSections(note);
   const commentsBySection = groupReviewCommentsBySection(note.reviewComments || []);
 
   return (
     <div className="space-y-6">
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20">
-        <CardContent className="p-6">
+      <Card
+        className={cn(
+          glass
+            ? GLASS_PANEL
+            : "border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur"
+        )}
+      >
+        {glass ? (
+          <>
+            <div className="pointer-events-none absolute -right-16 top-0 h-48 w-48 rounded-full bg-sky-500/12 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-8 -left-10 h-40 w-40 rounded-full bg-blue-600/10 blur-3xl" />
+          </>
+        ) : null}
+        <CardContent className={cn("p-6", glass && "relative z-1")}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-4">
+              {glass ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70 backdrop-blur-sm">
+                  <ClipboardCheck className="h-3.5 w-3.5 text-sky-200" />
+                  Lesson note review
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-indigo-500/20 text-indigo-200">
+                <Badge className="border border-indigo-400/20 bg-indigo-500/20 text-indigo-200">
                   {TEMPLATE_LABELS[note.templateType]}
                 </Badge>
-                <Badge className="bg-white/10 text-white/70">{note.status}</Badge>
-                <Badge className="bg-sky-500/15 text-sky-100">
+                <Badge
+                  className={cn(
+                    "text-white/70",
+                    glass ? "border border-white/10 bg-white/8" : "bg-white/10"
+                  )}
+                >
+                  {note.status}
+                </Badge>
+                <Badge className="border border-sky-400/20 bg-sky-500/15 text-sky-100">
                   {note.openCommentCount} open comment{note.openCommentCount === 1 ? "" : "s"}
                 </Badge>
               </div>
@@ -820,6 +881,12 @@ export function LessonNoteReadonlyView({
                   {note.durationMinutes ? `${note.durationMinutes} mins` : "No duration"}
                 </span>
               </div>
+              {glass ? (
+                <p className="max-w-2xl text-sm leading-6 text-white/55">
+                  Review sections, add comments, and track teacher responses. Use approval actions
+                  for the whole note when it is ready to move forward.
+                </p>
+              ) : null}
             </div>
             {headerActions}
           </div>
@@ -836,11 +903,13 @@ export function LessonNoteReadonlyView({
               icon={getSectionIcon(section.key)}
               commentCount={sectionComments.length}
               actions={renderSectionActions?.(section, sectionComments)}
+              glass={glass}
             >
               {renderSectionBody(note, section.key)}
               <CommentRail
                 section={section}
                 comments={sectionComments}
+                glass={glass}
                 renderCommentActions={renderCommentActions}
               />
               {renderSectionFooter?.(section, sectionComments)}

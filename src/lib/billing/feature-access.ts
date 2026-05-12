@@ -9,10 +9,17 @@ export type SubscriptionFeatureKey =
   | "disbursements"
   | "reports"
   | "analytics"
+  | "curriculum_scheme"
+  | "lesson_notes"
+  | "examinations"
+  | "question_bank"
   | "ai_lesson_notes"
   | "ai_leo_copilot"
   | "community"
-  | "community_hub";
+  | "community_hub"
+  | "enterprise"
+  | "api_access"
+  | "priority_support";
 
 export type SubscriptionLimitKey =
   | "maxStudents"
@@ -36,13 +43,44 @@ const FEATURE_ALIASES: Record<SubscriptionFeatureKey, string[]> = {
   disbursements: ["payments", "disbursements"],
   reports: ["reports"],
   analytics: ["reports", "analytics"],
+  curriculum_scheme: ["curriculum_scheme", "academics"],
+  lesson_notes: ["lesson_notes", "ai_lesson_notes", "academics"],
+  examinations: ["examinations", "question_bank"],
+  question_bank: ["question_bank", "examinations"],
   ai_lesson_notes: ["reports", "ai_reports", "ai_lesson_notes"],
   ai_leo_copilot: ["ai_leo_copilot"],
   community: ["community", "community_hub"],
   community_hub: ["community", "community_hub"],
+  enterprise: ["enterprise"],
+  api_access: ["api_access", "enterprise"],
+  priority_support: ["priority_support", "enterprise"],
 };
 
 const DEFAULT_LIMITS: Record<string, Omit<SubscriptionLimits, "maxStudents">> = {
+  starter: {
+    maxTeachers: 25,
+    maxInvitationsPerMonth: 40,
+    maxAICallsPerMonth: 0,
+    maxStorageBytes: 5 * GB,
+  },
+  growth: {
+    maxTeachers: 80,
+    maxInvitationsPerMonth: 150,
+    maxAICallsPerMonth: 300,
+    maxStorageBytes: 25 * GB,
+  },
+  premium: {
+    maxTeachers: null,
+    maxInvitationsPerMonth: 500,
+    maxAICallsPerMonth: 1200,
+    maxStorageBytes: 100 * GB,
+  },
+  enterprise: {
+    maxTeachers: null,
+    maxInvitationsPerMonth: null,
+    maxAICallsPerMonth: null,
+    maxStorageBytes: null,
+  },
   pilot_starter: {
     maxTeachers: 25,
     maxInvitationsPerMonth: 40,

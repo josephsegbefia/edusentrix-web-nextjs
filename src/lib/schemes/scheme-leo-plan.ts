@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { ICurriculumNode } from "@/models/CurriculumNode";
 import type { ISchemeItem } from "@/models/SchemeItem";
 import type { ISchemeOfWork } from "@/models/SchemeOfWork";
+import { EntitlementError, requireEntitlement } from "@/lib/billing/require-entitlement";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import type { LeoSchemePlanMode, LeoSchemePlanResult, LeoSchemePlanRow } from "@/types/scheme-leo";
 export type { LeoSchemePlanMode, LeoSchemePlanResult, LeoSchemePlanRow } from "@/types/scheme-leo";
@@ -114,6 +115,20 @@ export async function runLeoSchemePlan(args: {
 }): Promise<{ ok: true; result: LeoSchemePlanResult } | { ok: false; error: string }> {
   if (!process.env.OPENAI_API_KEY) {
     return { ok: false, error: "AI planning is not configured (missing OPENAI_API_KEY)" };
+  }
+
+  try {
+    await requireEntitlement({
+      schoolId: args.schoolId,
+      featureKey: "ai_leo_copilot",
+      limitKey: "maxAICallsPerMonth",
+      expensive: true,
+    });
+  } catch (error) {
+    if (error instanceof EntitlementError) {
+      return { ok: false, error: error.message };
+    }
+    throw error;
   }
 
   const nodeIdSet = new Set(args.curriculumNodes.map((n) => String(n._id)));

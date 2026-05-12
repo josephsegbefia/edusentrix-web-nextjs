@@ -5,7 +5,7 @@ import OpenAI from "openai";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
-import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
+import { EntitlementError, requireEntitlement } from "@/lib/billing/require-entitlement";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { PERMISSIONS } from "@/lib/rbac";
 import { Lesson, type ILesson } from "@/models/Lesson";
@@ -38,13 +38,19 @@ export async function requireLessonsLeoTeacherContext(): Promise<
   const context = await requireTeacher();
   await connectToDatabase();
   try {
-    await enforceSchoolLimit({
+    await requireEntitlement({
       schoolId: context.schoolId,
+      featureKey: "ai_lesson_notes",
       limitKey: "maxAICallsPerMonth",
-      message: "The monthly AI generation limit has been reached for this school.",
+      expensive: true,
     });
   } catch (e: unknown) {
-    if (e instanceof Response) return e;
+    if (e instanceof EntitlementError) {
+      return Response.json(
+        { success: false, error: e.message, code: e.code },
+        { status: e.statusCode }
+      );
+    }
     throw e;
   }
 

@@ -37,9 +37,11 @@ type StudentNameRow = {
 type PaymentActivityRow = {
   _id: mongoose.Types.ObjectId;
   studentId: mongoose.Types.ObjectId;
-  amount: number;
+  amountMinor?: number;
   paymentDate: Date;
   receiptNumber?: string;
+  paystackReference?: string | null;
+  externalReference?: string | null;
 };
 
 type AttendanceActivityRow = {
@@ -151,18 +153,26 @@ export async function GET(req: NextRequest) {
 
       payments.forEach((payment) => {
         const student = studentMap.get(String(payment.studentId));
+        const amountMajor = Number(payment.amountMinor || 0) / 100;
         activities.push({
           id: `payment-${payment._id}`,
           type: "fee",
           title: "Payment Received",
-          description: `Payment of GH₵ ${payment.amount.toLocaleString()} received`,
+          description: `Payment of GH₵ ${amountMajor.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })} received`,
           ward: student ? { id: student.id, studentId: student.id, name: student.name } : null,
           createdAt: payment.paymentDate.toISOString(),
           timeAgo: getTimeAgo(payment.paymentDate),
           metadata: {
-            amount: payment.amount,
+            amountMinor: Number(payment.amountMinor || 0),
             paymentId: String(payment._id),
-            reference: payment.receiptNumber,
+            reference:
+              payment.receiptNumber ||
+              payment.paystackReference ||
+              payment.externalReference ||
+              null,
           },
           actionUrl: `/parent/wards/${payment.studentId}?tab=fees`,
         });

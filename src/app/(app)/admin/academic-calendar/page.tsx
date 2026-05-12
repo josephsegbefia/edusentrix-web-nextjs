@@ -120,6 +120,12 @@ const DEFAULT_COLORS = [
   "#ec4899",
 ];
 
+const glassPanel =
+  "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
+
+const frostedInset =
+  "rounded-xl border border-white/10 bg-white/4 backdrop-blur-md";
+
 type CalendarSummary = {
   id: string;
   name: string;
@@ -1115,36 +1121,101 @@ export default function AcademicCalendarPage() {
   const selectedCalendarEvents = inPeriodEvents.length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <CalendarRange className="h-6 w-6 text-brand" />
-            <h1 className="text-2xl font-bold">Academic Calendar</h1>
-            <Badge className="bg-white/10 text-white/70">Premium</Badge>
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-sky-500/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-blue-600/10 blur-3xl" />
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70 backdrop-blur-sm">
+              <CalendarRange className="h-3.5 w-3.5 text-sky-200" />
+              School schedule
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                Academic Calendar
+              </h1>
+              <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+                Premium
+              </Badge>
+            </div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+              Build, publish, and delegate your school&apos;s academic calendar. Events stay grouped
+              by academic period.
+            </p>
           </div>
-          <p className="text-sm text-white/50">
-            Build, publish, and delegate your school&apos;s academic calendar.
-          </p>
+          <div className="grid w-full gap-2 sm:grid-cols-3 lg:max-w-xl">
+            {[
+              { icon: ListFilter, label: "Period", text: "Filter by term" },
+              { icon: CalendarRange, label: "Plan", text: "Month or agenda" },
+              { icon: Settings, label: "Publish", text: "Visibility control" },
+            ].map((step) => (
+              <div
+                key={step.label}
+                className="rounded-xl border border-white/10 bg-white/4 p-3 backdrop-blur-sm"
+              >
+                <step.icon className="h-4 w-4 text-sky-200" />
+                <p className="mt-2 text-sm font-medium text-white">{step.label}</p>
+                <p className="mt-0.5 text-xs text-white/45">{step.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => openEventModal()} className="group">
+        <div className="relative z-10 mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <Button onClick={() => openEventModal()} className="group w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
             New Event
           </Button>
         </div>
-      </div>
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl border border-sky-300/20 bg-sky-500/10 p-2">
+              <Sparkles className="h-5 w-5 text-sky-100" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-white">What admins do here</h2>
+              <p className="mt-1 text-sm leading-6 text-white/55">
+                Choose the academic period, add exams, holidays, and school activities, then publish
+                when parents and staff should see the live calendar.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/4 p-4 backdrop-blur-md">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="border-white/15 bg-white/5 text-white/65">
+              {selectedCalendarEvents} event{selectedCalendarEvents === 1 ? "" : "s"} in period
+            </Badge>
+            {activeCalendar?.isPublished ? (
+              <Badge variant="outline" className="border-emerald-300/25 bg-emerald-500/10 text-emerald-100">
+                Calendar published
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-amber-300/30 bg-amber-500/10 text-amber-100">
+                Calendar draft
+              </Badge>
+            )}
+          </div>
+          <p className="mt-3 text-xs leading-5 text-white/45">
+            When you change period, Leo can surface recurring events from the previous term to
+            recreate if needed.
+          </p>
+        </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+          <Card className={glassPanel}>
+            <CardHeader className="border-b border-white/10 pb-4">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
                 School Calendar
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+            <CardContent className="space-y-3 pt-4">
+              <div className={cn(frostedInset, "p-4")}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-white">
@@ -1162,16 +1233,16 @@ export default function AcademicCalendarPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+          <Card className={glassPanel}>
+            <CardHeader className="flex flex-row items-center justify-between border-b border-white/10 pb-4">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
                 Filters
               </CardTitle>
-              <ListFilter className="h-4 w-4 text-white/40" />
+              <ListFilter className="h-4 w-4 text-sky-200/70" />
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pt-4">
               <div className="space-y-2">
-                <label className="text-xs text-white/50">Academic period</label>
+                <label className="text-xs uppercase tracking-wide text-white/45">Academic period</label>
                 <Select
                   value={selectedPeriodId || "none"}
                   onValueChange={(value) => setSelectedPeriodId(value === "none" ? "" : value)}
@@ -1192,16 +1263,16 @@ export default function AcademicCalendarPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="rounded-xl border border-white/5 bg-black/20 p-3 text-sm text-white/60">
+              <div className={cn(frostedInset, "p-3 text-sm text-white/60")}>
                 {selectedCalendarEvents} event{selectedCalendarEvents === 1 ? "" : "s"} inside this period
               </div>
               {outsidePeriodEvents.length > 0 && (
-                <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-sm text-amber-100 backdrop-blur-md">
                   {outsidePeriodEvents.length} anchored event{outsidePeriodEvents.length === 1 ? "" : "s"} sit outside this period&apos;s dates.
                 </div>
               )}
               <div className="space-y-2">
-                <label className="text-xs text-white/50">Jump to month</label>
+                <label className="text-xs uppercase tracking-wide text-white/45">Jump to month</label>
                 <CustomDatePicker
                   value={rangeStart}
                   onChange={(date) => date && setMonth(startOfMonth(date))}
@@ -1212,14 +1283,14 @@ export default function AcademicCalendarPage() {
 
           {previousRecurringEvents.length > 0 &&
             dismissedCarryoverKey !== `${previousPeriod?.id}:${selectedPeriodId}` && (
-              <Card className="border-emerald-400/20 bg-emerald-500/10">
-                <CardHeader>
+              <Card className="relative overflow-hidden rounded-2xl border border-emerald-400/25 bg-linear-to-br from-emerald-950/70 via-slate-950/90 to-black shadow-2xl shadow-emerald-950/20 backdrop-blur-xl">
+                <CardHeader className="border-b border-emerald-400/15 pb-4">
                   <CardTitle className="flex items-center gap-2 text-sm font-semibold text-emerald-50">
                     <Sparkles className="h-4 w-4" />
                     Leo found recurring events
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-3 pt-4">
                   <p className="text-xs text-emerald-100/75">
                     {describePeriod(previousPeriod)} had recurring events. Recreate only the ones needed for {describePeriod(selectedPeriod)}.
                   </p>
@@ -1229,7 +1300,7 @@ export default function AcademicCalendarPage() {
                         key={event.id}
                         type="button"
                         onClick={() => openCarryoverEvent(event)}
-                        className="w-full rounded-xl border border-emerald-300/15 bg-black/20 px-3 py-2 text-left text-sm text-white hover:border-emerald-200/35"
+                        className="w-full rounded-xl border border-emerald-300/20 bg-white/4 px-3 py-2 text-left text-sm text-white backdrop-blur-sm hover:border-emerald-200/40"
                       >
                         <span className="block font-semibold">{event.title}</span>
                         <span className="block text-xs text-white/45">
@@ -1252,14 +1323,14 @@ export default function AcademicCalendarPage() {
               </Card>
             )}
 
-          <Card className="border-white/10 bg-white/5">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+          <Card className={glassPanel}>
+            <CardHeader className="flex flex-row items-center justify-between border-b border-white/10 pb-4">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
                 Publishing
               </CardTitle>
-              <Settings className="h-4 w-4 text-white/40" />
+              <Settings className="h-4 w-4 text-sky-200/70" />
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pt-4">
               {activeCalendar ? (
                 <>
                   <div className="flex items-center justify-between">
@@ -1272,7 +1343,7 @@ export default function AcademicCalendarPage() {
                       }
                     />
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/50">
+                  <div className={cn(frostedInset, "p-3 text-xs text-white/50")}>
                     Events are filtered by academic period. Past periods remain available from the period selector.
                   </div>
                 </>
@@ -1284,16 +1355,16 @@ export default function AcademicCalendarPage() {
         </div>
 
         <div className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <Card className={glassPanel}>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
               <div>
                 <CardTitle className="text-lg text-white">{format(month, "MMMM yyyy")}</CardTitle>
-                <p className="text-sm text-white/50">
+                <p className="text-sm text-white/55">
                   {describePeriod(selectedPeriod)}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/30 p-1">
+                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/6 p-1 backdrop-blur-md">
                   <button
                     onClick={() => setView("month")}
                     className={cn(
@@ -1333,9 +1404,9 @@ export default function AcademicCalendarPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-4">
               {loading && (
-                <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-center text-white/50">
+                <div className="rounded-2xl border border-white/10 bg-white/6 p-6 text-center text-white/50 backdrop-blur-xl">
                   Loading calendar...
                 </div>
               )}
@@ -1354,7 +1425,7 @@ export default function AcademicCalendarPage() {
               )}
 
               {!loading && outsidePeriodEvents.length > 0 && (
-                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
+                <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4 backdrop-blur-md">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-200" />
                     <div>
@@ -1372,7 +1443,7 @@ export default function AcademicCalendarPage() {
                         key={event.id}
                         type="button"
                         onClick={() => openEventModal(event)}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/15 bg-black/20 px-3 py-2 text-left hover:border-amber-200/35"
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/20 bg-white/4 px-3 py-2 text-left backdrop-blur-sm hover:border-amber-200/40"
                       >
                         <span>
                           <span className="block text-sm font-semibold text-white">
@@ -1892,13 +1963,13 @@ export default function AcademicCalendarPage() {
             </div>
           </div>
 
-          <Card className="border-white/10 bg-white/5">
-            <CardHeader>
-            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+          <Card className={glassPanel}>
+            <CardHeader className="border-b border-white/10 pb-4">
+            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
                 Audience & Roles
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Audience Scope</Label>
                 <Select
@@ -2049,13 +2120,13 @@ export default function AcademicCalendarPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
-            <CardHeader>
-            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+          <Card className={glassPanel}>
+            <CardHeader className="border-b border-white/10 pb-4">
+            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
                 Recurrence
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label className="text-xs font-medium uppercase tracking-[0.2em] text-muted">Repeats</Label>
@@ -2183,13 +2254,13 @@ export default function AcademicCalendarPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
-            <CardHeader>
-            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+          <Card className={glassPanel}>
+            <CardHeader className="border-b border-white/10 pb-4">
+            <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
                 Reminders
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pt-4">
               <div className="flex flex-wrap gap-2">
                 {REMINDER_PRESETS.map((preset) => {
                   const active = eventForm.reminders?.some((r) => r.minutesBefore === preset.minutes);
@@ -2228,13 +2299,13 @@ export default function AcademicCalendarPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+          <Card className={glassPanel}>
+            <CardHeader className="border-b border-white/10 pb-4">
+              <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-200/90">
                 Editor Delegation
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pt-4">
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <Users className="h-4 w-4 text-white/50" />
                 Admin can delegate at calendar or event level.

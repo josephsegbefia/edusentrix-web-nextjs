@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Check, Save, Printer } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Send, Save, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -197,7 +197,7 @@ export function LessonNoteWizard({
   );
 
   // Save handlers
-  const handleSave = async (status: "draft" | "published" = "draft") => {
+  const handleSave = async (status: "draft" | "submitted" = "draft") => {
     // Validate required fields
     const contextValidation = validateStep("context");
     if (!contextValidation.valid) {
@@ -219,14 +219,20 @@ export function LessonNoteWizard({
           updateMutation.mutateAsync({ id: initialData.id, ...payload }),
           {
             loading: "Updating lesson note...",
-            success: "Lesson note updated!",
+            success:
+              status === "submitted"
+                ? "Lesson note submitted for review!"
+                : "Lesson note updated!",
             error: "Failed to update",
           }
         );
       } else {
         await busyToast.promise(createMutation.mutateAsync(payload), {
-          loading: "Saving lesson note...",
-          success: "Lesson note saved!",
+          loading: status === "submitted" ? "Submitting lesson note..." : "Saving lesson note...",
+          success:
+            status === "submitted"
+              ? "Lesson note submitted for review!"
+              : "Lesson note saved!",
           error: "Failed to save",
         });
       }
@@ -491,7 +497,7 @@ export function LessonNoteWizard({
                 />
               )}
 
-              {/* Submit for Approval button for draft/rejected notes */}
+              {/* Submit for approval button for existing draft/rejected notes */}
               {isEditing && initialData?.id && (
                 <SubmitForApprovalButton
                   noteId={initialData.id}
@@ -500,14 +506,14 @@ export function LessonNoteWizard({
                 />
               )}
 
-              {/* Publish button */}
+              {/* New notes go directly into the admin review queue instead of publishing. */}
               <Button
                 type="button"
-                onClick={() => handleSave("published")}
-                className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
+                onClick={() => handleSave("submitted")}
+                className="bg-sky-500/20 text-sky-100 hover:bg-sky-500/30"
               >
-                <Check className="mr-1 h-4 w-4" />
-                Publish
+                <Send className="mr-1 h-4 w-4" />
+                Submit for Review
               </Button>
             </>
           ) : (

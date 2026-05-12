@@ -8,7 +8,10 @@ function resolveStatusEventType(previousStatus: string, nextStatus: Subscription
   if (nextStatus === "suspended") return "subscription_suspended";
   if (
     previousStatus === "suspended" &&
-    (nextStatus === "active" || nextStatus === "trial")
+    (nextStatus === "active" ||
+      nextStatus === "trial" ||
+      nextStatus === "trialing" ||
+      nextStatus === "pilot")
   ) {
     return "subscription_reactivated";
   }

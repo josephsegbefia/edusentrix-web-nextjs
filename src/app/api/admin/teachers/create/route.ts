@@ -23,6 +23,10 @@ import {
 import { enforceSchoolLimit } from "@/lib/auth/checkLimit";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import {
+  requireSchoolWriteAccess,
+  SchoolWriteAccessError,
+} from "@/lib/billing/require-school-write-access";
+import {
   deactivateOtherTeachersOnSlot,
   findOtherTeachersOnSlot,
 } from "@/lib/admin/teacher-assignment-slot";
@@ -45,6 +49,7 @@ type Body = {
 export async function POST(req: NextRequest) {
   try {
     const { schoolId, userId } = await requireSchoolAdmin();
+    await requireSchoolWriteAccess({ schoolId, action: "teachers.create" });
     await enforceSchoolLimit({
       schoolId,
       limitKey: "maxTeachers",
@@ -639,6 +644,12 @@ export async function POST(req: NextRequest) {
     );
   } catch (e: any) {
     if (e instanceof Response) return e;
+    if (e instanceof SchoolWriteAccessError) {
+      return Response.json(
+        { success: false, error: e.message, accessMode: e.accessMode },
+        { status: e.statusCode }
+      );
+    }
     console.error("Teacher creation error:", e);
     const message = e instanceof Error ? e.message : "Failed to create teacher";
 

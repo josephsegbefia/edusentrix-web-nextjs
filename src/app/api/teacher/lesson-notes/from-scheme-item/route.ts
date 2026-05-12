@@ -62,15 +62,41 @@ export async function GET(req: Request) {
       return Response.json({ success: false, error: "Scheme of Learning not found" }, { status: 404 });
     }
 
-    if (!scheme.classGroupId) {
+    let targetClassGroupId = scheme.classGroupId as mongoose.Types.ObjectId | null | undefined;
+    if (!targetClassGroupId) {
+      const candidateClassGroups = await ClassGroup.find({
+        schoolId: context.schoolId,
+        ...(scheme.gradeId ? { gradeId: scheme.gradeId } : {}),
+      })
+        .select("_id")
+        .lean<{ _id: mongoose.Types.ObjectId }[]>();
+
+      if (context.isAdmin) {
+        targetClassGroupId = candidateClassGroups[0]?._id ?? null;
+      } else {
+        const assignment = await TeacherAssignment.findOne({
+          schoolId: context.schoolId,
+          teacherId: context.teacherId,
+          classGroupId: { $in: candidateClassGroups.map((group) => group._id) },
+          ...(scheme.subjectId ? { subjectId: scheme.subjectId } : {}),
+          status: "active",
+        })
+          .sort({ createdAt: 1 })
+          .select("classGroupId")
+          .lean<{ classGroupId: mongoose.Types.ObjectId }>();
+        targetClassGroupId = assignment?.classGroupId ?? null;
+      }
+    }
+
+    if (!targetClassGroupId) {
       return Response.json(
-        { success: false, error: "This Scheme of Learning is not tied to a class yet" },
+        { success: false, error: "No class group is available for this grade-level Scheme of Learning" },
         { status: 400 }
       );
     }
 
     const classGroup = await ClassGroup.findOne({
-      _id: scheme.classGroupId,
+      _id: targetClassGroupId,
       schoolId: context.schoolId,
     }).select("_id gradeId name").lean();
     if (!classGroup) {
@@ -81,7 +107,7 @@ export async function GET(req: Request) {
       const assignment = await TeacherAssignment.findOne({
         schoolId: context.schoolId,
         teacherId: context.teacherId,
-        classGroupId: scheme.classGroupId,
+        classGroupId: targetClassGroupId,
         ...(scheme.subjectId ? { subjectId: scheme.subjectId } : {}),
         status: "active",
       }).select("_id").lean();
@@ -96,7 +122,7 @@ export async function GET(req: Request) {
     const schemeResolution = await resolveLessonNoteSchemeFields({
       schoolId: context.schoolId,
       teacherId: context.teacherId,
-      classGroupId: scheme.classGroupId,
+      classGroupId: targetClassGroupId,
       subjectId: scheme.subjectId ?? null,
       schemeId: String(scheme._id),
       schemeItemIds: [String(item._id)],
@@ -117,7 +143,7 @@ export async function GET(req: Request) {
       success: true,
       data: {
         initialData: {
-          classGroupId: String(scheme.classGroupId),
+          classGroupId: String(targetClassGroupId),
           subjectId: scheme.subjectId ? String(scheme.subjectId) : undefined,
           templateType: "SIMPLE",
           weekOf: new Date(weekOf).toISOString(),

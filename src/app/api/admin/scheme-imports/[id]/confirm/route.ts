@@ -144,7 +144,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       academicPeriodId,
       gradeId,
       subjectId,
-      classGroupId,
+      classGroupId: null,
       status: { $in: ["draft", "submitted", "needs_revision", "approved", "active"] },
     })
       .select("_id title status")
@@ -153,7 +153,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return Response.json(
         {
           success: false,
-          error: `A scheme already exists for this class, subject, and period: "${existingScheme.title}". Open it or archive it before importing another.`,
+          error: `A scheme already exists for this grade, subject, and period: "${existingScheme.title}". Open it or archive it before importing another.`,
           data: {
             existingScheme: {
               id: String(existingScheme._id),
@@ -182,7 +182,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       curriculumId: derivedCurriculum.curriculumId,
       curriculumSubjectId: derivedCurriculum.curriculumSubjectId,
       gradeId,
-      classGroupId,
+      classGroupId: null,
       subjectId,
       ownerTeacherId: null,
       status: "approved",

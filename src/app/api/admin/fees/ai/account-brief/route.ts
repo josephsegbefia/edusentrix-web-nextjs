@@ -546,6 +546,7 @@ export async function POST(req: NextRequest) {
     await enforceSchoolLimit({
       schoolId,
       limitKey: "maxAICallsPerMonth",
+      expensive: true,
       message:
         "The monthly AI account-brief limit has been reached for this school.",
     });

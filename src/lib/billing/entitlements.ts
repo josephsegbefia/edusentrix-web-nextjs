@@ -8,6 +8,7 @@ import { SubscriptionTier } from "@/models/SubscriptionTier";
 import { Student } from "@/models/Student";
 import { Teacher } from "@/models/Teacher";
 import { UsageMetric } from "@/models/UsageMetric";
+import { UsageEvent, type UsageEventCategory } from "@/models/UsageEvent";
 import type { PlatformBillingProvider } from "@/lib/platform-billing/providers";
 import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 import {
@@ -17,6 +18,16 @@ import {
   type SubscriptionLimitKey,
   type SubscriptionLimits,
 } from "@/lib/billing/feature-access";
+import {
+  normalizeSubscriptionStatus,
+  type BillingCadence,
+  type SubscriptionLifecycleMode,
+  type SubscriptionStatus,
+} from "@/lib/platform-billing/subscription-pricing";
+import {
+  resolveAccessModeFromSubscription,
+  type SchoolAccessMode,
+} from "@/lib/billing/resolve-school-access-mode";
 
 export type SubscriptionSnapshot = {
   schoolId: string;
@@ -25,10 +36,19 @@ export type SubscriptionSnapshot = {
   paymentReady: boolean;
   subscription: {
     id: string | null;
-    status: "draft" | "trial" | "active" | "suspended" | "cancelled";
+    status: SubscriptionStatus;
+    normalizedStatus: SubscriptionStatus;
+    accessMode: SchoolAccessMode;
     tierId: string | null;
     tierCode: string | null;
     tierName: string | null;
+    tierVersion: number | null;
+    lifecycleMode: SubscriptionLifecycleMode | null;
+    billingCadence: BillingCadence | null;
+    startsAt: string | null;
+    endsAt: string | null;
+    trialEndsAt: string | null;
+    gracePeriodEndsAt: string | null;
     basePriceMinor: number;
     manualPriceOverrideMinor: number | null;
     discountMode: "none" | "percent" | "fixed";
@@ -54,6 +74,7 @@ export type SubscriptionSnapshot = {
 export type TrackUsageInput = {
   schoolId: string | mongoose.Types.ObjectId;
   provider: PlatformBillingProvider;
+  category?: UsageEventCategory;
   metricKey: string;
   quantity?: number;
   unitLabel?: string;
@@ -61,10 +82,39 @@ export type TrackUsageInput = {
   estimatedCostMinor?: number;
   actorId?: mongoose.Types.ObjectId | null;
   actorEmail?: string | null;
+  entityType?: string | null;
+  entityId?: mongoose.Types.ObjectId | null;
+  metadata?: Record<string, unknown> | null;
   allocationMethod?: "direct" | "weighted" | "manual";
   sourceType?: "manual" | "provider_sync" | "system_estimate";
   notes?: string | null;
 };
+
+export function inferUsageCategory(input: {
+  provider: PlatformBillingProvider;
+  metricKey: string;
+}): UsageEventCategory {
+  if (input.provider === "openai" || input.metricKey.startsWith("ai_")) {
+    return "ai";
+  }
+  if (
+    input.provider === "uploadthing" ||
+    input.provider === "storage" ||
+    input.metricKey.includes("storage") ||
+    input.metricKey.includes("uploaded")
+  ) {
+    return "storage";
+  }
+  if (input.provider === "paystack" || input.metricKey.includes("payment")) {
+    return "payment";
+  }
+  if (input.provider === "email" || input.metricKey.includes("notification")) {
+    return "notification";
+  }
+  if (input.metricKey.includes("invitation")) return "invitation";
+  if (input.metricKey.includes("export")) return "export";
+  return "other";
+}
 
 function normalizeSchoolId(schoolId: string | mongoose.Types.ObjectId) {
   return typeof schoolId === "string"
@@ -118,20 +168,30 @@ export async function getSchoolSubscriptionSnapshot(
       } | null>(),
     SchoolSubscription.findOne({ schoolId: schoolIdObj })
       .select(
-        "tierId tierCode tierName status basePriceMinor manualPriceOverrideMinor discountMode discountValue effectivePriceMinor pilotEndsAt"
+        "tierId tierCode tierName tierVersion status lifecycleMode billingCadence startsAt endsAt trialEndsAt pilotEndsAt gracePeriodEndsAt manualAccessModeOverride basePriceMinor manualPriceOverrideMinor discountMode discountValue effectivePriceMinor includedLimitsSnapshot featuresSnapshot"
       )
       .lean<{
         _id: mongoose.Types.ObjectId;
         tierId?: mongoose.Types.ObjectId | null;
         tierCode?: string | null;
         tierName?: string | null;
-        status?: "draft" | "trial" | "active" | "suspended" | "cancelled";
+        tierVersion?: number | null;
+        status?: SubscriptionStatus;
+        lifecycleMode?: SubscriptionLifecycleMode | null;
+        billingCadence?: BillingCadence | null;
+        startsAt?: Date | null;
+        endsAt?: Date | null;
+        trialEndsAt?: Date | null;
+        gracePeriodEndsAt?: Date | null;
+        manualAccessModeOverride?: SchoolAccessMode | null;
         basePriceMinor?: number;
         manualPriceOverrideMinor?: number | null;
         discountMode?: "none" | "percent" | "fixed";
         discountValue?: number | null;
         effectivePriceMinor?: number;
         pilotEndsAt?: Date | null;
+        includedLimitsSnapshot?: Partial<SubscriptionLimits> | null;
+        featuresSnapshot?: string[] | null;
       } | null>(),
     Student.countDocuments({ schoolId: schoolIdObj }),
     Teacher.countDocuments({ schoolId: schoolIdObj, status: "active" }),
@@ -147,12 +207,20 @@ export async function getSchoolSubscriptionSnapshot(
           studentLimit?: number | null;
         } | null>()
     : null;
-  const features = Array.isArray(tier?.features) ? tier.features : [];
-  const limits = resolveTierLimits({
+  const features = Array.isArray(subscription?.featuresSnapshot)
+    ? subscription.featuresSnapshot
+    : Array.isArray(tier?.features)
+      ? tier.features
+      : [];
+  const tierLimits = resolveTierLimits({
     tierCode: subscription?.tierCode || null,
     studentLimit:
       typeof tier?.studentLimit === "number" ? tier.studentLimit : null,
   });
+  const limits = {
+    ...tierLimits,
+    ...(subscription?.includedLimitsSnapshot || {}),
+  } as SubscriptionLimits;
 
   const pricing = computeSubscriptionPricing({
     basePriceMinor: subscription?.basePriceMinor || 0,
@@ -160,6 +228,9 @@ export async function getSchoolSubscriptionSnapshot(
     discountMode: subscription?.discountMode || "none",
     discountValue: subscription?.discountValue ?? null,
   });
+
+  const normalizedStatus = normalizeSubscriptionStatus(subscription?.status);
+  const accessMode = resolveAccessModeFromSubscription(subscription);
 
   return {
     schoolId: String(school._id),
@@ -169,9 +240,19 @@ export async function getSchoolSubscriptionSnapshot(
     subscription: {
       id: subscription ? String(subscription._id) : null,
       status: subscription?.status || "draft",
+      normalizedStatus,
+      accessMode,
       tierId: subscription?.tierId ? String(subscription.tierId) : null,
       tierCode: subscription?.tierCode || null,
       tierName: subscription?.tierName || null,
+      tierVersion: subscription?.tierVersion ?? null,
+      lifecycleMode: subscription?.lifecycleMode || null,
+      billingCadence: subscription?.billingCadence || null,
+      startsAt: subscription?.startsAt?.toISOString?.().slice(0, 10) || null,
+      endsAt: subscription?.endsAt?.toISOString?.().slice(0, 10) || null,
+      trialEndsAt: subscription?.trialEndsAt?.toISOString?.().slice(0, 10) || null,
+      gracePeriodEndsAt:
+        subscription?.gracePeriodEndsAt?.toISOString?.().slice(0, 10) || null,
       basePriceMinor: Math.max(0, Math.round(Number(subscription?.basePriceMinor || 0))),
       manualPriceOverrideMinor: subscription?.manualPriceOverrideMinor ?? null,
       discountMode: subscription?.discountMode || "none",
@@ -303,6 +384,32 @@ export async function trackUsage(input: TrackUsageInput) {
       setDefaultsOnInsert: true,
     }
   );
+
+  await UsageEvent.create({
+    schoolId: schoolIdObj,
+    provider: input.provider,
+    category:
+      input.category ||
+      inferUsageCategory({
+        provider: input.provider,
+        metricKey: input.metricKey,
+      }),
+    metricKey: input.metricKey,
+    quantity,
+    unitLabel: input.unitLabel || "units",
+    unitCostMinor,
+    estimatedCostMinor,
+    allocationMethod: input.allocationMethod || "manual",
+    sourceType: input.sourceType || "manual",
+    actorId: input.actorId || null,
+    actorEmail: input.actorEmail || null,
+    entityType: input.entityType || null,
+    entityId: input.entityId || null,
+    periodStart,
+    periodEnd,
+    metadata: input.metadata || null,
+    notes: input.notes || null,
+  });
 
   return metric;
 }

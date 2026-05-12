@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
-import { computeSubscriptionPricing } from "@/lib/platform-billing/subscription-pricing";
+import {
+  BILLING_CADENCES,
+  SUBSCRIPTION_LIFECYCLE_MODES,
+  SUBSCRIPTION_STATUSES,
+  computeSubscriptionPricing,
+} from "@/lib/platform-billing/subscription-pricing";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
 import { SchoolSubscription } from "@/models/SchoolSubscription";
 import { SubscriptionEvent } from "@/models/SubscriptionEvent";
@@ -12,12 +17,21 @@ import { User } from "@/models/User";
 const UpdateSchoolSubscriptionSchema = z
   .object({
     tierId: z.string().trim().min(1),
-    status: z.enum(["draft", "trial", "active", "suspended", "cancelled"]),
+    status: z.enum(SUBSCRIPTION_STATUSES),
+    lifecycleMode: z.enum(SUBSCRIPTION_LIFECYCLE_MODES).nullable().optional().default(null),
+    billingCadence: z.enum(BILLING_CADENCES).nullable().optional().default(null),
+    startsAt: z.string().trim().nullable().optional().default(null),
+    endsAt: z.string().trim().nullable().optional().default(null),
+    trialStartsAt: z.string().trim().nullable().optional().default(null),
+    trialEndsAt: z.string().trim().nullable().optional().default(null),
+    pilotStartsAt: z.string().trim().nullable().optional().default(null),
     manualPriceOverrideMinor: z.number().int().min(0).nullable().optional().default(null),
     discountMode: z.enum(["none", "percent", "fixed"]),
     discountValue: z.number().min(0).nullable().optional().default(null),
     note: z.string().trim().max(240).nullable().optional().default(null),
     pilotEndsAt: z.string().trim().nullable().optional().default(null),
+    gracePeriodEndsAt: z.string().trim().nullable().optional().default(null),
+    usageResetPolicy: z.enum(["term", "annual", "custom"]).nullable().optional().default(null),
   })
   .superRefine((value, ctx) => {
     if (value.discountMode !== "none" && value.discountValue === null) {
@@ -41,7 +55,7 @@ const UpdateSchoolSubscriptionSchema = z
     }
   });
 
-function parsePilotEndsAt(value: string | null): Date | null {
+function parseDateField(value: string | null): Date | null {
   if (!value) return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -58,7 +72,10 @@ function resolveEventType(input: {
   if (input.nextStatus === "cancelled") return "subscription_cancelled" as const;
   if (
     input.existingStatus === "suspended" &&
-    (input.nextStatus === "active" || input.nextStatus === "trial")
+    (input.nextStatus === "active" ||
+      input.nextStatus === "trial" ||
+      input.nextStatus === "trialing" ||
+      input.nextStatus === "pilot")
   ) {
     return "subscription_reactivated" as const;
   }
@@ -94,7 +111,7 @@ export async function PATCH(
     const [school, tier, existing, actor] = await Promise.all([
       School.findById(schoolIdObj).select("name"),
       SubscriptionTier.findById(new mongoose.Types.ObjectId(body.tierId)).select(
-        "code name priceMinor"
+        "code name priceMinor billingCadence features limits transactionFees version"
       ),
       SchoolSubscription.findOne({ schoolId: schoolIdObj })
         .select("status")
@@ -116,12 +133,23 @@ export async function PATCH(
       );
     }
 
-    const pilotEndsAt = parsePilotEndsAt(body.pilotEndsAt);
-    if (body.pilotEndsAt && !pilotEndsAt) {
-      return NextResponse.json(
-        { success: false, error: "Invalid pilot end date." },
-        { status: 400 }
-      );
+    const parsedDates = {
+      startsAt: parseDateField(body.startsAt),
+      endsAt: parseDateField(body.endsAt),
+      trialStartsAt: parseDateField(body.trialStartsAt),
+      trialEndsAt: parseDateField(body.trialEndsAt),
+      pilotStartsAt: parseDateField(body.pilotStartsAt),
+      pilotEndsAt: parseDateField(body.pilotEndsAt),
+      gracePeriodEndsAt: parseDateField(body.gracePeriodEndsAt),
+    };
+
+    for (const [field, parsed] of Object.entries(parsedDates)) {
+      if (body[field as keyof typeof parsedDates] && !parsed) {
+        return NextResponse.json(
+          { success: false, error: `Invalid ${field} date.` },
+          { status: 400 }
+        );
+      }
     }
 
     const pricing = computeSubscriptionPricing({
@@ -138,14 +166,27 @@ export async function PATCH(
           tierId: tier._id,
           tierCode: tier.code,
           tierName: tier.name,
+          tierVersion: tier.version ?? 1,
           status: body.status,
+          lifecycleMode: body.lifecycleMode,
+          billingCadence: body.billingCadence || tier.billingCadence || "term",
+          startsAt: parsedDates.startsAt,
+          endsAt: parsedDates.endsAt,
+          trialStartsAt: parsedDates.trialStartsAt,
+          trialEndsAt: parsedDates.trialEndsAt,
+          pilotStartsAt: parsedDates.pilotStartsAt,
+          pilotEndsAt: parsedDates.pilotEndsAt,
+          gracePeriodEndsAt: parsedDates.gracePeriodEndsAt,
           basePriceMinor: tier.priceMinor,
           manualPriceOverrideMinor: body.manualPriceOverrideMinor,
           discountMode: body.discountMode,
           discountValue: body.discountMode === "none" ? null : body.discountValue,
           effectivePriceMinor: pricing.finalPriceMinor,
           note: body.note,
-          pilotEndsAt,
+          featuresSnapshot: Array.isArray(tier.features) ? tier.features : [],
+          includedLimitsSnapshot: tier.limits || null,
+          transactionFeeSnapshot: tier.transactionFees || null,
+          usageResetPolicy: body.usageResetPolicy,
           updatedBy: gate.me._id,
           updatedByEmail: actor?.email || null,
         },
@@ -177,7 +218,13 @@ export async function PATCH(
         discountMode: body.discountMode,
         discountValue: body.discountMode === "none" ? null : body.discountValue,
         effectivePriceMinor: pricing.finalPriceMinor,
-        pilotEndsAt: pilotEndsAt?.toISOString?.() || null,
+        lifecycleMode: body.lifecycleMode,
+        billingCadence: body.billingCadence || tier.billingCadence || "term",
+        startsAt: parsedDates.startsAt?.toISOString?.() || null,
+        endsAt: parsedDates.endsAt?.toISOString?.() || null,
+        trialEndsAt: parsedDates.trialEndsAt?.toISOString?.() || null,
+        pilotEndsAt: parsedDates.pilotEndsAt?.toISOString?.() || null,
+        gracePeriodEndsAt: parsedDates.gracePeriodEndsAt?.toISOString?.() || null,
       },
     });
 
@@ -195,7 +242,14 @@ export async function PATCH(
         discountValue: updated.discountValue ?? null,
         effectivePriceMinor: updated.effectivePriceMinor,
         note: updated.note || null,
+        billingCadence: updated.billingCadence || null,
+        lifecycleMode: updated.lifecycleMode || null,
+        startsAt: updated.startsAt?.toISOString?.().slice(0, 10) || null,
+        endsAt: updated.endsAt?.toISOString?.().slice(0, 10) || null,
+        trialEndsAt: updated.trialEndsAt?.toISOString?.().slice(0, 10) || null,
         pilotEndsAt: updated.pilotEndsAt?.toISOString?.().slice(0, 10) || null,
+        gracePeriodEndsAt:
+          updated.gracePeriodEndsAt?.toISOString?.().slice(0, 10) || null,
         updatedAt: updated.updatedAt?.toISOString?.() || null,
         pricing,
       },

@@ -37,6 +37,18 @@ export const PLATFORM_ROUTE_ACCESS_RULES: PlatformRouteAccessRule[] = [
     requiredPermissions: ["platform.schools.read"],
   },
   {
+    href: "/platform/delegations",
+    requiredPermissions: ["platform.implementation.assignTasks"],
+  },
+  {
+    href: "/platform/tasks",
+    requiredPermissions: ["platform.implementation.read"],
+  },
+  {
+    href: "/platform/schools/new",
+    requiredPermissions: ["platform.schools.create"],
+  },
+  {
     href: "/platform/billing",
     requiredPermissions: ["platform.billing.read"],
   },

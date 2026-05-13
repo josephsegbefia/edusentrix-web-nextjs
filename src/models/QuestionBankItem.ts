@@ -24,6 +24,7 @@ export interface IQuestionBankItem {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
   subjectId: Types.ObjectId;
+  subjectOfferingId?: Types.ObjectId | null;
   gradeId: Types.ObjectId;
   classGroupIds: Types.ObjectId[];
   curriculumId?: Types.ObjectId | null;
@@ -62,6 +63,7 @@ const questionBankItemSchema = new Schema<IQuestionBankItem>(
   {
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
     subjectId: { type: Schema.Types.ObjectId, ref: "Subject", required: true, index: true },
+    subjectOfferingId: { type: Schema.Types.ObjectId, ref: "SubjectOffering", default: null, index: true },
     gradeId: { type: Schema.Types.ObjectId, ref: "Grade", required: true, index: true },
     classGroupIds: {
       type: [{ type: Schema.Types.ObjectId, ref: "ClassGroup" }],
@@ -148,6 +150,13 @@ const questionBankItemSchema = new Schema<IQuestionBankItem>(
 questionBankItemSchema.index({
   schoolId: 1,
   subjectId: 1,
+  gradeId: 1,
+  status: 1,
+  updatedAt: -1,
+});
+questionBankItemSchema.index({
+  schoolId: 1,
+  subjectOfferingId: 1,
   gradeId: 1,
   status: 1,
   updatedAt: -1,

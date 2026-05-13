@@ -3,6 +3,8 @@ import type { Types } from "mongoose";
 import type { PlatformPermissionKey } from "@/lib/platform/permissions/registry";
 import type { PlatformActor } from "@/lib/platform/auth/has-platform-permission";
 import { hasPlatformPermission } from "@/lib/platform/auth/has-platform-permission";
+import { connectToDatabase } from "@/db/connectToDatabase";
+import { PlatformDelegation } from "@/models/PlatformDelegation";
 
 export type PlatformDelegationScope =
   | "school_implementation"
@@ -30,7 +32,32 @@ export async function requirePlatformDelegation(input: PlatformDelegationCheckIn
     return { ok: true as const };
   }
 
-  // Placeholder until PlatformDelegation is introduced in the delegation slice.
+  if (!input.schoolId) {
+    return {
+      ok: false as const,
+      status: 400,
+      error: "School id is required for delegated platform operations",
+    };
+  }
+
+  await connectToDatabase();
+  const now = new Date();
+  const delegation = await PlatformDelegation.findOne({
+    staffUserId: input.actor.userId,
+    schoolId: input.schoolId,
+    scope: input.scope,
+    status: "active",
+    startsAt: { $lte: now },
+    $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+    permissions: input.permission,
+  })
+    .select("_id")
+    .lean<{ _id: Types.ObjectId } | null>();
+
+  if (delegation) {
+    return { ok: true as const, delegationId: delegation._id };
+  }
+
   return {
     ok: false as const,
     status: 403,

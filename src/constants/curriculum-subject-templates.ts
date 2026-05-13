@@ -1,10 +1,19 @@
-import type { CurriculumCode } from "./curriculum-profiles";
+import type { CurriculumCode as ProfileCurriculumCode } from "./curriculum-profiles";
+import type {
+  CurriculumCode,
+  LessonNoteTemplateVariant,
+  SubjectOfferingGradeBand,
+  SubjectOfferingStage,
+} from "@/models/SubjectOffering";
 
 export type SubjectCategory =
   | "core"
   | "elective"
   | "foundation"
   | "optional"
+  | "learning_area"
+  | "co_curricular"
+  | "custom"
   | "transdisciplinary_theme"
   | "subject_group";
 
@@ -128,7 +137,7 @@ export function getPreschoolLearningAreaNames(input: {
 }
 
 export const CURRICULUM_SUBJECT_TEMPLATES: Record<
-  CurriculumCode,
+  ProfileCurriculumCode,
   SubjectTemplateEntry[]
 > = {
   ghana_nacca: [
@@ -227,7 +236,7 @@ export const GHANA_SHS_SUBJECTS: SubjectTemplateEntry[] = [
 ];
 
 export function getSubjectTemplatesForCurriculum(
-  curriculumCode: CurriculumCode,
+  curriculumCode: ProfileCurriculumCode,
   schoolType?: string
 ): SubjectTemplateEntry[] {
   if (curriculumCode === "ghana_nacca" && schoolType === "SHS") {
@@ -237,7 +246,7 @@ export function getSubjectTemplatesForCurriculum(
 }
 
 export function getSubjectNamesForCurriculum(
-  curriculumCode: CurriculumCode,
+  curriculumCode: ProfileCurriculumCode,
   schoolType?: string
 ): string[] {
   return getSubjectTemplatesForCurriculum(curriculumCode, schoolType).map(
@@ -251,7 +260,7 @@ export function getSubjectNamesForCurriculum(
  */
 export function getAllowedStagesForSubject(
   subjectName: string,
-  curriculumCode: CurriculumCode,
+  curriculumCode: ProfileCurriculumCode,
   schoolType?: string
 ): string[] {
   const templates = getSubjectTemplatesForCurriculum(curriculumCode, schoolType);
@@ -260,4 +269,220 @@ export function getAllowedStagesForSubject(
     (t) => t.name.trim().toLowerCase() === normalized
   );
   return template?.stages ?? [];
+}
+
+export type CurriculumSubjectOfferingTemplate = {
+  curriculumCode: CurriculumCode;
+  subjectFamily: string;
+  displayName: string;
+  shortName: string;
+  code: string;
+  stage: SubjectOfferingStage;
+  gradeBand: SubjectOfferingGradeBand;
+  gradeCodes: string[];
+  category: SubjectCategory;
+  lessonNoteTemplateVariant?: LessonNoteTemplateVariant;
+  assessmentProfile?: string;
+  reportCardGroup?: string;
+  isDefault: boolean;
+};
+
+const PRESCHOOL_GRADE_CODES = ["CRECHE", "NURSERY", "KG1", "KG2"];
+const LOWER_PRIMARY_GRADE_CODES = [
+  "P1",
+  "P2",
+  "P3",
+  "B1",
+  "B2",
+  "B3",
+  "BASIC1",
+  "BASIC2",
+  "BASIC3",
+  "PRIMARY1",
+  "PRIMARY2",
+  "PRIMARY3",
+  "GRADE1",
+  "GRADE2",
+  "GRADE3",
+];
+const UPPER_PRIMARY_GRADE_CODES = [
+  "P4",
+  "P5",
+  "P6",
+  "B4",
+  "B5",
+  "B6",
+  "BASIC4",
+  "BASIC5",
+  "BASIC6",
+  "PRIMARY4",
+  "PRIMARY5",
+  "PRIMARY6",
+  "GRADE4",
+  "GRADE5",
+  "GRADE6",
+];
+const JHS_GRADE_CODES = ["JHS1", "JHS2", "JHS3"];
+const SHS_GRADE_CODES = ["SHS1", "SHS2", "SHS3"];
+
+function naccaTemplate(input: Omit<CurriculumSubjectOfferingTemplate, "curriculumCode" | "isDefault"> & { isDefault?: boolean }): CurriculumSubjectOfferingTemplate {
+  return { curriculumCode: "ghana_nacca", isDefault: input.isDefault ?? true, ...input };
+}
+
+export const CURRICULUM_SUBJECT_OFFERING_TEMPLATES: CurriculumSubjectOfferingTemplate[] = [
+  naccaTemplate({
+    subjectFamily: "Communication & Language",
+    displayName: "Communication & Language - Early Years",
+    shortName: "Communication & Language",
+    code: "NACCA-EY-COMM-LANG",
+    stage: "kg",
+    gradeBand: "preschool",
+    gradeCodes: PRESCHOOL_GRADE_CODES,
+    category: "learning_area",
+    lessonNoteTemplateVariant: "early_years_activity_plan",
+    reportCardGroup: "Early Years",
+  }),
+  naccaTemplate({
+    subjectFamily: "Numeracy Readiness",
+    displayName: "Numeracy Readiness - Early Years",
+    shortName: "Numeracy Readiness",
+    code: "NACCA-EY-NUM",
+    stage: "kg",
+    gradeBand: "preschool",
+    gradeCodes: PRESCHOOL_GRADE_CODES,
+    category: "learning_area",
+    lessonNoteTemplateVariant: "early_years_activity_plan",
+    reportCardGroup: "Early Years",
+  }),
+  naccaTemplate({
+    subjectFamily: "Creative Arts",
+    displayName: "Creative Play / Creative Arts - Early Years",
+    shortName: "Creative Arts",
+    code: "NACCA-EY-CREATIVE",
+    stage: "kg",
+    gradeBand: "preschool",
+    gradeCodes: PRESCHOOL_GRADE_CODES,
+    category: "learning_area",
+    lessonNoteTemplateVariant: "early_years_activity_plan",
+    reportCardGroup: "Early Years",
+  }),
+  ...[
+    ["English Language", "English Language", "ENG"],
+    ["Mathematics", "Mathematics", "MATH"],
+    ["Science", "Science", "SCI"],
+    ["Our World and Our People", "Our World and Our People", "OWOP"],
+    ["Religious and Moral Education", "Religious and Moral Education", "RME"],
+    ["Creative Arts", "Creative Arts", "CARTS"],
+    ["Computing", "Computing", "COMP"],
+    ["Ghanaian Language", "Ghanaian Language", "GHL"],
+    ["Physical Education", "Physical Education", "PE"],
+  ].map(([family, name, code]) =>
+    naccaTemplate({
+      subjectFamily: family,
+      displayName: `${name} - Lower Primary`,
+      shortName: name,
+      code: `NACCA-LP-${code}`,
+      stage: "lower_primary",
+      gradeBand: "lower_primary",
+      gradeCodes: LOWER_PRIMARY_GRADE_CODES,
+      category: "core",
+      lessonNoteTemplateVariant: "nacca_primary",
+      reportCardGroup: "Core",
+    })
+  ),
+  ...[
+    ["English Language", "English Language", "ENG"],
+    ["Mathematics", "Mathematics", "MATH"],
+    ["Science", "Science", "SCI"],
+    ["Our World and Our People", "Our World and Our People", "OWOP"],
+    ["Religious and Moral Education", "Religious and Moral Education", "RME"],
+    ["Creative Arts", "Creative Arts", "CARTS"],
+    ["Computing", "Computing", "COMP"],
+    ["Ghanaian Language", "Ghanaian Language", "GHL"],
+    ["Physical Education", "Physical Education", "PE"],
+    ["French", "French", "FRE", "elective"],
+  ].map(([family, name, code, category]) =>
+    naccaTemplate({
+      subjectFamily: family,
+      displayName: `${name} - Upper Primary`,
+      shortName: name,
+      code: `NACCA-UP-${code}`,
+      stage: "upper_primary",
+      gradeBand: "upper_primary",
+      gradeCodes: UPPER_PRIMARY_GRADE_CODES,
+      category: (category as SubjectCategory | undefined) ?? "core",
+      lessonNoteTemplateVariant: "nacca_primary",
+      reportCardGroup: category === "elective" ? "Electives" : "Core",
+    })
+  ),
+  ...[
+    ["English Language", "English Language", "ENG"],
+    ["Mathematics", "Mathematics", "MATH"],
+    ["Science", "Science", "SCI"],
+    ["Social Studies", "Social Studies", "SOC"],
+    ["Computing", "Computing", "COMP"],
+    ["Religious and Moral Education", "Religious and Moral Education", "RME"],
+    ["Creative Arts and Design", "Creative Arts and Design", "CAD"],
+    ["Career Technology", "Career Technology", "CTECH"],
+    ["Ghanaian Language", "Ghanaian Language", "GHL"],
+    ["Physical Education and Health", "Physical Education and Health", "PEH"],
+    ["French", "French", "FRE", "elective"],
+  ].map(([family, name, code, category]) =>
+    naccaTemplate({
+      subjectFamily: family,
+      displayName: `${name} - JHS`,
+      shortName: name,
+      code: `NACCA-JHS-${code}`,
+      stage: "jhs",
+      gradeBand: "jhs",
+      gradeCodes: JHS_GRADE_CODES,
+      category: (category as SubjectCategory | undefined) ?? "core",
+      lessonNoteTemplateVariant: "nacca_jhs",
+      reportCardGroup: category === "elective" ? "Electives" : "Core",
+    })
+  ),
+  naccaTemplate({
+    subjectFamily: "Core Mathematics",
+    displayName: "Core Mathematics - SHS",
+    shortName: "Core Mathematics",
+    code: "NACCA-SHS-CMATH",
+    stage: "shs",
+    gradeBand: "shs",
+    gradeCodes: SHS_GRADE_CODES,
+    category: "core",
+    lessonNoteTemplateVariant: "classic",
+    reportCardGroup: "Core",
+  }),
+  ...[
+    ["Cambridge", "cambridge", "cambridge_primary", "custom", ["YEAR1", "YEAR2", "YEAR3", "YEAR4", "YEAR5", "YEAR6"]],
+    ["Cambridge", "cambridge", "cambridge_lower_secondary", "custom", ["YEAR7", "YEAR8", "YEAR9"]],
+  ].flatMap(([label, curriculumCode, stage, gradeBand, gradeCodes]) =>
+    ["English", "Mathematics", "Science", "ICT", "Global Perspectives"].map((subject) => ({
+      curriculumCode: curriculumCode as CurriculumCode,
+      subjectFamily: subject,
+      displayName: `${label} ${subject}`,
+      shortName: subject,
+      code: `${String(curriculumCode).toUpperCase()}-${String(stage).includes("lower") ? "LS" : "PRI"}-${subject.toUpperCase().replace(/[^A-Z0-9]+/g, "-")}`,
+      stage: stage as SubjectOfferingStage,
+      gradeBand: gradeBand as SubjectOfferingGradeBand,
+      gradeCodes: gradeCodes as string[],
+      category: "core" as SubjectCategory,
+      lessonNoteTemplateVariant: "classic" as LessonNoteTemplateVariant,
+      reportCardGroup: "Core",
+      isDefault: true,
+    }))
+  ),
+];
+
+export function getSubjectOfferingTemplatesForCurriculum(
+  curriculumCode: CurriculumCode,
+  schoolType?: string
+): CurriculumSubjectOfferingTemplate[] {
+  const templates = CURRICULUM_SUBJECT_OFFERING_TEMPLATES.filter(
+    (template) => template.curriculumCode === curriculumCode
+  );
+  if (curriculumCode === "ghana_nacca" && schoolType !== "SHS") {
+    return templates.filter((template) => template.gradeBand !== "shs");
+  }
+  return templates;
 }

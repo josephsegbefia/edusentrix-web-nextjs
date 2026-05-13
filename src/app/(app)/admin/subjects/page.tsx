@@ -10,23 +10,50 @@ import {
   AlertCircle,
   Shapes,
   Sparkles,
+  Layers3,
+  WandSparkles,
 } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { useSubjects } from "@/hooks/admin/useSubjects";
 import { SubjectsQuickStatsSection } from "@/components/admin/subjects/SubjectsQuickStatsSection";
 import { SubjectsToolbar, type SubjectsViewMode } from "@/components/admin/subjects/SubjectsToolbar";
 import { SubjectsCardGrid } from "@/components/admin/subjects/SubjectsCardGrid";
 import { SubjectsTable } from "@/components/admin/subjects/SubjectsTable";
 import { AssignTeacherToSubjectModal } from "@/components/modals/AssignTeacherToSubjectModal";
-import { AssignSubjectToClassesModal } from "@/components/modals/AssignSubjectToClassesModal";
 import { CreateSubjectModal } from "@/components/modals/CreateSubjectModal";
 import type { SubjectDTO } from "@/hooks/admin/useSubjects";
 import { notifyComingSoon } from "@/lib/ui/feature-notices";
 import { cn } from "@/lib/utils";
+import {
+  useAssignSubjectOfferingToClasses,
+  useCreateCustomSubjectOffering,
+  useSetupSubjectOfferingsFromCurriculum,
+  useSubjectOfferings,
+  type SubjectOfferingDTO,
+} from "@/hooks/admin/useSubjectOfferings";
+import { useGrades } from "@/hooks/admin/useGrades";
+import { useClasses } from "@/hooks/admin/useClasses";
+import {
+  getSubjectOfferingTemplatesForCurriculum,
+  type CurriculumSubjectOfferingTemplate,
+} from "@/constants/curriculum-subject-templates";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 function getInitialView(sp: URLSearchParams): SubjectsViewMode {
   const v = sp.get("view");
   return v === "table" ? "table" : "cards";
+}
+
+function formatOfferingLabel(value: string) {
+  const label = value.replace(/_/g, " ");
+  return label.toLowerCase() === "jhs" ? "JHS" : label;
 }
 
 export default function SubjectsPage() {
@@ -37,7 +64,7 @@ export default function SubjectsPage() {
     getInitialView(searchParams)
   );
   const [search, setSearch] = React.useState(searchParams.get("q") ?? "");
-  const [activeFilter] = React.useState<boolean | undefined>(
+  const [activeFilter, setActiveFilter] = React.useState<boolean | undefined>(
     searchParams.get("isActive") === "true"
       ? true
       : searchParams.get("isActive") === "false"
@@ -48,18 +75,44 @@ export default function SubjectsPage() {
   const [assignTeacherModalOpen, setAssignTeacherModalOpen] = React.useState(false);
   const [assignClassesModalOpen, setAssignClassesModalOpen] = React.useState(false);
   const [createSubjectModalOpen, setCreateSubjectModalOpen] = React.useState(false);
+  const [setupOpen, setSetupOpen] = React.useState(false);
+  const [gradeBandFilter, setGradeBandFilter] = React.useState(searchParams.get("gradeBand") ?? "all");
+  const [categoryFilter, setCategoryFilter] = React.useState(searchParams.get("category") ?? "all");
   const [editSubjectModalOpen, setEditSubjectModalOpen] = React.useState(false);
   const [selectedSubject, setSelectedSubject] = React.useState<SubjectDTO | null>(null);
-  const [subjectForClasses, setSubjectForClasses] = React.useState<SubjectDTO | null>(null);
+  const [offeringForClasses, setOfferingForClasses] = React.useState<SubjectOfferingDTO | null>(null);
   const [subjectForEdit, setSubjectForEdit] = React.useState<SubjectDTO | null>(null);
   const [selectedClassId, setSelectedClassId] = React.useState<string | undefined>();
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
-  const { data, isLoading, isError } = useSubjects(debouncedSearch, activeFilter);
+  const { data, isLoading, isError } = useSubjectOfferings({
+    search: debouncedSearch,
+    isActive: activeFilter,
+    gradeBand: gradeBandFilter,
+    category: categoryFilter,
+  });
 
-  const subjects = data?.data || [];
+  const offerings = data?.data || [];
+  const subjects: SubjectDTO[] = offerings.map((offering) => ({
+    id: offering.id,
+    subjectId: offering.subjectId,
+    name: offering.displayName,
+    shortName: offering.shortName,
+    code: offering.code,
+    curriculumCode: offering.curriculumCode,
+    stage: offering.stage,
+    gradeBand: offering.gradeBand,
+    gradeNames: offering.gradeNames,
+    category: offering.category,
+    lessonNoteTemplateVariant: offering.lessonNoteTemplateVariant,
+    classCount: offering.assignedClassGroupCount,
+    teacherCount: offering.assignedTeacherCount,
+    isActive: offering.isActive,
+    createdAt: offering.createdAt,
+    updatedAt: offering.updatedAt,
+  }));
   const totalFiltered = subjects.length;
 
   // URL sync
@@ -68,9 +121,11 @@ export default function SubjectsPage() {
     params.set("view", viewMode);
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (activeFilter !== undefined) params.set("isActive", String(activeFilter));
+    if (gradeBandFilter !== "all") params.set("gradeBand", gradeBandFilter);
+    if (categoryFilter !== "all") params.set("category", categoryFilter);
 
     router.replace(`/admin/subjects?${params.toString()}`);
-  }, [viewMode, debouncedSearch, activeFilter, router]);
+  }, [viewMode, debouncedSearch, activeFilter, gradeBandFilter, categoryFilter, router]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -93,32 +148,23 @@ export default function SubjectsPage() {
   }, []);
 
   const handleAssignToClasses = (subjectId: string) => {
-    const subject = subjects.find((s) => s.id === subjectId);
-    if (subject) {
-      setSubjectForClasses(subject);
+    const offering = offerings.find((item) => item.id === subjectId);
+    if (offering) {
+      setOfferingForClasses(offering);
       setAssignClassesModalOpen(true);
     }
   };
 
-  const handleAssignTeachers = (subjectId: string, classGroupId?: string) => {
-    const subject = subjects.find((s) => s.id === subjectId);
-    if (subject) {
-      setSelectedSubject(subject);
-      setSelectedClassId(classGroupId);
-      setAssignTeacherModalOpen(true);
-    }
+  const handleAssignTeachers = () => {
+    notifyComingSoon("Assign teachers to subject offerings");
   };
 
-  const handleView = (subjectId: string) => {
-    router.push(`/admin/subjects/${subjectId}`);
+  const handleView = (subjectOfferingId: string) => {
+    router.push(`/admin/subjects/${subjectOfferingId}`);
   };
 
-  const handleEdit = (subjectId: string) => {
-    const subject = subjects.find((s) => s.id === subjectId);
-    if (subject) {
-      setSubjectForEdit(subject);
-      setEditSubjectModalOpen(true);
-    }
+  const handleEdit = () => {
+    notifyComingSoon("Edit subject offering");
   };
 
   const handleExport = () => {
@@ -126,7 +172,9 @@ export default function SubjectsPage() {
   };
 
   const handleOpenFilters = () => {
-    notifyComingSoon("Advanced filters");
+    if (activeFilter === undefined) setActiveFilter(true);
+    else if (activeFilter === true) setActiveFilter(false);
+    else setActiveFilter(undefined);
   };
 
   return (
@@ -154,28 +202,28 @@ export default function SubjectsPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                  Subjects
+                  Subject Offerings
                 </h1>
                 <p className="text-xs text-white/60 sm:text-sm">
-                  Curriculum and teacher assignments
+                  Curriculum-aware subject setup and assignments
                 </p>
               </div>
             </div>
             <p className="hidden max-w-lg text-sm leading-relaxed text-white/50 sm:block">
-              Manage school subjects, class coverage, and teacher allocations
-              from a single directory.
+              Manage the actual subjects taught by curriculum, stage, and grade
+              band without mixing JHS, Primary, or custom offerings.
             </p>
           </div>
 
           <div className="flex items-center gap-2 self-start md:self-auto">
             <Button
               onClick={() => {
-                setCreateSubjectModalOpen(true);
+                setSetupOpen(true);
               }}
               className="group h-9 gap-2 rounded-xl bg-linear-to-r from-amber-300 to-orange-400 px-4 text-xs text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-200 hover:to-orange-300 sm:h-10 sm:text-sm"
             >
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-              <span>Add Subject</span>
+              <span>Set Up Offerings</span>
             </Button>
           </div>
         </div>
@@ -218,10 +266,10 @@ export default function SubjectsPage() {
               </div>
               <div className="space-y-0.5">
                 <CardTitle className="text-base font-semibold tracking-tight text-white sm:text-lg">
-                  Subject Directory
+                  Subject Offerings Directory
                 </CardTitle>
                 <p className="text-[11px] text-white/50 sm:text-xs">
-                  Search, filter, and manage subjects
+                  Search, filter, and manage curriculum-aware offerings
                 </p>
               </div>
             </div>
@@ -243,6 +291,55 @@ export default function SubjectsPage() {
             onExportAll={handleExport}
             searchInputRef={searchInputRef}
           />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <PremiumSelect value={gradeBandFilter} onValueChange={setGradeBandFilter}>
+              <PremiumSelectTrigger icon={<Layers3 className="size-4" />}>
+                <PremiumSelectValue placeholder="Grade band" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                {[
+                  ["all", "All grade bands"],
+                  ["preschool", "Preschool"],
+                  ["lower_primary", "Lower Primary"],
+                  ["upper_primary", "Upper Primary"],
+                  ["jhs", "JHS"],
+                  ["custom", "Custom"],
+                ].map(([value, label]) => (
+                  <PremiumSelectItem key={value} value={value}>{label}</PremiumSelectItem>
+                ))}
+              </PremiumSelectContent>
+            </PremiumSelect>
+            <PremiumSelect value={categoryFilter} onValueChange={setCategoryFilter}>
+              <PremiumSelectTrigger>
+                <PremiumSelectValue placeholder="Category" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                {[
+                  ["all", "All categories"],
+                  ["core", "Core"],
+                  ["elective", "Elective"],
+                  ["learning_area", "Learning area"],
+                  ["co_curricular", "Co-curricular"],
+                  ["custom", "Custom"],
+                ].map(([value, label]) => (
+                  <PremiumSelectItem key={value} value={value}>{label}</PremiumSelectItem>
+                ))}
+              </PremiumSelectContent>
+            </PremiumSelect>
+            <PremiumSelect
+              value={activeFilter === undefined ? "all" : String(activeFilter)}
+              onValueChange={(value) => setActiveFilter(value === "all" ? undefined : value === "true")}
+            >
+              <PremiumSelectTrigger>
+                <PremiumSelectValue placeholder="Status" />
+              </PremiumSelectTrigger>
+              <PremiumSelectContent>
+                <PremiumSelectItem value="all">All statuses</PremiumSelectItem>
+                <PremiumSelectItem value="true">Active</PremiumSelectItem>
+                <PremiumSelectItem value="false">Inactive</PremiumSelectItem>
+              </PremiumSelectContent>
+            </PremiumSelect>
+          </div>
         </CardContent>
       </Card>
 
@@ -264,7 +361,7 @@ export default function SubjectsPage() {
                 Directory Results
               </CardTitle>
               <p className="text-sm text-white/80">
-                {isLoading ? "Loading..." : `${totalFiltered} subjects found`}
+                {isLoading ? "Loading..." : `${totalFiltered} offerings found`}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -293,10 +390,10 @@ export default function SubjectsPage() {
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-white/80">
-                  Loading subjects...
+                  Loading subject offerings...
                 </p>
                 <p className="text-xs text-white/50">
-                  Fetching your subject directory
+                  Fetching your curriculum-aware directory
                 </p>
               </div>
             </div>
@@ -307,7 +404,7 @@ export default function SubjectsPage() {
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-red-300">
-                  Failed to load subjects
+                  Failed to load subject offerings
                 </p>
                 <p className="text-xs text-red-300/60">
                   Please try refreshing the page
@@ -331,18 +428,18 @@ export default function SubjectsPage() {
               </div>
               <div className="text-center">
                 <p className="text-base font-medium text-white/80">
-                  No subjects found
+                  No subject offerings found
                 </p>
                 <p className="mt-1 max-w-xs text-sm text-white/50">
-                  Try adjusting your search or create your first subject to get
-                  started.
+                  Start from your selected curriculum or create custom offerings
+                  after the curriculum setup is ready.
                 </p>
               </div>
               <Button
-                onClick={() => setCreateSubjectModalOpen(true)}
+                onClick={() => setSetupOpen(true)}
                 className="bg-linear-to-r from-amber-300 to-orange-400 text-slate-950 hover:from-amber-200 hover:to-orange-300"
               >
-                Create Subject
+                Set Up Offerings
               </Button>
             </div>
           ) : (
@@ -357,7 +454,7 @@ export default function SubjectsPage() {
                     <span className="font-medium text-white">
                       {subjects.length}
                     </span>{" "}
-                    subject{subjects.length === 1 ? "" : "s"}
+                    offering{subjects.length === 1 ? "" : "s"}
                   </span>
                 </div>
               </div>
@@ -390,6 +487,11 @@ export default function SubjectsPage() {
         onOpenChange={setCreateSubjectModalOpen}
       />
 
+      <SetupSubjectOfferingsDialog
+        open={setupOpen}
+        onOpenChange={setSetupOpen}
+      />
+
       <CreateSubjectModal
         open={editSubjectModalOpen}
         onOpenChange={(open) => {
@@ -401,15 +503,13 @@ export default function SubjectsPage() {
         subject={subjectForEdit}
       />
 
-      <AssignSubjectToClassesModal
+      <AssignSubjectOfferingToClassesDialog
         open={assignClassesModalOpen}
         onOpenChange={(open) => {
           setAssignClassesModalOpen(open);
-          if (!open) {
-            setSubjectForClasses(null);
-          }
+          if (!open) setOfferingForClasses(null);
         }}
-        subject={subjectForClasses}
+        offering={offeringForClasses}
       />
 
       {selectedSubject && (
@@ -427,5 +527,388 @@ export default function SubjectsPage() {
         />
       )}
     </div>
+  );
+}
+
+function SetupSubjectOfferingsDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data: gradesData } = useGrades(true);
+  const setupMutation = useSetupSubjectOfferingsFromCurriculum();
+  const createCustomOffering = useCreateCustomSubjectOffering();
+  const [curriculumCode, setCurriculumCode] = React.useState("ghana_nacca");
+  const [autoAssign, setAutoAssign] = React.useState(true);
+  const [customForm, setCustomForm] = React.useState({
+    subjectFamily: "",
+    displayName: "",
+    shortName: "",
+    code: "",
+    gradeBand: "custom",
+    stage: "custom",
+    category: "custom",
+  });
+  const grades = gradesData?.data ?? [];
+  const templates = React.useMemo(
+    () => getSubjectOfferingTemplatesForCurriculum(curriculumCode as "ghana_nacca"),
+    [curriculumCode]
+  );
+  const [selectedGradeIds, setSelectedGradeIds] = React.useState<string[]>([]);
+  const [selectedCodes, setSelectedCodes] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    setSelectedGradeIds(grades.map((grade) => grade.id));
+    setSelectedCodes(templates.filter((template) => template.isDefault).map((template) => template.code));
+  }, [open, grades, templates]);
+
+  const groupedTemplates = React.useMemo(() => {
+    return templates.reduce<Record<string, CurriculumSubjectOfferingTemplate[]>>((acc, template) => {
+      const key = template.gradeBand;
+      acc[key] = acc[key] || [];
+      acc[key].push(template);
+      return acc;
+    }, {});
+  }, [templates]);
+
+  const toggle = (value: string, list: string[], setter: (next: string[]) => void) => {
+    setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  };
+
+  async function handleSubmit() {
+    const result = await setupMutation.mutateAsync({
+      curriculumCode,
+      selectedOfferingCodes: selectedCodes,
+      gradeIds: selectedGradeIds,
+      autoAssignToMatchingClassGroups: autoAssign,
+    });
+    if (result.success) onOpenChange(false);
+  }
+
+  async function handleCreateCustom() {
+    const subjectFamily = customForm.subjectFamily.trim();
+    const displayName = customForm.displayName.trim() || subjectFamily;
+    const shortName = customForm.shortName.trim() || subjectFamily;
+    const code = customForm.code.trim().toUpperCase();
+    if (!subjectFamily || !code || selectedGradeIds.length === 0) return;
+    const result = await createCustomOffering.mutateAsync({
+      subjectFamily,
+      displayName,
+      shortName,
+      code,
+      curriculumCode: "custom",
+      stage: customForm.stage,
+      gradeBand: customForm.gradeBand,
+      gradeIds: selectedGradeIds,
+      category: customForm.category,
+      lessonNoteTemplateVariant: "custom",
+      reportCardGroup: customForm.category === "elective" ? "Electives" : "Custom",
+      autoAssignToMatchingClassGroups: autoAssign,
+    });
+    if (result.success) {
+      setCustomForm({
+        subjectFamily: "",
+        displayName: "",
+        shortName: "",
+        code: "",
+        gradeBand: "custom",
+        stage: "custom",
+        category: "custom",
+      });
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] !max-w-6xl overflow-hidden border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black p-0 text-white shadow-2xl shadow-black/60">
+        <div className="relative overflow-hidden rounded-lg">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-amber-300/10 blur-3xl" />
+          <div className="relative flex max-h-[88vh] flex-col">
+            <div className="border-b border-white/10 p-6">
+              <DialogHeader className="space-y-3 text-left">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10">
+                    <WandSparkles className="size-5 text-amber-100" />
+                  </div>
+                  <div>
+                    <DialogTitle>Set up subject offerings</DialogTitle>
+                    <DialogDescription className="mt-1 max-w-2xl text-white/55">
+                      Generate curriculum-aware offerings, tie them to matching grades,
+                      and optionally assign them to class groups in those grades.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+            </div>
+
+            <div className="space-y-5 overflow-y-auto p-6 lg:p-7">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                    Curriculum
+                  </p>
+                  <PremiumSelect value={curriculumCode} onValueChange={setCurriculumCode}>
+                    <PremiumSelectTrigger>
+                      <PremiumSelectValue />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent>
+                      <PremiumSelectItem value="ghana_nacca" description="NaCCA grouped by preschool, primary, and JHS for Basic schools.">
+                        Ghana NaCCA
+                      </PremiumSelectItem>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:col-span-2">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <Checkbox checked={autoAssign} onCheckedChange={(checked) => setAutoAssign(Boolean(checked))} />
+                    <span>
+                      <span className="block text-sm font-medium text-white">Assign to matching class groups</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-white/50">
+                        For example, Mathematics - JHS will be assigned to every
+                        class group inside JHS 1, JHS 2, and JHS 3.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-white">Grades covered</p>
+                    <p className="text-xs text-white/45">Only selected grades receive matching offerings.</p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-white/55">
+                    {selectedGradeIds.length} selected
+                  </span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {grades.map((grade) => (
+                    <label key={grade.id} className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white/75">
+                      <Checkbox checked={selectedGradeIds.includes(grade.id)} onCheckedChange={() => toggle(grade.id, selectedGradeIds, setSelectedGradeIds)} />
+                      <span>{grade.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {Object.entries(groupedTemplates).map(([band, items]) => (
+                  <div key={band} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-white">{formatOfferingLabel(band)}</p>
+                      <span className="text-xs text-white/45">{items.length} offerings</span>
+                    </div>
+                    <div className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
+                      {items.map((template) => (
+                        <label key={template.code} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition hover:border-amber-300/25 hover:bg-amber-300/5">
+                          <Checkbox checked={selectedCodes.includes(template.code)} onCheckedChange={() => toggle(template.code, selectedCodes, setSelectedCodes)} />
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-white">{template.displayName}</span>
+                            <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-white/45">
+                              <span>{template.code}</span>
+                              <span className="rounded-full border border-white/10 px-1.5 py-0.5">{template.category.replace(/_/g, " ")}</span>
+                              <span className="rounded-full border border-white/10 px-1.5 py-0.5">{template.lessonNoteTemplateVariant?.replace(/_/g, " ") ?? "classic"}</span>
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-4">
+                <div className="mb-4 flex flex-col gap-1">
+                  <p className="text-sm font-semibold text-white">Add a custom subject offering</p>
+                  <p className="text-xs text-white/45">
+                    Use this when a school teaches a subject outside the default NaCCA list.
+                    Select one grade for a grade-specific offering, or multiple grades for a grade-band offering.
+                  </p>
+                </div>
+                <div className="grid gap-3 lg:grid-cols-4">
+                  <input
+                    value={customForm.subjectFamily}
+                    onChange={(event) =>
+                      setCustomForm((current) => ({
+                        ...current,
+                        subjectFamily: event.target.value,
+                        displayName: current.displayName || event.target.value,
+                        shortName: current.shortName || event.target.value,
+                      }))
+                    }
+                    placeholder="Subject family, e.g. Robotics"
+                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white placeholder:text-white/35 outline-none focus:border-amber-300/35"
+                  />
+                  <input
+                    value={customForm.displayName}
+                    onChange={(event) =>
+                      setCustomForm((current) => ({
+                        ...current,
+                        displayName: event.target.value,
+                      }))
+                    }
+                    placeholder="Display name"
+                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-white placeholder:text-white/35 outline-none focus:border-amber-300/35"
+                  />
+                  <input
+                    value={customForm.code}
+                    onChange={(event) =>
+                      setCustomForm((current) => ({
+                        ...current,
+                        code: event.target.value,
+                      }))
+                    }
+                    placeholder="Code, e.g. CUSTOM-P4-ROB"
+                    className="h-11 rounded-xl border border-white/10 bg-black/20 px-3 text-sm uppercase text-white placeholder:text-white/35 outline-none focus:border-amber-300/35"
+                  />
+                  <PremiumSelect
+                    value={customForm.gradeBand}
+                    onValueChange={(value) =>
+                      setCustomForm((current) => ({
+                        ...current,
+                        gradeBand: value,
+                        stage: value === "preschool" ? "kg" : value,
+                      }))
+                    }
+                  >
+                    <PremiumSelectTrigger>
+                      <PremiumSelectValue placeholder="Grade band" />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent>
+                      <PremiumSelectItem value="preschool">Preschool</PremiumSelectItem>
+                      <PremiumSelectItem value="lower_primary">Lower Primary</PremiumSelectItem>
+                      <PremiumSelectItem value="upper_primary">Upper Primary</PremiumSelectItem>
+                      <PremiumSelectItem value="jhs">JHS</PremiumSelectItem>
+                      <PremiumSelectItem value="custom">Custom / selected grades</PremiumSelectItem>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
+                </div>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-white/45">
+                    Custom offering will use the selected grades above and can be assigned to matching class groups automatically.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={
+                      createCustomOffering.isPending ||
+                      !customForm.subjectFamily.trim() ||
+                      !customForm.code.trim() ||
+                      selectedGradeIds.length === 0
+                    }
+                    onClick={handleCreateCustom}
+                    className="border-amber-300/20 bg-amber-300/10 text-amber-50 hover:bg-amber-300/15"
+                  >
+                    Add custom offering
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="border-t border-white/10 p-6">
+              <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-linear-to-r from-amber-300 to-orange-400 text-slate-950 hover:from-amber-200 hover:to-orange-300"
+                disabled={setupMutation.isPending || selectedCodes.length === 0 || selectedGradeIds.length === 0}
+                onClick={handleSubmit}
+              >
+                Create offerings
+              </Button>
+            </DialogFooter>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AssignSubjectOfferingToClassesDialog({
+  open,
+  onOpenChange,
+  offering,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  offering: SubjectOfferingDTO | null;
+}) {
+  const { data } = useClasses({ isActive: true });
+  const assignMutation = useAssignSubjectOfferingToClasses();
+  const classes = React.useMemo(() => data?.data ?? [], [data?.data]);
+  const compatibleClasses = React.useMemo(() => {
+    const compatibleGradeIds = new Set(offering?.gradeIds ?? []);
+    return classes.filter((classGroup) => compatibleGradeIds.has(classGroup.grade.id));
+  }, [classes, offering?.gradeIds]);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    if (!open || !offering) return;
+    setSelectedIds(
+      compatibleClasses
+        .filter((classGroup) => classGroup.subjectOfferingIds?.includes(offering.id))
+        .map((classGroup) => classGroup.id)
+    );
+  }, [open, offering, compatibleClasses]);
+
+  async function handleSave() {
+    if (!offering) return;
+    await assignMutation.mutateAsync({
+      subjectOfferingId: offering.id,
+      classGroupIds: selectedIds,
+    });
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100vw-2rem)] !max-w-4xl border-white/10 bg-linear-to-br from-slate-900 via-slate-950 to-black text-white">
+        <DialogHeader>
+          <DialogTitle>Assign offering to class groups</DialogTitle>
+          <DialogDescription className="text-white/55">
+            {offering?.displayName ?? "Subject offering"} can only be assigned to
+            class groups inside its grade coverage.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          {compatibleClasses.length === 0 ? (
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-50">
+              No compatible class groups were found for this offering.
+            </div>
+          ) : (
+            compatibleClasses.map((classGroup) => (
+              <label key={classGroup.id} className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                <span>
+                  <span className="block text-sm font-medium text-white">{classGroup.fullLabel}</span>
+                  <span className="text-xs text-white/45">{classGroup.grade.name}</span>
+                </span>
+                <Checkbox
+                  checked={selectedIds.includes(classGroup.id)}
+                  onCheckedChange={() =>
+                    setSelectedIds((current) =>
+                      current.includes(classGroup.id)
+                        ? current.filter((id) => id !== classGroup.id)
+                        : [...current, classGroup.id]
+                    )
+                  }
+                />
+              </label>
+            ))
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button disabled={!offering || assignMutation.isPending} onClick={handleSave}>
+            Save assignments
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

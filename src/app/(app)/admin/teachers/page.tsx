@@ -617,25 +617,25 @@ export default function TeachersPage() {
   return (
     <div className="space-y-8">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/90 via-slate-950/95 to-black p-8 shadow-2xl shadow-black/40">
         {/* Background decorations */}
         <div
-          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-linear-to-br from-indigo-500/20 via-purple-500/10 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-gradient-to-tr from-emerald-500/10 via-teal-500/5 to-transparent blur-3xl"
+          className="pointer-events-none absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-linear-to-tr from-emerald-500/10 via-teal-500/5 to-transparent blur-3xl"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/20 to-transparent"
           aria-hidden="true"
         />
 
         <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-linear-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/10">
                 <Users className="h-6 w-6 text-indigo-300" />
               </div>
               <div>
@@ -668,7 +668,7 @@ export default function TeachersPage() {
             <Button
               type="button"
               size="sm"
-              className="group gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 hover:shadow-indigo-500/40"
+              className="group gap-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700 hover:shadow-indigo-500/40"
               onClick={() => setCreateOpen(true)}
             >
               <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
@@ -702,14 +702,14 @@ export default function TeachersPage() {
       <TeachersQuickStatsSection />
 
       {/* Teacher directory shell */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
         {/* Decorative elements */}
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
           aria-hidden="true"
         />
 
@@ -717,7 +717,7 @@ export default function TeachersPage() {
           <div className="flex flex-col gap-4 pb-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-white/10 to-white/5 shadow-inner shadow-white/5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-white/10 to-white/5 shadow-inner shadow-white/5">
                   <Sparkles className="h-5 w-5 text-indigo-300" />
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-400" />
@@ -757,14 +757,14 @@ export default function TeachersPage() {
       </Card>
 
       {/* Data summary shell – cards/table + pagination */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
         {/* Decorative elements */}
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-500/5 via-transparent to-transparent"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,var(--tw-gradient-stops))] from-purple-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
           aria-hidden="true"
         />
 
@@ -841,7 +841,7 @@ export default function TeachersPage() {
           ) : teachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16">
               <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-white/10 to-white/5">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-linear-to-br from-white/10 to-white/5">
                   <Users className="h-10 w-10 text-white/30" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-900 bg-indigo-500">
@@ -862,7 +862,7 @@ export default function TeachersPage() {
               {!search && (
                 <Button
                   size="sm"
-                  className="mt-2 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700"
+                  className="mt-2 gap-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 hover:from-indigo-600 hover:to-purple-700"
                   onClick={() => {
                     if (tabStatusActionConfig && isStatusActionTarget(tab)) {
                       openStatusModal(tab);
@@ -879,7 +879,7 @@ export default function TeachersPage() {
           ) : (
             <div className="space-y-5">
               {/* Results summary bar */}
-              <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-gradient-to-r from-white/5 to-transparent px-4 py-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-linear-to-r from-white/5 to-transparent px-4 py-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2 text-sm text-white/70">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-300">
                     {teachers.length}
@@ -1048,7 +1048,7 @@ export default function TeachersPage() {
                 {statusModalConfig.modalDescription}
               </p>
               {statusModalTarget === "on_leave" ? (
-                <div className="space-y-4 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent p-4">
+                <div className="space-y-4 rounded-2xl border border-amber-500/20 bg-linear-to-br from-amber-500/5 to-transparent p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-amber-200/80">
                       Leave Period
@@ -1132,7 +1132,7 @@ export default function TeachersPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="rounded-xl border border-white/10 bg-white/3 p-3">
               {isStatusSearchLoading ? (
                 <div className="flex items-center justify-center gap-2 py-8 text-sm text-white/60">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1162,7 +1162,7 @@ export default function TeachersPage() {
                     return (
                       <div
                         key={teacher.id}
-                        className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.04] p-3 md:flex-row md:items-center md:justify-between"
+                        className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/4 p-3 md:flex-row md:items-center md:justify-between"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-3">

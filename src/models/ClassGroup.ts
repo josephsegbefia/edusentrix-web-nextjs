@@ -9,6 +9,7 @@ export interface IClassGroup {
   gradeId: Types.ObjectId;
   name: string; // e.g. "A", "B"
   subjectIds: Types.ObjectId[]; // assigned subjects for the whole class group
+  subjectOfferingIds: Types.ObjectId[]; // assigned curriculum-aware subject offerings
   homeroomTeacherId?: Types.ObjectId | null;
   capacity?: number | null;
   defaultRoomId?: Types.ObjectId | null; // Home classroom where most lessons happen
@@ -35,6 +36,9 @@ const classGroupSchema = new Schema<IClassGroup>(
     name: { type: String, required: true, trim: true }, // "A"
 
     subjectIds: [{ type: Schema.Types.ObjectId, ref: "Subject", default: [] }],
+    subjectOfferingIds: [
+      { type: Schema.Types.ObjectId, ref: "SubjectOffering", default: [], index: true },
+    ],
     homeroomTeacherId: {
       type: Schema.Types.ObjectId,
       ref: "Teacher",

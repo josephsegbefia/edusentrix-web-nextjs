@@ -10,6 +10,7 @@ export interface ITeacherAssignment {
   schoolId: Types.ObjectId;
   academicPeriodId: Types.ObjectId;
   subjectId: Types.ObjectId;
+  subjectOfferingId?: Types.ObjectId | null;
   classGroupId: Types.ObjectId;
 
   schedule?: {
@@ -88,6 +89,12 @@ const TeacherAssignmentSchema = new Schema<ITeacherAssignment>(
       required: true,
       index: true,
     },
+    subjectOfferingId: {
+      type: Schema.Types.ObjectId,
+      ref: "SubjectOffering",
+      default: null,
+      index: true,
+    },
     classGroupId: {
       type: Schema.Types.ObjectId,
       ref: "ClassGroup",
@@ -154,6 +161,12 @@ TeacherAssignmentSchema.index({
 TeacherAssignmentSchema.index({
   schoolId: 1,
   subjectId: 1,
+  academicPeriodId: 1,
+  status: 1,
+});
+TeacherAssignmentSchema.index({
+  schoolId: 1,
+  subjectOfferingId: 1,
   academicPeriodId: 1,
   status: 1,
 });

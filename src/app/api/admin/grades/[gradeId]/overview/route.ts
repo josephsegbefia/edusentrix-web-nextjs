@@ -9,6 +9,7 @@ import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Invoice } from "@/models/Invoice";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import mongoose from "mongoose";
 
 const ACTIVE_INVOICE_STATUSES = ["issued", "partially_paid", "overdue"];
@@ -64,7 +65,11 @@ export async function GET(
       gradeId: gradeIdObj,
       isActive: true,
     })
-      .populate("subjectIds", "name code")
+      .populate({
+        path: "subjectOfferingIds",
+        select: "displayName shortName code gradeBand",
+        model: SubjectOffering,
+      })
       .lean();
 
     const classIds = classes.map((c: any) => c._id);
@@ -104,44 +109,50 @@ export async function GET(
     const avgClassSize =
       totalClasses > 0 ? Math.round(totalStudents / totalClasses) : 0;
 
-    // Subjects: union of all subjectIds from classes, with classesWithSubject / classesWithoutSubject
-    const allSubjectIds = new Set<string>();
+    // Subject offerings: union of all subjectOfferingIds from classes.
+    const allSubjectOfferingIds = new Set<string>();
     for (const cls of classes) {
-      const subjectIds = (cls as any).subjectIds ?? [];
-      for (const s of subjectIds) {
-        if (s?._id) allSubjectIds.add(String(s._id));
+      const subjectOfferingIds = (cls as any).subjectOfferingIds ?? [];
+      for (const offering of subjectOfferingIds) {
+        if (offering?._id) allSubjectOfferingIds.add(String(offering._id));
       }
     }
 
     const subjects: Array<{
       id: string;
       name: string;
+      code?: string | null;
       classesWithSubject: number;
       classesWithoutSubject: number;
     }> = [];
 
-    for (const subId of allSubjectIds) {
+    for (const offeringId of allSubjectOfferingIds) {
       let classesWithSubject = 0;
-      let subName = "Unknown";
+      let offeringName = "Unknown offering";
+      let offeringCode: string | null = null;
       for (const cls of classes) {
-        const subjectIds = (cls as any).subjectIds ?? [];
-        const found = subjectIds.find(
-          (s: any) => s?._id && String(s._id) === subId
+        const subjectOfferingIds = (cls as any).subjectOfferingIds ?? [];
+        const found = subjectOfferingIds.find(
+          (offering: any) => offering?._id && String(offering._id) === offeringId
         );
         if (found) {
           classesWithSubject++;
-          if (found.name) subName = found.name;
+          if (found.displayName || found.shortName) {
+            offeringName = found.displayName || found.shortName;
+          }
+          offeringCode = found.code ?? offeringCode;
         }
       }
       subjects.push({
-        id: subId,
-        name: subName,
+        id: offeringId,
+        name: offeringName,
+        code: offeringCode,
         classesWithSubject,
         classesWithoutSubject: totalClasses - classesWithSubject,
       });
     }
 
-    // subjectsWithoutTeacher: subjects assigned to classes but no TeacherAssignment for current period
+    // subjectsWithoutTeacher: subject offerings assigned to classes but no TeacherAssignment for current period
     let subjectsWithoutTeacher = 0;
     if (currentPeriodDoc) {
       const assignments = await TeacherAssignment.find({
@@ -150,21 +161,22 @@ export async function GET(
         academicPeriodId: currentPeriodDoc._id,
         status: "active",
       })
-        .select("subjectId classGroupId")
+        .select("subjectOfferingId classGroupId")
         .lean();
 
       const subjectClassPairs = new Set<string>();
       for (const a of assignments) {
+        if (!(a as any).subjectOfferingId) continue;
         subjectClassPairs.add(
-          `${(a as any).subjectId}-${(a as any).classGroupId}`
+          `${(a as any).subjectOfferingId}-${(a as any).classGroupId}`
         );
       }
 
       for (const cls of classes) {
-        const subjectIds = (cls as any).subjectIds ?? [];
-        for (const s of subjectIds) {
-          if (!s?._id) continue;
-          const key = `${s._id}-${(cls as any)._id}`;
+        const subjectOfferingIds = (cls as any).subjectOfferingIds ?? [];
+        for (const offering of subjectOfferingIds) {
+          if (!offering?._id) continue;
+          const key = `${offering._id}-${(cls as any)._id}`;
           if (!subjectClassPairs.has(key)) {
             subjectsWithoutTeacher++;
           }

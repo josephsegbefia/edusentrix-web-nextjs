@@ -32,6 +32,7 @@ export interface ISchemeOfWork {
   gradeId?: Types.ObjectId | null;
   classGroupId?: Types.ObjectId | null;
   subjectId?: Types.ObjectId | null;
+  subjectOfferingId?: Types.ObjectId | null;
   ownerTeacherId?: Types.ObjectId | null;
   status: SchemeOfWorkStatus;
   sourceType: SchemeSourceType;
@@ -73,6 +74,12 @@ const schemeOfWorkSchema = new Schema<ISchemeOfWork>(
     gradeId: { type: Schema.Types.ObjectId, ref: "Grade", default: null, index: true },
     classGroupId: { type: Schema.Types.ObjectId, ref: "ClassGroup", default: null, index: true },
     subjectId: { type: Schema.Types.ObjectId, ref: "Subject", default: null, index: true },
+    subjectOfferingId: {
+      type: Schema.Types.ObjectId,
+      ref: "SubjectOffering",
+      default: null,
+      index: true,
+    },
     ownerTeacherId: { type: Schema.Types.ObjectId, ref: "Teacher", default: null, index: true },
     status: {
       type: String,
@@ -114,6 +121,7 @@ const schemeOfWorkSchema = new Schema<ISchemeOfWork>(
 
 schemeOfWorkSchema.index({ schoolId: 1, updatedAt: -1 });
 schemeOfWorkSchema.index({ schoolId: 1, gradeId: 1, subjectId: 1, status: 1 });
+schemeOfWorkSchema.index({ schoolId: 1, gradeId: 1, subjectOfferingId: 1, status: 1 });
 schemeOfWorkSchema.index({
   schoolId: 1,
   academicPeriodId: 1,

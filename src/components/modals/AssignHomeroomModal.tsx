@@ -15,6 +15,7 @@ import {
   Home,
   Info,
   UserPlus,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -124,6 +125,7 @@ function ClassModeModal({
   const busy = useBusyToast();
   const assignHomeroom = useAssignHomeroomTeacher();
   const [query, setQuery] = React.useState("");
+  const [pickerOpen, setPickerOpen] = React.useState(false);
   const debouncedQuery = useDebouncedValue(query, 300);
   const { data: teachersData, isLoading: isLoadingTeachers } = useTeacherSearch(
     debouncedQuery
@@ -155,6 +157,7 @@ function ClassModeModal({
         teacherId: classGroup.homeroomTeacher?.id || null,
       });
       setQuery("");
+      setPickerOpen(false);
     }
   }, [open, classGroup.homeroomTeacher?.id, reset]);
 
@@ -198,7 +201,7 @@ function ClassModeModal({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-neutral-950 shadow-2xl"
+          className="relative z-10 w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-neutral-950 shadow-2xl"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 p-6">
@@ -263,16 +266,19 @@ function ClassModeModal({
                 <Label htmlFor="teacherId" className="text-white">
                   Select Teacher
                 </Label>
-                <Popover>
+                <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-12 w-full justify-between border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      className={cn(
+                        "h-12 w-full cursor-pointer justify-between rounded-xl border border-white/10 bg-black/30 px-3 text-white shadow-inner shadow-black/20 hover:border-emerald-300/25 hover:bg-black/40 hover:text-white",
+                        "focus-visible:border-emerald-300/60 focus-visible:ring-emerald-400/20 data-[state=open]:border-emerald-300/40 data-[state=open]:bg-emerald-400/10"
+                      )}
                     >
                       {selectedTeacher ? (
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6 border border-white/20">
+                        <div className="flex min-w-0 items-center gap-2 text-left">
+                          <Avatar className="h-7 w-7 shrink-0 border border-white/20">
                             {selectedTeacher.photoUrl ? (
                               <AvatarImage
                                 src={selectedTeacher.photoUrl}
@@ -285,7 +291,12 @@ function ClassModeModal({
                               </AvatarFallback>
                             )}
                           </Avatar>
-                          <span className="truncate">{selectedTeacher.fullName}</span>
+                          <span className="min-w-0">
+                            <span className="block truncate font-medium">{selectedTeacher.fullName}</span>
+                            <span className="block truncate text-xs text-white/45">
+                              {selectedTeacher.email || "Teacher profile"}
+                            </span>
+                          </span>
                         </div>
                       ) : (
                         <span className="text-white/50">Select a teacher...</span>
@@ -294,42 +305,67 @@ function ClassModeModal({
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent
-                    className={cn(
-                      premiumSelectContent,
-                      "w-[--radix-popover-trigger-width] p-1 max-h-[400px]"
-                    )}
+                    className="z-[300] w-(--radix-popover-trigger-width) overflow-hidden rounded-2xl border border-white/10 bg-slate-950/98 p-0 text-white shadow-2xl shadow-black/50 backdrop-blur-xl"
+                    align="start"
+                    sideOffset={8}
                   >
-                    <Command shouldFilter={false} className="bg-transparent">
+                    <Command
+                      shouldFilter={false}
+                      className="bg-transparent text-white [&_[cmdk-input-wrapper]]:h-12 [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-white/10 [&_[cmdk-input-wrapper]]:bg-black/20 [&_[cmdk-input-wrapper]_svg]:text-emerald-200/70 [&_[cmdk-list]]:max-h-96"
+                    >
                       <CommandInput
-                        placeholder="Search teachers..."
+                        placeholder="Type teacher name, email, or staff ID..."
                         value={query}
                         onValueChange={setQuery}
-                        className="border-b border-neutral-800/60 bg-transparent"
+                        className="text-white placeholder:text-white/35"
                       />
-                      <CommandList className="max-h-[300px] overflow-y-auto">
+                      <CommandList>
                         {isLoadingTeachers ? (
-                          <div className="px-3 py-3 text-sm text-neutral-400">
-                            Searching...
-                          </div>
+                          <CommandEmpty>
+                            <span className="inline-flex items-center gap-2 text-white/55">
+                              <Loader2 className="h-4 w-4 animate-spin text-emerald-200" />
+                              Searching teachers...
+                            </span>
+                          </CommandEmpty>
                         ) : (
                           <>
-                            <CommandEmpty className="py-6 text-center text-sm text-neutral-400">
-                              No teachers found.
+                            <CommandEmpty className="py-0">
+                              <div className="px-4 py-5 text-center">
+                                <Search className="mx-auto h-7 w-7 text-white/25" />
+                                <p className="mt-2 font-medium text-white/75">No teachers found</p>
+                                <p className="mt-1 text-xs leading-5 text-white/45">
+                                  Try a shorter name, email address, or staff identifier.
+                                </p>
+                              </div>
                             </CommandEmpty>
-                            <CommandGroup>
+                            <CommandGroup
+                              heading="Available teachers"
+                              className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-white/40"
+                            >
                               <CommandItem
                                 value="none"
                                 onSelect={() => {
                                   setValue("teacherId", null);
+                                  setPickerOpen(false);
                                 }}
-                                className={cn(
-                                  premiumMenuItem,
-                                  "flex items-center justify-between"
-                                )}
+                                className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-white/80 data-[selected=true]:bg-rose-400/10 data-[selected=true]:text-white"
                               >
-                                <span className="text-white/60">Remove homeroom teacher</span>
+                                <Check
+                                  className={cn(
+                                    "mr-1 h-4 w-4 shrink-0 text-rose-200",
+                                    selectedTeacherId === null ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium text-white/80">Remove homeroom teacher</p>
+                                  <p className="mt-1 text-xs text-white/45">
+                                    Leave this class without a homeroom teacher.
+                                  </p>
+                                </div>
                                 {selectedTeacherId === null ? (
-                                  <Check className="h-4 w-4 text-neutral-300" />
+                                  <span className="rounded-full border border-rose-300/20 bg-rose-400/10 px-2 py-0.5 text-[11px] font-medium text-rose-100">
+                                    Selected
+                                  </span>
                                 ) : null}
                               </CommandItem>
                               {teachers.map((teacher) => (
@@ -338,14 +374,18 @@ function ClassModeModal({
                                   value={teacher.id}
                                   onSelect={() => {
                                     setValue("teacherId", teacher.id);
+                                    setPickerOpen(false);
                                   }}
-                                  className={cn(
-                                    premiumMenuItem,
-                                    "flex items-center justify-between gap-2"
-                                  )}
+                                  className="mx-1 cursor-pointer rounded-xl px-3 py-3 text-white/80 data-[selected=true]:bg-emerald-400/10 data-[selected=true]:text-white"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <Avatar className="h-6 w-6 border border-white/20">
+                                  <Check
+                                    className={cn(
+                                      "mr-1 h-4 w-4 shrink-0 text-emerald-200",
+                                      selectedTeacherId === teacher.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                                    <Avatar className="h-10 w-10 shrink-0 border border-white/20">
                                       {teacher.photoUrl ? (
                                         <AvatarImage
                                           src={teacher.photoUrl}
@@ -358,11 +398,20 @@ function ClassModeModal({
                                         </AvatarFallback>
                                       )}
                                     </Avatar>
-                                    <span className="truncate">{teacher.fullName}</span>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <p className="truncate font-medium">{teacher.fullName}</p>
+                                        {selectedTeacherId === teacher.id ? (
+                                          <span className="shrink-0 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-0.5 text-[11px] font-medium text-emerald-100">
+                                            Selected
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                      <p className="mt-1 truncate text-xs text-white/48">
+                                        {teacher.email || "No email on profile"}
+                                      </p>
+                                    </div>
                                   </div>
-                                  {selectedTeacherId === teacher.id ? (
-                                    <Check className="h-4 w-4 text-neutral-300" />
-                                  ) : null}
                                 </CommandItem>
                               ))}
                             </CommandGroup>

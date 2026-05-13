@@ -168,6 +168,9 @@ export interface ILessonNote {
   teacherId: Types.ObjectId;
   classGroupId: Types.ObjectId;
   subjectId?: Types.ObjectId;
+  subjectOfferingId?: Types.ObjectId;
+  subjectNameSnapshot?: string | null;
+  subjectOfferingCodeSnapshot?: string | null;
   academicPeriodId?: Types.ObjectId;
 
   // Template & Curriculum
@@ -385,6 +388,9 @@ const LessonNoteSchema = new Schema<ILessonNote>(
       index: true,
     },
     subjectId: { type: Schema.Types.ObjectId, ref: "Subject", index: true },
+    subjectOfferingId: { type: Schema.Types.ObjectId, ref: "SubjectOffering", index: true },
+    subjectNameSnapshot: { type: String, trim: true, default: null },
+    subjectOfferingCodeSnapshot: { type: String, trim: true, default: null },
     academicPeriodId: {
       type: Schema.Types.ObjectId,
       ref: "AcademicPeriod",
@@ -482,6 +488,12 @@ LessonNoteSchema.index({
   schoolId: 1,
   teacherId: 1,
   subjectId: 1,
+  weekOf: -1,
+});
+LessonNoteSchema.index({
+  schoolId: 1,
+  teacherId: 1,
+  subjectOfferingId: 1,
   weekOf: -1,
 });
 LessonNoteSchema.index({ schoolId: 1, teacherId: 1, status: 1, weekOf: -1 });

@@ -7,7 +7,7 @@
 [![Mongoose](https://img.shields.io/badge/Mongoose-8.19-green)](https://mongoosejs.com/)
 [![License](https://img.shields.io/badge/license-Private-red)](LICENSE)
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
@@ -24,9 +24,9 @@
 - [Contributing](#contributing)
 - [Support](#support)
 
-## 🎯 Overview
+## Overview
 
-EduSentrix is a comprehensive school management platform designed specifically for schools in Ghana and Africa. It provides a unified solution for fee collection, student records management, academic period tracking, class management, teacher studio, lesson planning, and parent communication. The platform supports multiple user roles and integrates with payment providers like Paystack and Mobile Money services.
+EduSentrix is a comprehensive school management platform designed specifically for schools in Ghana and Africa. It provides a unified solution for fee collection, student records management, academic period tracking, class management, teacher studio, lesson planning, curriculum and scheme-of-work management, examinations and question banks, school library operations, admissions, promotions, video meetings, supply programs, a school store, and parent communication. The platform supports multiple user roles and integrates with payment providers like Paystack and Mobile Money services.
 
 ### Key Highlights
 
@@ -34,16 +34,24 @@ EduSentrix is a comprehensive school management platform designed specifically f
 - **Payment Integration**: Seamless integration with Paystack and Mobile Money providers
 - **Real-time Updates**: Server-Sent Events (SSE) for live dashboard updates
 - **Modern UI/UX**: Built with Tailwind CSS v4, shadcn/ui components, and Framer Motion animations
-- **Type-safe**: Full TypeScript implementation with Zod validation
-- **Scalable**: Built on Next.js 16 with App Router and React 19
+- **Type-safe**: Full TypeScript implementation with Zod v4 validation
+- **Scalable**: Built on Next.js 16 with App Router and React 19 (with React Compiler)
 - **Teacher Studio**: Full-featured assignment, quiz, and resource management for teachers
 - **Lesson Notes Builder**: Multi-template lesson planning with AI assistance, quality checks, and print/export
+- **Lessons Module**: Full lesson lifecycle from authoring to teaching mode, student viewing, flashcards, and analytics
+- **Schemes of Work**: Import, AI-assisted planning, review desk, and curriculum coverage tracking
+- **Examinations & Question Bank**: Exam paper authoring with sections, question reuse, review workflows, and PDF export
+- **Library System**: Book catalog, copy tracking, loans, reservations, fines, overdue management, and reports
+- **Admissions**: Full admissions cycle management with public application portals and delegate access
+- **Video Meetings**: LiveKit-powered video meetings for parent-teacher conferences
 - **Offline Support**: Offline queue and draft persistence for resilient usage
-- **AI-Powered**: OpenAI integration for lesson generation and student insights
+- **AI-Powered (Leo)**: OpenAI integration for lesson generation, student insights, exam drafting, and more
+- **Platform Operations**: Multi-school billing, subscription entitlements, staff delegation, and feature flags
+- **Demo Platform**: Self-service demo sandbox with persona-based walkthroughs
 
-## ✨ Features
+## Features
 
-### School Admin Portal (`/admin`)
+### School Admin Portal (`/admin`) — 93 pages
 
 - **Student Management**
 
@@ -73,14 +81,20 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - **Bulk Operations**: Issue, cancel, export invoices
   - **Financial-grade accuracy**: Money stored as integers in minor units (pesewas)
   - **Audit Trail**: Complete invoice event timeline
+  - **Overdue Reports** (`/admin/overdue-report`): PDF overdue reports and reminder workflows
 
 - **Financial Center** (`/admin/finance`)
 
   - Unified dashboard for all money movements (inflows, outflows, net position)
   - Transaction ledger with full history
   - Budget creation and tracking
-  - Reconciliation tools
+  - Reconciliation tools with AI-assisted matching (`/admin/finance/reconciliation`)
+  - Session-based reconciliation with lock/reopen/report workflows
+  - Cash closure management
+  - Disbursement tracking and approval
   - Manual transaction recording
+  - Financial meetings with notes
+  - Report commentary and Leo AI briefs
 
 - **Expense Management** (`/admin/expenses`)
 
@@ -98,6 +112,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Comprehensive teacher detail pages (Overview, Assignments, Performance, Attendance, Documents, Notes, Activity)
   - Leave request management
   - Bulk operations (assign classes, subjects, change status)
+  - Teacher reports and analytics (`/admin/teachers/reports`)
   - Image upload with UploadThing
 
 - **Class & Subject Management**
@@ -109,28 +124,130 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Teacher assignments to class groups
   - Class roles and student roles management
 
+- **Schemes of Work** (`/admin/schemes`)
+
+  - Review desk for imported or teacher-submitted schemes
+  - GES PDF, CSV, and Excel import for NaCCA schools
+  - Approve, reject, and request revision workflows
+  - Activate schemes per grade/class/subject/period
+  - Coverage tracking for lesson notes
+
+- **Curricula Management** (`/admin/curricula`)
+
+  - Curriculum CRUD and curriculum-subject mapping
+  - Curriculum node hierarchy management
+  - Support for multiple curriculum frameworks (NaCCA, Cambridge, IB, etc.)
+
+- **Examinations & Question Bank** (`/admin/examinations`, `/admin/question-bank`)
+
+  - Exam paper creation with sections and question ordering
+  - Question bank with cross-role reuse and bulk import from papers
+  - Review and approval workflows
+  - PDF export for exam papers
+  - Exam type configuration
+
+- **Library System** (`/admin/library`)
+
+  - Book catalog with ISBN lookup and cover images
+  - Copy management with barcode generation
+  - Loan tracking (checkout, return, renew, mark lost/damaged)
+  - Reservation management with fulfillment
+  - Overdue management with automated reminders
+  - Fine assessment and waiver
+  - Import tools for bulk book entry
+  - Notices, reports, and usage analytics
+  - Circulation desk and barcode scanning
+  - Library settings and configuration
+
+- **Lesson Notes Review** (`/admin/lesson-notes`)
+
+  - Review inbox with filtering by teacher, class, subject, status
+  - Section-by-section review with contextual comments
+  - Approval workflow (submitted → approved → published)
+  - Dedicated review page for pending submissions
+
+- **Lessons** (`/admin/lessons`)
+
+  - Lesson analytics dashboard
+  - Audit log for lesson activity
+
 - **Academic Calendar** (`/admin/academic-calendar`)
 
   - School-wide event management with recurring events
   - Audience targeting (all, teachers, students, parents)
-  - Calendar editor permissions
+  - Calendar editor delegation
   - Reminder notifications
+  - Period-aware filtering with Leo carryover suggestions
+
+- **Academic Periods** (`/admin/periods`)
+
+  - Term and year management
+  - Current period designation
+  - Period dashboards with reports and summaries
+
+- **Admissions** (`/admin/admissions`)
+
+  - Admission cycle management with public application portals
+  - Application review and bulk processing
+  - Template-driven admission forms
+  - Delegate access for admissions staff
+  - Export and audit capabilities
+
+- **Promotions** (`/admin/promotions`)
+
+  - Promotion cycle creation with policies
+  - Auto-assign and manual placement options
+  - Approval, finalization, and rollback
+  - Evidence-based promotion decisions
+
+- **Meetings** (`/admin/meetings`)
+
+  - Video meeting scheduling with LiveKit integration
+  - Participant management and provider events
+
+- **Delegations** (`/admin/delegations`)
+
+  - Staff delegation with module-level access control
+  - Activity logging and expiry management
+
+- **Email System** (`/admin/email`)
+
+  - Compose and send emails to parents, teachers, staff
+  - Bulk email campaigns
+  - Email threading and inbox
+  - Preference management
 
 - **Community Hub** (`/admin/community`)
 
   - **Polls & Surveys**: Create school-wide polls with templates, approval workflow, and result analytics
   - **Fundraising Campaigns**: Launch campaigns with goal tracking, public donation pages, and Paystack integration
 
-- **Master Timetable** (`/admin/timetable`)
+- **Supply Programs** (`/admin/supplies`)
 
-  - School-wide schedule view with conflict detection
-  - Day/class filtering
+  - Supply program creation with line items
+  - Audience targeting and eligibility rules
+  - Progress tracking per student
+
+- **School Store** (`/admin/store`)
+
+  - Product catalog management
+  - Order tracking and fulfillment
+
+- **Documents** (`/admin/documents`)
+
+  - School-wide document management
+
+- **Billing** (`/admin/billing`)
+
+  - Subscription and entitlement overview
 
 - **Reports & Analytics** (`/admin/reports`)
 
   - Multi-category reports (Fees, Students, Teachers, Attendance, Academics, Activity)
   - Interactive charts with Recharts
   - Flexible filtering (date range, academic period)
+  - Report templates and verification
+  - Curriculum snapshot export
   - Export to CSV
   - Report library and recent exports tracking
 
@@ -150,6 +267,9 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - School configuration (timetable, attendance rules, features)
   - Teacher Studio feature toggles
   - Notification channel settings (WhatsApp, SMS, Email)
+  - Curriculum settings
+  - Email configuration
+  - Payment setup with owner provisioning and platform payout decisions
 
 - **Invitations** (`/admin/invitations`)
 
@@ -163,7 +283,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Filterable by type and date range
   - Real-time updates via SSE
 
-### Teacher Portal (`/teacher`)
+### Teacher Portal (`/teacher`) — 58 pages
 
 - **Teacher Dashboard**
 
@@ -173,7 +293,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
 - **Lesson Notes Builder** (`/teacher/lesson-notes`)
 
   - Multi-step wizard for creating professional lesson notes
-  - **Three Templates**: NaCCA 3-Phase (Starter → Main → Plenary), Classic JHS (Objectives/RPK/Steps/Evaluation), Quick Note (Simple)
+  - **Multiple Templates**: NaCCA 3-Phase, Classic JHS, Cambridge 3-Part, British 3-Part, American Standards, IB PYP/MYP Unit Planners, Quick Note
   - Rich text editing with Tiptap
   - Curriculum alignment (NaCCA strands, sub-strands, indicators, learning outcomes)
   - Teaching & Learning Materials (TLMs) management
@@ -183,7 +303,43 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Approval workflow (Submit for Review → Admin Approval)
   - AI-assisted generation (full lesson, expand section, suggest activities, generate assessment)
   - Offline draft persistence with localStorage auto-save
-  - Confirmation dialog for delete actions
+  - Scheme-linked lesson notes with automatic curriculum context
+
+- **Lessons Module** (`/teacher/lessons`)
+
+  - Full lesson management from authoring to publication
+  - Teaching mode with live delivery view
+  - Lesson bank for reusable content
+  - Collaboration comments for co-planning
+  - Flashcard deck creation per lesson
+  - Student content publishing and progress tracking
+  - Lesson analytics and audit logs
+  - Resource attachment management
+
+- **Schemes of Work** (`/teacher/schemes`)
+
+  - View and manage assigned schemes
+  - Import schemes from PDF/CSV/Excel
+  - AI-assisted scheme planning (Leo)
+  - Submit schemes for admin review
+  - Curriculum coverage tracking
+
+- **Examinations** (`/teacher/examinations`)
+
+  - Exam paper authoring with section-based question management
+  - Question reorder via drag-and-drop
+  - Submit and complete workflows
+  - PDF export for printing
+
+- **Question Bank** (`/teacher/question-bank`)
+
+  - Browse and reuse questions across exam papers
+  - Bulk add from existing papers
+
+- **Curriculum Coverage** (`/teacher/coverage`)
+
+  - Track coverage against scheme of work
+  - Summary reports per subject
 
 - **Teacher Studio** (`/teacher/studio`)
 
@@ -198,17 +354,35 @@ EduSentrix is a comprehensive school management platform designed specifically f
 
   - Record grades by class and subject
   - Assessment management
+  - Export and publish
 
 - **Attendance** (`/teacher/attendance`)
 
   - Homeroom attendance tracking
   - Period-based attendance
-  - Attendance history
+  - Attendance history and stats
 
 - **Analytics** (`/teacher/analytics`)
 
   - Class performance analytics
   - At-risk student identification
+  - Attendance and completion metrics
+
+- **Library** (`/teacher/library`)
+
+  - Browse and search the book catalog
+  - View personal loans
+  - Make and manage reservations
+  - Receive book recommendations
+
+- **Admissions** (`/teacher/admissions`)
+
+  - Delegated admissions cycle access
+  - Application review
+
+- **Meetings** (`/teacher/meetings`)
+
+  - Video meetings with parents via LiveKit
 
 - **Communication**
 
@@ -217,40 +391,71 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - **Escalations** (`/teacher/communication/escalations`): Escalate student issues
 
 - **Calendar** (`/teacher/calendar`): Academic calendar view
-- **Journal** (`/teacher/journal`): Class journal entries
+- **Journal** (`/teacher/journal`): Class journal entries per class group
+- **Homeroom Timetable** (`/teacher/homeroom/timetable`): View homeroom class schedule
 - **Notifications** (`/teacher/notifications`): Notification center
-- **Student Profiles** (`/teacher/students`): View assigned students
+- **Student Profiles** (`/teacher/students`): View assigned students with detail pages
+- **Supplies** (`/teacher/supplies`): Supply program access by subject and homeroom
+- **Settings** (`/teacher/settings`): WhatsApp integration and preferences
 
-### Parent Portal (`/parent`)
+### Parent Portal (`/parent`) — 19 pages
 
 - Dashboard with ward overview
 - Ward details with academic progress
+- **Ward Lessons**: View published lessons per ward
 - Academics view (grades, performance)
 - Attendance tracking
 - Fee viewing and payment history
+- **Library**: Browse catalog, see notices, make reservations
+- **Meetings**: Video meetings with teachers
+- **Supply Programs**: View and track supply programs
+- **School Store**: Browse products and place orders
 - Calendar access
 - Messaging with teachers
 - Notifications
-- Reports
+- Reports (download report cards)
+- Polls: Respond to community polls
 
-### Student Portal (`/student`)
+### Student Portal (`/student`) — 12 pages
 
 - Dashboard with academic overview
 - Assignment viewing and submission
+- **Lessons**: View published lessons with flashcard study
+- **Library**: Browse catalog, manage loans and reservations
+- **Timetable**: Weekly timetable view
 - Academic calendar
 - School notices
 - Academic results
 - Profile management
 
+### Platform Admin Portal (`/platform`) — 28 pages
+
+- **Dashboard**: Platform-wide overview
+- **Schools**: School management with detail pages (subscription, usage, onboarding)
+- **Applications**: School application review
+- **Users**: Platform user management
+- **Staff**: Platform staff management with delegation
+- **Billing**: Subscription tiers, revenue, costs, usage tracking, sync, events
+- **Reconciliation**: Platform-level reconciliation
+- **Audit**: Platform audit log
+- **Email**: Platform email management
+- **Webhooks**: Webhook configuration
+- **Settings**: Platform settings and feature flags
+- **Leo**: AI assistant configuration
+- **Demo Leads**: Demo lead tracking
+- **Pilot**: Pilot program management
+- **Feature Flags** (`/platform/flags`): Feature flag management
+
 ### User Roles & Permissions
 
-- **Platform Admin**: Manage school applications and platform settings
+- **Platform Admin**: Manage school applications, subscriptions, and platform settings
+- **Platform Staff**: Delegated platform operations with module-level access
 - **School Admin**: Full school management capabilities
 - **Bursar**: Financial management access
 - **Staff**: General staff access
-- **Teacher**: Teaching, grading, lesson planning, and communication
-- **Parent**: View student information and make payments
-- **Student**: Access personal academic information and submit assignments
+- **Teacher**: Teaching, grading, lesson planning, exams, and communication
+- **Parent**: View student information, make payments, attend meetings
+- **Student**: Access personal academic information, submit assignments, study lessons
 
 The RBAC system supports granular permissions and subroles via `src/lib/rbac/rbac.ts`.
 
@@ -265,18 +470,22 @@ The RBAC system supports granular permissions and subroles via `src/lib/rbac/rba
 - **Offline Support**: Offline mutation queue with automatic retry and draft persistence
 - **Real-time Updates**: Server-Sent Events (SSE) for live data synchronization
 - **Confirmation Dialogs**: Custom confirmation dialog system for destructive actions
-- **Premium UI Design**: Modern design with gradient cards, Framer Motion animations
-- **Rich Text Editing**: Tiptap-based editors with formatting toolbars
-- **AI Integration**: OpenAI-powered content generation for lesson notes and student insights
+- **Premium UI Design**: Modern design with frosted glass panels, gradient cards, Framer Motion animations
+- **Rich Text Editing**: Tiptap v3-based editors with formatting toolbars
+- **AI Integration (Leo)**: OpenAI-powered content generation for lessons, exams, insights, and financial summaries
+- **Video Meetings**: LiveKit-powered real-time video conferencing
 - **Image Processing**: Client-side background removal via @imgly/background-removal
+- **Drag and Drop**: @dnd-kit for sortable interfaces (exam question reorder, etc.)
+- **Full Calendar**: @fullcalendar for rich calendar rendering
+- **Email Engine**: Brevo + IMAP integration for bi-directional email
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Frontend
 
 - **Framework**: [Next.js 16.0.10](https://nextjs.org/) (App Router, Turbopack)
 - **Language**: [TypeScript 5](https://www.typescriptlang.org/)
-- **UI Library**: [React 19](https://react.dev/)
+- **UI Library**: [React 19](https://react.dev/) with [React Compiler](https://react.dev/learn/react-compiler) (babel-plugin-react-compiler)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **UI Components**: [shadcn/ui](https://ui.shadcn.com/) (Radix UI primitives)
 - **State Management**: [TanStack React Query v5](https://tanstack.com/query)
@@ -284,6 +493,8 @@ The RBAC system supports granular permissions and subroles via `src/lib/rbac/rba
 - **Rich Text Editor**: [Tiptap v3](https://tiptap.dev/) (with Highlight, Link, TextAlign, Underline, Placeholder)
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
 - **Charts**: [Recharts](https://recharts.org/)
+- **Calendar**: [FullCalendar](https://fullcalendar.io/) for rich calendar views
+- **Drag & Drop**: [@dnd-kit](https://dndkit.com/) for sortable interfaces
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Date Handling**: [date-fns](https://date-fns.org/)
 - **Date Picker**: [react-day-picker](https://react-day-picker.js.org/)
@@ -297,11 +508,13 @@ The RBAC system supports granular permissions and subroles via `src/lib/rbac/rba
 - **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose 8](https://mongoosejs.com/)
 - **Authentication**: [Clerk](https://clerk.com/) (MFA, session management, webhooks)
 - **File Storage**: [UploadThing](https://uploadthing.com/) (primary) + [Cloudinary](https://cloudinary.com/) (legacy)
-- **Email**: [Brevo (Sendinblue)](https://www.brevo.com/) + [Nodemailer](https://nodemailer.com/)
-- **AI**: [OpenAI](https://openai.com/) (lesson note generation, student insights)
-- **PDF Generation**: [pdf-lib](https://pdf-lib.js.org/)
+- **Email**: [Brevo (Sendinblue)](https://www.brevo.com/) + [Nodemailer](https://nodemailer.com/) + IMAP (via [imapflow](https://imapflow.com/) + [mailparser](https://nodemailer.com/extras/mailparser/))
+- **AI**: [OpenAI](https://openai.com/) (lesson generation, exam drafting, student insights, financial briefs)
+- **Video**: [LiveKit](https://livekit.io/) (real-time video meetings)
+- **PDF Generation**: [pdf-lib](https://pdf-lib.js.org/) + [pdf-parse](https://gitlab.com/nicholasgasior/pdf-parse) (extraction)
 - **Validation**: [Zod v4](https://zod.dev/)
 - **Webhooks**: [Svix](https://www.svix.com/) (Clerk webhook verification)
+- **Supabase**: [Supabase](https://supabase.com/) (supplementary storage/auth)
 
 ### Payment Integration
 
@@ -313,11 +526,12 @@ The RBAC system supports granular permissions and subroles via `src/lib/rbac/rba
 - **Package Manager**: npm
 - **Linting**: ESLint with Next.js config
 - **Type Checking**: TypeScript strict mode
-- **React Compiler**: Babel React Compiler (experimental)
+- **React Compiler**: Babel React Compiler
 - **Dev Server**: Turbopack (Next.js built-in)
 - **Script Runner**: [tsx](https://tsx.is/)
+- **Testing**: Node.js built-in test runner with [mongodb-memory-server](https://github.com/nodkz/mongodb-memory-server)
 
-## 📦 Prerequisites
+## Prerequisites
 
 Before you begin, ensure you have the following installed:
 
@@ -332,7 +546,7 @@ Before you begin, ensure you have the following installed:
 - **MongoDB Compass**: For database management
 - **Postman/Insomnia**: For API testing
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone the Repository
 
@@ -371,7 +585,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-## 🔐 Environment Variables
+## Environment Variables
 
 Create a `.env.local` file in the root directory with the following variables:
 
@@ -410,8 +624,17 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# OpenAI (AI features — lesson note generation, student insights)
+# OpenAI (AI features — lesson note generation, exam drafting, student insights)
 OPENAI_API_KEY=sk-...
+
+# LiveKit (Video meetings)
+LIVEKIT_API_KEY=your_api_key
+LIVEKIT_API_SECRET=your_api_secret
+NEXT_PUBLIC_LIVEKIT_URL=wss://your-livekit-server
+
+# Supabase (supplementary storage)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
 # Node Environment
 NODE_ENV=development
@@ -421,120 +644,176 @@ RATE_LIMIT_MAX_REQUESTS=100
 RATE_LIMIT_WINDOW_MS=60000
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 edusentrix-web-nextjs/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── (app)/              # Protected app routes
-│   │   │   ├── admin/          # School admin dashboard
+│   │   │   ├── admin/          # School admin dashboard (93 pages)
 │   │   │   │   ├── academic-calendar/  # Calendar management
+│   │   │   │   ├── admissions/ # Admissions cycles
+│   │   │   │   ├── billing/    # Subscription billing
 │   │   │   │   ├── classes/    # Class group management
 │   │   │   │   ├── community/  # Polls & fundraising
+│   │   │   │   ├── curricula/  # Curriculum management
+│   │   │   │   ├── delegations/# Staff delegation
+│   │   │   │   ├── documents/  # Document management
+│   │   │   │   ├── email/      # Email system
+│   │   │   │   ├── examinations/ # Exam papers & review
 │   │   │   │   ├── expenses/   # Expense tracking
 │   │   │   │   ├── fees/       # Fees, invoices & payments
-│   │   │   │   ├── finance/    # Financial center
+│   │   │   │   ├── finance/    # Financial center & reconciliation
+│   │   │   │   ├── grades/     # Grade management
 │   │   │   │   ├── invitations/# Invitation management
+│   │   │   │   ├── lesson-notes/ # Lesson note review
+│   │   │   │   ├── lessons/    # Lesson analytics & audit
+│   │   │   │   ├── library/    # Library system (12 sub-pages)
+│   │   │   │   ├── meetings/   # Video meetings
+│   │   │   │   ├── periods/    # Academic periods
+│   │   │   │   ├── promotions/ # Student promotions
+│   │   │   │   ├── question-bank/ # Question bank
 │   │   │   │   ├── reports/    # Reports & analytics
 │   │   │   │   ├── roles-duties/ # Teacher roles & duties
-│   │   │   │   ├── settings/   # School settings
+│   │   │   │   ├── schemes/    # Schemes of work review
+│   │   │   │   ├── settings/   # School settings (curriculum, email, payments)
 │   │   │   │   ├── staff-attendance/ # Staff attendance
+│   │   │   │   ├── store/      # School store
 │   │   │   │   ├── students/   # Student management
 │   │   │   │   ├── subjects/   # Subject management
+│   │   │   │   ├── supplies/   # Supply programs
 │   │   │   │   ├── teachers/   # Teacher management
-│   │   │   │   ├── timetable/  # Master timetable
 │   │   │   │   └── tasks/      # Task tracker
-│   │   │   ├── teacher/        # Teacher portal
+│   │   │   ├── teacher/        # Teacher portal (58 pages)
+│   │   │   │   ├── admissions/ # Delegated admissions
 │   │   │   │   ├── analytics/  # Class performance analytics
 │   │   │   │   ├── attendance/ # Attendance management
 │   │   │   │   ├── calendar/   # Academic calendar
 │   │   │   │   ├── classes/    # Assigned classes
 │   │   │   │   ├── communication/ # Messages, notices, escalations
+│   │   │   │   ├── coverage/   # Curriculum coverage
+│   │   │   │   ├── examinations/ # Exam paper authoring
 │   │   │   │   ├── gradebook/  # Grade recording
 │   │   │   │   ├── journal/    # Class journal
 │   │   │   │   ├── lesson-notes/ # Lesson note builder
+│   │   │   │   ├── lessons/    # Lesson management & teaching
+│   │   │   │   ├── library/    # Library access
+│   │   │   │   ├── meetings/   # Video meetings
 │   │   │   │   ├── notifications/ # Notification center
+│   │   │   │   ├── question-bank/ # Question bank
+│   │   │   │   ├── schemes/    # Schemes of work
 │   │   │   │   ├── students/   # Student profiles
-│   │   │   │   └── studio/     # Assignments, quizzes, resources, rubrics
-│   │   │   ├── parent/         # Parent portal
+│   │   │   │   ├── studio/     # Assignments, quizzes, resources, rubrics
+│   │   │   │   └── supplies/   # Supply programs
+│   │   │   ├── parent/         # Parent portal (19 pages)
 │   │   │   │   ├── academics/  # Ward academics
 │   │   │   │   ├── attendance/ # Ward attendance
 │   │   │   │   ├── calendar/   # Calendar
 │   │   │   │   ├── fees/       # Fee viewing
+│   │   │   │   ├── library/    # Library browsing
+│   │   │   │   ├── meetings/   # Video meetings
 │   │   │   │   ├── messages/   # Messaging
 │   │   │   │   ├── notifications/ # Notifications
 │   │   │   │   ├── payments/   # Payment history
 │   │   │   │   ├── reports/    # Reports
-│   │   │   │   └── wards/      # Ward details
-│   │   │   ├── student/        # Student portal
+│   │   │   │   ├── store/      # School store
+│   │   │   │   ├── supplies/   # Supply programs
+│   │   │   │   └── wards/      # Ward details & lessons
+│   │   │   ├── student/        # Student portal (12 pages)
 │   │   │   │   ├── assignments/# View & submit assignments
 │   │   │   │   ├── calendar/   # Academic calendar
+│   │   │   │   ├── lessons/    # View published lessons
+│   │   │   │   ├── library/    # Library access
 │   │   │   │   ├── notices/    # School notices
 │   │   │   │   ├── results/    # Academic results
+│   │   │   │   ├── timetable/  # Weekly timetable
 │   │   │   │   └── profile/    # Student profile
-│   │   │   ├── platform/       # Platform admin portal
+│   │   │   ├── platform/       # Platform admin portal (28 pages)
 │   │   │   └── docs/           # Documentation viewer
 │   │   ├── (public)/           # Public routes
 │   │   │   └── authentication/ # Auth pages
 │   │   ├── (school)/           # School-specific routes
 │   │   │   └── onboarding/     # School onboarding
-│   │   ├── api/                # API routes
-│   │   │   ├── admin/          # Admin APIs (students, teachers, fees, etc.)
-│   │   │   ├── teacher/        # Teacher APIs (studio, lesson-notes, gradebook, etc.)
-│   │   │   ├── parent/         # Parent APIs
-│   │   │   ├── student/        # Student APIs
-│   │   │   ├── community/      # Community APIs (polls, fundraising)
+│   │   ├── api/                # API routes (31 top-level folders)
+│   │   │   ├── admin/          # Admin APIs (~250 endpoints)
+│   │   │   ├── teacher/        # Teacher APIs (~130 endpoints)
+│   │   │   ├── parent/         # Parent APIs (~65 endpoints)
+│   │   │   ├── student/        # Student APIs (~27 endpoints)
+│   │   │   ├── community/      # Community APIs
 │   │   │   ├── academic-calendars/ # Calendar APIs
+│   │   │   ├── examinations/   # Exam APIs
+│   │   │   ├── question-bank/  # Question bank APIs
+│   │   │   ├── meetings/       # Meeting APIs
+│   │   │   ├── leo/            # AI assistant APIs
+│   │   │   ├── platform/       # Platform ops APIs
+│   │   │   ├── subscription/   # Subscription APIs
+│   │   │   ├── demo/           # Demo sandbox APIs
+│   │   │   ├── cron/           # Scheduled job endpoints
 │   │   │   ├── uploadthing/    # UploadThing webhook route
-│   │   │   ├── uploads/        # Legacy upload signing
 │   │   │   ├── webhooks/       # Clerk & Paystack webhooks
 │   │   │   └── ...             # Other API endpoints
 │   │   ├── auth/               # Auth callbacks
 │   │   └── layout.tsx          # Root layout
 │   ├── components/             # React components
-│   │   ├── ui/                 # shadcn/ui + custom components (rich-text-editor, html-content, etc.)
+│   │   ├── ui/                 # shadcn/ui + custom components
 │   │   ├── admin/              # Admin-specific components
-│   │   ├── teacher/            # Teacher portal components (lesson-notes, studio, etc.)
+│   │   ├── teacher/            # Teacher portal components
 │   │   ├── parent/             # Parent portal components
 │   │   ├── community/          # Community hub components
-│   │   ├── modals/             # Modal components (50+)
+│   │   ├── examinations/       # Exam paper components
+│   │   ├── schemes/            # Scheme of work components
+│   │   ├── lesson-notes/       # Lesson note components
+│   │   ├── lessons/            # Lesson components
+│   │   ├── academic-calendar/  # Calendar views
+│   │   ├── modals/             # Modal components (60+)
 │   │   ├── nav/                # Navigation & sidebar components
-│   │   ├── upload/             # File upload components (ImageUploader, DocumentUploader, FileDropzone)
-│   │   ├── system/             # Network health, service worker, etc.
+│   │   ├── upload/             # File upload components
+│   │   ├── system/             # Network health, service worker
 │   │   ├── docs/               # Documentation viewer
 │   │   └── ...                 # Other component categories
-│   ├── hooks/                  # Custom React hooks
-│   │   ├── admin/              # Admin hooks (69 hooks)
-│   │   ├── teacher/            # Teacher hooks (43 hooks)
-│   │   ├── parent/             # Parent hooks
-│   │   └── ...                 # Shared hooks (offline, network, toast, etc.)
-│   ├── lib/                    # Utility libraries
+│   ├── hooks/                  # Custom React hooks (218 total)
+│   │   ├── admin/              # Admin hooks (109)
+│   │   ├── teacher/            # Teacher hooks (64)
+│   │   ├── parent/             # Parent hooks (12)
+│   │   ├── admissions/         # Admissions hooks (7)
+│   │   ├── leo/                # Leo AI hooks (6)
+│   │   ├── student/            # Student hooks (5)
+│   │   └── ...                 # Shared hooks (offline, network, toast, subscription, etc.)
+│   ├── lib/                    # Utility libraries (55 modules, 395 files)
 │   │   ├── auth/               # Auth utilities & guards
 │   │   ├── rbac/               # Role-based access control & permissions
 │   │   ├── fees/               # Fee calculation utilities
 │   │   ├── finance/            # Ledger utilities
-│   │   ├── lesson-notes/       # Quality score calculation
+│   │   ├── lesson-notes/       # Quality score, review helpers
+│   │   ├── lessons/            # Lesson publishing, snapshots
+│   │   ├── schemes/            # Scheme import, PDF AI parsing
+│   │   ├── examinations/       # Paper access, question bank logic
+│   │   ├── library/            # Library loans, reservations, fines, capabilities (28 files)
+│   │   ├── billing/            # Usage events, entitlements, checkout
+│   │   ├── platform-billing/   # Subscription pricing, provider sync
+│   │   ├── delegations/        # Delegation registry, expiry reminders
+│   │   ├── promotions/         # Promotion engine, evidence gathering
+│   │   ├── meetings/           # Video meeting serialization
+│   │   ├── supply-programs/    # Eligibility, progress, audience
+│   │   ├── email/              # Email templates & Brevo + IMAP integration
+│   │   ├── demo/               # Demo sandbox, personas, coverage matrix
+│   │   ├── leo/                # Leo AI conversation management
+│   │   ├── ai/                 # OpenAI integration
 │   │   ├── network/            # Offline queue, SSE manager, connection history
 │   │   ├── uploadthing/        # UploadThing client & server config
 │   │   ├── image/              # Background removal
-│   │   ├── email/              # Email templates & Brevo integration
-│   │   └── ...                 # Other utilities
-│   ├── models/                 # Mongoose models (60+)
+│   │   ├── audit/              # Audit event logging
+│   │   └── ...                 # Other modules (timetable, admissions, curriculum, etc.)
+│   ├── models/                 # Mongoose models (180)
 │   ├── providers/              # React context providers
 │   ├── constants/              # Application constants
 │   └── middleware.ts           # Next.js middleware
 ├── content/                    # Content files
-│   ├── docs/                   # Documentation markdown files
+│   ├── docs/                   # User-facing documentation markdown
 │   └── tasks/                  # Task tracking markdown files
-├── scripts/                    # Utility scripts
-│   ├── seed-bank-branches.ts
-│   ├── seed-jhs-classes.ts
-│   ├── seed-academics.ts
-│   ├── createPlatformAdmin.ts
-│   ├── create-teacher-indexes.ts
-│   ├── backfill-user-memberships.ts
-│   └── migrateRolesToRole.ts
+├── docs/                       # Feature specs & architecture docs (99 files)
+├── scripts/                    # Utility scripts (18)
 ├── public/                     # Static assets
 ├── components.json             # shadcn/ui configuration
 ├── next.config.ts              # Next.js configuration
@@ -543,7 +822,7 @@ edusentrix-web-nextjs/
 └── README.md                   # This file
 ```
 
-## 💻 Development
+## Development
 
 ### Development Workflow
 
@@ -579,7 +858,7 @@ The project uses path aliases configured in `tsconfig.json`:
 
 - `@/*` → `src/*`
 
-## 📜 Scripts
+## Scripts
 
 ### Development Scripts
 
@@ -623,9 +902,42 @@ npm run seed:academics
 
 # Seed academic data (dry run)
 npm run seed:academics:dry
+
+# Seed AI insights demo data
+npm run seed:insights
+
+# Seed AI insights demo data (dry run)
+npm run seed:insights:dry
 ```
 
-Admin **Payment setup** bank search reads from the `bankbranches` collection. **Run `npm run seed:banks` once per deployment** with `MONGODB_URI` (and optional `MONGO_DB_NAME`) pointing at that environment’s database; if you skip this in staging or production, bank search will return no matches.
+Admin **Payment setup** bank search reads from the `bankbranches` collection. **Run `npm run seed:banks` once per deployment** with `MONGODB_URI` (and optional `MONGO_DB_NAME`) pointing at that environment's database; if you skip this in staging or production, bank search will return no matches.
+
+### Timetable Scripts
+
+```bash
+# Backfill timetable from teacher assignments
+npm run timetable:backfill
+
+# Check timetable-assignment parity
+npm run timetable:parity
+```
+
+### Library Scripts
+
+```bash
+# Sync library indexes
+npm run library:sync-indexes
+
+# Backfill reservation expiry dates
+npm run library:backfill-reservation-expires
+```
+
+### Audit Scripts
+
+```bash
+# Run audit reconciliation
+npm run audit:reconcile
+```
 
 ### Admin Scripts
 
@@ -634,11 +946,11 @@ Admin **Payment setup** bank search reads from the `bankbranches` collection. **
 npm run admin:create
 ```
 
-## 🗄 Database
+## Database
 
 ### MongoDB Models
 
-The application uses 60+ Mongoose models located in `src/models/`, including:
+The application uses 180 Mongoose models located in `src/models/`, including:
 
 **Core**
 - **User** / **UserMembership**: User accounts and school associations
@@ -657,22 +969,39 @@ The application uses 60+ Mongoose models located in `src/models/`, including:
 - **TeacherAttendance** / **TeacherDocument** / **TeacherNote**: Teacher management
 - **TeacherPerformance** / **TeacherActivity**: Tracking and analytics
 - **TeacherPermission** / **TeacherDutyAssignment**: RBAC and duties
-- **TeacherResource**: Shared teaching resources
+- **TeacherResource** / **TeacherSettings**: Shared resources and preferences
 
-**Lesson Notes**
-- **LessonNote**: Lesson note records (NaCCA 3-Phase, Classic JHS, Simple)
-- **LessonNoteApproval**: Approval workflow tracking
+**Lesson Notes & Lessons**
+- **LessonNote** / **LessonNoteApproval** / **LessonNoteReviewComment**: Lesson notes with review workflow
+- **Lesson** / **LessonResource** / **LessonReflection**: Full lesson lifecycle
+- **LessonAuditLog** / **LessonCollaborationComment**: Collaboration and audit
+- **LessonFlashcardDeck** / **StudentLessonProgress** / **StudentFlashcardProgress**: Student engagement
+
+**Schemes of Work**
+- **SchemeOfWork** / **SchemeItem**: Scheme records and rows
+- **SchemeImportJob** / **SchemeReview**: Import and review workflows
+
+**Curricula**
+- **Curriculum** / **CurriculumNode** / **CurriculumSubject**: Curriculum framework management
+
+**Examinations**
+- **ExamPaper** / **ExamPaperSection** / **ExamPaperReview**: Exam lifecycle
+- **ExamQuestion** / **QuestionBankItem** / **ExamType**: Question management
+
+**Library**
+- **LibraryBook** / **LibraryBookCopy**: Book catalog and copies
+- **LibraryLoan** / **LibraryReservation**: Circulation
+- **LibraryImportJob** / **LibraryNotice** / **LibrarySettings**: Operations
 
 **Teacher Studio**
-- **Homework**: Assignment records
-- **Rubric**: Grading rubrics
-- **Submission**: Student submissions
+- **Homework** / **Rubric** / **Submission**: Assignments and grading
 
-**Communication**
+**Communication & Email**
 - **Message** / **MessageThread**: Thread-based messaging
-- **Notice**: School-wide notices
-- **Notification**: User notifications
+- **Notice** / **Notification**: Notices and notifications
 - **Escalation**: Issue escalation tracking
+- **EmailMessage** / **EmailThread** / **EmailBatch** / **EmailEvent**: Full email system
+- **EmailDispatchJob** / **EmailPreference** / **EmailRateWindow** / **EmailSuppression**: Email operations
 
 **Fees & Finance**
 - **FeeStructure** / **Invoice** / **InvoiceLineItem**: Fee management
@@ -680,26 +1009,46 @@ The application uses 60+ Mongoose models located in `src/models/`, including:
 - **InstallmentSchedule** / **InvoiceEvent**: Installment and audit
 - **StudentCreditBalance**: Credit/wallet system
 - **SchoolExpense** / **ExpenseCategory** / **Vendor**: Expense management
-- **FinancialTransaction** / **Budget**: Financial center
+- **FinancialTransaction** / **Budget** / **SchoolDisbursement**: Financial center
+- **ReconciliationSession** / **ReconciliationRun** / **ReconciliationIngestion** / **ReconciliationAlert** / **CashClosure**: Reconciliation
+
+**Admissions**
+- **AdmissionCycle** / **AdmissionForm** / **AdmissionEvent** / **AdmissionInviteLink**: Admissions lifecycle
+
+**Promotions**
+- **PromotionCycle** / **PromotionPolicy** / **PromotionDecision** / **PromotionExecutionLog**: Student promotions
 
 **Community**
 - **CommunityPoll** / **CommunityPollVote** / **CommunityPollComment** / **PollTemplate**: Polls
 - **FundraisingCampaign** / **FundraisingDonation** / **FundraisingPayout** / **FundraisingCampaignUpdate**: Fundraising
 
+**Meetings**
+- **Meeting** / **MeetingParticipant** / **MeetingProviderEvent**: Video meetings
+
+**Platform & Subscriptions**
+- **SubscriptionTier** / **SchoolSubscription** / **SubscriptionEvent**: Billing
+- **SubscriptionCheckoutIntent** / **UsageEvent** / **UsageMetric**: Usage tracking
+- **PlatformStaffProfile** / **PlatformFeatureFlag** / **PlatformAuditLog**: Platform ops
+- **Delegation**: Staff delegation
+- **DemoSandbox** / **DemoSession** / **DemoEvent** / **DemoLead**: Demo platform
+
 **Calendar & System**
 - **AcademicCalendar** / **AcademicCalendarEvent** / **CalendarReminderLog**: Calendar
-- **Activity** / **Application** / **ApplicationAudit**: Activity logging
+- **Activity** / **AuditEvent** / **AuditStreamHead**: Activity and audit logging
+- **Application** / **ApplicationAudit**: School applications
 - **Invitation** / **BankBranch** / **ProvisioningJob**: System utilities
 - **ClassRoleDefinition** / **SchoolStudentRole**: Role definitions
 - **JournalEntry**: Teacher journal
-- **ReportExport**: Report export tracking
-- **OTPChallenge**: Authentication challenges
+- **ReportTemplate** / **ReportExport** / **ReportVerification**: Report system
+- **StoreProduct** / **StoreOrder**: School store
+- **SupplyProgram** / **SupplyLine**: Supply programs
+- **LeoConversation** / **LeoMessage** / **LeoActionRun** / **LeoResponseCache**: AI assistant
 
 ### Database Connection
 
 The database connection is handled in `src/db/connectToDatabase.ts` with connection pooling and error handling.
 
-## 🔒 Authentication
+## Authentication
 
 ### Clerk Integration
 
@@ -723,17 +1072,17 @@ Roles are defined in `src/lib/roles.ts`:
 - `parent`: Parent/guardian access
 - `student`: Student access
 
-Granular permissions are managed via `src/lib/rbac/rbac.ts` with subrole support.
+Granular permissions are managed via `src/lib/rbac/rbac.ts` with subrole support. The delegation system (`src/lib/delegations/`) allows platform staff and school admins to delegate module-level access to other staff members.
 
 ### Protected Routes
 
 Routes are protected via middleware (`src/middleware.ts`):
 
-- Public routes: Landing, enrollment, auth pages
+- Public routes: Landing, enrollment, auth pages, public admissions portals
 - Protected routes: All app routes require authentication
 - Role-based routing: Redirects based on user role
 
-## 🚢 Deployment
+## Deployment
 
 ### Build for Production
 
@@ -751,6 +1100,7 @@ Ensure all environment variables are set in your production environment:
 - Paystack production keys
 - Brevo production API key
 - OpenAI API key (for AI features)
+- LiveKit credentials (for video meetings)
 
 ### Recommended Platforms
 
@@ -765,11 +1115,14 @@ Ensure all environment variables are set in your production environment:
 - [ ] Configure UploadThing production account
 - [ ] Set up Paystack production account
 - [ ] Configure OpenAI API key (optional, for AI features)
+- [ ] Configure LiveKit server (optional, for video meetings)
+- [ ] Run `npm run seed:banks` against production database
+- [ ] Run `npm run library:sync-indexes` for library search
 - [ ] Configure domain and SSL certificates
 - [ ] Set up monitoring and error tracking
 - [ ] Configure backup strategy for MongoDB
 
-## 🤝 Contributing
+## Contributing
 
 ### Development Setup
 
@@ -788,14 +1141,22 @@ Ensure all environment variables are set in your production environment:
 - Update documentation as needed
 - Follow existing code style
 
-## 📚 Additional Documentation
+## Additional Documentation
 
 - **In-app Docs**: Visit `/docs` for user-facing documentation
+- **Feature Specs** (`docs/`): 99 specification documents covering architecture and feature design
 - **Fees System Strategy**: See `FEES_SYSTEM_STRATEGY.md` for the fees & payments architecture
 - **Lesson Notes Spec**: See `edusentrix-lesson-notes-spec.md` for the lesson notes builder specification
-- **Lesson Notes Approval Plan**: See `LESSON_NOTES_APPROVAL_WORKFLOW_PLAN.md` for the admin approval workflow
+- **Lessons Module Spec**: See `docs/edusentrix-lessons-module-technical-spec.md` for the full lessons system
+- **Schemes of Work Spec**: See `docs/edusentrix-curriculum-scheme-of-work-development-spec.md`
+- **Examinations Spec**: See `docs/edusentrix-examinations-question-bank-module-spec.md`
+- **Library Spec**: See `docs/edusentrix-library-module-v1-v2-technical-spec.md`
+- **Subscription & Entitlements**: See `docs/edusentrix-subscription-entitlements-final-spec.md`
+- **Platform Operations**: See `docs/edusentrix-platform-operations-staff-delegation-spec.md`
+- **Leo Copilot Spec**: See `docs/LEO_COPILOT_DEVELOPMENT_SPEC.md`
+- **Demo Platform Spec**: See `docs/EDUSENTRIX_DEMO_PLATFORM_SPEC.md`
 
-## 📞 Support
+## Support
 
 For support and inquiries:
 
@@ -803,10 +1164,10 @@ For support and inquiries:
 - **Documentation**: Visit `/docs` within the application
 - **Issues**: Use GitHub Issues for bug reports
 
-## 📄 License
+## License
 
 This project is proprietary and confidential. All rights reserved.
 
 ---
 
-**Built with ❤️ by Appsentrix for schools in Ghana & Africa**
+**Built with care by Appsentrix for schools in Ghana & Africa**

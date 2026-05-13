@@ -8,12 +8,17 @@ The Parent Portal provides:
 - **Dashboard**: Overview of all your wards at a glance
 - **Ward Details**: Detailed information for each child
 - **Academics**: View grades, performance, and academic progress
+- **Ward Lessons**: Access published lessons and study materials for your wards
+- **Library**: Browse the school's library catalog
 - **Attendance**: Track your ward's attendance record
 - **Fees & Payments**: View outstanding fees and payment history
+- **Meetings**: Join video meetings with teachers
+- **Supply Programs**: View supply distributions for your wards
+- **School Store**: Browse and order school merchandise and supplies
+- **Community Hub**: Participate in school polls and fundraising campaigns
 - **Calendar**: See school events and important dates
 - **Messages**: Communicate with teachers
 - **Notifications**: Stay informed about school activities
-- **Reports**: Access academic and financial reports
 
 ## Dashboard
 
@@ -50,6 +55,24 @@ View academic information at `/parent/academics`:
 - Class position and averages
 - Subject-specific performance
 
+## Ward Lessons
+
+Access published lessons for your wards at `/parent/lessons`:
+- View lessons published by teachers for each ward's classes
+- See lesson summaries, objectives, and key content
+- Monitor your ward's engagement with lesson materials
+- Browse flashcard decks associated with each lesson
+
+> **Tip**: Encourage your ward to study the flashcard decks teachers create for each lesson — they are a great way to reinforce learning.
+
+## Library
+
+Browse the school's library at `/parent/library`:
+- View the full library catalog
+- See book availability and descriptions
+- Check your ward's current checkouts and due dates
+- View overdue items and any assessed fines
+
 ## Attendance
 
 Track attendance at `/parent/attendance`:
@@ -76,6 +99,38 @@ Navigate to `/parent/payments`:
 - Track payment confirmation
 - View receipts
 
+## Meetings
+
+Join scheduled video meetings with teachers at `/parent/meetings`:
+- View upcoming meeting invitations
+- Join meetings directly from the portal (powered by LiveKit)
+- See meeting notes and follow-ups after a session
+- Schedule requests with teachers
+
+> **Tip**: Make sure your camera and microphone are working before joining a meeting. Use a quiet, well-lit space for the best experience.
+
+## Supply Programs
+
+View supply distributions at `/parent/supply-programs`:
+- See active supply programs for your wards
+- View supply items and distribution status
+- Track which items have been distributed
+
+## School Store
+
+Browse and order products at `/parent/store`:
+- View the school's product catalog (uniforms, books, supplies)
+- See pricing and product descriptions
+- Place orders for school merchandise
+- Track order status and fulfillment
+
+## Community Hub
+
+Participate in school community activities at `/parent/community`:
+- Vote in school polls and surveys
+- Contribute to fundraising campaigns
+- View campaign progress and updates
+
 ## Calendar
 
 View the school calendar at `/parent/calendar`:
@@ -97,15 +152,9 @@ Stay informed at `/parent/notifications`:
 - Fee reminders
 - Attendance alerts
 - Academic updates
+- Meeting invitations
+- Supply program updates
 - School announcements
-- Message notifications
-
-## Reports
-
-Access reports at `/parent/reports`:
-- Academic performance reports
-- Attendance summaries
-- Fee statements
 
 ## Tips for Parents
 
@@ -115,8 +164,13 @@ Access reports at `/parent/reports`:
 4. **Pay On Time**: Keep fee payments current
 5. **Communicate**: Use messages to reach teachers with concerns
 6. **Check Calendar**: Stay aware of upcoming events and deadlines
+7. **Explore Lessons**: Review the lessons your ward is studying
+8. **Join Meetings**: Attend scheduled video meetings for direct teacher communication
+9. **Browse the Store**: Order needed supplies and materials conveniently
 
 ## Related Documentation
 
 - [Managing Guardians](../students/managing-guardians.md): How guardians are managed in the system
 - [Fees Dashboard](../fees/fees-dashboard.md): School fee management overview
+- [Video Meetings](../meetings/meetings-overview.md): How video meetings work
+- [Library Overview](../library/library-overview.md): Library system features

@@ -288,6 +288,9 @@ export default function PlatformSchoolsPage() {
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
               Refresh Queue
             </Button>
+            <Button asChild className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+              <Link href="/platform/schools/new">Create School</Link>
+            </Button>
             <Button
               type="button"
               onClick={() => void handleBackfill()}
@@ -504,6 +507,9 @@ export default function PlatformSchoolsPage() {
                 </Button>
                 <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10">
                   <Link href={`/platform/schools/${school.id}/usage`}>Usage</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10">
+                  <Link href={`/platform/schools/${school.id}/implementation`}>Implementation</Link>
                 </Button>
               </div>
             </div>

@@ -27,6 +27,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
+  ListTodo,
 } from "lucide-react";
 import { LeoIcon } from "@/components/icons/LeoIcon";
 import {
@@ -117,6 +119,18 @@ const navSections: NavSection[] = [
         href: "/platform/pilot",
         icon: FlaskConical,
         requiredPermissions: ["platform.schools.read"],
+      },
+      {
+        label: "Delegations",
+        href: "/platform/delegations",
+        icon: ClipboardList,
+        requiredPermissions: ["platform.implementation.assignTasks"],
+      },
+      {
+        label: "Tasks",
+        href: "/platform/tasks",
+        icon: ListTodo,
+        requiredPermissions: ["platform.implementation.read"],
       },
     ],
   },

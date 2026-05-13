@@ -59,6 +59,14 @@ export type SubjectDTO = {
   id: string;
   name: string;
   code: string | null;
+  subjectId?: string;
+  shortName?: string;
+  curriculumCode?: string;
+  stage?: string;
+  gradeBand?: string;
+  gradeNames?: string[];
+  category?: string | null;
+  lessonNoteTemplateVariant?: string | null;
   classCount: number;
   teacherCount: number;
   isActive: boolean;

@@ -10,6 +10,7 @@ export interface ITimetableSlot {
   classGroupId: Types.ObjectId;
   gradeId: Types.ObjectId;
   subjectId: Types.ObjectId;
+  subjectOfferingId?: Types.ObjectId | null;
   /** Set when a teacher is assigned; omitted until subject–teacher assignment exists. */
   teacherId?: Types.ObjectId | null;
   dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -60,6 +61,12 @@ const timetableSlotSchema = new Schema<ITimetableSlot>(
       type: Schema.Types.ObjectId,
       ref: "Subject",
       required: true,
+      index: true,
+    },
+    subjectOfferingId: {
+      type: Schema.Types.ObjectId,
+      ref: "SubjectOffering",
+      default: null,
       index: true,
     },
     teacherId: {
@@ -138,6 +145,12 @@ timetableSlotSchema.index({
   versionId: 1,
   legacyAssignmentId: 1,
   source: 1,
+});
+timetableSlotSchema.index({
+  schoolId: 1,
+  academicPeriodId: 1,
+  versionId: 1,
+  subjectOfferingId: 1,
 });
 
 // Next.js dev hot-reload can keep a stale compiled model with old paths; drop so schema updates apply.

@@ -166,6 +166,11 @@ export function SubjectsTable({
               />
             </th>
             <th className="min-w-[100px] px-3 py-2 text-left align-middle">
+              <span className="text-xs font-medium text-muted-foreground">
+                Coverage
+              </span>
+            </th>
+            <th className="min-w-[100px] px-3 py-2 text-left align-middle">
               <SortableHeader
                 label="Classes"
                 column="classes"
@@ -244,8 +249,18 @@ export function SubjectsTable({
                       >
                         {subject.code ?? "No code"}
                       </span>
+                      {subject.curriculumCode && (
+                        <p className="mt-0.5 text-[10px] uppercase tracking-[0.1em] text-white/35">
+                          {subject.curriculumCode.replace(/_/g, " ")}
+                        </p>
+                      )}
                     </div>
                   </div>
+                </td>
+                <td className="px-3 py-2 align-middle text-xs capitalize text-white/65">
+                  {subject.gradeNames?.length
+                    ? subject.gradeNames.join(", ")
+                    : subject.gradeBand?.replace(/_/g, " ") ?? "No coverage"}
                 </td>
                 <td className="px-3 py-2 align-middle text-xs text-white/80">
                   <div className="flex items-center gap-1.5">

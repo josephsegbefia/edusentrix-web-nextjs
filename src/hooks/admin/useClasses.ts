@@ -26,6 +26,7 @@ export type ClassGroupDTO = {
     name: string;
     code: string | null;
   }>;
+  subjectOfferingIds?: string[];
   studentCount: number;
   teacherCount: number;
   subjectCount: number;

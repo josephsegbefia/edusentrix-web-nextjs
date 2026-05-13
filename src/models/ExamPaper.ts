@@ -25,6 +25,7 @@ export interface IExamPaper {
   classGroupId?: Types.ObjectId | null;
   classGroupIds: Types.ObjectId[];
   subjectId: Types.ObjectId;
+  subjectOfferingId?: Types.ObjectId | null;
   teacherId?: Types.ObjectId | null;
   leadSetterId?: Types.ObjectId | null;
   contributorIds: Types.ObjectId[];
@@ -80,6 +81,7 @@ const examPaperSchema = new Schema<IExamPaper>(
       index: true,
     },
     subjectId: { type: Schema.Types.ObjectId, ref: "Subject", required: true, index: true },
+    subjectOfferingId: { type: Schema.Types.ObjectId, ref: "SubjectOffering", default: null, index: true },
     teacherId: { type: Schema.Types.ObjectId, ref: "Teacher", default: null, index: true },
     leadSetterId: { type: Schema.Types.ObjectId, ref: "Teacher", default: null, index: true },
     contributorIds: {
@@ -129,6 +131,14 @@ examPaperSchema.index({
   termId: 1,
   gradeId: 1,
   subjectId: 1,
+  status: 1,
+});
+examPaperSchema.index({
+  schoolId: 1,
+  academicYearId: 1,
+  termId: 1,
+  gradeId: 1,
+  subjectOfferingId: 1,
   status: 1,
 });
 examPaperSchema.index({ schoolId: 1, leadSetterId: 1, status: 1 });

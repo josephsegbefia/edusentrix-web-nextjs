@@ -4,7 +4,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { BookText, School, Users, TrendingUp } from "lucide-react";
-import { useSubjects } from "@/hooks/admin/useSubjects";
+import { useSubjectOfferings } from "@/hooks/admin/useSubjectOfferings";
 import CountUp from "react-countup";
 
 type StatTone = "amber" | "teal" | "sky" | "rose";
@@ -135,15 +135,15 @@ function StatCard({
 }
 
 export function SubjectsQuickStatsSection() {
-  const { data, isLoading } = useSubjects();
+  const { data, isLoading } = useSubjectOfferings();
 
   const subjects = data?.data || [];
 
   const stats = React.useMemo(() => {
     const total = subjects.length;
     const active = subjects.filter((s) => s.isActive).length;
-    const totalClasses = subjects.reduce((sum, s) => sum + s.classCount, 0);
-    const totalTeachers = subjects.reduce((sum, s) => sum + s.teacherCount, 0);
+    const totalClasses = subjects.reduce((sum, s) => sum + s.assignedClassGroupCount, 0);
+    const totalTeachers = subjects.reduce((sum, s) => sum + s.assignedTeacherCount, 0);
 
     return {
       total,
@@ -156,14 +156,14 @@ export function SubjectsQuickStatsSection() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        label="Total Subjects"
+        label="Total Offerings"
         value={stats.total}
         icon={<BookText className="h-5 w-5" />}
         tone="amber"
         loading={isLoading}
       />
       <StatCard
-        label="Active Subjects"
+        label="Active Offerings"
         value={stats.active}
         icon={<TrendingUp className="h-5 w-5" />}
         tone="teal"

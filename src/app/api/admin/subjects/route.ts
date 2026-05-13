@@ -173,6 +173,9 @@ export async function POST(req: NextRequest) {
       "elective",
       "foundation",
       "optional",
+      "learning_area",
+      "co_curricular",
+      "custom",
       "transdisciplinary_theme",
       "subject_group",
     ]);
@@ -184,9 +187,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const normalizedKey = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
     const existing = await Subject.findOne({
       schoolId: schoolIdObj,
-      name,
+      $or: [{ name }, { normalizedKey }],
     })
       .collation({ locale: "en", strength: 2 })
       .lean();
@@ -201,6 +210,7 @@ export async function POST(req: NextRequest) {
     const created = await Subject.create({
       schoolId: schoolIdObj,
       name,
+      normalizedKey,
       code,
       category,
       isActive,

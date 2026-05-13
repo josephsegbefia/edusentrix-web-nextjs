@@ -15,6 +15,7 @@ const CreateClassSchema = z.object({
   gradeId: z.string().min(1, "Grade is required"),
   name: z.string().min(1, "Class name is required").max(50),
   subjectIds: z.array(z.string()).optional().default([]),
+  subjectOfferingIds: z.array(z.string()).optional().default([]),
   capacity: z.number().int().positive().optional().nullable(),
 });
 
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { gradeId, name, subjectIds, capacity } = parsed.data;
+    const { gradeId, name, subjectIds, subjectOfferingIds, capacity } = parsed.data;
 
     const gradeIdObj = new mongoose.Types.ObjectId(gradeId);
 
@@ -99,6 +100,9 @@ export async function POST(req: NextRequest) {
       gradeId: gradeIdObj,
       name: name.trim(),
       subjectIds: subjectIdsObj,
+      subjectOfferingIds: (subjectOfferingIds || [])
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+        .map((id) => new mongoose.Types.ObjectId(id)),
       capacity: capacity ?? null,
       isActive: true,
     });
@@ -154,6 +158,7 @@ export async function POST(req: NextRequest) {
           name: s.name,
           code: s.code || null,
         })),
+        subjectOfferingIds: (newClass.subjectOfferingIds || []).map(String),
         studentCount: 0,
         teacherCount: 0,
         subjectCount: subjectIdsObj.length,
@@ -377,6 +382,7 @@ export async function GET(req: NextRequest) {
           name: s.name,
           code: s.code || null,
         })),
+        subjectOfferingIds: (cls.subjectOfferingIds || []).map(String),
         studentCount: countMap.get(String(cls._id)) || 0,
         teacherCount: teacherCountMap.get(String(cls._id)) || 0,
         subjectCount: cls.subjectIds?.length || 0,

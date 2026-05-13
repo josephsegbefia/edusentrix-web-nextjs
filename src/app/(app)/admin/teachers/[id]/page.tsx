@@ -198,7 +198,7 @@ function TeacherDetailContent() {
         </div>
 
         {/* Profile header skeleton */}
-        <div className="flex animate-pulse items-center gap-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        <div className="flex animate-pulse items-center gap-6 rounded-2xl border border-white/10 bg-white/2 p-6">
           <div className="h-20 w-20 shrink-0 rounded-2xl bg-white/10" />
           <div className="flex-1 space-y-3">
             <div className="h-7 w-56 rounded bg-white/10" />
@@ -225,8 +225,8 @@ function TeacherDetailContent() {
 
         {/* Content skeleton */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/[0.02]" />
-          <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/[0.02]" />
+          <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/2" />
+          <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/2" />
         </div>
       </div>
     );
@@ -300,13 +300,13 @@ function TeacherDetailContent() {
       <TeacherDetailHeader teacher={teacher} />
 
       {/* Tabs Navigation */}
-      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-indigo-500/5 via-transparent to-transparent"
           aria-hidden="true"
         />
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
           aria-hidden="true"
         />
         <CardContent className="relative z-10 p-0">
@@ -462,7 +462,7 @@ export default function TeacherDetailPage() {
               <div className="h-3 w-48 animate-pulse rounded bg-white/5" />
             </div>
           </div>
-          <div className="flex animate-pulse items-center gap-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="flex animate-pulse items-center gap-6 rounded-2xl border border-white/10 bg-white/2 p-6">
             <div className="h-20 w-20 shrink-0 rounded-2xl bg-white/10" />
             <div className="flex-1 space-y-3">
               <div className="h-7 w-56 rounded bg-white/10" />

@@ -19,6 +19,8 @@ import {
   Pencil,
   ExternalLink,
   UserPlus,
+  BadgeCheck,
+  Layers3,
 } from "lucide-react";
 
 type SubjectCardProps = {
@@ -51,6 +53,11 @@ export function SubjectCard({
   const teacherCount = subject.teacherCount ?? 0;
   const visual = resolveSubjectVisual(subject);
   const Icon = visual.icon;
+  const gradeCoverage = subject.gradeNames?.length
+    ? subject.gradeNames.join(", ")
+    : subject.gradeBand
+    ? subject.gradeBand.replace(/_/g, " ")
+    : null;
 
   return (
     <div
@@ -109,6 +116,11 @@ export function SubjectCard({
                   >
                     {subject.code ?? "No code"}
                   </span>
+                  {subject.curriculumCode && (
+                    <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-white/60">
+                      {subject.curriculumCode.replace(/_/g, " ")}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -158,6 +170,12 @@ export function SubjectCard({
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {gradeCoverage && (
+                <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-cyan-300/15 bg-cyan-300/10 px-2 py-0.5 text-[10px] font-medium capitalize text-cyan-100">
+                  <Layers3 className="size-3 shrink-0" />
+                  <span className="truncate">{gradeCoverage}</span>
+                </span>
+              )}
               <span
                 className={cn(
                   "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium",
@@ -185,6 +203,14 @@ export function SubjectCard({
               {teacherCount} teacher{teacherCount !== 1 ? "s" : ""}
             </span>
           </div>
+          {subject.lessonNoteTemplateVariant && (
+            <div className="flex min-w-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
+              <BadgeCheck className={cn("h-3.5 w-3.5 shrink-0", visual.statIcon)} />
+              <span className="truncate text-xs font-medium capitalize text-white/70">
+                {subject.lessonNoteTemplateVariant.replace(/_/g, " ")}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

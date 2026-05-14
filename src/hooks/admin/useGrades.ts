@@ -44,6 +44,7 @@ export type GradeOverviewDTO = {
   subjects: Array<{
     id: string;
     name: string;
+    code?: string | null;
     classesWithSubject: number;
     classesWithoutSubject: number;
   }>;

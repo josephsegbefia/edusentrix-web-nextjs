@@ -77,6 +77,7 @@ export async function GET(
           select: "firstName lastName avatarUrl",
         },
       })
+      .populate("subjectOfferingId", "displayName shortName code subjectId")
       .populate("subjectId", "name code")
       .lean();
 
@@ -95,7 +96,8 @@ export async function GET(
     if (!("error" in weekly) && weekly.data?.days) {
       for (const day of weekly.data.days) {
         for (const slot of day.slots || []) {
-          const key = `${slot.subjectId}|${slot.teacherId}`;
+          const slotRecord = slot as typeof slot & { subjectOfferingId?: string | null };
+          const key = `${slotRecord.subjectOfferingId || slot.subjectId}|${slot.teacherId}`;
           if (!slotBySubjectTeacher.has(key)) {
             slotBySubjectTeacher.set(key, []);
           }
@@ -121,17 +123,22 @@ export async function GET(
       .map((assignment: Record<string, unknown>) => {
         const teacher = assignment.teacherId as { _id: mongoose.Types.ObjectId; userId?: { firstName?: string; lastName?: string; avatarUrl?: string } } | null;
         const user = teacher?.userId;
+        const offering = assignment.subjectOfferingId as
+          | { _id: mongoose.Types.ObjectId; subjectId?: mongoose.Types.ObjectId; displayName?: string; shortName?: string; code?: string }
+          | null
+          | undefined;
         const subject = assignment.subjectId as { _id: mongoose.Types.ObjectId; name: string; code?: string } | null;
 
         if (!subject || !user) return null;
 
-        const key = `${subject._id}|${teacher._id}`;
+        const key = `${offering?._id || subject._id}|${teacher._id}`;
         const schedules = slotBySubjectTeacher.get(key) || [];
 
         return {
+          subjectOfferingId: offering?._id ? String(offering._id) : null,
           subjectId: String(subject._id),
-          subjectName: subject.name,
-          subjectCode: subject.code || null,
+          subjectName: offering?.displayName || offering?.shortName || subject.name,
+          subjectCode: offering?.code || subject.code || null,
           assignmentId: String(assignment._id),
           teacherId: String(teacher._id),
           teacherName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),

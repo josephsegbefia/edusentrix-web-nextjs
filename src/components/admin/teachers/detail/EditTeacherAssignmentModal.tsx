@@ -420,14 +420,6 @@ export function EditTeacherAssignmentModal({
       payload.status = values.status;
     }
 
-    // Handle schedules
-    if (values.includeSchedule && values.schedules && values.schedules.length > 0) {
-      payload.schedules = values.schedules;
-    } else if (!values.includeSchedule && existingSchedules.length > 0) {
-      // Clear schedules
-      payload.schedules = null;
-    }
-
     // If no changes, just close
     if (Object.keys(payload).length === 0) {
       onOpenChange(false);
@@ -761,10 +753,15 @@ export function EditTeacherAssignmentModal({
                   ) : null}
                 </div>
 
+                <Callout tone="info" title="Schedules now live on the class timetable">
+                  Teacher assignments define responsibility only. Add, move, or remove lesson
+                  periods from the class timetable so teacher conflicts can be checked school-wide.
+                </Callout>
+
                 <Accordion
                   type="single"
                   collapsible
-                  className="rounded-2xl border border-white/10 bg-white/5"
+                  className="hidden rounded-2xl border border-white/10 bg-white/5"
                   defaultValue={existingSchedules.length > 0 ? "schedule" : undefined}
                   onValueChange={(v) =>
                     form.setValue("includeSchedule", v === "schedule")

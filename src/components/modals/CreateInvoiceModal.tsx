@@ -15,6 +15,7 @@ import { useFeeStructures } from "@/hooks/admin/useFeeStructures";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { ChevronLeft, ChevronRight, Check, X, Plus, Minus, Search, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -52,6 +53,21 @@ const STEPS = [
     fields: ["notes", "terms"],
   },
 ] as const;
+
+function parseLocalDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function formatLocalDate(date: Date | null): string | null {
+  if (!date) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 export default function CreateInvoiceModal({
   onClose,
@@ -551,17 +567,19 @@ export default function CreateInvoiceModal({
               </div>
 
               <div className="space-y-2">
-                <Label
-                  htmlFor="dueDate"
-                  className="text-xs font-medium uppercase tracking-[0.2em] text-muted"
-                >
-                  Due Date
-                </Label>
-                <Input
-                  id="dueDate"
-                  type="date"
-                  {...register("dueDate")}
-                  className="border border-white/10 bg-white/5 text-white placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                <Controller
+                  name="dueDate"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomDatePicker
+                      label="Due Date"
+                      value={parseLocalDate(field.value)}
+                      onChange={(date) => field.onChange(formatLocalDate(date))}
+                      placeholder="Select due date"
+                      className="border-white/10 bg-white/5 text-white"
+                      error={errors.dueDate?.message}
+                    />
+                  )}
                 />
               </div>
             </section>

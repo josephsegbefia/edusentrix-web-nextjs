@@ -164,14 +164,6 @@ export type UpdateTeacherInput = z.infer<typeof UpdateTeacherSchema>;
 
 // ============== TEACHER ASSIGNMENT SCHEMAS ==============
 
-// Schedule item schema for teacher assignments
-const ScheduleItemSchema = z.object({
-  dayOfWeek: z.coerce.number().min(0).max(6),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, "Start time must be HH:MM"),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/, "End time must be HH:MM"),
-  location: z.string().max(80).optional(),
-});
-
 // Update teacher assignment schema - all fields optional for partial updates
 export const UpdateTeacherAssignmentSchema = z.object({
   // Core assignment fields
@@ -182,31 +174,9 @@ export const UpdateTeacherAssignmentSchema = z.object({
   // Status
   status: z.enum(["active", "inactive"]).optional(),
 
-  // Schedule - can be array of schedules or null to clear
-  schedules: z.array(ScheduleItemSchema).optional().nullable(),
-
   // Other fields
   workloadHours: z.coerce.number().min(0).max(80).optional(),
   notes: z.string().max(500).optional().nullable(),
-}).superRefine((val, ctx) => {
-  // Validate schedule times if provided
-  if (!val.schedules || val.schedules.length === 0) return;
-
-  val.schedules.forEach((s, idx) => {
-    if (s.startTime && s.endTime) {
-      const [sh, sm] = s.startTime.split(":").map(Number);
-      const [eh, em] = s.endTime.split(":").map(Number);
-      const start = sh * 60 + sm;
-      const end = eh * 60 + em;
-      if (start >= end) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["schedules", idx, "endTime"],
-          message: "End time must be after start time",
-        });
-      }
-    }
-  });
 });
 
 export type UpdateTeacherAssignmentInput = z.infer<typeof UpdateTeacherAssignmentSchema>;

@@ -487,6 +487,7 @@ export type TeacherHomeroomResponse = {
     id: string;
     name: string;
     gradeName: string | null;
+    label?: string | null;
   } | null;
 };
 

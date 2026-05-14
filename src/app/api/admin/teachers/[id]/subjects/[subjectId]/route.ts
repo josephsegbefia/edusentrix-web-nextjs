@@ -4,6 +4,8 @@ import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/re
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
+import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { logTeacherActivity } from "@/lib/teachers/logTeacherActivity";
 import mongoose from "mongoose";
 
@@ -50,25 +52,57 @@ export async function DELETE(
     return Response.json({ error: "Teacher not found" }, { status: 404 });
   }
 
-  // Check if subject is assigned
+  // Check if the legacy subject link is assigned. New subject-offering assignments
+  // are stored on TeacherAssignment, so absence from Teacher.subjectIds is not an error.
   const subjectIds = (teacher.subjectIds || []).map(
     (sid: mongoose.Types.ObjectId) => String(sid)
   );
-  if (!subjectIds.includes(String(subjectObjId))) {
-    return Response.json(
-      { error: "Subject is not assigned to this teacher" },
-      { status: 400 }
-    );
+  const legacySubjectAssigned = subjectIds.includes(String(subjectObjId));
+
+  const [subject, offering] = await Promise.all([
+    Subject.findOne({ _id: subjectObjId, schoolId: schoolIdObj }).select("name").lean(),
+    SubjectOffering.findOne({ _id: subjectObjId, schoolId: schoolIdObj })
+      .select("displayName shortName subjectId")
+      .lean<{
+        _id: mongoose.Types.ObjectId;
+        displayName?: string;
+        shortName?: string;
+        subjectId?: mongoose.Types.ObjectId;
+      } | null>(),
+  ]);
+  const subjectName =
+    (offering?.displayName || offering?.shortName || subject?.name || "Subject").toString();
+
+  const assignmentFilter = {
+    schoolId: schoolIdObj,
+    teacherId: teacherObjId,
+    status: "active",
+    $or: [
+      { subjectId: subjectObjId },
+      { subjectOfferingId: subjectObjId },
+      ...(offering?.subjectId ? [{ subjectId: offering.subjectId }] : []),
+    ],
+  };
+  const activeAssignmentCount = await TeacherAssignment.countDocuments(assignmentFilter);
+
+  if (!legacySubjectAssigned && activeAssignmentCount === 0) {
+    return Response.json({
+      success: true,
+      message: `${subjectName} was already removed`,
+      data: { subjectId: String(subjectObjId), subjectName },
+    });
   }
 
-  // Get subject name for logging
-  const subject = await Subject.findById(subjectObjId);
-  const subjectName = subject?.name || "Unknown";
-
-  // Remove subject from teacher
-  await Teacher.findByIdAndUpdate(teacherObjId, {
-    $pull: { subjectIds: subjectObjId },
-  });
+  if (legacySubjectAssigned) {
+    await Teacher.findByIdAndUpdate(teacherObjId, {
+      $pull: { subjectIds: subjectObjId },
+    });
+  }
+  if (activeAssignmentCount > 0) {
+    await TeacherAssignment.updateMany(assignmentFilter, {
+      $set: { status: "inactive" },
+    });
+  }
 
   // Log activity
   await logTeacherActivity({

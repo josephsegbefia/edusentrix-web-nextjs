@@ -23,7 +23,7 @@ type TeacherDetailHeaderProps = {
     phone?: string | null;
     photoUrl?: string | null;
     status: string;
-    homeroom?: { id: string; name: string } | null;
+    homeroom?: { id: string; name: string; gradeName?: string | null; label?: string | null } | null;
     subjects?: Array<{ id: string; name: string }>;
     assignedSubjects?: Array<{ id: string; name: string; classGroups: string[] }>;
     hireDate?: string | null;
@@ -90,6 +90,9 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
     hasPlatformAccount = true,
   } = teacher;
   const displaySubjects = (assignedSubjects?.length ? assignedSubjects : subjects) ?? [];
+  const homeroomLabel = homeroom?.label || (
+    homeroom?.gradeName ? `${homeroom.gradeName} ${homeroom.name}`.trim() : homeroom?.name
+  );
   const invitePending = hasPlatformAccount === false;
 
   const statusStyle = statusConfig[status] || statusConfig.inactive;
@@ -205,7 +208,7 @@ export function TeacherDetailHeader({ teacher }: TeacherDetailHeaderProps) {
               {homeroom && (
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/25 bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-300">
                   <Home className="h-3.5 w-3.5" />
-                  {homeroom.name}
+                  {homeroomLabel}
                 </span>
               )}
               {displaySubjects.length > 0 && (

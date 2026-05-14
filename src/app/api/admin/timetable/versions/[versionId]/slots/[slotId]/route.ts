@@ -13,6 +13,7 @@ import { resolveClassroomLabel } from "@/lib/timetable/classroom-label";
 import { recomputeConflictsForVersion } from "@/lib/timetable/recompute-conflicts";
 import { validateTimetableSlotReferences } from "@/lib/timetable/validate";
 import { isTimetableApiWriteEnabled } from "@/lib/timetable/feature-flags";
+import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 
 type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 type SlotSource = "manual" | "imported" | "assignment_sync";
@@ -46,6 +47,7 @@ function toSlotDto(slot: {
   classGroupId: mongoose.Types.ObjectId;
   gradeId: mongoose.Types.ObjectId;
   subjectId: mongoose.Types.ObjectId;
+  subjectOfferingId?: mongoose.Types.ObjectId | null;
   teacherId: mongoose.Types.ObjectId;
   dayOfWeek: number;
   startTime: string;
@@ -65,6 +67,7 @@ function toSlotDto(slot: {
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
+    subjectOfferingId: slot.subjectOfferingId ? String(slot.subjectOfferingId) : null,
     teacherId: String(slot.teacherId),
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
@@ -81,6 +84,7 @@ function toSlotDto(slot: {
 interface PatchSlotBody {
   classGroupId?: string;
   gradeId?: string;
+  subjectOfferingId?: string;
   subjectId?: string;
   teacherId?: string;
   dayOfWeek?: number;
@@ -157,6 +161,7 @@ export async function PATCH(
     const hasAnyField =
       body.classGroupId !== undefined ||
       body.gradeId !== undefined ||
+      body.subjectOfferingId !== undefined ||
       body.subjectId !== undefined ||
       body.teacherId !== undefined ||
       body.dayOfWeek !== undefined ||
@@ -185,14 +190,34 @@ export async function PATCH(
         : existing.classGroupId;
     const gradeId =
       body.gradeId !== undefined ? toObjectIdOrNull(body.gradeId) : existing.gradeId;
-    const subjectId =
+    let subjectId =
       body.subjectId !== undefined
         ? toObjectIdOrNull(body.subjectId)
         : existing.subjectId;
+    let subjectOfferingId =
+      (existing as unknown as { subjectOfferingId?: mongoose.Types.ObjectId | null }).subjectOfferingId ?? null;
     const teacherId =
       body.teacherId !== undefined
         ? toObjectIdOrNull(body.teacherId)
         : existing.teacherId;
+
+    if (body.subjectOfferingId) {
+      const offeringResolution = await resolveSubjectOfferingForSchool({
+        schoolId: schoolIdObj,
+        subjectOfferingId: body.subjectOfferingId,
+        gradeId,
+        classGroupId,
+        requireClassAssignment: true,
+      });
+      if (!offeringResolution.ok) {
+        return NextResponse.json(
+          { success: false, error: offeringResolution.error },
+          { status: offeringResolution.status }
+        );
+      }
+      subjectId = offeringResolution.offering.subjectId;
+      subjectOfferingId = offeringResolution.offering._id;
+    }
 
     if (!classGroupId || !gradeId || !subjectId || !teacherId) {
       return NextResponse.json(
@@ -257,6 +282,7 @@ export async function PATCH(
     existing.classGroupId = classGroupId;
     existing.gradeId = gradeId;
     existing.subjectId = subjectId;
+    existing.subjectOfferingId = subjectOfferingId;
     existing.teacherId = teacherId;
     existing.dayOfWeek = dayOfWeek;
     existing.startTime = startTime;
@@ -308,6 +334,7 @@ export async function PATCH(
           classGroupId: mongoose.Types.ObjectId;
           gradeId: mongoose.Types.ObjectId;
           subjectId: mongoose.Types.ObjectId;
+          subjectOfferingId?: mongoose.Types.ObjectId | null;
           teacherId: mongoose.Types.ObjectId;
           dayOfWeek: number;
           startTime: string;

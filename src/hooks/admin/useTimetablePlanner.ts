@@ -10,6 +10,13 @@ export type TimetableVersionDTO = {
   status: TimetableVersionStatus;
   baseVersionId: string | null;
   publishedAt: string | null;
+  stale?: boolean;
+  staleReasons?: Array<{
+    sourceModule: string;
+    sourceEntityId: string | null;
+    message: string;
+    createdAt: string | null;
+  }>;
   lockVersion: number;
   createdBy: string;
   updatedBy: string;
@@ -27,6 +34,7 @@ export type TimetableSlotDTO = {
   classGroupId: string;
   gradeId: string;
   subjectId: string;
+  subjectOfferingId?: string | null;
   teacherId: string;
   dayOfWeek: number;
   startTime: string;
@@ -60,6 +68,7 @@ export type TimetableConflictSlotSummary = {
   gradeId: string;
   gradeName: string;
   subjectId: string;
+  subjectOfferingId?: string | null;
   subjectName: string;
   subjectCode: string | null;
   teacherId: string | null;
@@ -139,6 +148,7 @@ export type TimetableParityEntry = {
   academicPeriodId: string;
   classGroupId: string;
   subjectId: string;
+  subjectOfferingId?: string | null;
   teacherId: string;
   dayOfWeek: number;
   startTime: string;
@@ -566,6 +576,7 @@ export type UpsertTimetableSlotInput = {
   classGroupId: string;
   gradeId: string;
   subjectId: string;
+  subjectOfferingId?: string | null;
   teacherId: string;
   dayOfWeek: number;
   startTime: string;

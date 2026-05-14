@@ -9,7 +9,6 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireClassTimetableEditor } from "@/lib/auth/requireClassTimetableEditor";
 import { ClassGroup } from "@/models/ClassGroup";
 import { TimetableSlot } from "@/models/TimetableSlot";
-import { TimetableVersion } from "@/models/TimetableVersion";
 import {
   buildTimetableSlotSnapshot,
   recordTimetableChangeLog,
@@ -24,6 +23,13 @@ import {
 } from "@/lib/timetable/feature-flags";
 import { loadResolvedScheduleForSchoolDay } from "@/lib/timetable/load-resolved-schedule";
 import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
+import { detectSlotWriteConflicts } from "@/lib/timetable/slot-write-conflicts";
+import {
+  buildTeacherResolutionIssue,
+  resolveTeacherForTimetableSlot,
+} from "@/lib/timetable/resolve-slot-teacher";
+import { recordScheduleChangeEvent } from "@/lib/timetable/schedule-change-events";
+import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 import { z } from "zod";
 
 function toObjectIdOrNull(value: string | null | undefined): mongoose.Types.ObjectId | null {
@@ -40,9 +46,10 @@ const CreateSlotSchema = z.object({
   dayOfWeek: z.number().min(0).max(6),
   startTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/),
   endTime: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/),
-  subjectId: z.string().length(24),
-  /** Omit or null when no teacher is assigned to this subject for the class yet. */
-  teacherId: z.union([z.string().length(24), z.null()]).optional(),
+  subjectOfferingId: z.string().length(24).optional(),
+  subjectId: z.string().length(24).optional(),
+  /** Required so every dropped lesson can be checked for teacher conflicts before saving. */
+  teacherId: z.string().length(24),
 });
 
 function toSlotDto(slot: {
@@ -50,7 +57,9 @@ function toSlotDto(slot: {
   classGroupId: mongoose.Types.ObjectId;
   gradeId: mongoose.Types.ObjectId;
   subjectId: mongoose.Types.ObjectId;
+  subjectOfferingId?: mongoose.Types.ObjectId | null;
   teacherId?: mongoose.Types.ObjectId | null;
+  roomId?: mongoose.Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -66,7 +75,9 @@ function toSlotDto(slot: {
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
+    subjectOfferingId: slot.subjectOfferingId ? String(slot.subjectOfferingId) : null,
     teacherId: slot.teacherId ? String(slot.teacherId) : "",
+    roomId: slot.roomId ? String(slot.roomId) : null,
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
     endTime: slot.endTime,
@@ -111,6 +122,10 @@ export async function GET(
       editor.schoolId instanceof mongoose.Types.ObjectId
         ? editor.schoolId
         : new mongoose.Types.ObjectId(String(editor.schoolId));
+    const userIdObj =
+      editor.userId instanceof mongoose.Types.ObjectId
+        ? editor.userId
+        : new mongoose.Types.ObjectId(String(editor.userId));
 
     const academicPeriodIdParam = req.nextUrl.searchParams.get("academicPeriodId");
     if (!academicPeriodIdParam) {
@@ -131,7 +146,7 @@ export async function GET(
       _id: classObjId,
       schoolId: schoolIdObj,
     })
-      .select("_id gradeId schoolId")
+      .select("_id gradeId schoolId subjectIds subjectOfferingIds")
       .lean();
 
     if (!classGroup) {
@@ -141,24 +156,11 @@ export async function GET(
       );
     }
 
-    const version = await TimetableVersion.findOne({
+    const versionObjId = await findOrCreateDraftVersion({
       schoolId: schoolIdObj,
       academicPeriodId,
-      status: "draft",
-    })
-      .sort({ updatedAt: -1 })
-      .select("_id")
-      .lean();
-
-    if (!version) {
-      return NextResponse.json({
-        success: true,
-        data: [],
-        meta: { versionId: null },
-      });
-    }
-
-    const versionObjId = (version as { _id: mongoose.Types.ObjectId })._id;
+      actorId: userIdObj,
+    });
     const slots = await TimetableSlot.find({
       schoolId: schoolIdObj,
       versionId: versionObjId,
@@ -176,6 +178,7 @@ export async function GET(
             classGroupId: mongoose.Types.ObjectId;
             gradeId: mongoose.Types.ObjectId;
             subjectId: mongoose.Types.ObjectId;
+            subjectOfferingId?: mongoose.Types.ObjectId | null;
             teacherId?: mongoose.Types.ObjectId | null;
             dayOfWeek: number;
             startTime: string;
@@ -266,12 +269,79 @@ export async function POST(
 
     const input = parsed.data;
     const academicPeriodId = new mongoose.Types.ObjectId(input.academicPeriodId);
-    const subjectId = new mongoose.Types.ObjectId(input.subjectId);
-    const teacherId =
-      input.teacherId === undefined || input.teacherId === null
-        ? null
-        : new mongoose.Types.ObjectId(input.teacherId);
+    const explicitTeacherId = new mongoose.Types.ObjectId(input.teacherId);
     const gradeId = (classGroup as { gradeId: mongoose.Types.ObjectId }).gradeId;
+    let subjectId = input.subjectId ? new mongoose.Types.ObjectId(input.subjectId) : null;
+    let subjectOfferingId: mongoose.Types.ObjectId | null = null;
+    if (input.subjectOfferingId) {
+      const offeringResolution = await resolveSubjectOfferingForSchool({
+        schoolId: schoolIdObj,
+        subjectOfferingId: input.subjectOfferingId,
+        gradeId,
+        classGroupId: classObjId,
+        requireClassAssignment: true,
+      });
+      if (!offeringResolution.ok) {
+        return NextResponse.json(
+          { success: false, error: offeringResolution.error },
+          { status: offeringResolution.status }
+        );
+      }
+      subjectId = offeringResolution.offering.subjectId;
+      subjectOfferingId = offeringResolution.offering._id;
+    }
+    if (!subjectId) {
+      return NextResponse.json(
+        { success: false, error: "Select a subject offering before creating a timetable slot." },
+        { status: 400 }
+      );
+    }
+    if (
+      !subjectOfferingId &&
+      !(classGroup as { subjectIds?: mongoose.Types.ObjectId[] }).subjectIds?.some(
+        (id) => String(id) === String(subjectId)
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "SUBJECT_NOT_ASSIGNED_TO_CLASS",
+          error: "This subject has not been assigned to the selected class group.",
+          issues: [
+            {
+              code: "SUBJECT_NOT_ASSIGNED_TO_CLASS",
+              field: "subjectId",
+              message: "Assign this subject to the class group before scheduling it.",
+              severity: "error" as const,
+            },
+          ],
+        },
+        { status: 409 }
+      );
+    }
+
+    const teacherResolution = await resolveTeacherForTimetableSlot({
+      schoolId: schoolIdObj,
+      academicPeriodId,
+      classGroupId: classObjId,
+      subjectId,
+      subjectOfferingId,
+      explicitTeacherId,
+    });
+
+    if (!teacherResolution.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: teacherResolution.code,
+          error: teacherResolution.message,
+          issues: [buildTeacherResolutionIssue(teacherResolution)],
+        },
+        { status: 409 }
+      );
+    }
+
+    const teacherId = teacherResolution.teacherId;
 
     const resolved = await loadResolvedScheduleForSchoolDay(
       schoolIdObj,
@@ -308,7 +378,7 @@ export async function POST(
       );
     }
 
-    const { classroomLabel } = await resolveClassroomLabel({
+    const { classroomLabel, roomId } = await resolveClassroomLabel({
       schoolId: schoolIdObj,
       classGroupId: classObjId,
       gradeId,
@@ -320,6 +390,7 @@ export async function POST(
       gradeId,
       subjectId,
       teacherId,
+      roomId,
       dayOfWeek: input.dayOfWeek,
       startTime: input.startTime,
       endTime: input.endTime,
@@ -343,6 +414,44 @@ export async function POST(
       actorId: userIdObj,
     });
 
+    const writeConflicts = await detectSlotWriteConflicts({
+      schoolId: schoolIdObj,
+      academicPeriodId,
+      versionId,
+      classGroupId: classObjId,
+      gradeId,
+      subjectId,
+      teacherId,
+      roomId,
+      dayOfWeek: input.dayOfWeek,
+      startTime: input.startTime,
+      endTime: input.endTime,
+    });
+
+    if (writeConflicts.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: writeConflicts[0].code,
+          error: writeConflicts[0].message,
+          conflict: writeConflicts[0],
+          conflicts: writeConflicts,
+          issues: writeConflicts.map((conflict) => ({
+            code: conflict.code,
+            field:
+              conflict.code === "TEACHER_OVERLAP"
+                ? "teacherId"
+                : conflict.code === "ROOM_OVERLAP"
+                  ? "roomId"
+                  : "startTime",
+            message: conflict.message,
+            severity: "error" as const,
+          })),
+        },
+        { status: 409 }
+      );
+    }
+
     const created = await TimetableSlot.create({
       schoolId: schoolIdObj,
       academicPeriodId,
@@ -350,7 +459,9 @@ export async function POST(
       classGroupId: classObjId,
       gradeId,
       subjectId,
-      ...(teacherId ? { teacherId } : {}),
+      ...(subjectOfferingId ? { subjectOfferingId } : {}),
+      teacherId,
+      ...(roomId ? { roomId } : {}),
       dayOfWeek: input.dayOfWeek,
       startTime: input.startTime,
       endTime: input.endTime,
@@ -371,6 +482,20 @@ export async function POST(
     });
 
     await recomputeConflictsForVersion({ schoolId: schoolIdObj, versionId });
+
+    await recordScheduleChangeEvent({
+      schoolId: schoolIdObj,
+      academicPeriodId,
+      entityType: "timetableSlot",
+      entityId: created._id,
+      action: "created",
+      affectedClassGroupIds: [classObjId],
+      affectedTeacherIds: [teacherId],
+      affectedSubjectIds: [subjectId],
+      affectedRoomIds: roomId ? [roomId] : [],
+      createdBy: userIdObj,
+      message: "Timetable slot created",
+    });
 
     return NextResponse.json({
       success: true,

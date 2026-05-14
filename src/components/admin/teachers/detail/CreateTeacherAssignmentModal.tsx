@@ -122,12 +122,7 @@ const STEPS = [
     title: "Assignment Details",
     fields: ["academicPeriodId", "workloadHours", "subjectId", "classGroupId"],
   },
-  {
-    id: 2,
-    title: "Schedules",
-    fields: ["includeSchedule", "schedules"],
-  },
-  { id: 3, title: "Notes & Confirm", fields: ["notes"] },
+  { id: 2, title: "Notes & Confirm", fields: ["notes"] },
 ] as const;
 
 function Callout({
@@ -496,12 +491,6 @@ export function CreateTeacherAssignmentModal({
       classGroupId: values.classGroupId,
       workloadHours: values.workloadHours ?? 0,
       notes: values.notes || undefined,
-      schedules:
-        values.includeSchedule &&
-        values.schedules &&
-        values.schedules.length > 0
-        ? values.schedules
-        : undefined,
       status: "active" as const,
       ...(opts?.resolution ? { resolution: opts.resolution } : {}),
     };
@@ -941,7 +930,7 @@ export function CreateTeacherAssignmentModal({
                           </section>
                         )}
 
-                        {currentStep === 2 && (
+                        {false && currentStep === 2 && (
                           <section className="space-y-6">
                             <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                               Schedules
@@ -1264,7 +1253,7 @@ export function CreateTeacherAssignmentModal({
                           </section>
                         )}
 
-                        {currentStep === 3 && (
+                        {currentStep === 2 && (
                           <section className="space-y-6">
                             <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">
                               Notes & Confirm

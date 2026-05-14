@@ -32,14 +32,19 @@ export type SubjectOfferingsFilters = {
   category?: string;
   gradeId?: string;
   isActive?: boolean;
+  /** When false, the query does not run (e.g. wait until a grade is selected). */
+  enabled?: boolean;
 };
 
 export function useSubjectOfferings(filters: SubjectOfferingsFilters = {}) {
+  const { enabled, ...queryFilters } = filters;
+  const isEnabled = enabled !== false;
+
   return useQuery<{ success: boolean; data: SubjectOfferingDTO[]; error?: string }>({
-    queryKey: ["subject-offerings", filters],
+    queryKey: ["subject-offerings", queryFilters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      for (const [key, value] of Object.entries(filters)) {
+      for (const [key, value] of Object.entries(queryFilters)) {
         if (value !== undefined && value !== "" && value !== "all") {
           params.set(key, String(value));
         }
@@ -51,6 +56,7 @@ export function useSubjectOfferings(filters: SubjectOfferingsFilters = {}) {
       if (!res.ok) throw new Error(json?.error || "Failed to fetch subject offerings");
       return json;
     },
+    enabled: isEnabled,
     staleTime: 30_000,
   });
 }
@@ -167,6 +173,7 @@ export function useAssignSubjectOfferingToClasses() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subject-offerings"] });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["grade-overview"] });
     },
   });
 }

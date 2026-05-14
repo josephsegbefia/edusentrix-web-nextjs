@@ -16,6 +16,7 @@ import { resolveClassroomLabel } from "@/lib/timetable/classroom-label";
 import { recomputeConflictsForVersion } from "@/lib/timetable/recompute-conflicts";
 import { validateTimetableSlotReferences } from "@/lib/timetable/validate";
 import { isTimetableApiWriteEnabled } from "@/lib/timetable/feature-flags";
+import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 
 type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 type SlotSource = "manual" | "imported" | "assignment_sync";
@@ -63,6 +64,7 @@ function toSlotDto(slot: {
   classGroupId: mongoose.Types.ObjectId;
   gradeId: mongoose.Types.ObjectId;
   subjectId: mongoose.Types.ObjectId;
+  subjectOfferingId?: mongoose.Types.ObjectId | null;
   teacherId: mongoose.Types.ObjectId;
   dayOfWeek: number;
   startTime: string;
@@ -82,6 +84,7 @@ function toSlotDto(slot: {
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
+    subjectOfferingId: slot.subjectOfferingId ? String(slot.subjectOfferingId) : null,
     teacherId: String(slot.teacherId),
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
@@ -190,6 +193,7 @@ export async function GET(
             classGroupId: mongoose.Types.ObjectId;
             gradeId: mongoose.Types.ObjectId;
             subjectId: mongoose.Types.ObjectId;
+            subjectOfferingId?: mongoose.Types.ObjectId | null;
             teacherId: mongoose.Types.ObjectId;
             dayOfWeek: number;
             startTime: string;
@@ -231,6 +235,7 @@ export async function GET(
 interface CreateSlotBody {
   classGroupId?: string;
   gradeId?: string;
+  subjectOfferingId?: string;
   subjectId?: string;
   teacherId?: string;
   dayOfWeek?: number;
@@ -292,16 +297,40 @@ export async function POST(
 
     const classGroupId = toObjectIdOrNull(body.classGroupId);
     const gradeId = toObjectIdOrNull(body.gradeId);
-    const subjectId = toObjectIdOrNull(body.subjectId);
+    let subjectId = toObjectIdOrNull(body.subjectId);
+    let subjectOfferingId = toObjectIdOrNull(body.subjectOfferingId);
     const teacherId = toObjectIdOrNull(body.teacherId);
 
-    if (!classGroupId || !gradeId || !subjectId || !teacherId) {
+    if (!classGroupId || !gradeId || !teacherId) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "classGroupId, gradeId, subjectId, and teacherId are required and must be valid ObjectIds.",
+            "classGroupId, gradeId, and teacherId are required and must be valid ObjectIds.",
         },
+        { status: 400 }
+      );
+    }
+    if (body.subjectOfferingId) {
+      const offeringResolution = await resolveSubjectOfferingForSchool({
+        schoolId: schoolIdObj,
+        subjectOfferingId: body.subjectOfferingId,
+        gradeId,
+        classGroupId,
+        requireClassAssignment: true,
+      });
+      if (!offeringResolution.ok) {
+        return NextResponse.json(
+          { success: false, error: offeringResolution.error },
+          { status: offeringResolution.status }
+        );
+      }
+      subjectId = offeringResolution.offering.subjectId;
+      subjectOfferingId = offeringResolution.offering._id;
+    }
+    if (!subjectId) {
+      return NextResponse.json(
+        { success: false, error: "subjectOfferingId is required for timetable slots." },
         { status: 400 }
       );
     }
@@ -344,6 +373,7 @@ export async function POST(
       classGroupId,
       gradeId,
       subjectId,
+      ...(subjectOfferingId ? { subjectOfferingId } : {}),
       teacherId,
       dayOfWeek,
       startTime: body.startTime,
@@ -422,6 +452,7 @@ export async function POST(
             classGroupId: mongoose.Types.ObjectId;
             gradeId: mongoose.Types.ObjectId;
             subjectId: mongoose.Types.ObjectId;
+            subjectOfferingId?: mongoose.Types.ObjectId | null;
             teacherId: mongoose.Types.ObjectId;
             dayOfWeek: number;
             startTime: string;

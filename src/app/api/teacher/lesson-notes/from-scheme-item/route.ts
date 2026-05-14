@@ -78,7 +78,11 @@ export async function GET(req: Request) {
           schoolId: context.schoolId,
           teacherId: context.teacherId,
           classGroupId: { $in: candidateClassGroups.map((group) => group._id) },
-          ...(scheme.subjectId ? { subjectId: scheme.subjectId } : {}),
+          ...(scheme.subjectOfferingId
+            ? { subjectOfferingId: scheme.subjectOfferingId }
+            : scheme.subjectId
+              ? { subjectId: scheme.subjectId }
+              : {}),
           status: "active",
         })
           .sort({ createdAt: 1 })
@@ -108,7 +112,11 @@ export async function GET(req: Request) {
         schoolId: context.schoolId,
         teacherId: context.teacherId,
         classGroupId: targetClassGroupId,
-        ...(scheme.subjectId ? { subjectId: scheme.subjectId } : {}),
+        ...(scheme.subjectOfferingId
+          ? { subjectOfferingId: scheme.subjectOfferingId }
+          : scheme.subjectId
+            ? { subjectId: scheme.subjectId }
+            : {}),
         status: "active",
       }).select("_id").lean();
       if (!assignment) {
@@ -144,6 +152,7 @@ export async function GET(req: Request) {
       data: {
         initialData: {
           classGroupId: String(targetClassGroupId),
+          subjectOfferingId: scheme.subjectOfferingId ? String(scheme.subjectOfferingId) : undefined,
           subjectId: scheme.subjectId ? String(scheme.subjectId) : undefined,
           templateType: "SIMPLE",
           weekOf: new Date(weekOf).toISOString(),

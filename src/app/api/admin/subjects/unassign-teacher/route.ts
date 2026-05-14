@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
-import { ClassGroup } from "@/models/ClassGroup";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -21,17 +20,15 @@ function toObjectIdOrNull(id: string) {
 
 /**
  * POST /api/admin/subjects/unassign-teacher
- * Remove a teacher assignment. Also removes the subject from the class's subjectIds
- * when no other teacher is assigned to that subject in that class.
+ * Remove a teacher assignment while keeping the subject offering on the class.
  */
 export async function POST(req: NextRequest) {
   try {
-    const { schoolId, userId: adminUserId } =
+    const { schoolId } =
       await requireSchoolAdminOrDelegatedAnyPermission(["subjects.edit"]);
     await connectToDatabase();
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
-    const actorIdObj = adminUserId ? toObjectIdOrNull(String(adminUserId)) : null;
     const warnings: string[] = [];
     const body = await req.json();
 
@@ -65,29 +62,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const subjectObjId = (assignment as any).subjectId;
-    const classGroupObjId = (assignment as any).classGroupId;
-
     // Deactivate the assignment
     await TeacherAssignment.updateOne(
       { _id: assignmentObjId, schoolId: schoolIdObj },
       { $set: { status: "inactive" } }
     );
-
-    // If no other active assignment for this subject in this class, remove subject from class
-    const otherAssignments = await TeacherAssignment.countDocuments({
-      schoolId: schoolIdObj,
-      subjectId: subjectObjId,
-      classGroupId: classGroupObjId,
-      status: "active",
-    });
-
-    if (otherAssignments === 0) {
-      await ClassGroup.updateOne(
-        { _id: classGroupObjId, schoolId: schoolIdObj },
-        { $pull: { subjectIds: subjectObjId } }
-      );
-    }
 
     return NextResponse.json({
       success: true,

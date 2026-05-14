@@ -137,7 +137,9 @@ function StatCard({
 export function SubjectsQuickStatsSection() {
   const { data, isLoading } = useSubjectOfferings();
 
-  const subjects = data?.data || [];
+  const subjects = (data?.data || []).filter(
+    (offering) => offering.gradeBand !== "preschool"
+  );
 
   const stats = React.useMemo(() => {
     const total = subjects.length;

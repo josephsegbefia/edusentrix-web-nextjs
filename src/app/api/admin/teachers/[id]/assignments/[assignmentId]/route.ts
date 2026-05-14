@@ -10,6 +10,10 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { TeacherActivity } from "@/models/TeacherActivity";
 import { UpdateTeacherAssignmentSchema } from "@/schemas/teacher";
 import { syncTimetableSlotTeachersFromAssignments } from "@/lib/timetable/sync-slot-teachers-from-assignments";
+import {
+  markPublishedTimetableStale,
+  recordScheduleChangeEvent,
+} from "@/lib/timetable/schedule-change-events";
 
 function toObjectIdOrNull(id: string) {
   try {
@@ -70,10 +74,20 @@ export async function PATCH(
   const updateFields: Record<string, unknown> = {};
   const warnings: string[] = [];
   const changes: Array<{ field: string; from: unknown; to: unknown }> = [];
-  const scheduleWriteAttempted = Object.prototype.hasOwnProperty.call(
-    body,
-    "schedules"
-  );
+  const scheduleWriteAttempted =
+    Object.prototype.hasOwnProperty.call(body, "schedule") ||
+    Object.prototype.hasOwnProperty.call(body, "schedules");
+
+  if (scheduleWriteAttempted) {
+    return Response.json(
+      {
+        success: false,
+        error:
+          "Assignment-level schedules have been removed. Create lesson times from the class timetable page.",
+      },
+      { status: 409 }
+    );
+  }
 
   // Validate and update subjectId
   if (payload.subjectId !== undefined) {
@@ -199,12 +213,6 @@ export async function PATCH(
     }
   }
 
-  if (scheduleWriteAttempted) {
-    warnings.push(
-      "Assignment-level schedule writes are disabled. Manage schedules from the class timetable page."
-    );
-  }
-
   // No changes
   if (Object.keys(updateFields).length === 0) {
     return Response.json({
@@ -281,6 +289,37 @@ export async function PATCH(
       },
     ],
     updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
+  });
+
+  const finalAcademicPeriodId =
+    (updateFields.academicPeriodId as mongoose.Types.ObjectId | undefined) ??
+    existingAssignment.academicPeriodId;
+  const finalClassGroupId =
+    (updateFields.classGroupId as mongoose.Types.ObjectId | undefined) ??
+    existingAssignment.classGroupId;
+  const finalSubjectId =
+    (updateFields.subjectId as mongoose.Types.ObjectId | undefined) ??
+    existingAssignment.subjectId;
+  const actorId = userId ? new mongoose.Types.ObjectId(String(userId)) : null;
+  await markPublishedTimetableStale({
+    schoolId: schoolIdObj,
+    academicPeriodId: finalAcademicPeriodId,
+    sourceModule: "teacherAssignment",
+    sourceEntityId: assignmentObjId,
+    message: "Teacher assignment changed after timetable publication.",
+    actorId,
+  });
+  await recordScheduleChangeEvent({
+    schoolId: schoolIdObj,
+    academicPeriodId: finalAcademicPeriodId,
+    entityType: "teacherAssignment",
+    entityId: assignmentObjId,
+    action: "updated",
+    affectedClassGroupIds: [finalClassGroupId],
+    affectedTeacherIds: [teacherObjId],
+    affectedSubjectIds: [finalSubjectId],
+    createdBy: actorId,
+    message: "Teacher assignment updated",
   });
 
   // Log activity
@@ -377,6 +416,33 @@ export async function DELETE(
       },
     ],
     updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
+  });
+
+  const typedExisting = existingAssignment as {
+    academicPeriodId: mongoose.Types.ObjectId;
+    classGroupId: mongoose.Types.ObjectId;
+    subjectId: mongoose.Types.ObjectId;
+  };
+  const actorId = userId ? new mongoose.Types.ObjectId(String(userId)) : null;
+  await markPublishedTimetableStale({
+    schoolId: schoolIdObj,
+    academicPeriodId: typedExisting.academicPeriodId,
+    sourceModule: "teacherAssignment",
+    sourceEntityId: assignmentObjId,
+    message: "Teacher assignment was deactivated after timetable publication.",
+    actorId,
+  });
+  await recordScheduleChangeEvent({
+    schoolId: schoolIdObj,
+    academicPeriodId: typedExisting.academicPeriodId,
+    entityType: "teacherAssignment",
+    entityId: assignmentObjId,
+    action: "deleted",
+    affectedClassGroupIds: [typedExisting.classGroupId],
+    affectedTeacherIds: [teacherObjId],
+    affectedSubjectIds: [typedExisting.subjectId],
+    createdBy: actorId,
+    message: "Teacher assignment deactivated",
   });
 
   // Log activity

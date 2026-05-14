@@ -76,6 +76,7 @@ export interface ILesson {
   lessonNoteId: Types.ObjectId;
   classGroupId: Types.ObjectId;
   subjectId?: Types.ObjectId;
+  subjectOfferingId?: Types.ObjectId | null;
   academicPeriodId?: Types.ObjectId;
 
   title: string;
@@ -185,6 +186,7 @@ const lessonSchema = new Schema<ILesson>(
     },
     classGroupId: { type: Schema.Types.ObjectId, ref: "ClassGroup", required: true, index: true },
     subjectId: { type: Schema.Types.ObjectId, ref: "Subject", index: true },
+    subjectOfferingId: { type: Schema.Types.ObjectId, ref: "SubjectOffering", default: null, index: true },
     academicPeriodId: { type: Schema.Types.ObjectId, ref: "AcademicPeriod", index: true },
 
     title: { type: String, required: true, trim: true, maxlength: 220 },
@@ -212,6 +214,7 @@ lessonSchema.index({ schoolId: 1, teacherId: 1, updatedAt: -1 });
 lessonSchema.index({ schoolId: 1, lessonNoteId: 1, createdAt: -1 });
 lessonSchema.index({ schoolId: 1, classGroupId: 1, status: 1 });
 lessonSchema.index({ schoolId: 1, schemeId: 1 });
+lessonSchema.index({ schoolId: 1, subjectOfferingId: 1, status: 1 });
 
 export const Lesson: Model<ILesson> =
   (models.Lesson as Model<ILesson>) || model<ILesson>("Lesson", lessonSchema);

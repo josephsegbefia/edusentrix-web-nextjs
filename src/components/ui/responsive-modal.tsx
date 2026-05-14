@@ -101,7 +101,7 @@ export function ResponsiveModal({
                 {title}
               </DialogPrimitive.Title>
               {description && (
-                <DialogPrimitive.Description className="mt-1 text-sm text-white/50">
+                <DialogPrimitive.Description className="mt-1 whitespace-pre-line text-sm leading-relaxed text-white/50">
                   {description}
                 </DialogPrimitive.Description>
               )}

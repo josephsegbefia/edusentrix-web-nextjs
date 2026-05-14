@@ -23,12 +23,23 @@ function Avatar({
 
 function AvatarImage({
   className,
+  src,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+  const resolved =
+    src === undefined || src === null
+      ? undefined
+      : typeof src === "string" && src.trim() === ""
+        ? undefined
+        : src;
+  if (resolved === undefined) {
+    return null;
+  }
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
       className={cn("aspect-square size-full", className)}
+      src={resolved}
       {...props}
     />
   )

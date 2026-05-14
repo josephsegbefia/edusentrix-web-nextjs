@@ -14,6 +14,7 @@ export type ConfirmationRequest = {
   confirmLabel?: string;
   cancelLabel?: string;
   intent?: ConfirmationDialogIntent;
+  className?: string;
   zIndexClass?: string;
 };
 
@@ -73,6 +74,7 @@ export function useConfirmationDialog() {
       confirmLabel={pending.request.confirmLabel}
       cancelLabel={pending.request.cancelLabel}
       intent={pending.request.intent}
+      className={pending.request.className}
       zIndexClass={pending.request.zIndexClass}
       onConfirm={() => resolveAndClose("confirm")}
       onCancel={() => resolveAndClose("cancel")}

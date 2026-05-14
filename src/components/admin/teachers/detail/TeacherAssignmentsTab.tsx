@@ -190,8 +190,6 @@ function AssignmentCard({ assignment }: { assignment: TeacherAssignmentDTO }) {
   const sourceTone =
     assignment.scheduleSource === "timetable"
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-      : assignment.scheduleSource === "legacy"
-      ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
       : "border-white/15 bg-white/5 text-white/70";
 
   return (
@@ -220,8 +218,6 @@ function AssignmentCard({ assignment }: { assignment: TeacherAssignmentDTO }) {
           <Badge variant="outline" className={`rounded-lg ${sourceTone}`}>
             {assignment.scheduleSource === "timetable"
               ? "From timetable"
-              : assignment.scheduleSource === "legacy"
-              ? "Legacy schedule"
               : "No slot yet"}
           </Badge>
         </div>

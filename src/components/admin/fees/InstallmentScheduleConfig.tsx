@@ -2,13 +2,14 @@
 "use client";
 
 import * as React from "react";
-import { useFieldArray, Control, useWatch, UseFormRegister } from "react-hook-form";
+import { Controller, useFieldArray, Control, useWatch, UseFormRegister } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Minus, Calendar } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { calculateInstallmentAmounts, toMinorUnits, toMajorUnits } from "@/lib/fees/money";
+import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import type { CreateInvoiceInput } from "@/schemas/invoice";
 import type { BulkCreateInvoiceInput } from "@/schemas/bulk-invoice";
 
@@ -21,6 +22,21 @@ type Props<T extends CreateInvoiceInput | BulkCreateInvoiceInput = CreateInvoice
   startDate?: string; // Optional start date for first installment
 };
 
+function parseLocalDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function formatLocalDate(date: Date | null): string | null {
+  if (!date) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCreateInvoiceInput = CreateInvoiceInput>({
   control,
   register,
@@ -31,7 +47,7 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
 }: Props<T>) {
   const fieldArrayName = `lineItems.${lineItemIndex}.installmentSchedule` as const;
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: fieldArrayName as any,
   });
@@ -60,22 +76,12 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
         };
       });
 
-      // Update all fields at once
-      if (fields.length !== newSchedule.length) {
-        // Remove all and add new ones
-        fields.forEach((_, idx) => remove(idx));
-        newSchedule.forEach((item) => append(item as any));
-      } else {
-        // Update existing
-        newSchedule.forEach((item, idx) => {
-          update(idx, item as any);
-        });
-      }
+      replace(newSchedule as any);
     } else if (numberOfInstallments < 2) {
       // Clear schedule if installments disabled
-      fields.forEach((_, idx) => remove(idx));
+      replace([]);
     }
-  }, [numberOfInstallments, totalAmount, startDate]);
+  }, [numberOfInstallments, totalAmount, startDate, replace]);
 
   const totalScheduled = (installmentSchedule ?? []).reduce(
     (sum: number, inst) => sum + (inst?.amount || 0),
@@ -125,13 +131,19 @@ export function InstallmentScheduleConfig<T extends CreateInvoiceInput | BulkCre
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-1">
-                  <Label className="text-xs text-white/60">Due Date</Label>
-                  <Input
-                    type="date"
-                    {...register(
-                      `lineItems.${lineItemIndex}.installmentSchedule.${index}.dueDate` as any
+                  <Controller
+                    control={control}
+                    name={`lineItems.${lineItemIndex}.installmentSchedule.${index}.dueDate` as any}
+                    render={({ field }) => (
+                      <CustomDatePicker
+                        label="Due Date"
+                        value={parseLocalDate(field.value)}
+                        onChange={(date) => field.onChange(formatLocalDate(date))}
+                        placeholder="Select due date"
+                        className="h-9 border-white/10 bg-white/5 text-sm text-white"
+                        triggerAriaLabel={`Installment ${index + 1} due date`}
+                      />
                     )}
-                    className="border border-white/10 bg-white/5 text-white text-sm h-9"
                   />
                 </div>
                 <div className="space-y-1">

@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 
 export type ClassSubjectTeacherRow = {
+  subjectOfferingId: string | null;
   subjectId: string;
   subjectName: string;
   subjectCode: string | null;
   teachers: Array<{
     id: string;
     assignmentId: string;
+    contactHoursPerWeek: number | null;
     firstName: string;
     lastName: string;
     fullName: string;

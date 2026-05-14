@@ -25,7 +25,7 @@ export type TeacherAssignmentDTO = {
         location: string | null;
       }>
     | null;
-  scheduleSource?: "timetable" | "legacy" | "none";
+  scheduleSource?: "timetable" | "none";
   scheduleVersionId?: string | null;
   workloadHours: number;
   status: "active" | "inactive";
@@ -48,12 +48,6 @@ export type CreateTeacherAssignmentInput = {
   status?: "active" | "inactive";
   workloadHours?: number;
   notes?: string;
-  schedule?: {
-    dayOfWeek?: number;
-    startTime?: string;
-    endTime?: string;
-    location?: string;
-  };
   /** When another teacher already teaches this subject in this class for this period. */
   resolution?: "add_alongside" | "replace";
 };
@@ -172,12 +166,6 @@ export type UpdateTeacherAssignmentInput = {
   classGroupId?: string;
   academicPeriodId?: string;
   status?: "active" | "inactive";
-  schedules?: Array<{
-    dayOfWeek: number;
-    startTime: string;
-    endTime: string;
-    location?: string;
-  }> | null;
   workloadHours?: number;
   notes?: string | null;
 };

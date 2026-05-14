@@ -90,6 +90,15 @@ export async function GET(req: NextRequest) {
       status: version.status,
       baseVersionId: version.baseVersionId ? String(version.baseVersionId) : null,
       publishedAt: version.publishedAt ? new Date(version.publishedAt).toISOString() : null,
+      stale: Boolean(version.stale),
+      staleReasons: Array.isArray(version.staleReasons)
+        ? version.staleReasons.map((reason) => ({
+            sourceModule: reason.sourceModule,
+            sourceEntityId: reason.sourceEntityId ? String(reason.sourceEntityId) : null,
+            message: reason.message,
+            createdAt: reason.createdAt ? new Date(reason.createdAt).toISOString() : null,
+          }))
+        : [],
       lockVersion: version.lockVersion,
       createdBy: String(version.createdBy),
       updatedBy: String(version.updatedBy),
@@ -222,6 +231,8 @@ export async function POST(req: NextRequest) {
           status: created.status,
           baseVersionId: created.baseVersionId ? String(created.baseVersionId) : null,
           publishedAt: created.publishedAt ? created.publishedAt.toISOString() : null,
+          stale: Boolean(created.stale),
+          staleReasons: [],
           lockVersion: created.lockVersion,
           createdBy: String(created.createdBy),
           updatedBy: String(created.updatedBy),

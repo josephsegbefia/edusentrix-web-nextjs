@@ -26,6 +26,7 @@ type QuickAssignTeacherModalProps = {
   className: string;
   subject: {
     id: string;
+    subjectOfferingId?: string | null;
     name: string;
     code: string | null;
   };
@@ -104,6 +105,7 @@ export function QuickAssignTeacherModal({
         body: JSON.stringify({
           teacherId,
           subjectId: subject.id,
+          subjectOfferingId: subject.subjectOfferingId || undefined,
           classGroupId: classId,
         }),
       });
@@ -113,8 +115,10 @@ export function QuickAssignTeacherModal({
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["class-subject-teachers"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["class-subject-teachers", classId],
+      });
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
     },
@@ -272,10 +276,9 @@ export function QuickAssignTeacherModal({
                               </motion.div>
                             )}
                             <Avatar className="h-12 w-12 border-2 border-white/20">
-                              <AvatarImage
-                                src={teacher.photoUrl || ""}
-                                alt={teacher.fullName}
-                              />
+                              {teacher.photoUrl?.trim() ? (
+                                <AvatarImage src={teacher.photoUrl} alt={teacher.fullName} />
+                              ) : null}
                               <AvatarFallback className="bg-linear-to-br from-brand/60 to-brand/40 text-sm font-semibold text-white">
                                 {getInitials(teacher.firstName, teacher.lastName)}
                               </AvatarFallback>
@@ -309,10 +312,12 @@ export function QuickAssignTeacherModal({
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 border border-emerald-500/30">
-                        <AvatarImage
-                          src={selectedTeacher.photoUrl || ""}
-                          alt={selectedTeacher.fullName}
-                        />
+                        {selectedTeacher.photoUrl?.trim() ? (
+                          <AvatarImage
+                            src={selectedTeacher.photoUrl}
+                            alt={selectedTeacher.fullName}
+                          />
+                        ) : null}
                         <AvatarFallback className="bg-emerald-500/20 text-xs font-semibold text-emerald-300">
                           {getInitials(selectedTeacher.firstName, selectedTeacher.lastName)}
                         </AvatarFallback>
@@ -436,7 +441,9 @@ export function QuickAssignTeacherModal({
                           )}
                         >
                           <Avatar className="h-10 w-10 border border-white/20">
-                            <AvatarImage src={teacher.photoUrl || ""} alt={teacher.fullName} />
+                            {teacher.photoUrl?.trim() ? (
+                              <AvatarImage src={teacher.photoUrl} alt={teacher.fullName} />
+                            ) : null}
                             <AvatarFallback className="bg-brand/40 text-xs font-semibold text-white">
                               {getInitials(teacher.firstName, teacher.lastName)}
                             </AvatarFallback>

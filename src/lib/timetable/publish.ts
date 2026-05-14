@@ -3,6 +3,7 @@ import { TimetableConflict } from "@/models/TimetableConflict";
 import { TimetableVersion } from "@/models/TimetableVersion";
 import { recomputeConflictsForVersion } from "@/lib/timetable/recompute-conflicts";
 import { recordTimetableChangeLog } from "@/lib/timetable/audit";
+import { recordScheduleChangeEvent } from "@/lib/timetable/schedule-change-events";
 import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
 import type { AuditRequestContext } from "@/lib/audit/types";
 
@@ -168,6 +169,8 @@ export async function publishTimetableVersion(
       const targetStatusBefore = versionInTxn.status;
       versionInTxn.status = "published";
       versionInTxn.publishedAt = now;
+      versionInTxn.stale = false;
+      versionInTxn.staleReasons = [];
       versionInTxn.updatedBy = input.actorId;
       versionInTxn.lockVersion = (versionInTxn.lockVersion || 0) + 1;
       await versionInTxn.save({ session });
@@ -220,6 +223,16 @@ export async function publishTimetableVersion(
   } finally {
     await session.endSession();
   }
+
+  await recordScheduleChangeEvent({
+    schoolId: input.schoolId,
+    academicPeriodId: targetVersion.academicPeriodId,
+    entityType: "timetableVersion",
+    entityId: input.versionId,
+    action: "published",
+    createdBy: input.actorId,
+    message: "School timetable published",
+  });
 
   return {
     publishedVersionId: String(input.versionId),

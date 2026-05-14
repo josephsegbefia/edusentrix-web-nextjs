@@ -82,7 +82,9 @@ export interface TimetableSlotSnapshotInput {
   classGroupId: ObjectIdLike;
   gradeId: ObjectIdLike;
   subjectId: ObjectIdLike;
+  subjectOfferingId?: ObjectIdLike | null;
   teacherId: ObjectIdLike | null | undefined;
+  roomId?: ObjectIdLike | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -97,7 +99,9 @@ export function buildTimetableSlotSnapshot(
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
+    subjectOfferingId: slot.subjectOfferingId ? String(slot.subjectOfferingId) : null,
     teacherId: slot.teacherId ? String(slot.teacherId) : "",
+    roomId: slot.roomId ? String(slot.roomId) : null,
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
     endTime: slot.endTime,

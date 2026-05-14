@@ -34,6 +34,7 @@ export function serializeSchemeRow(row: ISchemeOfWork) {
     curriculumSubjectId: row.curriculumSubjectId ? String(row.curriculumSubjectId) : null,
     gradeId: row.gradeId ? String(row.gradeId) : null,
     classGroupId: row.classGroupId ? String(row.classGroupId) : null,
+    subjectOfferingId: row.subjectOfferingId ? String(row.subjectOfferingId) : null,
     subjectId: row.subjectId ? String(row.subjectId) : null,
     ownerTeacherId: row.ownerTeacherId ? String(row.ownerTeacherId) : null,
     sourceType: row.sourceType ?? "manual",

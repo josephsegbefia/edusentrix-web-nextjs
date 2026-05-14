@@ -45,6 +45,7 @@ function formatLessonRow(
     lessonNoteId: String(lesson.lessonNoteId),
     lessonNoteTopic: noteTopicById.get(String(lesson.lessonNoteId)) ?? null,
     classGroupId: String(lesson.classGroupId),
+    subjectOfferingId: lesson.subjectOfferingId ? String(lesson.subjectOfferingId) : null,
     subjectId: lesson.subjectId ? String(lesson.subjectId) : null,
     academicPeriodId: lesson.academicPeriodId ? String(lesson.academicPeriodId) : null,
     title: lesson.title,
@@ -81,14 +82,15 @@ export async function GET(req: Request) {
       teacherId: context.teacherId,
       status: "active",
     })
-      .select("classGroupId subjectId academicPeriodId")
+      .select("classGroupId subjectId subjectOfferingId academicPeriodId")
       .lean();
 
     const assignmentDerivedVisibility = Array.from(
       new Map(
         activeAssignments.map((assignment) => {
           const query: Record<string, unknown> = { classGroupId: assignment.classGroupId };
-          if (assignment.subjectId) query.subjectId = assignment.subjectId;
+          if (assignment.subjectOfferingId) query.subjectOfferingId = assignment.subjectOfferingId;
+          else if (assignment.subjectId) query.subjectId = assignment.subjectId;
           if (assignment.academicPeriodId) query.academicPeriodId = assignment.academicPeriodId;
           return [JSON.stringify(query), query];
         })
@@ -221,12 +223,13 @@ export async function POST(req: Request) {
       schoolId: context.schoolId,
       teacherId: context.teacherId,
     })
-      .select("_id classGroupId subjectId academicPeriodId topic schemeId schemeItemIds")
+      .select("_id classGroupId subjectId subjectOfferingId academicPeriodId topic schemeId schemeItemIds")
       .lean()) as Pick<
       ILessonNote,
       | "_id"
       | "classGroupId"
       | "subjectId"
+      | "subjectOfferingId"
       | "academicPeriodId"
       | "topic"
       | "schemeId"
@@ -247,7 +250,8 @@ export async function POST(req: Request) {
         classGroupId: note.classGroupId,
         status: "active",
       };
-      if (note.subjectId) assignmentQuery.subjectId = note.subjectId;
+      if (note.subjectOfferingId) assignmentQuery.subjectOfferingId = note.subjectOfferingId;
+      else if (note.subjectId) assignmentQuery.subjectId = note.subjectId;
 
       const assignment = await TeacherAssignment.findOne(assignmentQuery).select("_id").lean();
       if (!assignment) {
@@ -289,6 +293,7 @@ export async function POST(req: Request) {
       teacherId: context.teacherId,
       lessonNoteId: note._id,
       classGroupId: note.classGroupId,
+      subjectOfferingId: note.subjectOfferingId || undefined,
       subjectId: note.subjectId || undefined,
       academicPeriodId: note.academicPeriodId || undefined,
       title,

@@ -29,7 +29,7 @@ async function syncSinglePairWithoutRecompute(args: {
   const versions = await TimetableVersion.find({
     schoolId: args.schoolId,
     academicPeriodId: args.pair.academicPeriodId,
-    status: { $in: ["draft", "published"] },
+    status: "draft",
   })
     .select("_id")
     .lean();
@@ -165,7 +165,7 @@ export async function syncTimetableSlotTeachersFromAssignments(args: {
 
 /**
  * Legacy helper name kept for compatibility with older assignment flows.
- * It now syncs both draft and published timetable versions for the pair.
+ * Only draft timetable slots are updated; published timetables are immutable snapshots.
  */
 export async function syncDraftSlotTeachersFromAssignment(args: {
   schoolId: mongoose.Types.ObjectId;

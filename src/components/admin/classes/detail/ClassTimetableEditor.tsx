@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { LeoIcon } from "@/components/icons/LeoIcon";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PremiumSelect,
@@ -50,9 +51,11 @@ import {
   type TimetableConflictSlotSummary,
   useTimetableConflicts,
   usePublishTimetableVersion,
+  useTimetableVersions,
 } from "@/hooks/admin/useTimetablePlanner";
 import {
   ClassTimetableGridBoard,
+  type ContactHourPlan,
   type TimelineRow,
 } from "@/components/admin/classes/detail/ClassTimetableGridBoard";
 import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
@@ -97,6 +100,16 @@ function formatMinutesLabel(totalMinutes: number): string {
   if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
   if (hours > 0) return `${hours}h`;
   return `${minutes}m`;
+}
+
+function calculateHours(startTime: string, endTime: string): number {
+  const [startHour, startMin] = startTime.split(":").map(Number);
+  const [endHour, endMin] = endTime.split(":").map(Number);
+  return Math.max(0, (endHour * 60 + endMin - (startHour * 60 + startMin)) / 60);
+}
+
+function contactHourKey(subjectId: string, subjectOfferingId: string | null | undefined, teacherId: string) {
+  return `${subjectOfferingId || subjectId}|${teacherId}`;
 }
 
 function getConflictSlots(conflict: TimetableConflictDTO): TimetableConflictSlotSummary[] {
@@ -307,6 +320,14 @@ export function ClassTimetableEditor({
   const slotsQuery = useClassTimetableSlots(classId, selectedPeriodId);
   const slots = slotsQuery.data?.data || [];
   const versionId = slotsQuery.data?.meta?.versionId;
+  const versionsQuery = useTimetableVersions(selectedPeriodId || undefined);
+  const stalePublishedVersion = React.useMemo(
+    () =>
+      (versionsQuery.data?.data || []).find(
+        (version) => version.status === "published" && version.stale
+      ) || null,
+    [versionsQuery.data?.data]
+  );
 
   const subjectTeachersQuery = useClassSubjectTeachers(classId, selectedPeriodId);
   const classSubjects = subjectTeachersQuery.data?.data || [];
@@ -343,7 +364,7 @@ export function ClassTimetableEditor({
   const subjectMap = React.useMemo(() => {
     const m = new Map<string, { id: string; name: string; code: string | null }>();
     for (const row of classSubjects) {
-      m.set(row.subjectId, {
+      m.set(row.subjectOfferingId || row.subjectId, {
         id: row.subjectId,
         name: row.subjectName,
         code: row.subjectCode,
@@ -413,6 +434,88 @@ export function ClassTimetableEditor({
   const [leoLoading, setLeoLoading] = React.useState(false);
   const [leoText, setLeoText] = React.useState<string | null>(null);
   const [issuesExpanded, setIssuesExpanded] = React.useState(false);
+  const [ignoredContactHourKeys, setIgnoredContactHourKeys] = React.useState<Set<string>>(
+    () => new Set()
+  );
+
+  const ignoredContactHoursStorageKey = React.useMemo(
+    () => `class-contact-hours-ignore:${classId}:${selectedPeriodId || "none"}`,
+    [classId, selectedPeriodId]
+  );
+
+  React.useEffect(() => {
+    if (!selectedPeriodId) {
+      setIgnoredContactHourKeys(new Set());
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(ignoredContactHoursStorageKey);
+      const parsed = raw ? (JSON.parse(raw) as string[]) : [];
+      setIgnoredContactHourKeys(new Set(Array.isArray(parsed) ? parsed : []));
+    } catch {
+      setIgnoredContactHourKeys(new Set());
+    }
+  }, [ignoredContactHoursStorageKey, selectedPeriodId]);
+
+  const ignoreContactHourKey = React.useCallback(
+    (key: string) => {
+      setIgnoredContactHourKeys((current) => {
+        const next = new Set(current);
+        next.add(key);
+        try {
+          window.localStorage.setItem(
+            ignoredContactHoursStorageKey,
+            JSON.stringify(Array.from(next))
+          );
+        } catch {
+          // localStorage can be unavailable in restricted browser modes.
+        }
+        return next;
+      });
+    },
+    [ignoredContactHoursStorageKey]
+  );
+
+  const contactHourPlans = React.useMemo((): ContactHourPlan[] => {
+    const plans: ContactHourPlan[] = [];
+    for (const row of classSubjects) {
+      for (const teacher of row.teachers) {
+        const targetHours = teacher.contactHoursPerWeek ?? 0;
+        if (targetHours <= 0) continue;
+        const plannedHours = slots.reduce((sum, slot) => {
+          const sameSubject =
+            (slot.subjectOfferingId || slot.subjectId) ===
+            (row.subjectOfferingId || row.subjectId);
+          const sameTeacher = slot.teacherId === teacher.id;
+          if (!sameSubject || !sameTeacher) return sum;
+          return sum + calculateHours(slot.startTime, slot.endTime);
+        }, 0);
+        plans.push({
+          key: contactHourKey(row.subjectId, row.subjectOfferingId, teacher.id),
+          subjectId: row.subjectId,
+          subjectOfferingId: row.subjectOfferingId,
+          subjectName: row.subjectName,
+          teacherId: teacher.id,
+          teacherName: teacher.fullName,
+          targetHours,
+          plannedHours,
+        });
+      }
+    }
+    return plans;
+  }, [classSubjects, slots]);
+
+  const contactHourPlanByKey = React.useMemo(() => {
+    return new Map(contactHourPlans.map((plan) => [plan.key, plan]));
+  }, [contactHourPlans]);
+
+  const contactHourMismatches = React.useMemo(
+    () =>
+      contactHourPlans.filter(
+        (plan) => Math.abs(plan.plannedHours - plan.targetHours) >= 0.01
+      ),
+    [contactHourPlans]
+  );
 
   const hasIssueSummary =
     errorConflicts.length > 0 ||
@@ -456,6 +559,7 @@ export function ClassTimetableEditor({
     try {
       await publishMutation.mutateAsync(versionId);
       queryClient.invalidateQueries({ queryKey: ["class-timetable-slots", classId] });
+      versionsQuery.refetch();
       toast.success(
         "Timetable published. Teachers, parents, and students will see it in their calendars."
       );
@@ -498,6 +602,47 @@ export function ClassTimetableEditor({
           draft can also contain older or auto-synced lessons—see &quot;Off-grid draft lessons&quot;
           if something errors but you do not see it in the rows.
         </p>
+        {stalePublishedVersion ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-200" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-50">
+                    Published timetable needs review
+                  </p>
+                  <p className="mt-1 text-sm text-amber-100/85">
+                    Teacher assignments changed after this timetable was published. Review the draft,
+                    resolve any conflicts, then publish again so staff calendars stay accurate.
+                  </p>
+                  {stalePublishedVersion.staleReasons?.length ? (
+                    <p className="mt-2 text-xs text-amber-100/75">
+                      Latest reason:{" "}
+                      {stalePublishedVersion.staleReasons[
+                        stalePublishedVersion.staleReasons.length - 1
+                      ]?.message || "Schedule data changed."}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              {canPublishTimetable ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-300/40 bg-amber-500/10 text-amber-50 hover:bg-amber-500/20"
+                  onClick={handlePublish}
+                  disabled={!versionId || publishBlocked || publishMutation.isPending || !slots.length}
+                >
+                  {publishMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Publish updated draft
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         {getPeriodOptionsForDay(workingDays[0] ?? 1).length === 0 &&
         !settingsQuery.isLoading &&
         !dailyQuery.isLoading ? (
@@ -887,7 +1032,7 @@ export function ClassTimetableEditor({
                 </p>
                 <ul className="mt-3 space-y-2">
                   {slotsOutsideCurrentPeriods.map((slot) => {
-                    const subj = subjectMap.get(slot.subjectId);
+                    const subj = subjectMap.get(slot.subjectOfferingId || slot.subjectId);
                     const src =
                       slot.source === "assignment_sync"
                         ? "Assignment sync"
@@ -932,6 +1077,62 @@ export function ClassTimetableEditor({
               </div>
             ) : null}
 
+            {contactHourMismatches.length > 0 ? (
+              <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-50">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-amber-50">Contact-hours check</p>
+                    <p className="mt-1 text-xs text-amber-100/75">
+                      These are planning targets from Subjects & Teachers. The timetable remains
+                      the source of truth for actual teaching times.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="border-amber-300/35 text-amber-100">
+                    {contactHourMismatches.length} item{contactHourMismatches.length === 1 ? "" : "s"}
+                  </Badge>
+                </div>
+                <ul className="mt-3 space-y-2">
+                  {contactHourMismatches.map((plan) => {
+                    const delta = plan.plannedHours - plan.targetHours;
+                    const ignored = ignoredContactHourKeys.has(plan.key);
+                    return (
+                      <li
+                        key={plan.key}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-300/20 bg-black/20 px-3 py-2 text-xs"
+                      >
+                        <span>
+                          <span className="font-medium text-amber-50">{plan.subjectName}</span>
+                          {" · "}
+                          {plan.teacherName}: planned {plan.plannedHours.toFixed(2)}h / target{" "}
+                          {plan.targetHours.toFixed(2)}h
+                          <span className={cn("ml-2", delta > 0 ? "text-rose-200" : "text-amber-200")}>
+                            ({delta > 0 ? "+" : ""}
+                            {delta.toFixed(2)}h)
+                          </span>
+                          {ignored ? (
+                            <span className="ml-2 rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-white/60">
+                              ignored
+                            </span>
+                          ) : null}
+                        </span>
+                        {!ignored ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 border-amber-300/30 text-amber-100 hover:bg-amber-500/20"
+                            onClick={() => ignoreContactHourKey(plan.key)}
+                          >
+                            Ignore
+                          </Button>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
+
             <ClassTimetableGridBoard
               classId={classId}
               className={className}
@@ -944,6 +1145,9 @@ export function ClassTimetableEditor({
               slots={slots}
               subjectMap={subjectMap}
               teacherMap={teacherMap}
+              contactHourPlanByKey={contactHourPlanByKey}
+              ignoredContactHourKeys={ignoredContactHourKeys}
+              onIgnoreContactHourKey={ignoreContactHourKey}
               slotIssueSeverityById={slotIssueSeverityById}
               onSlotsChanged={() => slotsQuery.refetch()}
               dailyScheduleSettingsHref={bellScheduleSettingsHref}

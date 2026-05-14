@@ -27,7 +27,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const classes = await ClassGroup.find({ _id: { $in: classGroupIds }, schoolId }).select("_id gradeId").lean();
     const compatibleGradeIds = new Set((offering.gradeIds || []).map(String));
     const incompatible = classes.filter((classGroup) => !compatibleGradeIds.has(String(classGroup.gradeId)));
-    if (incompatible.length > 0 && body.allowIncompatible !== true) {
+
+    const allowIncompatible = body.allowIncompatible === true;
+
+    if (!allowIncompatible && incompatible.length > 0) {
       return NextResponse.json(
         {
           success: false,
@@ -38,14 +41,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       );
     }
 
-    const compatibleClassIds = classes
-      .filter((classGroup) => compatibleGradeIds.has(String(classGroup.gradeId)))
-      .map((classGroup) => classGroup._id);
+    const compatibleClassIds = allowIncompatible
+      ? classes.map((classGroup) => classGroup._id)
+      : classes
+          .filter((classGroup) => compatibleGradeIds.has(String(classGroup.gradeId)))
+          .map((classGroup) => classGroup._id);
 
-    await ClassGroup.updateMany(
-      { schoolId, gradeId: { $in: offering.gradeIds || [] } },
-      { $pull: { subjectOfferingIds: offeringId } }
-    );
+    if (!allowIncompatible) {
+      await ClassGroup.updateMany(
+        { schoolId, gradeId: { $in: offering.gradeIds || [] } },
+        { $pull: { subjectOfferingIds: offeringId } }
+      );
+    }
 
     const result = await ClassGroup.updateMany(
       { _id: { $in: compatibleClassIds }, schoolId },

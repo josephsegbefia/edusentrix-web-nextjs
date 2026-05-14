@@ -49,7 +49,7 @@ type TeacherOverviewTabProps = {
     email?: string | null;
     phone?: string | null;
     status: TeacherStatus;
-    homeroom?: { id: string; name: string } | null;
+    homeroom?: { id: string; name: string; gradeName?: string | null; label?: string | null } | null;
     subjects?: Array<{ id: string; name: string }>;
     assignedSubjects?: Array<{ id: string; name: string; classGroups: string[] }>;
     employeeId?: string | null;
@@ -286,7 +286,8 @@ export function TeacherOverviewTab({
   );
   const workload = workloadData?.data;
   const homeroomLabel = homeroom
-    ? `${homeroom.name}${homeroom.gradeName ? ` (${homeroom.gradeName})` : ""}`
+    ? homeroom.label ||
+      (homeroom.gradeName ? `${homeroom.gradeName} ${homeroom.name}`.trim() : homeroom.name)
     : "Not assigned";
   const workloadClasses = workload?.current.classes;
   const workloadStudents = workload?.current.students;
@@ -543,8 +544,7 @@ export function TeacherOverviewTab({
                       variant="outline"
                       className="gap-1.5 rounded-lg border-purple-500/30 bg-purple-500/10 pr-1.5 text-purple-200"
                     >
-                      {homeroom.name}
-                      {homeroom.gradeName && ` (${homeroom.gradeName})`}
+                      {homeroomLabel}
                       <button
                         type="button"
                         onClick={handleRemoveHomeroom}

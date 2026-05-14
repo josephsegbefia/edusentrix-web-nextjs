@@ -10,6 +10,19 @@ export interface ITimetableVersion {
   status: TimetableVersionStatus;
   baseVersionId?: Types.ObjectId | null;
   publishedAt?: Date | null;
+  stale?: boolean;
+  staleReasons?: Array<{
+    sourceModule:
+      | "teacher"
+      | "subject"
+      | "subjectOffering"
+      | "classGroup"
+      | "teacherAssignment"
+      | "schoolDailySchedule";
+    sourceEntityId?: Types.ObjectId | null;
+    message: string;
+    createdAt: Date;
+  }>;
   createdBy: Types.ObjectId;
   updatedBy: Types.ObjectId;
   lockVersion: number;
@@ -45,6 +58,32 @@ const timetableVersionSchema = new Schema<ITimetableVersion>(
       default: null,
     },
     publishedAt: { type: Date, default: null },
+    stale: { type: Boolean, default: false, index: true },
+    staleReasons: {
+      type: [
+        {
+          sourceModule: {
+            type: String,
+            enum: [
+              "teacher",
+              "subject",
+              "subjectOffering",
+              "classGroup",
+              "teacherAssignment",
+              "schoolDailySchedule",
+            ],
+            required: true,
+          },
+          sourceEntityId: {
+            type: Schema.Types.ObjectId,
+            default: null,
+          },
+          message: { type: String, required: true, trim: true },
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -64,7 +103,10 @@ timetableVersionSchema.index({ schoolId: 1, academicPeriodId: 1, createdAt: -1 }
 timetableVersionSchema.index({ schoolId: 1, academicPeriodId: 1, status: 1, updatedAt: -1 });
 timetableVersionSchema.index(
   { schoolId: 1, academicPeriodId: 1, status: 1 },
-  { unique: true, partialFilterExpression: { status: "published" } }
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ["draft", "published"] } },
+  }
 );
 
 export const TimetableVersion: Model<ITimetableVersion> =

@@ -9,6 +9,7 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { User } from "@/models/User";
 import { LessonNoteReviewComment, type ILessonNoteReviewComment } from "@/models/LessonNoteReviewComment";
 import { normalizeLessonNoteRequestBody } from "@/lib/lesson-notes/normalize-payload";
@@ -21,6 +22,7 @@ import {
   assertLessonNoteRequiresSchemeLink,
   resolveLessonNoteSchemeFields,
 } from "@/lib/lesson-notes/validate-lesson-note-scheme";
+import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 
 // ============================================================================
 // Zod Schemas (same as in route.ts, but all optional for PATCH)
@@ -127,6 +129,7 @@ const ReflectionsSchema = z.object({
 
 const UpdateLessonNoteSchema = z.object({
   classGroupId: z.string().min(1).optional(),
+  subjectOfferingId: z.string().optional().nullable(),
   subjectId: z.string().optional().nullable(),
 
   // Template type & curriculum
@@ -226,6 +229,7 @@ function formatLessonNoteResponse(
     teacherName,
     classGroupId: String(entry.classGroupId),
     className,
+    subjectOfferingId: entry.subjectOfferingId ? String(entry.subjectOfferingId) : null,
     subjectId: entry.subjectId ? String(entry.subjectId) : null,
     subjectName,
     academicPeriodId: entry.academicPeriodId ? String(entry.academicPeriodId) : null,
@@ -369,7 +373,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     // Fetch subject name
     let subjectName: string | null = null;
-    if (entry.subjectId) {
+    if (entry.subjectOfferingId) {
+      const offering = await SubjectOffering.findById(entry.subjectOfferingId)
+        .select("displayName shortName")
+        .lean() as { displayName?: string; shortName?: string } | null;
+      subjectName = offering?.displayName || offering?.shortName || null;
+    } else if (entry.subjectId) {
       const subject = await Subject.findById(entry.subjectId)
         .select("name")
         .lean() as { name: string } | null;
@@ -475,10 +484,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       schoolId: context.schoolId,
       teacherId: context.teacherId,
     })
-      .select("classGroupId subjectId status templateType schemeId schemeItemIds")
+      .select("classGroupId subjectId subjectOfferingId status templateType schemeId schemeItemIds")
       .lean() as Pick<
       ILessonNote,
-      "classGroupId" | "subjectId" | "status" | "templateType" | "schemeId" | "schemeItemIds"
+      | "classGroupId"
+      | "subjectId"
+      | "subjectOfferingId"
+      | "status"
+      | "templateType"
+      | "schemeId"
+      | "schemeItemIds"
     > | null;
 
     if (!existing) {
@@ -508,6 +523,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     let subjectObjId = existing.subjectId as mongoose.Types.ObjectId | null | undefined;
+    let subjectOfferingObjId = existing.subjectOfferingId as mongoose.Types.ObjectId | null | undefined;
+    if ("subjectOfferingId" in parsed.data) {
+      if (parsed.data.subjectOfferingId) {
+        const offeringResolution = await resolveSubjectOfferingForSchool({
+          schoolId: context.schoolId,
+          subjectOfferingId: parsed.data.subjectOfferingId,
+          classGroupId: classGroupObjId,
+          requireClassAssignment: true,
+        });
+        if (!offeringResolution.ok) {
+          return Response.json(
+            { success: false, error: offeringResolution.error },
+            { status: offeringResolution.status }
+          );
+        }
+        subjectOfferingObjId = offeringResolution.offering._id;
+        subjectObjId = offeringResolution.offering.subjectId;
+        updateData.subjectOfferingId = subjectOfferingObjId;
+        updateData.subjectId = subjectObjId;
+      } else {
+        subjectOfferingObjId = null;
+        unsetData.subjectOfferingId = "";
+      }
+    }
     if ("subjectId" in parsed.data) {
       if (parsed.data.subjectId) {
         const nextSubjectId = toObjectIdOrNull(parsed.data.subjectId);
@@ -516,6 +555,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
         subjectObjId = nextSubjectId;
         updateData.subjectId = nextSubjectId;
+        if (!("subjectOfferingId" in parsed.data)) {
+          subjectOfferingObjId = null;
+          unsetData.subjectOfferingId = "";
+        }
       } else {
         subjectObjId = null;
         unsetData.subjectId = "";
@@ -529,7 +572,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         classGroupId: classGroupObjId,
         status: "active",
       };
-      if (subjectObjId) assignmentQuery.subjectId = subjectObjId;
+      if (subjectOfferingObjId) assignmentQuery.subjectOfferingId = subjectOfferingObjId;
+      else if (subjectObjId) assignmentQuery.subjectId = subjectObjId;
 
       const assignment = await TeacherAssignment.findOne(assignmentQuery)
         .select("_id")
@@ -541,7 +585,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     if (
-      (parsed.data.classGroupId || "subjectId" in parsed.data) &&
+      (parsed.data.classGroupId || "subjectId" in parsed.data || "subjectOfferingId" in parsed.data) &&
       existing.schemeId
     ) {
       const revalidate = await resolveLessonNoteSchemeFields({
@@ -649,6 +693,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     if (
       parsed.data.classGroupId ||
+      "subjectOfferingId" in parsed.data ||
       "subjectId" in parsed.data ||
       parsed.data.templateType ||
       parsed.data.curriculumCode !== undefined ||

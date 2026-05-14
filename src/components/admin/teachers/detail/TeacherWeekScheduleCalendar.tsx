@@ -181,6 +181,8 @@ function buildTeacherWeekEvents(
   return events;
 }
 
+type EventMetaMode = "truncate" | "wrap";
+
 function EventCard({
   icon: Icon,
   eyebrow,
@@ -194,6 +196,7 @@ function EventCard({
   eyebrowClassName,
   metaClassName,
   style,
+  metaMode = "truncate",
 }: {
   icon: React.ElementType;
   eyebrow: string;
@@ -207,32 +210,59 @@ function EventCard({
   eyebrowClassName: string;
   metaClassName: string;
   style?: React.CSSProperties;
+  /** wrap: show full location/notes with word-wrap + in-card scroll (duties). truncate: single-line ellipsis (dense lessons). */
+  metaMode?: EventMetaMode;
 }) {
+  /** ≤20m: icon + title only. Typical lessons (35–60m) use compact rows so text stays inside the slot. */
   const isUltraCompact = durationMinutes > 0 && durationMinutes <= 20;
-  const isCompact = durationMinutes > 20 && durationMinutes < 45;
+  const isCompact = durationMinutes > 20 && durationMinutes <= 60;
+  const mergedMeta = [detail?.trim(), description?.trim()].filter(Boolean).join(" · ");
+  const useWrapMeta = metaMode === "wrap";
 
   if (isUltraCompact) {
     return (
       <div
         className={cn(
-          "flex h-full min-h-0 w-full min-w-0 items-center gap-1.5 overflow-hidden rounded-xl border px-2 py-1.5 text-left",
+          "flex h-full min-h-0 w-full min-w-0 flex-1 gap-1.5 overflow-hidden rounded-xl border px-2 py-1.5 text-left",
+          useWrapMeta ? "flex-col items-stretch" : "items-center",
           bodyClassName,
           isCurrent &&
             "border-sky-300/70 bg-sky-500/20 ring-2 ring-sky-300/55 shadow-[0_0_0_1px_rgba(125,211,252,0.28),0_0_20px_rgba(14,165,233,0.22)]"
         )}
         style={style}
       >
-        <Icon
-          className={cn(
-            "h-3 w-3 shrink-0",
-            eyebrowClassName,
-            isCurrent && "text-sky-100"
-          )}
-        />
-        {isCurrent ? (
-          <span className="h-2 w-2 shrink-0 rounded-full bg-sky-200 shadow-[0_0_10px_rgba(125,211,252,0.9)]" />
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+          <Icon
+            className={cn(
+              "h-3 w-3 shrink-0",
+              eyebrowClassName,
+              isCurrent && "text-sky-100"
+            )}
+          />
+          {isCurrent ? (
+            <span className="h-2 w-2 shrink-0 rounded-full bg-sky-200 shadow-[0_0_10px_rgba(125,211,252,0.9)]" />
+          ) : null}
+          <p
+            className={cn(
+              "font-semibold text-white",
+              useWrapMeta
+                ? "line-clamp-2 min-w-0 flex-1 text-[10px] leading-tight"
+                : "truncate text-[11px]"
+            )}
+          >
+            {title}
+          </p>
+        </div>
+        {useWrapMeta && (detail || description) ? (
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20">
+            {detail ? (
+              <p className={cn("wrap-break-word text-[9px] leading-snug", metaClassName)}>{detail}</p>
+            ) : null}
+            {description ? (
+              <p className={cn("mt-0.5 wrap-break-word text-[9px] leading-snug", metaClassName)}>{description}</p>
+            ) : null}
+          </div>
         ) : null}
-        <p className="truncate text-[11px] font-semibold text-white">{title}</p>
       </div>
     );
   }
@@ -240,7 +270,7 @@ function EventCard({
   return (
     <div
       className={cn(
-        "flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-xl border px-2.5 py-2 text-left",
+        "flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border px-2.5 py-2 text-left",
         bodyClassName,
         isCompact && "gap-0.5 px-2 py-1.5",
         isCurrent &&
@@ -250,49 +280,94 @@ function EventCard({
     >
       <div
         className={cn(
-          "flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em]",
+          "flex min-h-0 min-w-0 shrink-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em]",
           eyebrowClassName
         )}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />
-        <span className="truncate">{eyebrow}</span>
+        <span className="min-w-0 flex-1 truncate">{eyebrow}</span>
         {isCurrent ? (
-          <span className="ml-auto shrink-0 rounded-full bg-sky-200/18 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.18em] text-sky-100">
+          <span className="shrink-0 rounded-full bg-sky-200/18 px-1.5 py-0.5 text-[9px] font-bold tracking-[0.18em] text-sky-100">
             NOW
           </span>
         ) : null}
       </div>
       <p
         className={cn(
-          "mt-1 min-w-0 break-words font-semibold text-white",
-          isCompact ? "line-clamp-1 text-xs leading-snug" : "line-clamp-2 text-sm leading-tight"
+          "min-h-0 min-w-0 shrink-0 font-semibold leading-snug text-white",
+          isCompact ? "line-clamp-2 text-[11px]" : "line-clamp-2 text-sm"
         )}
       >
         {title}
       </p>
       <p
         className={cn(
-          "mt-1 font-mono text-[10px] tracking-tight",
+          "shrink-0 font-mono text-[10px] leading-tight tracking-tight",
           metaClassName,
-          isCompact && "mt-0.5"
+          isCompact ? "mt-0.5" : "mt-1"
         )}
       >
         {timeText}
       </p>
-      {!isCompact && detail ? (
-        <p className={cn("min-w-0 truncate text-[11px] leading-snug", metaClassName)}>
+      {isCompact && mergedMeta && !useWrapMeta ? (
+        <p
+          className={cn(
+            "mt-0.5 min-h-0 min-w-0 flex-1 truncate text-[10px] leading-tight",
+            metaClassName
+          )}
+          title={mergedMeta}
+        >
+          {mergedMeta}
+        </p>
+      ) : null}
+      {isCompact && useWrapMeta && (detail || description) ? (
+        <div
+          className={cn(
+            "mt-0.5 flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin]",
+            "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20"
+          )}
+        >
+          {detail ? (
+            <p className={cn("wrap-break-word text-[10px] leading-snug", metaClassName)}>{detail}</p>
+          ) : null}
+          {description ? (
+            <p className={cn("wrap-break-word text-[10px] leading-snug", metaClassName)}>{description}</p>
+          ) : null}
+        </div>
+      ) : null}
+      {!isCompact && detail && !useWrapMeta ? (
+        <p
+          className={cn("mt-1 min-h-0 min-w-0 truncate text-[11px] leading-snug", metaClassName)}
+          title={detail}
+        >
           {detail}
         </p>
       ) : null}
-      {!isCompact && description ? (
+      {!isCompact && description && !useWrapMeta ? (
         <p
           className={cn(
-            "min-w-0 break-words text-[11px] leading-relaxed line-clamp-2",
+            "mt-0.5 min-h-0 min-w-0 truncate text-[11px] leading-snug",
             metaClassName
           )}
+          title={description}
         >
           {description}
         </p>
+      ) : null}
+      {!isCompact && useWrapMeta && (detail || description) ? (
+        <div
+          className={cn(
+            "mt-1 flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-width:thin]",
+            "[&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20"
+          )}
+        >
+          {detail ? (
+            <p className={cn("wrap-break-word text-[11px] leading-snug", metaClassName)}>{detail}</p>
+          ) : null}
+          {description ? (
+            <p className={cn("wrap-break-word text-[11px] leading-snug", metaClassName)}>{description}</p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -366,6 +441,7 @@ function renderEventContent(arg: EventContentArg) {
         eyebrowClassName="text-amber-100/90"
         metaClassName="text-white/70"
         style={style}
+        metaMode="wrap"
       />
     );
   }

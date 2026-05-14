@@ -23,6 +23,7 @@ export type ClassGroupDTO = {
   } | null;
   subjects: Array<{
     id: string;
+    subjectOfferingId?: string | null;
     name: string;
     code: string | null;
   }>;

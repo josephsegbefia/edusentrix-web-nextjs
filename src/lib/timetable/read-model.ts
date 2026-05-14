@@ -5,6 +5,7 @@ import { Grade } from "@/models/Grade";
 import { SchoolSettings } from "@/models/SchoolSettings";
 import { Student } from "@/models/Student";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { Teacher } from "@/models/Teacher";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { TimetableSlot } from "@/models/TimetableSlot";
@@ -37,6 +38,7 @@ export interface TimetableSlotDTO {
   classGroupId: string;
   gradeId: string;
   subjectId: string;
+  subjectOfferingId?: string | null;
   /** Empty when no teacher assigned yet. */
   teacherId: string;
   classGroupName?: string | null;
@@ -138,6 +140,7 @@ export function mapSlotDto(slot: {
   classGroupId: Types.ObjectId;
   gradeId: Types.ObjectId;
   subjectId: Types.ObjectId;
+  subjectOfferingId?: Types.ObjectId | null;
   teacherId?: Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
@@ -150,6 +153,7 @@ export function mapSlotDto(slot: {
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
+    subjectOfferingId: slot.subjectOfferingId ? String(slot.subjectOfferingId) : null,
     teacherId: slot.teacherId ? String(slot.teacherId) : "",
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
@@ -323,6 +327,7 @@ export async function queryPublishedSlots(
         classGroupId: Types.ObjectId;
         gradeId: Types.ObjectId;
         subjectId: Types.ObjectId;
+        subjectOfferingId?: Types.ObjectId | null;
         teacherId: Types.ObjectId;
         dayOfWeek: number;
         startTime: string;
@@ -357,6 +362,7 @@ type TimetableSlotLean = {
   classGroupId: Types.ObjectId;
   gradeId: Types.ObjectId;
   subjectId: Types.ObjectId;
+  subjectOfferingId?: Types.ObjectId | null;
   teacherId?: Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
@@ -517,13 +523,16 @@ export async function enrichSlotsForDisplay(args: {
   const classIds = toObjectIds(Array.from(new Set(slots.map((slot) => slot.classGroupId))));
   const gradeIds = toObjectIds(Array.from(new Set(slots.map((slot) => slot.gradeId))));
   const subjectIds = toObjectIds(Array.from(new Set(slots.map((slot) => slot.subjectId))));
+  const subjectOfferingIds = toObjectIds(
+    Array.from(new Set(slots.map((slot) => slot.subjectOfferingId).filter(Boolean) as string[]))
+  );
   const teacherIds = toObjectIds(
     Array.from(
       new Set(slots.map((slot) => slot.teacherId).filter((id) => id && id.length === 24))
     )
   );
 
-  const [classes, grades, subjects, teachers] = await Promise.all([
+  const [classes, grades, subjects, subjectOfferings, teachers] = await Promise.all([
     classIds.length
       ? ClassGroup.find({ schoolId, _id: { $in: classIds } })
           .select("_id name gradeId")
@@ -535,6 +544,11 @@ export async function enrichSlotsForDisplay(args: {
     subjectIds.length
       ? Subject.find({ schoolId, _id: { $in: subjectIds } })
           .select("_id name code")
+          .lean()
+      : Promise.resolve([]),
+    subjectOfferingIds.length
+      ? SubjectOffering.find({ schoolId, _id: { $in: subjectOfferingIds } })
+          .select("_id displayName shortName code subjectId")
           .lean()
       : Promise.resolve([]),
     teacherIds.length
@@ -569,6 +583,20 @@ export async function enrichSlotsForDisplay(args: {
     });
   }
 
+  const subjectOfferingMap = new Map<string, { name?: string; code?: string | null }>();
+  for (const row of subjectOfferings) {
+    const normalized = row as {
+      _id: Types.ObjectId;
+      displayName?: string;
+      shortName?: string;
+      code?: string | null;
+    };
+    subjectOfferingMap.set(String(normalized._id), {
+      name: normalized.displayName || normalized.shortName,
+      code: normalized.code ?? null,
+    });
+  }
+
   const teacherMap = new Map<string, { name: string | null }>();
   for (const row of teachers) {
     const normalized = row as {
@@ -587,14 +615,17 @@ export async function enrichSlotsForDisplay(args: {
       gradeMap.get(slot.gradeId) ||
       (classInfo?.gradeId ? gradeMap.get(String(classInfo.gradeId)) : undefined);
     const subjectInfo = subjectMap.get(slot.subjectId);
+    const subjectOfferingInfo = slot.subjectOfferingId
+      ? subjectOfferingMap.get(slot.subjectOfferingId)
+      : undefined;
     const teacherInfo = slot.teacherId ? teacherMap.get(slot.teacherId) : undefined;
 
     return {
       ...slot,
       classGroupName: classInfo?.name || null,
       gradeName: gradeInfo?.name || null,
-      subjectName: subjectInfo?.name || null,
-      subjectCode: subjectInfo?.code ?? null,
+      subjectName: subjectOfferingInfo?.name || subjectInfo?.name || null,
+      subjectCode: subjectOfferingInfo?.code ?? subjectInfo?.code ?? null,
       teacherName: slot.teacherName ?? teacherInfo?.name ?? null,
     };
   });

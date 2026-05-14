@@ -22,6 +22,13 @@ import {
 } from "@/lib/timetable/feature-flags";
 import { loadResolvedScheduleForSchoolDay } from "@/lib/timetable/load-resolved-schedule";
 import { slotAlignsWithSchoolPeriods } from "@/lib/timetable/period-alignment";
+import { detectSlotWriteConflicts } from "@/lib/timetable/slot-write-conflicts";
+import {
+  buildTeacherResolutionIssue,
+  resolveTeacherForTimetableSlot,
+} from "@/lib/timetable/resolve-slot-teacher";
+import { recordScheduleChangeEvent } from "@/lib/timetable/schedule-change-events";
+import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 import { z } from "zod";
 
 type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -40,6 +47,7 @@ function isDayOfWeek(value: number): value is DayOfWeek {
 }
 
 const PatchSlotSchema = z.object({
+  subjectOfferingId: z.string().length(24).optional(),
   subjectId: z.string().length(24).optional(),
   teacherId: z.union([z.string().length(24), z.null()]).optional(),
   dayOfWeek: z.number().min(0).max(6).optional(),
@@ -52,7 +60,9 @@ function toSlotDto(slot: {
   classGroupId: mongoose.Types.ObjectId;
   gradeId: mongoose.Types.ObjectId;
   subjectId: mongoose.Types.ObjectId;
+  subjectOfferingId?: mongoose.Types.ObjectId | null;
   teacherId?: mongoose.Types.ObjectId | null;
+  roomId?: mongoose.Types.ObjectId | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -68,7 +78,9 @@ function toSlotDto(slot: {
     classGroupId: String(slot.classGroupId),
     gradeId: String(slot.gradeId),
     subjectId: String(slot.subjectId),
+    subjectOfferingId: slot.subjectOfferingId ? String(slot.subjectOfferingId) : null,
     teacherId: slot.teacherId ? String(slot.teacherId) : "",
+    roomId: slot.roomId ? String(slot.roomId) : null,
     dayOfWeek: slot.dayOfWeek,
     startTime: slot.startTime,
     endTime: slot.endTime,
@@ -123,7 +135,7 @@ export async function PATCH(
       _id: classObjId,
       schoolId: schoolIdObj,
     })
-      .select("_id gradeId")
+      .select("_id gradeId subjectIds subjectOfferingIds")
       .lean();
 
     if (!classGroup) {
@@ -166,6 +178,7 @@ export async function PATCH(
     const input = parsed.data;
     const hasAnyField =
       input.subjectId !== undefined ||
+      input.subjectOfferingId !== undefined ||
       input.teacherId !== undefined ||
       input.dayOfWeek !== undefined ||
       input.startTime !== undefined ||
@@ -178,10 +191,12 @@ export async function PATCH(
       );
     }
 
-    const subjectId = input.subjectId
+    let subjectId = input.subjectId
       ? new mongoose.Types.ObjectId(input.subjectId)
       : existing.subjectId;
-    const teacherId =
+    let subjectOfferingId =
+      (existing as unknown as { subjectOfferingId?: mongoose.Types.ObjectId | null }).subjectOfferingId ?? null;
+    const explicitTeacherId =
       input.teacherId !== undefined
         ? input.teacherId === null
           ? null
@@ -191,6 +206,71 @@ export async function PATCH(
     const startTime = input.startTime ?? existing.startTime;
     const endTime = input.endTime ?? existing.endTime;
     const gradeId = (classGroup as { gradeId: mongoose.Types.ObjectId }).gradeId;
+
+    if (input.subjectOfferingId) {
+      const offeringResolution = await resolveSubjectOfferingForSchool({
+        schoolId: schoolIdObj,
+        subjectOfferingId: input.subjectOfferingId,
+        gradeId,
+        classGroupId: classObjId,
+        requireClassAssignment: true,
+      });
+      if (!offeringResolution.ok) {
+        return NextResponse.json(
+          { success: false, error: offeringResolution.error },
+          { status: offeringResolution.status }
+        );
+      }
+      subjectId = offeringResolution.offering.subjectId;
+      subjectOfferingId = offeringResolution.offering._id;
+    }
+
+    if (
+      !subjectOfferingId &&
+      !(classGroup as { subjectIds?: mongoose.Types.ObjectId[] }).subjectIds?.some(
+        (id) => String(id) === String(subjectId)
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "SUBJECT_NOT_ASSIGNED_TO_CLASS",
+          error: "This subject has not been assigned to the selected class group.",
+          issues: [
+            {
+              code: "SUBJECT_NOT_ASSIGNED_TO_CLASS",
+              field: "subjectId",
+              message: "Assign this subject to the class group before scheduling it.",
+              severity: "error" as const,
+            },
+          ],
+        },
+        { status: 409 }
+      );
+    }
+
+    const teacherResolution = await resolveTeacherForTimetableSlot({
+      schoolId: schoolIdObj,
+      academicPeriodId: existing.academicPeriodId,
+      classGroupId: classObjId,
+      subjectId,
+      subjectOfferingId,
+      explicitTeacherId,
+    });
+
+    if (!teacherResolution.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: teacherResolution.code,
+          error: teacherResolution.message,
+          issues: [buildTeacherResolutionIssue(teacherResolution)],
+        },
+        { status: 409 }
+      );
+    }
+
+    const teacherId = teacherResolution.teacherId;
 
     if (!isDayOfWeek(dayOfWeek)) {
       return NextResponse.json(
@@ -234,7 +314,7 @@ export async function PATCH(
       );
     }
 
-    const { classroomLabel } = await resolveClassroomLabel({
+    const { classroomLabel, roomId } = await resolveClassroomLabel({
       schoolId: schoolIdObj,
       classGroupId: classObjId,
       gradeId,
@@ -246,6 +326,7 @@ export async function PATCH(
       gradeId,
       subjectId,
       teacherId,
+      roomId,
       dayOfWeek,
       startTime,
       endTime,
@@ -258,10 +339,51 @@ export async function PATCH(
       );
     }
 
+    const writeConflicts = await detectSlotWriteConflicts({
+      schoolId: schoolIdObj,
+      academicPeriodId: existing.academicPeriodId,
+      versionId: existing.versionId,
+      classGroupId: classObjId,
+      gradeId,
+      subjectId,
+      teacherId,
+      roomId,
+      dayOfWeek,
+      startTime,
+      endTime,
+      excludeSlotId: existing._id,
+    });
+
+    if (writeConflicts.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: writeConflicts[0].code,
+          error: writeConflicts[0].message,
+          conflict: writeConflicts[0],
+          conflicts: writeConflicts,
+          issues: writeConflicts.map((conflict) => ({
+            code: conflict.code,
+            field:
+              conflict.code === "TEACHER_OVERLAP"
+                ? "teacherId"
+                : conflict.code === "ROOM_OVERLAP"
+                  ? "roomId"
+                  : "startTime",
+            message: conflict.message,
+            severity: "error" as const,
+          })),
+        },
+        { status: 409 }
+      );
+    }
+
     const beforeSnapshot = buildTimetableSlotSnapshot(existing);
 
     existing.subjectId = subjectId;
+    existing.subjectOfferingId = subjectOfferingId;
     existing.teacherId = teacherId;
+    existing.roomId = roomId;
     existing.dayOfWeek = dayOfWeek;
     existing.startTime = startTime;
     existing.endTime = endTime;
@@ -284,6 +406,20 @@ export async function PATCH(
     const conflictSummary = await recomputeConflictsForVersion({
       schoolId: schoolIdObj,
       versionId: existing.versionId,
+    });
+
+    await recordScheduleChangeEvent({
+      schoolId: schoolIdObj,
+      academicPeriodId: existing.academicPeriodId,
+      entityType: "timetableSlot",
+      entityId: existing._id,
+      action: "updated",
+      affectedClassGroupIds: [classObjId],
+      affectedTeacherIds: [teacherId],
+      affectedSubjectIds: [subjectId],
+      affectedRoomIds: roomId ? [roomId] : [],
+      createdBy: userIdObj,
+      message: "Timetable slot updated",
     });
 
     return NextResponse.json({
@@ -369,6 +505,8 @@ export async function DELETE(
     await TimetableSlot.deleteOne({
       _id: slotObjId,
       schoolId: schoolIdObj,
+      academicPeriodId: existing.academicPeriodId,
+      versionId: existing.versionId,
       classGroupId: classObjId,
     });
 
@@ -388,9 +526,29 @@ export async function DELETE(
       versionId: existing.versionId,
     });
 
+    await recordScheduleChangeEvent({
+      schoolId: schoolIdObj,
+      academicPeriodId: existing.academicPeriodId,
+      entityType: "timetableSlot",
+      entityId: existing._id,
+      action: "deleted",
+      affectedClassGroupIds: [classObjId],
+      affectedTeacherIds: existing.teacherId ? [existing.teacherId] : [],
+      affectedSubjectIds: [existing.subjectId],
+      affectedRoomIds: existing.roomId ? [existing.roomId] : [],
+      createdBy: userIdObj,
+      message: "Timetable slot deleted",
+    });
+
     return NextResponse.json({
       success: true,
-      data: { id: String(slotObjId) },
+      data: {
+        id: String(slotObjId),
+        academicPeriodId: String(existing.academicPeriodId),
+        versionId: String(existing.versionId),
+        teacherId: existing.teacherId ? String(existing.teacherId) : "",
+        subjectId: String(existing.subjectId),
+      },
       conflicts: conflictSummary,
     });
   } catch (e: unknown) {

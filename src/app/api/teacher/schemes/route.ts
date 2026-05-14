@@ -10,6 +10,7 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { ClassGroup } from "@/models/ClassGroup";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { assertTeacherSchemeCreationEnabled } from "@/lib/schemes/scheme-import-gate";
+import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 
 const CreateSchemeSchema = z.object({
   title: z.string().trim().min(3).max(220),
@@ -19,6 +20,7 @@ const CreateSchemeSchema = z.object({
   termLabel: z.string().trim().max(80).optional(),
   gradeId: z.string().trim().optional(),
   classGroupId: z.string().trim().optional(),
+  subjectOfferingId: z.string().trim().optional(),
   subjectId: z.string().trim().optional(),
 });
 
@@ -39,6 +41,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const gradeId = toObjectIdOrNull(searchParams.get("gradeId") || undefined);
+    const subjectOfferingId = toObjectIdOrNull(searchParams.get("subjectOfferingId") || undefined);
     const subjectId = toObjectIdOrNull(searchParams.get("subjectId") || undefined);
 
     const query: Record<string, unknown> = {
@@ -55,6 +58,7 @@ export async function GET(req: Request) {
       query.status = status;
     }
     if (gradeId) query.gradeId = gradeId;
+    if (subjectOfferingId) query.subjectOfferingId = subjectOfferingId;
     if (subjectId) query.subjectId = subjectId;
 
     const docs = (await SchemeOfWork.find(query).sort({ updatedAt: -1 }).limit(120).lean()) as
@@ -92,6 +96,7 @@ export async function POST(req: Request) {
     const academicPeriodId = toObjectIdOrNull(parsed.data.academicPeriodId);
     const gradeId = toObjectIdOrNull(parsed.data.gradeId);
     const classGroupId = toObjectIdOrNull(parsed.data.classGroupId);
+    const subjectOfferingIdInput = toObjectIdOrNull(parsed.data.subjectOfferingId);
     const subjectId = toObjectIdOrNull(parsed.data.subjectId);
     if (parsed.data.academicPeriodId && !academicPeriodId) {
       return Response.json({ success: false, error: "Invalid academicPeriodId" }, { status: 400 });
@@ -101,6 +106,9 @@ export async function POST(req: Request) {
     }
     if (parsed.data.classGroupId && !classGroupId) {
       return Response.json({ success: false, error: "Invalid classGroupId" }, { status: 400 });
+    }
+    if (parsed.data.subjectOfferingId && !subjectOfferingIdInput) {
+      return Response.json({ success: false, error: "Invalid subjectOfferingId" }, { status: 400 });
     }
     if (parsed.data.subjectId && !subjectId) {
       return Response.json({ success: false, error: "Invalid subjectId" }, { status: 400 });
@@ -135,8 +143,28 @@ export async function POST(req: Request) {
       effectiveGradeId = classGroup.gradeId;
     }
 
+    let effectiveSubjectId = subjectId;
+    let effectiveSubjectOfferingId = subjectOfferingIdInput;
+    if (effectiveSubjectOfferingId) {
+      const offeringResolution = await resolveSubjectOfferingForSchool({
+        schoolId: ctx.schoolId,
+        subjectOfferingId: effectiveSubjectOfferingId,
+        gradeId: effectiveGradeId,
+        classGroupId,
+        requireClassAssignment: Boolean(classGroupId),
+      });
+      if (!offeringResolution.ok) {
+        return Response.json(
+          { success: false, error: offeringResolution.error },
+          { status: offeringResolution.status }
+        );
+      }
+      effectiveSubjectId = offeringResolution.offering.subjectId;
+      effectiveSubjectOfferingId = offeringResolution.offering._id;
+    }
+
     if (!ctx.isAdmin) {
-      if (!effectiveGradeId || !subjectId) {
+      if (!effectiveGradeId || !effectiveSubjectId) {
         return Response.json(
           { success: false, error: "Select an assigned grade and subject for this scheme" },
           { status: 400 }
@@ -159,7 +187,9 @@ export async function POST(req: Request) {
         teacherId: ctx.teacherId,
         academicPeriodId: period._id,
         classGroupId: { $in: gradeClassGroups.map((group) => group._id) },
-        subjectId,
+        ...(effectiveSubjectOfferingId
+          ? { subjectOfferingId: effectiveSubjectOfferingId }
+          : { subjectId: effectiveSubjectId }),
         status: "active",
       });
       if (!assignment) {
@@ -170,7 +200,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (!effectiveGradeId || !subjectId) {
+    if (!effectiveGradeId || !effectiveSubjectId) {
       return Response.json(
         { success: false, error: "Select a grade and subject for this Scheme of Learning" },
         { status: 400 }
@@ -181,7 +211,8 @@ export async function POST(req: Request) {
       schoolId: ctx.schoolId,
       academicPeriodId: period._id,
       gradeId: effectiveGradeId,
-      subjectId,
+      ...(effectiveSubjectOfferingId ? { subjectOfferingId: effectiveSubjectOfferingId } : {}),
+      subjectId: effectiveSubjectId,
       classGroupId: null,
       status: { $in: ["draft", "submitted", "needs_revision", "approved", "active"] },
     })
@@ -215,7 +246,8 @@ export async function POST(req: Request) {
       termLabel: parsed.data.termLabel || period.term || undefined,
       gradeId: effectiveGradeId,
       classGroupId: null,
-      subjectId,
+      ...(effectiveSubjectOfferingId ? { subjectOfferingId: effectiveSubjectOfferingId } : {}),
+      subjectId: effectiveSubjectId,
       ownerTeacherId: ctx.teacherId,
       status: "draft",
       sourceType: "manual",

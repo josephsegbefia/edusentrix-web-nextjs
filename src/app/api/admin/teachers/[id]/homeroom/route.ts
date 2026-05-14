@@ -52,20 +52,51 @@ export async function GET(
   }
 
   if (!teacher.homeroomClassGroupId) {
+    const classGroup = await ClassGroup.findOne({
+      schoolId: schoolIdObj,
+      homeroomTeacherId: teacherObjId,
+    })
+      .select("name gradeId")
+      .populate({ path: "gradeId", select: "name" });
+
+    if (!classGroup) {
+      return Response.json({
+        success: true,
+        data: null,
+      });
+    }
+
+    await Teacher.updateOne(
+      { _id: teacherObjId, schoolId: schoolIdObj },
+      { $set: { homeroomClassGroupId: classGroup._id } }
+    );
+
+    const gradeName = (classGroup.gradeId as any)?.name
+      ? String((classGroup.gradeId as any).name)
+      : null;
+    const className = String(classGroup.name || "");
     return Response.json({
       success: true,
-      data: null,
+      data: {
+        id: String(classGroup._id),
+        name: className,
+        gradeName,
+        label: gradeName ? `${gradeName} ${className}`.trim() : className,
+      },
     });
   }
 
   const homeroom = teacher.homeroomClassGroupId as any;
+  const gradeName = homeroom.gradeId?.name ? String(homeroom.gradeId.name) : null;
+  const className = String(homeroom.name || "");
 
   return Response.json({
     success: true,
     data: {
       id: String(homeroom._id),
-      name: String(homeroom.name || ""),
-      gradeName: homeroom.gradeId?.name ? String(homeroom.gradeId.name) : null,
+      name: className,
+      gradeName,
+      label: gradeName ? `${gradeName} ${className}`.trim() : className,
     },
   });
 }

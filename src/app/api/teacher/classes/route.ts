@@ -19,6 +19,14 @@ type PopulatedSubject = {
   name: string;
 };
 
+type PopulatedSubjectOffering = {
+  _id: mongoose.Types.ObjectId;
+  subjectId?: mongoose.Types.ObjectId | null;
+  displayName?: string;
+  shortName?: string;
+  code?: string;
+};
+
 type ScheduleSlot = {
   dayOfWeek?: number | null;
   startTime?: string | null;
@@ -28,6 +36,7 @@ type ScheduleSlot = {
 type TeacherClassAssignmentLean = {
   classGroupId?: PopulatedClassGroup | mongoose.Types.ObjectId | null;
   subjectId?: PopulatedSubject | mongoose.Types.ObjectId | null;
+  subjectOfferingId?: PopulatedSubjectOffering | mongoose.Types.ObjectId | null;
   schedules?: ScheduleSlot[];
   schedule?: ScheduleSlot | null;
 };
@@ -54,6 +63,12 @@ function isPopulatedSubject(
   return Boolean(value && typeof value === "object" && "_id" in value && "name" in value);
 }
 
+function isPopulatedSubjectOffering(
+  value: TeacherClassAssignmentLean["subjectOfferingId"]
+): value is PopulatedSubjectOffering {
+  return Boolean(value && typeof value === "object" && "_id" in value);
+}
+
 export async function GET() {
   try {
     const context = await requireTeacher();
@@ -77,6 +92,7 @@ export async function GET() {
       status: "active",
     })
       .populate("classGroupId", "name gradeId homeroomTeacherId")
+      .populate("subjectOfferingId", "displayName shortName code subjectId")
       .populate("subjectId", "name")
       .lean<TeacherClassAssignmentLean[]>();
 
@@ -153,7 +169,7 @@ export async function GET() {
     if (!("error" in weekly) && weekly.data?.days) {
       for (const day of weekly.data.days) {
         for (const slot of day.slots || []) {
-          const key = `${slot.classGroupId}|${slot.subjectId}`;
+          const key = `${slot.classGroupId}|${slot.subjectOfferingId || slot.subjectId}`;
           if (!slotByClassSubject.has(key)) {
             slotByClassSubject.set(key, []);
           }
@@ -180,6 +196,9 @@ export async function GET() {
       const subject = isPopulatedSubject(assignment.subjectId)
         ? assignment.subjectId
         : undefined;
+      const offering = isPopulatedSubjectOffering(assignment.subjectOfferingId)
+        ? assignment.subjectOfferingId
+        : undefined;
 
       const gradeName = classGroup ? gradeMap.get(String(classGroup.gradeId)) : undefined;
       const className = classGroup
@@ -187,8 +206,8 @@ export async function GET() {
         : "";
 
       const key =
-        classGroup?._id && subject?._id
-          ? `${classGroup._id}|${subject._id}`
+        classGroup?._id && (offering?._id || subject?._id)
+          ? `${classGroup._id}|${offering?._id || subject?._id}`
           : "";
       const schedule = slotByClassSubject.get(key) || [];
 
@@ -197,7 +216,8 @@ export async function GET() {
         gradeId: classGroup?.gradeId ? String(classGroup.gradeId) : "",
         name: className,
         gradeName: gradeName || "",
-        subjectName: subject?.name || "",
+        subjectOfferingId: offering?._id ? String(offering._id) : null,
+        subjectName: offering?.displayName || offering?.shortName || subject?.name || "",
         subjectId: subject?._id ? String(subject._id) : "",
         studentCount: classGroup
           ? studentCountMap.get(String(classGroup._id)) || 0

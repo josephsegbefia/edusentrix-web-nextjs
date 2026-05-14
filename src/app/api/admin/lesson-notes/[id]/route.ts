@@ -9,6 +9,7 @@ import {
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
 import {
@@ -73,6 +74,7 @@ function formatLessonNoteResponse(
     teacherName,
     classGroupId: String(entry.classGroupId),
     className,
+    subjectOfferingId: entry.subjectOfferingId ? String(entry.subjectOfferingId) : null,
     subjectId: entry.subjectId ? String(entry.subjectId) : null,
     subjectName,
     academicPeriodId: entry.academicPeriodId ? String(entry.academicPeriodId) : null,
@@ -136,10 +138,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       );
     }
 
-    const [classGroup, subject, teacher, comments] = await Promise.all([
+    const [classGroup, subject, subjectOffering, teacher, comments] = await Promise.all([
       ClassGroup.findById(entry.classGroupId).select("name gradeId").lean(),
       entry.subjectId
         ? Subject.findById(entry.subjectId).select("name").lean()
+        : Promise.resolve(null),
+      entry.subjectOfferingId
+        ? SubjectOffering.findById(entry.subjectOfferingId).select("displayName shortName").lean()
         : Promise.resolve(null),
       Teacher.findById(entry.teacherId).select("userId").lean(),
       LessonNoteReviewComment.find({
@@ -207,7 +212,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       data: formatLessonNoteResponse(
         entry,
         className,
-        (subject as { name?: string } | null)?.name || null,
+        (subjectOffering as { displayName?: string; shortName?: string } | null)?.displayName ||
+          (subjectOffering as { displayName?: string; shortName?: string } | null)?.shortName ||
+          (subject as { name?: string } | null)?.name ||
+          null,
         teacherName,
         reviewComments
       ),

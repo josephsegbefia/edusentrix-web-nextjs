@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { ClassGroup } from "@/models/ClassGroup";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
@@ -81,8 +82,9 @@ export async function GET(
       .populate({ path: "subjectIds", select: "name", model: Subject })
       .populate({
         path: "homeroomClassGroupId",
-        select: "name",
+        select: "name gradeId",
         model: ClassGroup,
+        populate: { path: "gradeId", select: "name", model: Grade },
       })
       .lean();
 
@@ -107,6 +109,24 @@ export async function GET(
         }))
       : [];
 
+    let homeroomSource: any = t.homeroomClassGroupId || null;
+    if (!homeroomSource) {
+      homeroomSource = await ClassGroup.findOne({
+        schoolId: schoolIdObj,
+        homeroomTeacherId: teacherObjId,
+      })
+        .select("name gradeId")
+        .populate({ path: "gradeId", select: "name", model: Grade })
+        .lean();
+
+      if (homeroomSource?._id) {
+        await Teacher.updateOne(
+          { _id: teacherObjId, schoolId: schoolIdObj },
+          { $set: { homeroomClassGroupId: homeroomSource._id } }
+        );
+      }
+    }
+
     // Assigned subjects: derive from TeacherAssignment (current period, or all if none) so profile reflects actual teaching load
     let assignedSubjects: Array<{ id: string; name: string; classGroups: string[] }> = [];
     const currentPeriod = await AcademicPeriod.findOne({
@@ -126,6 +146,11 @@ export async function GET(
     })
       .populate({ path: "subjectId", select: "name", model: Subject })
       .populate({
+        path: "subjectOfferingId",
+        select: "displayName shortName subjectId",
+        model: SubjectOffering,
+      })
+      .populate({
         path: "classGroupId",
         select: "name",
         populate: { path: "gradeId", select: "name", model: Grade },
@@ -137,10 +162,13 @@ export async function GET(
     >();
     for (const a of assignments as any[]) {
       const subj = a.subjectId;
+      const offering = a.subjectOfferingId;
       const cls = a.classGroupId;
-      if (!subj) continue;
-      const sid = String(subj._id);
-      const sname = String(subj.name);
+      if (!subj && !offering) continue;
+      const sid = String(offering?._id || subj._id);
+      const sname = String(
+        offering?.displayName || offering?.shortName || subj?.name || "Subject"
+      );
       const classLabel = cls?.gradeId?.name
         ? `${(cls.gradeId as any).name} ${cls?.name || ""}`.trim()
         : cls?.name || "—";
@@ -154,10 +182,18 @@ export async function GET(
     }
     assignedSubjects = Array.from(bySubject.values());
 
-    const homeroom = t.homeroomClassGroupId
+    const homeroomGradeName = homeroomSource?.gradeId?.name
+      ? String(homeroomSource.gradeId.name)
+      : null;
+    const homeroomName = homeroomSource?.name ? String(homeroomSource.name) : null;
+    const homeroom = homeroomSource
       ? {
-          id: String(t.homeroomClassGroupId._id),
-          name: String(t.homeroomClassGroupId.name),
+          id: String(homeroomSource._id),
+          name: homeroomName || "",
+          gradeName: homeroomGradeName,
+          label: homeroomGradeName && homeroomName
+            ? `${homeroomGradeName} ${homeroomName}`.trim()
+            : homeroomName || "",
         }
       : null;
 

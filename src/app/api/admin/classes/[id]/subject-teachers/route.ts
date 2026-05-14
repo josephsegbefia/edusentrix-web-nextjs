@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireClassTimetableEditor } from "@/lib/auth/requireClassTimetableEditor";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
-import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
@@ -51,7 +51,7 @@ export async function GET(
       _id: classIdObj,
       schoolId: schoolIdObj,
     })
-      .select("_id subjectIds")
+      .select("_id subjectOfferingIds")
       .lean();
 
     if (!classGroup) {
@@ -83,19 +83,25 @@ export async function GET(
       if (currentPeriod) activePeriod = currentPeriod as { _id: mongoose.Types.ObjectId };
     }
 
-    if (!activePeriod) {
-      // No current period - return empty assignments
-      const subjectIds = (classGroup as any).subjectIds || [];
-      const subjects = await Subject.find({
-        _id: { $in: subjectIds },
-      })
-        .select("name code")
-        .lean();
+    const subjectOfferingIds = (classGroup as { subjectOfferingIds?: mongoose.Types.ObjectId[] }).subjectOfferingIds || [];
+    const allOfferings = await SubjectOffering.find({
+      _id: { $in: subjectOfferingIds },
+      schoolId: schoolIdObj,
+      isActive: true,
+    })
+      .select("_id subjectId displayName shortName code")
+      .lean();
+    const offeringBySubjectId = new Map<string, (typeof allOfferings)[number]>();
+    for (const offering of allOfferings) {
+      offeringBySubjectId.set(String(offering.subjectId), offering);
+    }
 
-      const data = subjects.map((s: any) => ({
-        subjectId: String(s._id),
-        subjectName: s.name,
-        subjectCode: s.code || null,
+    if (!activePeriod) {
+      const data = allOfferings.map((offering) => ({
+        subjectOfferingId: String(offering._id),
+        subjectId: String(offering.subjectId),
+        subjectName: offering.displayName || offering.shortName,
+        subjectCode: offering.code || null,
         teachers: [],
       }));
 
@@ -117,6 +123,7 @@ export async function GET(
           select: "firstName lastName email avatarUrl",
         },
       })
+      .populate("subjectOfferingId", "displayName shortName code subjectId")
       .populate("subjectId", "name code")
       .lean();
 
@@ -125,11 +132,13 @@ export async function GET(
       string,
       {
         subjectId: string;
+        subjectOfferingId: string | null;
         subjectName: string;
         subjectCode: string | null;
         teachers: Array<{
           id: string;
           assignmentId: string;
+          contactHoursPerWeek: number | null;
           firstName: string;
           lastName: string;
           fullName: string;
@@ -140,27 +149,40 @@ export async function GET(
     >();
 
     for (const assignment of assignments) {
-      const subject = (assignment as any).subjectId;
+      const assignmentOffering = (assignment as any).subjectOfferingId;
+      const legacySubject = (assignment as any).subjectId;
+      const fallbackOffering = legacySubject?._id
+        ? offeringBySubjectId.get(String(legacySubject._id))
+        : null;
+      const offering = assignmentOffering || fallbackOffering;
+      const subject = offering || legacySubject;
       const teacher = (assignment as any).teacherId;
       const user = teacher?.userId;
 
       if (!subject) continue;
 
-      const subjectIdStr = String(subject._id);
+      const subjectIdStr = String(offering?.subjectId || legacySubject?._id || subject._id);
+      const offeringIdStr = offering?._id ? String(offering._id) : null;
+      const mapKey = offeringIdStr || subjectIdStr;
 
-      if (!subjectTeachersMap.has(subjectIdStr)) {
-        subjectTeachersMap.set(subjectIdStr, {
+      if (!subjectTeachersMap.has(mapKey)) {
+        subjectTeachersMap.set(mapKey, {
+          subjectOfferingId: offeringIdStr,
           subjectId: subjectIdStr,
-          subjectName: subject.name,
-          subjectCode: subject.code || null,
+          subjectName: offering?.displayName || offering?.shortName || legacySubject?.name || subject.name,
+          subjectCode: offering?.code || legacySubject?.code || subject.code || null,
           teachers: [],
         });
       }
 
       if (teacher && user) {
-        subjectTeachersMap.get(subjectIdStr)!.teachers.push({
+        subjectTeachersMap.get(mapKey)!.teachers.push({
           id: String(teacher._id),
           assignmentId: String(assignment._id),
+          contactHoursPerWeek:
+            typeof (assignment as { contactHoursPerWeek?: unknown }).contactHoursPerWeek === "number"
+              ? ((assignment as { contactHoursPerWeek: number }).contactHoursPerWeek)
+              : null,
           firstName: user.firstName || "",
           lastName: user.lastName || "",
           fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
@@ -170,21 +192,15 @@ export async function GET(
       }
     }
 
-    // Also include subjects that are assigned to the class but have no teacher yet
-    const subjectIds = (classGroup as any).subjectIds || [];
-    const allSubjects = await Subject.find({
-      _id: { $in: subjectIds },
-    })
-      .select("name code")
-      .lean();
-
-    for (const subject of allSubjects) {
-      const subjectIdStr = String((subject as any)._id);
-      if (!subjectTeachersMap.has(subjectIdStr)) {
-        subjectTeachersMap.set(subjectIdStr, {
-          subjectId: subjectIdStr,
-          subjectName: (subject as any).name,
-          subjectCode: (subject as any).code || null,
+    // Also include offerings assigned to the class but without a teacher yet.
+    for (const offering of allOfferings) {
+      const offeringIdStr = String(offering._id);
+      if (!subjectTeachersMap.has(offeringIdStr)) {
+        subjectTeachersMap.set(offeringIdStr, {
+          subjectOfferingId: offeringIdStr,
+          subjectId: String(offering.subjectId),
+          subjectName: offering.displayName || offering.shortName,
+          subjectCode: offering.code || null,
           teachers: [],
         });
       }

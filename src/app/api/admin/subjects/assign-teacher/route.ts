@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Teacher } from "@/models/Teacher";
 import { ClassGroup } from "@/models/ClassGroup";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
 import { z } from "zod";
@@ -18,6 +19,7 @@ import { syncDraftSlotTeachersFromAssignment } from "@/lib/timetable/sync-slot-t
 const AssignTeacherSchema = z.object({
   teacherId: z.string(),
   subjectId: z.string(),
+  subjectOfferingId: z.string().optional().nullable(),
   classGroupId: z.string(),
   academicPeriodId: z.string().optional(), // If not provided, use active period
   workloadHours: z.number().min(0).optional(),
@@ -63,6 +65,7 @@ export async function POST(req: NextRequest) {
     const {
       teacherId,
       subjectId,
+      subjectOfferingId,
       classGroupId,
       academicPeriodId,
       workloadHours,
@@ -73,11 +76,20 @@ export async function POST(req: NextRequest) {
 
     const teacherObjId = toObjectIdOrNull(teacherId);
     const subjectObjId = toObjectIdOrNull(subjectId);
+    const explicitSubjectOfferingObjId = subjectOfferingId
+      ? toObjectIdOrNull(subjectOfferingId)
+      : null;
     const classGroupObjId = toObjectIdOrNull(classGroupId);
 
     if (!teacherObjId || !subjectObjId || !classGroupObjId) {
       return NextResponse.json(
         { success: false, error: "Invalid IDs provided" },
+        { status: 400 }
+      );
+    }
+    if (subjectOfferingId && !explicitSubjectOfferingObjId) {
+      return NextResponse.json(
+        { success: false, error: "Invalid subject offering ID" },
         { status: 400 }
       );
     }
@@ -108,6 +120,42 @@ export async function POST(req: NextRequest) {
         );
       }
       periodObjId = activePeriod._id;
+    }
+
+    const classGroup = await ClassGroup.findOne({
+      _id: classGroupObjId,
+      schoolId: schoolIdObj,
+    })
+      .select("subjectOfferingIds")
+      .lean<{ subjectOfferingIds?: mongoose.Types.ObjectId[] } | null>();
+
+    if (!classGroup) {
+      return NextResponse.json(
+        { success: false, error: "Class not found" },
+        { status: 404 }
+      );
+    }
+
+    let offering = explicitSubjectOfferingObjId
+      ? await SubjectOffering.findOne({
+          _id: explicitSubjectOfferingObjId,
+          schoolId: schoolIdObj,
+          subjectId: subjectObjId,
+          isActive: true,
+        })
+          .select("_id subjectId")
+          .lean<{ _id: mongoose.Types.ObjectId; subjectId: mongoose.Types.ObjectId } | null>()
+      : null;
+
+    if (!offering) {
+      offering = await SubjectOffering.findOne({
+        _id: { $in: classGroup.subjectOfferingIds || [] },
+        schoolId: schoolIdObj,
+        subjectId: subjectObjId,
+        isActive: true,
+      })
+        .select("_id subjectId")
+        .lean<{ _id: mongoose.Types.ObjectId; subjectId: mongoose.Types.ObjectId } | null>();
     }
 
     const sameTeacherAssignment = await TeacherAssignment.findOne({
@@ -180,7 +228,12 @@ export async function POST(req: NextRequest) {
     // Ensure the class has this subject in subjectIds (so it appears in Assigned Classes)
     await ClassGroup.updateOne(
       { _id: classGroupObjId, schoolId: schoolIdObj },
-      { $addToSet: { subjectIds: subjectObjId } }
+      {
+        $addToSet: {
+          subjectIds: subjectObjId,
+          ...(offering?._id ? { subjectOfferingIds: offering._id } : {}),
+        },
+      }
     );
 
     // Add subject to teacher's subjectIds (so it appears on teacher profile)
@@ -195,6 +248,7 @@ export async function POST(req: NextRequest) {
       schoolId: schoolIdObj,
       academicPeriodId: periodObjId,
       subjectId: subjectObjId,
+      subjectOfferingId: offering?._id || null,
       classGroupId: classGroupObjId,
       workloadHours: workloadHours || 0,
       notes: notes || undefined,
@@ -221,6 +275,7 @@ export async function POST(req: NextRequest) {
         id: String(assignment._id),
         teacherId: String(teacherObjId),
         subjectId: String(subjectObjId),
+        subjectOfferingId: offering?._id ? String(offering._id) : null,
         classGroupId: String(classGroupObjId),
         academicPeriodId: String(periodObjId),
         hasConflict: hadOthersOnSlot,

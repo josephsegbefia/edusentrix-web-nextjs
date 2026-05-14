@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/models/TeacherAssignment.ts
-import mongoose, { Schema, model, models, Types, type Model } from "mongoose";
+import { Schema, model, models, Types, type Model } from "mongoose";
 
-export type AssignmentStatus = "active" | "inactive";
+export type AssignmentStatus = "active" | "inactive" | "archived";
 
 export interface ITeacherAssignment {
   _id: Types.ObjectId;
@@ -12,20 +11,6 @@ export interface ITeacherAssignment {
   subjectId: Types.ObjectId;
   subjectOfferingId?: Types.ObjectId | null;
   classGroupId: Types.ObjectId;
-
-  schedule?: {
-    dayOfWeek?: number; // 0-6
-    startTime?: string; // "HH:MM"
-    endTime?: string; // "HH:MM"
-    location?: string;
-  };
-  schedules?: Array<{
-    dayOfWeek: number; // 0-6
-    startTime: string; // "HH:MM"
-    endTime: string; // "HH:MM"
-    location?: string;
-    roomId?: Types.ObjectId; // Optional room override
-  }>;
 
   // Contact hours per week for this subject in this class
   contactHoursPerWeek?: number;
@@ -41,27 +26,6 @@ export interface ITeacherAssignment {
   createdAt: Date;
   updatedAt: Date;
 }
-
-const ScheduleSchema = new Schema(
-  {
-    dayOfWeek: { type: Number, min: 0, max: 6 },
-    startTime: { type: String, trim: true },
-    endTime: { type: String, trim: true },
-    location: { type: String, trim: true },
-  },
-  { _id: false }
-);
-
-const ScheduleItemSchema = new Schema(
-  {
-    dayOfWeek: { type: Number, required: true, min: 0, max: 6 },
-    startTime: { type: String, required: true, trim: true },
-    endTime: { type: String, required: true, trim: true },
-    location: { type: String, trim: true },
-    roomId: { type: Schema.Types.ObjectId, ref: "Room" }, // Optional room override
-  },
-  { _id: false }
-);
 
 const TeacherAssignmentSchema = new Schema<ITeacherAssignment>(
   {
@@ -102,14 +66,11 @@ const TeacherAssignmentSchema = new Schema<ITeacherAssignment>(
       index: true,
     },
 
-    schedule: { type: ScheduleSchema, default: undefined }, // Legacy single schedule
-    schedules: { type: [ScheduleItemSchema], default: undefined }, // New multiple schedules array
-
     contactHoursPerWeek: { type: Number, min: 0, max: 40 }, // Contact hours per week
     workloadHours: { type: Number, default: 0 },
     status: {
       type: String,
-      enum: ["active", "inactive"],
+      enum: ["active", "inactive", "archived"],
       default: "active",
       index: true,
     },
@@ -128,10 +89,12 @@ const TeacherAssignmentSchema = new Schema<ITeacherAssignment>(
 TeacherAssignmentSchema.index(
   {
     schoolId: 1,
-    teacherId: 1,
     academicPeriodId: 1,
-    subjectId: 1,
+    teacherId: 1,
     classGroupId: 1,
+    subjectId: 1,
+    subjectOfferingId: 1,
+    status: 1,
   },
   { unique: true, partialFilterExpression: { status: "active" } }
 );
@@ -142,7 +105,14 @@ TeacherAssignmentSchema.index(
  * This index is non-unique to allow multiple active assignments
  */
 TeacherAssignmentSchema.index(
-  { schoolId: 1, academicPeriodId: 1, subjectId: 1, classGroupId: 1, status: 1 }
+  {
+    schoolId: 1,
+    academicPeriodId: 1,
+    classGroupId: 1,
+    subjectId: 1,
+    subjectOfferingId: 1,
+    status: 1,
+  }
 );
 
 // Performance indexes

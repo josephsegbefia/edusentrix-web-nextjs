@@ -1,13 +1,6 @@
 import { Types } from "mongoose";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
-import { TimetableSlot } from "@/models/TimetableSlot";
 import { TimetableVersion } from "@/models/TimetableVersion";
-
-type AssignmentSchedule = {
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-};
 
 type LegacyParityEntry = {
   assignmentId: string;
@@ -63,68 +56,6 @@ export type BuildTimetableParityInput = {
   versionId?: Types.ObjectId | null;
   maxExamples?: number;
 };
-
-function parseTimeToMinutes(hhmm: string): number | null {
-  const match = /^(\d{2}):(\d{2})$/.exec(hhmm);
-  if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-  return hours * 60 + minutes;
-}
-
-function normalizeSchedules(raw: {
-  schedule?: { dayOfWeek?: number; startTime?: string; endTime?: string };
-  schedules?: Array<{ dayOfWeek?: number; startTime?: string; endTime?: string }>;
-}): AssignmentSchedule[] {
-  const candidates: AssignmentSchedule[] = [];
-
-  if (
-    raw.schedule &&
-    Number.isInteger(raw.schedule.dayOfWeek) &&
-    raw.schedule.startTime &&
-    raw.schedule.endTime
-  ) {
-    candidates.push({
-      dayOfWeek: raw.schedule.dayOfWeek as number,
-      startTime: raw.schedule.startTime,
-      endTime: raw.schedule.endTime,
-    });
-  }
-
-  if (Array.isArray(raw.schedules)) {
-    for (const item of raw.schedules) {
-      if (Number.isInteger(item.dayOfWeek) && item.startTime && item.endTime) {
-        candidates.push({
-          dayOfWeek: item.dayOfWeek as number,
-          startTime: item.startTime,
-          endTime: item.endTime,
-        });
-      }
-    }
-  }
-
-  const deduped: AssignmentSchedule[] = [];
-  const seen = new Set<string>();
-
-  for (const entry of candidates) {
-    if (entry.dayOfWeek < 0 || entry.dayOfWeek > 6) continue;
-    const start = parseTimeToMinutes(entry.startTime);
-    const end = parseTimeToMinutes(entry.endTime);
-    if (start === null || end === null || end <= start) continue;
-
-    const key = `${entry.dayOfWeek}|${entry.startTime}|${entry.endTime}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push(entry);
-  }
-
-  return deduped.sort((a, b) => {
-    if (a.dayOfWeek !== b.dayOfWeek) return a.dayOfWeek - b.dayOfWeek;
-    if (a.startTime !== b.startTime) return a.startTime.localeCompare(b.startTime);
-    return a.endTime.localeCompare(b.endTime);
-  });
-}
 
 function buildParityKey(entry: LegacyParityEntry): string {
   return [
@@ -196,9 +127,7 @@ export async function buildTimetableParityReport(
   }
 
   const assignments = (await TeacherAssignment.find(assignmentQuery)
-    .select(
-      "_id schoolId academicPeriodId teacherId subjectId classGroupId schedule schedules"
-    )
+    .select("_id schoolId academicPeriodId teacherId subjectId classGroupId")
     .lean()) as Array<{
     _id: Types.ObjectId;
     schoolId: Types.ObjectId;
@@ -206,8 +135,6 @@ export async function buildTimetableParityReport(
     teacherId: Types.ObjectId;
     subjectId: Types.ObjectId;
     classGroupId: Types.ObjectId;
-    schedule?: { dayOfWeek?: number; startTime?: string; endTime?: string };
-    schedules?: Array<{ dayOfWeek?: number; startTime?: string; endTime?: string }>;
   }>;
 
   const byPeriod = new Map<string, typeof assignments>();
@@ -234,51 +161,10 @@ export async function buildTimetableParityReport(
     });
 
     const expected: LegacyParityEntry[] = [];
-    for (const assignment of periodAssignments) {
-      const schedules = normalizeSchedules(assignment);
-      for (const schedule of schedules) {
-        expected.push({
-          assignmentId: String(assignment._id),
-          academicPeriodId: String(assignment.academicPeriodId),
-          classGroupId: String(assignment.classGroupId),
-          subjectId: String(assignment.subjectId),
-          teacherId: String(assignment.teacherId),
-          dayOfWeek: schedule.dayOfWeek,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-        });
-      }
-    }
+    void periodAssignments;
 
     const actual: ActualParityEntry[] = [];
-    if (preferredVersion?.id) {
-      const slots = await TimetableSlot.find({
-        schoolId: input.schoolId,
-        academicPeriodId: periodId,
-        versionId: preferredVersion.id,
-        source: "assignment_sync",
-      })
-        .select(
-          "_id academicPeriodId classGroupId subjectId teacherId dayOfWeek startTime endTime legacyAssignmentId"
-        )
-        .lean();
-
-      for (const slot of slots) {
-        const legacyAssignmentId = (slot as { legacyAssignmentId?: Types.ObjectId | null })
-          .legacyAssignmentId;
-        actual.push({
-          slotId: String(slot._id),
-          assignmentId: legacyAssignmentId ? String(legacyAssignmentId) : "__missing__",
-          academicPeriodId: String(slot.academicPeriodId),
-          classGroupId: String(slot.classGroupId),
-          subjectId: String(slot.subjectId),
-          teacherId: String(slot.teacherId),
-          dayOfWeek: slot.dayOfWeek,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-        });
-      }
-    }
+    void actual;
 
     const expectedMap = new Map<string, LegacyParityEntry>();
     for (const entry of expected) {

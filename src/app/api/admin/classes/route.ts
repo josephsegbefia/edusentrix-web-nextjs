@@ -7,6 +7,7 @@ import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import mongoose from "mongoose";
 import { z } from "zod";
@@ -73,7 +74,29 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
       .map((id) => new mongoose.Types.ObjectId(id));
 
-    /** When not specified (e.g. Add class from grade overview), inherit the grade’s current subject set from sibling classes. */
+    /** When not specified (e.g. Add class from grade overview), inherit the grade’s current offering set from sibling classes. */
+    let subjectOfferingIdsObj = (subjectOfferingIds || [])
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+    if (subjectOfferingIdsObj.length === 0) {
+      const siblings = await ClassGroup.find({
+        schoolId: schoolIdObj,
+        gradeId: gradeIdObj,
+        isActive: true,
+      })
+        .select("subjectOfferingIds")
+        .lean();
+      const union = new Set<string>();
+      for (const sib of siblings) {
+        const raw = (sib as { subjectOfferingIds?: mongoose.Types.ObjectId[] }).subjectOfferingIds ?? [];
+        for (const id of raw) {
+          if (id) union.add(String(id));
+        }
+      }
+      subjectOfferingIdsObj = Array.from(union).map((id) => new mongoose.Types.ObjectId(id));
+    }
+
+    /** Temporary legacy fallback for old callers that still post subjectIds directly. */
     if (subjectIdsObj.length === 0) {
       const siblings = await ClassGroup.find({
         schoolId: schoolIdObj,
@@ -100,9 +123,7 @@ export async function POST(req: NextRequest) {
       gradeId: gradeIdObj,
       name: name.trim(),
       subjectIds: subjectIdsObj,
-      subjectOfferingIds: (subjectOfferingIds || [])
-        .filter((id) => mongoose.Types.ObjectId.isValid(id))
-        .map((id) => new mongoose.Types.ObjectId(id)),
+      subjectOfferingIds: subjectOfferingIdsObj,
       capacity: capacity ?? null,
       isActive: true,
     });
@@ -161,7 +182,7 @@ export async function POST(req: NextRequest) {
         subjectOfferingIds: (newClass.subjectOfferingIds || []).map(String),
         studentCount: 0,
         teacherCount: 0,
-        subjectCount: subjectIdsObj.length,
+        subjectCount: subjectOfferingIdsObj.length || subjectIdsObj.length,
         capacity: newClass.capacity,
         isActive: newClass.isActive,
       },
@@ -184,6 +205,7 @@ export async function GET(req: NextRequest) {
     // Ensure models used by populate are registered before querying.
     void Grade;
     void Subject;
+    void SubjectOffering;
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
     const { searchParams } = new URL(req.url);
@@ -256,6 +278,7 @@ export async function GET(req: NextRequest) {
     // Fetch classes with basic population first
     const classes = await ClassGroup.find(query)
       .populate("gradeId", "name code stage order")
+      .populate("subjectOfferingIds", "displayName shortName code subjectId")
       .populate("subjectIds", "name code")
       .lean();
 
@@ -377,15 +400,24 @@ export async function GET(req: NextRequest) {
               order: 0,
             },
         homeroomTeacher,
-        subjects: (cls.subjectIds || []).map((s: any) => ({
-          id: String(s._id),
-          name: s.name,
-          code: s.code || null,
-        })),
-        subjectOfferingIds: (cls.subjectOfferingIds || []).map(String),
+        subjects:
+          (cls.subjectOfferingIds || []).length > 0
+            ? (cls.subjectOfferingIds || []).map((offering: any) => ({
+                id: String(offering.subjectId || offering._id),
+                subjectOfferingId: String(offering._id),
+                name: offering.displayName || offering.shortName,
+                code: offering.code || null,
+              }))
+            : (cls.subjectIds || []).map((s: any) => ({
+                id: String(s._id),
+                subjectOfferingId: null,
+                name: s.name,
+                code: s.code || null,
+              })),
+        subjectOfferingIds: (cls.subjectOfferingIds || []).map((offering: any) => String(offering._id || offering)),
         studentCount: countMap.get(String(cls._id)) || 0,
         teacherCount: teacherCountMap.get(String(cls._id)) || 0,
-        subjectCount: cls.subjectIds?.length || 0,
+        subjectCount: cls.subjectOfferingIds?.length || cls.subjectIds?.length || 0,
         capacity: cls.capacity || null,
         isActive: cls.isActive,
         createdAt: new Date(cls.createdAt).toISOString(),

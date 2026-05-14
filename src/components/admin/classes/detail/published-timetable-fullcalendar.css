@@ -66,9 +66,10 @@
   opacity: 0.9;
 }
 
+/* Keep events clipped to their time slot so custom card content cannot paint over neighbors. */
 .published-timetable-fc .fc-timegrid-event-harness,
 .published-timetable-fc .fc-timegrid-event {
-  overflow: visible;
+  overflow: hidden;
 }
 
 .published-timetable-fc .edus-pub-event {
@@ -91,6 +92,7 @@
 .published-timetable-fc .fc-timegrid-event .fc-event-main {
   padding: 0;
   min-width: 0;
+  height: 100%;
 }
 
 .published-timetable-fc .fc-timegrid-event .fc-event-main-frame {

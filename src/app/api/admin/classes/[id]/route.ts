@@ -7,7 +7,9 @@ import { Student } from "@/models/Student";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { Teacher } from "@/models/Teacher";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string) {
@@ -33,6 +35,7 @@ export async function GET(
     // Ensure models used by populate are registered
     void Grade;
     void Subject;
+    void SubjectOffering;
 
     const { id } = await params;
     const classId = toObjectIdOrNull(id);
@@ -51,6 +54,7 @@ export async function GET(
       schoolId: schoolIdObj,
     })
       .populate("gradeId", "name code stage order")
+      .populate("subjectOfferingIds", "displayName shortName code subjectId")
       .populate("subjectIds", "name code")
       .lean();
 
@@ -148,14 +152,24 @@ export async function GET(
             order: 0,
           },
       homeroomTeacher,
-      subjects: ((cls as any).subjectIds || []).map((s: any) => ({
-        id: String(s._id),
-        name: s.name,
-        code: s.code || null,
-      })),
+      subjects:
+        ((cls as any).subjectOfferingIds || []).length > 0
+          ? ((cls as any).subjectOfferingIds || []).map((offering: any) => ({
+              id: String(offering.subjectId || offering._id),
+              subjectOfferingId: String(offering._id),
+              name: offering.displayName || offering.shortName,
+              code: offering.code || null,
+            }))
+          : ((cls as any).subjectIds || []).map((s: any) => ({
+              id: String(s._id),
+              subjectOfferingId: null,
+              name: s.name,
+              code: s.code || null,
+            })),
       studentCount,
       teacherCount,
-      subjectCount: (cls as any).subjectIds?.length || 0,
+      subjectCount:
+        (cls as any).subjectOfferingIds?.length || (cls as any).subjectIds?.length || 0,
       capacity: (cls as any).capacity || null,
       defaultRoomName: (cls as any).defaultRoomName || null,
       isActive: (cls as any).isActive,
@@ -202,10 +216,12 @@ export async function PATCH(
     const body = await req.json();
 
     const updateData: Record<string, unknown> = {};
+    let nextHomeroomTeacherId: mongoose.Types.ObjectId | null | undefined;
 
     if (body.homeroomTeacherId !== undefined) {
       if (body.homeroomTeacherId === null || body.homeroomTeacherId === "") {
         updateData.homeroomTeacherId = null;
+        nextHomeroomTeacherId = null;
       } else {
         const teacherId = toObjectIdOrNull(body.homeroomTeacherId);
         if (!teacherId) {
@@ -215,6 +231,7 @@ export async function PATCH(
           );
         }
         updateData.homeroomTeacherId = teacherId;
+        nextHomeroomTeacherId = teacherId;
       }
     }
 
@@ -253,6 +270,50 @@ export async function PATCH(
       updateData.isActive = body.isActive === true;
     }
 
+    const existingClassGroup =
+      nextHomeroomTeacherId !== undefined
+        ? await ClassGroup.findOne({ _id: classId, schoolId: schoolIdObj })
+            .select("homeroomTeacherId")
+            .lean()
+        : null;
+
+    if (nextHomeroomTeacherId) {
+      const teacher = await Teacher.findOne({
+        _id: nextHomeroomTeacherId,
+        schoolId: schoolIdObj,
+      })
+        .select("_id homeroomClassGroupId")
+        .lean();
+
+      if (!teacher) {
+        return NextResponse.json(
+          { success: false, error: "Teacher not found" },
+          { status: 404 }
+        );
+      }
+
+      if (
+        teacher.homeroomClassGroupId &&
+        String(teacher.homeroomClassGroupId) !== String(classId)
+      ) {
+        await ClassGroup.updateOne(
+          { _id: teacher.homeroomClassGroupId, schoolId: schoolIdObj },
+          { $unset: { homeroomTeacherId: 1 } }
+        );
+      }
+    }
+
+    if (
+      existingClassGroup?.homeroomTeacherId &&
+      (!nextHomeroomTeacherId ||
+        String(existingClassGroup.homeroomTeacherId) !== String(nextHomeroomTeacherId))
+    ) {
+      await Teacher.updateOne(
+        { _id: existingClassGroup.homeroomTeacherId, schoolId: schoolIdObj },
+        { $unset: { homeroomClassGroupId: 1 } }
+      );
+    }
+
     const updated = await ClassGroup.findOneAndUpdate(
       { _id: classId, schoolId: schoolIdObj },
       { $set: updateData },
@@ -267,6 +328,13 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, error: "Class not found" },
         { status: 404 }
+      );
+    }
+
+    if (nextHomeroomTeacherId) {
+      await Teacher.updateOne(
+        { _id: nextHomeroomTeacherId, schoolId: schoolIdObj },
+        { $set: { homeroomClassGroupId: classId } }
       );
     }
 

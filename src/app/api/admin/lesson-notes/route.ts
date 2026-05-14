@@ -9,6 +9,7 @@ import {
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
 import { formatUserDisplayName } from "@/lib/lesson-notes/review";
@@ -46,8 +47,13 @@ function formatLessonNoteResponse(
     teacherName: teacherNameMap.get(String(entry.teacherId)) || null,
     classGroupId: String(entry.classGroupId),
     className: classNameMap.get(String(entry.classGroupId)) || "",
+    subjectOfferingId: entry.subjectOfferingId ? String(entry.subjectOfferingId) : null,
     subjectId: entry.subjectId ? String(entry.subjectId) : null,
-    subjectName: entry.subjectId ? subjectMap.get(String(entry.subjectId)) || "" : null,
+    subjectName: entry.subjectOfferingId
+      ? subjectMap.get(String(entry.subjectOfferingId)) || ""
+      : entry.subjectId
+        ? subjectMap.get(String(entry.subjectId)) || ""
+        : null,
     academicPeriodId: entry.academicPeriodId ? String(entry.academicPeriodId) : null,
     templateType: entry.templateType || "SIMPLE",
     curriculumCode: (entry as unknown as Record<string, unknown>).curriculumCode || null,
@@ -90,6 +96,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const classGroupId = searchParams.get("classGroupId");
+    const subjectOfferingId = searchParams.get("subjectOfferingId");
     const subjectId = searchParams.get("subjectId");
     const teacherId = searchParams.get("teacherId");
     const templateType = searchParams.get("templateType");
@@ -112,6 +119,17 @@ export async function GET(req: Request) {
         );
       }
       query.classGroupId = classGroupObjId;
+    }
+
+    if (subjectOfferingId) {
+      const subjectOfferingObjId = toObjectIdOrNull(subjectOfferingId);
+      if (!subjectOfferingObjId) {
+        return Response.json(
+          { success: false, error: "Invalid subject offering ID" },
+          { status: 400 }
+        );
+      }
+      query.subjectOfferingId = subjectOfferingObjId;
     }
 
     if (subjectId) {
@@ -197,16 +215,29 @@ export async function GET(req: Request) {
           .map((id) => String(id))
       )
     ).map((id) => new mongoose.Types.ObjectId(id));
+    const subjectOfferingIds = Array.from(
+      new Set(
+        entries
+          .map((entry) => entry.subjectOfferingId)
+          .filter(Boolean)
+          .map((id) => String(id))
+      )
+    ).map((id) => new mongoose.Types.ObjectId(id));
     const teacherIds = Array.from(
       new Set(entries.map((entry) => String(entry.teacherId)))
     ).map((id) => new mongoose.Types.ObjectId(id));
 
-    const [classGroups, subjects, teachers, commentStats] = await Promise.all([
+    const [classGroups, subjects, subjectOfferings, teachers, commentStats] = await Promise.all([
       ClassGroup.find({ _id: { $in: classGroupIds } })
         .select("_id name gradeId")
         .lean(),
       subjectIds.length
         ? Subject.find({ _id: { $in: subjectIds } }).select("_id name").lean()
+        : Promise.resolve([]),
+      subjectOfferingIds.length
+        ? SubjectOffering.find({ _id: { $in: subjectOfferingIds }, schoolId: context.schoolId })
+            .select("_id displayName shortName")
+            .lean()
         : Promise.resolve([]),
       Teacher.find({ _id: { $in: teacherIds } }).select("_id userId").lean(),
       LessonNoteReviewComment.aggregate<{
@@ -291,6 +322,13 @@ export async function GET(req: Request) {
         subject.name,
       ])
     );
+    for (const offering of subjectOfferings as Array<{
+      _id: mongoose.Types.ObjectId;
+      displayName?: string;
+      shortName?: string;
+    }>) {
+      subjectMap.set(String(offering._id), offering.displayName || offering.shortName || "");
+    }
 
     const teacherUserMap = new Map(
       teacherUsers.map(

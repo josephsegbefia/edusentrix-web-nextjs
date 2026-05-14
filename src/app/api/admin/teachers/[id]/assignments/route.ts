@@ -15,6 +15,10 @@ import {
   findOtherTeachersOnSlot,
 } from "@/lib/admin/teacher-assignment-slot";
 import { syncTimetableSlotTeachersFromAssignments } from "@/lib/timetable/sync-slot-teachers-from-assignments";
+import {
+  markPublishedTimetableStale,
+  recordScheduleChangeEvent,
+} from "@/lib/timetable/schedule-change-events";
 import { querySlotsForTeacherWithAssignments } from "@/lib/timetable/read-model";
 
 function toObjectIdOrThrow(id: string, label: string) {
@@ -307,6 +311,17 @@ export async function POST(
       Object.prototype.hasOwnProperty.call(body, "schedule") ||
       Object.prototype.hasOwnProperty.call(body, "schedules");
 
+    if (scheduleWriteAttempted) {
+      return Response.json(
+        {
+          success: false,
+          error:
+            "Assignment-level schedules have been removed. Create lesson times from the class timetable page.",
+        },
+        { status: 409 }
+      );
+    }
+
     const resolutionRaw = body.resolution;
     const resolution =
       resolutionRaw === "replace" || resolutionRaw === "add_alongside"
@@ -342,11 +357,6 @@ export async function POST(
       return Response.json({ error: "Subject not found" }, { status: 404 });
 
     const warnings: string[] = [];
-    if (scheduleWriteAttempted) {
-      warnings.push(
-        "Assignment-level schedule writes are disabled. Manage schedules from the class timetable page."
-      );
-    }
 
     // Optional: warn if subject not in class group’s configured subjects
     const cgSubjects = Array.isArray((classGroup as any).subjectIds)
@@ -468,6 +478,28 @@ export async function POST(
           },
         ],
         updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
+      });
+
+      const actorId = userId ? new mongoose.Types.ObjectId(String(userId)) : null;
+      await markPublishedTimetableStale({
+        schoolId: schoolIdObj,
+        academicPeriodId: academicPeriodObjId,
+        sourceModule: "teacherAssignment",
+        sourceEntityId: created._id,
+        message: "Teacher assignment changed after timetable publication.",
+        actorId,
+      });
+      await recordScheduleChangeEvent({
+        schoolId: schoolIdObj,
+        academicPeriodId: academicPeriodObjId,
+        entityType: "teacherAssignment",
+        entityId: created._id,
+        action: "created",
+        affectedClassGroupIds: [classGroupObjId],
+        affectedTeacherIds: [teacherObjId],
+        affectedSubjectIds: [subjectObjId],
+        createdBy: actorId,
+        message: "Teacher assignment created",
       });
 
       return Response.json({

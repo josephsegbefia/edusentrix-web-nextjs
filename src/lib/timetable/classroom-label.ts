@@ -21,6 +21,7 @@ export interface ResolvedClassroomLabel {
   source: ClassroomLabelSource;
   classGroupId: Types.ObjectId;
   gradeId: Types.ObjectId;
+  roomId: Types.ObjectId | null;
 }
 
 function normalizeSpaces(value: string): string {
@@ -56,7 +57,7 @@ export async function resolveClassroomLabel(
     _id: input.classGroupId,
     schoolId: input.schoolId,
   })
-    .select("_id schoolId gradeId name defaultRoomName")
+    .select("_id schoolId gradeId name defaultRoomId defaultRoomName")
     .lean();
 
   const classGroupNormalized = Array.isArray(classGroupRaw)
@@ -64,7 +65,7 @@ export async function resolveClassroomLabel(
     : classGroupRaw;
   const classGroup = classGroupNormalized as Pick<
     IClassGroup,
-    "_id" | "schoolId" | "gradeId" | "name" | "defaultRoomName"
+    "_id" | "schoolId" | "gradeId" | "name" | "defaultRoomId" | "defaultRoomName"
   > | null;
 
   if (!classGroup) {
@@ -106,5 +107,6 @@ export async function resolveClassroomLabel(
     source,
     classGroupId: classGroup._id,
     gradeId: grade._id,
+    roomId: classGroup.defaultRoomId ?? null,
   };
 }

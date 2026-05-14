@@ -56,6 +56,38 @@ function formatOfferingLabel(value: string) {
   return label.toLowerCase() === "jhs" ? "JHS" : label;
 }
 
+const gradeBandOrder = [
+  "lower_primary",
+  "upper_primary",
+  "jhs",
+  "custom",
+] as const;
+
+function gradeBandHeading(value: string) {
+  if (value === "lower_primary") return "Lower Primary";
+  if (value === "upper_primary") return "Upper Primary";
+  if (value === "jhs") return "JHS";
+  if (value === "custom") return "Custom";
+  return formatOfferingLabel(value);
+}
+
+function isPreschoolGradeOption(grade: {
+  code?: string | null;
+  name?: string | null;
+  stage?: string | null;
+}) {
+  const raw = `${grade.code ?? ""} ${grade.name ?? ""} ${grade.stage ?? ""}`
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "");
+  return (
+    raw.includes("CRECHE") ||
+    raw.includes("NURSERY") ||
+    raw.includes("KG1") ||
+    raw.includes("KG2") ||
+    raw.includes("KINDERGARTEN")
+  );
+}
+
 export default function SubjectsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,7 +108,11 @@ export default function SubjectsPage() {
   const [assignClassesModalOpen, setAssignClassesModalOpen] = React.useState(false);
   const [createSubjectModalOpen, setCreateSubjectModalOpen] = React.useState(false);
   const [setupOpen, setSetupOpen] = React.useState(false);
-  const [gradeBandFilter, setGradeBandFilter] = React.useState(searchParams.get("gradeBand") ?? "all");
+  const [gradeBandFilter, setGradeBandFilter] = React.useState(
+    searchParams.get("gradeBand") === "preschool"
+      ? "all"
+      : searchParams.get("gradeBand") ?? "all"
+  );
   const [categoryFilter, setCategoryFilter] = React.useState(searchParams.get("category") ?? "all");
   const [editSubjectModalOpen, setEditSubjectModalOpen] = React.useState(false);
   const [selectedSubject, setSelectedSubject] = React.useState<SubjectDTO | null>(null);
@@ -86,6 +122,7 @@ export default function SubjectsPage() {
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
+  const setupGradeId = searchParams.get("gradeId") ?? undefined;
 
   const { data, isLoading, isError } = useSubjectOfferings({
     search: debouncedSearch,
@@ -94,7 +131,9 @@ export default function SubjectsPage() {
     category: categoryFilter,
   });
 
-  const offerings = data?.data || [];
+  const offerings = (data?.data || []).filter(
+    (offering) => offering.gradeBand !== "preschool"
+  );
   const subjects: SubjectDTO[] = offerings.map((offering) => ({
     id: offering.id,
     subjectId: offering.subjectId,
@@ -114,6 +153,20 @@ export default function SubjectsPage() {
     updatedAt: offering.updatedAt,
   }));
   const totalFiltered = subjects.length;
+  const groupedSubjects = React.useMemo(() => {
+    const map = new Map<string, SubjectDTO[]>();
+    for (const subject of subjects) {
+      const key = subject.gradeBand || "custom";
+      map.set(key, [...(map.get(key) ?? []), subject]);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => {
+      const ai = gradeBandOrder.indexOf(a as (typeof gradeBandOrder)[number]);
+      const bi = gradeBandOrder.indexOf(b as (typeof gradeBandOrder)[number]);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+  }, [subjects]);
+  const activeGradeBandHeading =
+    gradeBandFilter === "all" ? null : gradeBandHeading(gradeBandFilter);
 
   // URL sync
   React.useEffect(() => {
@@ -126,6 +179,12 @@ export default function SubjectsPage() {
 
     router.replace(`/admin/subjects?${params.toString()}`);
   }, [viewMode, debouncedSearch, activeFilter, gradeBandFilter, categoryFilter, router]);
+
+  React.useEffect(() => {
+    if (searchParams.get("setup") === "1") {
+      setSetupOpen(true);
+    }
+  }, [searchParams]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -299,7 +358,6 @@ export default function SubjectsPage() {
               <PremiumSelectContent>
                 {[
                   ["all", "All grade bands"],
-                  ["preschool", "Preschool"],
                   ["lower_primary", "Lower Primary"],
                   ["upper_primary", "Upper Primary"],
                   ["jhs", "JHS"],
@@ -363,6 +421,16 @@ export default function SubjectsPage() {
               <p className="text-sm text-white/80">
                 {isLoading ? "Loading..." : `${totalFiltered} offerings found`}
               </p>
+              {!isLoading && activeGradeBandHeading && (
+                <p className="text-xs font-medium text-amber-100/80">
+                  Now showing subject offerings for {activeGradeBandHeading}
+                </p>
+              )}
+              {!isLoading && !activeGradeBandHeading && subjects.length > 0 && (
+                <p className="text-xs text-white/45">
+                  Grouped by grade band for easier curriculum review.
+                </p>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span
@@ -460,21 +528,76 @@ export default function SubjectsPage() {
               </div>
 
               {viewMode === "cards" ? (
-                <SubjectsCardGrid
-                  subjects={subjects}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onAssignToClasses={handleAssignToClasses}
-                  onAssignTeachers={handleAssignTeachers}
-                />
+                gradeBandFilter === "all" ? (
+                  <div className="space-y-6">
+                    {groupedSubjects.map(([band, items]) => (
+                      <section key={band} className="space-y-3">
+                        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+                          <div>
+                            <h2 className="text-sm font-semibold text-white">
+                              {gradeBandHeading(band)}
+                            </h2>
+                            <p className="text-xs text-white/45">
+                              {items.length} offering{items.length === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-white/45">
+                            {band.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                        <SubjectsCardGrid
+                          subjects={items}
+                          onView={handleView}
+                          onEdit={handleEdit}
+                          onAssignToClasses={handleAssignToClasses}
+                          onAssignTeachers={handleAssignTeachers}
+                        />
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <SubjectsCardGrid
+                    subjects={subjects}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                    onAssignToClasses={handleAssignToClasses}
+                    onAssignTeachers={handleAssignTeachers}
+                  />
+                )
               ) : (
-                <SubjectsTable
-                  subjects={subjects}
-                  onView={handleView}
-                  onEdit={handleEdit}
-                  onAssignToClasses={handleAssignToClasses}
-                  onAssignTeachers={handleAssignTeachers}
-                />
+                gradeBandFilter === "all" ? (
+                  <div className="space-y-6">
+                    {groupedSubjects.map(([band, items]) => (
+                      <section key={band} className="space-y-3">
+                        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+                          <div>
+                            <h2 className="text-sm font-semibold text-white">
+                              {gradeBandHeading(band)}
+                            </h2>
+                            <p className="text-xs text-white/45">
+                              {items.length} offering{items.length === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                        </div>
+                        <SubjectsTable
+                          subjects={items}
+                          onView={handleView}
+                          onEdit={handleEdit}
+                          onAssignToClasses={handleAssignToClasses}
+                          onAssignTeachers={handleAssignTeachers}
+                        />
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <SubjectsTable
+                    subjects={subjects}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                    onAssignToClasses={handleAssignToClasses}
+                    onAssignTeachers={handleAssignTeachers}
+                  />
+                )
               )}
             </div>
           )}
@@ -490,6 +613,7 @@ export default function SubjectsPage() {
       <SetupSubjectOfferingsDialog
         open={setupOpen}
         onOpenChange={setSetupOpen}
+        initialGradeId={setupGradeId}
       />
 
       <CreateSubjectModal
@@ -533,9 +657,11 @@ export default function SubjectsPage() {
 function SetupSubjectOfferingsDialog({
   open,
   onOpenChange,
+  initialGradeId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialGradeId?: string;
 }) {
   const { data: gradesData } = useGrades(true);
   const setupMutation = useSetupSubjectOfferingsFromCurriculum();
@@ -551,19 +677,39 @@ function SetupSubjectOfferingsDialog({
     stage: "custom",
     category: "custom",
   });
-  const grades = gradesData?.data ?? [];
+  const grades = (gradesData?.data ?? []).filter(
+    (grade) => !isPreschoolGradeOption(grade)
+  );
+  const initialGrade = initialGradeId
+    ? grades.find((grade) => grade.id === initialGradeId)
+    : null;
+  const initialGradeBand = React.useMemo(() => {
+    if (!initialGrade) return null;
+    const raw = `${initialGrade.code ?? ""} ${initialGrade.name ?? ""} ${initialGrade.stage ?? ""}`
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "");
+    if (/^(CRECHE|NURSERY|KG1|KG2)|KINDERGARTEN/.test(raw)) return "preschool";
+    if (/(^|[^0-9])(P1|P2|P3|B1|B2|B3|BASIC1|BASIC2|BASIC3|PRIMARY1|PRIMARY2|PRIMARY3|GRADE1|GRADE2|GRADE3)/.test(raw)) return "lower_primary";
+    if (/(^|[^0-9])(P4|P5|P6|B4|B5|B6|BASIC4|BASIC5|BASIC6|PRIMARY4|PRIMARY5|PRIMARY6|GRADE4|GRADE5|GRADE6)/.test(raw)) return "upper_primary";
+    if (/JHS[123]/.test(raw) || raw.includes("JHS")) return "jhs";
+    return "custom";
+  }, [initialGrade]);
   const templates = React.useMemo(
-    () => getSubjectOfferingTemplatesForCurriculum(curriculumCode as "ghana_nacca"),
-    [curriculumCode]
+    () =>
+      getSubjectOfferingTemplatesForCurriculum(curriculumCode as "ghana_nacca").filter((template) => {
+        if (template.gradeBand === "preschool") return false;
+        return !initialGradeBand || template.gradeBand === initialGradeBand;
+      }),
+    [curriculumCode, initialGradeBand]
   );
   const [selectedGradeIds, setSelectedGradeIds] = React.useState<string[]>([]);
   const [selectedCodes, setSelectedCodes] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (!open) return;
-    setSelectedGradeIds(grades.map((grade) => grade.id));
+    setSelectedGradeIds(initialGradeId ? [initialGradeId] : grades.map((grade) => grade.id));
     setSelectedCodes(templates.filter((template) => template.isDefault).map((template) => template.code));
-  }, [open, grades, templates]);
+  }, [open, grades, templates, initialGradeId]);
 
   const groupedTemplates = React.useMemo(() => {
     return templates.reduce<Record<string, CurriculumSubjectOfferingTemplate[]>>((acc, template) => {
@@ -655,7 +801,7 @@ function SetupSubjectOfferingsDialog({
                       <PremiumSelectValue />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
-                      <PremiumSelectItem value="ghana_nacca" description="NaCCA grouped by preschool, primary, and JHS for Basic schools.">
+                      <PremiumSelectItem value="ghana_nacca" description="NaCCA grouped by lower primary, upper primary, and JHS for Basic schools.">
                         Ghana NaCCA
                       </PremiumSelectItem>
                     </PremiumSelectContent>
@@ -666,9 +812,10 @@ function SetupSubjectOfferingsDialog({
                     <Checkbox checked={autoAssign} onCheckedChange={(checked) => setAutoAssign(Boolean(checked))} />
                     <span>
                       <span className="block text-sm font-medium text-white">Assign to matching class groups</span>
-                      <span className="mt-1 block text-xs leading-relaxed text-white/50">
-                        For example, Mathematics - JHS will be assigned to every
-                        class group inside JHS 1, JHS 2, and JHS 3.
+                  <span className="mt-1 block text-xs leading-relaxed text-white/50">
+                        {initialGrade
+                          ? `This setup is currently scoped to ${initialGrade.name}.`
+                          : "For example, Mathematics - JHS will be assigned to every class group inside JHS 1, JHS 2, and JHS 3."}
                       </span>
                     </span>
                   </label>
@@ -679,7 +826,11 @@ function SetupSubjectOfferingsDialog({
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-white">Grades covered</p>
-                    <p className="text-xs text-white/45">Only selected grades receive matching offerings.</p>
+                    <p className="text-xs text-white/45">
+                      {initialGrade
+                        ? `Showing setup for ${initialGrade.name}. You can add more grades if needed.`
+                        : "Only selected grades receive matching offerings."}
+                    </p>
                   </div>
                   <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-white/55">
                     {selectedGradeIds.length} selected
@@ -771,7 +922,7 @@ function SetupSubjectOfferingsDialog({
                       setCustomForm((current) => ({
                         ...current,
                         gradeBand: value,
-                        stage: value === "preschool" ? "kg" : value,
+                        stage: value,
                       }))
                     }
                   >
@@ -779,7 +930,6 @@ function SetupSubjectOfferingsDialog({
                       <PremiumSelectValue placeholder="Grade band" />
                     </PremiumSelectTrigger>
                     <PremiumSelectContent>
-                      <PremiumSelectItem value="preschool">Preschool</PremiumSelectItem>
                       <PremiumSelectItem value="lower_primary">Lower Primary</PremiumSelectItem>
                       <PremiumSelectItem value="upper_primary">Upper Primary</PremiumSelectItem>
                       <PremiumSelectItem value="jhs">JHS</PremiumSelectItem>

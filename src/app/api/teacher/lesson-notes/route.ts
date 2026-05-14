@@ -9,8 +9,10 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { normalizeLessonNoteRequestBody } from "@/lib/lesson-notes/normalize-payload";
+import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 import {
   assertLessonNoteRequiresSchemeLink,
   resolveLessonNoteSchemeFields,
@@ -122,6 +124,7 @@ const ReflectionsSchema = z.object({
 // Main create schema (supports both legacy and new fields)
 const LessonNoteSchema = z.object({
   classGroupId: z.string().min(1),
+  subjectOfferingId: z.string().optional().nullable(),
   subjectId: z.string().optional().nullable(),
 
   // Template type & curriculum
@@ -213,12 +216,19 @@ function formatLessonNoteResponse(
   classNameMap: Map<string, string>,
   subjectMap: Map<string, string>
 ) {
+  const subjectOfferingId = (entry as unknown as { subjectOfferingId?: mongoose.Types.ObjectId | null })
+    .subjectOfferingId;
   return {
     id: String(entry._id),
     classGroupId: String(entry.classGroupId),
     className: classNameMap.get(String(entry.classGroupId)) || "",
+    subjectOfferingId: subjectOfferingId ? String(subjectOfferingId) : null,
     subjectId: entry.subjectId ? String(entry.subjectId) : null,
-    subjectName: entry.subjectId ? subjectMap.get(String(entry.subjectId)) || "" : null,
+    subjectName: subjectOfferingId
+      ? subjectMap.get(String(subjectOfferingId)) || ""
+      : entry.subjectId
+        ? subjectMap.get(String(entry.subjectId)) || ""
+        : null,
     academicPeriodId: entry.academicPeriodId ? String(entry.academicPeriodId) : null,
 
     // Template & curriculum
@@ -292,6 +302,7 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const classGroupId = searchParams.get("classGroupId");
+    const subjectOfferingId = searchParams.get("subjectOfferingId");
     const subjectId = searchParams.get("subjectId");
     const templateType = searchParams.get("templateType");
     const status = searchParams.get("status");
@@ -323,6 +334,37 @@ export async function GET(req: Request) {
     }
 
     let subjectObjId: mongoose.Types.ObjectId | null = null;
+    let subjectOfferingObjId: mongoose.Types.ObjectId | null = null;
+    if (subjectOfferingId) {
+      subjectOfferingObjId = toObjectIdOrNull(subjectOfferingId);
+      if (!subjectOfferingObjId) {
+        return Response.json({ success: false, error: "Invalid subject offering ID" }, { status: 400 });
+      }
+      const offering = await SubjectOffering.findOne({
+        _id: subjectOfferingObjId,
+        schoolId: context.schoolId,
+        isActive: true,
+      })
+        .select("_id subjectId")
+        .lean<{ _id: mongoose.Types.ObjectId; subjectId: mongoose.Types.ObjectId } | null>();
+      if (!offering) {
+        return Response.json({ success: false, error: "Subject offering not found" }, { status: 404 });
+      }
+      subjectObjId = offering.subjectId;
+      if (!context.isAdmin) {
+        const assignment = await TeacherAssignment.findOne({
+          schoolId: context.schoolId,
+          teacherId: context.teacherId,
+          subjectOfferingId: subjectOfferingObjId,
+          status: "active",
+        })
+          .select("_id")
+          .lean();
+        if (!assignment) {
+          return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
+        }
+      }
+    }
     if (subjectId) {
       subjectObjId = toObjectIdOrNull(subjectId);
       if (!subjectObjId) {
@@ -357,6 +399,7 @@ export async function GET(req: Request) {
     };
 
     if (classGroupObjId) query.classGroupId = classGroupObjId;
+    if (subjectOfferingObjId) query.subjectOfferingId = subjectOfferingObjId;
     if (subjectObjId) query.subjectId = subjectObjId;
     if (academicPeriodObjId) query.academicPeriodId = academicPeriodObjId;
     if (templateType) query.templateType = templateType;
@@ -400,13 +443,26 @@ export async function GET(req: Request) {
           .map((id) => String(id))
       )
     ).map((id) => new mongoose.Types.ObjectId(id));
+    const subjectOfferingIds = Array.from(
+      new Set(
+        entries
+          .map((entry) => (entry as unknown as { subjectOfferingId?: mongoose.Types.ObjectId | null }).subjectOfferingId)
+          .filter(Boolean)
+          .map((id) => String(id))
+      )
+    ).map((id) => new mongoose.Types.ObjectId(id));
 
-    const [classGroups, subjects] = await Promise.all([
+    const [classGroups, subjects, subjectOfferings] = await Promise.all([
       ClassGroup.find({ _id: { $in: classGroupIds } })
         .select("_id name gradeId")
         .lean(),
       subjectIds.length
         ? Subject.find({ _id: { $in: subjectIds } }).select("_id name").lean()
+        : Promise.resolve([]),
+      subjectOfferingIds.length
+        ? SubjectOffering.find({ _id: { $in: subjectOfferingIds }, schoolId: context.schoolId })
+            .select("_id displayName shortName")
+            .lean()
         : Promise.resolve([]),
     ]);
 
@@ -446,6 +502,13 @@ export async function GET(req: Request) {
         subject.name,
       ])
     );
+    for (const offering of subjectOfferings as Array<{
+      _id: mongoose.Types.ObjectId;
+      displayName?: string;
+      shortName?: string;
+    }>) {
+      subjectMap.set(String(offering._id), offering.displayName || offering.shortName || "");
+    }
 
     const data = entries.map((entry) =>
       formatLessonNoteResponse(entry, classNameMap, subjectMap)
@@ -503,6 +566,7 @@ export async function POST(req: Request) {
 
     const {
       classGroupId,
+      subjectOfferingId,
       subjectId,
       templateType,
       curriculumCode,
@@ -546,11 +610,28 @@ export async function POST(req: Request) {
     }
 
     let subjectObjId: mongoose.Types.ObjectId | null = null;
+    let subjectOfferingObjId: mongoose.Types.ObjectId | null = null;
     if (subjectId) {
       subjectObjId = toObjectIdOrNull(subjectId);
       if (!subjectObjId) {
         return Response.json({ success: false, error: "Invalid subject ID" }, { status: 400 });
       }
+    }
+    if (subjectOfferingId) {
+      const offeringResolution = await resolveSubjectOfferingForSchool({
+        schoolId: context.schoolId,
+        subjectOfferingId,
+        classGroupId: classGroupObjId,
+        requireClassAssignment: true,
+      });
+      if (!offeringResolution.ok) {
+        return Response.json(
+          { success: false, error: offeringResolution.error },
+          { status: offeringResolution.status }
+        );
+      }
+      subjectOfferingObjId = offeringResolution.offering._id;
+      subjectObjId = offeringResolution.offering.subjectId;
     }
 
     if (!context.isAdmin) {
@@ -560,7 +641,8 @@ export async function POST(req: Request) {
         classGroupId: classGroupObjId,
         status: "active",
       };
-      if (subjectObjId) assignmentQuery.subjectId = subjectObjId;
+      if (subjectOfferingObjId) assignmentQuery.subjectOfferingId = subjectOfferingObjId;
+      else if (subjectObjId) assignmentQuery.subjectId = subjectObjId;
 
       const assignment = await TeacherAssignment.findOne(assignmentQuery)
         .select("_id")
@@ -658,6 +740,7 @@ export async function POST(req: Request) {
       schoolId: context.schoolId,
       teacherId: context.teacherId,
       classGroupId: classGroupObjId,
+      subjectOfferingId: subjectOfferingObjId || undefined,
       subjectId: subjectObjId || undefined,
       academicPeriodId: currentPeriod?._id || undefined,
 

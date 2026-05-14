@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { ClassGroup } from "@/models/ClassGroup";
+import { Teacher } from "@/models/Teacher";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -51,8 +52,67 @@ export async function POST(
     }
 
     const { teacherId } = parsed.data;
+    const nextTeacherObjId = teacherId ? toObjectIdOrNull(teacherId) : null;
+    if (teacherId && !nextTeacherObjId) {
+      return NextResponse.json(
+        { success: false, error: "Invalid teacher ID" },
+        { status: 400 }
+      );
+    }
+
+    const existingClassGroup = await ClassGroup.findOne({
+      _id: classId,
+      schoolId: schoolIdObj,
+    })
+      .select("homeroomTeacherId")
+      .lean();
+
+    if (!existingClassGroup) {
+      return NextResponse.json(
+        { success: false, error: "Class not found" },
+        { status: 404 }
+      );
+    }
+
+    if (nextTeacherObjId) {
+      const teacher = await Teacher.findOne({
+        _id: nextTeacherObjId,
+        schoolId: schoolIdObj,
+      })
+        .select("_id homeroomClassGroupId")
+        .lean();
+
+      if (!teacher) {
+        return NextResponse.json(
+          { success: false, error: "Teacher not found" },
+          { status: 404 }
+        );
+      }
+
+      if (
+        teacher.homeroomClassGroupId &&
+        String(teacher.homeroomClassGroupId) !== String(classId)
+      ) {
+        await ClassGroup.updateOne(
+          { _id: teacher.homeroomClassGroupId, schoolId: schoolIdObj },
+          { $unset: { homeroomTeacherId: 1 } }
+        );
+      }
+    }
+
+    if (
+      existingClassGroup.homeroomTeacherId &&
+      (!nextTeacherObjId ||
+        String(existingClassGroup.homeroomTeacherId) !== String(nextTeacherObjId))
+    ) {
+      await Teacher.updateOne(
+        { _id: existingClassGroup.homeroomTeacherId, schoolId: schoolIdObj },
+        { $unset: { homeroomClassGroupId: 1 } }
+      );
+    }
+
     const updateData: Record<string, unknown> = {
-      homeroomTeacherId: teacherId ? toObjectIdOrNull(teacherId) : null,
+      homeroomTeacherId: nextTeacherObjId,
     };
 
     const updated = await ClassGroup.findOneAndUpdate(
@@ -73,6 +133,13 @@ export async function POST(
     }
 
     const updatedDoc = Array.isArray(updated) ? updated[0] : updated;
+
+    if (nextTeacherObjId) {
+      await Teacher.updateOne(
+        { _id: nextTeacherObjId, schoolId: schoolIdObj },
+        { $set: { homeroomClassGroupId: classId } }
+      );
+    }
 
     return NextResponse.json({
       success: true,

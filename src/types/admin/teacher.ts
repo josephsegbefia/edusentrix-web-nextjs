@@ -2,7 +2,12 @@
 export type TeacherStatus = "active" | "inactive" | "on_leave" | "terminated";
 
 export type TeacherSubjectDTO = { id: string; name: string };
-export type TeacherHomeroomDTO = { id: string; name: string } | null;
+export type TeacherHomeroomDTO = {
+  id: string;
+  name: string;
+  gradeName?: string | null;
+  label?: string | null;
+} | null;
 
 export type TeacherEmergencyContactDTO = {
   name: string;

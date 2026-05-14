@@ -13,13 +13,15 @@ import { assertSchemeImportEnabled } from "@/lib/schemes/scheme-import-gate";
 import { deriveCurriculumStructureFromSchemeImport } from "@/lib/schemes/scheme-import-curriculum-derive";
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
 import { serializeSchemeRow } from "@/lib/schemes/serializers";
+import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 
 const ConfirmBodySchema = z.object({
   schemeTitle: z.string().trim().min(3).max(220),
   academicPeriodId: z.string().trim().min(1),
   gradeId: z.string().trim().min(1),
   classGroupId: z.string().trim().nullable().optional(),
-  subjectId: z.string().trim().min(1),
+  subjectOfferingId: z.string().trim().optional().nullable(),
+  subjectId: z.string().trim().optional().nullable(),
 });
 
 function parseId(id: string | null | undefined) {
@@ -128,7 +130,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const gradeId = parseId(parsed.data.gradeId ?? undefined);
     const academicPeriodId = parseId(parsed.data.academicPeriodId);
     const classGroupId = parseId(parsed.data.classGroupId ?? undefined);
-    const subjectId = parseId(parsed.data.subjectId ?? undefined);
+    const subjectOfferingId = parseId(parsed.data.subjectOfferingId ?? undefined);
+    let subjectId = parseId(parsed.data.subjectId ?? undefined);
     if (!academicPeriodId) {
       return Response.json({ success: false, error: "Invalid academicPeriodId" }, { status: 400 });
     }
@@ -137,6 +140,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     if (parsed.data.classGroupId && !classGroupId) {
       return Response.json({ success: false, error: "Invalid classGroupId" }, { status: 400 });
+    }
+    if (parsed.data.subjectOfferingId && !subjectOfferingId) {
+      return Response.json({ success: false, error: "Invalid subjectOfferingId" }, { status: 400 });
+    }
+    let effectiveSubjectOfferingId = subjectOfferingId;
+    if (subjectOfferingId) {
+      const offeringResolution = await resolveSubjectOfferingForSchool({
+        schoolId: ctx.schoolId,
+        subjectOfferingId,
+        gradeId,
+        classGroupId,
+        requireClassAssignment: Boolean(classGroupId),
+      });
+      if (!offeringResolution.ok) {
+        return Response.json(
+          { success: false, error: offeringResolution.error },
+          { status: offeringResolution.status }
+        );
+      }
+      subjectId = offeringResolution.offering.subjectId;
+      effectiveSubjectOfferingId = offeringResolution.offering._id;
     }
     if (!subjectId) {
       return Response.json({ success: false, error: "Invalid subjectId" }, { status: 400 });
@@ -159,7 +183,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         schoolId: ctx.schoolId,
         teacherId: ctx.teacherId,
         academicPeriodId,
-        subjectId,
+        ...(effectiveSubjectOfferingId ? { subjectOfferingId: effectiveSubjectOfferingId } : { subjectId }),
         classGroupId: { $in: gradeClassGroups.map((group) => group._id) },
         status: "active",
       });
@@ -187,6 +211,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       academicPeriodId,
       gradeId,
       subjectId,
+      ...(effectiveSubjectOfferingId ? { subjectOfferingId: effectiveSubjectOfferingId } : {}),
       classGroupId: null,
       status: { $in: ["draft", "submitted", "needs_revision", "approved", "active"] },
     })
@@ -226,6 +251,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       gradeId,
       classGroupId: null,
       subjectId,
+      ...(effectiveSubjectOfferingId ? { subjectOfferingId: effectiveSubjectOfferingId } : {}),
       ownerTeacherId: ctx.teacherId,
       status: "draft",
       sourceType: sourceTypeForJob(job.toObject()),

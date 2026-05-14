@@ -322,6 +322,7 @@ function ClassDetailContent() {
           <ClassSubjectsTeachersTab
             classId={classData.id}
             className={classData.fullLabel}
+            gradeId={classData.grade?.id}
             subjects={classData.subjects || []}
             onManageSubjects={() => setAssignSubjectsOpen(true)}
             onOpenAssignmentWizard={() => setAssignmentWizardOpen(true)}

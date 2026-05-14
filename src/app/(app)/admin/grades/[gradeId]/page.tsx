@@ -29,6 +29,7 @@ import {
   Save,
   Trash2,
   X,
+  WandSparkles,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -46,7 +47,6 @@ import {
 } from "@/hooks/admin/useClasses";
 import { ResponsiveModal } from "@/components/modals/ResponsiveModal";
 import CreateClassModal from "@/components/modals/CreateClassModal";
-import { BulkGradeSubjectAssignmentModal } from "@/components/modals/BulkGradeSubjectAssignmentModal";
 import { ClassDistributionList } from "@/components/admin/students/ClassDistributionList";
 import { GradeDetailTabs, type GradeDetailTabId } from "@/components/admin/grades/GradeDetailTabs";
 import { GradeFeesSection } from "@/components/admin/grades/GradeFeesSection";
@@ -381,7 +381,6 @@ function GradeDetailContent() {
   );
   const [showCreateClass, setShowCreateClass] = React.useState(false);
   const [creatingClass, setCreatingClass] = React.useState(false);
-  const [bulkAssignOpen, setBulkAssignOpen] = React.useState(false);
   const [classSearch, setClassSearch] = React.useState("");
   const [classSortBy, setClassSortBy] = React.useState<ClassSortBy>("class");
   const [classSortOrder, setClassSortOrder] = React.useState<"asc" | "desc">("asc");
@@ -583,12 +582,12 @@ function GradeDetailContent() {
                     setActiveTab("overview");
                     return;
                   }
-                  setBulkAssignOpen(true);
+                  router.push(`/admin/subjects?setup=1&gradeId=${encodeURIComponent(gradeId)}`);
                 }}
                 className="gap-2 border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white"
               >
                 <BookOpen className="h-4 w-4" />
-                {isPreschoolGrade ? "Manage Learning Areas" : "Assign Subjects to Grade"}
+                {isPreschoolGrade ? "Manage Learning Areas" : "Set Up Subject Offerings"}
               </Button>
               <Button type="button" size="sm" onClick={() => setShowCreateClass(true)} className="gap-2 bg-linear-to-r from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/25 hover:from-teal-600 hover:to-cyan-700">
                 <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
@@ -689,12 +688,43 @@ function GradeDetailContent() {
                 <p className="text-xs text-white/50">Loading {academicUnitLabelLower}...</p>
               </div>
             ) : !overview?.subjects?.length ? (
-              <p className="text-sm text-white/50">No {academicUnitLabelLower} assigned to classes in this grade yet.</p>
+              <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-4">
+                <p className="text-sm font-medium text-amber-50">
+                  {isPreschoolGrade
+                    ? "No learning areas attached to this grade yet."
+                    : "No subject offerings set up for this grade yet."}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-amber-50/70">
+                  {isPreschoolGrade
+                    ? `Use the Learning Areas panel above to choose the development areas for ${gradeName}.`
+                    : `Add curriculum-scoped subject offerings for ${gradeName}. The setup flow will be limited to this grade first, so you do not accidentally assign subjects to the wrong grade.`}
+                </p>
+                {!isPreschoolGrade && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/admin/subjects?setup=1&gradeId=${encodeURIComponent(gradeId)}`)
+                    }
+                    className="mt-3 gap-2 bg-linear-to-r from-amber-300 to-orange-400 text-slate-950 hover:from-amber-200 hover:to-orange-300"
+                  >
+                    <WandSparkles className="h-3.5 w-3.5" />
+                    Add subject offerings
+                  </Button>
+                )}
+              </div>
             ) : (
               <ul className="space-y-3">
                 {overview.subjects.map((s) => (
                   <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-                    <span className="text-sm font-medium text-white truncate">{s.name}</span>
+                    <div className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-white">{s.name}</span>
+                      {s.code && (
+                        <span className="mt-0.5 block truncate text-[10px] uppercase tracking-[0.12em] text-white/40">
+                          {s.code}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-teal-300">{s.classesWithSubject}/{overview?.stats.totalClasses ?? 0}</span>
                       {s.classesWithoutSubject > 0 && (
@@ -744,12 +774,12 @@ function GradeDetailContent() {
                         setActiveTab("overview");
                         return;
                       }
-                      setBulkAssignOpen(true);
+                      router.push(`/admin/subjects?setup=1&gradeId=${encodeURIComponent(gradeId)}`);
                     }}
                     className="gap-1.5 border-white/10"
                   >
                     <BookOpen className="h-3.5 w-3.5" />
-                    {isPreschoolGrade ? "Manage learning areas" : "Bulk assign subjects"}
+                    {isPreschoolGrade ? "Manage learning areas" : "Add subject offerings"}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => notifyComingSoon("Bulk assign homeroom")} className="gap-1.5 border-white/10">
                     <UserPlus className="h-3.5 w-3.5" />
@@ -991,8 +1021,6 @@ function GradeDetailContent() {
       <ResponsiveModal open={showCreateClass} onClose={() => setShowCreateClass(false)} title="Add New Class">
         <CreateClassModal gradeId={gradeId} gradeName={gradeName} onClose={() => setShowCreateClass(false)} onSubmit={handleCreateClassSubmit} isLoading={creatingClass} />
       </ResponsiveModal>
-
-      <BulkGradeSubjectAssignmentModal open={bulkAssignOpen} onOpenChange={setBulkAssignOpen} initialGradeId={gradeId} />
     </div>
   );
 }

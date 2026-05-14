@@ -21,6 +21,10 @@ import {
   useDeleteClassSlot,
   useUpdateClassSlot,
   type ClassTimetableSlotDTO,
+  type CreateClassSlotInput,
+  type TimetableWriteConflict,
+  type TimetableWriteConflictError,
+  type UpdateClassSlotInput,
 } from "@/hooks/admin/useClassTimetableSlots";
 import { formatTimeLabel } from "@/components/admin/timetable/types";
 import { DAY_NAMES } from "@/components/admin/timetable/types";
@@ -46,13 +50,38 @@ function slotDragId(slotId: string) {
   return `slot|${slotId}`;
 }
 
-function paletteDragId(subjectId: string, teacherId: string | null) {
-  return `palette|${subjectId}|${teacherId || NO_TEACHER_TOKEN}`;
+function paletteDragId(subjectId: string, subjectOfferingId: string | null, teacherId: string | null) {
+  return `palette|${subjectId}|${subjectOfferingId || NO_TEACHER_TOKEN}|${teacherId || NO_TEACHER_TOKEN}`;
 }
 
 function getIssuesFromError(error: unknown): TimetableValidationIssue[] {
   const candidate = error as Error & { issues?: TimetableValidationIssue[] };
   return Array.isArray(candidate.issues) ? candidate.issues : [];
+}
+
+function getWriteConflictFromError(error: unknown): TimetableWriteConflict | null {
+  const candidate = error as TimetableWriteConflictError;
+  return candidate?.conflict || candidate?.conflicts?.[0] || null;
+}
+
+function formatWriteConflictDescription(conflict: TimetableWriteConflict): string {
+  const attempted = conflict.attemptedSlot;
+  const lines = conflict.conflictingSlots.map(
+    (slot) =>
+      `${slot.className}: ${slot.subjectName}${slot.teacherName ? ` with ${slot.teacherName}` : ""} (${formatTimeLabel(slot.startTime)}-${formatTimeLabel(slot.endTime)})`
+  );
+  const suggestions = conflict.suggestions.map((item) => `- ${item}`).join("\n");
+  return [
+    conflict.message,
+    "",
+    `You are placing ${attempted.subjectName} for ${attempted.className} on ${attempted.dayName}, ${formatTimeLabel(attempted.startTime)}-${formatTimeLabel(attempted.endTime)}.`,
+    "",
+    "Conflict:",
+    ...lines,
+    "",
+    "Suggestions:",
+    suggestions,
+  ].join("\n");
 }
 
 export type TimelineRow =
@@ -102,11 +131,35 @@ type ClassTimetableGridBoardProps = {
   slots: ClassTimetableSlotDTO[];
   subjectMap: Map<string, { id: string; name: string; code: string | null }>;
   teacherMap: Map<string, string>;
+  contactHourPlanByKey?: Map<string, ContactHourPlan>;
+  ignoredContactHourKeys?: Set<string>;
+  onIgnoreContactHourKey?: (key: string) => void;
   slotIssueSeverityById?: Map<string, "error" | "warning">;
   onSlotsChanged: () => void;
   /** Unallocated-row actions: presets + Leo (defaults to admin daily schedules tab). */
   dailyScheduleSettingsHref?: string;
 };
+
+export type ContactHourPlan = {
+  key: string;
+  subjectId: string;
+  subjectOfferingId: string | null;
+  subjectName: string;
+  teacherId: string;
+  teacherName: string;
+  targetHours: number;
+  plannedHours: number;
+};
+
+function subjectTeacherKey(subjectId: string, subjectOfferingId: string | null, teacherId: string | null) {
+  return `${subjectOfferingId || subjectId}|${teacherId || NO_TEACHER_TOKEN}`;
+}
+
+function calculateSlotHours(startTime: string, endTime: string): number {
+  const [startHour, startMin] = startTime.split(":").map(Number);
+  const [endHour, endMin] = endTime.split(":").map(Number);
+  return Math.max(0, (endHour * 60 + endMin - (startHour * 60 + startMin)) / 60);
+}
 
 function DraggableSlot({
   slot,
@@ -177,6 +230,9 @@ export function ClassTimetableGridBoard({
   slots,
   subjectMap,
   teacherMap,
+  contactHourPlanByKey,
+  ignoredContactHourKeys,
+  onIgnoreContactHourKey,
   slotIssueSeverityById,
   onSlotsChanged,
   dailyScheduleSettingsHref = "/admin/settings?tab=dailySchedule",
@@ -188,6 +244,62 @@ export function ClassTimetableGridBoard({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const createSlotWithConflictPrompt = React.useCallback(
+    async (payload: CreateClassSlotInput) => {
+      try {
+        await createMutation.mutateAsync(payload);
+        return true;
+      } catch (error) {
+        const conflict = getWriteConflictFromError(error);
+        if (!conflict) throw error;
+        await confirm({
+          title:
+            conflict.code === "TEACHER_OVERLAP"
+              ? "Teacher schedule conflict"
+              : conflict.code === "ROOM_OVERLAP"
+                ? "Room schedule conflict"
+              : "Class schedule conflict",
+          description: formatWriteConflictDescription(conflict),
+          confirmLabel: "Choose another time",
+          cancelLabel: "Cancel",
+          intent: "warning",
+          className: "sm:max-w-xl",
+          zIndexClass: "z-[100]",
+        });
+        return false;
+      }
+    },
+    [confirm, createMutation]
+  );
+
+  const updateSlotWithConflictPrompt = React.useCallback(
+    async (slotId: string, payload: UpdateClassSlotInput) => {
+      try {
+        await updateMutation.mutateAsync({ slotId, payload });
+        return true;
+      } catch (error) {
+        const conflict = getWriteConflictFromError(error);
+        if (!conflict) throw error;
+        await confirm({
+          title:
+            conflict.code === "TEACHER_OVERLAP"
+              ? "Teacher schedule conflict"
+              : conflict.code === "ROOM_OVERLAP"
+                ? "Room schedule conflict"
+              : "Class schedule conflict",
+          description: formatWriteConflictDescription(conflict),
+          confirmLabel: "Choose another time",
+          cancelLabel: "Cancel",
+          intent: "warning",
+          className: "sm:max-w-xl",
+          zIndexClass: "z-[100]",
+        });
+        return false;
+      }
+    },
+    [confirm, updateMutation]
   );
 
   const slotsByCellKey = React.useMemo(() => {
@@ -211,24 +323,57 @@ export function ClassTimetableGridBoard({
     if (activeStr.startsWith("palette|")) {
       const parts = activeStr.split("|");
       const subjectId = parts[1];
-      const teacherToken = parts[2];
+      const subjectOfferingToken = parts[2];
+      const teacherToken = parts[3];
+      const subjectOfferingId =
+        !subjectOfferingToken || subjectOfferingToken === NO_TEACHER_TOKEN
+          ? null
+          : subjectOfferingToken;
       const teacherId =
         !teacherToken || teacherToken === NO_TEACHER_TOKEN ? null : teacherToken;
       if (!subjectId) {
         toast.error("Invalid subject.");
         return;
       }
+      if (!teacherId) {
+        toast.error("Assign a teacher to this subject before placing it on the timetable.");
+        return;
+      }
+      const contactKey = subjectTeacherKey(subjectId, subjectOfferingId, teacherId);
+      const contactPlan = contactHourPlanByKey?.get(contactKey);
+      const addedHours = calculateSlotHours(overParsed.startTime, overParsed.endTime);
+      const projectedHours = (contactPlan?.plannedHours || 0) + addedHours;
+      if (
+        contactPlan &&
+        contactPlan.targetHours > 0 &&
+        projectedHours > contactPlan.targetHours &&
+        !ignoredContactHourKeys?.has(contactKey)
+      ) {
+        const decision = await confirm({
+          title: "Contact hours exceeded",
+          description: `${contactPlan.teacherName} is planned for ${contactPlan.targetHours}h/week in ${contactPlan.subjectName}. This drop will bring the timetable to ${projectedHours.toFixed(2)}h/week.`,
+          confirmLabel: "Ignore and add lesson",
+          cancelLabel: "Cancel",
+          intent: "default",
+          zIndexClass: "z-[100]",
+        });
+        if (decision !== "confirm") return;
+        onIgnoreContactHourKey?.(contactKey);
+      }
       try {
-        await createMutation.mutateAsync({
+        const added = await createSlotWithConflictPrompt({
           academicPeriodId,
           dayOfWeek: overParsed.day,
           startTime: overParsed.startTime,
           endTime: overParsed.endTime,
+          subjectOfferingId,
           subjectId,
           teacherId,
         });
-        toast.success("Lesson added");
-        onSlotsChanged();
+        if (added) {
+          toast.success("Lesson added");
+          onSlotsChanged();
+        }
       } catch (e) {
         const issues = getIssuesFromError(e);
         const msg = e instanceof Error ? e.message : "Could not add lesson";
@@ -256,16 +401,15 @@ export function ClassTimetableGridBoard({
         return;
       }
       try {
-        await updateMutation.mutateAsync({
-          slotId,
-          payload: {
-            dayOfWeek: overParsed.day,
-            startTime: overParsed.startTime,
-            endTime: overParsed.endTime,
-          },
+        const moved = await updateSlotWithConflictPrompt(slotId, {
+          dayOfWeek: overParsed.day,
+          startTime: overParsed.startTime,
+          endTime: overParsed.endTime,
         });
-        toast.success("Lesson moved");
-        onSlotsChanged();
+        if (moved) {
+          toast.success("Lesson moved");
+          onSlotsChanged();
+        }
       } catch (e) {
         const issues = getIssuesFromError(e);
         toast.error(issues[0]?.message || (e instanceof Error ? e.message : "Move failed"));
@@ -426,9 +570,13 @@ export function ClassTimetableGridBoard({
                     ) : (
                       <div className="space-y-2">
                         {cellSlots.map((slot) => {
-                          const subject = subjectMap.get(slot.subjectId);
+                          const subject = subjectMap.get(slot.subjectOfferingId || slot.subjectId);
                           const assignedTeachers =
-                            classSubjects.find((row) => row.subjectId === slot.subjectId)
+                            classSubjects.find(
+                              (row) =>
+                                (row.subjectOfferingId || row.subjectId) ===
+                                (slot.subjectOfferingId || slot.subjectId)
+                            )
                               ?.teachers || [];
                           const teacherName = slot.teacherId
                             ? teacherMap.get(slot.teacherId) || "—"
@@ -529,15 +677,15 @@ export function ClassTimetableGridBoard({
               {classSubjects.map((row) => {
                 const primaryTeacher = row.teachers[0];
                 const teacherId = primaryTeacher?.id ?? null;
-                const dragId = paletteDragId(row.subjectId, teacherId);
+                const dragId = paletteDragId(row.subjectId, row.subjectOfferingId, teacherId);
                 const label = primaryTeacher
                   ? `${row.subjectName} · ${primaryTeacher.fullName}`
                   : `${row.subjectName} · No teacher yet`;
                 return (
                   <DraggablePaletteCard
-                    key={row.subjectId}
+                    key={row.subjectOfferingId || row.subjectId}
                     id={dragId}
-                    disabled={busy}
+                    disabled={busy || !primaryTeacher}
                     label={label}
                     warnNoTeacher={!primaryTeacher}
                   />

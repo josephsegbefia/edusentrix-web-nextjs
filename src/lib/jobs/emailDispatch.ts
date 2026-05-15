@@ -3,11 +3,13 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { EmailDispatchJob, type IEmailDispatchJob } from "@/models/EmailDispatchJob";
 import { EmailMessage } from "@/models/EmailMessage";
 import { EmailThread } from "@/models/EmailThread";
+import { CommunicationDelivery } from "@/models/CommunicationDelivery";
 import {
   brevoSend,
   resolveSenderEmail,
   buildSchoolSenderName,
 } from "@/lib/email/providers/brevo-provider";
+import { refreshCommunicationStats } from "@/lib/communications/delivery/communicationDeliveryService";
 import { updateThreadAfterMessage } from "@/lib/email/threading";
 import { lookupTemplateRegistry } from "@/lib/email/registry";
 import { isRetryableError, computeBackoffMs } from "@/lib/email/policy";
@@ -16,6 +18,36 @@ import { updateBatchCounters } from "@/lib/email/batch-scheduler";
 
 const MAX_BATCH_SIZE = 50;
 const STALE_MINUTES = 15;
+
+async function syncCommunicationDeliveryFromEmail(args: {
+  messageId: unknown;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+  status: "sent" | "failed";
+  providerMessageId?: string | null;
+  failureReason?: string | null;
+}) {
+  if (args.relatedEntityType !== "Communication" || !args.relatedEntityId) return;
+  const updated = await CommunicationDelivery.findOneAndUpdate(
+    {
+      outputEntityType: "EmailMessage",
+      outputEntityId: args.messageId,
+    },
+    {
+      $set: {
+        status: args.status,
+        sentAt: args.status === "sent" ? new Date() : null,
+        providerMessageId: args.providerMessageId || null,
+        failureReason: args.failureReason || null,
+      },
+    },
+    { new: true },
+  ).select("communicationId");
+
+  if (updated?.communicationId) {
+    await refreshCommunicationStats(updated.communicationId);
+  }
+}
 
 /**
  * Atomically claim one pending dispatch job.
@@ -122,6 +154,14 @@ async function processOutboundSingle(job: IEmailDispatchJob): Promise<void> {
     await updateThreadAfterMessage(String(message.threadId), "outbound");
   }
 
+  await syncCommunicationDeliveryFromEmail({
+    messageId: message._id,
+    relatedEntityType: message.relatedEntityType,
+    relatedEntityId: message.relatedEntityId,
+    status: "sent",
+    providerMessageId: result.providerMessageId || null,
+  });
+
   if (job.emailBatchId) {
     await updateBatchCounters(String(job.emailBatchId), "sent");
   }
@@ -225,9 +265,18 @@ async function processJob(job: IEmailDispatchJob): Promise<void> {
       });
 
       if (job.emailMessageId) {
-        await EmailMessage.findByIdAndUpdate(job.emailMessageId, {
+        const failedMessage = await EmailMessage.findByIdAndUpdate(job.emailMessageId, {
           $set: { status: "failed", failureReason: msg },
-        });
+        }, { new: true });
+        if (failedMessage) {
+          await syncCommunicationDeliveryFromEmail({
+            messageId: failedMessage._id,
+            relatedEntityType: failedMessage.relatedEntityType,
+            relatedEntityId: failedMessage.relatedEntityId,
+            status: "failed",
+            failureReason: msg,
+          });
+        }
       }
 
       if (job.emailBatchId) {

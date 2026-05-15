@@ -7,6 +7,7 @@ Welcome to EduSentrix, your comprehensive school management platform designed sp
 EduSentrix is a unified solution for running every aspect of a modern school:
 
 - **Student Management**: Track student records, enrollment, and academic progress with a premium, industry-standard interface
+- **Subject offerings**: Curriculum-aware lines of study (names, codes, grade bands, templates) assigned to class groups; bulk assign from grades; custom offerings when templates are not enough
 - **Teacher Management**: Premium teacher management with card/table views, assignments tracking, and comprehensive profiles
 - **Teacher Portal**: Full-featured teaching environment with lesson notes builder, lessons module, schemes of work, examinations, gradebook, attendance, studio, and communication tools
 - **Parent Portal**: Parents see their ward's academics, attendance, fees, lessons, library access, meetings, and school activities
@@ -181,7 +182,7 @@ EduSentrix is a unified solution for running every aspect of a modern school:
 - **Activity Logging**: Comprehensive audit trail of all actions
 - **Staff Delegation**: Grant module-level access with logging and expiry
 - **Invitation Management**: Track and manage teacher, admin, and parent invitations
-- **Subject Management**: Create and manage curriculum subjects
+- **Subject Management**: Create and manage curriculum subjects; configure **subject offerings** for what each class actually takes
 - **Academic Calendar**: School event management with audience targeting, recurring events, and reminders
 - **School Settings**: Configure timetable, attendance rules, feature toggles, curriculum, email, and payments
 - **Offline Support**: Offline mutation queue and draft persistence
@@ -213,7 +214,7 @@ The main dashboard provides quick access to:
 - **Students** (`/admin/students`): Comprehensive student management with card/table views
 - **Teachers** (`/admin/teachers`): Teacher management and assignments
 - **Classes** (`/admin/classes`): Class group management and student assignments
-- **Subjects** (`/admin/subjects`): Curriculum subject management
+- **Subjects** (`/admin/subjects`): Subject **offerings** (curriculum-scoped lines of study), setup from templates, custom offerings, and links to class assignments; legacy subject catalog where applicable
 - **Periods** (`/admin/periods`): Academic period configuration
 - **Academic Calendar** (`/admin/academic-calendar`): School event management
 - **Schemes of Work** (`/admin/schemes`): Review and approve schemes
@@ -236,7 +237,7 @@ The main dashboard provides quick access to:
 - **Reports** (`/admin/reports`): Analytics and report exports
 - **Invitations** (`/admin/invitations`): Track and manage invitations
 - **Settings** (`/admin/settings`): School configuration options
-- **Documentation** (`/docs`): Access help documentation and guides
+- **Documentation** (`/docs`): Documentation & Help — searchable articles, **31** topic categories, glass-styled reader aligned with the admin UI; guides live under **Subjects** (including **Subject Offerings**), Fees, Timetable, Library, and more
 
 ### Teacher Sections
 
@@ -322,7 +323,7 @@ EduSentrix supports the following roles:
 
 ## Need Help?
 
-- **Documentation**: Use the search function in the sidebar to find specific topics
+- **Documentation** (`/docs`): Use the sidebar and **search** to jump to any article; the reader shows a **heading index** on long pages and matches the admin **glass** styling
 - **Command Palette**: Press `Cmd+K` / `Ctrl+K` to access quick actions
 - **Help Icons**: Look for help icons (?) on pages for contextual guidance
 - **Leo AI**: Use Leo to generate content and get intelligent suggestions

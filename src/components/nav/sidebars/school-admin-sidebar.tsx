@@ -73,6 +73,7 @@ import { useSidebar } from "@/providers/sidebar-provider";
 import { useSchool } from "@/hooks/admin/useSchool";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
 import { useAdminLessonNotes } from "@/hooks/admin/useAdminLessonNotes";
+import { useEmailUnreadCount } from "@/hooks/admin/useEmailInbox";
 
 type NavItemBase = {
   label: string;
@@ -230,6 +231,11 @@ const navSections: NavSection[] = [
   {
     title: "Community",
     items: [
+      {
+        label: "Communications",
+        href: "/admin/communications",
+        icon: Megaphone,
+      },
       {
         label: "Meetings",
         href: "/admin/meetings",
@@ -488,6 +494,8 @@ function NavContent({
   );
   const pendingLessonNoteReviews =
     lessonNoteReviewData?.data.summary.total ?? 0;
+  const { data: emailUnreadData } = useEmailUnreadCount(!shouldRestrictSchoolAdminNav);
+  const unreadEmails = emailUnreadData?.data.unreadCount ?? 0;
   const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -726,6 +734,7 @@ function NavContent({
               }
 
               const active = routeActive(href, exact);
+              const showEmailBadge = href === "/admin/email" && unreadEmails > 0;
 
               if (collapsed) {
                 if (locked) {
@@ -763,11 +772,17 @@ function NavContent({
                           "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
                           "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
                           active &&
-                            "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                            "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
+                          showEmailBadge && "relative"
                         )}
                         activeClassName="nav-active"
                       >
                         <Icon className="h-4 w-4 shrink-0" />
+                        {showEmailBadge ? (
+                          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-slate-950 bg-sky-400 px-1 text-[9px] font-bold text-slate-950">
+                            {unreadEmails > 9 ? "9+" : unreadEmails}
+                          </span>
+                        ) : null}
                       </ActiveLink>
                     </TooltipTrigger>
                     <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
@@ -819,6 +834,11 @@ function NavContent({
                 >
                   <Icon className={cn("h-4 w-4 shrink-0", active && "text-violet-400")} />
                   <span className="truncate">{label}</span>
+                  {showEmailBadge ? (
+                    <span className="ml-auto rounded-full border border-sky-300/20 bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-100">
+                      {unreadEmails > 99 ? "99+" : unreadEmails}
+                    </span>
+                  ) : null}
                 </ActiveLink>
               );
             })}

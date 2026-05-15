@@ -227,6 +227,11 @@ const DOC_CATEGORIES: DocCategory[] = [
         slug: "managing-subjects",
         path: "subjects/managing-subjects.md",
       },
+      {
+        title: "Subject Offerings",
+        slug: "subject-offerings",
+        path: "subjects/subject-offerings.md",
+      },
     ],
   },
   {

@@ -3,9 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CalendarDays, Megaphone, Users } from "lucide-react";
+import { ArrowLeft, Mail, Megaphone, Send, Smartphone, Users } from "lucide-react";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
-import { useClassRoster } from "@/hooks/teacher/useClassRoster";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { Button } from "@/components/ui/button";
@@ -15,42 +14,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
-  PremiumSelect,
-  PremiumSelectContent,
-  PremiumSelectItem,
-  PremiumSelectTrigger,
-  PremiumSelectValue,
-} from "@/components/ui/premium-select";
-import {
   PremiumDropdownMenu,
   PremiumDropdownMenuCheckboxItem,
   PremiumDropdownMenuContent,
   PremiumDropdownMenuLabel,
   PremiumDropdownMenuTrigger,
 } from "@/components/ui/premium-dropdown-menu";
-import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 
-const audienceOptions = [
-  { value: "class", label: "Class groups" },
-  { value: "subject", label: "Subject-wide" },
-  { value: "custom", label: "Custom students" },
-  { value: "school", label: "School-wide" },
-] as const;
-
-type Audience = (typeof audienceOptions)[number]["value"];
-
 type NoticeForm = {
   title: string;
   message: string;
-  audience: Audience;
   classGroupIds: string[];
-  subjectIds: string[];
-  targetStudentIds: string[];
-  schedule: boolean;
-  scheduledFor: Date | null;
+  priority: "normal" | "high";
+  sendEmail: boolean;
 };
 
 function toggleSelection(ids: string[], id: string) {
@@ -58,6 +37,22 @@ function toggleSelection(ids: string[], id: string) {
     return ids.filter((value) => value !== id);
   }
   return [...ids, id];
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function toBodyHtml(value: string) {
+  return value
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph.trim()).replaceAll("\n", "<br />")}</p>`)
+    .join("");
 }
 
 export default function NewTeacherNoticePage() {
@@ -76,12 +71,9 @@ export default function NewTeacherNoticePage() {
   const [form, setForm] = React.useState<NoticeForm>({
     title: "",
     message: "",
-    audience: "class",
     classGroupIds: [],
-    subjectIds: [],
-    targetStudentIds: [],
-    schedule: false,
-    scheduledFor: null,
+    priority: "normal",
+    sendEmail: true,
   });
 
   const classOptions = React.useMemo(() => {
@@ -92,18 +84,6 @@ export default function NewTeacherNoticePage() {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [classes]);
 
-  const subjectOptions = React.useMemo(() => {
-    const map = new Map<string, string>();
-    classes.forEach((cls) => {
-      if (cls.subjectId && cls.subjectName) map.set(cls.subjectId, cls.subjectName);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [classes]);
-
-  const customClassId = form.classGroupIds[0] || classOptions[0]?.id;
-  const { data: rosterData } = useClassRoster(form.audience === "custom" ? customClassId : undefined);
-  const roster = rosterData?.data.students || [];
-
   const update = (patch: Partial<NoticeForm>) => setForm((prev) => ({ ...prev, ...patch }));
 
   const handleSubmit = async () => {
@@ -112,31 +92,23 @@ export default function NewTeacherNoticePage() {
       return;
     }
 
-    if (form.audience === "class" && form.classGroupIds.length === 0) {
+    if (form.classGroupIds.length === 0) {
       busyToast.error("Select at least one class group");
       return;
     }
-    if (form.audience === "subject" && form.subjectIds.length === 0) {
-      busyToast.error("Select at least one subject");
-      return;
-    }
-    if (form.audience === "custom" && form.targetStudentIds.length === 0) {
-      busyToast.error("Select students to notify");
-      return;
-    }
 
-    await busyToast.promise(
-      fetch("/api/teacher/notices", {
+    const created = await busyToast.promise(
+      fetch("/api/teacher/communications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: form.title.trim(),
-          message: form.message.trim(),
-          audience: form.audience,
-          classGroupIds: form.audience === "class" ? form.classGroupIds : [],
-          subjectIds: form.audience === "subject" ? form.subjectIds : [],
-          targetStudentIds: form.audience === "custom" ? form.targetStudentIds : [],
-          scheduledFor: form.schedule && form.scheduledFor ? form.scheduledFor.toISOString() : null,
+          bodyText: form.message.trim(),
+          bodyHtml: toBodyHtml(form.message.trim()),
+          type: "notice",
+          priority: form.priority,
+          channels: form.sendEmail ? ["in_app", "email"] : ["in_app"],
+          classGroupIds: form.classGroupIds,
         }),
       }).then(async (res) => {
         const payload = await res.json().catch(() => null);
@@ -152,6 +124,21 @@ export default function NewTeacherNoticePage() {
       }
     );
 
+    if (created?.data?.id) {
+      await busyToast.promise(
+        fetch(`/api/teacher/communications/${created.data.id}/send`, { method: "POST" }).then(async (res) => {
+          const payload = await res.json().catch(() => null);
+          if (!res.ok) throw new Error(payload?.error || "Failed to send notice");
+          return payload;
+        }),
+        {
+          loading: "Sending notice...",
+          success: "Notice sent",
+          error: "Failed to send notice",
+        },
+      );
+    }
+
     router.push("/teacher/communication/notices");
   };
 
@@ -163,7 +150,7 @@ export default function NewTeacherNoticePage() {
           Back to notices
         </Link>
         <h1 className="text-2xl font-semibold text-white">New Notice</h1>
-        <p className="text-sm text-white/60">Craft an announcement and deliver it instantly or schedule it for later.</p>
+        <p className="text-sm text-white/60">Send a class notice through the app inbox, with optional email delivery.</p>
       </div>
 
       {!canPublish && (
@@ -211,180 +198,74 @@ export default function NewTeacherNoticePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Audience type</label>
-                <PremiumSelect value={form.audience} onValueChange={(value) => update({ audience: value as Audience })}>
-                  <PremiumSelectTrigger>
-                    <PremiumSelectValue placeholder="Select audience" />
-                  </PremiumSelectTrigger>
-                  <PremiumSelectContent>
-                    {audienceOptions.map((opt) => (
-                      <PremiumSelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </PremiumSelectItem>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Class groups</label>
+                <PremiumDropdownMenu>
+                  <PremiumDropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full border-white/10 bg-white/5 text-white/70 hover:bg-white/10">
+                      Select class groups
+                    </Button>
+                  </PremiumDropdownMenuTrigger>
+                  <PremiumDropdownMenuContent align="start" className="min-w-[260px]">
+                    <PremiumDropdownMenuLabel>Homeroom classes</PremiumDropdownMenuLabel>
+                    {classOptions.map((cls) => (
+                      <PremiumDropdownMenuCheckboxItem
+                        key={cls.id}
+                        checked={form.classGroupIds.includes(cls.id)}
+                        onCheckedChange={() => update({ classGroupIds: toggleSelection(form.classGroupIds, cls.id) })}
+                      >
+                        {cls.name}
+                      </PremiumDropdownMenuCheckboxItem>
                     ))}
-                  </PremiumSelectContent>
-                </PremiumSelect>
-                {form.audience === "school" && (
-                  <p className="text-xs text-amber-200/80">School-wide notices require admin access.</p>
-                )}
+                    {classOptions.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-white/50">No class groups available.</div>
+                    )}
+                  </PremiumDropdownMenuContent>
+                </PremiumDropdownMenu>
+                <div className="flex flex-wrap gap-2">
+                  {form.classGroupIds.map((id) => {
+                    const name = classOptions.find((item) => item.id === id)?.name;
+                    return name ? (
+                      <Badge key={id} className="bg-white/10 text-white/70">
+                        {name}
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
               </div>
 
-              {form.audience === "class" && (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Class groups</label>
-                  <PremiumDropdownMenu>
-                    <PremiumDropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full border-white/10 bg-white/5 text-white/70 hover:bg-white/10">
-                        Select class groups
-                      </Button>
-                    </PremiumDropdownMenuTrigger>
-                    <PremiumDropdownMenuContent align="start">
-                      <PremiumDropdownMenuLabel>Classes</PremiumDropdownMenuLabel>
-                      {classOptions.map((cls) => (
-                        <PremiumDropdownMenuCheckboxItem
-                          key={cls.id}
-                          checked={form.classGroupIds.includes(cls.id)}
-                          onCheckedChange={() => update({ classGroupIds: toggleSelection(form.classGroupIds, cls.id) })}
-                        >
-                          {cls.name}
-                        </PremiumDropdownMenuCheckboxItem>
-                      ))}
-                    </PremiumDropdownMenuContent>
-                  </PremiumDropdownMenu>
-                  <div className="flex flex-wrap gap-2">
-                    {form.classGroupIds.map((id) => {
-                      const name = classOptions.find((item) => item.id === id)?.name;
-                      return name ? (
-                        <Badge key={id} className="bg-white/10 text-white/70">
-                          {name}
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
+              <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between gap-3 text-sm text-white/70">
+                  <span className="inline-flex items-center gap-2">
+                    <Smartphone className="h-4 w-4 text-indigo-200" />
+                    App inbox
+                  </span>
+                  <Badge className="bg-emerald-500/20 text-emerald-100">Always on</Badge>
                 </div>
-              )}
-
-              {form.audience === "subject" && (
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Subjects</label>
-                  <PremiumDropdownMenu>
-                    <PremiumDropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full border-white/10 bg-white/5 text-white/70 hover:bg-white/10">
-                        Select subjects
-                      </Button>
-                    </PremiumDropdownMenuTrigger>
-                    <PremiumDropdownMenuContent align="start">
-                      <PremiumDropdownMenuLabel>Subjects</PremiumDropdownMenuLabel>
-                      {subjectOptions.map((subject) => (
-                        <PremiumDropdownMenuCheckboxItem
-                          key={subject.id}
-                          checked={form.subjectIds.includes(subject.id)}
-                          onCheckedChange={() => update({ subjectIds: toggleSelection(form.subjectIds, subject.id) })}
-                        >
-                          {subject.name}
-                        </PremiumDropdownMenuCheckboxItem>
-                      ))}
-                    </PremiumDropdownMenuContent>
-                  </PremiumDropdownMenu>
-                  <div className="flex flex-wrap gap-2">
-                    {form.subjectIds.map((id) => {
-                      const name = subjectOptions.find((item) => item.id === id)?.name;
-                      return name ? (
-                        <Badge key={id} className="bg-white/10 text-white/70">
-                          {name}
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
+                <div className="flex items-center justify-between gap-3 text-sm text-white/70">
+                  <span className="inline-flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-sky-200" />
+                    Email parents
+                  </span>
+                  <Switch checked={form.sendEmail} onCheckedChange={(checked) => update({ sendEmail: checked })} />
                 </div>
-              )}
-
-              {form.audience === "custom" && (
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Class group</label>
-                    <PremiumSelect
-                      value={customClassId}
-                      onValueChange={(value) => update({ classGroupIds: [value], targetStudentIds: [] })}
-                    >
-                      <PremiumSelectTrigger>
-                        <PremiumSelectValue placeholder="Select class" />
-                      </PremiumSelectTrigger>
-                      <PremiumSelectContent>
-                        {classOptions.map((cls) => (
-                          <PremiumSelectItem key={cls.id} value={cls.id}>
-                            {cls.name}
-                          </PremiumSelectItem>
-                        ))}
-                      </PremiumSelectContent>
-                    </PremiumSelect>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Students</label>
-                    <PremiumDropdownMenu>
-                      <PremiumDropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full border-white/10 bg-white/5 text-white/70 hover:bg-white/10">
-                          Select students
-                        </Button>
-                      </PremiumDropdownMenuTrigger>
-                      <PremiumDropdownMenuContent align="start">
-                        <PremiumDropdownMenuLabel>Roster</PremiumDropdownMenuLabel>
-                        {roster.map((student) => (
-                          <PremiumDropdownMenuCheckboxItem
-                            key={student._id}
-                            checked={form.targetStudentIds.includes(student._id)}
-                            onCheckedChange={() =>
-                              update({ targetStudentIds: toggleSelection(form.targetStudentIds, student._id) })
-                            }
-                          >
-                            {student.firstName} {student.lastName}
-                          </PremiumDropdownMenuCheckboxItem>
-                        ))}
-                        {roster.length === 0 && (
-                          <div className="px-3 py-2 text-xs text-white/50">No students found.</div>
-                        )}
-                      </PremiumDropdownMenuContent>
-                    </PremiumDropdownMenu>
-                    <div className="flex flex-wrap gap-2">
-                      {form.targetStudentIds.map((id) => {
-                        const student = roster.find((item) => item._id === id);
-                        return student ? (
-                          <Badge key={id} className="bg-white/10 text-white/70">
-                            {student.firstName} {student.lastName}
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between gap-3 text-sm text-white/70">
+                  <span>Mark as important</span>
+                  <Switch
+                    checked={form.priority === "high"}
+                    onCheckedChange={(checked) => update({ priority: checked ? "high" : "normal" })}
+                  />
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
 
           <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-indigo-500/20 text-indigo-200">
-                  <CalendarDays className="h-4 w-4" />
-                </span>
-                Schedule
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/70">
-                <div>
-                  <div className="font-semibold text-white">Schedule notice</div>
-                  <div className="text-xs text-white/50">Send later instead of now.</div>
-                </div>
-                <Switch checked={form.schedule} onCheckedChange={(checked) => update({ schedule: checked })} />
-              </div>
-              {form.schedule && (
-                <CustomDatePicker
-                  value={form.scheduledFor ?? undefined}
-                  onChange={(date) => update({ scheduledFor: date ?? null })}
-                  placeholder="Select a delivery date"
-                />
-              )}
+            <CardContent className="space-y-2 p-4 text-sm text-white/60">
+              <div className="font-semibold text-white">Delivery</div>
+              <p>
+                Teacher notices send immediately through the app inbox and optional email. Scheduled school-wide
+                campaigns remain in the admin communications center.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -396,8 +277,8 @@ export default function NewTeacherNoticePage() {
           disabled={!canPublish}
           className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
         >
-          <Users className="h-4 w-4" />
-          Save notice
+          <Send className="h-4 w-4" />
+          Send notice
         </Button>
         <Button
           variant="outline"

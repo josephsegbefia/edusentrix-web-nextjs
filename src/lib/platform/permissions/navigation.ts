@@ -21,6 +21,10 @@ export const PLATFORM_ROUTE_ACCESS_RULES: PlatformRouteAccessRule[] = [
     requiredPermissions: ["platform.applications.read"],
   },
   {
+    href: "/platform/proposals",
+    requiredPermissions: ["platform.proposals.read"],
+  },
+  {
     href: "/platform/schools",
     requiredPermissions: ["platform.schools.read"],
   },

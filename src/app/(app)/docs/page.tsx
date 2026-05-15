@@ -26,7 +26,8 @@ export default function DocsPage() {
                 </span>
               </div>
               <p className="mt-0.5 text-sm text-white/50">
-                Everything you need to master EduSentrix for your school
+                Searchable guides, sidebar navigation, and a reader that matches the
+                admin glass UI — all in one place
               </p>
             </div>
           </div>
@@ -34,7 +35,7 @@ export default function DocsPage() {
           <div className="hidden items-center gap-3 md:flex">
             {[
               { icon: Search, label: "Search" },
-              { icon: FileText, label: "30+ articles" },
+              { icon: FileText, label: "43 articles" },
               { icon: Sparkles, label: "AI-powered" },
             ].map((item) => (
               <div

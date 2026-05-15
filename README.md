@@ -48,6 +48,7 @@ EduSentrix is a comprehensive school management platform designed specifically f
 - **AI-Powered (Leo)**: OpenAI integration for lesson generation, student insights, exam drafting, and more
 - **Platform Operations**: Multi-school billing, subscription entitlements, staff delegation, and feature flags
 - **Demo Platform**: Self-service demo sandbox with persona-based walkthroughs
+- **In-app help**: `/docs` — Documentation & Help with searchable guides (markdown), sidebar navigation, and a glass-styled reader aligned with the admin UI
 
 ## Features
 
@@ -120,8 +121,10 @@ EduSentrix is a comprehensive school management platform designed specifically f
   - Automatic grade seeding based on school type (Basic: Creche → JHS3, SHS: SHS1-3)
   - Automatic subject creation for Basic schools (Ghana curriculum)
   - Class group creation with flexible naming strategies
-  - Subject configuration and assignment
-  - Teacher assignments to class groups
+  - **Subject offerings** (`/admin/subjects`): Curriculum-aware offerings (display name, code, stage, grade band, lesson-note templates); setup from curriculum; custom offerings; assign offerings to class groups; teacher assignments tied to offerings where configured
+  - **Grades & bulk class assignment**: From a grade’s overview, assign subject offerings to all classes in that grade — the picker lists only offerings for that grade’s **band** (e.g. JHS for JHS 1–3); you can create a custom offering with full metadata from the same modal when nothing is curated yet
+  - Subject configuration and legacy `Subject` records
+  - Teacher assignments to class groups (homeroom and subject-offering flows)
   - Class roles and student roles management
 
 - **Schemes of Work** (`/admin/schemes`)
@@ -958,7 +961,7 @@ The application uses 180 Mongoose models located in `src/models/`, including:
 
 **Students & Academics**
 - **Student** / **Guardian**: Student records and guardian relationships
-- **Grade** / **ClassGroup** / **Subject**: Academic structure
+- **Grade** / **ClassGroup** / **Subject** / **SubjectOffering**: Academic structure and curriculum-scoped offerings (linked to classes via `subjectOfferingIds`)
 - **AcademicPeriod**: Term and year configuration
 - **SubjectGrade** / **TermResult** / **Assessment**: Academic performance
 - **TeacherComment** / **GradingScale**: Grading support
@@ -1143,7 +1146,7 @@ Ensure all environment variables are set in your production environment:
 
 ## Additional Documentation
 
-- **In-app Docs**: Visit `/docs` for user-facing documentation
+- **In-app Docs** (`/docs`): User-facing help — **43** articles across **31** sidebar categories (Getting Started, Subjects & offerings, Fees, Timetable, Library, Admissions, Leo, and more). Open **Documentation & Help** from the app top bar; content lives in `content/docs/` and is rendered by `DocsViewer` with search and an on-page heading index
 - **Feature Specs** (`docs/`): 99 specification documents covering architecture and feature design
 - **Fees System Strategy**: See `FEES_SYSTEM_STRATEGY.md` for the fees & payments architecture
 - **Lesson Notes Spec**: See `edusentrix-lesson-notes-spec.md` for the lesson notes builder specification
@@ -1161,7 +1164,7 @@ Ensure all environment variables are set in your production environment:
 For support and inquiries:
 
 - **Email**: support@edusentrix.com
-- **Documentation**: Visit `/docs` within the application
+- **Documentation**: Open **Documentation & Help** (`/docs`) — searchable articles, subject offerings, fees, timetable, library, and more
 - **Issues**: Use GitHub Issues for bug reports
 
 ## License

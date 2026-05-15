@@ -128,9 +128,38 @@ function MessageView({
   threadId: string;
   onBack: () => void;
 }) {
-  const { data, isLoading } = useEmailMessages(threadId);
+  const { data, isLoading, refetch } = useEmailMessages(threadId);
   const updateThread = useUpdateThread();
+  const compose = useComposeEmail();
+  const [replyBody, setReplyBody] = React.useState("");
   const messages = data?.data ?? [];
+  const lastInbound = [...messages].reverse().find((msg) => msg.direction === "inbound");
+  const firstMessage = messages[0] ?? null;
+  const replyRecipient = lastInbound
+    ? {
+        email: lastInbound.from,
+        name: lastInbound.fromName || undefined,
+      }
+    : null;
+
+  const handleReply = async () => {
+    if (!replyRecipient || !replyBody.trim()) return;
+    const plainText = extractPlainText(replyBody);
+    if (!plainText.trim()) return;
+    await compose.mutateAsync({
+      to: replyRecipient.email,
+      toName: replyRecipient.name,
+      subject: firstMessage?.subject?.toLowerCase().startsWith("re:")
+        ? firstMessage.subject
+        : `Re: ${firstMessage?.subject || "Email conversation"}`,
+      htmlContent: replyBody,
+      textContent: plainText,
+      threadId,
+      threadType: "manual",
+    });
+    setReplyBody("");
+    await refetch();
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -226,6 +255,45 @@ function MessageView({
               )}
             </div>
           ))
+        )}
+      </div>
+      <div className="border-t border-white/10 bg-black/10 p-4">
+        {replyRecipient ? (
+          <div className="space-y-3">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Reply to {replyRecipient.name || replyRecipient.email}</p>
+                <p className="text-xs text-white/45">{replyRecipient.email}</p>
+              </div>
+              {compose.isError ? (
+                <p className="text-xs font-medium text-red-300">
+                  {compose.error?.message || "Failed to send reply"}
+                </p>
+              ) : null}
+            </div>
+            <RichTextEditor
+              placeholder="Write your reply..."
+              value={replyBody}
+              onChange={setReplyBody}
+              toolbarVariant="minimal"
+              minHeight="130px"
+              maxHeight="260px"
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={handleReply}
+                disabled={compose.isPending || !extractPlainText(replyBody).trim()}
+                className="gap-2 bg-linear-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/15 hover:from-blue-600 hover:to-cyan-600"
+              >
+                {compose.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Send reply
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/45">
+            Replies appear here when someone responds to a school email. Select a thread with an inbound message to reply.
+          </div>
         )}
       </div>
     </div>

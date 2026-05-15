@@ -353,8 +353,40 @@ function buildDayOfWeekFilter(args: {
   return filter;
 }
 
-function buildPairKey(classGroupId: Types.ObjectId, subjectId: Types.ObjectId): string {
+function toObjectIdOrNull(value: unknown): Types.ObjectId | null {
+  if (value instanceof Types.ObjectId) return value;
+  if (typeof value === "string" && Types.ObjectId.isValid(value)) {
+    return new Types.ObjectId(value);
+  }
+  return null;
+}
+
+function buildPairKey(
+  classGroupId: Types.ObjectId,
+  subjectId: Types.ObjectId
+): string {
   return `${String(classGroupId)}|${String(subjectId)}`;
+}
+
+function buildPairKeySafe(classGroupId: unknown, subjectId: unknown): string | null {
+  const classGroupObjectId = toObjectIdOrNull(classGroupId);
+  const subjectObjectId = toObjectIdOrNull(subjectId);
+  if (!classGroupObjectId || !subjectObjectId) return null;
+  return buildPairKey(classGroupObjectId, subjectObjectId);
+}
+
+function pairConditionFromKey(pair: string): {
+  classGroupId: Types.ObjectId;
+  subjectId: Types.ObjectId;
+} | null {
+  const [classGroupId, subjectId] = pair.split("|");
+  const classGroupObjectId = toObjectIdOrNull(classGroupId);
+  const subjectObjectId = toObjectIdOrNull(subjectId);
+  if (!classGroupObjectId || !subjectObjectId) return null;
+  return {
+    classGroupId: classGroupObjectId,
+    subjectId: subjectObjectId,
+  };
 }
 
 type TimetableSlotLean = {
@@ -392,17 +424,20 @@ export async function querySlotsForTeacherWithAssignments(args: {
   const pairConditions = Array.from(
     new Set(
       (teacherAssignmentPairs as Array<{
-        classGroupId: Types.ObjectId;
-        subjectId: Types.ObjectId;
-      }>).map((row) => buildPairKey(row.classGroupId, row.subjectId))
+        classGroupId?: Types.ObjectId | string | null;
+        subjectId?: Types.ObjectId | string | null;
+      }>)
+        .map((row) => buildPairKeySafe(row.classGroupId, row.subjectId))
+        .filter((pair): pair is string => Boolean(pair))
     )
-  ).map((pair) => {
-    const [classGroupId, subjectId] = pair.split("|");
-    return {
-      classGroupId: new Types.ObjectId(classGroupId),
-      subjectId: new Types.ObjectId(subjectId),
-    };
-  });
+  )
+    .map(pairConditionFromKey)
+    .filter(
+      (
+        condition
+      ): condition is { classGroupId: Types.ObjectId; subjectId: Types.ObjectId } =>
+        Boolean(condition)
+    );
 
   const filter: Record<string, unknown> = {
     schoolId: args.schoolId,
@@ -423,14 +458,19 @@ export async function querySlotsForTeacherWithAssignments(args: {
   if (!candidateSlots.length) return [];
 
   const slotPairConditions = Array.from(
-    new Set(candidateSlots.map((slot) => buildPairKey(slot.classGroupId, slot.subjectId)))
-  ).map((pair) => {
-    const [classGroupId, subjectId] = pair.split("|");
-    return {
-      classGroupId: new Types.ObjectId(classGroupId),
-      subjectId: new Types.ObjectId(subjectId),
-    };
-  });
+    new Set(
+      candidateSlots
+        .map((slot) => buildPairKeySafe(slot.classGroupId, slot.subjectId))
+        .filter((pair): pair is string => Boolean(pair))
+    )
+  )
+    .map(pairConditionFromKey)
+    .filter(
+      (
+        condition
+      ): condition is { classGroupId: Types.ObjectId; subjectId: Types.ObjectId } =>
+        Boolean(condition)
+    );
 
   const assignmentRows =
     slotPairConditions.length > 0
@@ -450,7 +490,8 @@ export async function querySlotsForTeacherWithAssignments(args: {
     subjectId: Types.ObjectId;
     teacherId: Types.ObjectId;
   }>) {
-    const key = buildPairKey(row.classGroupId, row.subjectId);
+    const key = buildPairKeySafe(row.classGroupId, row.subjectId);
+    if (!key) continue;
     const ids = teacherIdsByPair.get(key) || [];
     const teacherId = String(row.teacherId);
     if (!ids.includes(teacherId)) ids.push(teacherId);
@@ -458,8 +499,9 @@ export async function querySlotsForTeacherWithAssignments(args: {
   }
 
   const teacherSlots = candidateSlots.filter((slot) => {
+    const pairKey = buildPairKeySafe(slot.classGroupId, slot.subjectId);
     const assignedTeacherIds =
-      teacherIdsByPair.get(buildPairKey(slot.classGroupId, slot.subjectId)) || [];
+      (pairKey ? teacherIdsByPair.get(pairKey) : null) || [];
     if (assignedTeacherIds.length > 0) {
       return assignedTeacherIds.includes(teacherIdString);
     }

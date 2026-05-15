@@ -86,6 +86,25 @@ export function useEmailInbox(opts: {
   });
 }
 
+export function useEmailUnreadCount(enabled = true) {
+  return useQuery<{
+    success: boolean;
+    data: { unreadCount: number };
+  }>({
+    queryKey: ["email-unread-count"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/email/unread-count", {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error("Failed to fetch unread email count");
+      return res.json();
+    },
+    enabled,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
+
 export function useEmailThread(threadId: string | null) {
   return useQuery<{
     success: boolean;
@@ -104,6 +123,8 @@ export function useEmailThread(threadId: string | null) {
 }
 
 export function useEmailMessages(threadId: string | null) {
+  const queryClient = useQueryClient();
+
   return useQuery<{
     success: boolean;
     data: EmailMessageDTO[];
@@ -116,7 +137,9 @@ export function useEmailMessages(threadId: string | null) {
         { cache: "no-store" },
       );
       if (!res.ok) throw new Error("Failed to fetch messages");
-      return res.json();
+      const json = await res.json();
+      void queryClient.invalidateQueries({ queryKey: ["email-unread-count"] });
+      return json;
     },
     enabled: !!threadId,
   });
@@ -160,6 +183,7 @@ export function useComposeEmail() {
       htmlContent: string;
       textContent?: string;
       attachments?: EmailAttachmentDTO[];
+      threadId?: string;
       threadType?: string;
       relatedEntityType?: string;
       relatedEntityId?: string;
@@ -177,6 +201,8 @@ export function useComposeEmail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["email-inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["email-messages"] });
+      queryClient.invalidateQueries({ queryKey: ["email-unread-count"] });
     },
   });
 }

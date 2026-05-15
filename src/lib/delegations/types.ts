@@ -13,6 +13,7 @@ export type DelegationModule =
   | "staff_attendance"
   | "invitations"
   | "email"
+  | "communications"
   | "fees"
   | "expenses"
   | "students"

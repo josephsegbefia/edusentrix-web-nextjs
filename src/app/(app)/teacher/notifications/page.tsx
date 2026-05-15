@@ -249,12 +249,12 @@ export default function TeacherNotificationsPage() {
           <div className="space-y-3">
             <Badge className="w-fit bg-white/10 text-white/80">
               <Sparkles className="h-3.5 w-3.5" />
-              Notification hub
+              App inbox
             </Badge>
             <div>
               <h1 className="text-2xl font-semibold text-white">Notifications</h1>
               <p className="text-sm text-white/65">
-                Track announcements, reminders, grading updates, and classroom activity in one stream.
+                Read communication deliveries, reminders, grading updates, and classroom alerts in one stream.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

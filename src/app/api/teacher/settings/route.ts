@@ -4,6 +4,7 @@ import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { TeacherSettings, type ITeacherSettings } from "@/models/TeacherSettings";
 import { User } from "@/models/User";
 import { SchoolSettings } from "@/models/SchoolSettings";
+import { CommunicationPreference } from "@/models/CommunicationPreference";
 import {
   getWhatsAppProviderState,
   type WhatsAppProviderMode,
@@ -11,6 +12,14 @@ import {
 
 const TimeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
 const E164LikePhoneRegex = /^\+?[1-9]\d{7,14}$/;
+
+const NOTIFICATION_TYPE_GROUPS = {
+  messages: ["direct_message"],
+  notices: ["notice", "announcement", "event_notice", "newsletter"],
+  submissions: ["lesson_update", "academic_update"],
+  escalations: ["emergency_alert", "system_alert"],
+  reminders: ["fee_reminder", "attendance_alert", "exam_notice", "video_meeting_invite"],
+} as const;
 
 const TeacherSettingsPatchSchema = z.object({
   locale: z.string().min(2).max(15).optional(),
@@ -246,6 +255,35 @@ function disableWhatsAppFeatureFlags(settingsDoc: ITeacherSettings) {
   settingsDoc.whatsapp.featureFlags.submissionUpdates = false;
   settingsDoc.whatsapp.featureFlags.escalationAlerts = false;
   settingsDoc.whatsapp.featureFlags.weeklyDigest = false;
+}
+
+async function syncTeacherCommunicationPreference(settingsDoc: ITeacherSettings) {
+  const inAppSettings = settingsDoc.notifications?.inApp;
+  const mutedTypes = Object.entries(NOTIFICATION_TYPE_GROUPS).flatMap(([key, types]) => {
+    const enabled = inAppSettings?.[key as keyof typeof inAppSettings] ?? true;
+    return enabled ? [] : [...types];
+  });
+  const anyInAppEnabled = Object.keys(NOTIFICATION_TYPE_GROUPS).some(
+    (key) => inAppSettings?.[key as keyof typeof inAppSettings] ?? true,
+  );
+
+  await CommunicationPreference.findOneAndUpdate(
+    { schoolId: settingsDoc.schoolId, userId: settingsDoc.userId },
+    {
+      $set: {
+        allowedChannels: anyInAppEnabled ? ["in_app", "email"] : ["email"],
+        mutedTypes,
+        whatsappConsent: false,
+        smsConsent: false,
+        quietHours: {
+          enabled: false,
+          start: null,
+          end: null,
+        },
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  );
 }
 
 export async function GET() {
@@ -515,6 +553,7 @@ export async function PATCH(req: Request) {
     }
 
     await teacherSettingsDoc.save();
+    await syncTeacherCommunicationPreference(teacherSettingsDoc);
 
     const schoolSettingsRaw = await SchoolSettings.findOne({ schoolId: context.schoolId })
       .select("attendanceNotifications")

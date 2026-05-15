@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import ActiveLink from "../active/ActiveLink";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
+import { useTeacherUnreadNotificationCount } from "@/hooks/teacher/useTeacherNotifications";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import type { DelegationModule } from "@/lib/delegations/types";
@@ -73,6 +74,7 @@ type NavSection = {
     exact?: boolean;
     feature?: SubscriptionFeatureKey;
     permission?: Permission;
+    badgeCount?: number;
   }>;
 };
 
@@ -319,6 +321,7 @@ function NavContent({
   const pathname = usePathname();
   const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>({});
   const { data } = useTeacherContext();
+  const { data: unreadNotifications } = useTeacherUnreadNotificationCount();
   const { data: subscription } = useSubscription();
   const permissions = data?.data.permissions as Permission[] | undefined;
   const studioEnabled = data?.data.features?.teacherStudioEnabled ?? true;
@@ -340,6 +343,13 @@ function NavContent({
         .map((section) => ({
           ...section,
           items: section.items
+            .map((item) => ({
+              ...item,
+              badgeCount:
+                item.href === "/teacher/notifications"
+                  ? Math.max(0, unreadNotifications ?? 0)
+                  : item.badgeCount,
+            }))
             .filter((item) =>
               item.href === "/teacher/homeroom/timetable" ? Boolean(homeroomClassGroupId) : true
             )
@@ -351,7 +361,7 @@ function NavContent({
             ),
         }))
         .filter((section) => section.items.length > 0),
-    [enabledFeatures, showStudio, homeroomClassGroupId, permissions]
+    [enabledFeatures, showStudio, homeroomClassGroupId, permissions, unreadNotifications]
   );
 
   const filteredLessonNavChildren = React.useMemo(
@@ -413,7 +423,7 @@ function NavContent({
               )}
 
               <div className={cn("space-y-0.5", collapsed && "space-y-1.5")}>
-                {section.items.map(({ label, href, icon: Icon, exact }) => {
+                {section.items.map(({ label, href, icon: Icon, exact, badgeCount }) => {
                   if (href === "/teacher/lessons" && filteredLessonNavChildren.length > 0) {
                     const inTree =
                       pathname === href ||
@@ -544,7 +554,7 @@ function NavContent({
                             exact={exact}
                             onClick={onItemClick}
                             className={cn(
-                              "flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
+                              "relative flex h-10 w-10 mx-auto items-center justify-center rounded-xl",
                               "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
                               active &&
                                 "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
@@ -552,6 +562,9 @@ function NavContent({
                             activeClassName="nav-active"
                           >
                             <Icon className="h-4 w-4 shrink-0" />
+                            {badgeCount ? (
+                              <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-rose-400 ring-2 ring-[#10131f]" />
+                            ) : null}
                           </ActiveLink>
                         </TooltipTrigger>
                         <TooltipContent side="right" sideOffset={8} className={sidebarTooltipClasses}>
@@ -575,6 +588,11 @@ function NavContent({
                     >
                       <Icon className={cn("h-4 w-4 shrink-0", active && "text-emerald-300")} />
                       <span className="truncate">{label}</span>
+                      {badgeCount ? (
+                        <span className="ml-auto rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-semibold text-rose-100">
+                          {badgeCount > 99 ? "99+" : badgeCount}
+                        </span>
+                      ) : null}
                     </ActiveLink>
                   );
                 })}

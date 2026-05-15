@@ -418,6 +418,45 @@ export const DELEGATION_REGISTRY: Record<DelegationModule, DelegationModuleDefin
       },
     },
   },
+  communications: {
+    label: "Communications",
+    description: "School notices, announcements, multi-channel sends, and delivery reports.",
+    adminHref: "/admin/communications",
+    delegateHref: "/admin/communications",
+    showContextualDelegateButton: true,
+    implemented: true,
+    presets: {
+      viewer: {
+        label: "Viewer",
+        description: "View communications, audiences, and delivery reports.",
+        permissions: ["communications.view"],
+      },
+      sender: {
+        label: "Sender",
+        description: "Create drafts, preview audiences, send communications, and view reports.",
+        permissions: [
+          "communications.view",
+          "communications.create",
+          "communications.edit",
+          "communications.send",
+          "communications.reports.view",
+        ],
+      },
+      manager: {
+        label: "Manager",
+        description: "Sender plus template and preference management.",
+        permissions: [
+          "communications.view",
+          "communications.create",
+          "communications.edit",
+          "communications.send",
+          "communications.reports.view",
+          "communications.templates.manage",
+          "communications.preferences.manage",
+        ],
+      },
+    },
+  },
   fees: {
     label: "Fees & Payments",
     description: "Fee records and limited payment actions (no setup or approvals).",

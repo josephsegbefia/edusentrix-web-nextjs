@@ -4,6 +4,7 @@ import { Types } from "mongoose";
 import { EmailMessage, type IEmailMessage } from "@/models/EmailMessage";
 import { EmailDispatchJob } from "@/models/EmailDispatchJob";
 import { School } from "@/models/School";
+import { EmailThread } from "@/models/EmailThread";
 import { lookupTemplateRegistry } from "../registry";
 import {
   brevoSend,
@@ -21,6 +22,7 @@ import { resolveSecureContentMode } from "../sensitivity";
 import { checkRateLimit, recordSend } from "../rate-limiter";
 import type { EmailThreadType } from "@/models/EmailThread";
 import { renderGenericBrandedEmail, stripHtml } from "../branded-template";
+import { isCategoryAllowed, resolveEmailPreference } from "../preferences";
 
 export interface SendBrevoEmailInput {
   to: string;
@@ -44,6 +46,7 @@ export interface SendBrevoEmailInput {
 
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
+  threadId?: string | null;
   threadType?: EmailThreadType;
 
   actorId?: string | null;
@@ -175,19 +178,82 @@ export async function sendTrackedBrevoEmail(
     }
   }
 
-  const thread = await findOrCreateThread({
-    mailboxScope: registry.mailboxScope,
-    mailboxKey: resolveMailboxKey(registry, input.schoolId),
-    schoolId: input.schoolId,
-    subject: input.subject,
-    threadType: input.threadType || resolveThreadType(registry),
-    relatedEntityType: input.relatedEntityType,
-    relatedEntityId: input.relatedEntityId,
-    participantEmail: input.to,
-    participantName: input.toName,
-    participantRoleHint: input.recipientRole,
-    participantUserId: input.recipientUserId,
-  });
+  if (registry.preferenceClass !== "transactional" && input.recipientUserId && input.recipientRole) {
+    const { preference, suppressed: preferenceSuppressed, suppressionReason } =
+      await resolveEmailPreference(input.recipientUserId, input.recipientRole, input.schoolId ?? null, input.to);
+    const categoryKey = resolveCategoryKey(registry.messageClass);
+    const urgentOnlyBlocked =
+      preference.urgentOnly && !["critical", "high"].includes(registry.priority);
+    const categoryBlocked = categoryKey
+      ? !isCategoryAllowed(preference, categoryKey, registry.preferenceClass === "transactional")
+      : false;
+    const channelBlocked = preference.channels.email === false;
+
+    if (preferenceSuppressed || urgentOnlyBlocked || categoryBlocked || channelBlocked) {
+      const skipReason =
+        suppressionReason ||
+        (channelBlocked
+          ? "Recipient disabled email"
+          : urgentOnlyBlocked
+            ? "Recipient only accepts urgent email"
+            : `Recipient disabled ${categoryKey || "this"} email`);
+      const message = await EmailMessage.create({
+        provider: "brevo",
+        direction: "outbound",
+        mailboxScope: registry.mailboxScope,
+        mailboxKey: resolveMailboxKey(registry, input.schoolId),
+        schoolId: input.schoolId || null,
+        from: resolveSenderEmail(registry.senderFamily),
+        to: input.to,
+        subject: input.subject,
+        htmlBody: htmlContent,
+        textBody: textContent || null,
+        status: "failed",
+        messageClass: registry.messageClass,
+        trafficClass: registry.trafficClass,
+        priority: registry.priority,
+        sensitivity: registry.sensitivity,
+        secureContentMode: resolveSecureContentMode(registry.sensitivity),
+        templateKey: input.templateKey,
+        relatedEntityType: input.relatedEntityType || null,
+        relatedEntityId: input.relatedEntityId || null,
+        actorId: input.actorId || null,
+        actorName: input.actorName || null,
+        actorRole: input.actorRole || null,
+        recipientUserId: input.recipientUserId || null,
+        recipientRole: input.recipientRole || null,
+        recipientEmailVerified: input.recipientEmailVerified ?? null,
+        skipReason,
+        attachments: attachmentMetadata,
+        batchId: input.batchId || null,
+      });
+
+      return {
+        messageId: String(message._id),
+        status: "failed",
+      };
+    }
+  }
+
+  const thread = input.threadId
+    ? await EmailThread.findById(input.threadId)
+    : await findOrCreateThread({
+        mailboxScope: registry.mailboxScope,
+        mailboxKey: resolveMailboxKey(registry, input.schoolId),
+        schoolId: input.schoolId,
+        subject: input.subject,
+        threadType: input.threadType || resolveThreadType(registry),
+        relatedEntityType: input.relatedEntityType,
+        relatedEntityId: input.relatedEntityId,
+        participantEmail: input.to,
+        participantName: input.toName,
+        participantRoleHint: input.recipientRole,
+        participantUserId: input.recipientUserId,
+      });
+
+  if (!thread) {
+    throw new Error("Email thread not found");
+  }
 
   const routingToken = thread.routingToken || generateRoutingToken();
 

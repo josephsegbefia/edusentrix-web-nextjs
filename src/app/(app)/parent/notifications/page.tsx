@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -16,11 +15,15 @@ import {
   Megaphone,
   MessageSquare,
   Clock,
-  Filter,
+  Search,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import {
   useParentNotifications,
   useMarkNotificationRead,
@@ -181,6 +184,15 @@ function NotificationItem({
   );
 }
 
+function notificationMatchesSearch(notification: ParentNotification, query: string) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  const typeLabel = typeConfig[notification.type]?.label || notification.type;
+  return `${notification.title} ${notification.body} ${typeLabel} ${notification.wardName || ""}`
+    .toLowerCase()
+    .includes(normalized);
+}
+
 function NotificationSkeleton() {
   return (
     <div className="flex items-start gap-4 p-4 rounded-xl border border-white/5">
@@ -204,19 +216,24 @@ function NotificationSkeleton() {
 export default function ParentNotificationsPage() {
   const router = useRouter();
   const [filter, setFilter] = React.useState<NotificationType | "all">("all");
+  const [search, setSearch] = React.useState("");
+  const [unreadOnly, setUnreadOnly] = React.useState(false);
 
-  const { data, isLoading, error } = useParentNotifications({ limit: 50 });
+  const { data, isLoading, error } = useParentNotifications({ limit: 50, unreadOnly });
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 
   const notifications = data?.notifications || [];
   const unreadCount = data?.unreadCount || 0;
+  const totalCount = data?.pagination.total ?? notifications.length;
 
-  // Filter notifications
   const filteredNotifications = React.useMemo(() => {
-    if (filter === "all") return notifications;
-    return notifications.filter((n) => n.type === filter);
-  }, [notifications, filter]);
+    return notifications.filter((notification) => {
+      const typeMatches = filter === "all" || notification.type === filter;
+      if (!typeMatches) return false;
+      return notificationMatchesSearch(notification, search);
+    });
+  }, [notifications, filter, search]);
 
   const handleMarkAllRead = () => {
     markAllRead.mutate();
@@ -224,68 +241,96 @@ export default function ParentNotificationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Notifications</h1>
-            <p className="text-muted-foreground">
-              {unreadCount > 0
-                ? `${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}`
-                : "All caught up!"}
-            </p>
+      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-indigo-500/15 via-white/5 to-emerald-500/10 shadow-2xl shadow-black/35 backdrop-blur">
+        <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="space-y-3">
+            <Badge className="w-fit bg-white/10 text-white/80">
+              <Sparkles className="h-3.5 w-3.5" />
+              App inbox
+            </Badge>
+            <div>
+              <h1 className="text-2xl font-semibold text-white">Notifications</h1>
+              <p className="text-sm text-white/65">
+                Read school notices, teacher messages, payment reminders, and updates from one stream.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge className="bg-indigo-500/20 text-indigo-100">{totalCount} total</Badge>
+              <Badge className="bg-cyan-500/20 text-cyan-100">{unreadCount} unread</Badge>
+            </div>
           </div>
-        </div>
 
-        {unreadCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleMarkAllRead}
-            disabled={markAllRead.isPending}
-            className="gap-2"
-          >
-            <CheckCheck className="h-4 w-4" />
-            Mark all read
-          </Button>
-        )}
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        <Button
-          variant={filter === "all" ? "secondary" : "ghost"}
-          size="sm"
-          onClick={() => setFilter("all")}
-          className="shrink-0"
-        >
-          All
-        </Button>
-        {(Object.keys(typeConfig) as NotificationType[]).map((type) => {
-          const config = typeConfig[type];
-          const Icon = config.icon;
-          return (
-            <Button
-              key={type}
-              variant={filter === type ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setFilter(type)}
-              className="shrink-0 gap-1.5"
-            >
-              <Icon className={cn("h-3.5 w-3.5", config.color)} />
-              {config.label}
+          <div className="flex flex-col gap-2 lg:items-end">
+            <Button variant="outline" onClick={() => router.back()} className="border-white/15 bg-white/5 text-white/80 hover:bg-white/10">
+              <ArrowLeft className="h-4 w-4" />
+              Back
             </Button>
-          );
-        })}
-      </div>
+            {unreadCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMarkAllRead}
+                disabled={markAllRead.isPending}
+                className="border-white/15 bg-white/5 text-white/80 hover:bg-white/10"
+              >
+                <CheckCheck className="h-4 w-4" />
+                Mark all read
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-lg">Filter notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by title, message, or ward"
+                className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+              />
+            </div>
+
+            <label className="inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70">
+              <Switch checked={unreadOnly} onCheckedChange={setUnreadOnly} />
+              Unread only
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <Button
+              variant={filter === "all" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setFilter("all")}
+              className="shrink-0"
+            >
+              All
+            </Button>
+            {(Object.keys(typeConfig) as NotificationType[]).map((type) => {
+              const config = typeConfig[type];
+              const Icon = config.icon;
+              return (
+                <Button
+                  key={type}
+                  variant={filter === type ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setFilter(type)}
+                  className="shrink-0 gap-1.5"
+                >
+                  <Icon className={cn("h-3.5 w-3.5", config.color)} />
+                  {config.label}
+                </Button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Error State */}
       {error && (

@@ -29,6 +29,7 @@ import {
   ChevronRight,
   ClipboardList,
   ListTodo,
+  FileText,
 } from "lucide-react";
 import { LeoIcon } from "@/components/icons/LeoIcon";
 import {
@@ -101,6 +102,12 @@ const navSections: NavSection[] = [
         href: "/platform/demo-leads",
         icon: Presentation,
         requiredPermissions: ["platform.applications.read"],
+      },
+      {
+        label: "Proposals",
+        href: "/platform/proposals",
+        icon: FileText,
+        requiredPermissions: ["platform.proposals.read"],
       },
       {
         label: "Schools",

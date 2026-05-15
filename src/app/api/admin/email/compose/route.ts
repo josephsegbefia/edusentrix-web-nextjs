@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireSchoolAdminOrDelegatedAnyPermission } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
+import { EmailThread } from "@/models/EmailThread";
 import { sendTrackedBrevoEmail } from "@/lib/email";
 
 const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
@@ -54,6 +55,9 @@ const ComposeSchema = z.object({
     .enum(["support", "billing", "school_ops", "manual"])
     .optional()
     .default("manual"),
+  threadId: z.string().refine((value) => mongoose.Types.ObjectId.isValid(value), {
+    message: "Invalid thread ID",
+  }).optional(),
   relatedEntityType: z.string().trim().max(80).optional(),
   relatedEntityId: z.string().trim().max(80).optional(),
 });
@@ -84,6 +88,19 @@ export async function POST(req: NextRequest) {
     const schoolName = (school as Record<string, unknown>)?.name as string || "Your School";
     const schoolLogo = (school as Record<string, unknown>)?.logo as string | undefined;
 
+    if (parsed.data.threadId) {
+      const thread = await EmailThread.findOne({
+        _id: new mongoose.Types.ObjectId(parsed.data.threadId),
+        mailboxScope: "school",
+        schoolId: schoolIdObj,
+      })
+        .select("_id")
+        .lean();
+      if (!thread) {
+        return Response.json({ success: false, error: "Thread not found" }, { status: 404 });
+      }
+    }
+
     const result = await sendTrackedBrevoEmail({
       to: parsed.data.to,
       toName: parsed.data.toName,
@@ -97,6 +114,7 @@ export async function POST(req: NextRequest) {
       schoolLogo,
       actorId: String(userId),
       actorRole: "school_admin",
+      threadId: parsed.data.threadId,
       threadType: parsed.data.threadType,
       relatedEntityType: parsed.data.relatedEntityType,
       relatedEntityId: parsed.data.relatedEntityId,

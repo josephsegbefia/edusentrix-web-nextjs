@@ -4,7 +4,7 @@ Learn how to create and manage subjects in EduSentrix. Access subjects from the 
 
 ## Overview
 
-Subjects are the core academic offerings of your school. The Subjects module allows you to:
+Subjects are the core academic offerings of your school. For **curriculum-scoped teaching lines** (per grade band, codes, templates, and class-level assignment), see **[Subject Offerings](./subject-offerings.md)**. The Subjects module allows you to:
 - **Create Subjects**: Add new subjects to your curriculum
 - **Assign Teachers**: Link teachers to subjects they teach
 - **Manage Subject Details**: Update subject information

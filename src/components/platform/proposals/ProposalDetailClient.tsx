@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarDays, Eye, FileText, Loader2, Save, Send } from "lucide-react";
+import { CalendarDays, Eye, Loader2, Save, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
   const [proposal, setProposal] = React.useState(initialData.proposal);
   const [activities, setActivities] = React.useState(initialData.activities);
   const [saving, setSaving] = React.useState(false);
+  const [leoLoading, setLeoLoading] = React.useState(false);
+  const [leoInstruction, setLeoInstruction] = React.useState("");
   const [activeSectionKey, setActiveSectionKey] = React.useState(proposal.sections[0]?.key || "");
 
   const activeSection = proposal.sections.find((section) => section.key === activeSectionKey) || proposal.sections[0];
@@ -87,6 +89,34 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
     const res = await fetch(`/api/platform/proposals/${proposal.id}/activity`, { cache: "no-store" });
     const json = await res.json().catch(() => null);
     if (res.ok && json?.success) setActivities(json.data.activities);
+  }
+
+  async function generateSectionWithLeo() {
+    if (!activeSection) return;
+    setLeoLoading(true);
+    try {
+      const res = await fetch(`/api/platform/proposals/${proposal.id}/leo-section`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sectionKey: activeSection.key,
+          instruction: leoInstruction,
+          tone: "formal",
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Leo could not generate content");
+      }
+      updateActiveSection({ content: json.data.content });
+      toast.success(json.data.source === "fallback" ? "Draft inserted. Configure OpenAI for richer Leo output." : "Leo draft inserted");
+      setLeoInstruction("");
+      await refreshActivity();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Leo could not generate content");
+    } finally {
+      setLeoLoading(false);
+    }
   }
 
   return (
@@ -152,6 +182,32 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
                     <PremiumSelectItem value="callout">Callout</PremiumSelectItem>
                   </PremiumSelectContent>
                 </PremiumSelect>
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div>
+                        <p className="text-sm font-semibold text-amber-100">Leo section assistant</p>
+                        <p className="text-xs text-white/55">Generate an editable official-draft version of this section.</p>
+                      </div>
+                      <Textarea
+                        value={leoInstruction}
+                        onChange={(event) => setLeoInstruction(event.target.value)}
+                        placeholder="Optional instruction, e.g. emphasize mobile app and finance controls"
+                        className="min-h-20 border-white/10 bg-black/20 text-white placeholder:text-white/35"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => void generateSectionWithLeo()}
+                        disabled={leoLoading}
+                        className="bg-amber-500/20 text-amber-100 hover:bg-amber-500/30"
+                      >
+                        {leoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        {leoLoading ? "Leo is drafting..." : "Generate with Leo"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
                 <Textarea value={activeSection.content} onChange={(e) => updateActiveSection({ content: e.target.value })} className="min-h-72 border-white/10 bg-white/5 text-white" />
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" onClick={() => updateActiveSection({ enabled: !activeSection.enabled })} className="border-white/10 bg-white/5 text-white/70">

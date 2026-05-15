@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarDays, Eye, Loader2, Save, Send, Sparkles } from "lucide-react";
+import { CalendarDays, Check, Eye, Loader2, Save, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -152,20 +152,42 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
         <PlatformSection title="Section editor" description="Edit proposal sections. Disabled sections stay in draft but do not render in the final preview.">
           <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
             <div className="space-y-2">
-              {proposal.sections.map((section) => (
-                <button
-                  key={section.key}
-                  onClick={() => setActiveSectionKey(section.key)}
-                  className={`w-full rounded-2xl border px-3 py-2 text-left text-sm transition ${
-                    activeSection?.key === section.key
-                      ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-50"
-                      : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
-                  }`}
-                >
-                  <span className="block font-medium">{section.title}</span>
-                  <span className="text-xs text-white/40">Section {section.order}</span>
-                </button>
-              ))}
+              {proposal.sections.map((section) => {
+                const isActive = activeSection?.key === section.key;
+                const isComplete = section.enabled && section.content.trim().length > 0;
+
+                return (
+                  <button
+                    key={section.key}
+                    onClick={() => setActiveSectionKey(section.key)}
+                    className={`w-full rounded-2xl border px-3 py-2 text-left text-sm transition ${
+                      isActive
+                        ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-50"
+                        : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{section.title}</span>
+                        <span className="text-xs text-white/40">
+                          Section {section.order}
+                          {!section.enabled ? " · Disabled" : ""}
+                        </span>
+                      </span>
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                          isComplete
+                            ? "border-emerald-300/40 bg-emerald-400/15 text-emerald-100"
+                            : "border-white/10 bg-white/5 text-white/25"
+                        }`}
+                        aria-label={isComplete ? "Section completed" : "Section not completed"}
+                      >
+                        {isComplete ? <Check className="h-3.5 w-3.5" /> : null}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             {activeSection ? (
               <div className="space-y-3">

@@ -14,6 +14,7 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { RichTextEditor, extractPlainText } from "@/components/ui/rich-text-editor";
 import { PlatformPill, PlatformSection, formatDate, formatTimestamp } from "@/components/platform/platform-page-primitives";
 import { ProposalStatusBadge } from "@/components/platform/proposals/ProposalStatusBadge";
 import type { PlatformProposal, ProposalActivity, ProposalSendLog } from "@/components/platform/proposals/types";
@@ -34,6 +35,10 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
   const [activeSectionKey, setActiveSectionKey] = React.useState(proposal.sections[0]?.key || "");
 
   const activeSection = proposal.sections.find((section) => section.key === activeSectionKey) || proposal.sections[0];
+
+  function hasSectionContent(content: string) {
+    return extractPlainText(content).length > 0;
+  }
 
   function updateProposal(patch: Partial<PlatformProposal>) {
     setProposal((prev) => ({ ...prev, ...patch }));
@@ -154,7 +159,7 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
             <div className="space-y-2">
               {proposal.sections.map((section) => {
                 const isActive = activeSection?.key === section.key;
-                const isComplete = section.enabled && section.content.trim().length > 0;
+                const isComplete = section.enabled && hasSectionContent(section.content);
 
                 return (
                   <button
@@ -230,7 +235,16 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
                     </div>
                   </div>
                 </div>
-                <Textarea value={activeSection.content} onChange={(e) => updateActiveSection({ content: e.target.value })} className="min-h-72 border-white/10 bg-white/5 text-white" />
+                <RichTextEditor
+                  value={activeSection.content}
+                  onChange={(content) => updateActiveSection({ content })}
+                  placeholder={`Write the ${activeSection.title.toLowerCase()} section...`}
+                  toolbarVariant="full"
+                  minHeight="280px"
+                  maxHeight="560px"
+                  className="border-white/10 bg-white/5"
+                  editorClassName="prose-p:text-white/85 prose-headings:text-white"
+                />
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="outline" onClick={() => updateActiveSection({ enabled: !activeSection.enabled })} className="border-white/10 bg-white/5 text-white/70">
                     {activeSection.enabled ? "Disable section" : "Enable section"}

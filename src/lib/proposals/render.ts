@@ -1,5 +1,6 @@
 import type { IProposal } from "@/models/Proposal";
 import type { IProposalBranding } from "@/models/ProposalBranding";
+import { sanitizeProposalHtml } from "@/lib/proposals/utils";
 
 function escapeHtml(value: unknown) {
   return String(value ?? "")
@@ -17,9 +18,30 @@ function paragraphs(content: string) {
     .join("");
 }
 
+function plainText(content: string) {
+  return String(content || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function renderSectionContent(content: string) {
+  const value = String(content || "");
+  if (/<[a-z][\s\S]*>/i.test(value)) {
+    return sanitizeProposalHtml(value);
+  }
+  return paragraphs(value);
+}
+
 export function renderProposalHtml(proposal: IProposal | any, branding: IProposalBranding | any) {
   const enabledSections = (proposal.sections || [])
-    .filter((section: any) => section.enabled)
+    .filter((section: any) => section.enabled && plainText(section.content).length > 0)
     .sort((a: any, b: any) => a.order - b.order);
   const primary = branding.primaryColor || "#6D28D9";
   const secondary = branding.secondaryColor || "#06B6D4";
@@ -43,6 +65,11 @@ export function renderProposalHtml(proposal: IProposal | any, branding: IProposa
     h1 { font-family: Arial, sans-serif; font-size: 34px; line-height: 1.16; margin: 26px 0 12px; color: #111827; letter-spacing: 0; font-weight: 760; }
     h2 { font-family: Arial, sans-serif; font-size: 18px; margin: 0 0 9px; color: #111827; letter-spacing: 0; font-weight: 740; }
     p { margin: 0 0 11px; }
+    ul, ol { margin: 0 0 12px 22px; padding: 0; }
+    li { margin: 0 0 5px; }
+    blockquote { margin: 0 0 12px; padding: 8px 14px; border-left: 3px solid ${secondary}; color: #475569; background: #f8fafc; }
+    strong { color: #111827; }
+    a { color: ${primary}; }
     .prepared-for { max-width: 620px; color: #374151; font-size: 14.5px; font-family: Arial, sans-serif; }
     .meta { width: 100%; border-collapse: collapse; color: #334155; font-family: Arial, sans-serif; font-size: 11.5px; }
     .meta td { border-top: 1px solid #e2e8f0; padding: 9px 0; vertical-align: top; }
@@ -94,7 +121,7 @@ export function renderProposalHtml(proposal: IProposal | any, branding: IProposa
           <span class="section-number">Section ${String(index + 1).padStart(2, "0")}</span>
           <div class="section-title"><h2>${escapeHtml(section.title)}</h2></div>
           ${section.subtitle ? `<p style="color:#64748b;font-weight:600;">${escapeHtml(section.subtitle)}</p>` : ""}
-          <div>${paragraphs(section.content)}</div>
+          <div>${renderSectionContent(section.content)}</div>
         </section>
       `,
     )

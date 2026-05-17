@@ -34,92 +34,79 @@ const baseSections: Array<Pick<IProposalTemplateSection, "key" | "title" | "cont
     key: "executive_summary",
     title: "Executive Summary",
     displayStyle: "highlight",
-    content:
-      "This proposal introduces EduSentrix to {{schoolName}} as a modern school operating system for administration, academic planning, finance, communication, and reporting.",
+    content: "",
   },
   {
     key: "challenge",
     title: "The Challenge Schools Face",
     displayStyle: "standard",
-    content:
-      "Many schools manage records, fees, timetables, lesson notes, communication, and reports across disconnected tools. This creates delays, weak visibility, and unnecessary administrative pressure.",
+    content: "",
   },
   {
     key: "solution",
     title: "Proposed Solution",
     displayStyle: "callout",
-    content:
-      "EduSentrix brings core school operations into one coordinated platform, supported by role-based access, a companion mobile app, AI assistance, and clear implementation support.",
+    content: "",
   },
   {
     key: "platform",
     title: "EduSentrix Web Platform",
     displayStyle: "cards",
-    content:
-      "Administrators and staff can manage students, parents, teachers, subjects, class groups, fees, payments, attendance, timetables, reports, documents, and communications from a secure web console.",
+    content: "",
   },
   {
     key: "mobile_app",
     title: "Companion Mobile App",
     displayStyle: "standard",
-    content:
-      "Teachers, parents, students, and administrators can receive updates, view important school information, and participate in key workflows through the companion mobile experience.",
+    content: "",
   },
   {
     key: "finance",
     title: "Fees, Invoices & Payments",
     displayStyle: "standard",
-    content:
-      "EduSentrix supports structured fee setup, invoice generation, balances, payments, bursar workflows, reconciliation, and school finance visibility.",
+    content: "",
   },
   {
     key: "academics",
     title: "Academic Planning",
     displayStyle: "standard",
-    content:
-      "The platform supports schemes of learning, lesson notes, lesson delivery, academic calendars, assessments, examinations, and curriculum-aware planning.",
+    content: "",
   },
   {
     key: "timetable",
     title: "Smart Timetables & Scheduling",
     displayStyle: "standard",
-    content:
-      "Class scheduling is designed to respect teacher assignments, contact hours, class group scope, and conflict detection.",
+    content: "",
   },
   {
     key: "communications",
     title: "Notices & Communication",
     displayStyle: "standard",
-    content:
-      "EduSentrix provides app inbox communication, email delivery, notices, meetings, and clear communication history for school communities.",
+    content: "",
   },
   {
     key: "ai",
     title: "AI-Powered School Assistant",
     displayStyle: "callout",
-    content:
-      "Leo, the EduSentrix assistant, helps users work faster by offering guided suggestions, quality checks, planning support, and operational assistance.",
+    content: "",
   },
   {
     key: "implementation",
     title: "Implementation Approach",
     displayStyle: "standard",
-    content:
-      "EduSentrix implementation can begin with a guided pilot, data setup, staff orientation, workflow configuration, and review before full rollout.",
+    content: "",
   },
   {
     key: "next_step",
     title: "Recommended Next Step",
     displayStyle: "highlight",
-    content:
-      "We recommend scheduling a focused demo with {{schoolName}} to walk through the modules most relevant to the school's current operational priorities.",
+    content: "",
   },
   {
     key: "contact",
     title: "Contact",
     displayStyle: "standard",
-    content:
-      "Website: {{website}}\nEmail: {{email}}\nWhatsApp: {{whatsapp}}\nPrepared by: {{preparedBy}}",
+    content: "",
   },
 ];
 

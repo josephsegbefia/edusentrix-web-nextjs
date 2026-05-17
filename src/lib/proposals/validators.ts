@@ -14,7 +14,7 @@ export const ProposalSectionSchema = z.object({
   key: z.string().trim().min(1).max(80),
   title: z.string().trim().min(1).max(180),
   subtitle: z.string().trim().max(220).optional().nullable(),
-  content: z.string().min(1),
+  content: z.string(),
   order: z.coerce.number().int().min(0),
   enabled: z.boolean().default(true),
   displayStyle: z.enum(["standard", "highlight", "cards", "table", "callout"]).default("standard"),

@@ -53,10 +53,14 @@ export async function ensureDefaultProposalData(actorId?: mongoose.Types.ObjectI
     ProposalTemplate.findOneAndUpdate(
       { name: DEFAULT_PROPOSAL_TEMPLATE.name, type: DEFAULT_PROPOSAL_TEMPLATE.type },
       {
-        $setOnInsert: {
-          ...DEFAULT_PROPOSAL_TEMPLATE,
-          createdBy: actorId || null,
+        $set: {
+          description: DEFAULT_PROPOSAL_TEMPLATE.description,
+          sections: DEFAULT_PROPOSAL_TEMPLATE.sections,
+          isDefault: true,
           updatedBy: actorId || null,
+        },
+        $setOnInsert: {
+          createdBy: actorId || null,
         },
       },
       { upsert: true, new: true },

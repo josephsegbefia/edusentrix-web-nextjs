@@ -56,6 +56,9 @@ export async function requireSchoolAdminOrDelegatedModuleView(
   }
   const permission = viewerGatePermission(module);
   const ctx = await resolveSchoolActorContext();
+  if (ctx.isSchoolAdmin) {
+    return { ...ctx, activeDelegationId: null };
+  }
   const auth = await requireSchoolAdminOrDelegatedPermission({
     schoolId: ctx.schoolId,
     userId: ctx.userId,

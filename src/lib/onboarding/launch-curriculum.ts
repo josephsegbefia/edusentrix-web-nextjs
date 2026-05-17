@@ -1,5 +1,4 @@
 import mongoose, { type ClientSession } from "mongoose";
-import { Subject } from "@/models/Subject";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 
 export type LaunchPeriodInput = {
@@ -20,60 +19,28 @@ function rangesOverlap(
 }
 
 /**
- * Seeds subjects (deduped per school) and academic periods for the launch wizard final step.
+ * Seeds academic periods for the launch wizard final step.
  * Skips period inserts when the school already has at least one period (avoid clobbering live data).
  */
 export async function applyLaunchCurriculum(
   schoolId: mongoose.Types.ObjectId,
   input: {
-    subjectNames: string[];
     periods: LaunchPeriodInput[];
   },
   options?: { session?: ClientSession }
-): Promise<{ periodsSkipped: boolean; subjectsCreated: number }> {
+): Promise<{ periodsSkipped: boolean }> {
   const session = options?.session;
-
-  const names = input.subjectNames
-    .map((n) => (typeof n === "string" ? n.trim() : ""))
-    .filter(Boolean);
-
-  let subjectsCreated = 0;
-  if (names.length > 0) {
-    const existing = await Subject.find({
-      schoolId,
-      name: { $in: names },
-    })
-      .collation({ locale: "en", strength: 2 })
-      .session(session ?? null)
-      .lean();
-
-    const existingSet = new Set(existing.map((s) => s.name.toLowerCase()));
-    const toCreate = names.filter((n) => !existingSet.has(n.toLowerCase()));
-
-    if (toCreate.length > 0) {
-      await Subject.insertMany(
-        toCreate.map((name) => ({
-          schoolId,
-          name,
-          code: null,
-          isActive: true,
-        })),
-        { ordered: false, session }
-      );
-      subjectsCreated = toCreate.length;
-    }
-  }
 
   const existingPeriodCount = await AcademicPeriod.countDocuments({ schoolId })
     .session(session ?? null);
 
   if (existingPeriodCount > 0) {
-    return { periodsSkipped: true, subjectsCreated };
+    return { periodsSkipped: true };
   }
 
   const periods = [...input.periods];
   if (periods.length === 0) {
-    return { periodsSkipped: false, subjectsCreated };
+    return { periodsSkipped: false };
   }
 
   const sorted = [...periods].sort(
@@ -114,5 +81,5 @@ export async function applyLaunchCurriculum(
 
   await AcademicPeriod.insertMany(docs, { session });
 
-  return { periodsSkipped: false, subjectsCreated };
+  return { periodsSkipped: false };
 }

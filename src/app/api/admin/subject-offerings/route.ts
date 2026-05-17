@@ -8,6 +8,7 @@ import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
+import { isPreschoolLearningAreaGrade } from "@/constants/curriculum-subject-templates";
 
 function toObjectIdOrNull(value: string | null): mongoose.Types.ObjectId | null {
   if (!value || !mongoose.Types.ObjectId.isValid(value)) return null;
@@ -16,6 +17,25 @@ function toObjectIdOrNull(value: string | null): mongoose.Types.ObjectId | null 
 
 function normalizeSubjectKey(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function gradeBandForGrade(grade: {
+  code?: string | null;
+  name?: string | null;
+  stage?: string | null;
+}): string {
+  const raw = `${grade.code ?? ""} ${grade.name ?? ""} ${grade.stage ?? ""}`
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "");
+  if (/^(CRECHE|NURSERY|KG1|KG2)|KINDERGARTEN/.test(raw)) return "preschool";
+  if (/(^|[^0-9])(P1|P2|P3|B1|B2|B3|BASIC1|BASIC2|BASIC3|PRIMARY1|PRIMARY2|PRIMARY3|GRADE1|GRADE2|GRADE3)/.test(raw)) {
+    return "lower_primary";
+  }
+  if (/(^|[^0-9])(P4|P5|P6|B4|B5|B6|BASIC4|BASIC5|BASIC6|PRIMARY4|PRIMARY5|PRIMARY6|GRADE4|GRADE5|GRADE6)/.test(raw)) {
+    return "upper_primary";
+  }
+  if (/JHS[123]/.test(raw) || raw.includes("JHS")) return "jhs";
+  return "custom";
 }
 
 function serializeOffering(row: any, maps: {
@@ -140,6 +160,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const curriculumCode = String(body.curriculumCode).trim();
+    const displayName = String(body.displayName).trim();
+    const shortName = String(body.shortName).trim();
+    const offeringCode = String(body.code).trim().toUpperCase();
+    const stage = String(body.stage).trim();
+    const category = String(body.category).trim();
     const subjectFamily = String(body.subjectFamily).trim();
     const normalizedKey = normalizeSubjectKey(subjectFamily);
 
@@ -170,42 +196,132 @@ export async function POST(req: NextRequest) {
     }
     subjectId = subject._id as mongoose.Types.ObjectId;
 
-    const [, gradeCount] = await Promise.all([
+    const [, gradeRows] = await Promise.all([
       Promise.resolve(subject),
-      gradeIds.length ? Grade.countDocuments({ _id: { $in: gradeIds }, schoolId: schoolIdObj }) : Promise.resolve(0),
+      gradeIds.length
+        ? Grade.find({ _id: { $in: gradeIds }, schoolId: schoolIdObj }).select("_id name code").lean()
+        : Promise.resolve([]),
     ]);
-    if (gradeCount !== gradeIds.length) {
+    if (gradeRows.length !== gradeIds.length) {
       return NextResponse.json({ success: false, error: "One or more grades do not belong to this school" }, { status: 400 });
     }
+    const gradeBand = String(body.gradeBand);
+    if (gradeRows.some((grade) => isPreschoolLearningAreaGrade(grade))) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Subject offerings are not available for Creche, Nursery, KG1, or KG2. Use Preschool Learning Areas on each grade page instead.",
+        },
+        { status: 400 }
+      );
+    }
+    if (gradeBand !== "custom" && gradeRows.some((grade) => gradeBandForGrade(grade) !== gradeBand)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Selected grades must match the ${gradeBand.replace(/_/g, " ")} grade band.`,
+        },
+        { status: 400 }
+      );
+    }
 
-    const created = await SubjectOffering.create({
+    const existingOffering = await SubjectOffering.findOne({
+      schoolId: schoolIdObj,
+      curriculumCode,
+      code: offeringCode,
+    });
+
+    if (existingOffering && existingOffering.isActive !== false) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `A subject offering with code ${offeringCode} already exists.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    const saved =
+      existingOffering && existingOffering.isActive === false
+        ? await SubjectOffering.findOneAndUpdate(
+            { _id: existingOffering._id, schoolId: schoolIdObj },
+            {
+              $set: {
+                subjectId,
+                curriculumCode,
+                curriculumId: toObjectIdOrNull(String(body.curriculumId || "")),
+                subjectFamily,
+                displayName,
+                shortName,
+                code: offeringCode,
+                stage,
+                gradeBand,
+                gradeIds,
+                category,
+                lessonNoteTemplateVariant: body.lessonNoteTemplateVariant || "classic",
+                reportCardGroup: body.reportCardGroup || null,
+                isActive: body.isActive !== false,
+              },
+            },
+            { new: true }
+          )
+        : await SubjectOffering.create({
       schoolId: schoolIdObj,
       subjectId,
-      curriculumCode: String(body.curriculumCode),
+      curriculumCode,
       curriculumId: toObjectIdOrNull(String(body.curriculumId || "")),
       subjectFamily,
-      displayName: String(body.displayName).trim(),
-      shortName: String(body.shortName).trim(),
-      code: String(body.code).trim().toUpperCase(),
-      stage: String(body.stage),
-      gradeBand: String(body.gradeBand),
+      displayName,
+      shortName,
+      code: offeringCode,
+      stage,
+      gradeBand,
       gradeIds,
-      category: String(body.category),
+      category,
       lessonNoteTemplateVariant: body.lessonNoteTemplateVariant || "classic",
       reportCardGroup: body.reportCardGroup || null,
       isActive: body.isActive !== false,
     });
 
-    if (body.autoAssignToMatchingClassGroups === true && gradeIds.length > 0) {
-      await ClassGroup.updateMany(
-        { schoolId: schoolIdObj, gradeId: { $in: gradeIds } },
-        { $addToSet: { subjectOfferingIds: created._id, subjectIds: subjectId } }
+    if (!saved?._id) {
+      return NextResponse.json(
+        { success: false, error: "Failed to save subject offering" },
+        { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, data: { id: String(created._id) } }, { status: 201 });
+    await ClassGroup.updateMany(
+      { schoolId: schoolIdObj, gradeId: { $nin: gradeIds } },
+      { $pull: { subjectOfferingIds: saved._id, subjectIds: subjectId } }
+    );
+
+    if (body.autoAssignToMatchingClassGroups === true && gradeIds.length > 0) {
+      await ClassGroup.updateMany(
+        { schoolId: schoolIdObj, gradeId: { $in: gradeIds } },
+        { $addToSet: { subjectOfferingIds: saved._id, subjectIds: subjectId } }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: String(saved._id),
+          reactivated: existingOffering?.isActive === false,
+        },
+      },
+      { status: existingOffering?.isActive === false ? 200 : 201 }
+    );
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Failed to create subject offering";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const isDuplicate =
+      e instanceof Error &&
+      (e.message.includes("E11000") || e.message.includes("duplicate key"));
+    const message = isDuplicate
+      ? "A subject offering with this code already exists."
+      : e instanceof Error
+        ? e.message
+        : "Failed to create subject offering";
+    const status = isDuplicate ? 409 : 500;
+    return NextResponse.json({ success: false, error: message }, { status });
   }
 }

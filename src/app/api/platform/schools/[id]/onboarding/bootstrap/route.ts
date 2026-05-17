@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School, type ISchool } from "@/models/School";
-import { getSubjectNamesForCurriculum } from "@/constants/curriculum-subject-templates";
 import { getOnboardingTargetSchoolAdmin } from "@/lib/onboarding/target-school-admin";
 import { enrichUserNamesFromApplication } from "@/lib/onboarding/enrichUserNamesFromApplication";
 
@@ -41,10 +40,6 @@ export async function GET(
   const schoolTypeRaw = school.type;
   const isSecondary = schoolTypeRaw === "SHS";
   const curriculumCode = school.curriculumCode || "ghana_nacca";
-  const subjectSuggestions = getSubjectNamesForCurriculum(
-    curriculumCode,
-    isSecondary ? "SHS" : undefined
-  );
   const schoolTypeForClient = isSecondary ? "Secondary" : "Basic";
 
   const displayNames = await enrichUserNamesFromApplication(
@@ -84,6 +79,5 @@ export async function GET(
       },
       status: school.status,
     },
-    subjectSuggestions,
   });
 }

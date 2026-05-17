@@ -69,13 +69,15 @@ export function ProposalListClient() {
   }, [load]);
 
   async function deleteProposal(proposal: PlatformProposal) {
+    const isArchived = proposal.status === "archived";
     const decision = await confirm({
-      title: "Delete proposal?",
-      description:
-        proposal.status === "draft"
+      title: isArchived ? "Permanently delete proposal?" : "Delete proposal?",
+      description: isArchived
+        ? `This will permanently delete "${proposal.title}" and remove its proposal activity and send logs. This cannot be undone.`
+        : proposal.status === "draft"
           ? `This will remove "${proposal.title}" from the active proposal list. You can still find it under Archived.`
           : `This will archive "${proposal.title}" and remove it from the active proposal list while keeping history and send logs intact.`,
-      confirmLabel: "Delete proposal",
+      confirmLabel: isArchived ? "Permanently delete" : "Delete proposal",
       cancelLabel: "Keep proposal",
       intent: "destructive",
     });
@@ -86,7 +88,7 @@ export function ProposalListClient() {
       const res = await fetch(`/api/platform/proposals/${proposal.id}`, { method: "DELETE" });
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to delete proposal");
-      toast.success("Proposal deleted");
+      toast.success(isArchived ? "Proposal permanently deleted" : "Proposal deleted");
       setProposals((current) => current.filter((item) => item.id !== proposal.id));
       setPagination((current) => ({ ...current, total: Math.max(0, current.total - 1) }));
       if (proposals.length === 1 && page > 1) {
@@ -229,7 +231,7 @@ export function ProposalListClient() {
                       onClick={() => void deleteProposal(proposal)}
                       icon={<Trash2 className="h-3.5 w-3.5" />}
                     >
-                      Delete proposal
+                      {proposal.status === "archived" ? "Permanently delete" : "Delete proposal"}
                     </PremiumDropdownMenuItem>
                   </PremiumDropdownMenuContent>
                 </PremiumDropdownMenu>

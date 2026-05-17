@@ -13,7 +13,13 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { Textarea } from "@/components/ui/textarea";
-import { PLATFORM_TASK_CATEGORIES, PLATFORM_TASK_STATUSES, type PlatformTaskCategory, type PlatformTaskStatus, type PlatformTaskPriority } from "@/models/PlatformTask";
+import {
+  PLATFORM_TASK_CATEGORIES,
+  PLATFORM_TASK_STATUSES,
+  type PlatformTaskCategory,
+  type PlatformTaskPriority,
+  type PlatformTaskStatus,
+} from "@/lib/platform/tasks/constants";
 
 type TaskRow = {
   id: string;

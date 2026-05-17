@@ -18,16 +18,12 @@ import {
   BookOpen,
   Building2,
   CalendarDays,
-  Check,
   CheckCircle2,
   GraduationCap,
   MapPin,
-  Plus,
   School,
-  Search,
   Sparkles,
   UserRound,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,7 +45,6 @@ import {
   getCurriculumProfile,
   type CurriculumCode,
 } from "@/constants/curriculum-profiles";
-import { getSubjectNamesForCurriculum } from "@/constants/curriculum-subject-templates";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -75,7 +70,6 @@ type Bootstrap = {
     region: string;
     status: "pending" | "active";
   } | null;
-  subjectSuggestions: string[];
   assistedByPlatform?: boolean;
   targetUserId?: string;
 };
@@ -103,8 +97,8 @@ const STEPS = [
   },
   {
     id: 3,
-    title: "Curriculum",
-    description: "Choose starter subjects and define academic periods.",
+    title: "Academic periods",
+    description: "Review the academic periods for the school year.",
     icon: GraduationCap,
   },
 ] as const;
@@ -317,10 +311,6 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
   const [city, setCity] = useState("");
   const [region, setRegion] = useState("");
 
-  const [subjectPool, setSubjectPool] = useState<string[]>([]);
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [subjectQuery, setSubjectQuery] = useState("");
-  const [newSubject, setNewSubject] = useState("");
   const [periods, setPeriods] = useState<Period[]>(createPeriodsForTerms(["Term 1"]));
   const [activePeriodIndex, setActivePeriodIndex] = useState(0);
 
@@ -328,28 +318,6 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     () => getCurriculumProfile(curriculumCode),
     [curriculumCode]
   );
-
-  const recommendedSubjects = useMemo(
-    () =>
-      getSubjectNamesForCurriculum(
-        curriculumCode,
-        schoolType === "Secondary" ? "SHS" : undefined
-      ),
-    [curriculumCode, schoolType]
-  );
-
-  const recommendedSubjectSet = useMemo(
-    () => new Set(recommendedSubjects),
-    [recommendedSubjects]
-  );
-
-  const filteredSubjects = useMemo(() => {
-    const query = subjectQuery.trim().toLowerCase();
-    if (!query) return subjectPool;
-    return subjectPool.filter((subject) =>
-      subject.toLowerCase().includes(query)
-    );
-  }, [subjectPool, subjectQuery]);
 
   useEffect(() => {
     if (variant === "platform" && !platformSchoolId) {
@@ -388,20 +356,8 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
           setRegion(payload.school.region || "");
         }
 
-        const bootstrapCurriculum =
-          payload.school?.curriculumCode || "ghana_nacca";
-        const bootstrapSchoolType = payload.school?.type || "Basic";
-        const bootstrapRecommended = getSubjectNamesForCurriculum(
-          bootstrapCurriculum,
-          bootstrapSchoolType === "Secondary" ? "SHS" : undefined
-        );
-        const initialSubjects =
-          payload.subjectSuggestions?.length > 0
-            ? payload.subjectSuggestions
-            : bootstrapRecommended;
+        const bootstrapCurriculum = payload.school?.curriculumCode || "ghana_nacca";
 
-        setSubjectPool(initialSubjects);
-        setSelectedSubjects(initialSubjects);
         setPeriods(
           createPeriodsForTerms(
             getCurriculumProfile(bootstrapCurriculum).termLabels || ["Term 1"]
@@ -428,37 +384,13 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     [schoolName]
   );
 
-  const canFinish = useMemo(
-    () => selectedSubjects.length > 0 && periods.length > 0,
-    [periods.length, selectedSubjects.length]
-  );
+  const canFinish = useMemo(() => periods.length > 0, [periods.length]);
 
   useEffect(() => {
     setActivePeriodIndex((current) =>
       Math.min(current, Math.max(periods.length - 1, 0))
     );
   }, [periods.length]);
-
-  function toggleSubject(subject: string) {
-    setSelectedSubjects((current) =>
-      current.includes(subject)
-        ? current.filter((value) => value !== subject)
-        : [...current, subject]
-    );
-  }
-
-  function addCustomSubject() {
-    const value = newSubject.trim();
-    if (!value) return;
-    setSubjectPool((current) =>
-      current.includes(value) ? current : [...current, value]
-    );
-    setSelectedSubjects((current) =>
-      current.includes(value) ? current : [...current, value]
-    );
-    setNewSubject("");
-    setSubjectQuery("");
-  }
 
   function setCurrentPeriod(index: number) {
     setPeriods((current) =>
@@ -560,16 +492,10 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     try {
       await persistSchoolProfile();
 
-      const refreshedSubjects = getSubjectNamesForCurriculum(
-        curriculumCode,
-        schoolType === "Secondary" ? "SHS" : undefined
-      );
       const refreshedTerms = getCurriculumProfile(curriculumCode).termLabels || [
         "Term 1",
       ];
 
-      setSubjectPool(refreshedSubjects);
-      setSelectedSubjects(refreshedSubjects);
       setPeriods((prev) => createPeriodsForTerms(refreshedTerms, prev));
       setActivePeriodIndex(0);
 
@@ -587,11 +513,6 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
   async function finishOnboarding() {
     if (!data?.school) {
       toast.error("No school bound");
-      return;
-    }
-
-    if (selectedSubjects.length === 0) {
-      toast.error("Please select at least one subject");
       return;
     }
 
@@ -637,7 +558,6 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subjects: selectedSubjects,
           periods: periodsToSubmit.map((period) => ({
             yearLabel: period.yearLabel,
             term: period.term,
@@ -774,7 +694,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                     </h1>
                     <p className="mt-2 text-sm leading-6 text-white/55">
                       Keep this simple. Confirm the admin profile, set the
-                      school basics, then choose starter subjects and academic periods.
+                      school basics, then review the academic periods.
                       Payment setup happens later in Settings.
                     </p>
                   </div>
@@ -957,7 +877,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                           icon={Building2}
                           eyebrow="School profile"
                           title="Identity and curriculum"
-                          description="These settings determine the school’s default academic structure and starter subject set."
+                          description="These settings determine the school’s default academic structure."
                         >
                           <div className="space-y-4">
                             <div className="space-y-2">
@@ -1130,148 +1050,6 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                         exit={{ opacity: 0, y: -12 }}
                         className="space-y-6"
                       >
-                        <SurfaceSection
-                          icon={BookOpen}
-                          eyebrow="Subjects"
-                          title="Basic-school subject selection"
-                          description="Start with the recommended basic-school set. Creche, Nursery, KG1, and KG2 learning areas are configured later from each grade overview."
-                        >
-                          <div className="space-y-4">
-                            <div className="relative">
-                              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                              <Input
-                                value={subjectQuery}
-                                onChange={(event) =>
-                                  setSubjectQuery(event.target.value)
-                                }
-                                placeholder="Search recommended or custom subjects"
-                                className={`${launchInputClass} pl-11`}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setSelectedSubjects(recommendedSubjects)}
-                                className="w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
-                              >
-                                Use recommended set
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setSelectedSubjects([])}
-                                className="w-full rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10"
-                              >
-                                Clear all
-                              </Button>
-                            </div>
-
-                            <div className="space-y-3">
-                              {filteredSubjects.map((subject) => {
-                                const active = selectedSubjects.includes(subject);
-                                const isRecommended =
-                                  recommendedSubjectSet.has(subject);
-
-                                return (
-                                  <button
-                                    key={subject}
-                                    type="button"
-                                    onClick={() => toggleSubject(subject)}
-                                    className={cn(
-                                      "w-full rounded-[1.35rem] border p-4 text-left transition-all",
-                                      active
-                                        ? "border-brand/35 bg-brand/10 shadow-lg shadow-brand/10"
-                                        : "border-white/10 bg-white/[0.03] hover:border-white/16 hover:bg-white/[0.06]"
-                                    )}
-                                  >
-                                    <div className="flex items-start justify-between gap-3">
-                                      <div className="min-w-0">
-                                        <p className="truncate text-sm font-semibold text-white">
-                                          {subject}
-                                        </p>
-                                        <p className="mt-1 text-xs leading-5 text-white/45">
-                                          {isRecommended
-                                            ? "Recommended starter subject"
-                                            : "Custom subject"}
-                                        </p>
-                                      </div>
-                                      <div
-                                        className={cn(
-                                          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
-                                          active
-                                            ? "border-brand bg-brand text-black"
-                                            : "border-white/12 bg-white/5 text-transparent"
-                                        )}
-                                      >
-                                        <Check className="h-3.5 w-3.5" />
-                                      </div>
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </SurfaceSection>
-
-                        <SurfaceSection
-                          icon={GraduationCap}
-                          eyebrow="Selection"
-                          title="Selected starter subjects"
-                          description={`${selectedSubjects.length} subject${selectedSubjects.length === 1 ? "" : "s"} will be created for this school.`}
-                        >
-                          <div className="space-y-4">
-                            <div className="space-y-3">
-                              {selectedSubjects.length > 0 ? (
-                                selectedSubjects.map((subject) => (
-                                  <button
-                                    key={subject}
-                                    type="button"
-                                    onClick={() => toggleSubject(subject)}
-                                    className="flex w-full items-center justify-between gap-3 rounded-[1.2rem] border border-brand/20 bg-brand/10 px-4 py-3 text-left text-sm text-white transition hover:border-brand/35 hover:bg-brand/14"
-                                  >
-                                    <span className="truncate">{subject}</span>
-                                    <X className="h-4 w-4 shrink-0 text-white/60" />
-                                  </button>
-                                ))
-                              ) : (
-                                <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-6 text-sm text-white/40">
-                                  No subjects selected yet.
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="border-t border-white/8 pt-4">
-                              <Label className={`${launchLabelClass} mb-2 block`}>
-                                Add a custom subject
-                              </Label>
-                              <div className="space-y-2">
-                                <Input
-                                  value={newSubject}
-                                  onChange={(event) => setNewSubject(event.target.value)}
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter") {
-                                      event.preventDefault();
-                                      addCustomSubject();
-                                    }
-                                  }}
-                                  placeholder="e.g. Robotics"
-                                  className={launchInputClass}
-                                />
-                                <Button
-                                  type="button"
-                                  onClick={addCustomSubject}
-                                  className="w-full rounded-2xl bg-white/8 px-4 text-white hover:bg-white/12"
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Add subject
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </SurfaceSection>
-
                         <SurfaceSection
                           icon={CalendarDays}
                           eyebrow="Academic periods"

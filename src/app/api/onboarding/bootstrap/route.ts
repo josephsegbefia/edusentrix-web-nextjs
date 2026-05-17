@@ -4,7 +4,6 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invite, IInvite } from "@/models/Invite";
 import { School, ISchool } from "@/models/School";
 import { User } from "@/models/User";
-import { getSubjectNamesForCurriculum } from "@/constants/curriculum-subject-templates";
 import { enrichUserNamesFromApplication } from "@/lib/onboarding/enrichUserNamesFromApplication";
 
 export async function GET() {
@@ -72,7 +71,7 @@ export async function GET() {
     }
   }
 
-  // 5) Fetch school + subject suggestions
+  // 5) Fetch school profile
   const school = appUser.schoolId
     ? ((await School.findById(appUser.schoolId).lean()) as ISchool | null)
     : null;
@@ -81,10 +80,6 @@ export async function GET() {
   const isSecondary = schoolTypeRaw === "SHS" || schoolTypeRaw === "Secondary";
   const curriculumCode =
     (school as ISchool | null)?.curriculumCode || "ghana_nacca";
-  const subjectSuggestions = getSubjectNamesForCurriculum(
-    curriculumCode,
-    isSecondary ? "SHS" : undefined
-  );
   const schoolTypeForClient = isSecondary ? "Secondary" : "Basic";
 
   const displayNames = await enrichUserNamesFromApplication(
@@ -123,6 +118,5 @@ export async function GET() {
           status: school.status,
         }
       : null,
-    subjectSuggestions,
   });
 }

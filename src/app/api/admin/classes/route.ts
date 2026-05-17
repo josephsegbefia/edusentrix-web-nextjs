@@ -9,6 +9,10 @@ import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import {
+  getPreschoolLearningAreaNames,
+  isPreschoolLearningAreaGrade,
+} from "@/constants/curriculum-subject-templates";
 import mongoose from "mongoose";
 import { z } from "zod";
 
@@ -19,6 +23,34 @@ const CreateClassSchema = z.object({
   subjectOfferingIds: z.array(z.string()).optional().default([]),
   capacity: z.number().int().positive().optional().nullable(),
 });
+
+function isLearningAreaSubject(
+  subject: any,
+  recommendedLearningAreas: Set<string>
+): boolean {
+  const name = typeof subject?.name === "string" ? subject.name.trim() : "";
+  return (
+    subject?.category === "learning_area" ||
+    (name.length > 0 && recommendedLearningAreas.has(name.toLowerCase()))
+  );
+}
+
+async function filterPreschoolLearningAreaIds(
+  schoolId: mongoose.Types.ObjectId,
+  ids: mongoose.Types.ObjectId[],
+  recommendedLearningAreas: Set<string>
+): Promise<mongoose.Types.ObjectId[]> {
+  if (ids.length === 0) return [];
+  const subjects = await Subject.find({ schoolId, _id: { $in: ids } })
+    .select("_id name category")
+    .lean();
+  const allowed = new Set(
+    subjects
+      .filter((subject) => isLearningAreaSubject(subject, recommendedLearningAreas))
+      .map((subject) => String(subject._id))
+  );
+  return ids.filter((id) => allowed.has(String(id)));
+}
 
 /**
  * POST /api/admin/classes
@@ -56,6 +88,10 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       );
     }
+    const isPreschoolGrade = isPreschoolLearningAreaGrade(gradeDoc);
+    const recommendedLearningAreas = new Set(
+      getPreschoolLearningAreaNames(gradeDoc).map((item) => item.toLowerCase())
+    );
 
     // Check for duplicate class name in same grade
     const existing = await ClassGroup.findOne({
@@ -78,7 +114,9 @@ export async function POST(req: NextRequest) {
     let subjectOfferingIdsObj = (subjectOfferingIds || [])
       .filter((id) => mongoose.Types.ObjectId.isValid(id))
       .map((id) => new mongoose.Types.ObjectId(id));
-    if (subjectOfferingIdsObj.length === 0) {
+    if (isPreschoolGrade) {
+      subjectOfferingIdsObj = [];
+    } else if (subjectOfferingIdsObj.length === 0) {
       const siblings = await ClassGroup.find({
         schoolId: schoolIdObj,
         gradeId: gradeIdObj,
@@ -117,6 +155,13 @@ export async function POST(req: NextRequest) {
         (id) => new mongoose.Types.ObjectId(id)
       );
     }
+    if (isPreschoolGrade) {
+      subjectIdsObj = await filterPreschoolLearningAreaIds(
+        schoolIdObj,
+        subjectIdsObj,
+        recommendedLearningAreas
+      );
+    }
 
     const newClass = await ClassGroup.create({
       schoolId: schoolIdObj,
@@ -130,7 +175,7 @@ export async function POST(req: NextRequest) {
 
     const populated = await ClassGroup.findById(newClass._id)
       .populate("gradeId", "name code stage order")
-      .populate("subjectIds", "name code")
+      .populate("subjectIds", "name code category")
       .lean();
 
     const gradeCandidate = populated?.gradeId;
@@ -148,15 +193,18 @@ export async function POST(req: NextRequest) {
         : null;
 
     const subjectCandidates: Array<
-      mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId | string; name?: string; code?: string }
+      mongoose.Types.ObjectId | { _id: mongoose.Types.ObjectId | string; name?: string; code?: string; category?: string }
     > = Array.isArray(populated?.subjectIds) ? populated.subjectIds : [];
     const subjectPop = subjectCandidates
       .filter(
-        (subject): subject is { _id: mongoose.Types.ObjectId | string; name: string; code?: string } =>
+        (subject): subject is { _id: mongoose.Types.ObjectId | string; name: string; code?: string; category?: string } =>
           !!subject &&
           typeof subject === "object" &&
           "name" in subject &&
           typeof subject.name === "string"
+      )
+      .filter((subject) =>
+        isPreschoolGrade ? isLearningAreaSubject(subject, recommendedLearningAreas) : true
       );
     return NextResponse.json({
       success: true,
@@ -179,7 +227,7 @@ export async function POST(req: NextRequest) {
           name: s.name,
           code: s.code || null,
         })),
-        subjectOfferingIds: (newClass.subjectOfferingIds || []).map(String),
+        subjectOfferingIds: isPreschoolGrade ? [] : (newClass.subjectOfferingIds || []).map(String),
         studentCount: 0,
         teacherCount: 0,
         subjectCount: subjectOfferingIdsObj.length || subjectIdsObj.length,
@@ -279,7 +327,7 @@ export async function GET(req: NextRequest) {
     const classes = await ClassGroup.find(query)
       .populate("gradeId", "name code stage order")
       .populate("subjectOfferingIds", "displayName shortName code subjectId")
-      .populate("subjectIds", "name code")
+      .populate("subjectIds", "name code category")
       .lean();
 
     // Get homeroom teacher IDs that exist
@@ -375,6 +423,15 @@ export async function GET(req: NextRequest) {
 
     let data = classes.map((cls: any) => {
       const grade = cls.gradeId;
+      const isPreschoolClass = isPreschoolLearningAreaGrade(grade ?? {});
+      const preschoolRecommended = new Set(
+        isPreschoolClass
+          ? getPreschoolLearningAreaNames(grade ?? {}).map((item) => item.toLowerCase())
+          : []
+      );
+      const preschoolSubjects = (cls.subjectIds || []).filter((subject: any) =>
+        isLearningAreaSubject(subject, preschoolRecommended)
+      );
       const homeroomTeacherId = cls.homeroomTeacherId;
       const homeroomTeacher = homeroomTeacherId
         ? homeroomTeachersMap.get(String(homeroomTeacherId))
@@ -401,7 +458,14 @@ export async function GET(req: NextRequest) {
             },
         homeroomTeacher,
         subjects:
-          (cls.subjectOfferingIds || []).length > 0
+          isPreschoolClass
+            ? preschoolSubjects.map((s: any) => ({
+                id: String(s._id),
+                subjectOfferingId: null,
+                name: s.name,
+                code: s.code || null,
+              }))
+            : (cls.subjectOfferingIds || []).length > 0
             ? (cls.subjectOfferingIds || []).map((offering: any) => ({
                 id: String(offering.subjectId || offering._id),
                 subjectOfferingId: String(offering._id),
@@ -414,10 +478,14 @@ export async function GET(req: NextRequest) {
                 name: s.name,
                 code: s.code || null,
               })),
-        subjectOfferingIds: (cls.subjectOfferingIds || []).map((offering: any) => String(offering._id || offering)),
+        subjectOfferingIds: isPreschoolClass
+          ? []
+          : (cls.subjectOfferingIds || []).map((offering: any) => String(offering._id || offering)),
         studentCount: countMap.get(String(cls._id)) || 0,
         teacherCount: teacherCountMap.get(String(cls._id)) || 0,
-        subjectCount: cls.subjectOfferingIds?.length || cls.subjectIds?.length || 0,
+        subjectCount: isPreschoolClass
+          ? preschoolSubjects.length
+          : cls.subjectOfferingIds?.length || cls.subjectIds?.length || 0,
         capacity: cls.capacity || null,
         isActive: cls.isActive,
         createdAt: new Date(cls.createdAt).toISOString(),

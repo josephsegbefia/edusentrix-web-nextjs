@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import {
   useAssignSubjectOfferingToClasses,
   useCreateCustomSubjectOffering,
+  useDeactivateSubjectOffering,
   useSetupSubjectOfferingsFromCurriculum,
   useSubjectOfferings,
   type SubjectOfferingDTO,
@@ -45,6 +46,7 @@ import {
 } from "@/components/ui/premium-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 function getInitialView(sp: URLSearchParams): SubjectsViewMode {
   const v = sp.get("view");
@@ -88,6 +90,43 @@ function isPreschoolGradeOption(grade: {
   );
 }
 
+function gradeBandForGrade(grade: {
+  code?: string | null;
+  name?: string | null;
+  stage?: string | null;
+}): string {
+  const raw = `${grade.code ?? ""} ${grade.name ?? ""} ${grade.stage ?? ""}`
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "");
+  if (/^(CRECHE|NURSERY|KG1|KG2)|KINDERGARTEN/.test(raw)) return "preschool";
+  if (
+    /(^|[^0-9])(P1|P2|P3|B1|B2|B3|BASIC1|BASIC2|BASIC3|PRIMARY1|PRIMARY2|PRIMARY3|GRADE1|GRADE2|GRADE3)/.test(
+      raw
+    )
+  ) {
+    return "lower_primary";
+  }
+  if (
+    /(^|[^0-9])(P4|P5|P6|B4|B5|B6|BASIC4|BASIC5|BASIC6|PRIMARY4|PRIMARY5|PRIMARY6|GRADE4|GRADE5|GRADE6)/.test(
+      raw
+    )
+  ) {
+    return "upper_primary";
+  }
+  if (/JHS[123]/.test(raw) || raw.includes("JHS")) return "jhs";
+  return "custom";
+}
+
+type CreatedCustomOffering = {
+  id: string;
+  displayName: string;
+  code: string;
+  gradeBand: string;
+  category: string;
+  gradeNames: string[];
+  autoAssigned: boolean;
+};
+
 export default function SubjectsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -119,6 +158,8 @@ export default function SubjectsPage() {
   const [offeringForClasses, setOfferingForClasses] = React.useState<SubjectOfferingDTO | null>(null);
   const [subjectForEdit, setSubjectForEdit] = React.useState<SubjectDTO | null>(null);
   const [selectedClassId, setSelectedClassId] = React.useState<string | undefined>();
+  const deactivateOffering = useDeactivateSubjectOffering();
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -224,6 +265,20 @@ export default function SubjectsPage() {
 
   const handleEdit = () => {
     notifyComingSoon("Edit subject offering");
+  };
+
+  const handleDelete = async (subjectOfferingId: string) => {
+    const offering = offerings.find((item) => item.id === subjectOfferingId);
+    const decision = await confirm({
+      title: "Delete subject offering?",
+      description: `This will remove "${offering?.displayName ?? "this subject"}" from active subject offering lists. Existing historical records are preserved.`,
+      confirmLabel: "Delete subject",
+      cancelLabel: "Cancel",
+      intent: "danger",
+    });
+    if (decision !== "confirm") return;
+    await deactivateOffering.mutateAsync(subjectOfferingId);
+    setActiveFilter(true);
   };
 
   const handleExport = () => {
@@ -551,6 +606,7 @@ export default function SubjectsPage() {
                           onEdit={handleEdit}
                           onAssignToClasses={handleAssignToClasses}
                           onAssignTeachers={handleAssignTeachers}
+                          onDelete={handleDelete}
                         />
                       </section>
                     ))}
@@ -562,6 +618,7 @@ export default function SubjectsPage() {
                     onEdit={handleEdit}
                     onAssignToClasses={handleAssignToClasses}
                     onAssignTeachers={handleAssignTeachers}
+                    onDelete={handleDelete}
                   />
                 )
               ) : (
@@ -585,6 +642,7 @@ export default function SubjectsPage() {
                           onEdit={handleEdit}
                           onAssignToClasses={handleAssignToClasses}
                           onAssignTeachers={handleAssignTeachers}
+                          onDelete={handleDelete}
                         />
                       </section>
                     ))}
@@ -596,6 +654,7 @@ export default function SubjectsPage() {
                     onEdit={handleEdit}
                     onAssignToClasses={handleAssignToClasses}
                     onAssignTeachers={handleAssignTeachers}
+                    onDelete={handleDelete}
                   />
                 )
               )}
@@ -650,6 +709,7 @@ export default function SubjectsPage() {
           initialClassGroupId={selectedClassId}
         />
       )}
+      {confirmationDialog}
     </div>
   );
 }
@@ -677,6 +737,9 @@ function SetupSubjectOfferingsDialog({
     stage: "custom",
     category: "custom",
   });
+  const [createdCustomOfferings, setCreatedCustomOfferings] = React.useState<
+    CreatedCustomOffering[]
+  >([]);
   const grades = (gradesData?.data ?? []).filter(
     (grade) => !isPreschoolGradeOption(grade)
   );
@@ -685,14 +748,7 @@ function SetupSubjectOfferingsDialog({
     : null;
   const initialGradeBand = React.useMemo(() => {
     if (!initialGrade) return null;
-    const raw = `${initialGrade.code ?? ""} ${initialGrade.name ?? ""} ${initialGrade.stage ?? ""}`
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, "");
-    if (/^(CRECHE|NURSERY|KG1|KG2)|KINDERGARTEN/.test(raw)) return "preschool";
-    if (/(^|[^0-9])(P1|P2|P3|B1|B2|B3|BASIC1|BASIC2|BASIC3|PRIMARY1|PRIMARY2|PRIMARY3|GRADE1|GRADE2|GRADE3)/.test(raw)) return "lower_primary";
-    if (/(^|[^0-9])(P4|P5|P6|B4|B5|B6|BASIC4|BASIC5|BASIC6|PRIMARY4|PRIMARY5|PRIMARY6|GRADE4|GRADE5|GRADE6)/.test(raw)) return "upper_primary";
-    if (/JHS[123]/.test(raw) || raw.includes("JHS")) return "jhs";
-    return "custom";
+    return gradeBandForGrade(initialGrade);
   }, [initialGrade]);
   const templates = React.useMemo(
     () =>
@@ -704,11 +760,23 @@ function SetupSubjectOfferingsDialog({
   );
   const [selectedGradeIds, setSelectedGradeIds] = React.useState<string[]>([]);
   const [selectedCodes, setSelectedCodes] = React.useState<string[]>([]);
+  const gradeIdsForBand = React.useCallback(
+    (band: string) =>
+      grades
+        .filter((grade) => gradeBandForGrade(grade) === band)
+        .map((grade) => grade.id),
+    [grades]
+  );
+  const customGradeIds =
+    customForm.gradeBand === "custom"
+      ? selectedGradeIds
+      : gradeIdsForBand(customForm.gradeBand);
 
   React.useEffect(() => {
     if (!open) return;
     setSelectedGradeIds(initialGradeId ? [initialGradeId] : grades.map((grade) => grade.id));
     setSelectedCodes(templates.filter((template) => template.isDefault).map((template) => template.code));
+    setCreatedCustomOfferings([]);
   }, [open, grades, templates, initialGradeId]);
 
   const groupedTemplates = React.useMemo(() => {
@@ -719,6 +787,25 @@ function SetupSubjectOfferingsDialog({
       return acc;
     }, {});
   }, [templates]);
+  const customOfferingsByBand = React.useMemo(() => {
+    return createdCustomOfferings.reduce<Record<string, CreatedCustomOffering[]>>((acc, offering) => {
+      const key = offering.gradeBand || "custom";
+      acc[key] = acc[key] || [];
+      acc[key].push(offering);
+      return acc;
+    }, {});
+  }, [createdCustomOfferings]);
+  const setupBands = React.useMemo(() => {
+    const keys = new Set([
+      ...Object.keys(groupedTemplates),
+      ...Object.keys(customOfferingsByBand),
+    ]);
+    return Array.from(keys).sort((a, b) => {
+      const ai = gradeBandOrder.indexOf(a as (typeof gradeBandOrder)[number]);
+      const bi = gradeBandOrder.indexOf(b as (typeof gradeBandOrder)[number]);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+  }, [customOfferingsByBand, groupedTemplates]);
 
   const toggle = (value: string, list: string[], setter: (next: string[]) => void) => {
     setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
@@ -739,7 +826,7 @@ function SetupSubjectOfferingsDialog({
     const displayName = customForm.displayName.trim() || subjectFamily;
     const shortName = customForm.shortName.trim() || subjectFamily;
     const code = customForm.code.trim().toUpperCase();
-    if (!subjectFamily || !code || selectedGradeIds.length === 0) return;
+    if (!subjectFamily || !code || customGradeIds.length === 0) return;
     const result = await createCustomOffering.mutateAsync({
       subjectFamily,
       displayName,
@@ -748,13 +835,26 @@ function SetupSubjectOfferingsDialog({
       curriculumCode: "custom",
       stage: customForm.stage,
       gradeBand: customForm.gradeBand,
-      gradeIds: selectedGradeIds,
+      gradeIds: customGradeIds,
       category: customForm.category,
       lessonNoteTemplateVariant: "custom",
       reportCardGroup: customForm.category === "elective" ? "Electives" : "Custom",
       autoAssignToMatchingClassGroups: autoAssign,
     });
     if (result.success) {
+      const gradeNameMap = new Map(grades.map((grade) => [grade.id, grade.name]));
+      setCreatedCustomOfferings((current) => [
+        {
+          id: result.data.id,
+          displayName,
+          code,
+          gradeBand: customForm.gradeBand,
+          category: customForm.category,
+          gradeNames: customGradeIds.map((id) => gradeNameMap.get(id) || "Grade"),
+          autoAssigned: autoAssign,
+        },
+        ...current,
+      ]);
       setCustomForm({
         subjectFamily: "",
         displayName: "",
@@ -766,6 +866,10 @@ function SetupSubjectOfferingsDialog({
       });
     }
   }
+
+  const canCreateTemplateOfferings = selectedCodes.length > 0 && selectedGradeIds.length > 0;
+  const canFinishAfterCustomOnly =
+    selectedCodes.length === 0 && createdCustomOfferings.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -847,14 +951,19 @@ function SetupSubjectOfferingsDialog({
               </div>
 
               <div className="space-y-4">
-                {Object.entries(groupedTemplates).map(([band, items]) => (
-                  <div key={band} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-white">{formatOfferingLabel(band)}</p>
-                      <span className="text-xs text-white/45">{items.length} offerings</span>
-                    </div>
-                    <div className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
-                      {items.map((template) => (
+                {setupBands.map((band) => {
+                  const items = groupedTemplates[band] || [];
+                  const customItems = customOfferingsByBand[band] || [];
+                  const totalItems = items.length + customItems.length;
+
+                  return (
+                    <div key={band} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-white">{formatOfferingLabel(band)}</p>
+                        <span className="text-xs text-white/45">{totalItems} offerings</span>
+                      </div>
+                      <div className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
+                        {items.map((template) => (
                         <label key={template.code} className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition hover:border-amber-300/25 hover:bg-amber-300/5">
                           <Checkbox checked={selectedCodes.includes(template.code)} onCheckedChange={() => toggle(template.code, selectedCodes, setSelectedCodes)} />
                           <span className="min-w-0">
@@ -866,10 +975,36 @@ function SetupSubjectOfferingsDialog({
                             </span>
                           </span>
                         </label>
-                      ))}
+                        ))}
+                        {customItems.map((offering) => (
+                          <div
+                            key={offering.id}
+                            className="flex items-start gap-3 rounded-xl border border-emerald-300/20 bg-emerald-300/[0.06] p-3"
+                          >
+                            <Checkbox checked disabled />
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-medium text-white">
+                                {offering.displayName}
+                              </span>
+                              <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-white/45">
+                                <span>{offering.code}</span>
+                                <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-1.5 py-0.5 text-emerald-100">
+                                  saved custom
+                                </span>
+                                <span className="rounded-full border border-white/10 px-1.5 py-0.5">
+                                  {offering.category.replace(/_/g, " ")}
+                                </span>
+                              </span>
+                              <span className="mt-1 block text-xs text-white/45">
+                                {offering.gradeNames.join(", ")}
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-4">
@@ -918,13 +1053,16 @@ function SetupSubjectOfferingsDialog({
                   />
                   <PremiumSelect
                     value={customForm.gradeBand}
-                    onValueChange={(value) =>
+                    onValueChange={(value) => {
                       setCustomForm((current) => ({
                         ...current,
                         gradeBand: value,
                         stage: value,
-                      }))
-                    }
+                      }));
+                      if (value !== "custom") {
+                        setSelectedGradeIds(gradeIdsForBand(value));
+                      }
+                    }}
                   >
                     <PremiumSelectTrigger>
                       <PremiumSelectValue placeholder="Grade band" />
@@ -939,7 +1077,9 @@ function SetupSubjectOfferingsDialog({
                 </div>
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs text-white/45">
-                    Custom offering will use the selected grades above and can be assigned to matching class groups automatically.
+                    {customForm.gradeBand === "custom"
+                      ? "Custom offering will use the selected grades above and can be assigned to matching class groups automatically."
+                      : `Custom offering will use ${formatOfferingLabel(customForm.gradeBand)} grades only and can be assigned to matching class groups automatically.`}
                   </p>
                   <Button
                     type="button"
@@ -948,7 +1088,7 @@ function SetupSubjectOfferingsDialog({
                       createCustomOffering.isPending ||
                       !customForm.subjectFamily.trim() ||
                       !customForm.code.trim() ||
-                      selectedGradeIds.length === 0
+                      customGradeIds.length === 0
                     }
                     onClick={handleCreateCustom}
                     className="border-amber-300/20 bg-amber-300/10 text-amber-50 hover:bg-amber-300/15"
@@ -965,10 +1105,20 @@ function SetupSubjectOfferingsDialog({
               </Button>
               <Button
                 className="bg-linear-to-r from-amber-300 to-orange-400 text-slate-950 hover:from-amber-200 hover:to-orange-300"
-                disabled={setupMutation.isPending || selectedCodes.length === 0 || selectedGradeIds.length === 0}
-                onClick={handleSubmit}
+                disabled={
+                  setupMutation.isPending ||
+                  createCustomOffering.isPending ||
+                  (!canCreateTemplateOfferings && !canFinishAfterCustomOnly)
+                }
+                onClick={() => {
+                  if (canCreateTemplateOfferings) {
+                    void handleSubmit();
+                    return;
+                  }
+                  onOpenChange(false);
+                }}
               >
-                Create offerings
+                {canCreateTemplateOfferings ? "Create offerings" : "Done"}
               </Button>
             </DialogFooter>
           </div>

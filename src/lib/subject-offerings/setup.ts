@@ -9,6 +9,7 @@ import {
 } from "@/models/SubjectOffering";
 import {
   getSubjectOfferingTemplatesForCurriculum,
+  isPreschoolLearningAreaGrade,
   type CurriculumSubjectOfferingTemplate,
 } from "@/constants/curriculum-subject-templates";
 import { gradeMatchesTemplateCode } from "./grade-bands";
@@ -111,6 +112,7 @@ export async function setupSubjectOfferingsFromCurriculum(
   })
     .select("_id name code stage order")
     .lean<IGrade[]>();
+  const eligibleGrades = grades.filter((grade) => !isPreschoolLearningAreaGrade(grade));
 
   const warnings: string[] = [];
   let createdSubjects = 0;
@@ -119,7 +121,7 @@ export async function setupSubjectOfferingsFromCurriculum(
   let assignedClassGroups = 0;
 
   for (const template of templates) {
-    const matchingGrades = grades.filter((grade) =>
+    const matchingGrades = eligibleGrades.filter((grade) =>
       gradeMatchesTemplateCode(grade, template.gradeCodes)
     );
     if (matchingGrades.length === 0) {

@@ -10,9 +10,24 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Invoice } from "@/models/Invoice";
 import { SubjectOffering } from "@/models/SubjectOffering";
+import {
+  getPreschoolLearningAreaNames,
+  isPreschoolLearningAreaGrade,
+} from "@/constants/curriculum-subject-templates";
 import mongoose from "mongoose";
 
 const ACTIVE_INVOICE_STATUSES = ["issued", "partially_paid", "overdue"];
+
+function isLearningAreaSubject(
+  subject: any,
+  recommendedLearningAreas: Set<string>
+): boolean {
+  const name = typeof subject?.name === "string" ? subject.name.trim() : "";
+  return (
+    subject?.category === "learning_area" ||
+    (name.length > 0 && recommendedLearningAreas.has(name.toLowerCase()))
+  );
+}
 
 export async function GET(
   req: NextRequest,
@@ -58,6 +73,10 @@ export async function GET(
       stage: gradeDoc.stage ?? "Basic",
       order: gradeDoc.order ?? 0,
     };
+    const isPreschoolGrade = isPreschoolLearningAreaGrade(grade);
+    const recommendedLearningAreas = new Set(
+      getPreschoolLearningAreaNames(grade).map((name) => name.toLowerCase())
+    );
 
     // Fetch classes in this grade
     const classes = await ClassGroup.find({
@@ -70,6 +89,7 @@ export async function GET(
         select: "displayName shortName code gradeBand",
         model: SubjectOffering,
       })
+      .populate("subjectIds", "name code category")
       .lean();
 
     const classIds = classes.map((c: any) => c._id);
@@ -109,12 +129,22 @@ export async function GET(
     const avgClassSize =
       totalClasses > 0 ? Math.round(totalStudents / totalClasses) : 0;
 
-    // Subject offerings: union of all subjectOfferingIds from classes.
+    // Academic units: preschool grades use learning areas only; other grades use subject offerings.
     const allSubjectOfferingIds = new Set<string>();
+    const allLearningAreaIds = new Set<string>();
     for (const cls of classes) {
-      const subjectOfferingIds = (cls as any).subjectOfferingIds ?? [];
-      for (const offering of subjectOfferingIds) {
-        if (offering?._id) allSubjectOfferingIds.add(String(offering._id));
+      if (isPreschoolGrade) {
+        const subjectIds = (cls as any).subjectIds ?? [];
+        for (const subject of subjectIds) {
+          if (subject?._id && isLearningAreaSubject(subject, recommendedLearningAreas)) {
+            allLearningAreaIds.add(String(subject._id));
+          }
+        }
+      } else {
+        const subjectOfferingIds = (cls as any).subjectOfferingIds ?? [];
+        for (const offering of subjectOfferingIds) {
+          if (offering?._id) allSubjectOfferingIds.add(String(offering._id));
+        }
       }
     }
 
@@ -126,7 +156,33 @@ export async function GET(
       classesWithoutSubject: number;
     }> = [];
 
-    for (const offeringId of allSubjectOfferingIds) {
+    if (isPreschoolGrade) {
+      for (const subjectId of allLearningAreaIds) {
+        let classesWithSubject = 0;
+        let subjectName = "Unknown learning area";
+        let subjectCode: string | null = null;
+        for (const cls of classes) {
+          const subjectIds = (cls as any).subjectIds ?? [];
+          const found = subjectIds.find(
+            (subject: any) => subject?._id && String(subject._id) === subjectId
+          );
+          if (found && isLearningAreaSubject(found, recommendedLearningAreas)) {
+            classesWithSubject++;
+            subjectName = found.name || subjectName;
+            subjectCode = found.code ?? subjectCode;
+          }
+        }
+        subjects.push({
+          id: subjectId,
+          name: subjectName,
+          code: subjectCode,
+          classesWithSubject,
+          classesWithoutSubject: totalClasses - classesWithSubject,
+        });
+      }
+    }
+
+    for (const offeringId of isPreschoolGrade ? [] : allSubjectOfferingIds) {
       let classesWithSubject = 0;
       let offeringName = "Unknown offering";
       let offeringCode: string | null = null;
@@ -152,9 +208,10 @@ export async function GET(
       });
     }
 
-    // subjectsWithoutTeacher: subject offerings assigned to classes but no TeacherAssignment for current period
+    // subjectsWithoutTeacher: subject offerings assigned to classes but no TeacherAssignment for current period.
+    // Preschool learning areas are managed separately and do not require subject-teacher coverage checks.
     let subjectsWithoutTeacher = 0;
-    if (currentPeriodDoc) {
+    if (!isPreschoolGrade && currentPeriodDoc) {
       const assignments = await TeacherAssignment.find({
         schoolId: schoolIdObj,
         classGroupId: { $in: classIds },

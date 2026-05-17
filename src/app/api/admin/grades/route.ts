@@ -100,6 +100,7 @@ export async function GET(req: NextRequest) {
 
     return Response.json({ success: true, data }, { status: 200 });
   } catch (error: unknown) {
+    if (error instanceof Response) return error;
     console.error(error);
     const message =
       error instanceof Error ? error.message : "Failed to fetch grades";

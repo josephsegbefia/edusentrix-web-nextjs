@@ -12,6 +12,7 @@ import type { MembershipRole } from "@/lib/roles";
 import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import type { SchoolStaffReadContext } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 export type ClassTimetableEditorContext = {
   userId: mongoose.Types.ObjectId;
@@ -97,6 +98,18 @@ export async function requireClassTimetableEditor(
       { error: "Only a school admin or this class homeroom teacher can edit the timetable." },
       { status: 403 }
     );
+  }
+
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    if (String(assisted.schoolId) !== String(schoolIdObj)) {
+      throw NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return {
+      userId: assisted.actorUserId,
+      schoolId: schoolIdObj,
+      mode: "school_admin",
+    };
   }
 
   const { userId: clerkUserId } = await auth();
@@ -199,6 +212,7 @@ export async function isClassTimetableManagerForReadUser(
   if (!classGroup) return false;
   const schoolIdObj = (classGroup as { schoolId: mongoose.Types.ObjectId }).schoolId;
   if (String(schoolIdObj) !== String(read.schoolId)) return false;
+  if (read.canBootstrapSchoolSettings) return true;
 
   const demo = await tryResolveDemoGuard();
   if (demo.isDemo && demo.user.schoolId) {

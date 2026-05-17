@@ -12,6 +12,7 @@ import {
   Rocket,
   ShieldCheck,
   Trash2,
+  UserCog,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -29,6 +30,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { BankBranchCombo } from "@/components/banks/BankBranchCombo";
 import { formatMoney } from "@/lib/fees/money";
 import { PHRASE_DELETE_SCHOOL_PERMANENTLY } from "@/lib/platform/school-lifecycle-constants";
@@ -42,6 +50,17 @@ type SchoolDetail = {
   region: string | null;
   email: string | null;
   environmentType: string;
+  setupProgress: {
+    percent: number;
+    completed: number;
+    total: number;
+    items: Array<{
+      key: string;
+      label: string;
+      complete: boolean;
+      detail: string;
+    }>;
+  };
   paymentReady: boolean;
   paymentSetup: {
     status:
@@ -132,6 +151,10 @@ export default function PlatformSchoolDetailPage() {
   const [proposalAccountNumber, setProposalAccountNumber] = React.useState("");
   const [proposalNote, setProposalNote] = React.useState("");
   const [proposalBusy, setProposalBusy] = React.useState(false);
+  const [assistOpen, setAssistOpen] = React.useState(false);
+  const [assistReason, setAssistReason] = React.useState("");
+  const [assistDuration, setAssistDuration] = React.useState("30");
+  const [assistBusy, setAssistBusy] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     if (!schoolId) return;
@@ -332,6 +355,35 @@ export default function PlatformSchoolDetailPage() {
     }
   }
 
+  async function startAssistedAccess() {
+    if (!schoolId) return;
+    if (assistReason.trim().length < 10) {
+      toast.error("Add a clear reason before starting assisted access.");
+      return;
+    }
+    try {
+      setAssistBusy(true);
+      const res = await fetch(`/api/platform/schools/${schoolId}/assisted-access/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: assistReason.trim(),
+          durationMinutes: Number(assistDuration),
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to start assisted access");
+      }
+      toast.success("Assisted access started.");
+      window.location.href = json.data?.redirectTo || "/admin";
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to start assisted access");
+    } finally {
+      setAssistBusy(false);
+    }
+  }
+
   function statusBadgeClass(tone: SchoolDetail["paymentSetup"]["statusTone"]) {
     if (tone === "emerald") {
       return "border-emerald-500/30 bg-emerald-500/15 text-emerald-200";
@@ -364,6 +416,16 @@ export default function PlatformSchoolDetailPage() {
           {schoolId ? (
             <div className="flex flex-wrap items-center gap-2">
               <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="w-fit border-cyan-400/30 bg-cyan-400/10 text-cyan-50 hover:bg-cyan-400/20"
+                onClick={() => setAssistOpen(true)}
+              >
+                <UserCog className="mr-2 h-4 w-4" />
+                Assist as school admin
+              </Button>
+              <Button
                 asChild
                 size="sm"
                 className="w-fit bg-brand text-black hover:bg-brand/90"
@@ -392,10 +454,11 @@ export default function PlatformSchoolDetailPage() {
 
       {data ? (
         <>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <Card className="border-white/10 bg-white/5"><CardContent className="p-5"><p className="text-xs uppercase tracking-wide text-white/50">Subscription</p><p className="mt-2 text-xl font-semibold text-white">{formatMoney(data.subscription?.effectivePriceMinor || 0)}</p><p className="text-xs text-white/50">{data.subscription?.tierName || "Unassigned"}</p></CardContent></Card>
             <Card className="border-white/10 bg-white/5"><CardContent className="p-5"><p className="text-xs uppercase tracking-wide text-white/50">Attributed Cost</p><p className="mt-2 text-xl font-semibold text-white">{formatMoney(data.usage.totalEstimatedCostMinor)}</p><p className="text-xs text-white/50">{data.usage.metricsCount} metrics</p></CardContent></Card>
             <Card className="border-white/10 bg-white/5"><CardContent className="p-5"><p className="text-xs uppercase tracking-wide text-white/50">Payment Setup</p><p className="mt-2 text-xl font-semibold text-white">{data.paymentReady ? "Ready" : "Pending"}</p><p className="text-xs text-white/50">Paystack school settlement</p></CardContent></Card>
+            <Card className="border-white/10 bg-white/5"><CardContent className="p-5"><p className="text-xs uppercase tracking-wide text-white/50">Setup Completion</p><p className="mt-2 text-xl font-semibold text-white">{data.setupProgress.percent}%</p><p className="text-xs text-white/50">{data.setupProgress.completed}/{data.setupProgress.total} checks complete</p></CardContent></Card>
           </div>
 
           <Card className="border-white/10 bg-white/5 text-white">
@@ -546,6 +609,56 @@ export default function PlatformSchoolDetailPage() {
                 >
                   {lifecycleBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Delete forever
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={assistOpen} onOpenChange={setAssistOpen}>
+            <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Assist as school admin</DialogTitle>
+                <DialogDescription className="text-white/65">
+                  Start a time-limited, audited school-admin session for setup help. Use this only for support or onboarding work.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label className="text-white/80">Reason</Label>
+                  <Textarea
+                    value={assistReason}
+                    onChange={(event) => setAssistReason(event.target.value)}
+                    className="min-h-28 border-white/15 bg-white/5 text-white placeholder:text-white/35"
+                    placeholder="Example: Set up subjects, classes, teachers, and academic calendar for launch."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-white/80">Session duration</Label>
+                  <PremiumSelect value={assistDuration} onValueChange={setAssistDuration}>
+                    <PremiumSelectTrigger className="border-white/15 bg-white/5 text-white">
+                      <PremiumSelectValue placeholder="Choose duration" />
+                    </PremiumSelectTrigger>
+                    <PremiumSelectContent>
+                      <PremiumSelectItem value="15">15 minutes</PremiumSelectItem>
+                      <PremiumSelectItem value="30">30 minutes</PremiumSelectItem>
+                      <PremiumSelectItem value="60">1 hour</PremiumSelectItem>
+                      <PremiumSelectItem value="120">2 hours</PremiumSelectItem>
+                    </PremiumSelectContent>
+                  </PremiumSelect>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:justify-end">
+                <Button type="button" variant="ghost" onClick={() => setAssistOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                  disabled={assistBusy}
+                  onClick={() => void startAssistedAccess()}
+                >
+                  {assistBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Start assisted access
                 </Button>
               </DialogFooter>
             </DialogContent>

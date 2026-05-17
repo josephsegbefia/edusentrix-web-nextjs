@@ -15,7 +15,6 @@ import { applyLaunchCurriculum } from "@/lib/onboarding/launch-curriculum";
 
 const BodySchema = z
   .object({
-    subjects: z.array(z.string()).optional(),
     periods: z
       .array(
         z.object({
@@ -42,7 +41,6 @@ export async function POST(req: Request) {
   }
 
   const body = parsed.data;
-  const subjectList = body?.subjects;
   const periodList = body?.periods;
 
   await connectToDatabase();
@@ -65,14 +63,10 @@ export async function POST(req: Request) {
   try {
     session.startTransaction();
 
-    if (
-      (subjectList && subjectList.length > 0) ||
-      (periodList && periodList.length > 0)
-    ) {
+    if (periodList && periodList.length > 0) {
       await applyLaunchCurriculum(
         schoolIdObj,
         {
-          subjectNames: subjectList ?? [],
           periods: periodList ?? [],
         },
         { session }

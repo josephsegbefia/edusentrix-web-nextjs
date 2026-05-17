@@ -6,6 +6,7 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { ClassGroup } from "@/models/ClassGroup";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { isPreschoolLearningAreaGrade } from "@/constants/curriculum-subject-templates";
 import mongoose from "mongoose";
 
 /**
@@ -51,7 +52,8 @@ export async function GET(
       _id: classIdObj,
       schoolId: schoolIdObj,
     })
-      .select("_id subjectOfferingIds")
+      .populate("gradeId", "name code")
+      .select("_id gradeId subjectOfferingIds")
       .lean();
 
     if (!classGroup) {
@@ -59,6 +61,10 @@ export async function GET(
         { success: false, error: "Class not found" },
         { status: 404 }
       );
+    }
+
+    if (isPreschoolLearningAreaGrade((classGroup as any).gradeId ?? {})) {
+      return NextResponse.json({ success: true, data: [] });
     }
 
     const academicPeriodIdParam = req.nextUrl.searchParams.get("academicPeriodId");

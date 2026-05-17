@@ -12,6 +12,7 @@ type SubjectsCardGridProps = {
   onEdit?: (id: string) => void;
   onAssignToClasses?: (id: string) => void;
   onAssignTeachers?: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
 export function SubjectsCardGrid({
@@ -20,6 +21,7 @@ export function SubjectsCardGrid({
   onEdit,
   onAssignToClasses,
   onAssignTeachers,
+  onDelete,
 }: SubjectsCardGridProps) {
   if (subjects.length === 0) {
     return (
@@ -47,6 +49,7 @@ export function SubjectsCardGrid({
           onEdit={onEdit}
           onAssignToClasses={onAssignToClasses}
           onAssignTeachers={onAssignTeachers}
+          onDelete={onDelete}
         />
       ))}
     </div>

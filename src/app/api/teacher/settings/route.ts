@@ -259,7 +259,7 @@ function disableWhatsAppFeatureFlags(settingsDoc: ITeacherSettings) {
 
 async function syncTeacherCommunicationPreference(settingsDoc: ITeacherSettings) {
   const inAppSettings = settingsDoc.notifications?.inApp;
-  const mutedTypes = Object.entries(NOTIFICATION_TYPE_GROUPS).flatMap(([key, types]) => {
+  const inAppMutedTypes = Object.entries(NOTIFICATION_TYPE_GROUPS).flatMap(([key, types]) => {
     const enabled = inAppSettings?.[key as keyof typeof inAppSettings] ?? true;
     return enabled ? [] : [...types];
   });
@@ -272,7 +272,12 @@ async function syncTeacherCommunicationPreference(settingsDoc: ITeacherSettings)
     {
       $set: {
         allowedChannels: anyInAppEnabled ? ["in_app", "email"] : ["email"],
-        mutedTypes,
+        mutedTypes: [],
+        channelMutedTypes: {
+          in_app: inAppMutedTypes,
+          email: [],
+        },
+        emailUrgentOnly: Boolean(settingsDoc.notifications?.email?.urgentOnly),
         whatsappConsent: false,
         smsConsent: false,
         quietHours: {

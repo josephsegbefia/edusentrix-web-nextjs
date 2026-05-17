@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { gateFinanceStaffRoles } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -30,6 +31,16 @@ export async function requireFinanceStaff(): Promise<FinanceStaffContext> {
       userId: demo.user._id,
       schoolId: demo.user.schoolId!,
       roles: [...demo.membership.roles],
+    };
+  }
+
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    await ensureActiveSchoolForTenant(assisted.schoolId, { mode: "api" });
+    return {
+      userId: assisted.actorUserId,
+      schoolId: assisted.schoolId,
+      roles: ["school_admin"],
     };
   }
 

@@ -110,6 +110,7 @@ export async function previewCommunicationAudience(communication: ICommunication
   const routed = await routeCommunicationChannels({
     schoolId: communication.schoolId,
     type: communication.type,
+    priority: communication.priority,
     channels: communication.channels,
     recipients: resolved.recipients,
   });
@@ -151,6 +152,7 @@ export async function queueCommunication(communicationId: Types.ObjectId, school
   const routed = await routeCommunicationChannels({
     schoolId: communication.schoolId,
     type: communication.type,
+    priority: communication.priority,
     channels: communication.channels,
     recipients: resolved.recipients,
   });

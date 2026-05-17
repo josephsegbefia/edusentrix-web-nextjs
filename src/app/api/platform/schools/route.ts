@@ -31,13 +31,6 @@ const CreatePlatformSchoolSchema = z.object({
     phone: z.string().trim().max(30).optional().default(""),
     jobTitle: z.string().trim().max(120).optional().default(""),
   }),
-  implementation: z.object({
-    assignedOwnerUserId: z.string().trim().optional().nullable().default(null),
-    startDate: z.string().trim().optional().nullable().default(null),
-    targetGoLiveDate: z.string().trim().optional().nullable().default(null),
-    priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
-    notes: z.string().trim().max(1000).optional().nullable().default(null),
-  }),
 });
 
 export async function GET() {
@@ -60,12 +53,6 @@ export async function GET() {
   }
 }
 
-function parseOptionalDate(value: string | null | undefined) {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
 export async function POST(req: NextRequest) {
   try {
     const gate = await requirePlatformPermission("platform.schools.create");
@@ -83,18 +70,12 @@ export async function POST(req: NextRequest) {
       actorUserId: gate.actor.userId,
       school: parsed.data.school,
       admin: parsed.data.admin,
-      implementation: {
-        ...parsed.data.implementation,
-        startDate: parseOptionalDate(parsed.data.implementation.startDate),
-        targetGoLiveDate: parseOptionalDate(parsed.data.implementation.targetGoLiveDate),
-      },
     });
 
     return NextResponse.json({
       success: true,
       data: {
         schoolId: String(result.school._id),
-        implementationProjectId: String(result.project._id),
         setupTaskId: String(result.task._id),
       },
     });

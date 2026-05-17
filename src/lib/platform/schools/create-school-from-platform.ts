@@ -3,7 +3,6 @@ import type { CurriculumCode } from "@/constants/curriculum-profiles";
 import { PlatformAuditLog } from "@/models/PlatformAuditLog";
 import { PlatformTask } from "@/models/PlatformTask";
 import { School, type SchoolType } from "@/models/School";
-import { SchoolImplementationProject } from "@/models/SchoolImplementationProject";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
 
@@ -25,13 +24,6 @@ export type CreateSchoolFromPlatformInput = {
     email: string;
     phone?: string;
     jobTitle?: string;
-  };
-  implementation: {
-    assignedOwnerUserId?: string | null;
-    startDate?: Date | null;
-    targetGoLiveDate?: Date | null;
-    priority: "low" | "normal" | "high" | "urgent";
-    notes?: string | null;
   };
 };
 
@@ -97,33 +89,19 @@ export async function createSchoolFromPlatform(input: CreateSchoolFromPlatformIn
     { upsert: true }
   );
 
-  const project = await SchoolImplementationProject.create({
-    schoolId: school._id,
-    status: "not_started",
-    assignedOwnerUserId: input.implementation.assignedOwnerUserId
-      ? new mongoose.Types.ObjectId(input.implementation.assignedOwnerUserId)
-      : null,
-    startDate: input.implementation.startDate || null,
-    targetGoLiveDate: input.implementation.targetGoLiveDate || null,
-  });
-
   const task = await PlatformTask.create({
     schoolId: school._id,
     title: `Set up ${school.name}`,
-    description: input.implementation.notes || "Initial school setup created from platform console.",
+    description: "Initial school setup task created from platform console.",
     category: "school_onboarding",
-    priority: input.implementation.priority,
+    priority: "normal",
     status: "todo",
-    assignedToUserId: project.assignedOwnerUserId || null,
+    assignedToUserId: null,
     assignedByUserId: input.actorUserId,
-    dueAt: input.implementation.targetGoLiveDate || null,
-    relatedEntityType: "SchoolImplementationProject",
-    relatedEntityId: project._id,
-    checklist: project.checklist.map((item) => ({
-      id: item.key,
-      label: item.label,
-      completed: false,
-    })),
+    dueAt: null,
+    relatedEntityType: "School",
+    relatedEntityId: school._id,
+    checklist: [],
   });
 
   await PlatformAuditLog.create({
@@ -134,11 +112,10 @@ export async function createSchoolFromPlatform(input: CreateSchoolFromPlatformIn
     entityId: school._id,
     metadata: {
       adminUserId: String(adminUser._id),
-      implementationProjectId: String(project._id),
       setupTaskId: String(task._id),
       createdVia: "platform_operations_console",
     },
   });
 
-  return { school, adminUser, project, task };
+  return { school, adminUser, task };
 }

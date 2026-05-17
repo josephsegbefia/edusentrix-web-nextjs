@@ -7,6 +7,11 @@ export interface ICommunicationPreference {
   userId: Types.ObjectId;
   allowedChannels: CommunicationChannel[];
   mutedTypes: CommunicationType[];
+  channelMutedTypes?: {
+    in_app?: CommunicationType[];
+    email?: CommunicationType[];
+  };
+  emailUrgentOnly: boolean;
   whatsappConsent: boolean;
   smsConsent: boolean;
   quietHours?: {
@@ -49,6 +54,55 @@ const communicationPreferenceSchema = new Schema<ICommunicationPreference>(
       ],
       default: [],
     },
+    channelMutedTypes: {
+      in_app: {
+        type: [
+          {
+            type: String,
+            enum: [
+              "notice",
+              "announcement",
+              "direct_message",
+              "fee_reminder",
+              "attendance_alert",
+              "academic_update",
+              "lesson_update",
+              "exam_notice",
+              "event_notice",
+              "emergency_alert",
+              "video_meeting_invite",
+              "newsletter",
+              "system_alert",
+            ],
+          },
+        ],
+        default: [],
+      },
+      email: {
+        type: [
+          {
+            type: String,
+            enum: [
+              "notice",
+              "announcement",
+              "direct_message",
+              "fee_reminder",
+              "attendance_alert",
+              "academic_update",
+              "lesson_update",
+              "exam_notice",
+              "event_notice",
+              "emergency_alert",
+              "video_meeting_invite",
+              "newsletter",
+              "system_alert",
+            ],
+          },
+        ],
+        default: [],
+      },
+    },
+    emailUrgentOnly: { type: Boolean, default: false },
     whatsappConsent: { type: Boolean, default: false },
     smsConsent: { type: Boolean, default: false },
     quietHours: {

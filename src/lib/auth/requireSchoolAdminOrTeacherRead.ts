@@ -11,6 +11,7 @@ import type { MembershipRole } from "@/lib/roles";
 import { gateSchoolAdminRoles, gateTeacherApiAccess } from "@/lib/auth/role-gates";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 export type SchoolStaffReadContext = {
   userId: mongoose.Types.ObjectId;
@@ -77,6 +78,16 @@ export async function requireSchoolAdminOrTeacherRead(): Promise<SchoolStaffRead
       }
     }
     throw NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    await ensureActiveSchoolForTenant(assisted.schoolId, { mode: "api" });
+    return {
+      userId: assisted.actorUserId,
+      schoolId: assisted.schoolId,
+      canBootstrapSchoolSettings: true,
+    };
   }
 
   const { userId: clerkUserId } = await auth();

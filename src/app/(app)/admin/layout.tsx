@@ -17,6 +17,7 @@ import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
 import { AdminTrialBanner } from "@/components/billing/AdminTrialBanner";
 import { AdminLeoEntry } from "@/components/leo/AdminLeoEntry";
 import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
+import { AssistedAccessBanner } from "@/components/platform/assisted-access/AssistedAccessBanner";
 
 export default async function AdminLayout({
   children,
@@ -41,8 +42,9 @@ export default async function AdminLayout({
   if (shell.kind === "delegated_admin") {
     return (
       <>
-        <AuthRefreshHandler />
-        <AdminDelegatePathGuard
+      <AuthRefreshHandler />
+      <AssistedAccessBanner />
+      <AdminDelegatePathGuard
           allowedPrefixes={shell.allowedPathPrefixes}
           homeHref={shell.homeHref}
         />
@@ -73,6 +75,7 @@ export default async function AdminLayout({
   return (
     <>
       <AuthRefreshHandler />
+      <AssistedAccessBanner />
       <AdminRolePathGuard
         role={user.role}
         bursarExtraAllowedPrefixes={

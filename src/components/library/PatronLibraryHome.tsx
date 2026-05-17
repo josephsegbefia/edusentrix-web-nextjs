@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Library,
   Loader2,
-  Megaphone,
   Search,
   Sparkles,
   Warehouse,
@@ -38,13 +37,6 @@ type PatronBook = {
   coverImageUrl?: string;
   availableCopies: number;
   totalCopies: number;
-};
-
-type NoticeRow = {
-  id: string;
-  title: string;
-  message: string;
-  publishedAt: string | null;
 };
 
 type LoanRow = {
@@ -158,7 +150,6 @@ function BookTile({ book, href }: { book: PatronBook; href: string }) {
 export function PatronLibraryHome({ role }: { role: PatronRole }) {
   const [search, setSearch] = React.useState("");
   const [books, setBooks] = React.useState<PatronBook[]>([]);
-  const [notices, setNotices] = React.useState<NoticeRow[]>([]);
   const [loans, setLoans] = React.useState<LoanRow[]>([]);
   const [holds, setHolds] = React.useState<HoldRow[]>([]);
   const [wards, setWards] = React.useState<Ward[]>([]);
@@ -179,17 +170,15 @@ export function PatronLibraryHome({ role }: { role: PatronRole }) {
         if (q.trim()) qs.set("search", q.trim());
 
         const base = `/api/${role}/library`;
-        const [bRes, accountRes, nRes, hRes, rRes] = await Promise.all([
+        const [bRes, accountRes, hRes, rRes] = await Promise.all([
           fetch(`${base}/books?${qs}`, { cache: "no-store" }),
           fetch(role === "parent" ? `${base}/summary` : `${base}/my-loans`, { cache: "no-store" }),
-          fetch(`${base}/notices?limit=15`, { cache: "no-store" }),
           fetch(`${base}/reservations`, { cache: "no-store" }),
           fetch(`${base}/recommendations?limit=12`, { cache: "no-store" }),
         ]);
 
         const bJson = await bRes.json();
         const accountJson = await accountRes.json();
-        const nJson = await nRes.json();
         const hJson = await hRes.json();
         const rJson = await rRes.json();
 
@@ -202,7 +191,6 @@ export function PatronLibraryHome({ role }: { role: PatronRole }) {
         }
 
         setBooks(bJson.data?.items ?? []);
-        setNotices(nJson.success ? (nJson.data?.items ?? []) : []);
         setRecs(rRes.ok && rJson.success ? (rJson.data?.items ?? []) : []);
 
         if (role === "parent") {
@@ -370,38 +358,6 @@ export function PatronLibraryHome({ role }: { role: PatronRole }) {
                   </ul>
                 )}
               </section>
-            </CardContent>
-          </PanelChrome>
-        </Card>
-
-        <Card className={libraryGlassPanel}>
-          <PanelChrome corner="bottom">
-            <CardHeader className="relative z-10 border-b border-white/5">
-              <CardTitle className="flex items-center gap-2 text-base text-white">
-                <Megaphone className="h-4 w-4 text-cyan-200" />
-                Library notices
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              {loading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-white/40" />
-              ) : notices.length === 0 ? (
-                <LibraryEmptyState title="No notices" description="Library announcements will appear here." />
-              ) : (
-                <div className="space-y-3">
-                  {notices.map((notice) => (
-                    <div key={notice.id} className="rounded-lg border border-white/10 bg-black/20 px-4 py-3">
-                      <p className="font-medium text-white">{notice.title}</p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-white/75">{notice.message}</p>
-                      {notice.publishedAt ? (
-                        <p className="mt-2 text-xs text-white/45">
-                          {format(new Date(notice.publishedAt), "MMM d, yyyy")}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </PanelChrome>
         </Card>

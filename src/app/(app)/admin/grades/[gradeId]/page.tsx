@@ -692,12 +692,12 @@ function GradeDetailContent() {
                 <p className="text-sm font-medium text-amber-50">
                   {isPreschoolGrade
                     ? "No learning areas attached to this grade yet."
-                    : "No subject offerings set up for this grade yet."}
+                    : `No subject offerings attached to ${gradeName} yet.`}
                 </p>
                 <p className="mt-1 text-xs leading-relaxed text-amber-50/70">
                   {isPreschoolGrade
                     ? `Use the Learning Areas panel above to choose the development areas for ${gradeName}.`
-                    : `Add curriculum-scoped subject offerings for ${gradeName}. The setup flow will be limited to this grade first, so you do not accidentally assign subjects to the wrong grade.`}
+                    : "This opens the Subjects page with the subject offerings setup modal open. You can review the recommended offerings and choose the grades covered before saving."}
                 </p>
                 {!isPreschoolGrade && (
                   <Button
@@ -709,7 +709,7 @@ function GradeDetailContent() {
                     className="mt-3 gap-2 bg-linear-to-r from-amber-300 to-orange-400 text-slate-950 hover:from-amber-200 hover:to-orange-300"
                   >
                     <WandSparkles className="h-3.5 w-3.5" />
-                    Add subject offerings
+                    Open Subjects page
                   </Button>
                 )}
               </div>

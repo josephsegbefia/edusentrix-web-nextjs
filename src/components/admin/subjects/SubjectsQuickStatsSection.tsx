@@ -135,7 +135,7 @@ function StatCard({
 }
 
 export function SubjectsQuickStatsSection() {
-  const { data, isLoading } = useSubjectOfferings();
+  const { data, isLoading } = useSubjectOfferings({ isActive: true });
 
   const subjects = (data?.data || []).filter(
     (offering) => offering.gradeBand !== "preschool"
@@ -143,7 +143,7 @@ export function SubjectsQuickStatsSection() {
 
   const stats = React.useMemo(() => {
     const total = subjects.length;
-    const active = subjects.filter((s) => s.isActive).length;
+    const active = total;
     const totalClasses = subjects.reduce((sum, s) => sum + s.assignedClassGroupCount, 0);
     const totalTeachers = subjects.reduce((sum, s) => sum + s.assignedTeacherCount, 0);
 

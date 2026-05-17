@@ -8,6 +8,7 @@ import { PlatformDelegation } from "@/models/PlatformDelegation";
 
 export type PlatformDelegationScope =
   | "school_implementation"
+  | "school_assisted_admin_access"
   | "payment_setup_review"
   | "support_case"
   | "billing_follow_up"

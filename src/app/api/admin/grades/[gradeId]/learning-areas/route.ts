@@ -90,10 +90,13 @@ async function buildLearningAreaPayload(
     gradeId: gradeIdObj,
     isActive: true,
   })
-    .populate("subjectIds", "name code")
+    .populate("subjectIds", "name code category")
     .lean();
 
   const totalClasses = classes.length;
+  const recommendedSet = new Set(
+    getPreschoolLearningAreaNames(grade).map((name) => name.toLowerCase())
+  );
   const subjectMap = new Map<
     string,
     { id: string; name: string; classesWithSubject: number }
@@ -103,6 +106,12 @@ async function buildLearningAreaPayload(
     const subjectIds = (cls as any).subjectIds ?? [];
     for (const subject of subjectIds) {
       if (!subject?._id) continue;
+      const subjectName = typeof subject.name === "string" ? subject.name.trim() : "";
+      const isLearningArea =
+        subject.category === "learning_area" ||
+        (subjectName.length > 0 && recommendedSet.has(subjectName.toLowerCase()));
+      if (!isLearningArea) continue;
+
       const id = String(subject._id);
       const existing = subjectMap.get(id);
       if (existing) {
@@ -203,7 +212,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         schoolId: schoolIdObj,
         name,
         code: null,
-        category: "foundation",
+        category: "learning_area",
         isActive: true,
       });
       subjectIds.push(created._id);

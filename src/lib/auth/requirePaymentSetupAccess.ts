@@ -8,6 +8,7 @@ import { School, type ISchool } from "@/models/School";
 import { normalizePaymentSetupEmail } from "@/lib/school-payments/payment-setup";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -43,6 +44,37 @@ type PaymentSetupAccessContext = {
 
 export async function requirePaymentSetupAccess(): Promise<PaymentSetupAccessContext> {
   await connectToDatabase();
+
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    await ensureActiveSchoolForTenant(assisted.schoolId, { mode: "api" });
+    const school = await School.findById(assisted.schoolId)
+      .select("name createdBy bank billing")
+      .lean<Pick<ISchool, "_id" | "createdBy" | "billing" | "bank" | "name"> | null>();
+
+    if (!school) {
+      throw NextResponse.json({ error: "School not found" }, { status: 404 });
+    }
+
+    return {
+      userId: assisted.actorUserId,
+      schoolId: assisted.schoolId,
+      school,
+      roles: ["school_admin"],
+      accessMode: "admin_fallback",
+      userEmail: assisted.actorEmail,
+      userName: assisted.actorName,
+      shouldBindOwnerUserId: false,
+      shouldBindDelegateUserId: false,
+      capabilities: {
+        canView: true,
+        canManage: true,
+        canManageDelegate: false,
+        canInviteOwner: true,
+        canApprovePayoutChange: false,
+      },
+    };
+  }
 
   let resolvedUserId: string | null = null;
 

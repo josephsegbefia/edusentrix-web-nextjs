@@ -6,6 +6,7 @@ import { User, type IUser } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { gateSchoolAdminRoles } from "@/lib/auth/role-gates";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 function legacyRoleToArray(role?: string) {
   if (role === "school_admin") return ["school_admin"];
@@ -37,6 +38,15 @@ export async function resolveSchoolActorContext(): Promise<SchoolActorContext> {
       userId: demo.user._id as mongoose.Types.ObjectId,
       schoolId: demo.user.schoolId as mongoose.Types.ObjectId,
       isSchoolAdmin,
+    };
+  }
+
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    return {
+      userId: assisted.actorUserId,
+      schoolId: assisted.schoolId,
+      isSchoolAdmin: true,
     };
   }
 

@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   Pencil,
   School,
+  Trash2,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -42,6 +43,7 @@ type SubjectsTableProps = {
   onEdit?: (id: string) => void;
   onAssignToClasses?: (id: string) => void;
   onAssignTeachers?: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
 type SortableHeaderProps = {
@@ -110,6 +112,7 @@ export function SubjectsTable({
   onEdit,
   onAssignToClasses,
   onAssignTeachers,
+  onDelete,
 }: SubjectsTableProps) {
   const visibleIds = React.useMemo(() => subjects.map((s) => s.id), [subjects]);
 
@@ -340,6 +343,17 @@ export function SubjectsTable({
                         icon={<UserPlus className="h-3.5 w-3.5" />}
                       >
                         Assign teachers
+                      </PremiumDropdownMenuItem>
+                      <PremiumDropdownMenuSeparator />
+                      <PremiumDropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete?.(subject.id);
+                        }}
+                        icon={<Trash2 className="h-3.5 w-3.5" />}
+                        className="text-rose-200 focus:text-rose-100"
+                      >
+                        Delete subject
                       </PremiumDropdownMenuItem>
                     </PremiumDropdownMenuContent>
                   </PremiumDropdownMenu>

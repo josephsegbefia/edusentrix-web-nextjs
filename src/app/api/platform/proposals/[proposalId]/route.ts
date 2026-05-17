@@ -137,6 +137,22 @@ export async function DELETE(
     if (!proposal) {
       return NextResponse.json({ success: false, error: "Proposal not found" }, { status: 404 });
     }
+    if (proposal.status === "archived") {
+      await Promise.all([
+        ProposalSendLog.deleteMany({ proposalId: proposal._id }),
+        ProposalActivity.deleteMany({ proposalId: proposal._id }),
+        Proposal.deleteOne({ _id: proposal._id }),
+      ]);
+      return NextResponse.json({
+        success: true,
+        data: {
+          deleted: true,
+          permanentlyDeleted: true,
+          id: proposalId,
+        },
+      });
+    }
+
     proposal.status = "archived";
     await proposal.save();
     await logProposalActivity({
@@ -148,7 +164,7 @@ export async function DELETE(
     return NextResponse.json({ success: true, data: serializeProposal(proposal) });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Failed to archive proposal" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to delete proposal" },
       { status: 500 },
     );
   }

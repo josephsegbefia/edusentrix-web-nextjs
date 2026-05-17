@@ -4,11 +4,32 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { resolveSchoolActorContext } from "@/lib/auth/resolveSchoolActorContext";
 import { CommunicationPreference } from "@/models/CommunicationPreference";
 
+const CommunicationTypeSchema = z.enum([
+  "notice",
+  "announcement",
+  "direct_message",
+  "fee_reminder",
+  "attendance_alert",
+  "academic_update",
+  "lesson_update",
+  "exam_notice",
+  "event_notice",
+  "emergency_alert",
+  "video_meeting_invite",
+  "newsletter",
+  "system_alert",
+]);
+
 const PreferenceSchema = z.object({
-  allowedChannels: z.array(z.enum(["in_app", "email", "whatsapp", "sms"])).min(1).optional(),
-  mutedTypes: z.array(z.enum(["notice", "announcement", "direct_message", "fee_reminder", "attendance_alert", "academic_update", "lesson_update", "exam_notice", "event_notice", "emergency_alert", "video_meeting_invite", "newsletter", "system_alert"])).optional(),
-  whatsappConsent: z.boolean().optional(),
-  smsConsent: z.boolean().optional(),
+  allowedChannels: z.array(z.enum(["in_app", "email"])).min(1).optional(),
+  mutedTypes: z.array(CommunicationTypeSchema).optional(),
+  channelMutedTypes: z
+    .object({
+      in_app: z.array(CommunicationTypeSchema).optional(),
+      email: z.array(CommunicationTypeSchema).optional(),
+    })
+    .optional(),
+  emailUrgentOnly: z.boolean().optional(),
   quietHours: z.object({
     enabled: z.boolean(),
     start: z.string().trim().max(8).optional().nullable(),
@@ -18,11 +39,17 @@ const PreferenceSchema = z.object({
 
 function serializePreference(doc: any) {
   return {
-    allowedChannels: doc.allowedChannels ?? ["in_app", "email"],
+    allowedChannels: (doc.allowedChannels ?? ["in_app", "email"]).filter(
+      (channel: string) => channel === "in_app" || channel === "email",
+    ),
     mutedTypes: doc.mutedTypes ?? [],
-    whatsappConsent: Boolean(doc.whatsappConsent),
-    smsConsent: Boolean(doc.smsConsent),
+    channelMutedTypes: {
+      in_app: doc.channelMutedTypes?.in_app ?? [],
+      email: doc.channelMutedTypes?.email ?? [],
+    },
+    emailUrgentOnly: Boolean(doc.emailUrgentOnly),
     quietHours: doc.quietHours ?? { enabled: false, start: null, end: null },
+    supportedChannels: ["in_app", "email"],
   };
 }
 
@@ -37,13 +64,14 @@ export async function GET() {
     return Response.json({
       success: true,
       data: preference
-        ? serializePreference(preference)
+          ? serializePreference(preference)
         : {
             allowedChannels: ["in_app", "email"],
             mutedTypes: [],
-            whatsappConsent: false,
-            smsConsent: false,
+            channelMutedTypes: { in_app: [], email: [] },
+            emailUrgentOnly: false,
             quietHours: { enabled: false, start: null, end: null },
+            supportedChannels: ["in_app", "email"],
           },
     });
   } catch (error) {
@@ -62,7 +90,13 @@ export async function PATCH(req: NextRequest) {
     }
     const preference = await CommunicationPreference.findOneAndUpdate(
       { schoolId: ctx.schoolId, userId: ctx.userId },
-      { $set: parsed.data },
+      {
+        $set: {
+          ...parsed.data,
+          whatsappConsent: false,
+          smsConsent: false,
+        },
+      },
       {
         upsert: true,
         new: true,

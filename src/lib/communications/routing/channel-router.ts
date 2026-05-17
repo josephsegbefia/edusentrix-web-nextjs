@@ -3,6 +3,7 @@ import { CommunicationPreference } from "@/models/CommunicationPreference";
 import { CommunicationSuppression } from "@/models/CommunicationSuppression";
 import type {
   CommunicationChannel,
+  CommunicationPriority,
   CommunicationType,
   ResolvedCommunicationRecipient,
 } from "@/lib/communications/types";
@@ -18,6 +19,7 @@ export type RoutedCommunicationDelivery = {
 type RouteInput = {
   schoolId: Types.ObjectId;
   type: CommunicationType;
+  priority?: CommunicationPriority;
   channels: CommunicationChannel[];
   recipients: ResolvedCommunicationRecipient[];
 };
@@ -40,6 +42,11 @@ export async function routeCommunicationChannels(input: RouteInput) {
     userId: Types.ObjectId;
     allowedChannels: CommunicationChannel[];
     mutedTypes: CommunicationType[];
+    channelMutedTypes?: {
+      in_app?: CommunicationType[];
+      email?: CommunicationType[];
+    };
+    emailUrgentOnly?: boolean;
     whatsappConsent: boolean;
     smsConsent: boolean;
   }>>();
@@ -84,6 +91,23 @@ export async function routeCommunicationChannels(input: RouteInput) {
         skippedReason = "Recipient muted this communication type";
       } else if (preference && !preference.allowedChannels.includes(channel)) {
         skippedReason = "Recipient disabled this channel";
+      } else if (
+        channel === "in_app" &&
+        preference?.channelMutedTypes?.in_app?.includes(input.type)
+      ) {
+        skippedReason = "Recipient muted this in-app communication type";
+      } else if (
+        channel === "email" &&
+        preference?.channelMutedTypes?.email?.includes(input.type)
+      ) {
+        skippedReason = "Recipient muted this email communication type";
+      } else if (
+        channel === "email" &&
+        preference?.emailUrgentOnly &&
+        input.priority !== "high" &&
+        input.priority !== "urgent"
+      ) {
+        skippedReason = "Recipient only allows urgent email";
       } else if (channel === "whatsapp" && !preference?.whatsappConsent) {
         skippedReason = "WhatsApp consent is not recorded";
       } else if (channel === "sms" && !preference?.smsConsent) {

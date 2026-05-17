@@ -105,22 +105,29 @@ async function resolveSubjectPayload(
   gradeIds: string[],
   pickedIds: string[] | undefined,
   subjectIdsByGradeInput: Record<string, string[]> | undefined
-): Promise<{ subjectIds: string[]; subjectIdsByGrade: Record<string, string[]> }> {
+): Promise<{
+  subjectIds: string[];
+  subjectIdsByGrade: Record<string, string[]>;
+  subjectLabels: Record<string, string>;
+}> {
   const emptyMap = (): Record<string, string[]> =>
     Object.fromEntries(gradeIds.map((g) => [g, [] as string[]]));
 
   if (subjectMode === "none") {
-    return { subjectIds: [], subjectIdsByGrade: emptyMap() };
+    return { subjectIds: [], subjectIdsByGrade: emptyMap(), subjectLabels: {} };
   }
 
   if (subjectMode === "all") {
     const subs = await Subject.find({ schoolId: schoolOid, isActive: true })
-      .select("_id")
+      .select("_id name")
       .lean();
     const all = subs.map((s) => String(s._id));
     return {
       subjectIds: all,
       subjectIdsByGrade: Object.fromEntries(gradeIds.map((g) => [g, [...all]])),
+      subjectLabels: Object.fromEntries(
+        subs.map((s) => [String(s._id), String((s as { name?: string }).name || "Unnamed subject")])
+      ),
     };
   }
 
@@ -131,12 +138,15 @@ async function resolveSubjectPayload(
       schoolId: schoolOid,
       isActive: true,
     })
-      .select("_id")
+      .select("_id name")
       .lean();
     const ok = subs.map((s) => String(s._id));
     return {
       subjectIds: ok,
       subjectIdsByGrade: Object.fromEntries(gradeIds.map((g) => [g, [...ok]])),
+      subjectLabels: Object.fromEntries(
+        subs.map((s) => [String(s._id), String((s as { name?: string }).name || "Unnamed subject")])
+      ),
     };
   }
 
@@ -155,10 +165,13 @@ async function resolveSubjectPayload(
           schoolId: schoolOid,
           isActive: true,
         })
-          .select("_id")
+          .select("_id name")
           .lean()
       : [];
   const valid = new Set(subs.map((s) => String(s._id)));
+  const subjectLabels = Object.fromEntries(
+    subs.map((s) => [String(s._id), String((s as { name?: string }).name || "Unnamed subject")])
+  );
   const outMap: Record<string, string[]> = {};
   const union = new Set<string>();
   for (const g of gradeIds) {
@@ -166,7 +179,7 @@ async function resolveSubjectPayload(
     outMap[g] = ok;
     ok.forEach((id) => union.add(id));
   }
-  return { subjectIds: [...union], subjectIdsByGrade: outMap };
+  return { subjectIds: [...union], subjectIdsByGrade: outMap, subjectLabels };
 }
 
 export async function POST(req: NextRequest) {
@@ -231,7 +244,7 @@ export async function POST(req: NextRequest) {
 
     const gidList = gradeMeta.map((g) => g.gradeId);
 
-    const { subjectIds, subjectIdsByGrade } = await resolveSubjectPayload(
+    const { subjectIds, subjectIdsByGrade, subjectLabels } = await resolveSubjectPayload(
       schoolOid,
       subjectMode,
       gidList,
@@ -253,6 +266,7 @@ export async function POST(req: NextRequest) {
         gradeConfigs,
         subjectIds,
         subjectIdsByGrade,
+        subjectLabels,
       });
     }
 
@@ -275,6 +289,7 @@ export async function POST(req: NextRequest) {
         gradeConfigs,
         subjectIds,
         subjectIdsByGrade,
+        subjectLabels,
         fallback: true,
       });
     }
@@ -344,6 +359,7 @@ Each item is a SHORT suffix only (e.g. "Rose", "A") — not the full grade name.
       gradeConfigs,
       subjectIds,
       subjectIdsByGrade,
+      subjectLabels,
     });
   } catch (e: any) {
     console.error("leo-draft", e);

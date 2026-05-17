@@ -17,6 +17,7 @@ import {
   isDelegationActive,
 } from "@/lib/delegations/service";
 import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 export interface AdmissionsManagerContext {
   userId: Types.ObjectId;
@@ -94,6 +95,21 @@ export async function requireAdmissionsManager(): Promise<AdmissionsManagerConte
       isDelegate: !isAdmin && admissionsPermissions.length > 0,
       admissionsPermissions,
       activeDelegationId,
+    };
+  }
+
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    await ensureActiveSchoolForTenant(assisted.schoolId, { mode: "api" });
+    return {
+      userId: assisted.actorUserId,
+      schoolId: assisted.schoolId,
+      roles: ["school_admin"],
+      subroles: [],
+      isAdmin: true,
+      isDelegate: false,
+      admissionsPermissions: [],
+      activeDelegationId: null,
     };
   }
 

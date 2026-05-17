@@ -302,10 +302,10 @@ export default function AdminLibraryDashboardPage() {
             ) : null}
             {canNotices ? (
               <Link
-                href="/admin/library/notices"
+                href="/admin/communications"
                 className="rounded-lg border border-white/10 px-3 py-2 text-white/80 transition-colors hover:border-white/20 hover:bg-white/5"
               >
-                Patron notices — students, teachers, parents
+                Communications — notices and announcements
               </Link>
             ) : null}
             {canSettings ? (

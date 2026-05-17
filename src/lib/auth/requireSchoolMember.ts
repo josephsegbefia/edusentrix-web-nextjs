@@ -12,6 +12,7 @@ import { NextResponse } from "next/server";
 import { Types } from "mongoose";
 import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
 import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 export type MemberRole =
   | "school_admin"
@@ -81,6 +82,28 @@ export async function requireSchoolMember(
     return {
       userId: demo.user._id as Types.ObjectId,
       schoolId: demo.user.schoolId as Types.ObjectId,
+      roles,
+      isAdmin,
+    };
+  }
+
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    const roles: MemberRole[] = ["school_admin"];
+    const isAdmin = true;
+    if (allowedRoles.length > 0) {
+      const hasAllowedRole = roles.some((role) => allowedRoles.includes(role));
+      if (!hasAllowedRole && !isAdmin) {
+        throw NextResponse.json(
+          { error: "Insufficient permissions" },
+          { status: 403 }
+        );
+      }
+    }
+    await ensureActiveSchoolForTenant(assisted.schoolId, { mode: "api" });
+    return {
+      userId: assisted.actorUserId,
+      schoolId: assisted.schoolId,
       roles,
       isAdmin,
     };

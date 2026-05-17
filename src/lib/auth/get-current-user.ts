@@ -13,6 +13,7 @@ import {
   resolveTenantUserForClerkSession,
   schoolIdFromClerkMetadata,
 } from "@/lib/auth/resolveTenantUserForClerkSession";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 export type CurrentAppUser = {
   _id: string;
   email: string;
@@ -31,6 +32,22 @@ export async function getCurrentUser(
   if (!clerkUserId && isDemoMode()) {
     const session = await resolveDemoSessionFromCookie();
     if (session) return resolveDemoPersona(session);
+  }
+
+  if (!clerkUserId) {
+    const assisted = await getActiveAssistedAccessSession();
+    if (assisted) {
+      return {
+        _id: String(assisted.actorUserId),
+        email: assisted.actorEmail,
+        name: assisted.actorName || assisted.actorEmail,
+        role: "school_admin",
+        schoolId: String(assisted.schoolId),
+        pendingOnboarding: false,
+        createdAt: assisted.startedAt,
+        updatedAt: assisted.startedAt,
+      };
+    }
   }
 
   let resolvedClerkId: string | null = clerkUserId ?? null;

@@ -4,11 +4,8 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { PlatformAuditLog } from "@/models/PlatformAuditLog";
-import {
-  PlatformTask,
-  PLATFORM_TASK_CATEGORIES,
-  PLATFORM_TASK_STATUSES,
-} from "@/models/PlatformTask";
+import { PLATFORM_TASK_CATEGORIES, PLATFORM_TASK_STATUSES } from "@/lib/platform/tasks/constants";
+import { PlatformTask } from "@/models/PlatformTask";
 import { PlatformStaffProfile } from "@/models/PlatformStaffProfile";
 import { School } from "@/models/School";
 

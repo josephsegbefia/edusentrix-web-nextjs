@@ -5,7 +5,9 @@ export function useGradeOptions() {
   return useQuery<Grade[]>({
     queryKey: ["grades", "active"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/grades?active=1");
+      const res = await fetch("/api/admin/grades?active=1", {
+        cache: "no-store",
+      });
       if (!res.ok) throw new Error("Failed to fetch grades");
       const json = await res.json();
       const rows = (json?.data ?? []) as Array<{

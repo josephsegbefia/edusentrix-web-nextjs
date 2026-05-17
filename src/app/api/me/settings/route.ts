@@ -34,6 +34,13 @@ const PatchSchema = z.object({
     .object({
       allowedChannels: z.array(z.enum(["in_app", "email"])).min(1).optional(),
       mutedTypes: z.array(CommunicationTypeSchema).optional(),
+      channelMutedTypes: z
+        .object({
+          in_app: z.array(CommunicationTypeSchema).optional(),
+          email: z.array(CommunicationTypeSchema).optional(),
+        })
+        .optional(),
+      emailUrgentOnly: z.boolean().optional(),
     })
     .optional(),
 });
@@ -41,6 +48,11 @@ const PatchSchema = z.object({
 function serializePreference(doc: {
   allowedChannels?: string[];
   mutedTypes?: string[];
+  channelMutedTypes?: {
+    in_app?: string[];
+    email?: string[];
+  };
+  emailUrgentOnly?: boolean;
 } | null) {
   return {
     allowedChannels: doc?.allowedChannels?.filter((channel) => channel === "in_app" || channel === "email") ?? [
@@ -48,6 +60,11 @@ function serializePreference(doc: {
       "email",
     ],
     mutedTypes: doc?.mutedTypes ?? [],
+    channelMutedTypes: {
+      in_app: doc?.channelMutedTypes?.in_app ?? [],
+      email: doc?.channelMutedTypes?.email ?? [],
+    },
+    emailUrgentOnly: Boolean(doc?.emailUrgentOnly),
     supportedChannels: ["in_app", "email"],
   };
 }
@@ -60,7 +77,7 @@ export async function GET() {
     const [user, preference, teacherSettings] = await Promise.all([
       User.findById(ctx.userId).select("email role name firstName lastName avatarUrl").lean(),
       CommunicationPreference.findOne({ schoolId: ctx.schoolId, userId: ctx.userId })
-        .select("allowedChannels mutedTypes")
+        .select("allowedChannels mutedTypes channelMutedTypes emailUrgentOnly")
         .lean(),
       TeacherSettings.findOne({ schoolId: ctx.schoolId, userId: ctx.userId })
         .select("locale timezone")
@@ -148,6 +165,12 @@ export async function PATCH(req: NextRequest) {
               : {}),
             ...(parsed.data.communication.mutedTypes
               ? { mutedTypes: parsed.data.communication.mutedTypes }
+              : {}),
+            ...(parsed.data.communication.channelMutedTypes
+              ? { channelMutedTypes: parsed.data.communication.channelMutedTypes }
+              : {}),
+            ...(typeof parsed.data.communication.emailUrgentOnly !== "undefined"
+              ? { emailUrgentOnly: parsed.data.communication.emailUrgentOnly }
               : {}),
             whatsappConsent: false,
             smsConsent: false,

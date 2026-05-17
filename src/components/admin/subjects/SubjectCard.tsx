@@ -21,6 +21,7 @@ import {
   UserPlus,
   BadgeCheck,
   Layers3,
+  Trash2,
 } from "lucide-react";
 
 type SubjectCardProps = {
@@ -29,6 +30,7 @@ type SubjectCardProps = {
   onEdit?: (id: string) => void;
   onAssignToClasses?: (id: string) => void;
   onAssignTeachers?: (id: string) => void;
+  onDelete?: (id: string) => void;
 };
 
 export function SubjectCard({
@@ -37,6 +39,7 @@ export function SubjectCard({
   onEdit,
   onAssignToClasses,
   onAssignTeachers,
+  onDelete,
 }: SubjectCardProps) {
   const handleCardClick = () => {
     onView?.(subject.id);
@@ -164,6 +167,14 @@ export function SubjectCard({
                     icon={<UserPlus className="h-3.5 w-3.5" />}
                   >
                     Assign teachers
+                  </PremiumDropdownMenuItem>
+                  <PremiumDropdownMenuSeparator />
+                  <PremiumDropdownMenuItem
+                    onClick={handleAction(onDelete)}
+                    icon={<Trash2 className="h-3.5 w-3.5" />}
+                    className="text-rose-200 focus:text-rose-100"
+                  >
+                    Delete subject
                   </PremiumDropdownMenuItem>
                 </PremiumDropdownMenuContent>
               </PremiumDropdownMenu>

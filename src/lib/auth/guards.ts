@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import type { AppRole } from "@/lib/roles";
 import type { CurrentAppUser } from "./get-current-user";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 export function assertRole(user: CurrentAppUser | null, allowed: AppRole[]) {
   if (!user) redirect("/login");
@@ -21,6 +22,16 @@ export function assertRole(user: CurrentAppUser | null, allowed: AppRole[]) {
  * Used in API routes where you need the user object and want to handle errors manually
  */
 export async function requireRole(...allowedRoles: AppRole[]) {
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    if (!allowedRoles.includes("school_admin")) return null;
+    return {
+      _id: assisted.actorUserId,
+      schoolId: assisted.schoolId,
+      role: "school_admin" as const,
+    };
+  }
+
   const { userId: clerkUserId } = await auth();
   if (!clerkUserId) {
     return null;

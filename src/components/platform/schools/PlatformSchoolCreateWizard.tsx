@@ -4,7 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -12,12 +11,9 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
-import { Textarea } from "@/components/ui/textarea";
 import { CURRICULUM_PROFILES, type CurriculumCode } from "@/constants/curriculum-profiles";
 
-type OwnerOption = { id: string; userId: string; name: string };
-
-export function PlatformSchoolCreateWizard({ ownerOptions }: { ownerOptions: OwnerOption[] }) {
+export function PlatformSchoolCreateWizard() {
   const router = useRouter();
   const [schoolName, setSchoolName] = React.useState("");
   const [type, setType] = React.useState<"Basic" | "SHS">("Basic");
@@ -31,11 +27,6 @@ export function PlatformSchoolCreateWizard({ ownerOptions }: { ownerOptions: Own
   const [adminName, setAdminName] = React.useState("");
   const [adminEmail, setAdminEmail] = React.useState("");
   const [adminPhone, setAdminPhone] = React.useState("");
-  const [assignedOwnerUserId, setAssignedOwnerUserId] = React.useState("none");
-  const [priority, setPriority] = React.useState<"low" | "normal" | "high" | "urgent">("normal");
-  const [startDate, setStartDate] = React.useState<Date | null>(new Date());
-  const [targetGoLiveDate, setTargetGoLiveDate] = React.useState<Date | null>(null);
-  const [notes, setNotes] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -59,18 +50,11 @@ export function PlatformSchoolCreateWizard({ ownerOptions }: { ownerOptions: Own
             gesSchoolCode,
           },
           admin: { fullName: adminName, email: adminEmail, phone: adminPhone },
-          implementation: {
-            assignedOwnerUserId: assignedOwnerUserId === "none" ? null : assignedOwnerUserId,
-            startDate: startDate?.toISOString() || null,
-            targetGoLiveDate: targetGoLiveDate?.toISOString() || null,
-            priority,
-            notes,
-          },
         }),
       });
       const payload = await res.json();
       if (!res.ok || !payload.success) throw new Error(payload.error || "Failed to create school");
-      router.push(`/platform/schools/${payload.data.schoolId}/implementation`);
+      router.push(`/platform/schools/${payload.data.schoolId}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create school");
@@ -103,19 +87,6 @@ export function PlatformSchoolCreateWizard({ ownerOptions }: { ownerOptions: Own
         <input value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="Primary admin full name" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
         <input value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="Primary admin email" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
         <input value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} placeholder="Primary admin phone" className="h-11 rounded-2xl border border-white/10 bg-black/20 px-4 text-sm text-white outline-none placeholder:text-white/30" />
-      </div>
-      <div className="grid gap-4 border-t border-white/10 pt-5 lg:grid-cols-2">
-        <PremiumSelect value={assignedOwnerUserId} onValueChange={setAssignedOwnerUserId}>
-          <PremiumSelectTrigger><PremiumSelectValue placeholder="Implementation owner" /></PremiumSelectTrigger>
-          <PremiumSelectContent><PremiumSelectItem value="none">Unassigned</PremiumSelectItem>{ownerOptions.map((owner) => <PremiumSelectItem key={owner.id} value={owner.userId}>{owner.name}</PremiumSelectItem>)}</PremiumSelectContent>
-        </PremiumSelect>
-        <PremiumSelect value={priority} onValueChange={(value) => setPriority(value as typeof priority)}>
-          <PremiumSelectTrigger><PremiumSelectValue placeholder="Priority" /></PremiumSelectTrigger>
-          <PremiumSelectContent>{(["low", "normal", "high", "urgent"] as const).map((item) => <PremiumSelectItem key={item} value={item}>{item}</PremiumSelectItem>)}</PremiumSelectContent>
-        </PremiumSelect>
-        <CustomDatePicker label="Start date" value={startDate} onChange={setStartDate} />
-        <CustomDatePicker label="Target go-live" value={targetGoLiveDate} onChange={setTargetGoLiveDate} minDate={startDate || undefined} />
-        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Implementation notes" className="min-h-24 border-white/10 bg-black/20 text-white placeholder:text-white/30 lg:col-span-2" />
       </div>
       <Button disabled={!schoolName.trim() || !adminName.trim() || !adminEmail.includes("@") || busy} onClick={() => void submit()} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
         <Plus className="mr-2 h-4 w-4" />

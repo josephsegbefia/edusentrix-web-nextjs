@@ -4,6 +4,7 @@ import { requireSchoolAdminOrDelegatedModuleView } from "@/lib/delegations/requi
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { ClassGroup } from "@/models/ClassGroup";
 import { SubjectOffering } from "@/models/SubjectOffering";
+import { isPreschoolLearningAreaGrade } from "@/constants/curriculum-subject-templates";
 
 function objectId(value: string): mongoose.Types.ObjectId | null {
   return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : null;
@@ -24,7 +25,23 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     const offering = await SubjectOffering.findOne({ _id: offeringId, schoolId, isActive: { $ne: false } }).lean();
     if (!offering) return NextResponse.json({ success: false, error: "Active subject offering not found" }, { status: 404 });
-    const classes = await ClassGroup.find({ _id: { $in: classGroupIds }, schoolId }).select("_id gradeId").lean();
+    const classes = await ClassGroup.find({ _id: { $in: classGroupIds }, schoolId })
+      .populate("gradeId", "name code")
+      .select("_id gradeId")
+      .lean();
+    const preschoolClasses = classes.filter((classGroup) =>
+      isPreschoolLearningAreaGrade((classGroup as any).gradeId ?? {})
+    );
+    if (preschoolClasses.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Subject offerings are not assigned to Creche, Nursery, KG1, or KG2. Use Preschool Learning Areas on each grade page instead.",
+          data: { preschoolClassGroupIds: preschoolClasses.map((item) => String(item._id)) },
+        },
+        { status: 400 }
+      );
+    }
     const compatibleGradeIds = new Set((offering.gradeIds || []).map(String));
     const incompatible = classes.filter((classGroup) => !compatibleGradeIds.has(String(classGroup.gradeId)));
 

@@ -10,6 +10,10 @@ import { Subject } from "@/models/Subject";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { Teacher } from "@/models/Teacher";
+import {
+  getPreschoolLearningAreaNames,
+  isPreschoolLearningAreaGrade,
+} from "@/constants/curriculum-subject-templates";
 import mongoose from "mongoose";
 
 function toObjectIdOrNull(id: string) {
@@ -18,6 +22,17 @@ function toObjectIdOrNull(id: string) {
   } catch {
     return null;
   }
+}
+
+function isLearningAreaSubject(
+  subject: any,
+  recommendedLearningAreas: Set<string>
+): boolean {
+  const name = typeof subject?.name === "string" ? subject.name.trim() : "";
+  return (
+    subject?.category === "learning_area" ||
+    (name.length > 0 && recommendedLearningAreas.has(name.toLowerCase()))
+  );
 }
 
 /**
@@ -55,7 +70,7 @@ export async function GET(
     })
       .populate("gradeId", "name code stage order")
       .populate("subjectOfferingIds", "displayName shortName code subjectId")
-      .populate("subjectIds", "name code")
+      .populate("subjectIds", "name code category")
       .lean();
 
     if (!cls) {
@@ -131,6 +146,15 @@ export async function GET(
     }
 
     const grade = (cls as any).gradeId;
+    const isPreschoolClass = isPreschoolLearningAreaGrade(grade ?? {});
+    const preschoolRecommended = new Set(
+      isPreschoolClass
+        ? getPreschoolLearningAreaNames(grade ?? {}).map((item) => item.toLowerCase())
+        : []
+    );
+    const preschoolSubjects = ((cls as any).subjectIds || []).filter((subject: any) =>
+      isLearningAreaSubject(subject, preschoolRecommended)
+    );
 
     const data = {
       id: String((cls as any)._id),
@@ -153,7 +177,14 @@ export async function GET(
           },
       homeroomTeacher,
       subjects:
-        ((cls as any).subjectOfferingIds || []).length > 0
+        isPreschoolClass
+          ? preschoolSubjects.map((s: any) => ({
+              id: String(s._id),
+              subjectOfferingId: null,
+              name: s.name,
+              code: s.code || null,
+            }))
+          : ((cls as any).subjectOfferingIds || []).length > 0
           ? ((cls as any).subjectOfferingIds || []).map((offering: any) => ({
               id: String(offering.subjectId || offering._id),
               subjectOfferingId: String(offering._id),
@@ -169,7 +200,9 @@ export async function GET(
       studentCount,
       teacherCount,
       subjectCount:
-        (cls as any).subjectOfferingIds?.length || (cls as any).subjectIds?.length || 0,
+        isPreschoolClass
+          ? preschoolSubjects.length
+          : (cls as any).subjectOfferingIds?.length || (cls as any).subjectIds?.length || 0,
       capacity: (cls as any).capacity || null,
       defaultRoomName: (cls as any).defaultRoomName || null,
       isActive: (cls as any).isActive,

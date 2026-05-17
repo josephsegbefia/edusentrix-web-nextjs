@@ -508,9 +508,6 @@ export default function PlatformSchoolsPage() {
                 <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10">
                   <Link href={`/platform/schools/${school.id}/usage`}>Usage</Link>
                 </Button>
-                <Button asChild size="sm" variant="outline" className="border-white/10 bg-white/5 text-white hover:bg-white/10">
-                  <Link href={`/platform/schools/${school.id}/implementation`}>Implementation</Link>
-                </Button>
               </div>
             </div>
           ))}

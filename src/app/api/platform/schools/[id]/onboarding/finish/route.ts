@@ -15,7 +15,6 @@ import { getOnboardingTargetSchoolAdmin } from "@/lib/onboarding/target-school-a
 
 const BodySchema = z
   .object({
-    subjects: z.array(z.string()).optional(),
     periods: z
       .array(
         z.object({
@@ -49,7 +48,6 @@ export async function POST(
   }
 
   const body = parsed.data;
-  const subjectList = body?.subjects;
   const periodList = body?.periods;
 
   await connectToDatabase();
@@ -68,14 +66,10 @@ export async function POST(
   try {
     session.startTransaction();
 
-    if (
-      (subjectList && subjectList.length > 0) ||
-      (periodList && periodList.length > 0)
-    ) {
+    if (periodList && periodList.length > 0) {
       await applyLaunchCurriculum(
         schoolIdObj,
         {
-          subjectNames: subjectList ?? [],
           periods: periodList ?? [],
         },
         { session }

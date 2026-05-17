@@ -12,6 +12,7 @@ import {
   getSchoolPaymentSetupMeta,
   isSchoolPaymentReady,
 } from "@/lib/school-payments/payment-setup";
+import { getSchoolSetupProgress } from "@/lib/platform/schools/setup-progress";
 
 export async function getPlatformSchoolList() {
   const [schools, subscriptions, usageMetrics] = await Promise.all([
@@ -158,7 +159,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   }
 
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
-  const [school, subscription, usageMetrics, subscriptionEvents, latestProvisioningJob] =
+  const [school, subscription, usageMetrics, subscriptionEvents, latestProvisioningJob, setupProgress] =
     await Promise.all([
     School.findById(schoolIdObj)
       .select(
@@ -280,6 +281,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
         createdAt?: Date;
         updatedAt?: Date;
       } | null>(),
+    getSchoolSetupProgress(schoolIdObj),
   ]);
 
   if (!school) {
@@ -312,6 +314,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
     region: school.region || null,
     email: school.email || null,
     environmentType: school.environmentType || "production",
+    setupProgress,
     paymentReady: isSchoolPaymentReady(school),
     paymentSetup: {
       status: paymentSetupStatus,

@@ -352,11 +352,6 @@ const navSections: NavSection[] = [
             href: "/admin/library/reservations",
             icon: Bookmark,
           },
-          {
-            label: "Patron notices",
-            href: "/admin/library/notices",
-            icon: Megaphone,
-          },
         ],
       },
     ],

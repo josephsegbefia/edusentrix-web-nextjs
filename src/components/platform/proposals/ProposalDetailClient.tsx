@@ -130,13 +130,15 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
   }
 
   async function deleteProposal() {
+    const isArchived = proposal.status === "archived";
     const decision = await confirm({
-      title: "Delete proposal?",
-      description:
-        proposal.status === "draft"
+      title: isArchived ? "Permanently delete proposal?" : "Delete proposal?",
+      description: isArchived
+        ? `This will permanently delete "${proposal.title}" and remove its proposal activity and send logs. This cannot be undone.`
+        : proposal.status === "draft"
           ? `This will remove "${proposal.title}" from the active proposal list. You can still find it under Archived.`
           : `This will archive "${proposal.title}" and remove it from the active proposal list while keeping history and send logs intact.`,
-      confirmLabel: "Delete proposal",
+      confirmLabel: isArchived ? "Permanently delete" : "Delete proposal",
       cancelLabel: "Keep proposal",
       intent: "destructive",
     });
@@ -147,7 +149,7 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
       const res = await fetch(`/api/platform/proposals/${proposal.id}`, { method: "DELETE" });
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to delete proposal");
-      toast.success("Proposal deleted");
+      toast.success(isArchived ? "Proposal permanently deleted" : "Proposal deleted");
       router.push("/platform/proposals");
       router.refresh();
     } catch (error) {
@@ -183,7 +185,7 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
                 className="border-rose-400/20 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
               >
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                Delete
+                {proposal.status === "archived" ? "Permanently delete" : "Delete"}
               </Button>
             </div>
           }

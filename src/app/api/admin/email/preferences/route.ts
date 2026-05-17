@@ -4,6 +4,17 @@ import { z } from "zod";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { EmailPreference } from "@/models/EmailPreference";
+import { CommunicationPreference } from "@/models/CommunicationPreference";
+import type { CommunicationChannel, CommunicationType } from "@/lib/communications/types";
+
+const EMAIL_CATEGORY_TYPES: Record<string, CommunicationType[]> = {
+  attendance: ["attendance_alert"],
+  academics: ["academic_update", "lesson_update", "exam_notice"],
+  announcements: ["notice", "announcement", "event_notice", "newsletter"],
+  billingReminders: ["fee_reminder"],
+  manualMessages: ["direct_message"],
+  lessonNoteReview: ["lesson_update", "system_alert"],
+};
 
 const UpdatePreferenceSchema = z.object({
   channels: z
@@ -44,6 +55,58 @@ const UpdatePreferenceSchema = z.object({
     })
     .optional(),
 });
+
+function buildCommunicationPreferencePatch(input: {
+  channels?: {
+    email?: boolean;
+    inApp?: boolean;
+  };
+  immediate?: Record<string, boolean | undefined>;
+  urgentOnly?: boolean;
+  quietHours?: {
+    enabled?: boolean;
+    startTime?: string;
+    endTime?: string;
+  };
+}) {
+  const set: Record<string, unknown> = {
+    whatsappConsent: false,
+    smsConsent: false,
+  };
+
+  if (input.channels) {
+    const allowedChannels: CommunicationChannel[] = [];
+    if (input.channels.inApp !== false) allowedChannels.push("in_app");
+    if (input.channels.email !== false) allowedChannels.push("email");
+    set.allowedChannels = allowedChannels;
+  }
+
+  if (input.immediate) {
+    const emailMutedTypes = Object.entries(input.immediate).flatMap(([key, enabled]) => {
+      if (enabled !== false) return [];
+      return EMAIL_CATEGORY_TYPES[key] ?? [];
+    });
+    set.mutedTypes = [];
+    set.channelMutedTypes = {
+      in_app: [],
+      email: Array.from(new Set(emailMutedTypes)),
+    };
+  }
+
+  if (typeof input.urgentOnly !== "undefined") {
+    set.emailUrgentOnly = input.urgentOnly;
+  }
+
+  if (input.quietHours) {
+    set.quietHours = {
+      enabled: Boolean(input.quietHours.enabled),
+      start: input.quietHours.startTime ?? null,
+      end: input.quietHours.endTime ?? null,
+    };
+  }
+
+  return set;
+}
 
 export async function GET(_req: NextRequest) {
   try {
@@ -92,6 +155,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const schoolIdObj = new mongoose.Types.ObjectId(String(schoolId));
+    const userIdObj = new mongoose.Types.ObjectId(String(userId));
     const updates: Record<string, unknown> = {};
 
     if (parsed.data.channels) {
@@ -126,6 +190,22 @@ export async function PUT(req: NextRequest) {
       updates["email.optOutCategories"] = parsed.data.email.optOutCategories;
     }
 
+    const communicationPatch = buildCommunicationPreferencePatch({
+      channels: parsed.data.channels,
+      immediate: parsed.data.email?.immediate,
+      urgentOnly: parsed.data.email?.urgentOnly,
+      quietHours: parsed.data.email?.quietHours,
+    });
+    if (
+      Array.isArray(communicationPatch.allowedChannels) &&
+      communicationPatch.allowedChannels.length === 0
+    ) {
+      return Response.json(
+        { success: false, error: "Keep at least one delivery channel enabled." },
+        { status: 400 },
+      );
+    }
+
     const preference = await EmailPreference.findOneAndUpdate(
       { userId: String(userId), schoolId: schoolIdObj },
       {
@@ -138,6 +218,12 @@ export async function PUT(req: NextRequest) {
       },
       { new: true, upsert: true },
     ).lean();
+
+    await CommunicationPreference.findOneAndUpdate(
+      { userId: userIdObj, schoolId: schoolIdObj },
+      { $set: communicationPatch },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    );
 
     return Response.json({
       success: true,

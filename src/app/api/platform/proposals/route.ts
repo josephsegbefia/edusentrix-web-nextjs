@@ -34,7 +34,11 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get("q")?.trim();
 
     const query: Record<string, unknown> = {};
-    if (status && status !== "all") query.status = status;
+    if (status && status !== "all") {
+      query.status = status;
+    } else {
+      query.status = { $ne: "archived" };
+    }
     if (proposalType && proposalType !== "all") query.proposalType = proposalType;
     if (q) {
       query.$or = [

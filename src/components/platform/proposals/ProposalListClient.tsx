@@ -2,10 +2,17 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FileText, Plus, RefreshCw, Search } from "lucide-react";
+import { ExternalLink, FileText, MoreHorizontal, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuSeparator,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -16,6 +23,7 @@ import {
 import { PlatformPill, formatDate } from "@/components/platform/platform-page-primitives";
 import { ProposalStatusBadge } from "@/components/platform/proposals/ProposalStatusBadge";
 import type { PlatformProposal } from "@/components/platform/proposals/types";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type ResponseShape = {
   data: {
@@ -31,7 +39,9 @@ export function ProposalListClient() {
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("all");
   const [page, setPage] = React.useState(1);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const deferredQuery = React.useDeferredValue(query);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -57,6 +67,39 @@ export function ProposalListClient() {
   React.useEffect(() => {
     void load();
   }, [load]);
+
+  async function deleteProposal(proposal: PlatformProposal) {
+    const decision = await confirm({
+      title: "Delete proposal?",
+      description:
+        proposal.status === "draft"
+          ? `This will remove "${proposal.title}" from the active proposal list. You can still find it under Archived.`
+          : `This will archive "${proposal.title}" and remove it from the active proposal list while keeping history and send logs intact.`,
+      confirmLabel: "Delete proposal",
+      cancelLabel: "Keep proposal",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
+
+    setDeletingId(proposal.id);
+    try {
+      const res = await fetch(`/api/platform/proposals/${proposal.id}`, { method: "DELETE" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to delete proposal");
+      toast.success("Proposal deleted");
+      setProposals((current) => current.filter((item) => item.id !== proposal.id));
+      setPagination((current) => ({ ...current, total: Math.max(0, current.total - 1) }));
+      if (proposals.length === 1 && page > 1) {
+        setPage((value) => Math.max(1, value - 1));
+      } else {
+        void load();
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete proposal");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -122,23 +165,23 @@ export function ProposalListClient() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-white/10">
-          <div className="grid grid-cols-[minmax(240px,1.4fr)_180px_150px_150px_140px] gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/40">
+          <div className="grid grid-cols-[minmax(240px,1.4fr)_180px_150px_150px_140px_56px] gap-3 border-b border-white/10 bg-white/5 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/40">
             <span>School</span>
             <span>Recipient</span>
             <span>Status</span>
             <span>Follow-up</span>
             <span>PDF</span>
+            <span className="text-right">Actions</span>
           </div>
           {proposals.map((proposal) => (
-            <Link
+            <div
               key={proposal.id}
-              href={`/platform/proposals/${proposal.id}`}
-              className="grid grid-cols-[minmax(240px,1.4fr)_180px_150px_150px_140px] gap-3 border-b border-white/6 px-4 py-4 text-sm text-white/70 transition last:border-b-0 hover:bg-white/5"
+              className="grid grid-cols-[minmax(240px,1.4fr)_180px_150px_150px_140px_56px] gap-3 border-b border-white/6 px-4 py-4 text-sm text-white/70 transition last:border-b-0 hover:bg-white/5"
             >
-              <span>
+              <Link href={`/platform/proposals/${proposal.id}`} className="min-w-0">
                 <span className="block font-semibold text-white">{proposal.schoolName}</span>
                 <span className="text-xs text-white/45">{proposal.proposalType.replace(/_/g, " ")}</span>
-              </span>
+              </Link>
               <span>
                 <span className="block truncate">{proposal.recipientName || "No recipient"}</span>
                 <span className="text-xs text-white/45">{proposal.recipientEmail || "No email"}</span>
@@ -156,7 +199,42 @@ export function ProposalListClient() {
                   <PlatformPill>not generated</PlatformPill>
                 )}
               </span>
-            </Link>
+              <span className="flex justify-end">
+                <PremiumDropdownMenu>
+                  <PremiumDropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={deletingId === proposal.id}
+                      className="h-8 w-8 cursor-pointer rounded-xl bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+                    >
+                      {deletingId === proposal.id ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MoreHorizontal className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </PremiumDropdownMenuTrigger>
+                  <PremiumDropdownMenuContent align="end">
+                    <PremiumDropdownMenuItem asChild>
+                      <Link href={`/platform/proposals/${proposal.id}`} className="flex items-center gap-2">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Open proposal
+                      </Link>
+                    </PremiumDropdownMenuItem>
+                    <PremiumDropdownMenuSeparator />
+                    <PremiumDropdownMenuItem
+                      variant="destructive"
+                      onClick={() => void deleteProposal(proposal)}
+                      icon={<Trash2 className="h-3.5 w-3.5" />}
+                    >
+                      Delete proposal
+                    </PremiumDropdownMenuItem>
+                  </PremiumDropdownMenuContent>
+                </PremiumDropdownMenu>
+              </span>
+            </div>
           ))}
         </div>
       )}
@@ -176,6 +254,7 @@ export function ProposalListClient() {
           </div>
         </div>
       ) : null}
+      {confirmationDialog}
     </div>
   );
 }

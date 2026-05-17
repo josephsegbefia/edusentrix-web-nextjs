@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CalendarDays, Check, Eye, Loader2, Save, Send, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, Check, Eye, Loader2, Save, Send, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { PlatformPill, PlatformSection, formatDate, formatTimestamp } from "@/co
 import { ProposalStatusBadge } from "@/components/platform/proposals/ProposalStatusBadge";
 import type { PlatformProposal, ProposalActivity, ProposalSendLog } from "@/components/platform/proposals/types";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
+import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
 type DetailPayload = {
   proposal: PlatformProposal;
@@ -27,12 +29,15 @@ type DetailPayload = {
 };
 
 export function ProposalDetailClient({ initialData }: { initialData: DetailPayload }) {
+  const router = useRouter();
   const [proposal, setProposal] = React.useState(initialData.proposal);
   const [activities, setActivities] = React.useState(initialData.activities);
   const [saving, setSaving] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const [leoLoading, setLeoLoading] = React.useState(false);
   const [leoInstruction, setLeoInstruction] = React.useState("");
   const [activeSectionKey, setActiveSectionKey] = React.useState(proposal.sections[0]?.key || "");
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const activeSection = proposal.sections.find((section) => section.key === activeSectionKey) || proposal.sections[0];
 
@@ -124,7 +129,35 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
     }
   }
 
+  async function deleteProposal() {
+    const decision = await confirm({
+      title: "Delete proposal?",
+      description:
+        proposal.status === "draft"
+          ? `This will remove "${proposal.title}" from the active proposal list. You can still find it under Archived.`
+          : `This will archive "${proposal.title}" and remove it from the active proposal list while keeping history and send logs intact.`,
+      confirmLabel: "Delete proposal",
+      cancelLabel: "Keep proposal",
+      intent: "destructive",
+    });
+    if (decision !== "confirm") return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/platform/proposals/${proposal.id}`, { method: "DELETE" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to delete proposal");
+      toast.success("Proposal deleted");
+      router.push("/platform/proposals");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete proposal");
+      setDeleting(false);
+    }
+  }
+
   return (
+    <>
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-6">
         <PlatformSection
@@ -141,6 +174,16 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
               <Button onClick={() => void save()} disabled={saving} className="bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void deleteProposal()}
+                disabled={deleting}
+                className="border-rose-400/20 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete
               </Button>
             </div>
           }
@@ -335,5 +378,7 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
         </PlatformSection>
       </div>
     </div>
+    {confirmationDialog}
+    </>
   );
 }

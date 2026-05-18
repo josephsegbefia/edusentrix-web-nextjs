@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Archive,
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   Loader2,
   Send,
   ShieldAlert,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +21,8 @@ import {
   useAdminSchemeDetail,
   useAdminSchemeReviewMutation,
 } from "@/hooks/admin/useAdminSchemes";
+import { useSchemeDeleteFlow } from "@/hooks/schemes/useSchemeDeleteFlow";
+import { adminCanDeleteSchemeStatus } from "@/lib/schemes/scheme-delete";
 import type { SchemeReviewDecisionType, SchemeStatus } from "@/types/schemes";
 import { SchemeStatusBadge } from "@/components/schemes/SchemeStatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -68,12 +71,19 @@ function decisionLabel(d: SchemeReviewDecisionType): string {
 
 export default function AdminSchemeReviewDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = typeof params?.id === "string" ? params.id : "";
 
   const { data, isLoading, error } = useAdminSchemeDetail(id);
   const reviewMut = useAdminSchemeReviewMutation();
   const activateMut = useAdminSchemeActivateMutation();
   const archiveMut = useAdminSchemeArchiveMutation();
+  const { requestDelete, confirmationDialog, linkedNotesDialog } = useSchemeDeleteFlow({
+    apiBasePath: "/api/admin/schemes",
+    onDeleted: () => {
+      router.push("/admin/schemes");
+    },
+  });
 
   const [approveOpen, setApproveOpen] = React.useState(false);
   const [revisionOpen, setRevisionOpen] = React.useState(false);
@@ -200,6 +210,8 @@ export default function AdminSchemeReviewDetailPage() {
 
   return (
     <div className="mx-auto flex max-w-[1400px] flex-col gap-6 p-4 md:p-6">
+      {confirmationDialog}
+      {linkedNotesDialog}
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="outline" size="sm" asChild className="border-white/10 bg-white/5 text-white">
           <Link href="/admin/schemes">
@@ -459,6 +471,25 @@ export default function AdminSchemeReviewDetailPage() {
 
             {status === "archived" || status === "rejected" ? (
               <p className="text-xs text-white/45">No further actions. This record is view only.</p>
+            ) : null}
+
+            {status && adminCanDeleteSchemeStatus(status) ? (
+              <>
+                <div className="my-1 border-t border-white/10" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start gap-2 border-rose-300/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/15"
+                  onClick={() =>
+                    void requestDelete({ id, title: data.scheme.title })
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete scheme
+                </Button>
+              </>
+            ) : status === "active" ? (
+              <p className="text-xs text-white/45">Archive this active scheme before deleting it.</p>
             ) : null}
           </CardContent>
         </Card>

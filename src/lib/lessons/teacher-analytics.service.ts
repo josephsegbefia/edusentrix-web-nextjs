@@ -9,6 +9,10 @@ import { StudentFlashcardProgress } from "@/models/StudentFlashcardProgress";
 import { StudentLessonProgress } from "@/models/StudentLessonProgress";
 import { endOfUtcDay, startOfUtcDay } from "./admin-analytics.service";
 import { getCurriculumCompletionForPublishedLessonsInRange } from "@/lib/lessons/lesson-analytics-curriculum-coverage";
+import {
+  getV2CoverageAnalytics,
+  type V2CoverageAnalytics,
+} from "@/lib/lessons/lessons-v2-coverage-analytics";
 
 export type TeacherLessonAnalyticsResult = {
   range: { from: string; to: string };
@@ -38,6 +42,7 @@ export type TeacherLessonAnalyticsResult = {
     completionRateAmongEngagementsPercent: number | null;
     learnerCompletionRatePercent: number | null;
   };
+  v2Coverage: V2CoverageAnalytics;
   lessonTasks: {
     linkedTasksCreatedInRange: number;
     linkedTasksPublishedInRange: number;
@@ -279,8 +284,16 @@ export async function getTeacherLessonAnalytics(
         )
       : null;
 
+  const v2Coverage = await getV2CoverageAnalytics({
+    schoolId,
+    teacherId,
+    from: fromD,
+    to: toD,
+  });
+
   return {
     range: { from: fromD.toISOString(), to: toD.toISOString() },
+    v2Coverage,
     myLessons: {
       createdInRange: createdTotal,
       createdInRangeByStatus: byStatus,

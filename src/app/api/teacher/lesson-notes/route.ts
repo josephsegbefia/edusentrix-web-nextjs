@@ -11,8 +11,10 @@ import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { SchemeItem } from "@/models/SchemeItem";
 import { normalizeLessonNoteRequestBody } from "@/lib/lesson-notes/normalize-payload";
 import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
+import { getGhanaTodayDate, parseGhanaDateLabel } from "@/lib/time/ghana";
 import {
   assertLessonNoteRequiresSchemeLink,
   resolveLessonNoteSchemeFields,
@@ -145,6 +147,7 @@ const LessonNoteSchema = z.object({
   // Basic info
   weekOf: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
+  weekEndingDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
   topic: z.string().min(1).max(200),
   durationMinutes: z.number().min(5).max(180).optional().nullable(),
   references: z.array(z.string().max(500)).optional(),
@@ -180,7 +183,7 @@ const LessonNoteSchema = z.object({
   tags: z.array(z.string().max(40)).optional(),
 
   // Status
-  status: z.enum(["draft", "submitted", "approved", "rejected", "published"]).default("draft"),
+  status: z.enum(["draft", "submitted", "approved", "rejected"]).default("draft"),
 
   // Legacy fields (for backwards compatibility)
   objectives: z.string().max(2000).optional().nullable(),
@@ -240,6 +243,7 @@ function formatLessonNoteResponse(
     // Basic info
     weekOf: entry.weekOf ? new Date(entry.weekOf).toISOString() : null,
     date: entry.date ? new Date(entry.date).toISOString() : null,
+    weekEndingDate: entry.weekEndingDate ? new Date(entry.weekEndingDate).toISOString() : null,
     topic: entry.topic,
     durationMinutes: entry.durationMinutes || null,
     references: entry.references || [],
@@ -574,6 +578,7 @@ export async function POST(req: Request) {
       unitPlannerData,
       weekOf,
       date,
+      weekEndingDate,
       topic,
       durationMinutes,
       references,
@@ -688,6 +693,30 @@ export async function POST(req: Request) {
       if (Number.isNaN(lessonDate.getTime())) {
         return Response.json({ success: false, error: "Invalid date value" }, { status: 400 });
       }
+    } else {
+      lessonDate = getGhanaTodayDate();
+    }
+
+    let resolvedWeekEndingDate: Date | null = null;
+    if (weekEndingDate) {
+      resolvedWeekEndingDate = new Date(weekEndingDate);
+      if (Number.isNaN(resolvedWeekEndingDate.getTime())) {
+        return Response.json({ success: false, error: "Invalid week ending date value" }, { status: 400 });
+      }
+    }
+
+    if (schemeResolution.schemeItemObjectIds.length > 0) {
+      const firstSchemeItem = await SchemeItem.findOne({
+        _id: schemeResolution.schemeItemObjectIds[0],
+        schoolId: context.schoolId,
+      })
+        .select("plannedEndDate weekEndingLabel")
+        .lean<{ plannedEndDate?: Date | null; weekEndingLabel?: string | null } | null>();
+
+      resolvedWeekEndingDate =
+        firstSchemeItem?.plannedEndDate ||
+        parseGhanaDateLabel(firstSchemeItem?.weekEndingLabel) ||
+        resolvedWeekEndingDate;
     }
 
     const currentPeriod = await AcademicPeriod.findOne({
@@ -753,6 +782,7 @@ export async function POST(req: Request) {
       // Basic info
       weekOf: weekDate,
       date: lessonDate,
+      weekEndingDate: resolvedWeekEndingDate || undefined,
       topic,
       durationMinutes: durationMinutes || undefined,
       references: references || [],

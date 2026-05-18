@@ -11,6 +11,7 @@ import { ClassGroup } from "@/models/ClassGroup";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { assertTeacherSchemeCreationEnabled } from "@/lib/schemes/scheme-import-gate";
 import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
+import { teacherAssignedSchemeListFilter } from "@/lib/schemes/teacher-assigned-schemes";
 
 const CreateSchemeSchema = z.object({
   title: z.string().trim().min(3).max(220),
@@ -44,13 +45,13 @@ export async function GET(req: Request) {
     const subjectOfferingId = toObjectIdOrNull(searchParams.get("subjectOfferingId") || undefined);
     const subjectId = toObjectIdOrNull(searchParams.get("subjectId") || undefined);
 
-    const query: Record<string, unknown> = {
+    const query = await teacherAssignedSchemeListFilter({
       schoolId: ctx.schoolId,
-      $or: [
-        { ownerTeacherId: ctx.teacherId },
-        { status: { $in: ["approved", "active"] } },
-      ],
-    };
+      teacherId: ctx.teacherId,
+    });
+    if (!query) {
+      return Response.json({ success: true, data: { schemes: [] } });
+    }
     if (
       status &&
       ["draft", "submitted", "needs_revision", "approved", "active", "archived", "rejected"].includes(status)
@@ -78,6 +79,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const ctx = await requireTeacher();
+    if (!ctx.isAdmin) {
+      return Response.json(
+        { success: false, error: "Only school admins can create or upload schemes of learning." },
+        { status: 403 }
+      );
+    }
     if (!can(ctx.permissions, PERMISSIONS.schemeOfWorkCreate)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 
 type Params = Promise<{ token: string }>;
 
@@ -22,6 +23,7 @@ const AttachSchema = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: Params }) {
+  let uploadedFileUrl: string | null = null;
   try {
     const { token } = await params;
     if (!token || token.length < 16) {
@@ -43,12 +45,15 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         { status: 400 }
       );
     }
+    uploadedFileUrl = parsed.data.fileUrl;
 
     await connectToDatabase();
     const application = await AdmissionApplication.findOne({
       "tracker.token": token,
     });
     if (!application) {
+      await deleteUploadedFile(parsed.data.fileUrl);
+      uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "Application not found" },
         { status: 404 }
@@ -61,6 +66,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       application.status === "withdrawn" ||
       application.status === "expired"
     ) {
+      await deleteUploadedFile(parsed.data.fileUrl);
+      uploadedFileUrl = null;
       return NextResponse.json(
         {
           success: false,
@@ -88,26 +95,39 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
     } else {
       application.documents.push(newDoc);
     }
-    await application.save();
+    try {
+      await application.save();
+    } catch (error) {
+      const deleted = await deleteUploadedFile(parsed.data.fileUrl);
+      if (!deleted) {
+        console.error("Rollback failed for admission document upload:", parsed.data.fileUrl);
+      }
+      throw error;
+    }
+    uploadedFileUrl = null;
 
-    await AdmissionEvent.create({
-      schoolId: application.schoolId,
-      cycleId: application.cycleId,
-      applicationId: application._id,
-      actor: {
-        userId: null,
-        role: "applicant",
-        label: `${application.guardian.firstName} ${application.guardian.lastName}`.trim() ||
-          "Applicant",
-      },
-      kind: "application.note_added",
-      metadata: {
-        action: "document_uploaded",
-        requirementId: parsed.data.requirementId,
-        label: parsed.data.label,
-      },
-      at: new Date(),
-    });
+    try {
+      await AdmissionEvent.create({
+        schoolId: application.schoolId,
+        cycleId: application.cycleId,
+        applicationId: application._id,
+        actor: {
+          userId: null,
+          role: "applicant",
+          label: `${application.guardian.firstName} ${application.guardian.lastName}`.trim() ||
+            "Applicant",
+        },
+        kind: "application.note_added",
+        metadata: {
+          action: "document_uploaded",
+          requirementId: parsed.data.requirementId,
+          label: parsed.data.label,
+        },
+        at: new Date(),
+      });
+    } catch (eventError) {
+      console.error("Admission document event logging failed:", eventError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -116,6 +136,12 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       },
     });
   } catch (error) {
+    if (uploadedFileUrl) {
+      const deleted = await deleteUploadedFile(uploadedFileUrl);
+      if (!deleted) {
+        console.error("Rollback failed for admission document upload:", uploadedFileUrl);
+      }
+    }
     console.error("Public application document upload error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to attach document" },

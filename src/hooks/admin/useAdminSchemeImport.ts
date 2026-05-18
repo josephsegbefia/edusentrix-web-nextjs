@@ -12,7 +12,12 @@ type ConfirmResponse = {
 
 export function useAdminSchemeImportCreate() {
   return useMutation({
-    mutationFn: async (input: { fileUrl: string; fileName: string; fileKey?: string }) => {
+    mutationFn: async (input: {
+      fileUrl: string;
+      fileName: string;
+      fileKey?: string;
+      mimeType?: string;
+    }) => {
       const res = await fetch("/api/admin/scheme-imports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

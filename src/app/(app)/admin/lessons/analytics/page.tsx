@@ -21,6 +21,7 @@ import { DateRangePicker } from "@/components/ui/custom-date-picker";
 import { useAdminLessonAnalytics } from "@/hooks/admin/useAdminLessonAnalytics";
 import { defaultLessonAnalyticsRange } from "@/lib/lessons/analytics-range";
 import { cn } from "@/lib/utils";
+import { LessonsV2CoverageSection } from "@/components/lessons/LessonsV2CoverageSection";
 
 function StatCard({
   label,
@@ -633,6 +634,8 @@ export default function AdminLessonAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <LessonsV2CoverageSection v2Coverage={data?.v2Coverage} loading={isLoading} />
     </div>
   );
 }

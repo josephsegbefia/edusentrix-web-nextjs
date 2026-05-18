@@ -8,12 +8,10 @@ import type {
   SubscriptionFeatureKey,
   SubscriptionLimitKey,
 } from "@/lib/billing/feature-access";
-
-const EXPENSIVE_ALLOWED_ACCESS_MODES = new Set([
-  "full",
-  "trial_limited",
-  "pilot_limited",
-]);
+import {
+  canUseExpensiveAi,
+  expensiveAiBlockedMessage,
+} from "@/lib/billing/expensive-ai-access";
 
 export class EntitlementError extends Error {
   statusCode = 403;
@@ -51,9 +49,9 @@ export async function requireEntitlement(input: {
   }
 
   const accessMode = snapshot.subscription.accessMode;
-  if (input.expensive && !EXPENSIVE_ALLOWED_ACCESS_MODES.has(accessMode)) {
+  if (input.expensive && !canUseExpensiveAi(accessMode)) {
     throw new EntitlementError(
-      "This action is not available in the current subscription state.",
+      expensiveAiBlockedMessage(accessMode),
       "ACCESS_MODE_BLOCKED",
       { accessMode }
     );
@@ -83,7 +81,7 @@ export async function requireEntitlement(input: {
     if (!decision.allowed) {
       throw new EntitlementError(
         decision.reason === "access_mode_blocked"
-          ? "This action is not available in the current subscription state."
+          ? expensiveAiBlockedMessage(decision.accessMode ?? "suspended")
           : "This action would exceed the current subscription limit.",
         decision.reason === "access_mode_blocked"
           ? "ACCESS_MODE_BLOCKED"

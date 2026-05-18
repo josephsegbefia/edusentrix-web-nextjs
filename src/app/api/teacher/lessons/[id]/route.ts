@@ -13,6 +13,7 @@ import {
   buildPublishedSnapshotFromLessonNote,
   lessonSnapshotToStudentDisplayNote,
 } from "@/lib/lessons/published-snapshot";
+import { resolveSchemeLinkForResponse } from "@/lib/lesson-notes/resolve-scheme-link";
 import { formatTeachingModeDto } from "@/lib/lessons/lesson-format";
 import { notifyStudentsOfPublishedLesson } from "@/lib/lessons/lesson-publish-notifications";
 import { recordLessonAudit } from "@/lib/lessons/lesson-audit";
@@ -201,7 +202,8 @@ function formatLessonDetail(
     classDisplayLabel?: string | null;
     subjectName?: string | null;
     displayNote?: unknown | null;
-  }
+  },
+  schemeLink?: { schemeId: string | null; schemeItemIds: string[] },
 ) {
   return {
     id: String(lesson._id),
@@ -239,8 +241,10 @@ function formatLessonDetail(
       : null,
     parentSummaryHtml: lesson.parentSummaryHtml ?? null,
     collaboratorTeacherIds: (lesson.collaboratorTeacherIds ?? []).map((id) => String(id)),
-    schemeId: lesson.schemeId ? String(lesson.schemeId) : null,
-    schemeItemIds: (lesson.schemeItemIds || []).map((id) => String(id)),
+    schemeId:
+      schemeLink?.schemeId ?? (lesson.schemeId ? String(lesson.schemeId) : null),
+    schemeItemIds:
+      schemeLink?.schemeItemIds ?? (lesson.schemeItemIds || []).map((id) => String(id)),
     createdAt: lesson.createdAt ? new Date(lesson.createdAt).toISOString() : null,
     updatedAt: lesson.updatedAt ? new Date(lesson.updatedAt).toISOString() : null,
     ...(opts?.classDisplayLabel !== undefined
@@ -329,14 +333,26 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       lessonsSettings?.lessonsModule?.parentSummaryVisibleToParents
     );
 
+    const schemeLink = await resolveSchemeLinkForResponse({
+      schoolId: context.schoolId,
+      schemeId: lesson.schemeId,
+      schemeItemIds: lesson.schemeItemIds,
+      repair: { collection: "lesson", id: lessonId },
+    });
+
     return Response.json({
       success: true,
       data: {
-        ...formatLessonDetail(lesson, note?.topic ?? null, {
-          ...(includeDisplayNote
-            ? { classDisplayLabel, subjectName, displayNote }
-            : {}),
-        }),
+        ...formatLessonDetail(
+          lesson,
+          note?.topic ?? null,
+          {
+            ...(includeDisplayNote
+              ? { classDisplayLabel, subjectName, displayNote }
+              : {}),
+          },
+          schemeLink,
+        ),
         parentSummaryVisibleToParents,
         linkedAssignmentsSummary,
         collaboration: {

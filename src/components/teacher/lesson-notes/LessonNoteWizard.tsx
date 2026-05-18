@@ -15,6 +15,7 @@ import {
   type WizardStep,
   DEFAULT_FORM_DATA,
   getDefaultBodyForTemplate,
+  normalizeLessonNoteStatus,
 } from "@/types/lesson-notes";
 import { calculateQualityScore } from "@/lib/lesson-notes/quality-score";
 import { buildLessonNoteAIContextSummary } from "@/lib/lesson-notes/ai-context";
@@ -78,7 +79,7 @@ export function LessonNoteWizard({
   const updateMutation = useTeacherLessonNoteUpdate();
 
   const isEditing = !!initialData?.id;
-  const currentStatus = (initialData?.status as "draft" | "submitted" | "approved" | "rejected" | "published") || "draft";
+  const currentStatus = normalizeLessonNoteStatus(initialData?.status || "draft");
   const rejectionReason = initialData?.rejectionReason || null;
 
   // Print preview state
@@ -210,6 +211,7 @@ export function LessonNoteWizard({
       ...formData,
       weekOf: formData.weekOf.toISOString(),
       date: formData.date?.toISOString(),
+      weekEndingDate: formData.weekEndingDate?.toISOString(),
       status,
     };
 

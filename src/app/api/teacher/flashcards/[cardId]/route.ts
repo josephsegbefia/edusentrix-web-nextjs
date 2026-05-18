@@ -5,7 +5,7 @@ import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { LessonFlashcard, type ILessonFlashcard } from "@/models/LessonFlashcard";
-import { Lesson, type ILesson } from "@/models/Lesson";
+import { canTeacherManageFlashcard } from "@/lib/lessons/flashcard-access";
 
 const PatchCardSchema = z.object({
   front: z.string().trim().min(1).max(4000).optional(),
@@ -25,7 +25,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ cardId
     const context = await requireTeacher();
     await connectToDatabase();
 
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonFlashcardsManage)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -44,15 +44,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ cardId
       return Response.json({ success: false, error: "Flashcard not found" }, { status: 404 });
     }
 
-    const lesson = (await Lesson.findOne({
-      _id: existing.lessonId,
+    const allowed = await canTeacherManageFlashcard({
+      card: existing,
       schoolId: context.schoolId,
       teacherId: context.teacherId,
-    })
-      .select("_id")
-      .lean()) as Pick<ILesson, "_id"> | null;
-
-    if (!lesson) {
+      isAdmin: context.isAdmin,
+    });
+    if (!allowed) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -87,7 +85,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ card
     const context = await requireTeacher();
     await connectToDatabase();
 
-    if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+    if (!can(context.permissions, PERMISSIONS.lessonFlashcardsManage)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -106,15 +104,13 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ card
       return Response.json({ success: false, error: "Flashcard not found" }, { status: 404 });
     }
 
-    const lesson = (await Lesson.findOne({
-      _id: existing.lessonId,
+    const allowed = await canTeacherManageFlashcard({
+      card: existing,
       schoolId: context.schoolId,
       teacherId: context.teacherId,
-    })
-      .select("_id")
-      .lean()) as Pick<ILesson, "_id"> | null;
-
-    if (!lesson) {
+      isAdmin: context.isAdmin,
+    });
+    if (!allowed) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

@@ -9,7 +9,8 @@ export type LessonResourcePatronBook = ReturnType<typeof serializeLibraryBookPat
 
 export interface LessonResourceDto {
   id: string;
-  lessonId: string;
+  lessonId: string | null;
+  sessionId?: string | null;
   kind: LessonResourceKind;
   title: string;
   description: string | null;

@@ -1,6 +1,6 @@
 export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
 
-export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai";
+export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai" | "pdf_gemini";
 
 export interface SchemeImportParsedRowClient {
   rowIndex: number;
@@ -29,6 +29,7 @@ export interface SchemeImportJobRow {
   fileName: string;
   fileUrl: string | null;
   parseError: string | null;
+  parseWarning: string | null;
   parsedRows: SchemeImportParsedRowClient[];
   resultSchemeId: string | null;
   createdAt: string;

@@ -83,11 +83,23 @@ export async function assertAiSchemeDraftingEnabled(
   return { ok: true };
 }
 
-/** PDF import follows the base scheme-import gate. */
+/** PDF import requires base import + `allowPdfSchemeImport` in school settings. */
 export async function assertPdfSchemeImportEnabled(
   schoolId: mongoose.Types.ObjectId
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  return assertSchemeImportEnabled(schoolId);
+  const base = await assertSchemeImportEnabled(schoolId);
+  if (!base.ok) return base;
+
+  const settings = await SchoolSettings.findOne({ schoolId }).select("academicPlanning").lean();
+  if (!(settings?.academicPlanning?.allowPdfSchemeImport ?? false)) {
+    return {
+      ok: false,
+      status: 403,
+      error:
+        "PDF scheme import is disabled. Enable it under Admin → Settings → Features → Schemes of work.",
+    };
+  }
+  return { ok: true };
 }
 
 /** Only UploadThing / utfs assets (prevents SSRF on arbitrary URLs). */

@@ -8,6 +8,7 @@ const PostBodySchema = z.object({
   fileUrl: z.string().url(),
   fileName: z.string().trim().min(1).max(400),
   fileKey: z.string().trim().max(500).optional(),
+  mimeType: z.string().trim().max(160).optional(),
 });
 
 export async function POST(req: Request) {
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
       fileUrl: parsed.data.fileUrl,
       fileName: parsed.data.fileName,
       fileKey: parsed.data.fileKey ?? null,
+      mimeType: parsed.data.mimeType ?? null,
     });
 
     if (!result.ok) {

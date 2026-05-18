@@ -9,6 +9,7 @@ import {
   getTeacherLessonAnalytics,
   type TeacherLessonAnalyticsResult,
 } from "@/lib/lessons/teacher-analytics.service";
+import { gateLessonsFeature, gateLessonsModule } from "@/lib/lessons/lesson-gates";
 
 const QuerySchema = z.object({
   from: z.string().datetime().optional(),
@@ -19,6 +20,21 @@ export async function GET(req: NextRequest) {
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+    const moduleGate = await gateLessonsModule(context.schoolId);
+    if (!moduleGate.ok) {
+      return NextResponse.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const analyticsGate = gateLessonsFeature(
+      moduleGate.settings,
+      "enableLessonAnalytics",
+      "Lesson analytics",
+    );
+    if (!analyticsGate.ok) {
+      return NextResponse.json(
+        { success: false, error: analyticsGate.error },
+        { status: analyticsGate.status },
+      );
+    }
 
     if (!can(context.permissions, PERMISSIONS.lessonAnalyticsView)) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });

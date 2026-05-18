@@ -29,3 +29,24 @@ export type LessonReflectionUpsertPayload = {
   followUpNotes?: string | null;
   nextStep?: string | null;
 };
+
+export type LessonDeliveryReflectionDto = {
+  id: string;
+  deliveryId: string;
+  sessionId: string;
+  completed: boolean;
+  objectivesMet: LessonObjectivesMet;
+  notes: string | null;
+  studentsWhoStruggled: string[];
+  followUpRequired: boolean;
+  followUpNotes: string | null;
+  nextStep: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type TeacherSessionReflectionResponse = {
+  success: boolean;
+  data: { reflection: LessonDeliveryReflectionDto | null };
+  error?: string;
+};

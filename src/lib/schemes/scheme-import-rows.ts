@@ -1,4 +1,5 @@
 import type { ISchemeImportParsedRow } from "@/models/SchemeImportJob";
+import { clampSchemeItemShortText, clampSchemeItemShortTextOrNull } from "@/lib/schemes/scheme-item-field-limits";
 
 function cleanString(value: unknown): string | null {
   const text = String(value ?? "").trim();
@@ -75,13 +76,13 @@ export function normalizeParsedImportRows(rows: ISchemeImportParsedRow[]): ISche
       confidence = Math.min(1, Math.max(0, r.confidence));
     }
     const rowType = inferRowType(r);
-    const title = inferTitle({ ...r, rowType });
+    const title = clampSchemeItemShortText(inferTitle({ ...r, rowType }));
     return {
       ...r,
       weekEnding: cleanString(r.weekEnding),
       title,
-      strand: cleanString(r.strand),
-      subStrand: cleanString(r.subStrand),
+      strand: clampSchemeItemShortTextOrNull(cleanString(r.strand)),
+      subStrand: clampSchemeItemShortTextOrNull(cleanString(r.subStrand)),
       contentStandard: cleanString(r.contentStandard),
       indicators: cleanStringList(r.indicators),
       resources: cleanStringList(r.resources),

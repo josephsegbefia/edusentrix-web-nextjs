@@ -11,6 +11,7 @@ import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { User } from "@/models/User";
+import { SchemeItem } from "@/models/SchemeItem";
 import { LessonNoteReviewComment, type ILessonNoteReviewComment } from "@/models/LessonNoteReviewComment";
 import { normalizeLessonNoteRequestBody } from "@/lib/lesson-notes/normalize-payload";
 import {
@@ -18,11 +19,14 @@ import {
   formatUserDisplayName,
   getLessonNoteReviewSections,
 } from "@/lib/lesson-notes/review";
+import { resolveSchemeLinkForResponse } from "@/lib/lesson-notes/resolve-scheme-link";
 import {
   assertLessonNoteRequiresSchemeLink,
   resolveLessonNoteSchemeFields,
 } from "@/lib/lesson-notes/validate-lesson-note-scheme";
+import { getLessonsModuleSettings } from "@/lib/lessons/settings";
 import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
+import { parseGhanaDateLabel } from "@/lib/time/ghana";
 
 // ============================================================================
 // Zod Schemas (same as in route.ts, but all optional for PATCH)
@@ -150,6 +154,7 @@ const UpdateLessonNoteSchema = z.object({
   // Basic info
   weekOf: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
   date: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
+  weekEndingDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().nullable(),
   topic: z.string().min(1).max(200).optional(),
   durationMinutes: z.number().min(5).max(180).optional().nullable(),
   references: z.array(z.string().max(500)).optional(),
@@ -184,7 +189,7 @@ const UpdateLessonNoteSchema = z.object({
   tags: z.array(z.string().max(40)).optional(),
 
   // Status (teachers can only set draft/published, admins can do more)
-  status: z.enum(["draft", "submitted", "approved", "rejected", "published"]).optional(),
+  status: z.enum(["draft", "submitted", "approved", "rejected"]).optional(),
 
   // Legacy fields
   objectives: z.string().max(2000).optional().nullable(),
@@ -220,7 +225,9 @@ function formatLessonNoteResponse(
   className: string,
   subjectName: string | null,
   teacherName: string | null,
-  reviewComments: Array<Record<string, unknown>> = []
+  reviewComments: Array<Record<string, unknown>> = [],
+  schemeLink?: { schemeId: string | null; schemeItemIds: string[] },
+  lessonsWorkflow?: { requireApprovedLessonNote: boolean },
 ) {
   return {
     id: String(entry._id),
@@ -243,6 +250,7 @@ function formatLessonNoteResponse(
     // Basic info
     weekOf: entry.weekOf ? new Date(entry.weekOf).toISOString() : null,
     date: entry.date ? new Date(entry.date).toISOString() : null,
+    weekEndingDate: entry.weekEndingDate ? new Date(entry.weekEndingDate).toISOString() : null,
     topic: entry.topic,
     durationMinutes: entry.durationMinutes || null,
     references: entry.references || [],
@@ -285,10 +293,15 @@ function formatLessonNoteResponse(
     // Timestamps
     createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
     updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
-    schemeId: entry.schemeId ? String(entry.schemeId) : null,
-    schemeItemIds: (entry.schemeItemIds || []).map((id) => String(id)),
+    schemeId:
+      schemeLink?.schemeId ?? (entry.schemeId ? String(entry.schemeId) : null),
+    schemeItemIds:
+      schemeLink?.schemeItemIds ?? (entry.schemeItemIds || []).map((id) => String(id)),
     reviewComments,
     openCommentCount: countOpenReviewComments(reviewComments as never[]),
+    lessonsWorkflow: lessonsWorkflow ?? {
+      requireApprovedLessonNote: false,
+    },
   };
 }
 
@@ -432,6 +445,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       )
     );
 
+    const [schemeLink, lessonsSettings] = await Promise.all([
+      resolveSchemeLinkForResponse({
+        schoolId: context.schoolId,
+        schemeId: entry.schemeId,
+        schemeItemIds: entry.schemeItemIds,
+        repair: { collection: "lessonNote", id: noteId },
+      }),
+      getLessonsModuleSettings(context.schoolId),
+    ]);
+
     return Response.json({
       success: true,
       data: formatLessonNoteResponse(
@@ -439,7 +462,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         className,
         subjectName,
         formatUserDisplayName(teacherUser, "Teacher"),
-        serializeReviewComments(comments, userMap)
+        serializeReviewComments(comments, userMap),
+        schemeLink,
+        {
+          requireApprovedLessonNote: lessonsSettings.requireApprovedLessonNoteToPublish,
+        },
       ),
     });
   } catch (e: unknown) {
@@ -500,10 +527,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return Response.json({ success: false, error: "Lesson note not found" }, { status: 404 });
     }
 
-    // Check if note can be edited (not approved/rejected unless admin)
-    if (!context.isAdmin && ["approved", "rejected"].includes(existing.status)) {
+    // Approved notes stay locked for teachers until an admin changes workflow status.
+    if (!context.isAdmin && existing.status === "approved") {
       return Response.json(
-        { success: false, error: "Cannot edit approved or rejected notes" },
+        { success: false, error: "Cannot edit an approved lesson note" },
         { status: 403 }
       );
     }
@@ -701,6 +728,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       parsed.data.durationMinutes !== undefined ||
       "weekOf" in parsed.data ||
       "date" in parsed.data ||
+      "weekEndingDate" in parsed.data ||
       "references" in parsed.data
     ) {
       touchedSectionKeys.add("context");
@@ -749,6 +777,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         updateData.date = lessonDate;
       } else {
         unsetData.date = "";
+      }
+    }
+
+    if ("weekEndingDate" in parsed.data) {
+      if (parsed.data.weekEndingDate) {
+        const nextWeekEndingDate = new Date(parsed.data.weekEndingDate);
+        if (Number.isNaN(nextWeekEndingDate.getTime())) {
+          return Response.json({ success: false, error: "Invalid week ending date value" }, { status: 400 });
+        }
+        updateData.weekEndingDate = nextWeekEndingDate;
+      } else {
+        unsetData.weekEndingDate = "";
+      }
+    } else if (resolvedScheme?.schemeItemObjectIds.length) {
+      const firstSchemeItem = await SchemeItem.findOne({
+        _id: resolvedScheme.schemeItemObjectIds[0],
+        schoolId: context.schoolId,
+      })
+        .select("plannedEndDate weekEndingLabel")
+        .lean<{ plannedEndDate?: Date | null; weekEndingLabel?: string | null } | null>();
+      const schemeWeekEnding =
+        firstSchemeItem?.plannedEndDate || parseGhanaDateLabel(firstSchemeItem?.weekEndingLabel);
+      if (schemeWeekEnding) {
+        updateData.weekEndingDate = schemeWeekEnding;
       }
     }
 

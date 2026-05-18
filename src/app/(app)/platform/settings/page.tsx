@@ -102,6 +102,13 @@ export default async function PlatformSettingsPage() {
       configured: Boolean(process.env.OPENAI_API_KEY),
       note: "AI-assisted reporting and summaries",
     },
+    {
+      label: "Gemini",
+      configured: Boolean(
+        process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_AI_API_KEY?.trim(),
+      ),
+      note: "Scheme PDF import fallback when OpenAI is unavailable",
+    },
   ];
   const configuredIntegrations = integrations.filter((item) => item.configured).length;
 

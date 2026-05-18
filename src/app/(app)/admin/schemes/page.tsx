@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ChevronLeft,
@@ -15,8 +15,11 @@ import {
   MoreHorizontal,
   Route,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { useAdminSchemeQueue } from "@/hooks/admin/useAdminSchemes";
+import { useSchemeDeleteFlow } from "@/hooks/schemes/useSchemeDeleteFlow";
+import { adminCanDeleteSchemeStatus } from "@/lib/schemes/scheme-delete";
 import { useSchool } from "@/hooks/admin/useSchool";
 import type { AdminSchemeQueueRow, SchemeStatus } from "@/types/schemes";
 import { SchemeStatusBadge } from "@/components/schemes/SchemeStatusBadge";
@@ -40,7 +43,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,19 +50,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-
-const TAB_VALUES = [
-  { id: "submitted", label: "Submitted" },
-  { id: "needs_revision", label: "Needs revision" },
-  { id: "approved", label: "Approved" },
-  { id: "active", label: "Active" },
-  { id: "archived", label: "Archived" },
-  { id: "rejected", label: "Rejected" },
-  { id: "all", label: "All" },
-] as const;
-
-type TabId = (typeof TAB_VALUES)[number]["id"];
 
 const glassPanel =
   "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
@@ -97,7 +86,14 @@ function rowHasCompleteContext(row: AdminSchemeQueueRow) {
 }
 
 export default function AdminSchemesPage() {
-  const [tab, setTab] = React.useState<TabId>("submitted");
+  const queryClient = useQueryClient();
+  const { requestDelete, confirmationDialog, linkedNotesDialog } = useSchemeDeleteFlow({
+    apiBasePath: "/api/admin/schemes",
+    onDeleted: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
+    },
+  });
+
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState("");
   const [searchDebounced, setSearchDebounced] = React.useState("");
@@ -115,10 +111,10 @@ export default function AdminSchemesPage() {
 
   React.useEffect(() => {
     setPage(1);
-  }, [tab, searchDebounced, periodId, gradeId, subjectId, teacherId, curriculumId, classGroupId]);
+  }, [searchDebounced, periodId, gradeId, subjectId, teacherId, curriculumId, classGroupId]);
 
   const { data, isLoading, error } = useAdminSchemeQueue({
-    status: tab,
+    status: "all",
     page,
     periodId: periodId === "any" ? undefined : periodId,
     gradeId: gradeId === "any" ? undefined : gradeId,
@@ -215,6 +211,8 @@ export default function AdminSchemesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-4 md:p-6">
+      {confirmationDialog}
+      {linkedNotesDialog}
       <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-900/95 via-slate-950 to-black p-5 shadow-2xl shadow-black/40 sm:p-8">
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -226,9 +224,8 @@ export default function AdminSchemesPage() {
               Schemes of Learning
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-              Review imported or teacher-submitted schemes before they become the lesson-planning
-              backbone. Each scheme must be tied to the right grade, class, subject, and academic
-              period before activation.
+              Review imported schemes before they become the lesson-planning backbone. Each scheme
+              must be tied to the right grade, subject, and academic period before activation.
             </p>
             {isNaCCASchool ? (
               <Button asChild className="mt-4 bg-blue-500 text-white hover:bg-blue-400">
@@ -273,9 +270,9 @@ export default function AdminSchemesPage() {
             <div>
               <h2 className="text-sm font-semibold text-white">What admins do here</h2>
               <p className="mt-1 text-sm leading-6 text-white/55">
-                Confirm the imported rows match the official Scheme of Learning, send unclear work
-                back for revision, approve good drafts, then activate exactly one scheme for each
-                grade, class, subject, and period.
+                Confirm the imported rows match the official Scheme of Learning, check the grade,
+                subject, and period context, then activate the scheme teachers should use for
+                lesson-note planning.
               </p>
             </div>
           </div>
@@ -296,26 +293,13 @@ export default function AdminSchemesPage() {
             )}
           </div>
           <p className="mt-3 text-xs leading-5 text-white/45">
-            Leo can help teachers extract rows during import. Admin review is still the final gate
+            Leo can help admins extract rows during import. Admin review is still the final gate
             before Lesson Notes use the scheme.
           </p>
         </div>
       </section>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabId)} className="w-full space-y-4">
-        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
-          {TAB_VALUES.map((t) => (
-            <TabsTrigger
-              key={t.id}
-              value={t.id}
-              className="rounded-lg px-3 py-2 text-xs text-white/55 data-[state=active]:bg-white/10 data-[state=active]:text-white sm:text-sm"
-            >
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value={tab} className="mt-0 outline-none">
+      <div className="w-full">
           <Card className={glassPanel}>
             <CardHeader className="border-b border-white/10 pb-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -447,15 +431,9 @@ export default function AdminSchemesPage() {
                 </div>
               ) : rows.length === 0 ? (
                 <div className="p-10 text-center">
-                  <p className="text-base font-medium text-white">
-                    {tab === "submitted"
-                      ? "No Schemes of Learning awaiting review"
-                      : "No Schemes of Learning found"}
-                  </p>
+                  <p className="text-base font-medium text-white">No Schemes of Learning found</p>
                   <p className="mt-2 text-sm text-white/50">
-                    {tab === "submitted"
-                      ? "Teacher imports and submissions appear here after they are sent for review."
-                      : "Adjust filters or pick another tab."}
+                    Import a scheme or adjust the filters.
                   </p>
                 </div>
               ) : (
@@ -552,10 +530,27 @@ export default function AdminSchemesPage() {
                                     View / Review
                                   </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <DropdownMenuItem disabled className="text-xs text-white/45">
-                                  Use detail page for approve, revision, activation
-                                </DropdownMenuItem>
+                                {adminCanDeleteSchemeStatus(row.status) ? (
+                                  <>
+                                    <DropdownMenuSeparator className="bg-white/10" />
+                                    <DropdownMenuItem
+                                      className="text-rose-300 focus:bg-rose-500/15 focus:text-rose-200"
+                                      onClick={() =>
+                                        void requestDelete({ id: row.id, title: row.title })
+                                      }
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete scheme
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : row.status === "active" ? (
+                                  <>
+                                    <DropdownMenuSeparator className="bg-white/10" />
+                                    <DropdownMenuItem disabled className="text-xs text-white/45">
+                                      Archive active schemes before deleting
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : null}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -597,8 +592,7 @@ export default function AdminSchemesPage() {
               ) : null}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+      </div>
 
     </div>
   );

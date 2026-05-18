@@ -7,6 +7,7 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { Lesson, type ILesson } from "@/models/Lesson";
 import { LessonReflection, type ILessonReflection } from "@/models/LessonReflection";
 import type { LessonReflectionDto, TeacherLessonReflectionResponse } from "@/types/lesson-reflection";
+import { gateLessonsFeature, gateLessonsModule } from "@/lib/lessons/lesson-gates";
 
 const UpsertBodySchema = z.object({
   completed: z.boolean().optional(),
@@ -60,6 +61,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+    const moduleGate = await gateLessonsModule(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const reflectionGate = gateLessonsFeature(
+      moduleGate.settings,
+      "enableLessonReflection",
+      "Lesson reflection",
+    );
+    if (!reflectionGate.ok) {
+      return Response.json(
+        { success: false, error: reflectionGate.error },
+        { status: reflectionGate.status },
+      );
+    }
 
     if (!can(context.permissions, PERMISSIONS.lessonsRead)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
@@ -98,6 +114,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+    const moduleGate = await gateLessonsModule(context.schoolId);
+    if (!moduleGate.ok) {
+      return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+    }
+    const reflectionGate = gateLessonsFeature(
+      moduleGate.settings,
+      "enableLessonReflection",
+      "Lesson reflection",
+    );
+    if (!reflectionGate.ok) {
+      return Response.json(
+        { success: false, error: reflectionGate.error },
+        { status: reflectionGate.status },
+      );
+    }
 
     if (!can(context.permissions, PERMISSIONS.lessonReflectionsManage)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });

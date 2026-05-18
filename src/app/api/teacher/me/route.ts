@@ -21,6 +21,12 @@ import {
   toDelegationNavItems,
 } from "@/lib/delegations/service";
 import type { DelegationNavItem } from "@/lib/delegations/types";
+import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
+import {
+  canUseExpensiveAi,
+  expensiveAiBlockedMessage,
+} from "@/lib/billing/expensive-ai-access";
+import type { SchoolAccessMode } from "@/lib/billing/resolve-school-access-mode";
 
 function parseTermNumber(term?: string | null) {
   if (!term) return null;
@@ -200,6 +206,12 @@ export async function GET() {
       new Set([...context.permissions, ...delegationPermStrings])
     );
 
+    const subscriptionSnapshot = await getSchoolSubscriptionSnapshot(context.schoolId);
+    const accessMode: SchoolAccessMode =
+      subscriptionSnapshot?.subscription.accessMode ?? "suspended";
+    const canUseExpensiveAiNow = canUseExpensiveAi(accessMode);
+    const hasAiLessonNotes = subscriptionSnapshot?.hasFeature("ai_lesson_notes") ?? false;
+
     return Response.json({
       success: true,
       data: {
@@ -246,6 +258,14 @@ export async function GET() {
           offlineModeEnabled,
         },
         academicPlanning: academicPlanningForTeacher,
+        subscription: {
+          accessMode,
+          canUseExpensiveAi: canUseExpensiveAiNow,
+          hasAiLessonNotes,
+          expensiveAiBlockedReason: canUseExpensiveAiNow
+            ? null
+            : expensiveAiBlockedMessage(accessMode),
+        },
         permissions,
         delegations: delegationsNav,
       },

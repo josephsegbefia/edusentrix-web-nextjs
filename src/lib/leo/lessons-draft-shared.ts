@@ -8,6 +8,7 @@ import { can } from "@/lib/auth/can";
 import { EntitlementError, requireEntitlement } from "@/lib/billing/require-entitlement";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { PERMISSIONS } from "@/lib/rbac";
+import { gateLessonsFeature, gateLessonsModule } from "@/lib/lessons/lesson-gates";
 import { Lesson, type ILesson } from "@/models/Lesson";
 import { LessonNote, type ILessonNote } from "@/models/LessonNote";
 
@@ -37,6 +38,20 @@ export async function requireLessonsLeoTeacherContext(): Promise<
 > {
   const context = await requireTeacher();
   await connectToDatabase();
+
+  const moduleGate = await gateLessonsModule(context.schoolId);
+  if (!moduleGate.ok) {
+    return Response.json({ success: false, error: moduleGate.error }, { status: moduleGate.status });
+  }
+  const leoFeature = gateLessonsFeature(
+    moduleGate.settings,
+    "enableLeoLessonTools",
+    "Leo lesson tools",
+  );
+  if (!leoFeature.ok) {
+    return Response.json({ success: false, error: leoFeature.error }, { status: leoFeature.status });
+  }
+
   try {
     await requireEntitlement({
       schoolId: context.schoolId,
@@ -54,7 +69,7 @@ export async function requireLessonsLeoTeacherContext(): Promise<
     throw e;
   }
 
-  if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+  if (!can(context.permissions, PERMISSIONS.lessonAiUse)) {
     return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
   if (!process.env.OPENAI_API_KEY) {

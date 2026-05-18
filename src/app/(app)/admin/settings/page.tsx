@@ -11,6 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_LESSONS_MODULE_SETTINGS,
+  type LessonsModuleSettings,
+} from "@/lib/lessons/settings-shared";
+import { AdminLessonsModuleSettings } from "@/components/admin/settings/AdminLessonsModuleSettings";
 import { SchoolIdentitySettingsCard } from "@/components/admin/settings/SchoolIdentitySettingsCard";
 import {
   Settings,
@@ -94,9 +99,7 @@ type SettingsFormData = {
   offlineMode: {
     enabled: boolean;
   };
-  lessonsModule: {
-    parentSummaryVisibleToParents: boolean;
-  };
+  lessonsModule: LessonsModuleSettings;
   academicPlanning: {
     enableSchemeOfWork: boolean;
     requireSchemeLinkForLessonNotes: boolean;
@@ -118,7 +121,7 @@ const DEFAULT_ACADEMIC_PLANNING: SettingsFormData["academicPlanning"] = {
   allowTeacherSchemeCreation: true,
   requireSchemeApproval: true,
   allowSchemeImport: true,
-  allowPdfSchemeImport: false,
+  allowPdfSchemeImport: true,
   allowAiSchemeDrafting: false,
   defaultSchemeApprovalRole: "school_admin",
   coverageUpdateMode: "manual",
@@ -138,7 +141,10 @@ function buildSettingsFormData(settings: SchoolSettingsDTO): SettingsFormData {
       channels: { whatsapp: true, sms: false, email: false },
     },
     offlineMode: settings.offlineMode || { enabled: true },
-    lessonsModule: settings.lessonsModule || { parentSummaryVisibleToParents: false },
+    lessonsModule: {
+      ...DEFAULT_LESSONS_MODULE_SETTINGS,
+      ...(settings.lessonsModule ?? {}),
+    },
     academicPlanning: ap,
     assemblyDailyOverrides: settings.assemblyDailyOverrides || [],
     assemblyGradeOverrides: settings.assemblyGradeOverrides || [],
@@ -617,6 +623,56 @@ function SettingsPageContent() {
                   </div>
                   <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">
+                      <Label className="text-white/80">Allow scheme file import (CSV / Excel)</Label>
+                      <p className="text-xs text-white/50">
+                        Lets admins upload spreadsheets on the Schemes import page.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.academicPlanning.allowSchemeImport}
+                      disabled={!formData.academicPlanning.enableSchemeOfWork}
+                      onCheckedChange={(checked) =>
+                        updateOperationalForm((current) => ({
+                          ...current,
+                          academicPlanning: {
+                            ...current.academicPlanning,
+                            allowSchemeImport: checked,
+                            allowPdfSchemeImport: checked
+                              ? current.academicPlanning.allowPdfSchemeImport
+                              : false,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <Label className="text-white/80">Allow PDF scheme import (Leo extraction)</Label>
+                      <p className="text-xs text-white/50">
+                        NaCCA/GES PDFs are parsed with AI after upload (OpenAI first, Gemini fallback).
+                        Requires API keys and curriculum
+                        AI entitlement.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={formData.academicPlanning.allowPdfSchemeImport}
+                      disabled={
+                        !formData.academicPlanning.enableSchemeOfWork ||
+                        !formData.academicPlanning.allowSchemeImport
+                      }
+                      onCheckedChange={(checked) =>
+                        updateOperationalForm((current) => ({
+                          ...current,
+                          academicPlanning: {
+                            ...current.academicPlanning,
+                            allowPdfSchemeImport: checked,
+                          },
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
                       <Label className="text-white/80">AI-assisted scheme drafting (Leo)</Label>
                       <p className="text-xs text-white/50">
                         Requires scheme of work enabled and server AI configuration. Teachers use Leo on
@@ -649,27 +705,12 @@ function SettingsPageContent() {
                 </h3>
 
                 <div className="space-y-4">
-                  <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                      <Label className="flex items-center gap-2 text-white/80">
-                        <Megaphone className="h-4 w-4 text-teal-300" />
-                        Parent lesson summaries
-                      </Label>
-                      <p className="text-xs text-white/50">
-                        Allow guardians to read teacher-written family summaries on published class
-                        lessons (from the parent portal).
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formData.lessonsModule.parentSummaryVisibleToParents}
-                      onCheckedChange={(checked) =>
-                        updateOperationalForm((current) => ({
-                          ...current,
-                          lessonsModule: { parentSummaryVisibleToParents: checked },
-                        }))
-                      }
-                    />
-                  </div>
+                  <AdminLessonsModuleSettings
+                    value={formData.lessonsModule}
+                    onChange={(lessonsModule) =>
+                      updateOperationalForm((current) => ({ ...current, lessonsModule }))
+                    }
+                  />
 
                   <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="space-y-1">

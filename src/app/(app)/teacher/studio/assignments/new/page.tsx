@@ -7,6 +7,10 @@ import { ArrowLeft } from "lucide-react";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { AssignmentBuilder, type AssignmentFormValues } from "@/components/teacher/studio/AssignmentBuilder";
+import {
+  readSessionStudioSeed,
+  clearSessionStudioSeed,
+} from "@/lib/lessons/session-studio-seed-storage";
 import { Button } from "@/components/ui/button";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
@@ -21,6 +25,8 @@ export default function TeacherAssignmentCreatePage() {
   const canPublish = can(permissions, PERMISSIONS.assignmentsPublish);
   const requestedType = searchParams.get("type");
   const lessonId = searchParams.get("lessonId");
+  const sessionId = searchParams.get("sessionId");
+  const useStoredSeed = searchParams.get("seed") === "stored";
   const [seedValues, setSeedValues] = React.useState<Partial<AssignmentFormValues> | null>(null);
   const [isLoadingSeed, setIsLoadingSeed] = React.useState(false);
   const initialType: AssignmentFormValues["type"] =
@@ -30,13 +36,33 @@ export default function TeacherAssignmentCreatePage() {
 
   React.useEffect(() => {
     let ignore = false;
-    if (!lessonId) {
+    if (sessionId && useStoredSeed) {
+      const stored = readSessionStudioSeed(sessionId);
+      if (stored) {
+        setSeedValues({
+          title: stored.title,
+          instructions: stored.instructions,
+          type: stored.type,
+          subjectId: stored.subjectId,
+          classGroupIds: stored.classGroupIds,
+          maxScore: stored.maxScore,
+          questions: stored.questions ?? [],
+        });
+        clearSessionStudioSeed(sessionId);
+      }
+      return;
+    }
+
+    if (!lessonId && !sessionId) {
       setSeedValues(null);
       return;
     }
 
     setIsLoadingSeed(true);
-    void fetch(`/api/teacher/lessons/${lessonId}/assignment-seed?type=${initialType}`, {
+    const seedUrl = sessionId
+      ? `/api/teacher/lesson-sessions/${sessionId}/assignment-seed?type=${initialType}`
+      : `/api/teacher/lessons/${lessonId}/assignment-seed?type=${initialType}`;
+    void fetch(seedUrl, {
       cache: "no-store",
     })
       .then(async (res) => {
@@ -83,7 +109,7 @@ export default function TeacherAssignmentCreatePage() {
     return () => {
       ignore = true;
     };
-  }, [lessonId, initialType, busyToast]);
+  }, [lessonId, sessionId, useStoredSeed, initialType, busyToast]);
 
   if (!canCreate) {
     return (
@@ -109,6 +135,7 @@ export default function TeacherAssignmentCreatePage() {
       type: values.type,
       subjectId: values.subjectId,
       sourceLessonId: lessonId || undefined,
+      sourceSessionId: sessionId || undefined,
       classGroupIds: values.classGroupIds,
       dueDate: values.dueDate.toISOString(),
       latePolicy: values.latePolicy,

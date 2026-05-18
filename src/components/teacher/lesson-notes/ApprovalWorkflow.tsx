@@ -71,11 +71,6 @@ const statusConfig: Record<
     icon: XCircle,
     colorClass: "bg-red-500/20 text-red-300 border-red-500/30",
   },
-  published: {
-    label: "Published",
-    icon: CheckCircle,
-    colorClass: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  },
 };
 
 export function ApprovalStatusBadge({
@@ -183,9 +178,9 @@ export function SubmitForApprovalButton({
           <DialogHeader>
             <DialogTitle className="text-white">Submit for Approval</DialogTitle>
             <DialogDescription className="text-white/60">
-              Are you sure you want to submit this lesson note for approval?
-              Once submitted, you won&apos;t be able to edit it until it&apos;s
-              reviewed.
+              Submit this lesson note to your school for review. You can still edit it
+              while it is waiting, and you will get an in-app notification when it is
+              approved or sent back for changes.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">

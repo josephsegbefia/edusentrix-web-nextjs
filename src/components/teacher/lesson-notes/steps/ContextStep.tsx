@@ -39,6 +39,15 @@ const DURATION_OPTIONS = [
   { value: "120", label: "120 minutes" },
 ];
 
+function formatDateLabel(value?: Date | null) {
+  if (!value || Number.isNaN(value.getTime())) return null;
+  return value.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function ContextStep({
   formData,
   classOptions,
@@ -216,6 +225,13 @@ export function ContextStep({
       </div>
 
       <LessonNoteSchemeLinkPanel formData={formData} onUpdate={onUpdate} />
+
+      {formData.weekEndingDate ? (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          <span className="font-medium">Scheme week ending:</span>{" "}
+          {formatDateLabel(formData.weekEndingDate)}
+        </div>
+      ) : null}
     </div>
   );
 }

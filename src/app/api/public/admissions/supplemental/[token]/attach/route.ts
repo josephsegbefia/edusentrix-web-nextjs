@@ -5,6 +5,7 @@ import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AdmissionApplication } from "@/models/AdmissionApplication";
 import { AdmissionEvent } from "@/models/AdmissionEvent";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 
 type Params = Promise<{ token: string }>;
 
@@ -16,6 +17,7 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: Params }) {
+  let uploadedFileUrl: string | null = null;
   try {
     const { token } = await params;
     if (!token || token.length < 24) {
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         { status: 400 }
       );
     }
+    uploadedFileUrl = parsed.data.fileUrl;
 
     await connectToDatabase();
 
@@ -46,6 +49,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       },
     });
     if (!application) {
+      await deleteUploadedFile(parsed.data.fileUrl);
+      uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This upload link is invalid or already used." },
         { status: 404 }
@@ -58,6 +63,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       application.status === "withdrawn" ||
       application.status === "expired"
     ) {
+      await deleteUploadedFile(parsed.data.fileUrl);
+      uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This application is closed for uploads." },
         { status: 409 }
@@ -68,6 +75,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       (r) => r.token === token && !r.fulfilledAt
     );
     if (!sub) {
+      await deleteUploadedFile(parsed.data.fileUrl);
+      uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This upload link is invalid or already used." },
         { status: 404 }
@@ -87,30 +96,49 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       uploadedAt: new Date(),
     });
     sub.fulfilledAt = new Date();
-    await application.save();
+    try {
+      await application.save();
+    } catch (error) {
+      const deleted = await deleteUploadedFile(parsed.data.fileUrl);
+      if (!deleted) {
+        console.error("Rollback failed for supplemental document upload:", parsed.data.fileUrl);
+      }
+      throw error;
+    }
+    uploadedFileUrl = null;
 
-    await AdmissionEvent.create({
-      schoolId: application.schoolId,
-      cycleId: application.cycleId,
-      applicationId: application._id,
-      actor: {
-        userId: null,
-        role: "applicant",
-        label:
-          `${application.guardian.firstName} ${application.guardian.lastName}`.trim() ||
-          "Applicant",
-      },
-      kind: "application.note_added",
-      metadata: {
-        action: "supplemental_document_uploaded",
-        requirementId,
-        label: docLabel,
-      },
-      at: new Date(),
-    });
+    try {
+      await AdmissionEvent.create({
+        schoolId: application.schoolId,
+        cycleId: application.cycleId,
+        applicationId: application._id,
+        actor: {
+          userId: null,
+          role: "applicant",
+          label:
+            `${application.guardian.firstName} ${application.guardian.lastName}`.trim() ||
+            "Applicant",
+        },
+        kind: "application.note_added",
+        metadata: {
+          action: "supplemental_document_uploaded",
+          requirementId,
+          label: docLabel,
+        },
+        at: new Date(),
+      });
+    } catch (eventError) {
+      console.error("Supplemental document event logging failed:", eventError);
+    }
 
     return NextResponse.json({ success: true, data: { requirementId } });
   } catch (error) {
+    if (uploadedFileUrl) {
+      const deleted = await deleteUploadedFile(uploadedFileUrl);
+      if (!deleted) {
+        console.error("Rollback failed for supplemental document upload:", uploadedFileUrl);
+      }
+    }
     console.error("Public supplemental attach error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to attach file" },

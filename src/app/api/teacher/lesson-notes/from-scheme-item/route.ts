@@ -8,15 +8,7 @@ import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
 import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { resolveLessonNoteSchemeFields } from "@/lib/lesson-notes/validate-lesson-note-scheme";
-
-function nextMonday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const daysUntilMonday = day === 0 ? 1 : 8 - day;
-  d.setDate(d.getDate() + daysUntilMonday);
-  return d;
-}
+import { getGhanaTodayDate, getMondayForGhanaWeek, parseGhanaDateLabel } from "@/lib/time/ghana";
 
 function splitIndicators(value: string | null | undefined) {
   return (value || "")
@@ -143,7 +135,12 @@ export async function GET(req: Request) {
     }
 
     const indicatorTexts = splitIndicators(item.indicator);
-    const weekOf = item.plannedStartDate || item.plannedEndDate || nextMonday();
+    const weekEndingDate =
+      item.plannedEndDate || parseGhanaDateLabel(item.weekEndingLabel) || null;
+    const weekOf =
+      item.plannedStartDate ||
+      (weekEndingDate ? getMondayForGhanaWeek(new Date(weekEndingDate)) : getGhanaTodayDate());
+    const lessonDate = getGhanaTodayDate();
     const topic = item.title || item.topic || "Lesson from Scheme of Learning";
     const learningObjective = item.learningObjective || item.learningObjectives?.[0] || topic;
 
@@ -156,7 +153,8 @@ export async function GET(req: Request) {
           subjectId: scheme.subjectId ? String(scheme.subjectId) : undefined,
           templateType: "SIMPLE",
           weekOf: new Date(weekOf).toISOString(),
-          date: item.plannedStartDate ? new Date(item.plannedStartDate).toISOString() : undefined,
+          date: lessonDate.toISOString(),
+          weekEndingDate: weekEndingDate ? new Date(weekEndingDate).toISOString() : undefined,
           topic,
           durationMinutes: item.suggestedDurationMinutes ?? 40,
           references: uniqueStrings([item.contentStandard, ...indicatorTexts]),
@@ -192,6 +190,8 @@ export async function GET(req: Request) {
           id: String(item._id),
           title,
           weekNumber: item.weekNumber ?? null,
+          weekEndingDate: weekEndingDate ? new Date(weekEndingDate).toISOString() : null,
+          weekEndingLabel: item.weekEndingLabel ?? null,
         },
       },
     });

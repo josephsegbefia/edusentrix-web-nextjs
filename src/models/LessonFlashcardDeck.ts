@@ -1,10 +1,11 @@
 import { Schema, model, models, type Model, type Types } from "mongoose";
 
-/** One deck per lesson (MVP). */
+/** One deck per legacy lesson or v2 session. */
 export interface ILessonFlashcardDeck {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
-  lessonId: Types.ObjectId;
+  lessonId?: Types.ObjectId | null;
+  sessionId?: Types.ObjectId | null;
   teacherId: Types.ObjectId;
   title: string;
   description?: string;
@@ -22,7 +23,13 @@ const lessonFlashcardDeckSchema = new Schema<ILessonFlashcardDeck>(
     lessonId: {
       type: Schema.Types.ObjectId,
       ref: "Lesson",
-      required: true,
+      default: null,
+      index: true,
+    },
+    sessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "LessonSession",
+      default: null,
       index: true,
     },
     teacherId: { type: Schema.Types.ObjectId, ref: "Teacher", required: true, index: true },
@@ -42,6 +49,19 @@ const lessonFlashcardDeckSchema = new Schema<ILessonFlashcardDeck>(
 );
 
 lessonFlashcardDeckSchema.index({ schoolId: 1, lessonId: 1, status: 1 });
+lessonFlashcardDeckSchema.index(
+  { schoolId: 1, sessionId: 1 },
+  { unique: true, partialFilterExpression: { sessionId: { $type: "objectId" } } },
+);
+lessonFlashcardDeckSchema.pre("validate", function validateDeckScope(next) {
+  const hasLesson = Boolean(this.lessonId);
+  const hasSession = Boolean(this.sessionId);
+  if (hasLesson === hasSession) {
+    next(new Error("Flashcard deck must reference exactly one of lessonId or sessionId"));
+    return;
+  }
+  next();
+});
 
 export const LessonFlashcardDeck: Model<ILessonFlashcardDeck> =
   (models.LessonFlashcardDeck as Model<ILessonFlashcardDeck>) ||

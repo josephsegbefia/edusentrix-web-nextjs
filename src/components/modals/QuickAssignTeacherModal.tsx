@@ -13,6 +13,7 @@ import {
   X,
   UserCheck,
   BookOpen,
+  AlertTriangle,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -40,6 +41,24 @@ type TeacherOption = {
   fullName: string;
   email: string | null;
   photoUrl: string | null;
+};
+
+type AssignmentConflict = {
+  type?: string;
+  message?: string;
+  existingTeachers?: Array<{
+    id: string;
+    name: string;
+    assignmentId: string;
+  }>;
+};
+
+type AssignmentError = Error & {
+  status?: number;
+  meta?: {
+    error?: string;
+    conflict?: AssignmentConflict;
+  };
 };
 
 export function QuickAssignTeacherModal({
@@ -95,6 +114,9 @@ export function QuickAssignTeacherModal({
   });
 
   const teachers = teachersData?.data || [];
+  const isChangingTeacher = Boolean(
+    currentTeacherId && selectedTeacherId && selectedTeacherId !== currentTeacherId
+  );
 
   // Assignment mutation
   const assignMutation = useMutation({
@@ -107,13 +129,22 @@ export function QuickAssignTeacherModal({
           subjectId: subject.id,
           subjectOfferingId: subject.subjectOfferingId || undefined,
           classGroupId: classId,
+          replaceExisting: Boolean(currentTeacherId && teacherId !== currentTeacherId),
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Assignment failed");
+        const conflict = data?.conflict as AssignmentConflict | undefined;
+        const message =
+          res.status === 409 && conflict?.message
+            ? conflict.message
+            : data?.error || "Assignment failed";
+        throw Object.assign(new Error(message), {
+          status: res.status,
+          meta: data,
+        });
       }
-      return res.json();
+      return data;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
@@ -126,16 +157,41 @@ export function QuickAssignTeacherModal({
 
   const handleAssign = async () => {
     if (!selectedTeacherId) return;
+    if (selectedTeacherId === currentTeacherId) {
+      busy.info("No change needed", {
+        description: `${selectedTeacher?.fullName || "This teacher"} is already assigned to ${subject.name} in ${className}.`,
+      });
+      return;
+    }
 
+    busy.show(isChangingTeacher ? "Changing teacher..." : "Assigning teacher...");
     try {
-      await busy.promise(assignMutation.mutateAsync(selectedTeacherId), {
-        loading: "Assigning teacher...",
-        success: "Teacher assigned successfully!",
-        error: (e: Error) => e.message || "Failed to assign teacher",
+      await assignMutation.mutateAsync(selectedTeacherId);
+      busy.hide();
+      busy.success(isChangingTeacher ? "Teacher changed successfully" : "Teacher assigned successfully", {
+        description: `${selectedTeacher?.fullName || "Teacher"} will teach ${subject.name} in ${className}.`,
       });
       onOpenChange(false);
-    } catch {
-      // Error handled by busy toast
+    } catch (e: unknown) {
+      busy.hide();
+      const error = e as AssignmentError;
+      const conflict = error.meta?.conflict;
+      const existingNames =
+        conflict?.existingTeachers
+          ?.map((teacher) => teacher.name)
+          .filter(Boolean)
+          .join(", ") || "";
+      const description = [
+        conflict?.message || error.message || "Assignment failed",
+        existingNames ? `Current teacher(s): ${existingNames}.` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      busy.error(
+        error.status === 409 ? "Teacher assignment conflict" : "Failed to assign teacher",
+        { description, duration: 8000 }
+      );
     }
   };
 
@@ -206,6 +262,15 @@ export function QuickAssignTeacherModal({
                     </div>
                   </div>
                 </div>
+
+                {currentTeacherId && (
+                  <div className="flex gap-2 rounded-lg border border-amber-400/25 bg-amber-500/10 p-3 text-xs text-amber-100">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                    <p>
+                      Selecting a different teacher will replace the current teacher for this subject in {className}.
+                    </p>
+                  </div>
+                )}
 
                 {/* Search */}
                 <div className="space-y-2">
@@ -355,11 +420,11 @@ export function QuickAssignTeacherModal({
                   className="gap-2 bg-brand text-black hover:opacity-90"
                 >
                   {assignMutation.isPending ? (
-                    "Assigning…"
+                    isChangingTeacher ? "Changing..." : "Assigning..."
                   ) : (
                     <>
                       <Check className="h-4 w-4" />
-                      Assign Teacher
+                      {isChangingTeacher ? "Change Teacher" : "Assign Teacher"}
                     </>
                   )}
                 </Button>
@@ -399,6 +464,13 @@ export function QuickAssignTeacherModal({
 
               {/* Mobile Content */}
               <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0 space-y-4">
+                {currentTeacherId && (
+                  <div className="flex gap-2 rounded-lg border border-amber-400/25 bg-amber-500/10 p-3 text-xs text-amber-100">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                    <p>Choosing another teacher will replace the current teacher in {className}.</p>
+                  </div>
+                )}
+
                 {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -488,11 +560,11 @@ export function QuickAssignTeacherModal({
                   className="gap-1 bg-brand text-black text-xs"
                 >
                   {assignMutation.isPending ? (
-                    "Assigning…"
+                    isChangingTeacher ? "Changing..." : "Assigning..."
                   ) : (
                     <>
                       <Check className="h-3 w-3" />
-                      Assign
+                      {isChangingTeacher ? "Change" : "Assign"}
                     </>
                   )}
                 </Button>

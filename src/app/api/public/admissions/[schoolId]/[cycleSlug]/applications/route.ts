@@ -21,6 +21,7 @@ import {
 } from "@/lib/admissions/tokens";
 import { validateAndNormalizeSubmission } from "@/lib/admissions/submission";
 import type { AdmissionFormSchema } from "@/lib/admissions/types";
+import { deleteUploadedFiles } from "@/lib/uploads/delete";
 
 type Params = Promise<{ schoolId: string; cycleSlug: string }>;
 
@@ -58,6 +59,7 @@ function originFromRequest(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Params }) {
+  let uploadedDocumentUrls: string[] = [];
   try {
     const { schoolId, cycleSlug } = await params;
     if (!schoolId || !mongoose.Types.ObjectId.isValid(schoolId) || !cycleSlug) {
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         { status: 400 }
       );
     }
+    uploadedDocumentUrls = parsed.data.documents.map((document) => document.fileUrl);
 
     await connectToDatabase();
 
@@ -88,12 +91,16 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       slug: cycleSlug,
     });
     if (!cycle) {
+      await deleteUploadedFiles(uploadedDocumentUrls);
+      uploadedDocumentUrls = [];
       return NextResponse.json(
         { success: false, error: "Cycle not found" },
         { status: 404 }
       );
     }
     if (cycle.status !== "published") {
+      await deleteUploadedFiles(uploadedDocumentUrls);
+      uploadedDocumentUrls = [];
       return NextResponse.json(
         {
           success: false,
@@ -109,12 +116,16 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       cycle.acceptsApplicationsUntil &&
       new Date(cycle.acceptsApplicationsUntil).getTime() < Date.now()
     ) {
+      await deleteUploadedFiles(uploadedDocumentUrls);
+      uploadedDocumentUrls = [];
       return NextResponse.json(
         { success: false, error: "The application deadline has passed." },
         { status: 409 }
       );
     }
     if (!cycle.formId) {
+      await deleteUploadedFiles(uploadedDocumentUrls);
+      uploadedDocumentUrls = [];
       return NextResponse.json(
         { success: false, error: "Application form is not configured." },
         { status: 500 }
@@ -123,6 +134,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
 
     const form = await AdmissionForm.findById(cycle.formId).lean();
     if (!form) {
+      await deleteUploadedFiles(uploadedDocumentUrls);
+      uploadedDocumentUrls = [];
       return NextResponse.json(
         { success: false, error: "Application form not found." },
         { status: 500 }
@@ -141,6 +154,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       documents: parsed.data.documents,
     });
     if (!validation.ok) {
+      await deleteUploadedFiles(uploadedDocumentUrls);
+      uploadedDocumentUrls = [];
       return NextResponse.json(
         {
           success: false,
@@ -153,6 +168,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
 
     const data = validation.data;
     if (!data.consentGiven) {
+      await deleteUploadedFiles(uploadedDocumentUrls);
+      uploadedDocumentUrls = [];
       return NextResponse.json(
         { success: false, error: "Consent is required" },
         { status: 422 }
@@ -173,6 +190,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       }
     }
     if (!referenceCode) {
+      await deleteUploadedFiles(uploadedDocumentUrls);
+      uploadedDocumentUrls = [];
       return NextResponse.json(
         { success: false, error: "Could not generate a reference code. Please retry." },
         { status: 500 }
@@ -230,6 +249,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       tracker: { token: trackerToken },
       feeStatus: cycle.applicationFee?.enabled ? "pending" : "not_required",
     });
+    uploadedDocumentUrls = [];
 
     // Update cycle analytics in-place. Inexpensive while submission volume is
     // small; we'll move to background aggregation if needed.
@@ -249,23 +269,27 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
     cycle.markModified("analytics");
     await cycle.save();
 
-    await AdmissionEvent.create({
-      schoolId: schoolObjectId,
-      cycleId: cycle._id,
-      applicationId: application._id,
-      actor: {
-        userId: null,
-        role: "applicant",
-        label: `${data.guardian.firstName} ${data.guardian.lastName}`.trim() || "Applicant",
-      },
-      kind: "application.submitted",
-      metadata: {
-        channel: parsed.data.channel,
-        referenceCode,
-        intendedGradeId: data.applicant.intendedGradeId,
-      },
-      at: new Date(),
-    });
+    try {
+      await AdmissionEvent.create({
+        schoolId: schoolObjectId,
+        cycleId: cycle._id,
+        applicationId: application._id,
+        actor: {
+          userId: null,
+          role: "applicant",
+          label: `${data.guardian.firstName} ${data.guardian.lastName}`.trim() || "Applicant",
+        },
+        kind: "application.submitted",
+        metadata: {
+          channel: parsed.data.channel,
+          referenceCode,
+          intendedGradeId: data.applicant.intendedGradeId,
+        },
+        at: new Date(),
+      });
+    } catch (eventError) {
+      console.error("Admission submission event logging failed:", eventError);
+    }
 
     const school = await School.findById(schoolObjectId).select("name").lean<{
       name?: string;
@@ -301,6 +325,12 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       },
     });
   } catch (error) {
+    if (uploadedDocumentUrls.length > 0) {
+      const result = await deleteUploadedFiles(uploadedDocumentUrls);
+      if (result.failed > 0) {
+        console.error("Rollback failed for some admission submission uploads:", result);
+      }
+    }
     console.error("Public admission submission error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to submit application" },

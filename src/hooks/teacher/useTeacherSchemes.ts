@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { deleteSchemeRequest } from "@/lib/schemes/delete-scheme-client";
 import type {
   CoverageSummaryRow,
   SchemeItemCoverageStatus,
@@ -93,11 +94,13 @@ export function useTeacherSchemeCreate() {
 export function useTeacherSchemeDelete() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (schemeId: string) => {
-      const res = await fetch(`/api/teacher/schemes/${schemeId}`, { method: "DELETE" });
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to delete scheme");
-      return schemeId;
+    mutationFn: async (input: { schemeId: string; unlinkLessonNotes?: boolean }) => {
+      await deleteSchemeRequest(
+        "/api/teacher/schemes",
+        input.schemeId,
+        input.unlinkLessonNotes,
+      );
+      return input.schemeId;
     },
     onSuccess: (deletedId) => {
       queryClient.invalidateQueries({ queryKey: ["teacher-schemes"] });

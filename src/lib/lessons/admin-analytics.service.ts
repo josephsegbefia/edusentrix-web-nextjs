@@ -13,6 +13,10 @@ import { getCurriculumCompletionForPublishedLessonsInRange } from "@/lib/lessons
 import { Homework } from "@/models/Homework";
 import { Submission } from "@/models/Submission";
 import { LessonCollaborationComment } from "@/models/LessonCollaborationComment";
+import {
+  getV2CoverageAnalytics,
+  type V2CoverageAnalytics,
+} from "@/lib/lessons/lessons-v2-coverage-analytics";
 
 export type LessonAnalyticsResult = {
   range: { from: string; to: string };
@@ -84,6 +88,7 @@ export type LessonAnalyticsResult = {
       submissionsInRange: number;
     }>;
   };
+  v2Coverage: V2CoverageAnalytics;
   collaboration: {
     lessonsWithCollaboratorsTotal: number;
     lessonsUpdatedByCollaboratorsInRange: number;
@@ -633,8 +638,11 @@ export async function getLessonAnalytics(
         )
       : null;
 
+  const v2Coverage = await getV2CoverageAnalytics({ schoolId, from: fromD, to: toD });
+
   return {
     range: { from: fromD.toISOString(), to: toD.toISOString() },
+    v2Coverage,
     createdInRange: { total: createdTotal, byStatus },
     publishedEventsInRange: publishedCount,
     currentDraftsTotal: draftsTotal,

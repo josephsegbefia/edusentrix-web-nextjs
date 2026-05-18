@@ -40,6 +40,12 @@ import {
   useTeacherUpdateLessonResource,
   useTeacherDeleteLessonResource,
 } from "@/hooks/teacher/useTeacherLessonResources";
+import {
+  useTeacherSessionResources,
+  useTeacherCreateSessionResource,
+  useTeacherUpdateSessionResource,
+  useTeacherDeleteSessionResource,
+} from "@/hooks/teacher/useTeacherSessionResources";
 import type { LessonResourceDto } from "@/types/lesson-resources";
 import type { LessonResourceVisibility } from "@/models/LessonResource";
 
@@ -59,15 +65,31 @@ type Props = {
   lessonId: string;
   canWrite: boolean;
   lessonStatus: string;
+  /** When `session`, `lessonId` is the session id and session resource APIs are used. */
+  resourceScope?: "lesson" | "session";
 };
 
-export function TeacherLessonResourcesPanel({ lessonId, canWrite, lessonStatus }: Props) {
+export function TeacherLessonResourcesPanel({
+  lessonId,
+  canWrite,
+  lessonStatus,
+  resourceScope = "lesson",
+}: Props) {
   const busyToast = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
-  const { data, isLoading, error } = useTeacherLessonResources(lessonId, true);
-  const createMut = useTeacherCreateLessonResource(lessonId);
-  const updateMut = useTeacherUpdateLessonResource(lessonId);
-  const deleteMut = useTeacherDeleteLessonResource(lessonId);
+  const isSession = resourceScope === "session";
+  const lessonQuery = useTeacherLessonResources(lessonId, !isSession);
+  const sessionQuery = useTeacherSessionResources(lessonId, isSession);
+  const { data, isLoading, error } = isSession ? sessionQuery : lessonQuery;
+  const createLessonMut = useTeacherCreateLessonResource(lessonId);
+  const createSessionMut = useTeacherCreateSessionResource(lessonId);
+  const createMut = isSession ? createSessionMut : createLessonMut;
+  const updateLessonMut = useTeacherUpdateLessonResource(lessonId);
+  const updateSessionMut = useTeacherUpdateSessionResource(lessonId);
+  const updateMut = isSession ? updateSessionMut : updateLessonMut;
+  const deleteLessonMut = useTeacherDeleteLessonResource(lessonId);
+  const deleteSessionMut = useTeacherDeleteSessionResource(lessonId);
+  const deleteMut = isSession ? deleteSessionMut : deleteLessonMut;
 
   const [showAddLink, setShowAddLink] = React.useState(false);
   const [linkTitle, setLinkTitle] = React.useState("");

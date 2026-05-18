@@ -19,7 +19,9 @@ import {
 } from "lucide-react";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
+import { useTeacherLessonNote } from "@/hooks/teacher/useTeacherLessonNote";
 import { useTeacherLessonNotes } from "@/hooks/teacher/useTeacherLessonNotes";
+import { lessonNoteDetailToWizardInitial } from "@/lib/lesson-notes/detail-to-wizard";
 import { useTeacherLessonNoteCreate } from "@/hooks/teacher/useTeacherLessonNoteCreate";
 import { useTeacherLessonNoteDelete } from "@/hooks/teacher/useTeacherLessonNoteDelete";
 import { useLessonNoteFromSchemeItem } from "@/hooks/teacher/useLessonNoteFromSchemeItem";
@@ -69,7 +71,6 @@ const STATUS_OPTIONS = [
   { value: "submitted", label: "Submitted" },
   { value: "approved", label: "Approved" },
   { value: "rejected", label: "Rejected" },
-  { value: "published", label: "Published" },
 ];
 
 function buildTemplateOptions(curriculumCode: CurriculumCode) {
@@ -109,6 +110,17 @@ function formatWeekLabel(value?: string | null) {
   return `Week of ${date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
 }
 
+function formatDateLabel(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
@@ -117,6 +129,7 @@ function TeacherLessonNotesInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const createFromSchemeItemId = searchParams.get("createFromSchemeItem");
+  const editNoteId = searchParams.get("edit");
   const busyToast = useBusyToast();
   const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: contextData } = useTeacherContext();
@@ -193,6 +206,40 @@ function TeacherLessonNotesInner() {
   );
 
   const notes = notesData?.data.entries || [];
+  const groupedNotes = React.useMemo(() => {
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        className: string;
+        subjectName: string;
+        notes: typeof notes;
+      }
+    >();
+
+    for (const note of notes) {
+      const className = note.className || "Unassigned class";
+      const subjectName = note.subjectName || "General";
+      const key = `${className}::${subjectName}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.notes.push(note);
+      } else {
+        groups.set(key, { key, className, subjectName, notes: [note] });
+      }
+    }
+
+    return Array.from(groups.values()).sort((a, b) => {
+      const classCompare = a.className.localeCompare(b.className);
+      return classCompare || a.subjectName.localeCompare(b.subjectName);
+    });
+  }, [notes]);
+
+  const { data: editingDetailData, isLoading: editingDetailLoading } = useTeacherLessonNote(
+    editingNote,
+    showWizard && Boolean(editingNote),
+  );
+
   const schoolCurriculumCode = (contextData?.data.school?.curriculumCode || "ghana_nacca") as CurriculumCode;
   const templateOptions = React.useMemo(() => buildTemplateOptions(schoolCurriculumCode), [schoolCurriculumCode]);
   const noClassesAssigned = !isLoadingClasses && classOptions.length === 0;
@@ -212,6 +259,13 @@ function TeacherLessonNotesInner() {
     setShowWizard(true);
     setSchemePrefillConsumed(true);
   }, [createFromSchemeItemId, schemePrefill, schemePrefillConsumed]);
+
+  React.useEffect(() => {
+    if (!editNoteId) return;
+    setEditingNote(editNoteId);
+    setShowWizard(true);
+    router.replace("/teacher/lesson-notes", { scroll: false });
+  }, [editNoteId, router]);
 
   // Handlers
   const handleCreateNew = () => {
@@ -306,6 +360,133 @@ function TeacherLessonNotesInner() {
     search ||
     weekFilter;
 
+  const renderNoteCard = (note: (typeof notes)[number]) => (
+    <Card
+      key={note.id}
+      className="group cursor-pointer border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition-all hover:border-white/20"
+      onClick={() => router.push(`/teacher/lesson-notes/${note.id}`)}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-200">
+              {TEMPLATE_ICONS[note.templateType as LessonNoteTemplateType] || (
+                <FileText className="h-4 w-4" />
+              )}
+            </div>
+            <Badge
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-medium",
+                STATUS_COLORS[note.status as LessonNoteStatus] ||
+                  "bg-white/10 text-white/70"
+              )}
+            >
+              {note.status}
+            </Badge>
+          </div>
+          <PremiumDropdownMenu>
+            <PremiumDropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(event) => event.stopPropagation()}
+                className="h-8 w-8 rounded-full border border-white/10 bg-white/5 p-0 text-white/70 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
+              >
+                <span className="sr-only">Actions</span>
+                <BookOpen className="h-4 w-4" />
+              </Button>
+            </PremiumDropdownMenuTrigger>
+            <PremiumDropdownMenuContent align="end">
+              <PremiumDropdownMenuItem
+                icon={<Pencil className="h-4 w-4" />}
+                onClick={() => handleEdit(note.id)}
+              >
+                Edit
+              </PremiumDropdownMenuItem>
+              <PremiumDropdownMenuItem
+                icon={<Copy className="h-4 w-4" />}
+                onClick={() => handleDuplicate(note)}
+              >
+                Duplicate to next week
+              </PremiumDropdownMenuItem>
+              <PremiumDropdownMenuItem
+                icon={<Presentation className="h-4 w-4" />}
+                onClick={() =>
+                  router.push(
+                    `/teacher/lessons/create?noteId=${note.id}${note.classGroupId ? `&classGroupId=${note.classGroupId}` : ""}`,
+                  )
+                }
+              >
+                Create weekly lessons
+              </PremiumDropdownMenuItem>
+              <PremiumDropdownMenuItem
+                icon={<Download className="h-4 w-4" />}
+                onClick={() => busyToast.info("Export coming soon")}
+              >
+                Export PDF
+              </PremiumDropdownMenuItem>
+              <PremiumDropdownMenuItem
+                icon={<Trash2 className="h-4 w-4" />}
+                variant="destructive"
+                onClick={() => handleDelete(note.id, note.topic || "Untitled")}
+              >
+                Delete
+              </PremiumDropdownMenuItem>
+            </PremiumDropdownMenuContent>
+          </PremiumDropdownMenu>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        <div>
+          <CardTitle className="line-clamp-2 text-base text-white transition-colors group-hover:text-indigo-200">
+            {note.topic}
+          </CardTitle>
+          <p className="mt-1 text-xs text-white/50">
+            {note.className}
+            {note.subjectName ? ` · ${note.subjectName}` : ""}
+          </p>
+        </div>
+
+        <div className="space-y-1 text-xs text-white/50">
+          <span className="flex items-center gap-1">
+            <CalendarDays className="h-3.5 w-3.5" />
+            {formatWeekLabel(note.weekOf)}
+          </span>
+          <div className="flex flex-wrap gap-x-2 gap-y-1">
+            <span>Created: {formatDateLabel(note.date || note.createdAt)}</span>
+            <span>Week ending: {formatDateLabel(note.weekEndingDate)}</span>
+            {note.durationMinutes ? <span>{note.durationMinutes} min</span> : null}
+            {note.resources.length > 0 ? <span>{note.resources.length} resources</span> : null}
+          </div>
+        </div>
+
+        <Badge className="bg-white/5 text-white/60 text-xs">
+          {TEMPLATE_LABELS[note.templateType as LessonNoteTemplateType] || "Quick Note"}
+        </Badge>
+
+        {note.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {note.tags.slice(0, 3).map((tag) => (
+              <Badge
+                key={tag}
+                className="flex items-center gap-1 bg-white/5 text-white/50 text-xs"
+              >
+                <Tag className="h-2.5 w-2.5" />
+                {tag}
+              </Badge>
+            ))}
+            {note.tags.length > 3 && (
+              <Badge className="bg-white/5 text-white/50 text-xs">
+                +{note.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   // ============================================================================
   // Render: No permission
   // ============================================================================
@@ -341,11 +522,61 @@ function TeacherLessonNotesInner() {
   // ============================================================================
 
   if (showWizard) {
-    // Find the note being edited
-    const noteToEdit = editingNote
-      ? notes.find((n) => n.id === editingNote)
-      : null;
+    const noteFromList = editingNote ? notes.find((n) => n.id === editingNote) : null;
+    const noteToEdit = editingDetailData?.data
+      ? lessonNoteDetailToWizardInitial(editingDetailData.data)
+      : noteFromList
+        ? {
+            id: noteFromList.id,
+            classGroupId: noteFromList.classGroupId,
+            subjectId: noteFromList.subjectId || undefined,
+            templateType: noteFromList.templateType as LessonNoteTemplateType,
+            weekOf: noteFromList.weekOf ? new Date(noteFromList.weekOf) : new Date(),
+            date: noteFromList.date ? new Date(noteFromList.date) : undefined,
+            weekEndingDate: noteFromList.weekEndingDate ? new Date(noteFromList.weekEndingDate) : undefined,
+            topic: noteFromList.topic,
+            durationMinutes: noteFromList.durationMinutes || undefined,
+            references: noteFromList.references || [],
+            curriculum: noteFromList.curriculum || {
+              strand: "",
+              subStrand: "",
+              contentStandard: "",
+              indicators: [],
+              learningOutcomes: [],
+            },
+            tlms: noteFromList.tlms || [],
+            body: noteFromList.body || undefined,
+            assessment: noteFromList.assessment || {
+              inClassChecks: [],
+              exitTicket: "",
+              homework: "",
+            },
+            reflections: noteFromList.reflections || {
+              learner: "",
+              teacher: "",
+              nextLessonLink: "",
+            },
+            resources: noteFromList.resources,
+            tags: noteFromList.tags,
+            status: noteFromList.status as LessonNoteStatus,
+            schemeId: noteFromList.schemeId ?? undefined,
+            schemeItemIds: noteFromList.schemeItemIds ?? [],
+          }
+        : null;
     const schemeInitialData = !editingNote && schemePrefill?.initialData ? schemePrefill.initialData : undefined;
+
+    if (editingNote && editingDetailLoading && !noteToEdit) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5"
+            />
+          ))}
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
@@ -366,45 +597,7 @@ function TeacherLessonNotesInner() {
 
         <LessonNoteWizard
           classOptions={classOptions}
-          initialData={
-            noteToEdit
-              ? {
-                  id: noteToEdit.id,
-                  classGroupId: noteToEdit.classGroupId,
-                  subjectId: noteToEdit.subjectId || undefined,
-                  templateType: noteToEdit.templateType as LessonNoteTemplateType,
-                  weekOf: noteToEdit.weekOf ? new Date(noteToEdit.weekOf) : new Date(),
-                  date: noteToEdit.date ? new Date(noteToEdit.date) : undefined,
-                  topic: noteToEdit.topic,
-                  durationMinutes: noteToEdit.durationMinutes || undefined,
-                  references: noteToEdit.references || [],
-                  curriculum: noteToEdit.curriculum || {
-                    strand: "",
-                    subStrand: "",
-                    contentStandard: "",
-                    indicators: [],
-                    learningOutcomes: [],
-                  },
-                  tlms: noteToEdit.tlms || [],
-                  body: noteToEdit.body || undefined,
-                  assessment: noteToEdit.assessment || {
-                    inClassChecks: [],
-                    exitTicket: "",
-                    homework: "",
-                  },
-                  reflections: noteToEdit.reflections || {
-                    learner: "",
-                    teacher: "",
-                    nextLessonLink: "",
-                  },
-                  resources: noteToEdit.resources,
-                  tags: noteToEdit.tags,
-                  status: noteToEdit.status as LessonNoteStatus,
-                  schemeId: noteToEdit.schemeId ?? undefined,
-                  schemeItemIds: noteToEdit.schemeItemIds ?? [],
-                }
-              : schemeInitialData
-          }
+          initialData={noteToEdit ?? schemeInitialData}
           onComplete={handleWizardComplete}
           onCancel={handleWizardCancel}
           curriculumCode={(contextData?.data.school?.curriculumCode as import("@/constants/curriculum-profiles").CurriculumCode) || "ghana_nacca"}
@@ -588,133 +781,29 @@ function TeacherLessonNotesInner() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {notes.map((note) => (
-            <Card
-              key={note.id}
-              className="group cursor-pointer border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition-all hover:border-white/20"
-              onClick={() => router.push(`/teacher/lesson-notes/${note.id}`)}
+        <div className="space-y-5">
+          {groupedNotes.map((group) => (
+            <section
+              key={group.key}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-lg shadow-black/20"
             >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-200">
-                      {TEMPLATE_ICONS[note.templateType as LessonNoteTemplateType] || (
-                        <FileText className="h-4 w-4" />
-                      )}
-                    </div>
-                    <Badge
-                      className={cn(
-                        "rounded-full px-2 py-0.5 text-xs font-medium",
-                        STATUS_COLORS[note.status as LessonNoteStatus] ||
-                          "bg-white/10 text-white/70"
-                      )}
-                    >
-                      {note.status}
-                    </Badge>
-                  </div>
-                  <PremiumDropdownMenu>
-                    <PremiumDropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(event) => event.stopPropagation()}
-                        className="h-8 w-8 rounded-full border border-white/10 bg-white/5 p-0 text-white/70 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
-                      >
-                        <span className="sr-only">Actions</span>
-                        <BookOpen className="h-4 w-4" />
-                      </Button>
-                    </PremiumDropdownMenuTrigger>
-                    <PremiumDropdownMenuContent align="end">
-                      <PremiumDropdownMenuItem
-                        icon={<Pencil className="h-4 w-4" />}
-                        onClick={() => handleEdit(note.id)}
-                      >
-                        Edit
-                      </PremiumDropdownMenuItem>
-                      <PremiumDropdownMenuItem
-                        icon={<Copy className="h-4 w-4" />}
-                        onClick={() => handleDuplicate(note)}
-                      >
-                        Duplicate to next week
-                      </PremiumDropdownMenuItem>
-                      <PremiumDropdownMenuItem
-                        icon={<Presentation className="h-4 w-4" />}
-                        onClick={() =>
-                          router.push(`/teacher/lessons?createFromNote=${note.id}`)
-                        }
-                      >
-                        New student lesson
-                      </PremiumDropdownMenuItem>
-                      <PremiumDropdownMenuItem
-                        icon={<Download className="h-4 w-4" />}
-                        onClick={() => busyToast.info("Export coming soon")}
-                      >
-                        Export PDF
-                      </PremiumDropdownMenuItem>
-                      <PremiumDropdownMenuItem
-                        icon={<Trash2 className="h-4 w-4" />}
-                        variant="destructive"
-                        onClick={() => handleDelete(note.id, note.topic || "Untitled")}
-                      >
-                        Delete
-                      </PremiumDropdownMenuItem>
-                    </PremiumDropdownMenuContent>
-                  </PremiumDropdownMenu>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle className="line-clamp-2 text-base text-white transition-colors group-hover:text-indigo-200">
-                    {note.topic}
-                  </CardTitle>
-                  <p className="mt-1 text-xs text-white/50">
-                    {note.className}
-                    {note.subjectName ? ` · ${note.subjectName}` : ""}
+                  <h2 className="text-sm font-semibold text-white">
+                    {group.className} · {group.subjectName}
+                  </h2>
+                  <p className="text-xs text-white/50">
+                    {group.notes.length} lesson {group.notes.length === 1 ? "note" : "notes"}
                   </p>
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-xs text-white/50">
-                  <span className="flex items-center gap-1">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    {formatWeekLabel(note.weekOf)}
-                  </span>
-                  {note.durationMinutes && (
-                    <span>· {note.durationMinutes} min</span>
-                  )}
-                  {note.resources.length > 0 && (
-                    <span>· {note.resources.length} resources</span>
-                  )}
-                </div>
-
-                {/* Template badge */}
-                <Badge className="bg-white/5 text-white/60 text-xs">
-                  {TEMPLATE_LABELS[note.templateType as LessonNoteTemplateType] ||
-                    "Quick Note"}
+                <Badge className="w-fit border border-white/10 bg-white/5 text-white/60">
+                  Latest: {formatWeekLabel(group.notes[0]?.weekOf)}
                 </Badge>
-
-                {/* Tags */}
-                {note.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {note.tags.slice(0, 3).map((tag) => (
-                      <Badge
-                        key={tag}
-                        className="flex items-center gap-1 bg-white/5 text-white/50 text-xs"
-                      >
-                        <Tag className="h-2.5 w-2.5" />
-                        {tag}
-                      </Badge>
-                    ))}
-                    {note.tags.length > 3 && (
-                      <Badge className="bg-white/5 text-white/50 text-xs">
-                        +{note.tags.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {group.notes.map((note) => renderNoteCard(note))}
+              </div>
+            </section>
           ))}
         </div>
       )}

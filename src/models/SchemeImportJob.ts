@@ -2,7 +2,7 @@ import { Schema, model, models, type Model, type Types } from "mongoose";
 
 export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
 
-export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai";
+export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai" | "pdf_gemini";
 
 export interface ISchemeImportParsedRow {
   rowIndex: number;
@@ -36,6 +36,8 @@ export interface ISchemeImportJob {
   /** UploadThing key when applicable */
   fileKey?: string | null;
   parseError?: string | null;
+  /** Shown when import succeeded via offline PDF parse or Leo was skipped. */
+  parseWarning?: string | null;
   parsedRows: ISchemeImportParsedRow[];
   resultSchemeId?: Types.ObjectId | null;
   createdAt: Date;
@@ -47,9 +49,9 @@ const parsedRowSchema = new Schema<ISchemeImportParsedRow>(
     rowIndex: { type: Number, required: true, min: 0 },
     weekNumber: { type: Number, default: null },
     weekEnding: { type: String, trim: true, maxlength: 120, default: null },
-    title: { type: String, required: true, trim: true, maxlength: 300 },
-    strand: { type: String, trim: true, maxlength: 300, default: null },
-    subStrand: { type: String, trim: true, maxlength: 300, default: null },
+    title: { type: String, required: true, trim: true, maxlength: 260 },
+    strand: { type: String, trim: true, maxlength: 260, default: null },
+    subStrand: { type: String, trim: true, maxlength: 260, default: null },
     contentStandard: { type: String, trim: true, maxlength: 600, default: null },
     indicators: [{ type: String, trim: true, maxlength: 600 }],
     resources: [{ type: String, trim: true, maxlength: 500 }],
@@ -74,7 +76,7 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
     createdByUserId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     sourceKind: {
       type: String,
-      enum: ["spreadsheet", "pdf_ai"],
+      enum: ["spreadsheet", "pdf_ai", "pdf_gemini"],
       default: "spreadsheet",
       index: true,
     },
@@ -88,6 +90,7 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
     fileUrl: { type: String, trim: true, maxlength: 2000, default: null },
     fileKey: { type: String, trim: true, maxlength: 500, default: null },
     parseError: { type: String, trim: true, maxlength: 4000, default: null },
+    parseWarning: { type: String, trim: true, maxlength: 4000, default: null },
     parsedRows: { type: [parsedRowSchema], default: [] },
     resultSchemeId: { type: Schema.Types.ObjectId, ref: "SchemeOfWork", default: null },
   },
@@ -95,6 +98,18 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
 );
 
 schemeImportJobSchema.index({ schoolId: 1, createdAt: -1 });
+
+const existingSchemeImportJob = models.SchemeImportJob as Model<ISchemeImportJob> | undefined;
+if (existingSchemeImportJob) {
+  const sourceKindPath = existingSchemeImportJob.schema.path("sourceKind");
+  const enumValues =
+    sourceKindPath && "enumValues" in sourceKindPath
+      ? (sourceKindPath.enumValues as string[])
+      : [];
+  if (!enumValues.includes("pdf_gemini")) {
+    delete models.SchemeImportJob;
+  }
+}
 
 export const SchemeImportJob: Model<ISchemeImportJob> =
   (models.SchemeImportJob as Model<ISchemeImportJob>) ||

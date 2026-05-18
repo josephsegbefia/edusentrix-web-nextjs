@@ -967,17 +967,75 @@ export default function SchoolAdminOverviewPage() {
         return json;
       });
 
-      await busy.promise(updatePromise, {
+      const updated = await busy.promise(updatePromise, {
         loading: "Updating academic period…",
         success: "Academic period updated",
         error: (e: Error) => e.message || "Could not update period",
       });
 
+      const updatedPeriod = updated?.period;
+      if (updatedPeriod) {
+        queryClient.setQueryData(["admin", "period-overview"], (current: any) => {
+          if (!current?.currentPeriod || current.currentPeriod.id !== updatedPeriod.id) {
+            return current;
+          }
+          return {
+            ...current,
+            currentPeriod: {
+              ...current.currentPeriod,
+              yearLabel: updatedPeriod.yearLabel,
+              term: updatedPeriod.term,
+              startDate: updatedPeriod.startDate,
+              endDate: updatedPeriod.endDate,
+            },
+          };
+        });
+        queryClient.setQueryData(["admin", "period-status"], (current: any) => {
+          if (!current?.currentPeriod || current.currentPeriod.id !== updatedPeriod.id) {
+            return current;
+          }
+          return {
+            ...current,
+            currentPeriod: {
+              ...current.currentPeriod,
+              yearLabel: updatedPeriod.yearLabel,
+              term: updatedPeriod.term,
+              startDate: updatedPeriod.startDate,
+              endDate: updatedPeriod.endDate,
+              isYearEndTerminal: updatedPeriod.isYearEndTerminal,
+            },
+          };
+        });
+        queryClient.setQueryData(["academicPeriods"], (current: any) => {
+          if (!current?.periods || !Array.isArray(current.periods)) return current;
+          return {
+            ...current,
+            periods: current.periods.map((item: any) =>
+              item._id === updatedPeriod.id || item.id === updatedPeriod.id
+                ? {
+                    ...item,
+                    yearLabel: updatedPeriod.yearLabel,
+                    term: updatedPeriod.term,
+                    startDate: updatedPeriod.startDate,
+                    endDate: updatedPeriod.endDate,
+                    isCurrent: updatedPeriod.isCurrent,
+                    isYearEndTerminal: updatedPeriod.isYearEndTerminal,
+                  }
+                : item
+            ),
+          };
+        });
+      }
+
+      setShowEditPeriod(false);
       invalidateSetupReadiness(queryClient);
-      void queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] });
-      void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
-      void queryClient.invalidateQueries({ queryKey: ["admin", "period-overview"] });
-      void queryClient.invalidateQueries({ queryKey: ["admin", "period-status"] });
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ["admin", "metrics"] }),
+        queryClient.invalidateQueries({ queryKey: ["academicPeriods"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "period-overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin", "period-status"] }),
+        queryClient.invalidateQueries({ queryKey: ["periodSummary", updatedPeriod?.id ?? period.id] }),
+      ]);
     } finally {
       setEditingPeriod(false);
     }

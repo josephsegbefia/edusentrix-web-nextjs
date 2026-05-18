@@ -223,7 +223,9 @@ export async function POST(req: Request) {
       schoolId: context.schoolId,
       teacherId: context.teacherId,
     })
-      .select("_id classGroupId subjectId subjectOfferingId academicPeriodId topic schemeId schemeItemIds")
+      .select(
+        "_id classGroupId subjectId subjectOfferingId academicPeriodId topic schemeId schemeItemIds status"
+      )
       .lean()) as Pick<
       ILessonNote,
       | "_id"
@@ -234,12 +236,24 @@ export async function POST(req: Request) {
       | "topic"
       | "schemeId"
       | "schemeItemIds"
+      | "status"
     > | null;
 
     if (!note) {
       return Response.json(
         { success: false, error: "Lesson note not found" },
         { status: 404 }
+      );
+    }
+
+    if (note.status !== "approved" && note.status !== "published") {
+      return Response.json(
+        {
+          success: false,
+          error:
+            "Only approved lesson notes can be used to create lessons. Submit your note for school review first.",
+        },
+        { status: 403 },
       );
     }
 

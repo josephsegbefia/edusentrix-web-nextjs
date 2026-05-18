@@ -11,6 +11,8 @@ import {
   type LeoLessonDraftRequest,
   type LeoLessonDraftResponse,
 } from "@/hooks/teacher/useLeoLessonDraft";
+import { useTeacherCreateFlashcard } from "@/hooks/teacher/useTeacherLessonFlashcards";
+import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useTeacherLessonUpdate } from "@/hooks/teacher/useTeacherLessonUpdate";
 
@@ -31,26 +33,83 @@ function extractParentSummaryHtml(data: unknown): string | null {
   return typeof h === "string" && h.trim() ? h : null;
 }
 
+function extractFlashcardDrafts(data: unknown): Array<{ front: string; back: string }> {
+  if (!data || typeof data !== "object") return [];
+  const cards = (data as { cards?: unknown }).cards;
+  if (!Array.isArray(cards)) return [];
+  return cards
+    .map((c) => {
+      if (!c || typeof c !== "object") return null;
+      const front = String((c as { front?: unknown }).front ?? "").trim();
+      const back = String((c as { back?: unknown }).back ?? "").trim();
+      if (!front || !back) return null;
+      return { front, back };
+    })
+    .filter((c): c is { front: string; back: string } => c !== null);
+}
+
 export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Props) {
   const busyToast = useBusyToast();
+  const { data: teacherCtx } = useTeacherContext();
   const saveLesson = useTeacherLessonUpdate();
+  const createFlashcard = useTeacherCreateFlashcard(lessonId);
   const mutation = useLeoLessonDraftMutation();
   const [last, setLast] = React.useState<LastResult | null>(null);
   const [maxCards, setMaxCards] = React.useState(10);
   const [questionCount, setQuestionCount] = React.useState(8);
 
+  const subscription = teacherCtx?.data.subscription;
+  const leoBlockedReason = !subscription?.hasAiLessonNotes
+    ? "AI lesson drafts are not included in your school's current plan. You can still add flashcards manually below."
+    : subscription.expensiveAiBlockedReason;
+  const leoEnabled =
+    Boolean(subscription?.canUseExpensiveAi && subscription?.hasAiLessonNotes);
+
   const run = async (label: string, req: LeoLessonDraftRequest) => {
-    await busyToast.promise(
-      mutation.mutateAsync(req).then((payload) => {
-        setLast({ label, payload });
-        return payload;
-      }),
-      {
-        loading: "Leo is drafting…",
-        success: "Draft ready — review before sharing",
-        error: (e) => (e instanceof Error ? e.message : "Failed"),
-      }
-    );
+    if (!leoEnabled) {
+      busyToast.error(leoBlockedReason || "Leo drafts are not available right now.");
+      return;
+    }
+    try {
+      await busyToast.promise(
+        mutation.mutateAsync(req).then((payload) => {
+          setLast({ label, payload });
+          return payload;
+        }),
+        {
+          loading: "Leo is drafting…",
+          success: "Draft ready — review before sharing",
+          error: (e) => (e instanceof Error ? e.message : "Failed"),
+        }
+      );
+    } catch {
+      // Error toast already shown; avoid uncaught mutation errors in the UI overlay.
+    }
+  };
+
+  const importFlashcards = async () => {
+    if (!last) return;
+    const drafts = extractFlashcardDrafts(last.payload.data);
+    if (drafts.length === 0) {
+      busyToast.error("No valid flashcards found in the Leo draft.");
+      return;
+    }
+    try {
+      await busyToast.promise(
+        (async () => {
+          for (const card of drafts) {
+            await createFlashcard.mutateAsync(card);
+          }
+        })(),
+        {
+          loading: `Adding ${drafts.length} card${drafts.length === 1 ? "" : "s"}…`,
+          success: `Added ${drafts.length} flashcard${drafts.length === 1 ? "" : "s"} to this lesson`,
+          error: (e) => (e instanceof Error ? e.message : "Failed to add cards"),
+        }
+      );
+    } catch {
+      // Toast shown above.
+    }
   };
 
   const copyJson = async () => {
@@ -81,13 +140,18 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!leoEnabled && leoBlockedReason ? (
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-sm text-amber-100/90">
+            {leoBlockedReason}
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             size="sm"
             variant="outline"
             className="border-white/15 bg-white/5 text-white/85 hover:bg-white/10"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !leoEnabled}
             onClick={() =>
               void run("Student summary", { kind: "summary", lessonNoteId })
             }
@@ -99,7 +163,7 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
             size="sm"
             variant="outline"
             className="border-white/15 bg-white/5 text-white/85 hover:bg-white/10"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !leoEnabled}
             onClick={() =>
               void run("Quality check", { kind: "quality", lessonNoteId })
             }
@@ -111,7 +175,7 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
             size="sm"
             variant="outline"
             className="border-white/15 bg-white/5 text-white/85 hover:bg-white/10"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !leoEnabled}
             onClick={() =>
               void run("Simplify for learners", { kind: "simplify", lessonNoteId })
             }
@@ -123,7 +187,7 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
             size="sm"
             variant="outline"
             className="border-white/15 bg-white/5 text-white/85 hover:bg-white/10"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !leoEnabled}
             onClick={() =>
               void run("Differentiated materials", { kind: "differentiate", lessonNoteId })
             }
@@ -135,7 +199,7 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
             size="sm"
             variant="outline"
             className="border-white/15 bg-white/5 text-white/85 hover:bg-white/10"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !leoEnabled}
             onClick={() =>
               void run("Parent summary", { kind: "parentSummary", lessonNoteId })
             }
@@ -147,7 +211,7 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
             size="sm"
             variant="outline"
             className="border-white/15 bg-white/5 text-white/85 hover:bg-white/10"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !leoEnabled}
             onClick={() =>
               void run("Suggest activities", { kind: "activities", lessonId })
             }
@@ -159,7 +223,7 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
             size="sm"
             variant="outline"
             className="border-white/15 bg-white/5 text-white/85 hover:bg-white/10"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !leoEnabled}
             onClick={() =>
               void run("Practice questions", {
                 kind: "practice",
@@ -175,7 +239,7 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
             size="sm"
             variant="outline"
             className="border-white/15 bg-white/5 text-white/85 hover:bg-white/10"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !leoEnabled}
             onClick={() =>
               void run("Draft flashcards", {
                 kind: "flashcards",
@@ -184,7 +248,7 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
               })
             }
           >
-            Flashcards
+            Draft flashcards (Leo)
           </Button>
         </div>
 
@@ -239,6 +303,19 @@ export function TeacherLessonLeoPanel({ lessonId, lessonNoteId, canWrite }: Prop
                     }}
                   >
                     Save to lesson (parents)
+                  </Button>
+                ) : null}
+                {last.label === "Draft flashcards" &&
+                extractFlashcardDrafts(last.payload.data).length > 0 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="h-8 bg-fuchsia-500/20 text-fuchsia-100 hover:bg-fuchsia-500/30"
+                    disabled={createFlashcard.isPending}
+                    onClick={() => void importFlashcards()}
+                  >
+                    Add {extractFlashcardDrafts(last.payload.data).length} to flashcard deck
                   </Button>
                 ) : null}
                 <Button

@@ -46,6 +46,12 @@ export type TeacherContextResponse = {
       enableSchemeOfWork: boolean;
       allowAiSchemeDrafting: boolean;
     };
+    subscription: {
+      accessMode: string;
+      canUseExpensiveAi: boolean;
+      hasAiLessonNotes: boolean;
+      expensiveAiBlockedReason: string | null;
+    };
     permissions: string[];
     delegations?: DelegationNavItem[];
   };

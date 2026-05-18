@@ -24,8 +24,10 @@ export interface IHomework {
   teacherId: Types.ObjectId;
   academicPeriodId: Types.ObjectId;
   subjectId: Types.ObjectId;
-  /** Optional V2 linkage: assignment/quiz generated from a specific lesson instance. */
+  /** Optional legacy linkage: assignment/quiz from old Lesson model. */
   sourceLessonId?: Types.ObjectId;
+  /** Optional V2 linkage: assignment/quiz from a lesson session. */
+  sourceSessionId?: Types.ObjectId;
   classGroupIds: Types.ObjectId[];
   targetStudentIds?: Types.ObjectId[];
   title: string;
@@ -119,6 +121,11 @@ const homeworkSchema = new Schema<IHomework>(
       ref: "Lesson",
       index: true,
     },
+    sourceSessionId: {
+      type: Schema.Types.ObjectId,
+      ref: "LessonSession",
+      index: true,
+    },
     classGroupIds: [
       {
         type: Schema.Types.ObjectId,
@@ -166,6 +173,7 @@ const homeworkSchema = new Schema<IHomework>(
 homeworkSchema.index({ schoolId: 1, teacherId: 1, status: 1, createdAt: -1 });
 homeworkSchema.index({ schoolId: 1, classGroupIds: 1, status: 1, dueDate: 1 });
 homeworkSchema.index({ schoolId: 1, sourceLessonId: 1, type: 1, createdAt: -1 });
+homeworkSchema.index({ schoolId: 1, sourceSessionId: 1, type: 1, createdAt: -1 });
 
 const existingHomeworkModel = models.Homework as Model<IHomework> | undefined;
 if (

@@ -21,12 +21,10 @@ export type LessonNoteTemplateType =
   | "IB_PYP_UNIT_PLANNER"
   | "IB_MYP_UNIT_PLANNER";
 
-export type LessonNoteStatus =
-  | "draft"
-  | "submitted"
-  | "approved"
-  | "rejected"
-  | "published";
+export type LessonNoteStatus = "draft" | "submitted" | "approved" | "rejected";
+
+/** @deprecated Removed in Lessons v2 — treat as approved when reading legacy rows. */
+export type LegacyLessonNotePublishedStatus = "published";
 
 export const TEMPLATE_LABELS: Record<LessonNoteTemplateType, string> = {
   NACCA_3_PHASE: "NaCCA 3-Phase",
@@ -42,9 +40,8 @@ export const TEMPLATE_LABELS: Record<LessonNoteTemplateType, string> = {
 export const STATUS_LABELS: Record<LessonNoteStatus, string> = {
   draft: "Draft",
   submitted: "Submitted",
-  approved: "Approved",
+  approved: "Approved for delivery",
   rejected: "Rejected",
-  published: "Published",
 };
 
 export const STATUS_COLORS: Record<LessonNoteStatus, string> = {
@@ -52,8 +49,20 @@ export const STATUS_COLORS: Record<LessonNoteStatus, string> = {
   submitted: "bg-blue-500/20 text-blue-200",
   approved: "bg-emerald-500/20 text-emerald-200",
   rejected: "bg-rose-500/20 text-rose-200",
-  published: "bg-indigo-500/20 text-indigo-200",
 };
+
+export function normalizeLessonNoteStatus(status: string): LessonNoteStatus {
+  if (status === "published") return "approved";
+  if (
+    status === "draft" ||
+    status === "submitted" ||
+    status === "approved" ||
+    status === "rejected"
+  ) {
+    return status;
+  }
+  return "draft";
+}
 
 // ============================================================================
 // Resource Types
@@ -286,6 +295,7 @@ export interface LessonNote {
   // Basic Info
   weekOf: string;
   date?: string;
+  weekEndingDate?: string | null;
   topic: string;
   durationMinutes?: number;
   references: string[];
@@ -351,6 +361,7 @@ export interface LessonNoteFormData {
   unitPlannerData?: Record<string, unknown>;
   weekOf: Date;
   date?: Date;
+  weekEndingDate?: Date | null;
   topic: string;
   durationMinutes?: number;
   references: string[];
@@ -404,6 +415,7 @@ export interface CreateLessonNotePayload {
   unitPlannerData?: Record<string, unknown>;
   weekOf: string;
   date?: string;
+  weekEndingDate?: string | null;
   topic: string;
   durationMinutes?: number;
   references?: string[];
@@ -486,6 +498,9 @@ export interface LessonNoteDetail extends LessonNote {
   teacherName?: string | null;
   reviewComments: LessonNoteReviewComment[];
   openCommentCount: number;
+  lessonsWorkflow?: {
+    requireApprovedLessonNote: boolean;
+  };
 }
 
 export interface LessonNoteDetailResponse {

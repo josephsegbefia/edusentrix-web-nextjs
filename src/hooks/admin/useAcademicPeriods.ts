@@ -11,6 +11,14 @@ export type AcademicPeriodDTO = {
   endDate?: string;
 };
 
+function invalidateAcademicPeriodQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "period-overview"] });
+  void queryClient.invalidateQueries({ queryKey: ["admin", "period-status"] });
+  void queryClient.invalidateQueries({ queryKey: ["periodSummary"] });
+  invalidateSetupReadiness(queryClient);
+}
+
 export function useAcademicPeriods() {
   return useQuery<{ periods: AcademicPeriodDTO[] }>({
     queryKey: ["academicPeriods"],
@@ -63,8 +71,7 @@ export function useCreatePeriod() {
       return json;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
-      invalidateSetupReadiness(queryClient);
+      invalidateAcademicPeriodQueries(queryClient);
     },
   });
 }
@@ -85,8 +92,7 @@ export function useSetCurrentPeriod() {
       return json;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["academicPeriods"] });
-      invalidateSetupReadiness(queryClient);
+      invalidateAcademicPeriodQueries(queryClient);
     },
   });
 }

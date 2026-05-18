@@ -5,6 +5,7 @@ import {
   type SubscriptionSnapshot,
 } from "@/lib/billing/entitlements";
 import type { SubscriptionLimitKey } from "@/lib/billing/feature-access";
+import { canUseExpensiveAi } from "@/lib/billing/expensive-ai-access";
 
 export type UsageLimitDecision = {
   allowed: boolean;
@@ -13,12 +14,6 @@ export type UsageLimitDecision = {
   accessMode?: SubscriptionSnapshot["subscription"]["accessMode"];
   reason?: "access_mode_blocked" | "limit_exceeded";
 };
-
-const EXPENSIVE_ALLOWED_ACCESS_MODES = new Set([
-  "full",
-  "trial_limited",
-  "pilot_limited",
-]);
 
 export async function checkUsageLimit(input: {
   schoolId: string | mongoose.Types.ObjectId;
@@ -31,11 +26,7 @@ export async function checkUsageLimit(input: {
     input.snapshot ?? (await getSchoolSubscriptionSnapshot(input.schoolId));
   const accessMode = snapshot?.subscription.accessMode;
 
-  if (
-    input.expensive &&
-    accessMode &&
-    !EXPENSIVE_ALLOWED_ACCESS_MODES.has(accessMode)
-  ) {
+  if (input.expensive && accessMode && !canUseExpensiveAi(accessMode)) {
     return {
       allowed: false,
       current: 0,

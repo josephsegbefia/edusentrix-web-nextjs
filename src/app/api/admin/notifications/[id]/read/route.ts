@@ -1,0 +1,55 @@
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
+import { connectToDatabase } from "@/db/connectToDatabase";
+import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
+import { Notification } from "@/models/Notification";
+
+export async function PATCH(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  try {
+    const context = await requireSchoolAdmin();
+    await connectToDatabase();
+
+    const { id } = await ctx.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid notification ID" },
+        { status: 400 },
+      );
+    }
+
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: new mongoose.Types.ObjectId(id),
+        userId: context.userId,
+        schoolId: context.schoolId,
+      },
+      { $set: { isRead: true, readAt: new Date() } },
+      { new: true },
+    );
+
+    if (!notification) {
+      return NextResponse.json(
+        { success: false, error: "Notification not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { id: String(notification._id), isRead: true },
+    });
+  } catch (error) {
+    if (error instanceof NextResponse) return error;
+    console.error("Failed to mark admin notification as read:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to update notification",
+      },
+      { status: 500 },
+    );
+  }
+}

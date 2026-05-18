@@ -135,7 +135,8 @@ export type ActivityType =
   | "scheme.review.revision_requested"
   | "scheme.review.rejected"
   | "scheme.activated"
-  | "scheme.archived";
+  | "scheme.archived"
+  | "scheme.deleted";
 
 export interface IActivity {
   _id: Types.ObjectId;

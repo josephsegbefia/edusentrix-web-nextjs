@@ -142,10 +142,7 @@ export async function assertLessonNoteRequiresSchemeLink(args: {
   const enabled = settings?.academicPlanning?.enableSchemeOfWork ?? false;
   if (!enabled || !requireLink) return { ok: true };
 
-  const triggers =
-    args.nextStatus === "published" ||
-    args.nextStatus === "submitted" ||
-    args.nextStatus === "approved";
+  const triggers = args.nextStatus === "approved" || args.nextStatus === "submitted";
 
   if (!triggers) return { ok: true };
 

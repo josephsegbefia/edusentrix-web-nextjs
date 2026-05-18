@@ -12,6 +12,7 @@ import { Subject } from "@/models/Subject";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
+import { resolveSchemeLinkForResponse } from "@/lib/lesson-notes/resolve-scheme-link";
 import {
   countOpenReviewComments,
   formatUserDisplayName,
@@ -65,7 +66,8 @@ function formatLessonNoteResponse(
   className: string,
   subjectName: string | null,
   teacherName: string | null,
-  reviewComments: ReturnType<typeof serializeReviewComments>
+  reviewComments: ReturnType<typeof serializeReviewComments>,
+  schemeLink?: { schemeId: string | null; schemeItemIds: string[] },
 ) {
   return {
     id: String(entry._id),
@@ -85,6 +87,7 @@ function formatLessonNoteResponse(
     unitPlannerData: (entry as unknown as Record<string, unknown>).unitPlannerData || null,
     weekOf: entry.weekOf ? new Date(entry.weekOf).toISOString() : null,
     date: entry.date ? new Date(entry.date).toISOString() : null,
+    weekEndingDate: entry.weekEndingDate ? new Date(entry.weekEndingDate).toISOString() : null,
     topic: entry.topic,
     durationMinutes: entry.durationMinutes || null,
     references: entry.references || [],
@@ -105,8 +108,10 @@ function formatLessonNoteResponse(
     content: entry.content || null,
     createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : null,
     updatedAt: entry.updatedAt ? new Date(entry.updatedAt).toISOString() : null,
-    schemeId: entry.schemeId ? String(entry.schemeId) : null,
-    schemeItemIds: (entry.schemeItemIds || []).map((id) => String(id)),
+    schemeId:
+      schemeLink?.schemeId ?? (entry.schemeId ? String(entry.schemeId) : null),
+    schemeItemIds:
+      schemeLink?.schemeItemIds ?? (entry.schemeItemIds || []).map((id) => String(id)),
     reviewComments,
     openCommentCount: countOpenReviewComments(reviewComments),
   };
@@ -207,6 +212,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
           )
         : "Unknown teacher";
 
+    const schemeLink = await resolveSchemeLinkForResponse({
+      schoolId: context.schoolId,
+      schemeId: entry.schemeId,
+      schemeItemIds: entry.schemeItemIds,
+      repair: { collection: "lessonNote", id: noteId },
+    });
+
     return Response.json({
       success: true,
       data: formatLessonNoteResponse(
@@ -217,7 +229,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
           (subject as { name?: string } | null)?.name ||
           null,
         teacherName,
-        reviewComments
+        reviewComments,
+        schemeLink,
       ),
     });
   } catch (e: unknown) {

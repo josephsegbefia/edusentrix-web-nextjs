@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
+import { academicPeriodPastDateError } from "@/lib/academic-periods/date-guard";
 
 const schema = z
   .object({
@@ -47,6 +48,18 @@ const schema = z
           code: "custom",
           path: ["endDate"],
           message: "End date must be after start date",
+        });
+      }
+
+      const pastDateError = academicPeriodPastDateError({
+        startDate: start,
+        endDate: end,
+      });
+      if (pastDateError) {
+        ctx.addIssue({
+          code: "custom",
+          path: pastDateError.startsWith("Start") ? ["startDate"] : ["endDate"],
+          message: pastDateError,
         });
       }
     }

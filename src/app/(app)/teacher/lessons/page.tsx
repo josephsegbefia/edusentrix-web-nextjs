@@ -13,7 +13,6 @@ import {
   X,
   ExternalLink,
   BarChart3,
-  Library,
 } from "lucide-react";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
@@ -51,6 +50,7 @@ import {
   LESSON_STATUS_LABELS,
   type LessonDeliveryStatus,
 } from "@/types/lessons";
+import { TeacherLessonWeekPlansPanel } from "@/components/lessons/TeacherLessonWeekPlansPanel";
 
 const STATUS_FILTER_OPTIONS: Array<{ value: LessonDeliveryStatus | "all"; label: string }> = [
   { value: "all", label: "All statuses" },
@@ -108,7 +108,9 @@ export default function TeacherLessonsPage() {
   const createPrefillDone = React.useRef(false);
 
   const { data: notesData } = useTeacherLessonNotes({ limit: 100 }, canView);
-  const noteOptions = notesData?.data.entries || [];
+  const noteOptions = (notesData?.data.entries || []).filter(
+    (n) => n.status === "approved" || n.status === "published",
+  );
 
   const { data: lessonsData, isLoading } = useTeacherLessons(
     {
@@ -136,17 +138,11 @@ export default function TeacherLessonsPage() {
     if (!canView) return;
     const createFrom = searchParams.get("createFromNote");
     if (!createFrom) return;
-    createPrefillDone.current = false;
-    setCreateNoteId(createFrom);
-    setCreateScheduled(null);
-    setShowCreateModal(true);
-    const noteParam = searchParams.get("lessonNoteId");
-    router.replace(
-      noteParam
-        ? `/teacher/lessons?lessonNoteId=${encodeURIComponent(noteParam)}`
-        : "/teacher/lessons",
-      { scroll: false }
-    );
+    const classParam = searchParams.get("classGroupId");
+    const query = classParam
+      ? `?noteId=${encodeURIComponent(createFrom)}&classGroupId=${encodeURIComponent(classParam)}`
+      : `?noteId=${encodeURIComponent(createFrom)}`;
+    router.replace(`/teacher/lessons/create${query}`, { scroll: false });
   }, [canView, searchParams, router]);
 
   React.useEffect(() => {
@@ -232,22 +228,11 @@ export default function TeacherLessonsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-white">Lessons</h1>
           <p className="text-sm text-white/60">
-            Student-facing lessons built from your lesson notes — publish when ready.
+            Weekly lesson plans from approved notes. Legacy single lessons remain below during
+            transition.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            asChild
-            className="border-white/15 bg-white/10 text-white/90 hover:bg-white/15"
-          >
-            <Link href="/teacher/lessons/bank">
-              <Library className="mr-1.5 h-4 w-4" />
-              Lesson bank
-            </Link>
-          </Button>
           <Button
             type="button"
             variant="outline"
@@ -261,6 +246,18 @@ export default function TeacherLessonsPage() {
             </Link>
           </Button>
           <Badge className="bg-violet-500/20 text-violet-200">{entries.length} shown</Badge>
+          {noteOptions[0] ? (
+            <Button
+              type="button"
+              asChild
+              className="group bg-teal-500/20 text-teal-100 hover:bg-teal-500/30"
+            >
+              <Link href={`/teacher/lessons/create?noteId=${noteOptions[0].id}`}>
+                <CalendarDays className="mr-1 h-4 w-4" />
+                Weekly lessons
+              </Link>
+            </Button>
+          ) : null}
           <Button
             type="button"
             onClick={openCreateModal}
@@ -268,7 +265,7 @@ export default function TeacherLessonsPage() {
             className="group bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-50"
           >
             <Plus className="mr-1 h-4 w-4 transition-transform group-hover:rotate-90" />
-            New lesson
+            Legacy lesson
           </Button>
         </div>
       </div>
@@ -284,15 +281,17 @@ export default function TeacherLessonsPage() {
 
       {noteOptions.length === 0 && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100/90">
-          <p className="font-medium">Create a lesson note first</p>
+          <p className="font-medium">Approved lesson note required</p>
           <p className="mt-1 text-xs text-amber-100/70">
-            Lessons are linked to lesson notes.{" "}
+            Create and get a lesson note approved before building weekly lessons.{" "}
             <Link href="/teacher/lesson-notes" className="underline underline-offset-2">
               Open Lesson Notes
             </Link>
           </p>
         </div>
       )}
+
+      <TeacherLessonWeekPlansPanel classGroupId={null} classLabelMap={classLabelMap} />
 
       <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center">
         <div className="min-w-[200px] flex-1">

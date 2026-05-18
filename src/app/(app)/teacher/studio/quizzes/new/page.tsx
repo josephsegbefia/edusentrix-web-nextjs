@@ -10,6 +10,10 @@ import {
   AssignmentBuilder,
   type AssignmentFormValues,
 } from "@/components/teacher/studio/AssignmentBuilder";
+import {
+  readSessionStudioSeed,
+  clearSessionStudioSeed,
+} from "@/lib/lessons/session-studio-seed-storage";
 import { Button } from "@/components/ui/button";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
@@ -23,6 +27,8 @@ export default function TeacherQuizCreatePage() {
   const canCreate = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPublish = can(permissions, PERMISSIONS.assignmentsPublish);
   const lessonId = searchParams.get("lessonId");
+  const sessionId = searchParams.get("sessionId");
+  const useStoredSeed = searchParams.get("seed") === "stored";
   const [seedValues, setSeedValues] = React.useState<Partial<AssignmentFormValues> | null>(null);
   const [isLoadingSeed, setIsLoadingSeed] = React.useState(false);
   const [seedSource, setSeedSource] = React.useState<"none" | "flashcards" | "assessment" | null>(
@@ -31,14 +37,35 @@ export default function TeacherQuizCreatePage() {
 
   React.useEffect(() => {
     let ignore = false;
-    if (!lessonId) {
+    if (sessionId && useStoredSeed) {
+      const stored = readSessionStudioSeed(sessionId);
+      if (stored) {
+        setSeedValues({
+          title: stored.title,
+          instructions: stored.instructions,
+          type: "quiz",
+          subjectId: stored.subjectId,
+          classGroupIds: stored.classGroupIds,
+          maxScore: stored.maxScore,
+          questions: stored.questions ?? [],
+        });
+        setSeedSource(stored.questions?.length ? "content" : "none");
+        clearSessionStudioSeed(sessionId);
+      }
+      return;
+    }
+
+    if (!lessonId && !sessionId) {
       setSeedValues(null);
       setSeedSource(null);
       return;
     }
 
     setIsLoadingSeed(true);
-    void fetch(`/api/teacher/lessons/${lessonId}/assignment-seed?type=quiz`, {
+    const seedUrl = sessionId
+      ? `/api/teacher/lesson-sessions/${sessionId}/assignment-seed?type=quiz`
+      : `/api/teacher/lessons/${lessonId}/assignment-seed?type=quiz`;
+    void fetch(seedUrl, {
       cache: "no-store",
     })
       .then(async (res) => {
@@ -86,7 +113,7 @@ export default function TeacherQuizCreatePage() {
     return () => {
       ignore = true;
     };
-  }, [lessonId, busyToast]);
+  }, [lessonId, sessionId, useStoredSeed, busyToast]);
 
   if (!canCreate) {
     return (
@@ -115,6 +142,7 @@ export default function TeacherQuizCreatePage() {
       type: "quiz" as const,
       subjectId: values.subjectId,
       sourceLessonId: lessonId || undefined,
+      sourceSessionId: sessionId || undefined,
       classGroupIds: values.classGroupIds,
       dueDate: values.dueDate.toISOString(),
       maxScore: values.maxScore,

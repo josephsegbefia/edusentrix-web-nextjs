@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: "Conflict detected",
+            error: summary,
             conflict: {
               type: "other_teachers_on_slot",
               message: summary,

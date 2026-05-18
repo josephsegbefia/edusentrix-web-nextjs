@@ -19,7 +19,8 @@ export type LessonResourceVisibility =
 export interface ILessonResource {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
-  lessonId: Types.ObjectId;
+  lessonId?: Types.ObjectId | null;
+  sessionId?: Types.ObjectId | null;
   teacherId: Types.ObjectId;
   kind: LessonResourceKind;
   title: string;
@@ -45,7 +46,8 @@ export interface ILessonResource {
 const lessonResourceSchema = new Schema<ILessonResource>(
   {
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
-    lessonId: { type: Schema.Types.ObjectId, ref: "Lesson", required: true, index: true },
+    lessonId: { type: Schema.Types.ObjectId, ref: "Lesson", default: null, index: true },
+    sessionId: { type: Schema.Types.ObjectId, ref: "LessonSession", default: null, index: true },
     teacherId: { type: Schema.Types.ObjectId, ref: "Teacher", required: true, index: true },
     kind: {
       type: String,
@@ -79,6 +81,16 @@ const lessonResourceSchema = new Schema<ILessonResource>(
 );
 
 lessonResourceSchema.index({ schoolId: 1, lessonId: 1, order: 1 });
+lessonResourceSchema.index({ schoolId: 1, sessionId: 1, order: 1 });
+lessonResourceSchema.pre("validate", function validateResourceScope(next) {
+  const hasLesson = Boolean(this.lessonId);
+  const hasSession = Boolean(this.sessionId);
+  if (hasLesson === hasSession) {
+    next(new Error("Resource must reference exactly one of lessonId or sessionId"));
+    return;
+  }
+  next();
+});
 
 export const LessonResource: Model<ILessonResource> =
   (models.LessonResource as Model<ILessonResource>) ||

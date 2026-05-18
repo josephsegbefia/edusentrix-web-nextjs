@@ -22,6 +22,7 @@ import { defaultLessonAnalyticsRange } from "@/lib/lessons/analytics-range";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
+import { LessonsV2CoverageSection } from "@/components/lessons/LessonsV2CoverageSection";
 
 function StatCard({
   label,
@@ -445,6 +446,8 @@ export default function TeacherLessonAnalyticsPage() {
           />
         </div>
       </div>
+
+      <LessonsV2CoverageSection v2Coverage={data?.v2Coverage} loading={isLoading} />
 
       {isLoading && !data && (
         <div className="flex justify-center py-6">

@@ -6,15 +6,14 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { Curriculum } from "@/models/Curriculum";
 import { CurriculumSubject } from "@/models/CurriculumSubject";
-import { SchemeItem } from "@/models/SchemeItem";
-import { SchemeReview } from "@/models/SchemeReview";
 import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { serializeSchemeRow } from "@/lib/schemes/serializers";
+import { deleteSchemeForSchool } from "@/lib/schemes/scheme-review-service";
 import {
   teacherMayDeleteScheme,
   teacherMayEditScheme,
-  teacherMayViewScheme,
 } from "@/lib/schemes/teacher-scheme-access";
+import { teacherCanReadAssignedScheme } from "@/lib/schemes/teacher-assigned-schemes";
 
 const PatchSchemeSchema = z.object({
   title: z.string().trim().min(3).max(220).optional(),
@@ -51,7 +50,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     }).lean()) as ISchemeOfWork | null;
 
     if (!doc) return Response.json({ success: false, error: "Scheme not found" }, { status: 404 });
-    if (!ctx.isAdmin && !teacherMayViewScheme(doc, ctx.teacherId)) {
+    if (
+      !ctx.isAdmin &&
+      !(await teacherCanReadAssignedScheme(doc, {
+        schoolId: ctx.schoolId,
+        teacherId: ctx.teacherId,
+      }))
+    ) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
     return Response.json({ success: true, data: { scheme: serializeSchemeRow(doc) } });
@@ -67,6 +72,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await requireTeacher();
+    if (!ctx.isAdmin) {
+      return Response.json(
+        { success: false, error: "Only school admins can edit schemes of learning." },
+        { status: 403 }
+      );
+    }
     if (!can(ctx.permissions, PERMISSIONS.schemeOfWorkUpdate)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
@@ -192,9 +203,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await requireTeacher();
+    if (!ctx.isAdmin) {
+      return Response.json(
+        { success: false, error: "Only school admins can delete schemes of learning." },
+        { status: 403 }
+      );
+    }
     if (!can(ctx.permissions, PERMISSIONS.schemeOfWorkUpdate)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
@@ -215,9 +232,14 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
       );
     }
 
-    await SchemeItem.deleteMany({ schoolId: ctx.schoolId, schemeId });
-    await SchemeReview.deleteMany({ schoolId: ctx.schoolId, schemeId });
-    await SchemeOfWork.deleteOne({ _id: schemeId, schoolId: ctx.schoolId });
+    const body = (await req.json().catch(() => ({}))) as { unlinkLessonNotes?: boolean };
+    const result = await deleteSchemeForSchool({
+      schoolId: ctx.schoolId,
+      userId: ctx.userId,
+      schemeId: id,
+      unlinkLessonNotes: body.unlinkLessonNotes === true,
+    });
+    if ("error" in result && result.error) return result.error;
 
     return Response.json({ success: true });
   } catch (error: unknown) {

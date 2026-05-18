@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Student } from "@/models/Student";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 
 type Params = Promise<{ token: string }>;
 
@@ -22,6 +23,7 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: Params }) {
+  let uploadedFileUrl: string | null = null;
   try {
     const token = normalizeUploadToken((await params).token);
     if (!token || token.length < 24) {
@@ -43,6 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
         { status: 400 }
       );
     }
+    uploadedFileUrl = parsed.data.fileUrl;
 
     await connectToDatabase();
 
@@ -52,6 +55,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       },
     });
     if (!student) {
+      await deleteUploadedFile(parsed.data.fileUrl);
+      uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This upload link is invalid or already used." },
         { status: 404 }
@@ -62,6 +67,8 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       (r) => r.token === token && !r.fulfilledAt
     );
     if (!sub) {
+      await deleteUploadedFile(parsed.data.fileUrl);
+      uploadedFileUrl = null;
       return NextResponse.json(
         { success: false, error: "This upload link is invalid or already used." },
         { status: 404 }
@@ -88,13 +95,28 @@ export async function POST(req: NextRequest, { params }: { params: Params }) {
       uploadedBy: null,
     });
     sub.fulfilledAt = new Date();
-    await student.save();
+    try {
+      await student.save();
+    } catch (error) {
+      const deleted = await deleteUploadedFile(parsed.data.fileUrl);
+      if (!deleted) {
+        console.error("Rollback failed for parent document upload:", parsed.data.fileUrl);
+      }
+      throw error;
+    }
+    uploadedFileUrl = null;
 
     return NextResponse.json({
       success: true,
       data: { studentId: String(student._id) },
     });
   } catch (error) {
+    if (uploadedFileUrl) {
+      const deleted = await deleteUploadedFile(uploadedFileUrl);
+      if (!deleted) {
+        console.error("Rollback failed for parent document upload:", uploadedFileUrl);
+      }
+    }
     console.error("Public student parent-document attach error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to attach file" },

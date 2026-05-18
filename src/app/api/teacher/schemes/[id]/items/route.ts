@@ -8,7 +8,8 @@ import { SchemeOfWork } from "@/models/SchemeOfWork";
 import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
 import { LessonNote } from "@/models/LessonNote";
 import { serializeSchemeItemRow } from "@/lib/schemes/serializers";
-import { teacherMayEditScheme, teacherMayViewScheme } from "@/lib/schemes/teacher-scheme-access";
+import { teacherMayEditScheme } from "@/lib/schemes/teacher-scheme-access";
+import { teacherCanReadAssignedScheme } from "@/lib/schemes/teacher-assigned-schemes";
 
 const CreateItemSchema = z.object({
   weekNumber: z.number().min(1).max(53).nullable().optional(),
@@ -50,7 +51,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     if (!scheme) {
       return Response.json({ success: false, error: "Scheme not found" }, { status: 404 });
     }
-    if (!ctx.isAdmin && !teacherMayViewScheme(scheme, ctx.teacherId)) {
+    if (
+      !ctx.isAdmin &&
+      !(await teacherCanReadAssignedScheme(scheme, {
+        schoolId: ctx.schoolId,
+        teacherId: ctx.teacherId,
+      }))
+    ) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
     const items = (await SchemeItem.find({ schoolId: ctx.schoolId, schemeId })
@@ -96,6 +103,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const ctx = await requireTeacher();
+    if (!ctx.isAdmin) {
+      return Response.json(
+        { success: false, error: "Only school admins can edit schemes of learning." },
+        { status: 403 }
+      );
+    }
     if (!can(ctx.permissions, PERMISSIONS.schemeItemCreate)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }

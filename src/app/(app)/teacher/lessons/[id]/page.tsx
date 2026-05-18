@@ -85,7 +85,36 @@ export default function TeacherLessonDetailPage() {
     [classesData]
   );
 
-  const { data, isLoading, error, refetch } = useTeacherLesson(lessonId, canView);
+  const [v2Redirecting, setV2Redirecting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!lessonId || !canView) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/teacher/lessons/${lessonId}/v2-session`, {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => null)) as {
+          success?: boolean;
+          data?: { sessionId?: string | null };
+        } | null;
+        if (cancelled || !res.ok || !json?.success) return;
+        const sessionId = json.data?.sessionId;
+        if (sessionId) {
+          setV2Redirecting(true);
+          router.replace(`/teacher/lessons/sessions/${sessionId}`);
+        }
+      } catch {
+        /* keep legacy page */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId, canView, router]);
+
+  const { data, isLoading, error, refetch } = useTeacherLesson(lessonId, canView && !v2Redirecting);
   const lesson = data?.data;
 
   const updateMutation = useTeacherLessonUpdate();
@@ -180,7 +209,7 @@ export default function TeacherLessonDetailPage() {
     );
   }
 
-  if (isLoading || !lesson) {
+  if (v2Redirecting || isLoading || !lesson) {
     return (
       <div className="space-y-4">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -301,9 +330,11 @@ export default function TeacherLessonDetailPage() {
           <div>
             <p className="font-medium text-white">Scheme alignment</p>
             <p className="mt-0.5 text-white/65">
-              This lesson is linked to a scheme of work
+              This lesson is linked to a Scheme of Learning
               {(lesson.schemeItemIds?.length ?? 0) > 0
-                ? ` · ${lesson.schemeItemIds!.length} item(s) tagged`
+                ? ` · ${lesson.schemeItemIds!.length} scheme row${
+                    lesson.schemeItemIds!.length === 1 ? "" : "s"
+                  } tagged`
                 : ""}
               .
             </p>

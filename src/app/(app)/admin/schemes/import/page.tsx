@@ -62,6 +62,8 @@ function AdminSchemeImportInner() {
   const [schemeTitle, setSchemeTitle] = useState("");
   const [titleTouched, setTitleTouched] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadWarning, setUploadWarning] = useState<string | null>(null);
+  const [parsePhase, setParsePhase] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const currentPeriod = useMemo(
@@ -119,16 +121,41 @@ function AdminSchemeImportInner() {
     );
   }, [periodId, periodsData?.periods, selectedGrade, selectedSubject, titleTouched]);
 
-  async function handleUploaded(payload: { url: string; fileName?: string; publicId?: string }) {
+  async function handleUploaded(payload: {
+    url: string;
+    fileName?: string;
+    publicId?: string;
+    uploadKey?: string;
+    mimeType?: string;
+    bytes?: number;
+  }) {
     setUploadError(null);
+    setUploadWarning(null);
+    setParsePhase(null);
+    const name = payload.fileName || "scheme-import.csv";
+    const isPdf =
+      name.toLowerCase().endsWith(".pdf") || (payload.mimeType || "").toLowerCase().includes("pdf");
+    if (isPdf && payload.bytes != null && payload.bytes < 20_000) {
+      setUploadWarning(
+        `This PDF is only ${Math.round(payload.bytes / 1024)} KB. If parsing fails, re-export a full copy or use CSV/XLSX.`,
+      );
+    }
     try {
+      setParsePhase(
+        isPdf
+          ? "Download complete. Reading PDF and extracting rows with Leo (OpenAI, Gemini fallback) — usually under 2 minutes…"
+          : "Reading spreadsheet rows…",
+      );
       const created = await createMutation.mutateAsync({
         fileUrl: payload.url,
-        fileName: payload.fileName || "scheme-import.csv",
-        fileKey: payload.publicId,
+        fileName: name,
+        fileKey: payload.uploadKey || payload.publicId,
+        mimeType: payload.mimeType,
       });
+      setParsePhase(null);
       router.replace(`/admin/schemes/import?jobId=${created.id}`);
     } catch (e) {
+      setParsePhase(null);
       setUploadError(e instanceof Error ? e.message : "Upload registration failed");
     }
   }
@@ -228,6 +255,9 @@ function AdminSchemeImportInner() {
                     url: payload.url,
                     fileName: payload.fileName,
                     publicId: payload.publicId,
+                    uploadKey: payload.uploadKey,
+                    mimeType: payload.mimeType,
+                    bytes: payload.bytes,
                   })
                 }
                 onError={setUploadError}
@@ -235,9 +265,15 @@ function AdminSchemeImportInner() {
             ) : (
               <p className="text-sm text-white/55">Loading school context...</p>
             )}
+            {uploadWarning ? (
+              <p className="mt-2 text-sm text-amber-200">{uploadWarning}</p>
+            ) : null}
             {uploadError ? <p className="mt-2 text-sm text-rose-300">{uploadError}</p> : null}
-            {createMutation.isPending ? (
-              <p className="mt-2 text-sm text-white/55">Leo is extracting scheme rows...</p>
+            {createMutation.isPending || parsePhase ? (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-100">
+                <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+                <p>{parsePhase || "Processing import…"}</p>
+              </div>
             ) : null}
           </div>
         ) : (
@@ -254,6 +290,13 @@ function AdminSchemeImportInner() {
         <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-sm text-rose-100">
           <p className="font-medium">Could not parse file</p>
           <p className="mt-1">{job.parseError}</p>
+        </div>
+      ) : null}
+
+      {job?.status === "parsed" && job.parseWarning ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-sm text-amber-100">
+          <p className="font-medium">Gemini fallback used</p>
+          <p className="mt-1">{job.parseWarning}</p>
         </div>
       ) : null}
 

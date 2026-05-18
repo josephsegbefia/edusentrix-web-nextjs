@@ -62,6 +62,7 @@ function formatLessonNoteResponse(
     unitPlannerData: (entry as unknown as Record<string, unknown>).unitPlannerData || null,
     weekOf: entry.weekOf ? new Date(entry.weekOf).toISOString() : null,
     date: entry.date ? new Date(entry.date).toISOString() : null,
+    weekEndingDate: entry.weekEndingDate ? new Date(entry.weekEndingDate).toISOString() : null,
     topic: entry.topic,
     durationMinutes: entry.durationMinutes || null,
     references: entry.references || [],

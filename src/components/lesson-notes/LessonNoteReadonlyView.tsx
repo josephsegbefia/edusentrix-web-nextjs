@@ -4,6 +4,8 @@ import * as React from "react";
 import {
   BookOpen,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   ClipboardCheck,
   Clock,
   MessageSquare,
@@ -12,6 +14,7 @@ import {
   UserSquare2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HtmlContent } from "@/components/ui/html-content";
 import { cn } from "@/lib/utils";
@@ -34,10 +37,14 @@ import {
 const GLASS_PANEL =
   "relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/35 backdrop-blur-xl";
 
+export type LessonNoteReadonlyLayout = "stacked" | "stepper";
+
 type LessonNoteReadonlyViewProps = {
   note: LessonNoteDetail;
   /** Frosted slate panels for school-admin review surfaces. */
   surfaceVariant?: "default" | "glass";
+  /** Stacked shows every section (long scroll). Stepper shows one section at a time. */
+  layout?: LessonNoteReadonlyLayout;
   headerActions?: React.ReactNode;
   renderSectionActions?: (
     section: LessonNoteReviewSection,
@@ -237,10 +244,11 @@ function ContextSection({ note }: { note: LessonNoteDetail }) {
 
       {note.schemeId ? (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-100/90">
-          Linked to a scheme of work.
+          Linked to a Scheme of Learning.
           {(note.schemeItemIds?.length ?? 0) > 0 ? (
             <span className="mt-1 block text-xs text-white/55">
-              {note.schemeItemIds!.length} scheme item(s) tagged
+              {note.schemeItemIds!.length} scheme row
+              {note.schemeItemIds!.length === 1 ? "" : "s"} tagged
             </span>
           ) : null}
         </div>
@@ -792,6 +800,77 @@ function renderSectionBody(note: LessonNoteDetail, sectionKey: string) {
   }
 }
 
+function LessonNoteSectionStepper({
+  sections,
+  commentsBySection,
+  activeSectionKey,
+  onSelect,
+}: {
+  sections: LessonNoteReviewSection[];
+  commentsBySection: Record<string, LessonNoteReviewComment[]>;
+  activeSectionKey: string;
+  onSelect: (key: string) => void;
+}) {
+  const activeIndex = sections.findIndex((section) => section.key === activeSectionKey);
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-3 backdrop-blur-sm">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {sections.map((section, index) => {
+          const isCurrent = section.key === activeSectionKey;
+          const isPast = activeIndex > index;
+          const commentCount = (commentsBySection[section.key] || []).length;
+          const openCount = (commentsBySection[section.key] || []).filter(
+            (comment) => comment.status !== "resolved",
+          ).length;
+
+          return (
+            <React.Fragment key={section.key}>
+              {index > 0 ? (
+                <div
+                  className={cn(
+                    "h-px w-6 shrink-0",
+                    isPast || isCurrent ? "bg-violet-400/50" : "bg-white/10",
+                  )}
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => onSelect(section.key)}
+                className={cn(
+                  "flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                  isCurrent
+                    ? "bg-violet-500/30 text-violet-100 ring-1 ring-violet-400/50"
+                    : isPast
+                      ? "bg-violet-500/10 text-violet-200/80"
+                      : "bg-white/5 text-white/45 hover:bg-white/10 hover:text-white/70",
+                )}
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px]">
+                  {index + 1}
+                </span>
+                <span className="whitespace-nowrap">{section.label}</span>
+                {commentCount > 0 ? (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                      openCount > 0
+                        ? "bg-amber-400/20 text-amber-100"
+                        : "bg-white/10 text-white/50",
+                    )}
+                  >
+                    {openCount > 0 ? openCount : commentCount}
+                  </span>
+                ) : null}
+              </button>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function getSectionIcon(sectionKey: string) {
   switch (sectionKey) {
     case "context":
@@ -811,9 +890,40 @@ function getSectionIcon(sectionKey: string) {
   }
 }
 
+function renderActiveSectionBlock(
+  note: LessonNoteDetail,
+  section: LessonNoteReviewSection,
+  sectionComments: LessonNoteReviewComment[],
+  glass: boolean,
+  renderSectionActions?: LessonNoteReadonlyViewProps["renderSectionActions"],
+  renderCommentActions?: LessonNoteReadonlyViewProps["renderCommentActions"],
+  renderSectionFooter?: LessonNoteReadonlyViewProps["renderSectionFooter"],
+) {
+  return (
+    <SectionCard
+      key={section.key}
+      title={section.label}
+      icon={getSectionIcon(section.key)}
+      commentCount={sectionComments.length}
+      actions={renderSectionActions?.(section, sectionComments)}
+      glass={glass}
+    >
+      {renderSectionBody(note, section.key)}
+      <CommentRail
+        section={section}
+        comments={sectionComments}
+        glass={glass}
+        renderCommentActions={renderCommentActions}
+      />
+      {renderSectionFooter?.(section, sectionComments)}
+    </SectionCard>
+  );
+}
+
 export function LessonNoteReadonlyView({
   note,
   surfaceVariant = "default",
+  layout = "stacked",
   headerActions,
   renderSectionActions,
   renderCommentActions,
@@ -822,6 +932,23 @@ export function LessonNoteReadonlyView({
   const glass = surfaceVariant === "glass";
   const sections = getLessonNoteReviewSections(note);
   const commentsBySection = groupReviewCommentsBySection(note.reviewComments || []);
+  const [activeSectionKey, setActiveSectionKey] = React.useState(sections[0]?.key ?? "context");
+  const activeIndex = Math.max(
+    0,
+    sections.findIndex((section) => section.key === activeSectionKey),
+  );
+  const activeSection = sections[activeIndex] ?? sections[0];
+
+  React.useEffect(() => {
+    if (!sections.some((section) => section.key === activeSectionKey) && sections[0]) {
+      setActiveSectionKey(sections[0].key);
+    }
+  }, [activeSectionKey, sections]);
+
+  const goToSection = (index: number) => {
+    const section = sections[index];
+    if (section) setActiveSectionKey(section.key);
+  };
 
   return (
     <div className="space-y-6">
@@ -893,30 +1020,71 @@ export function LessonNoteReadonlyView({
         </CardContent>
       </Card>
 
-      <div className="space-y-5">
-        {sections.map((section) => {
-          const sectionComments = commentsBySection[section.key] || [];
-          return (
-            <SectionCard
-              key={section.key}
-              title={section.label}
-              icon={getSectionIcon(section.key)}
-              commentCount={sectionComments.length}
-              actions={renderSectionActions?.(section, sectionComments)}
-              glass={glass}
+      {layout === "stepper" ? (
+        <>
+          <LessonNoteSectionStepper
+            sections={sections}
+            commentsBySection={commentsBySection}
+            activeSectionKey={activeSection?.key ?? "context"}
+            onSelect={setActiveSectionKey}
+          />
+
+          {activeSection
+            ? renderActiveSectionBlock(
+                note,
+                activeSection,
+                commentsBySection[activeSection.key] || [],
+                glass,
+                renderSectionActions,
+                renderCommentActions,
+                renderSectionFooter,
+              )
+            : null}
+
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={activeIndex <= 0}
+              onClick={() => goToSection(activeIndex - 1)}
+              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
             >
-              {renderSectionBody(note, section.key)}
-              <CommentRail
-                section={section}
-                comments={sectionComments}
-                glass={glass}
-                renderCommentActions={renderCommentActions}
-              />
-              {renderSectionFooter?.(section, sectionComments)}
-            </SectionCard>
-          );
-        })}
-      </div>
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Previous
+            </Button>
+            <p className="text-center text-xs text-white/45">
+              Section {activeIndex + 1} of {sections.length}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={activeIndex >= sections.length - 1}
+              onClick={() => goToSection(activeIndex + 1)}
+              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+            >
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </>
+      ) : (
+        <div className="space-y-5">
+          {sections.map((section) => {
+            const sectionComments = commentsBySection[section.key] || [];
+            return renderActiveSectionBlock(
+              note,
+              section,
+              sectionComments,
+              glass,
+              renderSectionActions,
+              renderCommentActions,
+              renderSectionFooter,
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

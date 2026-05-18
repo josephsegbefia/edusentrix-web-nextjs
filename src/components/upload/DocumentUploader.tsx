@@ -16,6 +16,8 @@ type DocumentUploaderProps = {
     mimeType?: string;
     /** Original client file name (for imports and filenames). */
     fileName?: string;
+    /** UploadThing file key (for server-side re-download). */
+    uploadKey?: string;
   }) => void;
   onError?: (msg: string) => void;
   className?: string;
@@ -94,8 +96,8 @@ export function DocumentUploader({
       }
 
       const url = uploaded.serverData?.url || uploaded.ufsUrl || uploaded.url;
-      const publicId =
-        uploaded.serverData?.customId || uploaded.serverData?.key || uploaded.key;
+      const uploadKey = uploaded.serverData?.key || uploaded.key;
+      const publicId = uploaded.serverData?.customId || uploadKey;
       const bytes = uploaded.size ?? file.size;
       const format = inferFormat(uploaded.name || file.name, uploaded.type || file.type);
       const mimeType = uploaded.type || file.type;
@@ -116,6 +118,7 @@ export function DocumentUploader({
         format: normalizedFormat,
         mimeType,
         fileName: uploaded.name || file.name,
+        uploadKey,
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Upload error";

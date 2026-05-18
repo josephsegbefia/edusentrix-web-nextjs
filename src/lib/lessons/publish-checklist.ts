@@ -7,7 +7,7 @@ import { LessonResource } from "@/models/LessonResource";
 import { LessonFlashcard } from "@/models/LessonFlashcard";
 import { LessonFlashcardDeck } from "@/models/LessonFlashcardDeck";
 import { buildPublishedSnapshotFromLessonNote } from "@/lib/lessons/published-snapshot";
-import type { LessonsModuleSettings } from "@/lib/lessons/settings";
+import type { LessonsModuleSettings } from "@/lib/lessons/settings-shared";
 import { normalizeSafeExternalUrl, sanitizeLessonHtml } from "@/lib/lessons/content-safety";
 
 export type LessonPublishChecklistItem = {

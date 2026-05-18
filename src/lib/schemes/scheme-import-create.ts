@@ -3,12 +3,15 @@ import { SchemeImportJob } from "@/models/SchemeImportJob";
 import {
   assertPdfSchemeImportEnabled,
   assertSchemeImportEnabled,
-  isTrustedSchemeImportFileUrl,
 } from "@/lib/schemes/scheme-import-gate";
-import { extractSchemeRowsWithAiFromPdfText } from "@/lib/schemes/scheme-import-pdf-ai";
+import { downloadSchemeImportFile } from "@/lib/schemes/scheme-import-download";
+import { isAiConnectivityError } from "@/lib/schemes/scheme-import-ai-error";
+import { resolvePdfSchemeParsedRows } from "@/lib/schemes/scheme-import-pdf-resolve";
 import { extractTextFromPdfBuffer } from "@/lib/schemes/scheme-import-pdf-text";
+import { isPdfSource } from "@/lib/schemes/scheme-import-pdf-utils";
 import { parseSchemeSpreadsheet } from "@/lib/schemes/scheme-import-parse";
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 
 type CreateSchemeImportJobInput = {
   schoolId: mongoose.Types.ObjectId;
@@ -16,46 +19,65 @@ type CreateSchemeImportJobInput = {
   fileUrl: string;
   fileName: string;
   fileKey?: string | null;
+  mimeType?: string | null;
 };
 
-function isPdfFileName(name: string): boolean {
-  return name.toLowerCase().trim().endsWith(".pdf");
+const TRANSIENT_ERROR_PATTERN =
+  /connection|network|timeout|timed out|fetch|socket|econn|etimedout|eai_again|rate limit|429|500|502|503|504/i;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function downloadImportFile(fileUrl: string): Promise<
-  | { ok: true; buffer: Buffer }
-  | { ok: false; error: string; status: number }
-> {
-  if (!isTrustedSchemeImportFileUrl(fileUrl)) {
-    return { ok: false, error: "Untrusted file URL", status: 400 };
-  }
+function isTransientError(message: string) {
+  return TRANSIENT_ERROR_PATTERN.test(message);
+}
 
-  try {
-    const res = await fetch(fileUrl, {
-      signal: AbortSignal.timeout(120_000),
-    });
-    if (!res.ok) {
-      return { ok: false, error: "Could not download uploaded file", status: 502 };
-    }
-    const maxBytes = 18 * 1024 * 1024;
-    const len = Number(res.headers.get("content-length") || 0);
-    if (len > maxBytes) {
-      return { ok: false, error: "File is too large", status: 400 };
-    }
-    const ab = await res.arrayBuffer();
-    if (ab.byteLength > maxBytes) {
-      return { ok: false, error: "File is too large", status: 400 };
-    }
-    return { ok: true, buffer: Buffer.from(ab) };
-  } catch {
-    return { ok: false, error: "Failed to fetch uploaded file", status: 502 };
+function cleanupParseError(message: string, options?: { fileRemoved: boolean }) {
+  const fileRemoved = options?.fileRemoved !== false;
+  const suffix = fileRemoved
+    ? " The uploaded file was removed because the import did not complete."
+    : " Your uploaded file was kept — fix the issue below and try import again without re-uploading.";
+
+  if (isAiConnectivityError(message)) {
+    return `Leo could not reach the AI provider (${message}). Check internet access, VPN/firewall, and API keys, then try again.${suffix}`;
   }
+  if (/invalid or expired API key|invalid_api_key|authenticate with OpenAI|authenticate|gemini|api key/i.test(message)) {
+    return `${message}${suffix}`;
+  }
+  return `${message}${suffix}`;
+}
+
+async function cleanupUploadedImportFile(input: CreateSchemeImportJobInput) {
+  const deleted = await deleteUploadedFile(input.fileUrl);
+  if (!deleted) {
+    console.error("Scheme import upload cleanup failed:", {
+      fileUrl: input.fileUrl,
+      fileKey: input.fileKey ?? null,
+    });
+  }
+  return deleted;
+}
+
+async function retryTransient<T>(
+  operation: () => Promise<T>,
+  isRetryableResult: (result: T) => boolean,
+) {
+  const delays = [700, 1_800];
+  let result = await operation();
+  for (const delay of delays) {
+    if (!isRetryableResult(result)) break;
+    await sleep(delay);
+    result = await operation();
+  }
+  return result;
 }
 
 async function createFailedImportJob(
   input: CreateSchemeImportJobInput & {
     sourceKind: "pdf_ai" | "spreadsheet";
     parseError: string;
+    keepUploadedFile?: boolean;
   }
 ) {
   const job = await SchemeImportJob.create({
@@ -64,8 +86,8 @@ async function createFailedImportJob(
     status: "failed",
     sourceKind: input.sourceKind,
     fileName: input.fileName,
-    fileUrl: input.fileUrl,
-    fileKey: input.fileKey ?? null,
+    fileUrl: input.keepUploadedFile ? input.fileUrl : null,
+    fileKey: input.keepUploadedFile ? input.fileKey ?? null : null,
     parseError: input.parseError,
     parsedRows: [],
   });
@@ -76,54 +98,106 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
   | { ok: true; job: ReturnType<typeof serializeSchemeImportJob> }
   | { ok: false; error: string; status: number }
 > {
-  const downloaded = await downloadImportFile(input.fileUrl);
-  if (!downloaded.ok) return downloaded;
+  const pdfMode = isPdfSource(input.fileName, input.mimeType);
 
-  const pdfMode = isPdfFileName(input.fileName);
+  const downloaded = await retryTransient(
+    () =>
+      downloadSchemeImportFile({
+        fileUrl: input.fileUrl,
+        fileKey: input.fileKey,
+        expectPdf: pdfMode,
+      }),
+    (result) => !result.ok && result.status >= 500,
+  );
+  if (!downloaded.ok) {
+    await cleanupUploadedImportFile(input);
+    return {
+      ...downloaded,
+      error: `${downloaded.error}. The uploaded file was removed because the import did not complete.`,
+    };
+  }
+
+  console.info("[scheme-import] downloaded", {
+    fileName: input.fileName,
+    pdfMode,
+    bytes: downloaded.buffer.length,
+  });
 
   if (pdfMode) {
     const pdfGate = await assertPdfSchemeImportEnabled(input.schoolId);
     if (!pdfGate.ok) {
-      return { ok: false, error: pdfGate.error, status: pdfGate.status };
+      await cleanupUploadedImportFile(input);
+      return {
+        ok: false,
+        error: `${pdfGate.error} The uploaded file was removed because the import did not complete.`,
+        status: pdfGate.status,
+      };
     }
 
     let rawText: string;
     try {
+      console.info("[scheme-import] extracting PDF text…");
       rawText = await extractTextFromPdfBuffer(downloaded.buffer);
+      console.info("[scheme-import] PDF text chars", rawText.length);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "PDF read failed";
-      const job = await createFailedImportJob({ ...input, sourceKind: "pdf_ai", parseError: msg });
-      return { ok: true, job };
-    }
-
-    const ai = await extractSchemeRowsWithAiFromPdfText({
-      rawText,
-      schoolId: input.schoolId,
-    });
-
-    if (!ai.ok) {
-      const job = await createFailedImportJob({ ...input, sourceKind: "pdf_ai", parseError: ai.error });
-      return { ok: true, job };
-    }
-
-    if (ai.rows.length === 0) {
+      await cleanupUploadedImportFile(input);
       const job = await createFailedImportJob({
         ...input,
         sourceKind: "pdf_ai",
-        parseError: "No scheme rows could be extracted - try CSV/XLSX or a clearer PDF",
+        parseError: cleanupParseError(msg),
       });
       return { ok: true, job };
     }
+
+    console.info("[scheme-import] resolving PDF rows (OpenAI, then Gemini fallback)…");
+    const parsed = await resolvePdfSchemeParsedRows({
+      rawText,
+      schoolId: input.schoolId,
+    });
+    console.info("[scheme-import] PDF parse result", {
+      ok: parsed.ok,
+      sourceKind: parsed.ok ? parsed.sourceKind : null,
+      rows: parsed.ok ? parsed.rows.length : 0,
+      primaryError: parsed.ok ? parsed.primaryError : parsed.primaryError,
+    });
+
+    if (!parsed.ok) {
+      const errMsg = parsed.error;
+      const keepFile =
+        parsed.primaryError != null &&
+        (/invalid or expired API key|authenticate|gemini|api key/i.test(parsed.primaryError) ||
+          isAiConnectivityError(parsed.primaryError) ||
+          isAiConnectivityError(errMsg));
+      if (!keepFile) {
+        await cleanupUploadedImportFile(input);
+      }
+      const job = await createFailedImportJob({
+        ...input,
+        sourceKind: "pdf_ai",
+        keepUploadedFile: keepFile,
+        parseError: cleanupParseError(errMsg, { fileRemoved: !keepFile }),
+      });
+      return { ok: true, job };
+    }
+
+    const parseWarning =
+      parsed.sourceKind === "pdf_gemini" && parsed.primaryError
+        ? `OpenAI could not extract rows (${parsed.primaryError}). Rows below were extracted with Gemini — review before confirming.`
+        : parsed.sourceKind === "pdf_gemini"
+          ? "Rows were extracted with Gemini. Review each row before confirming."
+          : null;
 
     const job = await SchemeImportJob.create({
       schoolId: input.schoolId,
       createdByUserId: input.createdByUserId,
       status: "parsed",
-      sourceKind: "pdf_ai",
+      sourceKind: parsed.sourceKind,
       fileName: input.fileName,
       fileUrl: input.fileUrl,
       fileKey: input.fileKey ?? null,
-      parsedRows: ai.rows,
+      parseWarning,
+      parsedRows: parsed.rows,
     });
 
     return { ok: true, job: serializeSchemeImportJob(job.toObject()) };
@@ -131,7 +205,12 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
 
   const gate = await assertSchemeImportEnabled(input.schoolId);
   if (!gate.ok) {
-    return { ok: false, error: gate.error, status: gate.status };
+    await cleanupUploadedImportFile(input);
+    return {
+      ok: false,
+      error: `${gate.error} The uploaded file was removed because the import did not complete.`,
+      status: gate.status,
+    };
   }
 
   let parsedRows;
@@ -139,12 +218,23 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
     parsedRows = parseSchemeSpreadsheet(downloaded.buffer, input.fileName);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Parse failed";
-    const job = await createFailedImportJob({ ...input, sourceKind: "spreadsheet", parseError: msg });
+    await cleanupUploadedImportFile(input);
+    const job = await createFailedImportJob({
+      ...input,
+      sourceKind: "spreadsheet",
+      parseError: cleanupParseError(msg),
+    });
     return { ok: true, job };
   }
 
   if (parsedRows.length === 0) {
-    const job = await createFailedImportJob({ ...input, sourceKind: "spreadsheet", parseError: "No data rows found" });
+    await cleanupUploadedImportFile(input);
+    const job = await createFailedImportJob({
+      ...input,
+      sourceKind: "spreadsheet",
+      parseError:
+        "No data rows found. The uploaded file was removed because the import did not complete.",
+    });
     return { ok: true, job };
   }
 

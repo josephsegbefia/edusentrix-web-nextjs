@@ -46,6 +46,7 @@ import {
   Upload,
   History,
   Megaphone,
+  Bell,
   ChevronDown,
   ClipboardSignature,
 } from "lucide-react";
@@ -74,6 +75,7 @@ import { useSchool } from "@/hooks/admin/useSchool";
 import { useOnboardingProgress } from "@/hooks/admin/useOnboardingProgress";
 import { useAdminLessonNotes } from "@/hooks/admin/useAdminLessonNotes";
 import { useEmailUnreadCount } from "@/hooks/admin/useEmailInbox";
+import { useAdminUnreadNotificationCount } from "@/hooks/admin/useAdminNotifications";
 
 type NavItemBase = {
   label: string;
@@ -112,6 +114,11 @@ const navSections: NavSection[] = [
         href: "/admin",
         icon: LayoutDashboard,
         exact: true,
+      },
+      {
+        label: "Notifications",
+        href: "/admin/notifications",
+        icon: Bell,
       },
     ],
   },
@@ -491,6 +498,9 @@ function NavContent({
     lessonNoteReviewData?.data.summary.total ?? 0;
   const { data: emailUnreadData } = useEmailUnreadCount(!shouldRestrictSchoolAdminNav);
   const unreadEmails = emailUnreadData?.data.unreadCount ?? 0;
+  const { data: unreadNotifications = 0 } = useAdminUnreadNotificationCount(
+    !shouldRestrictSchoolAdminNav,
+  );
   const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>(
     {}
   );
@@ -730,6 +740,14 @@ function NavContent({
 
               const active = routeActive(href, exact);
               const showEmailBadge = href === "/admin/email" && unreadEmails > 0;
+              const showNotificationBadge =
+                href === "/admin/notifications" && unreadNotifications > 0;
+              const showNavBadge = showEmailBadge || showNotificationBadge;
+              const navBadgeCount = showEmailBadge
+                ? unreadEmails
+                : showNotificationBadge
+                  ? unreadNotifications
+                  : 0;
 
               if (collapsed) {
                 if (locked) {
@@ -768,14 +786,14 @@ function NavContent({
                           "text-white/50 hover:text-white hover:bg-white/7 transition-all duration-200",
                           active &&
                             "bg-white/9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
-                          showEmailBadge && "relative"
+                          showNavBadge && "relative"
                         )}
                         activeClassName="nav-active"
                       >
                         <Icon className="h-4 w-4 shrink-0" />
-                        {showEmailBadge ? (
+                        {showNavBadge ? (
                           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-slate-950 bg-sky-400 px-1 text-[9px] font-bold text-slate-950">
-                            {unreadEmails > 9 ? "9+" : unreadEmails}
+                            {navBadgeCount > 9 ? "9+" : navBadgeCount}
                           </span>
                         ) : null}
                       </ActiveLink>
@@ -829,9 +847,9 @@ function NavContent({
                 >
                   <Icon className={cn("h-4 w-4 shrink-0", active && "text-violet-400")} />
                   <span className="truncate">{label}</span>
-                  {showEmailBadge ? (
+                  {showNavBadge ? (
                     <span className="ml-auto rounded-full border border-sky-300/20 bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-100">
-                      {unreadEmails > 99 ? "99+" : unreadEmails}
+                      {navBadgeCount > 99 ? "99+" : navBadgeCount}
                     </span>
                   ) : null}
                 </ActiveLink>

@@ -3,7 +3,8 @@ import type { FlashcardProgressStatus } from "@/models/StudentFlashcardProgress"
 export type LessonFlashcardDto = {
   id: string;
   deckId: string;
-  lessonId: string;
+  lessonId: string | null;
+  sessionId?: string | null;
   front: string;
   back: string;
   hint: string | null;
@@ -18,7 +19,8 @@ export type LessonFlashcardDto = {
 
 export type LessonFlashcardDeckDto = {
   id: string;
-  lessonId: string;
+  lessonId: string | null;
+  sessionId?: string | null;
   title: string;
   description: string | null;
   status: "draft" | "published" | "archived";

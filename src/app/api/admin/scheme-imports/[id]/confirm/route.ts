@@ -9,6 +9,10 @@ import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { assertSchemeImportEnabled } from "@/lib/schemes/scheme-import-gate";
 import { deriveCurriculumStructureFromSchemeImport } from "@/lib/schemes/scheme-import-curriculum-derive";
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
+import {
+  buildSchemeItemTitle,
+  schemeImportRowFieldsForItem,
+} from "@/lib/schemes/scheme-import-confirm-shared";
 import { serializeSchemeRow } from "@/lib/schemes/serializers";
 
 const ConfirmBodySchema = z.object({
@@ -48,17 +52,6 @@ function parseWeekEnding(value: string | null | undefined): Date | null {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
-function buildSchemeItemTitle(row: ISchemeImportJob["parsedRows"][number]): string {
-  return (
-    row.title?.trim() ||
-    row.subStrand?.trim() ||
-    row.strand?.trim() ||
-    row.contentStandard?.trim() ||
-    row.indicators?.[0]?.trim() ||
-    "Scheme row"
-  );
-}
-
 function buildNotes(row: ISchemeImportJob["parsedRows"][number]): string | null {
   const parts = [
     row.notes?.trim(),
@@ -69,7 +62,7 @@ function buildNotes(row: ISchemeImportJob["parsedRows"][number]): string | null 
 }
 
 function sourceTypeForJob(job: ISchemeImportJob): ISchemeOfWork["sourceType"] {
-  if (job.sourceKind === "pdf_ai") return "pdf_import";
+  if (job.sourceKind === "pdf_ai" || job.sourceKind === "pdf_gemini") return "pdf_import";
   const ext = job.fileName.split(".").pop()?.toLowerCase();
   if (ext === "csv") return "csv_import";
   if (ext === "xls" || ext === "xlsx") return "excel_import";
@@ -198,8 +191,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     let sequence = 0;
     for (const row of job.parsedRows) {
       if (row.skipped || row.errors.length > 0) continue;
-      const title = buildSchemeItemTitle(row).trim();
-      if (title.length < 2) continue;
+      const fields = schemeImportRowFieldsForItem(row);
+      if (fields.title.length < 2) continue;
       const indicators = (row.indicators || []).map((i) => i.trim()).filter(Boolean);
       const resources = (row.resources || []).map((r) => r.trim()).filter(Boolean);
       await SchemeItem.create({
@@ -207,10 +200,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         schemeId: scheme._id,
         weekNumber: row.weekNumber ?? null,
         sequence,
-        title,
-        strand: row.strand?.trim() || null,
-        subStrand: row.subStrand?.trim() || null,
-        contentStandard: row.contentStandard?.trim() || null,
+        title: fields.title,
+        strand: fields.strand,
+        subStrand: fields.subStrand,
+        contentStandard: fields.contentStandard,
         indicator: indicators.length ? indicators.join("\n") : null,
         teachingResources: resources,
         learningObjective: row.learningObjective?.trim() || null,

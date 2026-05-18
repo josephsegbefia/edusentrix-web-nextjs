@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
-import { TeacherSchemeWizard } from "@/components/teacher/schemes/TeacherSchemeWizard";
+import { TeacherSchemeReadOnlyView } from "@/components/teacher/schemes/TeacherSchemeReadOnlyView";
 
 export default function TeacherSchemeDetailPage() {
   const params = useParams<{ id: string }>();
@@ -18,7 +18,7 @@ export default function TeacherSchemeDetailPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl p-4 md:p-6">
-      <TeacherSchemeWizard schemeId={schemeId} />
+      <TeacherSchemeReadOnlyView schemeId={schemeId} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { LessonNote } from "@/models/LessonNote";
 import { LessonNoteReviewComment } from "@/models/LessonNoteReviewComment";
 import { User } from "@/models/User";
+import { notifyTeacherLessonNoteReviewComment } from "@/lib/lesson-notes/notifications";
 import {
   formatUserDisplayName,
   getLessonNoteReviewSections,
@@ -48,7 +49,7 @@ export async function POST(
       _id: noteId,
       schoolId: context.schoolId,
     })
-      .select("templateType")
+      .select("templateType teacherId topic status")
       .lean();
 
     if (!note) {
@@ -96,6 +97,30 @@ export async function POST(
     const author = await User.findById(context.userId)
       .select("name firstName lastName email")
       .lean();
+
+    const noteRow = note as {
+      teacherId: mongoose.Types.ObjectId;
+      topic?: string;
+      status?: string;
+    };
+
+    if (
+      noteRow.teacherId &&
+      ["submitted", "rejected", "approved"].includes(String(noteRow.status || ""))
+    ) {
+      void notifyTeacherLessonNoteReviewComment({
+        schoolId: context.schoolId,
+        teacherId: noteRow.teacherId,
+        lessonNoteId: noteId,
+        commentId: created._id,
+        topic: noteRow.topic || "",
+        sectionLabel: created.sectionLabel,
+        commentType: created.commentType,
+        commentPreview: created.comment,
+      }).catch((err) => {
+        console.error("[lesson-note-notify] comment:", err);
+      });
+    }
 
     return Response.json({
       success: true,

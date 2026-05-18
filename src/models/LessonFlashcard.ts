@@ -3,7 +3,8 @@ import { Schema, model, models, type Model, type Types } from "mongoose";
 export interface ILessonFlashcard {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
-  lessonId: Types.ObjectId;
+  lessonId?: Types.ObjectId | null;
+  sessionId?: Types.ObjectId | null;
   deckId: Types.ObjectId;
   front: string;
   back: string;
@@ -20,7 +21,8 @@ export interface ILessonFlashcard {
 const lessonFlashcardSchema = new Schema<ILessonFlashcard>(
   {
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true, index: true },
-    lessonId: { type: Schema.Types.ObjectId, ref: "Lesson", required: true, index: true },
+    lessonId: { type: Schema.Types.ObjectId, ref: "Lesson", default: null, index: true },
+    sessionId: { type: Schema.Types.ObjectId, ref: "LessonSession", default: null, index: true },
     deckId: {
       type: Schema.Types.ObjectId,
       ref: "LessonFlashcardDeck",
@@ -44,6 +46,15 @@ const lessonFlashcardSchema = new Schema<ILessonFlashcard>(
 );
 
 lessonFlashcardSchema.index({ schoolId: 1, deckId: 1, order: 1 });
+lessonFlashcardSchema.pre("validate", function validateCardScope(next) {
+  const hasLesson = Boolean(this.lessonId);
+  const hasSession = Boolean(this.sessionId);
+  if (hasLesson === hasSession) {
+    next(new Error("Flashcard must reference exactly one of lessonId or sessionId"));
+    return;
+  }
+  next();
+});
 
 export const LessonFlashcard: Model<ILessonFlashcard> =
   (models.LessonFlashcard as Model<ILessonFlashcard>) ||

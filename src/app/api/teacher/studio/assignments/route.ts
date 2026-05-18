@@ -11,6 +11,8 @@ import { Subject } from "@/models/Subject";
 import { Submission } from "@/models/Submission";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { Lesson } from "@/models/Lesson";
+import { LessonSession } from "@/models/LessonSession";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { requireTeacherStudioAccess } from "@/lib/features/teacherStudio";
 import { PERMISSIONS } from "@/lib/rbac";
 
@@ -49,6 +51,7 @@ const HomeworkCreateSchema = z.object({
   type: z.enum(["assignment", "quiz", "project", "practice"]),
   subjectId: z.string().min(1),
   sourceLessonId: z.string().min(1).optional(),
+  sourceSessionId: z.string().min(1).optional(),
   classGroupIds: z.array(z.string().min(1)).min(1),
   targetStudentIds: z.array(z.string().min(1)).optional(),
   dueDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
@@ -396,6 +399,9 @@ export async function POST(req: Request) {
     const sourceLessonObjId = data.sourceLessonId
       ? toObjectIdOrNull(data.sourceLessonId)
       : null;
+    const sourceSessionObjId = data.sourceSessionId
+      ? toObjectIdOrNull(data.sourceSessionId)
+      : null;
     const classGroupIds = data.classGroupIds
       .map((id) => toObjectIdOrNull(id))
       .filter(Boolean) as mongoose.Types.ObjectId[];
@@ -408,6 +414,15 @@ export async function POST(req: Request) {
     }
     if (data.sourceLessonId && !sourceLessonObjId) {
       return Response.json({ success: false, error: "Invalid source lesson" }, { status: 400 });
+    }
+    if (data.sourceSessionId && !sourceSessionObjId) {
+      return Response.json({ success: false, error: "Invalid source session" }, { status: 400 });
+    }
+    if (sourceLessonObjId && sourceSessionObjId) {
+      return Response.json(
+        { success: false, error: "Link to either a lesson or a session, not both." },
+        { status: 400 },
+      );
     }
 
     const [subject, classGroups, period] = await Promise.all([
@@ -479,6 +494,43 @@ export async function POST(req: Request) {
       }
     }
 
+    if (sourceSessionObjId) {
+      const sourceSession = await LessonSession.findOne({
+        _id: sourceSessionObjId,
+        schoolId: context.schoolId,
+        ownerTeacherId: context.teacherId,
+      })
+        .select("_id classGroupId subjectOfferingId")
+        .lean();
+      if (!sourceSession) {
+        return Response.json(
+          { success: false, error: "Source session not found for this teacher" },
+          { status: 404 },
+        );
+      }
+      const includesClass = classGroupIds.some(
+        (id) => String(id) === String(sourceSession.classGroupId),
+      );
+      if (!includesClass) {
+        return Response.json(
+          { success: false, error: "Session class is not included in assignment classes" },
+          { status: 400 },
+        );
+      }
+      const offering = await SubjectOffering.findOne({
+        _id: sourceSession.subjectOfferingId,
+        schoolId: context.schoolId,
+      })
+        .select("subjectId")
+        .lean();
+      if (offering?.subjectId && String(offering.subjectId) !== String(subjectObjId)) {
+        return Response.json(
+          { success: false, error: "Subject does not match session offering" },
+          { status: 400 },
+        );
+      }
+    }
+
     await ensureTeacherScope({
       schoolId: context.schoolId,
       teacherId: context.teacherId,
@@ -524,6 +576,7 @@ export async function POST(req: Request) {
       academicPeriodId: period._id,
       subjectId: subjectObjId,
       sourceLessonId: sourceLessonObjId || undefined,
+      sourceSessionId: sourceSessionObjId || undefined,
       classGroupIds,
       targetStudentIds: (data.targetStudentIds || [])
         .map((id) => toObjectIdOrNull(id))

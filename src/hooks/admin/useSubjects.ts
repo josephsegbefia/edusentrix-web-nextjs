@@ -139,10 +139,11 @@ export type AssignTeacherResponse = {
   conflict?: {
     type: string;
     message: string;
-    existingTeacher: {
+    existingTeachers?: Array<{
       id: string;
       name: string;
-    };
+      assignmentId: string;
+    }>;
   };
 };
 

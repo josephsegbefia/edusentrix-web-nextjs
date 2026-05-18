@@ -182,6 +182,7 @@ export interface ILessonNote {
   // Basic Info
   weekOf: Date;
   date?: Date; // Specific lesson date (optional)
+  weekEndingDate?: Date | null;
   topic: string;
   durationMinutes?: number;
   references: string[]; // Textbook pages, curriculum references
@@ -420,6 +421,7 @@ const LessonNoteSchema = new Schema<ILessonNote>(
     // Basic info
     weekOf: { type: Date, required: true, index: true },
     date: { type: Date },
+    weekEndingDate: { type: Date, default: null, index: true },
     topic: { type: String, required: true, trim: true, maxlength: 200 },
     durationMinutes: { type: Number, min: 5, max: 180 },
     references: { type: [String], default: [] },

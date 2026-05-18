@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 import { SchemeOfWork, type ISchemeOfWork, type SchemeOfWorkStatus } from "@/models/SchemeOfWork";
 import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
 import { SchemeReview, type ISchemeReview } from "@/models/SchemeReview";
+import { LessonNote } from "@/models/LessonNote";
+import { getSchemeDeleteBlockReason } from "@/lib/schemes/scheme-delete";
+import { SCHEME_LINKED_LESSON_NOTES_CODE } from "@/lib/schemes/scheme-delete-errors";
+import { recordActivity } from "@/lib/audit/recordActivity";
 import { Subject } from "@/models/Subject";
 import { Grade } from "@/models/Grade";
 import { ClassGroup } from "@/models/ClassGroup";
@@ -702,6 +706,81 @@ export async function archiveSchemeForSchool(input: {
     nextStatus: "archived",
     note,
   });
+
+  return { ok: true };
+}
+
+export async function deleteSchemeForSchool(input: {
+  schoolId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  schemeId: string;
+  unlinkLessonNotes?: boolean;
+}) {
+  if (!mongoose.Types.ObjectId.isValid(input.schemeId)) {
+    return { error: NextResponse.json({ success: false, error: "Invalid scheme id" }, { status: 400 }) };
+  }
+  const sid = new mongoose.Types.ObjectId(input.schemeId);
+  const scheme = await SchemeOfWork.findOne({ _id: sid, schoolId: input.schoolId });
+  if (!scheme) {
+    return { error: NextResponse.json({ success: false, error: "Scheme not found" }, { status: 404 }) };
+  }
+
+  const status = normalizeDbStatus(String(scheme.status));
+  const blockReason = getSchemeDeleteBlockReason(status);
+  if (blockReason) {
+    return { error: NextResponse.json({ success: false, error: blockReason }, { status: 409 }) };
+  }
+
+  const linkedLessonNotes = await LessonNote.countDocuments({
+    schoolId: input.schoolId,
+    schemeId: sid,
+  });
+  if (linkedLessonNotes > 0 && !input.unlinkLessonNotes) {
+    return {
+      error: NextResponse.json(
+        {
+          success: false,
+          code: SCHEME_LINKED_LESSON_NOTES_CODE,
+          linkedLessonNoteCount: linkedLessonNotes,
+          error: `This scheme is linked to ${linkedLessonNotes} lesson note${linkedLessonNotes === 1 ? "" : "s"}.`,
+        },
+        { status: 409 },
+      ),
+    };
+  }
+
+  const title = scheme.title;
+  const previousStatus = status;
+
+  if (linkedLessonNotes > 0 && input.unlinkLessonNotes) {
+    await LessonNote.updateMany(
+      { schoolId: input.schoolId, schemeId: sid },
+      { $set: { schemeId: null, schemeItemIds: [] } },
+    );
+  }
+
+  await SchemeItem.deleteMany({ schoolId: input.schoolId, schemeId: sid });
+  await SchemeReview.deleteMany({ schoolId: input.schoolId, schemeId: sid });
+  await SchemeOfWork.deleteOne({ _id: sid, schoolId: input.schoolId });
+
+  try {
+    await recordActivity({
+      schoolId: input.schoolId,
+      userId: input.userId,
+      type: "scheme.deleted",
+      entityType: "SchemeOfWork",
+      entityId: sid,
+      description: `Scheme of Learning deleted (${previousStatus})`,
+      metadata: {
+        schemeId: String(sid),
+        title,
+        previousStatus,
+        unlinkedLessonNotes: linkedLessonNotes > 0 ? linkedLessonNotes : undefined,
+      },
+    });
+  } catch (e) {
+    console.error("[scheme-delete-audit]", e);
+  }
 
   return { ok: true };
 }

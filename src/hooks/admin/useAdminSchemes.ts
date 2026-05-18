@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { deleteSchemeRequest } from "@/lib/schemes/delete-scheme-client";
 import type { AdminSchemeDetailPayload, AdminSchemeQueueRow } from "@/types/schemes";
 
 type SchemeQueueFilters = {
@@ -165,6 +166,24 @@ export function useAdminSchemeArchiveMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
       qc.invalidateQueries({ queryKey: ["admin-scheme-detail"] });
+    },
+  });
+}
+
+export function useAdminSchemeDeleteMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { schemeId: string; unlinkLessonNotes?: boolean }) => {
+      await deleteSchemeRequest(
+        "/api/admin/schemes",
+        input.schemeId,
+        input.unlinkLessonNotes,
+      );
+      return input.schemeId;
+    },
+    onSuccess: (deletedId) => {
+      qc.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
+      qc.removeQueries({ queryKey: ["admin-scheme-detail", deletedId] });
     },
   });
 }

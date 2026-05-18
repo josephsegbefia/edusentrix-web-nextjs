@@ -85,7 +85,9 @@ export function useSubmitForApproval() {
     },
     onSuccess: (_, noteId) => {
       qc.invalidateQueries({ queryKey: ["teacher-lesson-notes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-lesson-note", noteId] });
       qc.invalidateQueries({ queryKey: ["lesson-note-approval", noteId] });
+      qc.invalidateQueries({ queryKey: ["teacher", "notifications"] });
     },
   });
 }
@@ -117,7 +119,9 @@ export function useApproveLessonNote() {
     },
     onSuccess: (_, { noteId }) => {
       qc.invalidateQueries({ queryKey: ["teacher-lesson-notes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-lesson-note", noteId] });
       qc.invalidateQueries({ queryKey: ["lesson-note-approval", noteId] });
+      qc.invalidateQueries({ queryKey: ["teacher", "notifications"] });
     },
   });
 }
@@ -149,7 +153,9 @@ export function useRejectLessonNote() {
     },
     onSuccess: (_, { noteId }) => {
       qc.invalidateQueries({ queryKey: ["teacher-lesson-notes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-lesson-note", noteId] });
       qc.invalidateQueries({ queryKey: ["lesson-note-approval", noteId] });
+      qc.invalidateQueries({ queryKey: ["teacher", "notifications"] });
     },
   });
 }
@@ -177,7 +183,9 @@ export function useReturnToDraft() {
     },
     onSuccess: (_, noteId) => {
       qc.invalidateQueries({ queryKey: ["teacher-lesson-notes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-lesson-note", noteId] });
       qc.invalidateQueries({ queryKey: ["lesson-note-approval", noteId] });
+      qc.invalidateQueries({ queryKey: ["teacher", "notifications"] });
     },
   });
 }

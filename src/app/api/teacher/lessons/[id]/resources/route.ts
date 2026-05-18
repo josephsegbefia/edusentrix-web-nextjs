@@ -11,6 +11,7 @@ import type { LessonResourceDto, TeacherLessonResourcesResponse } from "@/types/
 import { recordLessonAudit } from "@/lib/lessons/lesson-audit";
 import { assertLessonsFeatureEnabled, assertLessonsModuleEnabled } from "@/lib/lessons/settings";
 import { inferLessonFileType, normalizeSafeExternalUrl } from "@/lib/lessons/content-safety";
+import { deleteUploadedFile } from "@/lib/uploads/delete";
 
 const CreateBodySchema = z.discriminatedUnion("kind", [
   z.object({
@@ -53,7 +54,8 @@ function toObjectIdOrNull(id: string) {
 function formatResource(r: ILessonResource): LessonResourceDto {
   return {
     id: String(r._id),
-    lessonId: String(r.lessonId),
+    lessonId: r.lessonId ? String(r.lessonId) : null,
+    sessionId: r.sessionId ? String(r.sessionId) : null,
     kind: r.kind,
     title: r.title,
     description: r.description ?? null,
@@ -231,34 +233,42 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return Response.json({ success: false, error: "File URL must be a safe https URL" }, { status: 400 });
       }
       const desc = parsed.data.description?.trim();
-      const created = await LessonResource.create({
-        schoolId: context.schoolId,
-        lessonId,
-        teacherId: context.teacherId,
-        kind: "file",
-        title: parsed.data.title,
-        fileUrl,
-        uploadThingKey: parsed.data.uploadThingKey?.trim() || undefined,
-        fileName: parsed.data.fileName?.trim() || undefined,
-        fileSizeBytes: parsed.data.fileSizeBytes ?? undefined,
-        mimeType: parsed.data.mimeType?.trim() || undefined,
-        fileType:
-          parsed.data.fileType ??
-          inferLessonFileType(parsed.data.mimeType, parsed.data.fileName),
-        description: desc || undefined,
-        visibility: parsed.data.visibility,
-        order: nextOrder,
-      });
-      void recordLessonAudit({
-        schoolId: context.schoolId,
-        lessonId,
-        actorId: context.userId,
-        action: "resource_added",
-        metadata: { resourceId: String(created._id), kind: "file" },
-        httpRequest: req,
-        actorRole: context.isAdmin ? "school_admin" : "teacher",
-      });
-      return Response.json({ success: true, data: { id: String(created._id) } });
+      try {
+        const created = await LessonResource.create({
+          schoolId: context.schoolId,
+          lessonId,
+          teacherId: context.teacherId,
+          kind: "file",
+          title: parsed.data.title,
+          fileUrl,
+          uploadThingKey: parsed.data.uploadThingKey?.trim() || undefined,
+          fileName: parsed.data.fileName?.trim() || undefined,
+          fileSizeBytes: parsed.data.fileSizeBytes ?? undefined,
+          mimeType: parsed.data.mimeType?.trim() || undefined,
+          fileType:
+            parsed.data.fileType ??
+            inferLessonFileType(parsed.data.mimeType, parsed.data.fileName),
+          description: desc || undefined,
+          visibility: parsed.data.visibility,
+          order: nextOrder,
+        });
+        void recordLessonAudit({
+          schoolId: context.schoolId,
+          lessonId,
+          actorId: context.userId,
+          action: "resource_added",
+          metadata: { resourceId: String(created._id), kind: "file" },
+          httpRequest: req,
+          actorRole: context.isAdmin ? "school_admin" : "teacher",
+        });
+        return Response.json({ success: true, data: { id: String(created._id) } });
+      } catch (error) {
+        const deleted = await deleteUploadedFile(fileUrl);
+        if (!deleted) {
+          console.error("Rollback failed for lesson resource upload:", fileUrl);
+        }
+        throw error;
+      }
     }
 
     const desc = parsed.data.description?.trim();

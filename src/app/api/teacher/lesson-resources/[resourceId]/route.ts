@@ -4,8 +4,8 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
-import { Lesson, type ILesson } from "@/models/Lesson";
 import { LessonResource, type ILessonResource } from "@/models/LessonResource";
+import { canTeacherManageResource } from "@/lib/lessons/resource-access";
 import { recordLessonAudit } from "@/lib/lessons/lesson-audit";
 import { normalizeSafeExternalUrl } from "@/lib/lessons/content-safety";
 
@@ -48,15 +48,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ resour
       return Response.json({ success: false, error: "Resource not found" }, { status: 404 });
     }
 
-    const lesson = (await Lesson.findOne({
-      _id: existing.lessonId,
+    const allowed = await canTeacherManageResource({
+      resource: existing,
       schoolId: context.schoolId,
       teacherId: context.teacherId,
-    })
-      .select("_id")
-      .lean()) as Pick<ILesson, "_id"> | null;
-
-    if (!lesson) {
+      isAdmin: context.isAdmin,
+    });
+    if (!allowed) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
@@ -132,15 +130,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ resou
       return Response.json({ success: false, error: "Resource not found" }, { status: 404 });
     }
 
-    const lesson = (await Lesson.findOne({
-      _id: existing.lessonId,
+    const allowed = await canTeacherManageResource({
+      resource: existing,
       schoolId: context.schoolId,
       teacherId: context.teacherId,
-    })
-      .select("_id")
-      .lean()) as Pick<ILesson, "_id"> | null;
-
-    if (!lesson) {
+      isAdmin: context.isAdmin,
+    });
+    if (!allowed) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 

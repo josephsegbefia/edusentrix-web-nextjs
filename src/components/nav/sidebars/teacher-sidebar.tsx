@@ -298,12 +298,6 @@ const lessonNavChildren: Array<{
   permission?: Permission;
 }> = [
   {
-    label: "Lesson bank",
-    href: "/teacher/lessons/bank",
-    icon: Library,
-    permission: PERMISSIONS.lessonsRead,
-  },
-  {
     label: "Lesson analytics",
     href: "/teacher/lessons/analytics",
     icon: BarChart3,

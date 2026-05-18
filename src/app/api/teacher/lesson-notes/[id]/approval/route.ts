@@ -11,6 +11,14 @@ import {
   buildSchoolUserAuditContext,
   resolveAuditIdempotencyKey,
 } from "@/lib/audit/fromApiRoute";
+import {
+  notifySchoolAdminsLessonNoteSubmitted,
+  notifyTeacherLessonNoteApproved,
+  notifyTeacherLessonNoteRejected,
+} from "@/lib/lesson-notes/notifications";
+import { Teacher } from "@/models/Teacher";
+import { User } from "@/models/User";
+import { formatUserDisplayName } from "@/lib/lesson-notes/review";
 import { assertLessonNoteRequiresSchemeLink } from "@/lib/lesson-notes/validate-lesson-note-scheme";
 
 // ============================================================================
@@ -105,10 +113,13 @@ export async function POST(
       _id: noteId,
       schoolId: context.schoolId,
     })
-      .select("teacherId status submittedAt approvedAt approvedBy rejectionReason schemeId")
+      .select(
+        "teacherId topic status submittedAt approvedAt approvedBy rejectionReason schemeId"
+      )
       .lean()) as Pick<
       ILessonNote,
       | "teacherId"
+      | "topic"
       | "status"
       | "submittedAt"
       | "approvedAt"
@@ -231,6 +242,30 @@ export async function POST(
         await session.endSession();
       }
 
+      const teacherRow = await Teacher.findOne({
+        _id: note.teacherId,
+        schoolId: context.schoolId,
+      })
+        .select("userId")
+        .lean();
+      const teacherUser = teacherRow?.userId
+        ? await User.findById(teacherRow.userId)
+            .select("name firstName lastName email")
+            .lean()
+        : null;
+
+      void notifySchoolAdminsLessonNoteSubmitted({
+        schoolId: context.schoolId,
+        lessonNoteId: noteId,
+        topic: note.topic || "",
+        teacherDisplayName: formatUserDisplayName(teacherUser, "Teacher"),
+        excludeUserId: teacherRow?.userId
+          ? (teacherRow.userId as mongoose.Types.ObjectId)
+          : null,
+      }).catch((err) => {
+        console.error("[lesson-note-notify] submit:", err);
+      });
+
       return Response.json({
         success: true,
         message: "Lesson note submitted for approval",
@@ -328,6 +363,16 @@ export async function POST(
         await session.endSession();
       }
 
+      void notifyTeacherLessonNoteApproved({
+        schoolId: context.schoolId,
+        teacherId: note.teacherId as mongoose.Types.ObjectId,
+        lessonNoteId: noteId,
+        topic: note.topic || "",
+        feedback,
+      }).catch((err) => {
+        console.error("[lesson-note-notify] approve:", err);
+      });
+
       return Response.json({
         success: true,
         message: "Lesson note approved",
@@ -421,6 +466,16 @@ export async function POST(
       } finally {
         await session.endSession();
       }
+
+      void notifyTeacherLessonNoteRejected({
+        schoolId: context.schoolId,
+        teacherId: note.teacherId as mongoose.Types.ObjectId,
+        lessonNoteId: noteId,
+        topic: note.topic || "",
+        reason,
+      }).catch((err) => {
+        console.error("[lesson-note-notify] reject:", err);
+      });
 
       return Response.json({
         success: true,

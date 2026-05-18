@@ -49,6 +49,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { TeacherLessonWeekPlansPanel } from "@/components/lessons/TeacherLessonWeekPlansPanel";
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
@@ -167,6 +168,7 @@ export default function TeacherClassJournalPage() {
   const permissions = contextData?.data.permissions as Permission[] | undefined;
   const canView = can(permissions, PERMISSIONS.journalView);
   const canWrite = can(permissions, PERMISSIONS.journalWrite);
+  const canViewLessons = can(permissions, PERMISSIONS.lessonsRead);
 
   const { data: classesData } = useTeacherClasses();
 
@@ -175,6 +177,17 @@ export default function TeacherClassJournalPage() {
   }, [classesData, classGroupId]);
 
   const className = classAssignments[0]?.name || "Class Journal";
+  const classLabelMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of classAssignments) {
+      if (!item._id) continue;
+      map.set(
+        item._id,
+        `${item.gradeName ? `${item.gradeName} ` : ""}${item.name}`.trim() || item.name,
+      );
+    }
+    return map;
+  }, [classAssignments]);
   const subjectOptions = React.useMemo(() => {
     const map = new Map<string, string>();
     classAssignments.forEach((item) => {
@@ -428,6 +441,13 @@ export default function TeacherClassJournalPage() {
           </div>
         </CardContent>
       </Card>
+
+      {canViewLessons && classGroupId ? (
+        <TeacherLessonWeekPlansPanel
+          classGroupId={classGroupId}
+          classLabelMap={classLabelMap}
+        />
+      ) : null}
 
       <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader>

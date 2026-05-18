@@ -10,6 +10,7 @@ import {
 } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { academicPeriodPastDateError } from "@/lib/academic-periods/date-guard";
 
 const createBodySchema = z.object({
   yearLabel: z.string().min(1, "Year label is required"),
@@ -86,6 +87,14 @@ export async function POST(req: NextRequest) {
     }
 
     const { yearLabel, term, startDate, endDate } = parsed.data;
+    const pastDateError = academicPeriodPastDateError({ startDate, endDate });
+    if (pastDateError) {
+      return NextResponse.json(
+        { success: false, error: pastDateError },
+        { status: 400 }
+      );
+    }
+
     const isYearEndTerminal = parsed.data.isYearEndTerminal ?? false;
     const schoolIdObj =
       schoolId instanceof mongoose.Types.ObjectId

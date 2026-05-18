@@ -5,6 +5,10 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireSchoolAdmin } from "@/lib/auth/requireSchoolAdmin";
 import { requireSchoolAdminOrTeacherRead } from "@/lib/auth/requireSchoolAdminOrTeacherRead";
 import { DEFAULT_SCHOOL_LEO_SETTINGS } from "@/lib/leo/defaults";
+import {
+  DEFAULT_LESSONS_MODULE_SETTINGS,
+  type LessonsModuleSettings,
+} from "@/lib/lessons/settings";
 import { SchoolSettings } from "@/models/SchoolSettings";
 
 const TimeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -53,7 +57,20 @@ const PromotionsAutomationSchema = z.object({
 });
 
 const LessonsModuleSettingsPatchSchema = z.object({
-  parentSummaryVisibleToParents: z.boolean(),
+  enabled: z.boolean().optional(),
+  requireApprovedLessonNoteToPublish: z.boolean().optional(),
+  allowTeacherPublishWithoutReview: z.boolean().optional(),
+  enableStudentLessonView: z.boolean().optional(),
+  enableFlashcards: z.boolean().optional(),
+  enableResources: z.boolean().optional(),
+  enableTeachingMode: z.boolean().optional(),
+  enableLessonReflection: z.boolean().optional(),
+  enableLessonAnalytics: z.boolean().optional(),
+  parentSummaryVisibleToParents: z.boolean().optional(),
+  enableLeoLessonTools: z.boolean().optional(),
+  requireTeacherReviewForAiContent: z.boolean().optional(),
+  notifyStudentsOnPublish: z.boolean().optional(),
+  notifyParentsOnPublish: z.boolean().optional(),
 });
 
 const AcademicPlanningSettingsPatchSchema = z.object({
@@ -143,12 +160,10 @@ function serializeSettings(settings: Record<string, unknown>) {
         autoPreviewEnabled: false,
         autoPreviewLeadDays: 7,
       },
-    lessonsModule:
-      (settings.lessonsModule as
-        | { parentSummaryVisibleToParents?: boolean }
-        | undefined) || {
-        parentSummaryVisibleToParents: false,
-      },
+    lessonsModule: {
+      ...DEFAULT_LESSONS_MODULE_SETTINGS,
+      ...((settings.lessonsModule as Partial<LessonsModuleSettings> | undefined) ?? {}),
+    },
     academicPlanning:
       (settings.academicPlanning as
         | {
@@ -208,9 +223,7 @@ function buildDefaultSettingsDoc(schoolId: mongoose.Types.ObjectId) {
       autoPreviewEnabled: false,
       autoPreviewLeadDays: 7,
     },
-    lessonsModule: {
-      parentSummaryVisibleToParents: false,
-    },
+    lessonsModule: { ...DEFAULT_LESSONS_MODULE_SETTINGS },
     academicPlanning: {
       enableSchemeOfWork: false,
       requireSchemeLinkForLessonNotes: false,

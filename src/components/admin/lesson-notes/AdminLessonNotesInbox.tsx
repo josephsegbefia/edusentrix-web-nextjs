@@ -32,7 +32,6 @@ const STATUS_OPTIONS: Array<{ value: LessonNoteStatus | "all"; label: string }> 
   { value: "submitted", label: "Submitted" },
   { value: "approved", label: "Approved" },
   { value: "rejected", label: "Rejected" },
-  { value: "published", label: "Published" },
 ];
 
 const glassPanel =

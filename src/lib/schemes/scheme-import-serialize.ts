@@ -8,6 +8,7 @@ export function serializeSchemeImportJob(job: ISchemeImportJob) {
     fileName: job.fileName,
     fileUrl: job.fileUrl ?? null,
     parseError: job.parseError ?? null,
+    parseWarning: job.parseWarning ?? null,
     parsedRows: job.parsedRows,
     resultSchemeId: job.resultSchemeId ? String(job.resultSchemeId) : null,
     createdAt: new Date(job.createdAt).toISOString(),

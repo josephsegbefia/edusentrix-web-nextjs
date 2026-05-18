@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireFinanceStaff } from "@/lib/auth/requireFinanceStaff";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { academicPeriodPastDateError } from "@/lib/academic-periods/date-guard";
 
 const updateBodySchema = z
   .object({
@@ -82,6 +83,23 @@ export async function PATCH(
         { error: "End date must be after start date" },
         { status: 400 }
       );
+    }
+
+    if (
+      parsed.data.startDate !== undefined ||
+      parsed.data.endDate !== undefined ||
+      parsed.data.isCurrent === true
+    ) {
+      const pastDateError = academicPeriodPastDateError({
+        startDate: nextStartDate,
+        endDate: nextEndDate,
+      });
+      if (pastDateError) {
+        return NextResponse.json(
+          { success: false, error: pastDateError },
+          { status: 400 }
+        );
+      }
     }
 
     if (

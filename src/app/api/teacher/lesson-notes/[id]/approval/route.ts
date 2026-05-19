@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { requireTeacher, type TeacherContext } from "@/lib/auth/requireTeacher";
+import { auth } from "@clerk/nextjs/server";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import { LessonNote, type ILessonNote } from "@/models/LessonNote";
@@ -17,9 +17,16 @@ import {
   notifyTeacherLessonNoteRejected,
 } from "@/lib/lesson-notes/notifications";
 import { Teacher } from "@/models/Teacher";
-import { User } from "@/models/User";
+import { User, type IUser } from "@/models/User";
+import { UserMembership } from "@/models/UserMembership";
 import { formatUserDisplayName } from "@/lib/lesson-notes/review";
 import { assertLessonNoteRequiresSchemeLink } from "@/lib/lesson-notes/validate-lesson-note-scheme";
+import type { MembershipRole } from "@/lib/roles";
+import { resolvePermissions, type TeacherSubrole } from "@/lib/rbac";
+import { gateTeacherApiAccess } from "@/lib/auth/role-gates";
+import { tryResolveDemoGuard } from "@/lib/demo/guard-integration";
+import { ensureActiveSchoolForTenant } from "@/lib/auth/ensureActiveSchoolForTenant";
+import { getActiveAssistedAccessSession } from "@/lib/platform/assisted-access/session";
 
 // ============================================================================
 // Zod Schemas
@@ -68,7 +75,146 @@ function lessonNoteAcademicsStream(schoolId: mongoose.Types.ObjectId) {
   return `school:${String(schoolId)}:academics`;
 }
 
-function reviewerActorRole(context: TeacherContext): string {
+type LessonNoteApprovalContext = {
+  userId: mongoose.Types.ObjectId;
+  schoolId: mongoose.Types.ObjectId;
+  roles: MembershipRole[];
+  subroles: TeacherSubrole[];
+  permissions: Permission[];
+  teacherId?: mongoose.Types.ObjectId | null;
+  isAdmin: boolean;
+};
+
+function legacyRoleToArray(role?: string): MembershipRole[] {
+  if (role === "school_admin") return ["school_admin"];
+  if (role === "billing_owner") return ["billing_owner"];
+  if (role === "bursar") return ["bursar"];
+  if (role === "teacher") return ["teacher"];
+  if (role === "parent") return ["parent"];
+  if (role === "student") return ["student"];
+  if (role === "staff") return ["staff"];
+  return ["staff"];
+}
+
+function authError(status: number, message: string): never {
+  throw Response.json({ success: false, error: message }, { status });
+}
+
+async function requireLessonNoteApprovalContext(): Promise<LessonNoteApprovalContext> {
+  const demo = await tryResolveDemoGuard();
+  if (demo.isDemo && demo.user.schoolId) {
+    await connectToDatabase();
+    await ensureActiveSchoolForTenant(demo.user.schoolId as mongoose.Types.ObjectId, {
+      mode: "api",
+    });
+    const roles = [...demo.membership.roles] as MembershipRole[];
+    const isAdmin = roles.includes("school_admin");
+    const teacher = isAdmin
+      ? null
+      : await Teacher.findOne({
+          userId: demo.user._id,
+          schoolId: demo.user.schoolId,
+        })
+          .select("_id subroles")
+          .lean();
+    if (!isAdmin && !teacher) authError(404, "Teacher record not found");
+    const subroles = ((teacher as { subroles?: string[] } | null)?.subroles || []) as TeacherSubrole[];
+    return {
+      userId: demo.user._id as mongoose.Types.ObjectId,
+      schoolId: demo.user.schoolId as mongoose.Types.ObjectId,
+      roles,
+      subroles,
+      permissions: resolvePermissions({ roles }),
+      teacherId: teacher ? (teacher as { _id: mongoose.Types.ObjectId })._id : null,
+      isAdmin,
+    };
+  }
+
+  const assisted = await getActiveAssistedAccessSession();
+  if (assisted) {
+    await connectToDatabase();
+    await ensureActiveSchoolForTenant(assisted.schoolId, { mode: "api" });
+    return {
+      userId: assisted.actorUserId,
+      schoolId: assisted.schoolId,
+      roles: ["school_admin"],
+      subroles: [],
+      permissions: resolvePermissions({ roles: ["school_admin"] }),
+      teacherId: null,
+      isAdmin: true,
+    };
+  }
+
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) authError(401, "Unauthorized");
+
+  await connectToDatabase();
+  const userRaw = await User.findOne({ clerkUserId }).lean();
+  const user = (Array.isArray(userRaw) ? userRaw[0] : userRaw) as Pick<
+    IUser,
+    "_id" | "schoolId" | "role"
+  > | null;
+
+  if (!user) authError(401, "User not found");
+  if (!user.schoolId) authError(401, "User not associated with a school");
+
+  let membership = await UserMembership.findOne({
+    userId: user._id,
+    schoolId: user.schoolId,
+  }).lean<{
+    roles?: MembershipRole[];
+    subroles?: TeacherSubrole[];
+    status?: string;
+  } | null>();
+
+  if (!membership) {
+    membership = (await UserMembership.create({
+      userId: user._id,
+      schoolId: user.schoolId,
+      roles: legacyRoleToArray(user.role),
+      status: "active",
+    }).then((doc) => doc.toObject())) as typeof membership;
+  }
+
+  if (membership?.status !== "active") authError(403, "Membership is not active");
+
+  const roles = (membership?.roles || []) as MembershipRole[];
+  const isAdmin = roles.includes("school_admin");
+  if (!isAdmin) {
+    const teacherGate = gateTeacherApiAccess(roles);
+    if (!teacherGate.ok) authError(teacherGate.status, teacherGate.error);
+  }
+
+  const teacher = isAdmin
+    ? null
+    : await Teacher.findOne({
+        userId: user._id,
+        schoolId: user.schoolId,
+      })
+        .select("_id subroles")
+        .lean();
+
+  if (!isAdmin && !teacher) authError(404, "Teacher record not found");
+
+  const teacherSubroles = ((teacher as { subroles?: string[] } | null)?.subroles || []) as TeacherSubrole[];
+  const membershipSubroles = (membership?.subroles || []) as TeacherSubrole[];
+
+  await ensureActiveSchoolForTenant(user.schoolId as mongoose.Types.ObjectId, {
+    mode: "api",
+  });
+
+  return {
+    userId: user._id as mongoose.Types.ObjectId,
+    schoolId: user.schoolId as mongoose.Types.ObjectId,
+    roles,
+    subroles: membershipSubroles.length > 0 ? membershipSubroles : teacherSubroles,
+    permissions: resolvePermissions({ roles }),
+    teacherId: teacher ? (teacher as { _id: mongoose.Types.ObjectId })._id : null,
+    isAdmin,
+  };
+}
+
+function reviewerActorRole(context: LessonNoteApprovalContext): string {
   return context.isAdmin ? "school_admin" : "journal_reviewer";
 }
 
@@ -81,7 +227,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const context = await requireTeacher();
+    const context = await requireLessonNoteApprovalContext();
     await connectToDatabase();
     const { id } = await params;
 
@@ -135,7 +281,7 @@ export async function POST(
       );
     }
 
-    const isOwner = String(note.teacherId) === String(context.teacherId);
+    const isOwner = Boolean(context.teacherId && String(note.teacherId) === String(context.teacherId));
     const canApprove =
       context.isAdmin ||
       can(context.permissions, JOURNAL_APPROVE_PERMISSION);
@@ -148,7 +294,7 @@ export async function POST(
         );
       }
 
-      if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+      if (!context.isAdmin && !can(context.permissions, PERMISSIONS.journalWrite)) {
         return Response.json(
           { success: false, error: "Forbidden" },
           { status: 403 }
@@ -495,7 +641,7 @@ export async function POST(
         );
       }
 
-      if (!can(context.permissions, PERMISSIONS.journalWrite)) {
+      if (!context.isAdmin && !can(context.permissions, PERMISSIONS.journalWrite)) {
         return Response.json(
           { success: false, error: "Forbidden" },
           { status: 403 }
@@ -608,7 +754,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const context = await requireTeacher();
+    const context = await requireLessonNoteApprovalContext();
     await connectToDatabase();
     const { id } = await params;
 
@@ -645,7 +791,7 @@ export async function GET(
       );
     }
 
-    const isOwner = String(note.teacherId) === String(context.teacherId);
+    const isOwner = Boolean(context.teacherId && String(note.teacherId) === String(context.teacherId));
     const canView =
       isOwner ||
       context.isAdmin ||

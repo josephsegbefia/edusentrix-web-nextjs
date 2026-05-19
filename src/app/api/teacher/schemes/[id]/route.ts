@@ -6,7 +6,10 @@ import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { Curriculum } from "@/models/Curriculum";
 import { CurriculumSubject } from "@/models/CurriculumSubject";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { Grade } from "@/models/Grade";
 import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
+import { Subject } from "@/models/Subject";
 import { serializeSchemeRow } from "@/lib/schemes/serializers";
 import { deleteSchemeForSchool } from "@/lib/schemes/scheme-review-service";
 import {
@@ -14,6 +17,8 @@ import {
   teacherMayEditScheme,
 } from "@/lib/schemes/teacher-scheme-access";
 import { teacherCanReadAssignedScheme } from "@/lib/schemes/teacher-assigned-schemes";
+
+export const dynamic = "force-dynamic";
 
 const PatchSchemeSchema = z.object({
   title: z.string().trim().min(3).max(220).optional(),
@@ -31,6 +36,25 @@ const PatchSchemeSchema = z.object({
 function parseId(id: string) {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
   return new mongoose.Types.ObjectId(id);
+}
+
+async function serializeTeacherSchemeDetail(doc: ISchemeOfWork, schoolId: mongoose.Types.ObjectId) {
+  const [grade, subject, period] = await Promise.all([
+    doc.gradeId ? Grade.findOne({ _id: doc.gradeId, schoolId }).select("name").lean() : null,
+    doc.subjectId ? Subject.findOne({ _id: doc.subjectId, schoolId }).select("name").lean() : null,
+    doc.academicPeriodId
+      ? AcademicPeriod.findOne({ _id: doc.academicPeriodId, schoolId })
+          .select("yearLabel term")
+          .lean()
+      : null,
+  ]);
+
+  return {
+    ...serializeSchemeRow(doc),
+    gradeName: grade?.name ?? null,
+    subjectName: subject?.name ?? null,
+    academicPeriodLabel: period ? `${period.yearLabel} · ${period.term}` : null,
+  };
 }
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -59,7 +83,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     ) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
-    return Response.json({ success: true, data: { scheme: serializeSchemeRow(doc) } });
+    const scheme = await serializeTeacherSchemeDetail(doc, ctx.schoolId);
+    return Response.json({ success: true, data: { scheme } });
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     return Response.json(

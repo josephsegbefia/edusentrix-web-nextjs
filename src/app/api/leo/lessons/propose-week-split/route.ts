@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   findLessonNoteForTeacher,
+  lessonNoteTeachingMetadata,
   lessonNoteToLeoContext,
   LESSONS_LEO_DISCLAIMER,
   requireLessonsLeoTeacherContext,
@@ -15,11 +16,15 @@ const BodySchema = z.object({
     .array(
       z.object({
         timetableSlotId: z.string().min(1),
+        timetableSlotIds: z.array(z.string().min(1)).optional(),
         sequenceInWeek: z.number().int().min(1),
         title: z.string().trim().min(1).max(220),
         durationMinutes: z.number().int().min(1).max(240),
         scheduledDate: z.string().optional(),
         startTime: z.string().optional(),
+        endTime: z.string().optional(),
+        periodCount: z.number().int().min(1).max(8).optional(),
+        isDoublePeriod: z.boolean().optional(),
       }),
     )
     .min(1)
@@ -49,29 +54,44 @@ export async function POST(req: Request) {
 
     const sectionKeys = getAllocatableNoteSectionKeys(note);
     const payload = lessonNoteToLeoContext(note);
+    const teachingMetadata = await lessonNoteTeachingMetadata(note);
     const sessionsJson = JSON.stringify(parsed.data.sessions);
 
     const result = await runLessonsLeoCompletion({
       context: ctx,
       systemInstruction: `Return JSON only:
 {
-  "sessions": [
+      "sessions": [
     {
       "timetableSlotId": string (must match input),
+      "timetableSlotIds": string[] (copy input ids when present),
       "sequenceInWeek": number,
-      "title": string (concise session title in English),
+      "title": string (concise teaching session title in English),
       "noteSectionKeys": string[] (subset of allowed keys only),
       "schemeItemIds": string[] (optional, empty if unknown),
       "coverageWeight": number (0-1, all sessions must sum to 1.0),
-      "focusSummary": string (one sentence for the teacher)
+      "focusSummary": string (one sentence describing exactly what the teacher should teach in this session)
     }
   ]
 }
 Allowed noteSectionKeys: ${JSON.stringify(sectionKeys)}`,
-      userPrompt: `Propose how to split this approved weekly lesson note across ${parsed.data.sessions.length} timetable sessions. Assign each session a unique subset of note sections where possible. Respect session duration when allocating depth.
+      userPrompt: `Propose a pedagogical teaching progression for this approved weekly lesson note across ${parsed.data.sessions.length} teaching sessions.
+
+Important:
+- Consecutive timetable periods may already be grouped as one double period. Treat a grouped double period as ONE longer teaching session, not two separate lessons.
+- Split by what learners should understand and practise in sequence, not by mechanically assigning note sections.
+- Make each focusSummary specific enough for a teacher to teach from.
+- For Mathematics, sequence concrete examples before abstract rules, then guided practice, then independent checks.
+- Use clear, encouraging, age-appropriate language for the implied grade.
+- Do not use abusive, offensive, profane, demeaning, or discouraging wording.
+- Keep the split grounded in the note. Do not invent unsupported curriculum codes.
+- Coverage weights must reflect teaching time and importance and sum to 1.
 
 Lesson note JSON:
 ${payload}
+
+Teaching context:
+${JSON.stringify(teachingMetadata)}
 
 Timetable sessions:
 ${sessionsJson}`,
@@ -92,6 +112,9 @@ ${sessionsJson}`,
         : [];
       return {
         timetableSlotId: String(row.timetableSlotId || input?.timetableSlotId || ""),
+        timetableSlotIds: Array.isArray(row.timetableSlotIds)
+          ? (row.timetableSlotIds as string[]).map(String)
+          : input?.timetableSlotIds ?? [],
         sequenceInWeek: Number(row.sequenceInWeek || input?.sequenceInWeek || index + 1),
         title: String(row.title || input?.title || `Session ${index + 1}`).slice(0, 220),
         noteSectionKeys: keys,

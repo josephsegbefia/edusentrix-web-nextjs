@@ -2,6 +2,7 @@ import "server-only";
 
 import mongoose from "mongoose";
 import { TimetableSlot, type ITimetableSlot } from "@/models/TimetableSlot";
+import { SubjectOffering } from "@/models/SubjectOffering";
 import { resolvePublishedTimetableContext } from "@/lib/timetable/read-model";
 import type { TimetableSlotPreview } from "@/types/lessons-v2";
 
@@ -42,10 +43,77 @@ export function formatDateYmdUtc(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+function groupAdjacentSlots(rows: ITimetableSlot[], weekStart: Date, weekEnd: Date): TimetableSlotPreview[] {
+  const previews: TimetableSlotPreview[] = [];
+
+  type DraftGroup = {
+    ids: string[];
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    scheduledDate: string;
+    classroomLabel: string | null;
+  };
+
+  let current: DraftGroup | null = null;
+
+  const flush = () => {
+    if (!current) return;
+    previews.push({
+      id: current.ids[0]!,
+      timetableSlotIds: current.ids,
+      periodCount: current.ids.length,
+      isDoublePeriod: current.ids.length > 1,
+      dayOfWeek: current.dayOfWeek,
+      startTime: current.startTime,
+      endTime: current.endTime,
+      durationMinutes: computeDurationMinutes(current.startTime, current.endTime),
+      scheduledDate: current.scheduledDate,
+      classroomLabel: current.classroomLabel,
+    });
+    current = null;
+  };
+
+  for (const row of rows) {
+    const scheduled = scheduledDateForWeekDay(weekStart, row.dayOfWeek);
+    if (scheduled < weekStart || scheduled > weekEnd) continue;
+
+    const scheduledDate = formatDateYmdUtc(scheduled);
+    const canJoin =
+      current &&
+      current.dayOfWeek === row.dayOfWeek &&
+      current.scheduledDate === scheduledDate &&
+      current.endTime === row.startTime;
+
+    if (!canJoin) {
+      flush();
+      current = {
+        ids: [String(row._id)],
+        dayOfWeek: row.dayOfWeek,
+        startTime: row.startTime,
+        endTime: row.endTime,
+        scheduledDate,
+        classroomLabel: row.classroomLabel || null,
+      };
+      continue;
+    }
+
+    const openGroup = current;
+    if (!openGroup) continue;
+    openGroup.ids.push(String(row._id));
+    openGroup.endTime = row.endTime;
+    openGroup.classroomLabel = openGroup.classroomLabel || row.classroomLabel || null;
+  }
+
+  flush();
+  return previews;
+}
+
 export async function listTimetableSlotsForClassSubjectWeek(input: {
   schoolId: mongoose.Types.ObjectId;
   classGroupId: mongoose.Types.ObjectId;
   subjectOfferingId: mongoose.Types.ObjectId;
+  subjectId?: mongoose.Types.ObjectId | null;
   weekStartDate: Date;
   weekEndDate: Date;
   teacherId?: mongoose.Types.ObjectId | null;
@@ -59,15 +127,28 @@ export async function listTimetableSlotsForClassSubjectWeek(input: {
     return { hasPublishedTimetable: false, timetableVersionId: null, slots: [] };
   }
 
+  let subjectId = input.subjectId ?? null;
+  if (!subjectId) {
+    const offering = await SubjectOffering.findOne({
+      _id: input.subjectOfferingId,
+      schoolId: input.schoolId,
+    })
+      .select("subjectId")
+      .lean<{ subjectId?: mongoose.Types.ObjectId | null } | null>();
+    subjectId = offering?.subjectId ?? null;
+  }
+
+  const subjectFilters: Record<string, unknown>[] = [{ subjectOfferingId: input.subjectOfferingId }];
+  if (subjectId) {
+    subjectFilters.push({ subjectId });
+  }
+
   const query: Record<string, unknown> = {
     schoolId: input.schoolId,
     versionId: ctx.versionId,
     classGroupId: input.classGroupId,
-    subjectOfferingId: input.subjectOfferingId,
+    $or: subjectFilters,
   };
-  if (input.teacherId) {
-    query.$or = [{ teacherId: input.teacherId }, { teacherId: null }, { teacherId: { $exists: false } }];
-  }
 
   const rows = (await TimetableSlot.find(query)
     .sort({ dayOfWeek: 1, startTime: 1 })
@@ -75,21 +156,7 @@ export async function listTimetableSlotsForClassSubjectWeek(input: {
 
   const weekStart = dateOnlyUtc(input.weekStartDate);
   const weekEnd = dateOnlyUtc(input.weekEndDate);
-
-  const slots: TimetableSlotPreview[] = [];
-  for (const row of rows) {
-    const scheduled = scheduledDateForWeekDay(weekStart, row.dayOfWeek);
-    if (scheduled < weekStart || scheduled > weekEnd) continue;
-    slots.push({
-      id: String(row._id),
-      dayOfWeek: row.dayOfWeek,
-      startTime: row.startTime,
-      endTime: row.endTime,
-      durationMinutes: computeDurationMinutes(row.startTime, row.endTime),
-      scheduledDate: formatDateYmdUtc(scheduled),
-      classroomLabel: row.classroomLabel || null,
-    });
-  }
+  const slots = groupAdjacentSlots(rows, weekStart, weekEnd);
 
   slots.sort((a, b) => {
     const d = a.scheduledDate.localeCompare(b.scheduledDate);

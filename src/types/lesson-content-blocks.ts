@@ -55,6 +55,7 @@ export type StudentLessonSessionContentDto = {
 
 export type WeekSplitSessionProposal = {
   timetableSlotId: string;
+  timetableSlotIds?: string[];
   sequenceInWeek: number;
   title: string;
   noteSectionKeys: string[];

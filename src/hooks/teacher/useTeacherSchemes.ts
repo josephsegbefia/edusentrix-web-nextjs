@@ -33,7 +33,9 @@ export function useTeacherSchemes(status?: string) {
       if (!res.ok || !json?.success) throw new Error(json?.error || "Failed to fetch schemes");
       return json.data.schemes;
     },
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 }
 

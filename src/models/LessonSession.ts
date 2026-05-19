@@ -39,6 +39,7 @@ export interface ILessonSession {
   ownerTeacherId: Types.ObjectId;
   sequenceInWeek: number;
   timetableSlotId?: Types.ObjectId | null;
+  timetableSlotIds?: Types.ObjectId[];
   scheduledDate: Date;
   dayOfWeek: number;
   startTime: string;
@@ -159,6 +160,7 @@ const lessonSessionSchema = new Schema<ILessonSession>(
     ownerTeacherId: { type: Schema.Types.ObjectId, ref: "Teacher", required: true, index: true },
     sequenceInWeek: { type: Number, required: true, min: 1 },
     timetableSlotId: { type: Schema.Types.ObjectId, ref: "TimetableSlot", default: null },
+    timetableSlotIds: [{ type: Schema.Types.ObjectId, ref: "TimetableSlot", default: [] }],
     scheduledDate: { type: Date, required: true, index: true },
     dayOfWeek: { type: Number, required: true, min: 0, max: 6 },
     startTime: { type: String, required: true, trim: true },

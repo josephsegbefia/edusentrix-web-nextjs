@@ -33,6 +33,9 @@ type Props = {
 
 function SessionRow({ session }: { session: LessonWeekPlanDto["sessions"][number] }) {
   const deliveryStatus = session.delivery?.status ?? "scheduled";
+  const durationLabel = session.isDoublePeriod
+    ? `Double period · ${session.periodCount || 2} periods · ${session.durationMinutes} min`
+    : `${session.durationMinutes} min`;
   return (
     <li>
       <Link
@@ -42,8 +45,7 @@ function SessionRow({ session }: { session: LessonWeekPlanDto["sessions"][number
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-white/90">{session.title}</p>
           <p className="text-xs text-white/50">
-            {session.scheduledDate} · {session.startTime}–{session.endTime} ·{" "}
-            {session.durationMinutes} min
+            {session.scheduledDate} · {session.startTime}–{session.endTime} · {durationLabel}
           </p>
         </div>
         <Badge className={cn("shrink-0 border-0", DELIVERY_STATUS_COLORS[deliveryStatus])}>

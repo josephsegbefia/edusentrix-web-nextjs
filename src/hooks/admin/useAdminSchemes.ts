@@ -99,6 +99,9 @@ export function useAdminSchemeReviewMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
       qc.invalidateQueries({ queryKey: ["admin-scheme-detail"] });
+      qc.invalidateQueries({ queryKey: ["teacher-schemes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-scheme"] });
+      qc.invalidateQueries({ queryKey: ["teacher-coverage-dashboard"] });
     },
   });
 }
@@ -118,6 +121,9 @@ export function useAdminSchemeApproveMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
       qc.invalidateQueries({ queryKey: ["admin-scheme-detail"] });
+      qc.invalidateQueries({ queryKey: ["teacher-schemes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-scheme"] });
+      qc.invalidateQueries({ queryKey: ["teacher-coverage-dashboard"] });
     },
   });
 }
@@ -147,6 +153,9 @@ export function useAdminSchemeActivateMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
       qc.invalidateQueries({ queryKey: ["admin-scheme-detail"] });
+      qc.invalidateQueries({ queryKey: ["teacher-schemes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-scheme"] });
+      qc.invalidateQueries({ queryKey: ["teacher-coverage-dashboard"] });
     },
   });
 }
@@ -166,6 +175,9 @@ export function useAdminSchemeArchiveMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
       qc.invalidateQueries({ queryKey: ["admin-scheme-detail"] });
+      qc.invalidateQueries({ queryKey: ["teacher-schemes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-scheme"] });
+      qc.invalidateQueries({ queryKey: ["teacher-coverage-dashboard"] });
     },
   });
 }
@@ -184,6 +196,11 @@ export function useAdminSchemeDeleteMutation() {
     onSuccess: (deletedId) => {
       qc.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
       qc.removeQueries({ queryKey: ["admin-scheme-detail", deletedId] });
+      qc.invalidateQueries({ queryKey: ["teacher-schemes"] });
+      qc.removeQueries({ queryKey: ["teacher-scheme", deletedId] });
+      qc.removeQueries({ queryKey: ["teacher-scheme-items", deletedId] });
+      qc.removeQueries({ queryKey: ["teacher-coverage-summary", deletedId] });
+      qc.invalidateQueries({ queryKey: ["teacher-coverage-dashboard"] });
     },
   });
 }

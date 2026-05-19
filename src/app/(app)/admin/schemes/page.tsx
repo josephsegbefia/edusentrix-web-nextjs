@@ -89,8 +89,13 @@ export default function AdminSchemesPage() {
   const queryClient = useQueryClient();
   const { requestDelete, confirmationDialog, linkedNotesDialog } = useSchemeDeleteFlow({
     apiBasePath: "/api/admin/schemes",
-    onDeleted: () => {
+    onDeleted: (schemeId) => {
       void queryClient.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
+      void queryClient.invalidateQueries({ queryKey: ["teacher-schemes"] });
+      queryClient.removeQueries({ queryKey: ["teacher-scheme", schemeId] });
+      queryClient.removeQueries({ queryKey: ["teacher-scheme-items", schemeId] });
+      queryClient.removeQueries({ queryKey: ["teacher-coverage-summary", schemeId] });
+      void queryClient.invalidateQueries({ queryKey: ["teacher-coverage-dashboard"] });
     },
   });
 

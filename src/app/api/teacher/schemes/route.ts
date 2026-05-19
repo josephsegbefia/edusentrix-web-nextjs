@@ -8,10 +8,14 @@ import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { serializeSchemeRow } from "@/lib/schemes/serializers";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { ClassGroup } from "@/models/ClassGroup";
+import { Grade } from "@/models/Grade";
+import { Subject } from "@/models/Subject";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { assertTeacherSchemeCreationEnabled } from "@/lib/schemes/scheme-import-gate";
 import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
 import { teacherAssignedSchemeListFilter } from "@/lib/schemes/teacher-assigned-schemes";
+
+export const dynamic = "force-dynamic";
 
 const CreateSchemeSchema = z.object({
   title: z.string().trim().min(3).max(220),
@@ -29,6 +33,59 @@ function toObjectIdOrNull(value: string | undefined) {
   if (!value) return null;
   if (!mongoose.Types.ObjectId.isValid(value)) return null;
   return new mongoose.Types.ObjectId(value);
+}
+
+async function serializeTeacherSchemeRows(
+  docs: ISchemeOfWork[],
+  schoolId: mongoose.Types.ObjectId,
+) {
+  const gradeIds = [...new Set(docs.map((doc) => doc.gradeId).filter(Boolean).map(String))];
+  const subjectIds = [...new Set(docs.map((doc) => doc.subjectId).filter(Boolean).map(String))];
+  const periodIds = [
+    ...new Set(docs.map((doc) => doc.academicPeriodId).filter(Boolean).map(String)),
+  ];
+
+  const [grades, subjects, periods] = await Promise.all([
+    gradeIds.length
+      ? Grade.find({
+          schoolId,
+          _id: { $in: gradeIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        })
+          .select("name")
+          .lean()
+      : [],
+    subjectIds.length
+      ? Subject.find({
+          schoolId,
+          _id: { $in: subjectIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        })
+          .select("name")
+          .lean()
+      : [],
+    periodIds.length
+      ? AcademicPeriod.find({
+          schoolId,
+          _id: { $in: periodIds.map((id) => new mongoose.Types.ObjectId(id)) },
+        })
+          .select("yearLabel term")
+          .lean()
+      : [],
+  ]);
+
+  const gradeName = new Map(grades.map((row) => [String(row._id), row.name]));
+  const subjectName = new Map(subjects.map((row) => [String(row._id), row.name]));
+  const periodLabel = new Map(
+    periods.map((row) => [String(row._id), `${row.yearLabel} · ${row.term}`]),
+  );
+
+  return docs.map((doc) => ({
+    ...serializeSchemeRow(doc),
+    gradeName: doc.gradeId ? gradeName.get(String(doc.gradeId)) ?? null : null,
+    subjectName: doc.subjectId ? subjectName.get(String(doc.subjectId)) ?? null : null,
+    academicPeriodLabel: doc.academicPeriodId
+      ? periodLabel.get(String(doc.academicPeriodId)) ?? null
+      : null,
+  }));
 }
 
 export async function GET(req: Request) {
@@ -66,7 +123,8 @@ export async function GET(req: Request) {
       | ISchemeOfWork[]
       | [];
 
-    return Response.json({ success: true, data: { schemes: docs.map(serializeSchemeRow) } });
+    const schemes = await serializeTeacherSchemeRows(docs, ctx.schoolId);
+    return Response.json({ success: true, data: { schemes } });
   } catch (error: unknown) {
     if (error instanceof Response) return error;
     return Response.json(

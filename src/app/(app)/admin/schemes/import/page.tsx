@@ -106,6 +106,8 @@ function AdminSchemeImportInner() {
   useEffect(() => {
     if (job?.parsedRows && job.status === "parsed") {
       setLocalRows(job.parsedRows.map((row) => ({ ...row })));
+    } else if (job?.status === "failed") {
+      setLocalRows(null);
     }
   }, [job?.id, job?.parsedRows, job?.status]);
 
@@ -143,7 +145,7 @@ function AdminSchemeImportInner() {
     try {
       setParsePhase(
         isPdf
-          ? "Download complete. Reading PDF and extracting rows with Leo (OpenAI, Gemini fallback) — usually under 2 minutes…"
+          ? "Download complete. Extracting scheme rows with OpenAI. If OpenAI fails, the app will use manual PDF parsing…"
           : "Reading spreadsheet rows…",
       );
       const created = await createMutation.mutateAsync({
@@ -157,6 +159,29 @@ function AdminSchemeImportInner() {
     } catch (e) {
       setParsePhase(null);
       setUploadError(e instanceof Error ? e.message : "Upload registration failed");
+    }
+  }
+
+  async function retryFailedImport() {
+    if (!job?.fileUrl) {
+      setUploadError("This failed import has no retained file. Upload the document again.");
+      return;
+    }
+    setUploadError(null);
+    setUploadWarning(null);
+    setParsePhase(
+      "Retrying import with the retained file. Reading PDF and extracting rows with Leo…",
+    );
+    try {
+      const created = await createMutation.mutateAsync({
+        fileUrl: job.fileUrl,
+        fileName: job.fileName || "scheme-import.pdf",
+      });
+      setParsePhase(null);
+      router.replace(`/admin/schemes/import?jobId=${created.id}`);
+    } catch (e) {
+      setParsePhase(null);
+      setUploadError(e instanceof Error ? e.message : "Retry failed");
     }
   }
 
@@ -290,12 +315,29 @@ function AdminSchemeImportInner() {
         <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-sm text-rose-100">
           <p className="font-medium">Could not parse file</p>
           <p className="mt-1">{job.parseError}</p>
+          {job.fileUrl ? (
+            <Button
+              type="button"
+              onClick={() => void retryFailedImport()}
+              disabled={createMutation.isPending || Boolean(parsePhase)}
+              className="mt-4 bg-rose-100 text-rose-950 hover:bg-white disabled:opacity-50"
+            >
+              {createMutation.isPending || parsePhase ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Retry import without re-uploading
+            </Button>
+          ) : (
+            <p className="mt-3 text-xs text-rose-100/70">
+              The uploaded file is no longer retained for this failed import. Upload the document again.
+            </p>
+          )}
         </div>
       ) : null}
 
       {job?.status === "parsed" && job.parseWarning ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-sm text-amber-100">
-          <p className="font-medium">Gemini fallback used</p>
+          <p className="font-medium">Manual PDF parser used</p>
           <p className="mt-1">{job.parseWarning}</p>
         </div>
       ) : null}

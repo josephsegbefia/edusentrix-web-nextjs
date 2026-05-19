@@ -35,7 +35,7 @@ import {
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { cn } from "@/lib/utils";
 import type { CreateWeekPlanSessionInput } from "@/types/lessons-v2";
-import type { LessonContentBlock } from "@/types/lesson-content-blocks";
+import type { LessonContentBlock, WeekSplitSessionProposal } from "@/types/lesson-content-blocks";
 import { LessonContentBlocksEditor } from "@/components/lessons/LessonContentBlocksEditor";
 import { useGenerateSessionContent, useProposeWeekSplit } from "@/hooks/teacher/useLessonsLeo";
 import { validateCoverageWeights } from "@/lib/lessons/coverage-weights";
@@ -46,6 +46,9 @@ type WizardStep = "context" | "timetable" | "split" | "content" | "review";
 
 type SlotDraft = {
   timetableSlotId: string;
+  timetableSlotIds: string[];
+  periodCount: number;
+  isDoublePeriod: boolean;
   title: string;
   include: boolean;
   scheduledDate: string;
@@ -90,6 +93,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
   const [planTitle, setPlanTitle] = React.useState("");
   const [slotDrafts, setSlotDrafts] = React.useState<SlotDraft[]>([]);
   const [activeContentIndex, setActiveContentIndex] = React.useState(0);
+  const autoSplitKeyRef = React.useRef<string | null>(null);
 
   const { data: classesData } = useTeacherClasses();
   const proposeSplit = useProposeWeekSplit();
@@ -104,6 +108,22 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
   const ctx = contextQuery.data?.data;
   const createMutation = useCreateLessonWeekPlan();
 
+  const applyLeoProposals = React.useCallback((proposals: WeekSplitSessionProposal[]) => {
+    setSlotDrafts((prev) =>
+      prev.map((slot) => {
+        const proposal = proposals.find((p) => p.timetableSlotId === slot.timetableSlotId);
+        if (!proposal || !slot.include) return slot;
+        return {
+          ...slot,
+          title: proposal.title || slot.title,
+          noteSectionKeys: proposal.noteSectionKeys,
+          coverageWeight: proposal.coverageWeight,
+          focusSummary: proposal.focusSummary,
+        };
+      }),
+    );
+  }, []);
+
   React.useEffect(() => {
     if (initialClassGroupId && !classGroupId) {
       setClassGroupId(initialClassGroupId);
@@ -117,7 +137,10 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
     setSlotDrafts(
       ctx.timetableSlots.map((slot, index) => ({
         timetableSlotId: slot.id,
-        title: `${topic} — Session ${index + 1}`,
+        timetableSlotIds: slot.timetableSlotIds?.length ? slot.timetableSlotIds : [slot.id],
+        periodCount: slot.periodCount || 1,
+        isDoublePeriod: slot.isDoublePeriod || false,
+        title: `${topic} — ${slot.isDoublePeriod ? "Double period" : "Session"} ${index + 1}`,
         include: true,
         scheduledDate: slot.scheduledDate,
         startTime: slot.startTime,
@@ -140,11 +163,15 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
     if (!ctx || !leoEnabled) return;
     const sessions = includedSlots.map((s, index) => ({
       timetableSlotId: s.timetableSlotId,
+      timetableSlotIds: s.timetableSlotIds,
       sequenceInWeek: index + 1,
       title: s.title,
       durationMinutes: s.durationMinutes,
       scheduledDate: s.scheduledDate,
       startTime: s.startTime,
+      endTime: s.endTime,
+      periodCount: s.periodCount,
+      isDoublePeriod: s.isDoublePeriod,
     }));
     const result = await busyToast.promise(
       proposeSplit.mutateAsync({ lessonNoteId: noteId, sessions }),
@@ -155,20 +182,77 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
       },
     );
     const proposals = result.data?.sessions ?? [];
+    applyLeoProposals(proposals);
+  };
+
+  const generateAllSessionContent = async () => {
+    if (!leoEnabled || includedSlots.length === 0) return;
+    const generated = new Map<string, LessonContentBlock[]>();
+    await busyToast.promise(
+      (async () => {
+        for (const slot of includedSlots) {
+          const blocks = await generateContent.mutateAsync({
+            lessonNoteId: noteId,
+            session: {
+              title: slot.title,
+              durationMinutes: slot.durationMinutes,
+              noteSectionKeys: slot.noteSectionKeys,
+              coverageWeight: slot.coverageWeight,
+              scheduledDate: slot.scheduledDate,
+              startTime: slot.startTime,
+              endTime: slot.endTime,
+              periodCount: slot.periodCount,
+              isDoublePeriod: slot.isDoublePeriod,
+              focusSummary: slot.focusSummary,
+            },
+          });
+          generated.set(slot.timetableSlotId, blocks);
+        }
+      })(),
+      {
+        loading: "Generating teachable content for all sessions...",
+        success: "Session content generated",
+        error: (e) => (e instanceof Error ? e.message : "Content generation failed"),
+      },
+    );
+
     setSlotDrafts((prev) =>
       prev.map((slot) => {
-        const proposal = proposals.find((p) => p.timetableSlotId === slot.timetableSlotId);
-        if (!proposal || !slot.include) return slot;
-        return {
-          ...slot,
-          title: proposal.title || slot.title,
-          noteSectionKeys: proposal.noteSectionKeys,
-          coverageWeight: proposal.coverageWeight,
-          focusSummary: proposal.focusSummary,
-        };
+        const blocks = generated.get(slot.timetableSlotId);
+        return blocks ? { ...slot, contentBlocks: blocks } : slot;
       }),
     );
   };
+
+  React.useEffect(() => {
+    if (!ctx || !leoEnabled || slotDrafts.length === 0 || proposeSplit.isPending) return;
+    const autoKey = `${noteId}:${classGroupId}:${ctx.weekStartDate}:${slotDrafts.map((s) => s.timetableSlotId).join(",")}`;
+    if (autoSplitKeyRef.current === autoKey) return;
+    autoSplitKeyRef.current = autoKey;
+
+    const sessions = slotDrafts
+      .filter((s) => s.include)
+      .map((s, index) => ({
+        timetableSlotId: s.timetableSlotId,
+        timetableSlotIds: s.timetableSlotIds,
+        sequenceInWeek: index + 1,
+        title: s.title,
+        durationMinutes: s.durationMinutes,
+        scheduledDate: s.scheduledDate,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        periodCount: s.periodCount,
+        isDoublePeriod: s.isDoublePeriod,
+      }));
+
+    void proposeSplit
+      .mutateAsync({ lessonNoteId: noteId, sessions })
+      .then((result) => applyLeoProposals(result.data?.sessions ?? []))
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : "Leo split failed";
+        busyToast.error(`Leo could not auto-split this week: ${message}`);
+      });
+  }, [applyLeoProposals, busyToast, classGroupId, ctx, leoEnabled, noteId, proposeSplit, slotDrafts]);
 
   const goNext = () => {
     if (step === "context") {
@@ -220,6 +304,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
       .filter((s) => s.include)
       .map((s) => ({
         timetableSlotId: s.timetableSlotId,
+        timetableSlotIds: s.timetableSlotIds,
         title: s.title.trim(),
         include: true,
         noteSectionKeys: s.noteSectionKeys,
@@ -356,8 +441,8 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                   </div>
                 ) : ctx?.timetableSlotCount ? (
                   <p className="text-sm text-emerald-200/90">
-                    {ctx.timetableSlotCount} timetable period
-                    {ctx.timetableSlotCount === 1 ? "" : "s"} found for this class and week.
+                    {slotDrafts.length || ctx.timetableSlotCount} teaching session
+                    {(slotDrafts.length || ctx.timetableSlotCount) === 1 ? "" : "s"} found for this class and week.
                   </p>
                 ) : null}
               </>
@@ -374,7 +459,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
               Timetable periods
             </CardTitle>
             <p className="text-xs text-white/50">
-              Include the periods you will teach this week. You can rename each session.
+              Consecutive periods for the same subject are grouped as double periods. You can rename each session.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -408,7 +493,10 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                     <div className="min-w-0 flex-1 space-y-2">
                       <p className="text-xs text-white/50">
                         {DAY_LABELS[slot.dayOfWeek] ?? "Day"} · {slot.scheduledDate} ·{" "}
-                        {slot.startTime}–{slot.endTime}
+                        {slot.startTime}–{slot.endTime} ·{" "}
+                        {slot.isDoublePeriod
+                          ? `Double period (${slot.periodCount} periods)`
+                          : "Single period"}
                       </p>
                       <Input
                         value={slot.title}
@@ -430,7 +518,8 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
               ))
             )}
             <p className="text-xs text-white/45">
-              {selectedCount} of {slotDrafts.length} period{slotDrafts.length === 1 ? "" : "s"} selected
+              {selectedCount} of {slotDrafts.length} teaching session
+              {slotDrafts.length === 1 ? "" : "s"} selected
             </p>
           </CardContent>
         </Card>
@@ -471,6 +560,10 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                 className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-3"
               >
                 <p className="text-sm font-medium text-white/90">{slot.title}</p>
+                <p className="text-xs text-white/45">
+                  {DAY_LABELS[slot.dayOfWeek] ?? "Day"} · {slot.startTime}–{slot.endTime} ·{" "}
+                  {slot.isDoublePeriod ? `Double period (${slot.durationMinutes} mins)` : `${slot.durationMinutes} mins`}
+                </p>
                 {slot.focusSummary ? (
                   <p className="text-xs text-white/50">{slot.focusSummary}</p>
                 ) : null}
@@ -534,6 +627,23 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
+              {leoEnabled ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={generateContent.isPending || includedSlots.length === 0}
+                  onClick={() => void generateAllSessionContent()}
+                  className="border-violet-400/30 bg-violet-500/10 text-violet-100"
+                >
+                  {generateContent.isPending ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Generate all with Leo
+                </Button>
+              ) : null}
               {includedSlots.map((slot, index) => (
                 <Button
                   key={slot.timetableSlotId}
@@ -574,6 +684,12 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                               durationMinutes: activeSlot.durationMinutes,
                               noteSectionKeys: activeSlot.noteSectionKeys,
                               coverageWeight: activeSlot.coverageWeight,
+                              scheduledDate: activeSlot.scheduledDate,
+                              startTime: activeSlot.startTime,
+                              endTime: activeSlot.endTime,
+                              periodCount: activeSlot.periodCount,
+                              isDoublePeriod: activeSlot.isDoublePeriod,
+                              focusSummary: activeSlot.focusSummary,
                             },
                           }),
                           {

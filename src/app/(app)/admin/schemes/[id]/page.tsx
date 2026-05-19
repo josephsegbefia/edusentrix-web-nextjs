@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   ArrowLeft,
@@ -72,6 +73,7 @@ function decisionLabel(d: SchemeReviewDecisionType): string {
 export default function AdminSchemeReviewDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const id = typeof params?.id === "string" ? params.id : "";
 
   const { data, isLoading, error } = useAdminSchemeDetail(id);
@@ -80,7 +82,14 @@ export default function AdminSchemeReviewDetailPage() {
   const archiveMut = useAdminSchemeArchiveMutation();
   const { requestDelete, confirmationDialog, linkedNotesDialog } = useSchemeDeleteFlow({
     apiBasePath: "/api/admin/schemes",
-    onDeleted: () => {
+    onDeleted: (schemeId) => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-scheme-queue"] });
+      queryClient.removeQueries({ queryKey: ["admin-scheme-detail", schemeId] });
+      void queryClient.invalidateQueries({ queryKey: ["teacher-schemes"] });
+      queryClient.removeQueries({ queryKey: ["teacher-scheme", schemeId] });
+      queryClient.removeQueries({ queryKey: ["teacher-scheme-items", schemeId] });
+      queryClient.removeQueries({ queryKey: ["teacher-coverage-summary", schemeId] });
+      void queryClient.invalidateQueries({ queryKey: ["teacher-coverage-dashboard"] });
       router.push("/admin/schemes");
     },
   });

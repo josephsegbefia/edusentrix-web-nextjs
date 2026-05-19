@@ -2,7 +2,7 @@ import { Schema, model, models, type Model, type Types } from "mongoose";
 
 export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
 
-export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai" | "pdf_gemini";
+export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai" | "pdf_gemini" | "pdf_manual";
 
 export interface ISchemeImportParsedRow {
   rowIndex: number;
@@ -76,7 +76,7 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
     createdByUserId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     sourceKind: {
       type: String,
-      enum: ["spreadsheet", "pdf_ai", "pdf_gemini"],
+    enum: ["spreadsheet", "pdf_ai", "pdf_gemini", "pdf_manual"],
       default: "spreadsheet",
       index: true,
     },
@@ -106,7 +106,7 @@ if (existingSchemeImportJob) {
     sourceKindPath && "enumValues" in sourceKindPath
       ? (sourceKindPath.enumValues as string[])
       : [];
-  if (!enumValues.includes("pdf_gemini")) {
+  if (!enumValues.includes("pdf_manual")) {
     delete models.SchemeImportJob;
   }
 }

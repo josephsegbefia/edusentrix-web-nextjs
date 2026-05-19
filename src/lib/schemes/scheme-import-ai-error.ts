@@ -22,24 +22,56 @@ function walkErrors(error: unknown): string[] {
   return messages;
 }
 
+function hasStatus(error: unknown, status: number): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "status" in error &&
+      (error as { status?: number }).status === status,
+  );
+}
+
+function formatOpenAiConnectionError(combined: string): string | null {
+  if (/enotfound|getaddrinfo|dns/.test(combined)) {
+    return "OpenAI DNS lookup failed (api.openai.com could not be resolved). Check DNS, VPN, firewall, or sandbox network access.";
+  }
+  if (/econnrefused/.test(combined)) {
+    return "OpenAI connection was refused before the API received the request. Check firewall, proxy, or outbound network rules.";
+  }
+  if (/econnreset|socket hang up/.test(combined)) {
+    return "OpenAI connection was reset while sending the request. Check unstable internet, proxy, or VPN interruption.";
+  }
+  if (/etimedout|timeout|timed out/.test(combined)) {
+    return "OpenAI request timed out (no response within 2 minutes). The API may be slow or unreachable from this server.";
+  }
+  if (/certificate|tls|ssl/.test(combined)) {
+    return "OpenAI TLS/certificate connection failed. Check proxy, firewall inspection, or system certificates.";
+  }
+  if (/api connection error|fetch failed|network|connection error/.test(combined)) {
+    return "OpenAI connection failed before an HTTP response was received. This is not an API-key or model rejection.";
+  }
+  return null;
+}
+
 export function formatOpenAiImportError(error: unknown): string {
   const parts = walkErrors(error);
   const combined = parts.join(" ").toLowerCase();
 
   if (
     /invalid_api_key|incorrect api key|invalid api key|authentication/.test(combined) ||
-    (error &&
-      typeof error === "object" &&
-      "status" in error &&
-      (error as { status?: number }).status === 401)
+    hasStatus(error, 401)
   ) {
     return "Leo could not authenticate with OpenAI (invalid or expired API key).";
+  }
+  if (hasStatus(error, 403) || /permission|forbidden|not authorized/.test(combined)) {
+    return "OpenAI rejected the request because the key does not have access to this operation or model.";
   }
   if (/rate limit|429/.test(combined)) {
     return "OpenAI rate limit reached.";
   }
-  if (/econnreset|etimedout|econnrefused|enotfound|fetch failed|socket hang up|network|connection error/.test(combined)) {
-    return "Network connection to OpenAI was interrupted.";
+  const connectionError = formatOpenAiConnectionError(combined);
+  if (connectionError) {
+    return connectionError;
   }
   if (parts[0]) return parts[0];
   if (error instanceof Error && error.message.trim()) return error.message.trim();
@@ -47,24 +79,34 @@ export function formatOpenAiImportError(error: unknown): string {
 }
 
 export function formatGeminiImportError(error: unknown, httpStatus?: number): string {
+  const parts = walkErrors(error);
+  const combined = parts.join(" ").toLowerCase();
+  const rawDetail = parts[0] || (error instanceof Error ? error.message : "");
+
   if (httpStatus === 401 || httpStatus === 403) {
     return "Gemini could not authenticate (invalid or missing API key).";
   }
   if (httpStatus === 429) {
-    return "Gemini rate limit reached.";
+    if (/quota|billing|exhausted|limit:\s*0/i.test(combined)) {
+      return `Gemini API quota exceeded${rawDetail ? ` (${rawDetail})` : ""}. Enable billing or raise limits in Google AI Studio.`;
+    }
+    return `Gemini rate limit reached${rawDetail ? ` (${rawDetail})` : ""}. Wait a few minutes and retry.`;
   }
-
-  const parts = walkErrors(error);
-  const combined = parts.join(" ").toLowerCase();
 
   if (/api key|permission|unauthenticated|401|403/.test(combined)) {
     return "Gemini could not authenticate (invalid or missing API key).";
   }
-  if (/quota|rate limit|429|resource exhausted/.test(combined)) {
-    return "Gemini rate limit or quota exceeded.";
+  if (/quota|billing|resource_exhausted|resource exhausted/.test(combined)) {
+    return `Gemini API quota exceeded${rawDetail ? ` (${rawDetail})` : ""}. Check Google AI Studio quotas/billing.`;
   }
-  if (/econnreset|etimedout|econnrefused|enotfound|fetch failed|network|timeout/.test(combined)) {
-    return "Network connection to Gemini was interrupted.";
+  if (/rate limit|429|too many requests/.test(combined)) {
+    return `Gemini rate limit reached${rawDetail ? ` (${rawDetail})` : ""}.`;
+  }
+  if (/etimedout|timeout|timed out|aborterror/.test(combined)) {
+    return "Gemini request timed out (no response within 2 minutes).";
+  }
+  if (/econnreset|econnrefused|enotfound|fetch failed|network/.test(combined)) {
+    return "Gemini connection failed before an HTTP response was received.";
   }
   if (parts[0]) return parts[0];
   if (error instanceof Error && error.message.trim()) return error.message.trim();
@@ -74,7 +116,6 @@ export function formatGeminiImportError(error: unknown, httpStatus?: number): st
 export function isRetryableAiProviderError(error: unknown): boolean {
   const combined = [
     formatOpenAiImportError(error),
-    formatGeminiImportError(error),
     ...walkErrors(error),
   ]
     .join(" ")

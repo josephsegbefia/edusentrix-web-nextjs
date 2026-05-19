@@ -22,6 +22,10 @@ export function formatWeekPlanDto(input: {
         id: String(s._id),
         weekPlanId: String(s.weekPlanId),
         sequenceInWeek: s.sequenceInWeek,
+        timetableSlotIds: (s.timetableSlotIds?.length ? s.timetableSlotIds : s.timetableSlotId ? [s.timetableSlotId] : [])
+          .map((id) => String(id)),
+        periodCount: s.timetableSlotIds?.length || 1,
+        isDoublePeriod: (s.timetableSlotIds?.length || 1) > 1,
         title: s.title,
         scheduledDate: formatDateYmdUtc(new Date(s.scheduledDate)),
         dayOfWeek: s.dayOfWeek,

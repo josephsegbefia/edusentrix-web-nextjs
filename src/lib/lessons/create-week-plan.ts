@@ -7,13 +7,14 @@ import { LessonDelivery } from "@/models/LessonDelivery";
 import {
   computeDurationMinutes,
   listTimetableSlotsForClassSubjectWeek,
-  type TimetableSlotPreview,
 } from "@/lib/lessons/timetable-slots-for-week";
 import { normalizeContentBlocks, validateCoverageWeights } from "@/lib/lessons/content-blocks";
 import type { LessonContentBlock } from "@/types/lesson-content-blocks";
+import type { TimetableSlotPreview } from "@/types/lessons-v2";
 
 export type WeekPlanSessionInput = {
   timetableSlotId: string;
+  timetableSlotIds?: string[];
   title: string;
   include?: boolean;
   noteSectionKeys?: string[];
@@ -36,6 +37,7 @@ export async function createWeekPlanWithSessions(input: {
   academicPeriodId: mongoose.Types.ObjectId;
   classGroupId: mongoose.Types.ObjectId;
   subjectOfferingId: mongoose.Types.ObjectId;
+  subjectId?: mongoose.Types.ObjectId | null;
   lessonNoteId: mongoose.Types.ObjectId;
   noteTopic: string;
   weekStartDate: Date;
@@ -49,6 +51,7 @@ export async function createWeekPlanWithSessions(input: {
     schoolId: input.schoolId,
     classGroupId: input.classGroupId,
     subjectOfferingId: input.subjectOfferingId,
+    subjectId: input.subjectId ?? null,
     weekStartDate: input.weekStartDate,
     weekEndDate: input.weekEndDate,
     teacherId: input.teacherId,
@@ -156,6 +159,10 @@ export async function createWeekPlanWithSessions(input: {
       rows[i]!;
     const seq = i + 1;
     const slotOid = toObjectId(slot.id);
+    const slotIdStrings: string[] = slot.timetableSlotIds?.length ? slot.timetableSlotIds : [slot.id];
+    const slotOids = slotIdStrings
+      .map((id) => toObjectId(id))
+      .filter((id): id is mongoose.Types.ObjectId => Boolean(id));
     const scheduledDate = new Date(`${slot.scheduledDate}T00:00:00.000Z`);
     const session = await LessonSession.create({
       schoolId: input.schoolId,
@@ -166,6 +173,7 @@ export async function createWeekPlanWithSessions(input: {
       ownerTeacherId: input.teacherId,
       sequenceInWeek: seq,
       timetableSlotId: slotOid,
+      timetableSlotIds: slotOids,
       scheduledDate,
       dayOfWeek: slot.dayOfWeek,
       startTime: slot.startTime,

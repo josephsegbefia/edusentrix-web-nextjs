@@ -33,17 +33,24 @@ function isTransientError(message: string) {
   return TRANSIENT_ERROR_PATTERN.test(message);
 }
 
+function shouldKeepUploadedFileOnPdfParseFailure(error: string): boolean {
+  if (/monthly ai|entitlement/i.test(error)) {
+    return false;
+  }
+  return true;
+}
+
 function cleanupParseError(message: string, options?: { fileRemoved: boolean }) {
   const fileRemoved = options?.fileRemoved !== false;
   const suffix = fileRemoved
     ? " The uploaded file was removed because the import did not complete."
-    : " Your uploaded file was kept — fix the issue below and try import again without re-uploading.";
+    : " Your uploaded file was kept — use Retry import without re-uploading after fixing the issue below.";
 
-  if (isAiConnectivityError(message)) {
-    return `Leo could not reach the AI provider (${message}). Check internet access, VPN/firewall, and API keys, then try again.${suffix}`;
+  if (/timed out before the API returned/i.test(message)) {
+    return `${message} Large PDFs can take up to 2 minutes per provider. Wait a moment and retry.${suffix}`;
   }
-  if (/invalid or expired API key|invalid_api_key|authenticate with OpenAI|authenticate|gemini|api key/i.test(message)) {
-    return `${message}${suffix}`;
+  if (isAiConnectivityError(message)) {
+    return `${message} The app tried OpenAI first, then attempted manual PDF parsing.${suffix}`;
   }
   return `${message}${suffix}`;
 }
@@ -75,7 +82,7 @@ async function retryTransient<T>(
 
 async function createFailedImportJob(
   input: CreateSchemeImportJobInput & {
-    sourceKind: "pdf_ai" | "spreadsheet";
+    sourceKind: "pdf_ai" | "pdf_manual" | "spreadsheet";
     parseError: string;
     keepUploadedFile?: boolean;
   }
@@ -150,7 +157,7 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
       return { ok: true, job };
     }
 
-    console.info("[scheme-import] resolving PDF rows (OpenAI, then Gemini fallback)…");
+    console.info("[scheme-import] resolving PDF rows (OpenAI, then manual fallback)…");
     const parsed = await resolvePdfSchemeParsedRows({
       rawText,
       schoolId: input.schoolId,
@@ -164,11 +171,7 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
 
     if (!parsed.ok) {
       const errMsg = parsed.error;
-      const keepFile =
-        parsed.primaryError != null &&
-        (/invalid or expired API key|authenticate|gemini|api key/i.test(parsed.primaryError) ||
-          isAiConnectivityError(parsed.primaryError) ||
-          isAiConnectivityError(errMsg));
+      const keepFile = shouldKeepUploadedFileOnPdfParseFailure(errMsg);
       if (!keepFile) {
         await cleanupUploadedImportFile(input);
       }
@@ -182,10 +185,10 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
     }
 
     const parseWarning =
-      parsed.sourceKind === "pdf_gemini" && parsed.primaryError
-        ? `OpenAI could not extract rows (${parsed.primaryError}). Rows below were extracted with Gemini — review before confirming.`
-        : parsed.sourceKind === "pdf_gemini"
-          ? "Rows were extracted with Gemini. Review each row before confirming."
+      parsed.sourceKind === "pdf_manual" && parsed.primaryError
+        ? `OpenAI could not extract rows (${parsed.primaryError}). Rows below were extracted by the manual PDF parser — review before confirming.`
+        : parsed.sourceKind === "pdf_manual"
+          ? "Rows were extracted by the manual PDF parser. Review each row before confirming."
           : null;
 
     const job = await SchemeImportJob.create({

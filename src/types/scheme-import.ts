@@ -1,6 +1,6 @@
 export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
 
-export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai" | "pdf_gemini";
+export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai" | "pdf_gemini" | "pdf_manual";
 
 export interface SchemeImportParsedRowClient {
   rowIndex: number;
@@ -17,7 +17,7 @@ export interface SchemeImportParsedRowClient {
   rowType?: "teaching" | "revision" | "examination" | "holiday" | "other";
   skipped: boolean;
   errors: string[];
-  /** Populated for PDF + AI imports (0–1). */
+  /** Populated for PDF imports (0–1). */
   confidence?: number | null;
   rawText?: string | null;
 }

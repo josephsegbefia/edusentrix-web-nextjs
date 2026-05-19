@@ -95,7 +95,7 @@ export async function POST(
       _id: sourcePlan.lessonNoteId,
       schoolId: context.schoolId,
     })
-      .select("_id topic status academicPeriodId subjectOfferingId")
+      .select("_id topic status academicPeriodId subjectId subjectOfferingId")
       .lean();
 
     if (!note || !isLessonNoteApprovedForDelivery(String(note.status))) {
@@ -134,6 +134,7 @@ export async function POST(
       schoolId: context.schoolId,
       classGroupId: targetClassOid,
       subjectOfferingId: sourcePlan.subjectOfferingId as mongoose.Types.ObjectId,
+      subjectId: note.subjectId ? toObjectId(String(note.subjectId)) : null,
       weekStartDate: weekStart,
       weekEndDate: weekEnd,
       teacherId: context.teacherId,
@@ -158,12 +159,20 @@ export async function POST(
         if (!match) return null;
         return {
           timetableSlotId: match.id,
+          timetableSlotIds: match.timetableSlotIds?.length ? match.timetableSlotIds : [match.id],
           title: src.title,
           include: true,
         };
       })
-      .filter((row): row is { timetableSlotId: string; title: string; include: boolean } =>
-        Boolean(row),
+      .filter(
+        (
+          row,
+        ): row is {
+          timetableSlotId: string;
+          timetableSlotIds: string[];
+          title: string;
+          include: boolean;
+        } => Boolean(row),
       );
 
     if (sessionInputs.length === 0) {
@@ -193,6 +202,7 @@ export async function POST(
       academicPeriodId,
       classGroupId: targetClassOid,
       subjectOfferingId: sourcePlan.subjectOfferingId as mongoose.Types.ObjectId,
+      subjectId: note.subjectId ? toObjectId(String(note.subjectId)) : null,
       lessonNoteId: sourcePlan.lessonNoteId as mongoose.Types.ObjectId,
       noteTopic: note.topic || "Lesson",
       weekStartDate: weekStart,

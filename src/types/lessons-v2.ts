@@ -29,6 +29,9 @@ export const DELIVERY_STATUS_COLORS: Record<LessonDeliveryStatus, string> = {
 
 export type TimetableSlotPreview = {
   id: string;
+  timetableSlotIds?: string[];
+  periodCount?: number;
+  isDoublePeriod?: boolean;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
@@ -41,6 +44,9 @@ export type LessonWeekPlanSessionDto = {
   id: string;
   weekPlanId: string;
   sequenceInWeek: number;
+  timetableSlotIds?: string[];
+  periodCount?: number;
+  isDoublePeriod?: boolean;
   title: string;
   scheduledDate: string;
   dayOfWeek: number;
@@ -84,6 +90,7 @@ export type LessonSessionDetailDto = LessonWeekPlanSessionDto & {
 
 export type CreateWeekPlanSessionInput = {
   timetableSlotId: string;
+  timetableSlotIds?: string[];
   title: string;
   include?: boolean;
   noteSectionKeys?: string[];

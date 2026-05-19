@@ -12,6 +12,7 @@ import { gateLessonsModule, isLessonNoteApprovedForDelivery } from "@/lib/lesson
 import { createWeekPlanWithSessions } from "@/lib/lessons/create-week-plan";
 import { formatWeekPlanDto, groupWeekPlansByWeek } from "@/lib/lessons/format-week-plan";
 import type { LessonWeekPlansListResponse } from "@/types/lessons-v2";
+import { resolveLessonNoteSubjectOffering } from "@/lib/lesson-notes/resolve-note-subject-offering";
 
 function toObjectId(id: string): mongoose.Types.ObjectId | null {
   try {
@@ -38,6 +39,7 @@ const CreateWeekPlanSchema = z.object({
     .array(
       z.object({
         timetableSlotId: z.string().min(1),
+        timetableSlotIds: z.array(z.string().min(1)).optional(),
         title: z.string().trim().min(1).max(220),
         include: z.boolean().optional(),
         noteSectionKeys: z.array(z.string().min(1)).optional(),
@@ -150,7 +152,7 @@ export async function POST(req: Request) {
       schoolId: context.schoolId,
       teacherId: context.teacherId,
     })
-      .select("_id topic status subjectOfferingId academicPeriodId")
+      .select("_id topic status subjectId subjectOfferingId academicPeriodId")
       .lean();
 
     if (!note) {
@@ -168,15 +170,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const subjectOfferingOid = note.subjectOfferingId
-      ? toObjectId(String(note.subjectOfferingId))
-      : null;
-    if (!subjectOfferingOid) {
+    const subjectOfferingResolution = await resolveLessonNoteSubjectOffering({
+      schoolId: context.schoolId,
+      classGroupId: classGroupOid,
+      subjectOfferingId: note.subjectOfferingId ? String(note.subjectOfferingId) : null,
+      subjectId: note.subjectId ? String(note.subjectId) : null,
+    });
+    if (!subjectOfferingResolution.ok) {
       return Response.json(
-        { success: false, error: "Lesson note is missing a subject offering" },
-        { status: 400 },
+        { success: false, error: subjectOfferingResolution.error },
+        { status: subjectOfferingResolution.status },
       );
     }
+    const subjectOfferingOid = subjectOfferingResolution.subjectOfferingId;
 
     const existing = await LessonWeekPlan.findOne({
       schoolId: context.schoolId,
@@ -217,6 +223,7 @@ export async function POST(req: Request) {
       academicPeriodId,
       classGroupId: classGroupOid,
       subjectOfferingId: subjectOfferingOid,
+      subjectId: note.subjectId ? toObjectId(String(note.subjectId)) : null,
       lessonNoteId: note._id,
       noteTopic: note.topic || "Lesson",
       weekStartDate: weekStart,

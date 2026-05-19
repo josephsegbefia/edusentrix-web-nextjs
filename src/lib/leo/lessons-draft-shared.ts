@@ -11,6 +11,10 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { gateLessonsFeature, gateLessonsModule } from "@/lib/lessons/lesson-gates";
 import { Lesson, type ILesson } from "@/models/Lesson";
 import { LessonNote, type ILessonNote } from "@/models/LessonNote";
+import { ClassGroup } from "@/models/ClassGroup";
+import { Grade } from "@/models/Grade";
+import { Subject } from "@/models/Subject";
+import { SubjectOffering } from "@/models/SubjectOffering";
 
 export const LESSONS_LEO_DISCLAIMER =
   "Leo output is a draft for teacher review only. Nothing is published to students automatically.";
@@ -22,6 +26,8 @@ You produce **draft** learning materials from structured lesson note data. Rules
 - Output is for teacher review only; never imply the content is live for students.
 - Stay grounded in the provided lesson JSON. Do not invent syllabus facts.
 - Use clear, age-appropriate language suitable for Ghanaian schools (Primary, JHS, etc. as implied by the note).
+- Use safe classroom language only: no abusive, offensive, profane, demeaning, discriminatory, frightening, or discouraging wording.
+- When correcting mistakes, be supportive and specific. Never shame learners.
 - Respond with valid JSON only — no markdown code fences.
 - The input intentionally excludes post-lesson teacher reflections unless present elsewhere in the payload.`;
 
@@ -141,6 +147,56 @@ export function lessonNoteToLeoContext(note: ILessonNote): string {
     s = `${s.slice(0, MAX_CONTEXT_CHARS)}\n...(truncated)`;
   }
   return s;
+}
+
+export async function lessonNoteTeachingMetadata(note: ILessonNote): Promise<Record<string, unknown>> {
+  const [classGroup, subject, subjectOffering] = await Promise.all([
+    note.classGroupId
+      ? ClassGroup.findById(note.classGroupId).select("_id name gradeId").lean<{
+          _id: mongoose.Types.ObjectId;
+          name?: string | null;
+          gradeId?: mongoose.Types.ObjectId | null;
+        } | null>()
+      : null,
+    note.subjectId
+      ? Subject.findById(note.subjectId).select("_id name code").lean<{
+          _id: mongoose.Types.ObjectId;
+          name?: string | null;
+          code?: string | null;
+        } | null>()
+      : null,
+    note.subjectOfferingId
+      ? SubjectOffering.findById(note.subjectOfferingId).select("_id displayName shortName code gradeBand").lean<{
+          _id: mongoose.Types.ObjectId;
+          displayName?: string | null;
+          shortName?: string | null;
+          code?: string | null;
+          gradeBand?: string | null;
+        } | null>()
+      : null,
+  ]);
+
+  const grade = classGroup?.gradeId
+    ? await Grade.findById(classGroup.gradeId).select("_id name stage").lean<{
+        _id: mongoose.Types.ObjectId;
+        name?: string | null;
+        stage?: string | null;
+      } | null>()
+    : null;
+
+  return {
+    gradeName: grade?.name ?? null,
+    gradeBand: grade?.stage ?? subjectOffering?.gradeBand ?? null,
+    classGroupName: classGroup?.name ?? null,
+    subjectName:
+      subjectOffering?.shortName ||
+      subjectOffering?.displayName ||
+      subject?.name ||
+      note.subjectNameSnapshot ||
+      null,
+    subjectOfferingName: subjectOffering?.displayName ?? null,
+    subjectCode: subjectOffering?.code || subject?.code || note.subjectOfferingCodeSnapshot || null,
+  };
 }
 
 export async function runLessonsLeoCompletion(args: {

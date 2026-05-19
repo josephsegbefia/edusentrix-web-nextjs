@@ -67,7 +67,13 @@ function buildNotes(row: ISchemeImportJob["parsedRows"][number]): string | null 
 }
 
 function sourceTypeForJob(job: ISchemeImportJob): ISchemeOfWork["sourceType"] {
-  if (job.sourceKind === "pdf_ai" || job.sourceKind === "pdf_gemini") return "pdf_import";
+  if (
+    job.sourceKind === "pdf_ai" ||
+    job.sourceKind === "pdf_gemini" ||
+    job.sourceKind === "pdf_manual"
+  ) {
+    return "pdf_import";
+  }
   const ext = job.fileName.split(".").pop()?.toLowerCase();
   if (ext === "csv") return "csv_import";
   if (ext === "xls" || ext === "xlsx") return "excel_import";

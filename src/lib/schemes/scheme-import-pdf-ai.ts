@@ -34,7 +34,7 @@ export async function extractSchemeRowsWithOpenAiFromPdfText(args: {
 
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    timeout: 45_000,
+    timeout: 120_000,
     maxRetries: 0,
   });
 
@@ -46,10 +46,10 @@ export async function extractSchemeRowsWithOpenAiFromPdfText(args: {
     ],
     temperature: 0.2,
     response_format: { type: "json_object" as const },
-    max_tokens: 8000,
+    max_tokens: 4096,
   };
 
-  const retryDelaysMs = [0, 2_000, 5_000];
+  const retryDelaysMs = [0, 5_000, 15_000];
   let completion: Awaited<ReturnType<typeof openai.chat.completions.create>> | null = null;
   let lastError = "OpenAI request failed";
 

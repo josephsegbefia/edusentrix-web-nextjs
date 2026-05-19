@@ -8,6 +8,7 @@ import { SchemeItem, type ISchemeItem } from "@/models/SchemeItem";
 import { SchemeOfWork, type ISchemeOfWork } from "@/models/SchemeOfWork";
 import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { resolveLessonNoteSchemeFields } from "@/lib/lesson-notes/validate-lesson-note-scheme";
+import { resolveLessonNoteSubjectOffering } from "@/lib/lesson-notes/resolve-note-subject-offering";
 import { getGhanaTodayDate, getMondayForGhanaWeek, parseGhanaDateLabel } from "@/lib/time/ghana";
 
 function splitIndicators(value: string | null | undefined) {
@@ -119,6 +120,20 @@ export async function GET(req: Request) {
       }
     }
 
+    const subjectOfferingResolution = await resolveLessonNoteSubjectOffering({
+      schoolId: context.schoolId,
+      classGroupId: targetClassGroupId,
+      subjectOfferingId: scheme.subjectOfferingId ? String(scheme.subjectOfferingId) : null,
+      subjectId: scheme.subjectId ? String(scheme.subjectId) : null,
+    });
+    if (!subjectOfferingResolution.ok) {
+      return Response.json(
+        { success: false, error: subjectOfferingResolution.error },
+        { status: subjectOfferingResolution.status }
+      );
+    }
+    const resolvedSubjectOfferingId = subjectOfferingResolution.subjectOfferingId;
+
     const schemeResolution = await resolveLessonNoteSchemeFields({
       schoolId: context.schoolId,
       teacherId: context.teacherId,
@@ -149,7 +164,7 @@ export async function GET(req: Request) {
       data: {
         initialData: {
           classGroupId: String(targetClassGroupId),
-          subjectOfferingId: scheme.subjectOfferingId ? String(scheme.subjectOfferingId) : undefined,
+          subjectOfferingId: String(resolvedSubjectOfferingId),
           subjectId: scheme.subjectId ? String(scheme.subjectId) : undefined,
           templateType: "SIMPLE",
           weekOf: new Date(weekOf).toISOString(),

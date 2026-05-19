@@ -12,11 +12,15 @@ export function useProposeWeekSplit() {
       lessonNoteId: string;
       sessions: Array<{
         timetableSlotId: string;
+        timetableSlotIds?: string[];
         sequenceInWeek: number;
         title: string;
         durationMinutes: number;
         scheduledDate?: string;
         startTime?: string;
+        endTime?: string;
+        periodCount?: number;
+        isDoublePeriod?: boolean;
       }>;
     }) => {
       const res = await fetch("/api/leo/lessons/propose-week-split", {
@@ -42,6 +46,12 @@ export function useGenerateSessionContent() {
         durationMinutes: number;
         noteSectionKeys: string[];
         coverageWeight?: number;
+        scheduledDate?: string;
+        startTime?: string;
+        endTime?: string;
+        periodCount?: number;
+        isDoublePeriod?: boolean;
+        focusSummary?: string;
       };
     }) => {
       const res = await fetch("/api/leo/lessons/generate-session-content", {

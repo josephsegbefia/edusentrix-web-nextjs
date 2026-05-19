@@ -11,6 +11,7 @@ import type { WeekCreationContextResponse } from "@/types/lessons-v2";
 import { getLessonsModuleSettings } from "@/lib/lessons/settings";
 import { getAllocatableNoteSectionKeys } from "@/lib/lessons/note-sections";
 import type { ILessonNote } from "@/models/LessonNote";
+import { resolveLessonNoteSubjectOffering } from "@/lib/lesson-notes/resolve-note-subject-offering";
 
 function toObjectId(id: string): mongoose.Types.ObjectId | null {
   try {
@@ -57,7 +58,7 @@ export async function GET(
       schoolId: context.schoolId,
       teacherId: context.teacherId,
     })
-      .select("_id topic status subjectOfferingId classGroupId weekOf templateType body curriculum assessment resources")
+      .select("_id topic status subjectId subjectOfferingId classGroupId weekOf templateType body curriculum assessment resources")
       .lean();
 
     if (!note) {
@@ -65,16 +66,27 @@ export async function GET(
     }
 
     const classGroupOid = toObjectId(classGroupIdParam || String(note.classGroupId));
-    const subjectOfferingOid = note.subjectOfferingId
-      ? toObjectId(String(note.subjectOfferingId))
-      : null;
-
-    if (!classGroupOid || !subjectOfferingOid) {
+    if (!classGroupOid) {
       return Response.json(
-        { success: false, error: "Class group and subject offering are required" },
+        { success: false, error: "Class group is required" },
         { status: 400 },
       );
     }
+
+    const subjectOfferingResolution = await resolveLessonNoteSubjectOffering({
+      schoolId: context.schoolId,
+      classGroupId: classGroupOid,
+      subjectOfferingId: note.subjectOfferingId ? String(note.subjectOfferingId) : null,
+      subjectId: note.subjectId ? String(note.subjectId) : null,
+    });
+
+    if (!subjectOfferingResolution.ok) {
+      return Response.json(
+        { success: false, error: subjectOfferingResolution.error },
+        { status: subjectOfferingResolution.status },
+      );
+    }
+    const subjectOfferingOid = subjectOfferingResolution.subjectOfferingId;
 
     let weekStart = parseDateYmd(weekStartParam);
     let weekEnd = parseDateYmd(weekEndParam);
@@ -109,6 +121,7 @@ export async function GET(
       schoolId: context.schoolId,
       classGroupId: classGroupOid,
       subjectOfferingId: subjectOfferingOid,
+      subjectId: note.subjectId ? toObjectId(String(note.subjectId)) : null,
       weekStartDate: weekStart,
       weekEndDate: weekEnd,
       teacherId: context.teacherId,

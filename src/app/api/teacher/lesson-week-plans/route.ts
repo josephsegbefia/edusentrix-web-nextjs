@@ -40,6 +40,7 @@ const CreateWeekPlanSchema = z.object({
       z.object({
         timetableSlotId: z.string().min(1),
         timetableSlotIds: z.array(z.string().min(1)).optional(),
+        scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
         title: z.string().trim().min(1).max(220),
         include: z.boolean().optional(),
         noteSectionKeys: z.array(z.string().min(1)).optional(),
@@ -184,24 +185,6 @@ export async function POST(req: Request) {
     }
     const subjectOfferingOid = subjectOfferingResolution.subjectOfferingId;
 
-    const existing = await LessonWeekPlan.findOne({
-      schoolId: context.schoolId,
-      classGroupId: classGroupOid,
-      subjectOfferingId: subjectOfferingOid,
-      weekStartDate: weekStart,
-    })
-      .select("_id")
-      .lean();
-    if (existing) {
-      return Response.json(
-        {
-          success: false,
-          error: "A lesson week plan already exists for this class, subject, and week.",
-        },
-        { status: 409 },
-      );
-    }
-
     const weekLabel = parsed.data.weekLabel?.trim() || "Week";
     const title =
       parsed.data.title?.trim() ||
@@ -234,7 +217,10 @@ export async function POST(req: Request) {
     });
 
     if (!created.ok) {
-      return Response.json({ success: false, error: created.error }, { status: created.status });
+      return Response.json(
+        { success: false, error: created.error, details: created.details ?? null },
+        { status: created.status },
+      );
     }
 
     const dto = formatWeekPlanDto({

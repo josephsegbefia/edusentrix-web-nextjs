@@ -241,3 +241,36 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     return Response.json({ success: false, error: message }, { status: 500 });
   }
 }
+
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const context = await requireSchoolAdmin();
+    await connectToDatabase();
+    const { id } = await params;
+
+    const noteId = toObjectIdOrNull(id);
+    if (!noteId) {
+      return Response.json({ success: false, error: "Invalid lesson note ID" }, { status: 400 });
+    }
+
+    const { deleteLessonNote } = await import("@/lib/lesson-notes/lesson-note-delete");
+    const result = await deleteLessonNote({
+      noteId,
+      actor: { role: "admin", schoolId: context.schoolId },
+    });
+
+    if (!result.deleted) {
+      return Response.json(
+        { success: false, error: result.error ?? "Failed to delete lesson note" },
+        { status: result.status ?? 400 },
+      );
+    }
+
+    return Response.json({ success: true });
+  } catch (e: unknown) {
+    if (e instanceof Response) return e;
+    console.error("Failed to delete admin lesson note:", e);
+    const message = e instanceof Error ? e.message : "Failed to delete lesson note";
+    return Response.json({ success: false, error: message }, { status: 500 });
+  }
+}

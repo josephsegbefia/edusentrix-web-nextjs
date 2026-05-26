@@ -146,17 +146,28 @@ export function PlatformPill({
   );
 }
 
+// Node.js and Chrome ICU agree on date-only and time-only formats individually,
+// but differ in the connector they insert when both are combined in one call
+// ("," vs " at "). Formatting them separately with a hardcoded separator is the
+// only reliable way to get identical output on server and client.
+const DATE_FMT = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+const TIME_FMT = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
 export function formatTimestamp(value: Date | string | null | undefined) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  const d = new Date(value);
+  return `${DATE_FMT.format(d)}, ${TIME_FMT.format(d)}`;
 }
 
 export function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+  return DATE_FMT.format(new Date(value));
 }

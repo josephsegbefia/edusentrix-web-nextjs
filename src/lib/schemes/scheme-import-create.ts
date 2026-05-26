@@ -8,9 +8,11 @@ import { downloadSchemeImportFile } from "@/lib/schemes/scheme-import-download";
 import { isAiConnectivityError } from "@/lib/schemes/scheme-import-ai-error";
 import { resolvePdfSchemeParsedRows } from "@/lib/schemes/scheme-import-pdf-resolve";
 import { extractTextFromPdfBuffer } from "@/lib/schemes/scheme-import-pdf-text";
+import { resolvePdfStructuredRows } from "@/lib/schemes/scheme-import-pdf-structured";
 import { isPdfSource } from "@/lib/schemes/scheme-import-pdf-utils";
 import { parseSchemeSpreadsheet } from "@/lib/schemes/scheme-import-parse";
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
+import { validateSchemeImportFileBuffer } from "@/lib/schemes/scheme-import-validate-file";
 import { deleteUploadedFile } from "@/lib/uploads/delete";
 
 type CreateSchemeImportJobInput = {
@@ -82,7 +84,12 @@ async function retryTransient<T>(
 
 async function createFailedImportJob(
   input: CreateSchemeImportJobInput & {
-    sourceKind: "pdf_ai" | "pdf_manual" | "spreadsheet";
+    sourceKind:
+      | "pdf_ai"
+      | "pdf_manual"
+      | "pdf_parse_tables"
+      | "pdf_excavator"
+      | "spreadsheet";
     parseError: string;
     keepUploadedFile?: boolean;
   }
@@ -130,6 +137,20 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
     bytes: downloaded.buffer.length,
   });
 
+  const layoutCheck = await validateSchemeImportFileBuffer(
+    downloaded.buffer,
+    input.fileName,
+    input.mimeType,
+  );
+  if (!layoutCheck.ok) {
+    await cleanupUploadedImportFile(input);
+    return {
+      ok: false,
+      error: layoutCheck.error,
+      status: 422,
+    };
+  }
+
   if (pdfMode) {
     const pdfGate = await assertPdfSchemeImportEnabled(input.schoolId);
     if (!pdfGate.ok) {
@@ -141,9 +162,35 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
       };
     }
 
+    console.info("[scheme-import] resolving PDF rows (local tables → AI → manual)…");
+    const structured = await resolvePdfStructuredRows(downloaded.buffer);
+    if (structured.ok) {
+      console.info("[scheme-import] structured PDF parse ok", {
+        sourceKind: structured.sourceKind,
+        rows: structured.rows.length,
+      });
+      const job = await SchemeImportJob.create({
+        schoolId: input.schoolId,
+        createdByUserId: input.createdByUserId,
+        status: "parsed",
+        sourceKind: structured.sourceKind,
+        fileName: input.fileName,
+        fileUrl: input.fileUrl,
+        fileKey: input.fileKey ?? null,
+        parseWarning:
+          structured.sourceKind === "pdf_parse_tables"
+            ? "Rows extracted locally from PDF tables (pdf-parse). Review before confirming."
+            : "Rows extracted locally from PDF tables (PDFExcavator). Review before confirming.",
+        parsedRows: structured.rows,
+      });
+      return { ok: true, job: serializeSchemeImportJob(job.toObject()) };
+    }
+
+    console.info("[scheme-import] structured PDF parse failed", { errors: structured.errors });
+
     let rawText: string;
     try {
-      console.info("[scheme-import] extracting PDF text…");
+      console.info("[scheme-import] extracting PDF text for AI/manual fallback…");
       rawText = await extractTextFromPdfBuffer(downloaded.buffer);
       console.info("[scheme-import] PDF text chars", rawText.length);
     } catch (e: unknown) {
@@ -157,7 +204,6 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
       return { ok: true, job };
     }
 
-    console.info("[scheme-import] resolving PDF rows (OpenAI, then manual fallback)…");
     const parsed = await resolvePdfSchemeParsedRows({
       rawText,
       schoolId: input.schoolId,
@@ -170,7 +216,10 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
     });
 
     if (!parsed.ok) {
-      const errMsg = parsed.error;
+      const structuredNote = structured.errors.length
+        ? ` Local table extraction also failed (${structured.errors.join("; ")}).`
+        : "";
+      const errMsg = `${parsed.error}${structuredNote}`;
       const keepFile = shouldKeepUploadedFileOnPdfParseFailure(errMsg);
       if (!keepFile) {
         await cleanupUploadedImportFile(input);
@@ -186,10 +235,14 @@ export async function createSchemeImportJobFromUpload(input: CreateSchemeImportJ
 
     const parseWarning =
       parsed.sourceKind === "pdf_manual" && parsed.primaryError
-        ? `OpenAI could not extract rows (${parsed.primaryError}). Rows below were extracted by the manual PDF parser — review before confirming.`
+        ? `Local table extraction failed. AI extraction could not complete (${parsed.primaryError}). Rows below were extracted by the manual PDF parser — many columns may be empty; review before confirming or re-upload as CSV/XLSX.`
         : parsed.sourceKind === "pdf_manual"
-          ? "Rows were extracted by the manual PDF parser. Review each row before confirming."
-          : null;
+          ? "Local table extraction failed. Rows were extracted by the manual PDF parser. Columns after content standard are often incomplete — review each row or re-upload as CSV/XLSX."
+          : parsed.sourceKind === "pdf_gemini" && parsed.primaryError
+            ? `Local table extraction failed. OpenAI could not extract rows (${parsed.primaryError}). Rows below were extracted by Gemini — review before confirming.`
+            : parsed.sourceKind === "pdf_ai" && structured.errors.length
+              ? `Local table extraction failed (${structured.errors.join("; ")}). Rows were extracted with AI — review before confirming.`
+              : null;
 
     const job = await SchemeImportJob.create({
       schoolId: input.schoolId,

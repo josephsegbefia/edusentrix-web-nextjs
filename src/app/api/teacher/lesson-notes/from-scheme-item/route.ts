@@ -10,6 +10,64 @@ import { TeacherAssignment } from "@/models/TeacherAssignment";
 import { resolveLessonNoteSchemeFields } from "@/lib/lesson-notes/validate-lesson-note-scheme";
 import { resolveLessonNoteSubjectOffering } from "@/lib/lesson-notes/resolve-note-subject-offering";
 import { getGhanaTodayDate, getMondayForGhanaWeek, parseGhanaDateLabel } from "@/lib/time/ghana";
+import type { LessonNoteTemplateType } from "@/types/lesson-notes";
+
+/**
+ * Detect NaCCA/GES-style scheme rows (Ghana national curriculum import).
+ * A row is NaCCA-style when it has an indicator list or a content standard code
+ * that follows the Ghana curriculum format (e.g. B8.1.2.1, B5.3.4.2).
+ */
+function isNaCCAStyleRow(item: ISchemeItem): boolean {
+  if (item.indicator && item.indicator.trim().length > 0) return true;
+  const cs = item.contentStandard?.trim() ?? "";
+  return /^B\d+\.\d+\.\d+(\.\d+)?/.test(cs);
+}
+
+/**
+ * Choose the best lesson note template for this scheme row.
+ * NaCCA-style rows get the NaCCA 3-phase template; everything else gets SIMPLE.
+ */
+function templateTypeForRow(item: ISchemeItem): LessonNoteTemplateType {
+  return isNaCCAStyleRow(item) ? "NACCA_3_PHASE" : "SIMPLE";
+}
+
+/**
+ * Build the lesson note body for the chosen template.
+ * For NaCCA: starter/main/plenary with TLA in teacherActivities.
+ * For SIMPLE: plain content string.
+ */
+function buildBodyForTemplate(
+  templateType: LessonNoteTemplateType,
+  item: ISchemeItem,
+  fallbackContent: string,
+): Record<string, unknown> {
+  if (templateType === "NACCA_3_PHASE") {
+    return {
+      starter: {
+        activities: "",
+        rpkPrompt: "",
+        engagementHook: "",
+        timeMins: 10,
+      },
+      main: {
+        teacherActivities: item.teachingLearningActivities?.trim() ?? "",
+        learnerActivities: "",
+        resourcesUsed: (item.teachingResources ?? []).join("; "),
+        embeddedAssessment: (item.assessmentIdeas ?? []).join("; "),
+        differentiation: "",
+        groupingStrategy: "",
+        timeMins: 25,
+      },
+      plenary: {
+        summaryPoints: "",
+        classworkAssignment: "",
+        homework: (item.assessmentIdeas?.[0] ?? ""),
+        timeMins: 5,
+      },
+    };
+  }
+  return { objectives: fallbackContent, content: fallbackContent };
+}
 
 function splitIndicators(value: string | null | undefined) {
   return (value || "")
@@ -157,7 +215,25 @@ export async function GET(req: Request) {
       (weekEndingDate ? getMondayForGhanaWeek(new Date(weekEndingDate)) : getGhanaTodayDate());
     const lessonDate = getGhanaTodayDate();
     const topic = item.title || item.topic || "Lesson from Scheme of Learning";
-    const learningObjective = item.learningObjective || item.learningObjectives?.[0] || topic;
+
+    // All learning objectives — use every entry, not just the first.
+    const allObjectives = uniqueStrings([
+      ...(item.learningObjectives ?? []),
+      item.learningObjective ?? null,
+    ]);
+    const primaryObjective = allObjectives[0] || topic;
+
+    // Detect template type from scheme row style.
+    const templateType = templateTypeForRow(item);
+
+    // Body content fallback for SIMPLE template.
+    const bodyContent =
+      item.teachingLearningActivities?.trim() ||
+      item.notes?.trim() ||
+      item.contentStandard?.trim() ||
+      topic;
+
+    const body = buildBodyForTemplate(templateType, item, bodyContent);
 
     return Response.json({
       success: true,
@@ -166,7 +242,7 @@ export async function GET(req: Request) {
           classGroupId: String(targetClassGroupId),
           subjectOfferingId: String(resolvedSubjectOfferingId),
           subjectId: scheme.subjectId ? String(scheme.subjectId) : undefined,
-          templateType: "SIMPLE",
+          templateType,
           weekOf: new Date(weekOf).toISOString(),
           date: lessonDate.toISOString(),
           weekEndingDate: weekEndingDate ? new Date(weekEndingDate).toISOString() : undefined,
@@ -178,13 +254,10 @@ export async function GET(req: Request) {
             subStrand: item.subStrand || "",
             contentStandard: item.contentStandard || "",
             indicators: indicatorTexts.map((text) => ({ refNo: text, text })),
-            learningOutcomes: uniqueStrings([learningObjective]),
+            learningOutcomes: allObjectives,
           },
           tlms: uniqueStrings(item.teachingResources || []),
-          body: {
-            objectives: learningObjective,
-            content: item.notes || item.contentStandard || topic,
-          },
+          body,
           assessment: {
             inClassChecks: item.assessmentIdeas || [],
             exitTicket: "",

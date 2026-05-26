@@ -24,9 +24,34 @@ export interface ILessonContentBlock {
   resourceUrl?: string | null;
 }
 
+export type LessonAssessmentItemType =
+  | "multiple_choice"
+  | "short_answer"
+  | "fill_blank"
+  | "practical_task"
+  | "project";
+
+export interface ILessonAssessmentItem {
+  id: string;
+  type: LessonAssessmentItemType;
+  title: string;
+  question: string;
+  options?: string[];
+  correctAnswer?: string | null;
+  rubric?: string | null;
+  estimatedMinutes?: number | null;
+  aiGenerated: boolean;
+}
+
 export interface ILessonSessionAiMetadata {
   leoGeneratedAt?: Date | null;
   teacherReviewedAllAi?: boolean;
+}
+
+export interface ILessonBoardNotes {
+  contentHtml: string;
+  generatedAt: Date;
+  aiGenerated: boolean;
 }
 
 export interface ILessonSession {
@@ -57,6 +82,8 @@ export interface ILessonSession {
   contentBlocks: ILessonContentBlock[];
   teachingDeck?: TeachingDeck | null;
   aiMetadata?: ILessonSessionAiMetadata;
+  assessmentItems: ILessonAssessmentItem[];
+  boardNotes?: ILessonBoardNotes | null;
   /** Set when migrated from legacy `Lesson` for URL redirects. */
   legacyLessonId?: Types.ObjectId | null;
   createdAt?: Date;
@@ -76,6 +103,8 @@ const contentBlockSchema = new Schema<ILessonContentBlock>(
         "check",
         "resource_embed",
         "exit_ticket",
+        "teacher_note",
+        "did_you_know",
       ],
       required: true,
     },
@@ -136,6 +165,34 @@ const aiMetadataSchema = new Schema<ILessonSessionAiMetadata>(
   { _id: false },
 );
 
+const assessmentItemSchema = new Schema<ILessonAssessmentItem>(
+  {
+    id: { type: String, required: true, trim: true },
+    type: {
+      type: String,
+      enum: ["multiple_choice", "short_answer", "fill_blank", "practical_task", "project"],
+      required: true,
+    },
+    title: { type: String, trim: true, maxlength: 300, default: "" },
+    question: { type: String, trim: true, maxlength: 8000, default: "" },
+    options: [{ type: String, trim: true, maxlength: 500 }],
+    correctAnswer: { type: String, trim: true, maxlength: 2000, default: null },
+    rubric: { type: String, trim: true, maxlength: 4000, default: null },
+    estimatedMinutes: { type: Number, min: 0, max: 120, default: null },
+    aiGenerated: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+
+const boardNotesSchema = new Schema<ILessonBoardNotes>(
+  {
+    contentHtml: { type: String, required: true, maxlength: 40_000 },
+    generatedAt: { type: Date, required: true },
+    aiGenerated: { type: Boolean, default: true },
+  },
+  { _id: false },
+);
+
 const noteAllocationSchema = new Schema<ILessonSessionNoteAllocation>(
   {
     schemeItemIds: [{ type: Schema.Types.ObjectId, ref: "SchemeItem" }],
@@ -184,6 +241,8 @@ const lessonSessionSchema = new Schema<ILessonSession>(
     contentVersion: { type: Number, default: 1 },
     planNotes: { type: String, trim: true, maxlength: 12000, default: null },
     contentBlocks: { type: [contentBlockSchema], default: [] },
+    assessmentItems: { type: [assessmentItemSchema], default: [] },
+    boardNotes: { type: boardNotesSchema, default: null },
     teachingDeck: { type: teachingDeckSchema, default: null },
     aiMetadata: { type: aiMetadataSchema, default: () => ({}) },
     legacyLessonId: { type: Schema.Types.ObjectId, ref: "Lesson", default: null, index: true },

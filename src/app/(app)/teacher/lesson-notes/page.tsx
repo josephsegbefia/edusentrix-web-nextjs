@@ -16,6 +16,7 @@ import {
   Download,
   X,
   Presentation,
+  MoreHorizontal,
 } from "lucide-react";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
@@ -23,10 +24,12 @@ import { useTeacherLessonNote } from "@/hooks/teacher/useTeacherLessonNote";
 import { useTeacherLessonNotes } from "@/hooks/teacher/useTeacherLessonNotes";
 import { lessonNoteDetailToWizardInitial } from "@/lib/lesson-notes/detail-to-wizard";
 import { useTeacherLessonNoteCreate } from "@/hooks/teacher/useTeacherLessonNoteCreate";
-import { useTeacherLessonNoteDelete } from "@/hooks/teacher/useTeacherLessonNoteDelete";
 import { useLessonNoteFromSchemeItem } from "@/hooks/teacher/useLessonNoteFromSchemeItem";
 import { useBusyToast } from "@/hooks/useBusyToast";
-import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
+import {
+  LessonNoteDeleteDialog,
+  type LessonNoteDeleteTarget,
+} from "@/components/teacher/lesson-notes/LessonNoteDeleteDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +51,15 @@ import {
 import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 import {
   LessonNoteWizard,
   type ClassOption,
@@ -131,7 +143,6 @@ function TeacherLessonNotesInner() {
   const createFromSchemeItemId = searchParams.get("createFromSchemeItem");
   const editNoteId = searchParams.get("edit");
   const busyToast = useBusyToast();
-  const { confirm, confirmationDialog } = useConfirmationDialog();
   const { data: contextData } = useTeacherContext();
   const permissions = contextData?.data.permissions as Permission[] | undefined;
   const canView = can(permissions, PERMISSIONS.journalView);
@@ -182,6 +193,7 @@ function TeacherLessonNotesInner() {
   const [showWizard, setShowWizard] = React.useState(false);
   const [editingNote, setEditingNote] = React.useState<string | null>(null);
   const [schemePrefillConsumed, setSchemePrefillConsumed] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<LessonNoteDeleteTarget | null>(null);
 
   // Filters
   const [selectedClassId, setSelectedClassId] = React.useState<string>("all");
@@ -246,7 +258,6 @@ function TeacherLessonNotesInner() {
   const isInitializing = isLoadingClasses || !contextData;
 
   const createMutation = useTeacherLessonNoteCreate();
-  const deleteMutation = useTeacherLessonNoteDelete();
   const {
     data: schemePrefill,
     isLoading: schemePrefillLoading,
@@ -314,21 +325,14 @@ function TeacherLessonNotesInner() {
     }
   };
 
-  const handleDelete = async (id: string, noteTitle: string) => {
-    const result = await confirm({
-      title: "Delete Lesson Note",
-      description: `Are you sure you want to delete "${noteTitle}"? This action cannot be undone.`,
-      confirmLabel: "Delete",
-      cancelLabel: "Cancel",
-      intent: "destructive",
-    });
-
-    if (result !== "confirm") return;
-
-    await busyToast.promise(deleteMutation.mutateAsync(id), {
-      loading: "Deleting note...",
-      success: "Lesson note deleted",
-      error: "Failed to delete lesson note",
+  const openDeleteDialog = (note: (typeof notes)[number]) => {
+    setDeleteTarget({
+      id: note.id,
+      topic: note.topic || "Untitled",
+      className: note.className,
+      subjectName: note.subjectName,
+      weekLabel: formatWeekLabel(note.weekOf),
+      status: note.status as LessonNoteStatus,
     });
   };
 
@@ -363,13 +367,16 @@ function TeacherLessonNotesInner() {
   const renderNoteCard = (note: (typeof notes)[number]) => (
     <Card
       key={note.id}
-      className="group cursor-pointer border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition-all hover:border-white/20"
+      className={cn(
+        glassPanelClass,
+        "group cursor-pointer transition-all hover:border-white/20 hover:-translate-y-0.5"
+      )}
       onClick={() => router.push(`/teacher/lesson-notes/${note.id}`)}
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-200">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-teal-400/20 bg-teal-500/15 text-teal-200">
               {TEMPLATE_ICONS[note.templateType as LessonNoteTemplateType] || (
                 <FileText className="h-4 w-4" />
               )}
@@ -384,62 +391,86 @@ function TeacherLessonNotesInner() {
               {note.status}
             </Badge>
           </div>
-          <PremiumDropdownMenu>
-            <PremiumDropdownMenuTrigger asChild>
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                router.push(`/teacher/lesson-notes/${note.id}`);
+              }}
+              className="h-8 w-8 rounded-full border border-white/10 bg-white/5 p-0 text-teal-200 hover:bg-teal-500/15 hover:text-teal-100"
+              aria-label={`View ${note.topic || "lesson note"}`}
+            >
+              <BookOpen className="h-4 w-4" />
+            </Button>
+            {canWrite && note.status !== "approved" ? (
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
-                onClick={(event) => event.stopPropagation()}
-                className="h-8 w-8 rounded-full border border-white/10 bg-white/5 p-0 text-white/70 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white/10"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openDeleteDialog(note);
+                }}
+                className="h-8 w-8 rounded-full border border-rose-500/30 bg-rose-500/10 p-0 text-rose-200 hover:bg-rose-500/20 hover:text-rose-100"
+                aria-label={`Delete ${note.topic || "lesson note"}`}
               >
-                <span className="sr-only">Actions</span>
-                <BookOpen className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
               </Button>
-            </PremiumDropdownMenuTrigger>
-            <PremiumDropdownMenuContent align="end">
-              <PremiumDropdownMenuItem
-                icon={<Pencil className="h-4 w-4" />}
-                onClick={() => handleEdit(note.id)}
-              >
-                Edit
-              </PremiumDropdownMenuItem>
-              <PremiumDropdownMenuItem
-                icon={<Copy className="h-4 w-4" />}
-                onClick={() => handleDuplicate(note)}
-              >
-                Duplicate to next week
-              </PremiumDropdownMenuItem>
-              <PremiumDropdownMenuItem
-                icon={<Presentation className="h-4 w-4" />}
-                onClick={() =>
-                  router.push(
-                    `/teacher/lessons/create?noteId=${note.id}${note.classGroupId ? `&classGroupId=${note.classGroupId}` : ""}`,
-                  )
-                }
-              >
-                Create weekly lessons
-              </PremiumDropdownMenuItem>
-              <PremiumDropdownMenuItem
-                icon={<Download className="h-4 w-4" />}
-                onClick={() => busyToast.info("Export coming soon")}
-              >
-                Export PDF
-              </PremiumDropdownMenuItem>
-              <PremiumDropdownMenuItem
-                icon={<Trash2 className="h-4 w-4" />}
-                variant="destructive"
-                onClick={() => handleDelete(note.id, note.topic || "Untitled")}
-              >
-                Delete
-              </PremiumDropdownMenuItem>
-            </PremiumDropdownMenuContent>
-          </PremiumDropdownMenu>
+            ) : null}
+            <PremiumDropdownMenu>
+              <PremiumDropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(event) => event.stopPropagation()}
+                  className="h-8 w-8 rounded-full border border-white/10 bg-white/5 p-0 text-white/70 hover:bg-white/10"
+                  aria-label="More actions"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </PremiumDropdownMenuTrigger>
+              <PremiumDropdownMenuContent align="end">
+                <PremiumDropdownMenuItem
+                  icon={<Pencil className="h-4 w-4" />}
+                  onClick={() => handleEdit(note.id)}
+                >
+                  Edit
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem
+                  icon={<Copy className="h-4 w-4" />}
+                  onClick={() => handleDuplicate(note)}
+                >
+                  Duplicate to next week
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem
+                  icon={<Presentation className="h-4 w-4" />}
+                  onClick={() =>
+                    router.push(
+                      `/teacher/lessons/create?noteId=${note.id}${note.classGroupId ? `&classGroupId=${note.classGroupId}` : ""}`,
+                    )
+                  }
+                >
+                  Create weekly lessons
+                </PremiumDropdownMenuItem>
+                <PremiumDropdownMenuItem
+                  icon={<Download className="h-4 w-4" />}
+                  onClick={() => busyToast.info("Export coming soon")}
+                >
+                  Export PDF
+                </PremiumDropdownMenuItem>
+              </PremiumDropdownMenuContent>
+            </PremiumDropdownMenu>
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
         <div>
-          <CardTitle className="line-clamp-2 text-base text-white transition-colors group-hover:text-indigo-200">
+          <CardTitle className="line-clamp-2 text-base text-white transition-colors group-hover:text-teal-200">
             {note.topic}
           </CardTitle>
           <p className="mt-1 text-xs text-white/50">
@@ -493,27 +524,19 @@ function TeacherLessonNotesInner() {
 
   if (!canView) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Lesson Notes</h1>
-          <p className="text-sm text-white/60">Lesson notes are currently locked.</p>
-        </div>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60">
-                <BookOpen className="h-4 w-4" />
-              </span>
-              Lesson notes access required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-              Ask an admin to grant journal permissions for your account.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={FileText}
+          title="Lesson notes"
+          subtitle="Create and manage lesson notes with curriculum-aligned templates."
+        />
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/70">Lesson notes are currently locked.</p>
+          <p className="mt-2 text-xs text-white/50">
+            Ask an admin to grant journal permissions for your account.
+          </p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
@@ -567,33 +590,32 @@ function TeacherLessonNotesInner() {
 
     if (editingNote && editingDetailLoading && !noteToEdit) {
       return (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5"
-            />
-          ))}
-        </div>
+        <WorkspacePageShell>
+          <WorkspacePageHeader icon={FileText} title="Edit lesson note" subtitle="Loading note..." />
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className={cn(glassInsetClass, "h-32 animate-pulse rounded-2xl")} />
+            ))}
+          </div>
+        </WorkspacePageShell>
       );
     }
 
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-white">
-              {editingNote ? "Edit Lesson Note" : "New Lesson Note"}
-            </h1>
-            <p className="text-sm text-white/60">
-              {editingNote
-                ? "Update your lesson note"
-                : schemePrefill
-                  ? `Based on ${schemePrefill.scheme.title}`
-                  : "Create a professional lesson note"}
-            </p>
-          </div>
-        </div>
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={FileText}
+          title={editingNote ? "Edit lesson note" : "New lesson note"}
+          subtitle={
+            editingNote
+              ? "Update your lesson note"
+              : schemePrefill
+                ? `Based on ${schemePrefill.scheme.title}`
+                : "Create a professional lesson note"
+          }
+          backHref="/teacher/lesson-notes"
+          backLabel="Back to lesson notes"
+        />
 
         <LessonNoteWizard
           classOptions={classOptions}
@@ -602,7 +624,7 @@ function TeacherLessonNotesInner() {
           onCancel={handleWizardCancel}
           curriculumCode={(contextData?.data.school?.curriculumCode as import("@/constants/curriculum-profiles").CurriculumCode) || "ghana_nacca"}
         />
-      </div>
+      </WorkspacePageShell>
     );
   }
 
@@ -610,33 +632,36 @@ function TeacherLessonNotesInner() {
   // Render: List View
   // ============================================================================
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Lesson Notes</h1>
-          <p className="text-sm text-white/60">
-            Create and manage lesson notes with NaCCA-aligned templates
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge className="bg-indigo-500/20 text-indigo-200">
-            {notes.length} notes
-          </Badge>
-          <Button
-            onClick={handleCreateNew}
-            disabled={isInitializing || !canWrite || noClassesAssigned}
-            className="group bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
-          >
-            <Plus className="mr-1 h-4 w-4 transition-transform group-hover:rotate-90" />
-            {isInitializing ? "Loading..." : "New Note"}
-          </Button>
-        </div>
-      </div>
+  const newNoteAction = (
+    <Button
+      onClick={handleCreateNew}
+      disabled={isInitializing || !canWrite || noClassesAssigned}
+      className={glassPrimaryButtonClass}
+    >
+      <Plus className="h-4 w-4" />
+      {isInitializing ? "Loading..." : "New note"}
+    </Button>
+  );
 
-      {/* Filters */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center">
+  return (
+    <>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={FileText}
+        title="Lesson notes"
+        subtitle="Create and manage lesson notes with NaCCA-aligned templates."
+        badge={
+          !isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {notes.length} note{notes.length === 1 ? "" : "s"}
+            </span>
+          ) : undefined
+        }
+        actions={newNoteAction}
+      />
+
+      <Card className={cn(glassPanelClass, "p-4")}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="min-w-[140px]">
           <PremiumSelect value={selectedClassId} onValueChange={setSelectedClassId}>
             <PremiumSelectTrigger>
@@ -693,7 +718,7 @@ function TeacherLessonNotesInner() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search notes..."
-            className="border-white/10 bg-white/5 text-white"
+            className={cn(glassInsetClass, "text-white")}
           />
         </div>
 
@@ -716,7 +741,8 @@ function TeacherLessonNotesInner() {
             Clear
           </Button>
         )}
-      </div>
+        </div>
+      </Card>
 
       {/* No Classes Warning */}
       {noClassesAssigned && (
@@ -756,12 +782,12 @@ function TeacherLessonNotesInner() {
           {Array.from({ length: 6 }).map((_, idx) => (
             <div
               key={idx}
-              className="h-48 animate-pulse rounded-2xl border border-white/10 bg-white/5"
+              className={cn(glassInsetClass, "h-48 animate-pulse rounded-2xl")}
             />
           ))}
         </div>
       ) : notes.length === 0 ? (
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
               <BookOpen className="h-8 w-8 text-white/40" />
@@ -773,7 +799,7 @@ function TeacherLessonNotesInner() {
             <Button
               onClick={handleCreateNew}
               disabled={isInitializing || !canWrite || noClassesAssigned}
-              className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30 disabled:opacity-50"
+              className={cn(glassPrimaryButtonClass, "disabled:opacity-50")}
             >
               <Plus className="mr-1 h-4 w-4" />
               {isInitializing ? "Loading..." : "Create Lesson Note"}
@@ -785,7 +811,7 @@ function TeacherLessonNotesInner() {
           {groupedNotes.map((group) => (
             <section
               key={group.key}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-lg shadow-black/20"
+              className={cn(glassPanelClass, "p-4")}
             >
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -808,9 +834,15 @@ function TeacherLessonNotesInner() {
         </div>
       )}
 
-      {/* Confirmation Dialog */}
-      {confirmationDialog}
-    </div>
+    </WorkspacePageShell>
+
+    <LessonNoteDeleteDialog
+      target={deleteTarget}
+      onOpenChange={(open) => {
+        if (!open) setDeleteTarget(null);
+      }}
+    />
+    </>
   );
 }
 

@@ -37,7 +37,7 @@ export function proposalVariables(input: {
     proposalDate: new Date().toLocaleDateString(),
     preparedBy: input.preparedBy,
     website: input.branding?.website || "https://www.tryedusentrix.app",
-    email: input.branding?.contactEmail || "joseph.segbefia@tryedusentrix.app",
+    email: input.branding?.contactEmail || "hello@tryedusentrix.app",
     whatsapp: input.branding?.whatsapp || "0504211501",
     pilotDuration: input.pilotDuration || "",
     selectedModules: (input.selectedModules || []).join(", "),
@@ -65,11 +65,21 @@ export async function ensureDefaultProposalData(actorId?: mongoose.Types.ObjectI
       },
       { upsert: true, new: true },
     ),
+    // Upsert branding; also migrate the old default email if still present.
     ProposalBranding.findOneAndUpdate(
       {},
-      { $setOnInsert: {} },
+      {
+        $setOnInsert: {},
+        $set: {},
+      },
       { upsert: true, new: true },
-    ),
+    ).then(async (doc) => {
+      if (doc?.contactEmail === "joseph.segbefia@tryedusentrix.app") {
+        await ProposalBranding.updateOne({ _id: doc._id }, { $set: { contactEmail: "hello@tryedusentrix.app" } });
+        doc.contactEmail = "hello@tryedusentrix.app";
+      }
+      return doc;
+    }),
   ]);
   return { template, branding };
 }

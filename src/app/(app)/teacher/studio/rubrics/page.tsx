@@ -8,8 +8,8 @@ import {
   Percent,
   Plus,
   Search,
-  Sparkles,
   Trash2,
+  CheckSquare,
 } from "lucide-react";
 import { useTeacherRubrics, type RubricSummary } from "@/hooks/teacher/useTeacherRubrics";
 import { useBusyToast } from "@/hooks/useBusyToast";
@@ -23,6 +23,15 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 type Criterion = {
   title: string;
@@ -127,11 +136,16 @@ export default function TeacherRubricsPage() {
 
   if (!canManageRubrics) {
     return (
-      <Card className="border border-white/10 bg-white/5">
-        <CardContent className="p-8 text-center text-white/70">
-          You do not have permission to manage rubrics.
-        </CardContent>
-      </Card>
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={CheckSquare}
+          title="Rubrics"
+          subtitle="Build reusable grading frameworks for assignments."
+        />
+        <GlassPanel className="p-8 text-center">
+          <p className="text-white/70">You do not have permission to manage rubrics.</p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
@@ -269,44 +283,41 @@ export default function TeacherRubricsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-indigo-500/15 via-white/5 to-cyan-500/10 shadow-2xl shadow-black/35 backdrop-blur">
-        <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="space-y-3">
-            <Badge className="w-fit bg-white/10 text-white/80">
-              <Sparkles className="h-3.5 w-3.5" />
-              Rubric studio
-            </Badge>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Rubrics</h1>
-              <p className="text-sm text-white/65">
-                Build reusable, criteria-based grading frameworks for faster and more consistent feedback.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-indigo-500/20 text-indigo-100">{stats.total} rubrics</Badge>
-              <Badge className="bg-cyan-500/20 text-cyan-100">{stats.totalCriteria} criteria</Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-100">{stats.avgCriteria} avg / rubric</Badge>
-              <Badge className="bg-amber-500/20 text-amber-100">{stats.weightedCount} weighted</Badge>
-            </div>
-          </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={CheckSquare}
+        title="Rubrics"
+        subtitle="Build reusable, criteria-based grading frameworks for faster and more consistent feedback."
+        badge={
+          !isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {stats.total} rubric{stats.total === 1 ? "" : "s"}
+            </span>
+          ) : undefined
+        }
+        actions={
+          <Button onClick={openCreate} className={glassPrimaryButtonClass}>
+            <Plus className="h-4 w-4" />
+            New rubric
+          </Button>
+        }
+      />
 
-          <div className="flex flex-col gap-2 lg:items-end">
-            <Button
-              onClick={openCreate}
-              className="group bg-indigo-500/30 text-indigo-50 hover:bg-indigo-500/40"
-            >
-              <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-              New rubric
-            </Button>
-            <p className="text-xs text-white/45">Use weighted criteria for advanced scoring.</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap gap-2">
+        <Badge className="border border-white/10 bg-white/5 text-white/70">
+          {stats.totalCriteria} criteria
+        </Badge>
+        <Badge className="border border-cyan-400/20 bg-cyan-500/15 text-cyan-200">
+          {stats.avgCriteria} avg / rubric
+        </Badge>
+        <Badge className="border border-amber-400/20 bg-amber-500/15 text-amber-200">
+          {stats.weightedCount} weighted
+        </Badge>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,430px)]">
         <div className="space-y-4">
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <Card className={glassPanelClass}>
             <CardHeader>
               <CardTitle className="text-lg">Rubric library</CardTitle>
             </CardHeader>
@@ -317,18 +328,18 @@ export default function TeacherRubricsPage() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search title, description, or criterion"
-                  className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+                  className={cn(glassInsetClass, "pl-9 text-white placeholder:text-white/35")}
                 />
               </div>
 
               {isLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 4 }).map((_, idx) => (
-                    <div key={idx} className="h-28 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+                    <div key={idx} className={cn(glassInsetClass, "h-28 animate-pulse rounded-2xl")} />
                   ))}
                 </div>
               ) : filteredRubrics.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
+                <div className={cn(glassInsetClass, "rounded-2xl p-8 text-center text-white/60")}>
                   {search.trim() ? "No rubrics match your search." : "No rubrics yet. Create your first rubric."}
                 </div>
               ) : (
@@ -342,12 +353,15 @@ export default function TeacherRubricsPage() {
                     return (
                       <Card
                         key={rubric.id}
-                        className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition hover:border-white/20"
+                        className={cn(
+                          glassPanelClass,
+                          "transition hover:border-white/20 hover:-translate-y-0.5"
+                        )}
                       >
                         <CardHeader className="space-y-3">
                           <div className="flex items-start justify-between gap-3">
                             <CardTitle className="text-lg text-white">{rubric.title}</CardTitle>
-                            <Badge className="bg-indigo-500/20 text-indigo-100">
+                            <Badge className="border border-teal-400/20 bg-teal-500/15 text-teal-200">
                               {rubric.criteria.length} criteria
                             </Badge>
                           </div>
@@ -372,7 +386,7 @@ export default function TeacherRubricsPage() {
                             {rubric.criteria.slice(0, 3).map((criterion, index) => (
                               <div
                                 key={`${rubric.id}-${criterion.title}-${index}`}
-                                className="flex items-center justify-between rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs"
+                                className={cn(glassInsetClass, "flex items-center justify-between rounded-lg px-3 py-2 text-xs")}
                               >
                                 <span className="truncate text-white/70">{criterion.title}</span>
                                 <span className="text-white/45">{criterion.maxScore} pts</span>
@@ -424,7 +438,7 @@ export default function TeacherRubricsPage() {
         </div>
 
         <div className="space-y-4 xl:sticky xl:top-4">
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <Card className={glassPanelClass}>
             <CardHeader>
               <CardTitle className="text-lg">
                 {editor ? (editor.id ? "Edit rubric" : "Create rubric") : "Rubric builder"}
@@ -432,7 +446,7 @@ export default function TeacherRubricsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {!editor ? (
-                <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className={cn(glassInsetClass, "space-y-4 rounded-2xl p-4")}>
                   <p className="text-sm text-white/65">
                     Start a rubric from scratch or open one from the library to edit.
                   </p>
@@ -448,7 +462,7 @@ export default function TeacherRubricsPage() {
                   </div>
                   <Button
                     onClick={openCreate}
-                    className="w-full bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
+                    className={cn("w-full", glassPrimaryButtonClass)}
                   >
                     <Plus className="h-4 w-4" />
                     New rubric
@@ -457,17 +471,17 @@ export default function TeacherRubricsPage() {
               ) : (
                 <>
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className={cn(glassInsetClass, "rounded-xl p-3")}>
                       <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Criteria</p>
                       <p className="mt-1 text-lg font-semibold text-white">{editorStats?.criteriaCount || 0}</p>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className={cn(glassInsetClass, "rounded-xl p-3")}>
                       <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Total score</p>
                       <p className="mt-1 text-lg font-semibold text-white">{editorStats?.totalScore || 0}</p>
                     </div>
                     <div
                       className={cn(
-                        "rounded-xl border border-white/10 bg-white/5 p-3",
+                        cn(glassInsetClass, "rounded-xl p-3"),
                         editorStats && editorStats.totalWeight > 100 && "border-rose-400/40 bg-rose-500/10"
                       )}
                     >
@@ -482,7 +496,7 @@ export default function TeacherRubricsPage() {
                       value={editor.title}
                       onChange={(event) => updateEditor({ title: event.target.value })}
                       placeholder="e.g. Science Practical Rubric"
-                      className="border-white/10 bg-white/5 text-white/85"
+                      className={cn(glassInsetClass, "text-white/85")}
                     />
                   </div>
 
@@ -492,7 +506,7 @@ export default function TeacherRubricsPage() {
                       value={editor.description}
                       onChange={(event) => updateEditor({ description: event.target.value })}
                       placeholder="Optional notes for this rubric"
-                      className="min-h-[90px] border-white/10 bg-white/5 text-white/85"
+                      className={cn(glassInsetClass, "min-h-[90px] text-white/85")}
                     />
                   </div>
 
@@ -514,19 +528,19 @@ export default function TeacherRubricsPage() {
                       {editor.criteria.map((criterion, index) => (
                         <div
                           key={`criterion-${index}`}
-                          className="grid grid-cols-1 gap-2 rounded-2xl border border-white/10 bg-white/5 p-3"
+                          className={cn(glassInsetClass, "grid grid-cols-1 gap-2 rounded-2xl p-3")}
                         >
                           <Input
                             value={criterion.title}
                             onChange={(event) => updateCriterion(index, { title: event.target.value })}
                             placeholder="Criterion title"
-                            className="border-white/10 bg-black/20 text-white/85"
+                            className={cn(glassInsetClass, "text-white/85")}
                           />
                           <Input
                             value={criterion.description || ""}
                             onChange={(event) => updateCriterion(index, { description: event.target.value })}
                             placeholder="Description"
-                            className="border-white/10 bg-black/20 text-white/75"
+                            className={cn(glassInsetClass, "text-white/75")}
                           />
 
                           <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
@@ -540,7 +554,7 @@ export default function TeacherRubricsPage() {
                                 })
                               }
                               placeholder="Max score"
-                              className="border-white/10 bg-black/20 text-white/85"
+                              className={cn(glassInsetClass, "text-white/85")}
                             />
                             <Input
                               type="number"
@@ -553,7 +567,7 @@ export default function TeacherRubricsPage() {
                                 })
                               }
                               placeholder="Weight %"
-                              className="border-white/10 bg-black/20 text-white/85"
+                              className={cn(glassInsetClass, "text-white/85")}
                             />
                             <Button
                               type="button"
@@ -576,14 +590,14 @@ export default function TeacherRubricsPage() {
                       type="button"
                       variant="ghost"
                       onClick={() => setEditor(null)}
-                      className="text-white/70 hover:bg-white/10"
+                      className={glassSecondaryButtonClass}
                     >
                       Cancel
                     </Button>
                     <Button
                       type="button"
                       onClick={saveRubric}
-                      className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
+                      className={glassPrimaryButtonClass}
                     >
                       Save rubric
                     </Button>
@@ -595,6 +609,6 @@ export default function TeacherRubricsPage() {
         </div>
       </div>
       {confirmationDialog}
-    </div>
+    </WorkspacePageShell>
   );
 }

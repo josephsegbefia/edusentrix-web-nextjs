@@ -14,7 +14,7 @@ import { deriveCurriculumStructureFromSchemeImport } from "@/lib/schemes/scheme-
 import { serializeSchemeImportJob } from "@/lib/schemes/scheme-import-serialize";
 import {
   buildSchemeItemTitle,
-  schemeImportRowFieldsForItem,
+  schemeImportRowToSchemeItemPayload,
 } from "@/lib/schemes/scheme-import-confirm-shared";
 import { serializeSchemeRow } from "@/lib/schemes/serializers";
 import { resolveSubjectOfferingForSchool } from "@/lib/subject-offerings/resolve-subject-offering";
@@ -57,17 +57,10 @@ function parseWeekEnding(value: string | null | undefined): Date | null {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
-function buildNotes(row: ISchemeImportJob["parsedRows"][number]): string | null {
-  const parts = [
-    row.notes?.trim(),
-    row.weekEnding ? `Week ending: ${row.weekEnding}` : null,
-    row.rawText ? `Source row: ${row.rawText}` : null,
-  ].filter(Boolean);
-  return parts.length ? parts.join("\n") : null;
-}
-
 function sourceTypeForJob(job: ISchemeImportJob): ISchemeOfWork["sourceType"] {
   if (
+    job.sourceKind === "pdf_parse_tables" ||
+    job.sourceKind === "pdf_excavator" ||
     job.sourceKind === "pdf_ai" ||
     job.sourceKind === "pdf_gemini" ||
     job.sourceKind === "pdf_manual"
@@ -269,24 +262,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     let sequence = 0;
     for (const row of job.parsedRows) {
       if (row.skipped || row.errors.length > 0) continue;
-      const fields = schemeImportRowFieldsForItem(row);
-      if (fields.title.length < 2) continue;
+      const payload = schemeImportRowToSchemeItemPayload(row);
+      if (payload.title.length < 2) continue;
       const plannedEndDate = parseWeekEnding(row.weekEnding);
-      const indicators = (row.indicators || []).map((i) => i.trim()).filter(Boolean);
-      const resources = (row.resources || []).map((r) => r.trim()).filter(Boolean);
       await SchemeItem.create({
         schoolId: ctx.schoolId,
         schemeId: scheme._id,
         weekNumber: row.weekNumber ?? null,
         sequence,
-        title: fields.title,
-        strand: fields.strand,
-        subStrand: fields.subStrand,
-        contentStandard: fields.contentStandard,
-        indicator: indicators.length ? indicators.join("\n") : null,
-        teachingResources: resources,
-        learningObjective: row.learningObjective?.trim() || null,
-        notes: buildNotes(row),
+        title: payload.title,
+        strand: payload.strand,
+        subStrand: payload.subStrand,
+        contentStandard: payload.contentStandard,
+        indicator: payload.indicator,
+        learningObjectives: payload.learningObjectives,
+        teachingResources: payload.teachingResources,
+        teachingLearningActivities: payload.teachingLearningActivities,
+        learningObjective: payload.learningObjective,
+        assessmentIdeas: payload.assessmentIdeas,
+        notes: payload.notes,
         rowType: row.rowType || "teaching",
         sourceRowIndex: row.rowIndex,
         parseConfidence: row.confidence ?? null,

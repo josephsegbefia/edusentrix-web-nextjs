@@ -5,6 +5,7 @@ import { EmailThread } from "@/models/EmailThread";
 import { EmailDispatchJob } from "@/models/EmailDispatchJob";
 import { parseReplyAlias } from "../routing";
 import { updateThreadAfterMessage } from "../threading";
+import { handleProposalInboundReply } from "@/lib/proposals/reply-handler";
 
 export interface BrevoInboundPayload {
   sender: { email: string; name?: string };
@@ -118,6 +119,20 @@ export async function receiveBrevoInbound(
 
   if (threadId) {
     await updateThreadAfterMessage(threadId, "inbound");
+
+    // Fire proposal reply notification if this thread is linked to a Proposal.
+    if (parsed?.scope === "platform" && thread?.relatedEntityType === "Proposal" && thread.relatedEntityId) {
+      void handleProposalInboundReply({
+        proposalId: String(thread.relatedEntityId),
+        fromEmail: payload.sender.email,
+        fromName: payload.sender.name ?? null,
+        subject: payload.subject,
+        threadId,
+      }).catch((err) =>
+        console.error("[receive-brevo-inbound] proposal reply handler failed", err),
+      );
+    }
+
     return {
       messageId: String(message._id),
       threadId,

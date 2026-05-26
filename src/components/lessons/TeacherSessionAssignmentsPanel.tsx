@@ -68,14 +68,23 @@ export function TeacherSessionAssignmentsPanel({ sessionId, canWrite, leoEnabled
   const items = data?.data.items ?? [];
 
   const draftPracticeWithLeo = async () => {
-    const questions = (await busyToast.promise(
-      generatePractice.mutateAsync({ sessionId, questionCount: 8 }),
-      {
-        loading: "Leo is drafting practice questions…",
-        success: (rows) => `${rows.length} questions drafted`,
-        error: (e) => (e instanceof Error ? e.message : "Generation failed"),
-      },
-    )) as PracticeSeedQuestion[];
+    let questions: PracticeSeedQuestion[] = [];
+    busyToast.show("Leo is drafting practice questions…");
+    try {
+      questions = await generatePractice.mutateAsync({ sessionId, questionCount: 8 });
+    } catch (e) {
+      busyToast.hide();
+      busyToast.error(e instanceof Error ? e.message : "Generation failed");
+      return;
+    }
+    busyToast.hide();
+    if (!questions.length) {
+      busyToast.info("Leo did not return any questions. Try again or add them in Studio.");
+      return;
+    }
+    busyToast.success(
+      `${questions.length} question${questions.length === 1 ? "" : "s"} drafted`,
+    );
 
     const seedRes = await fetch(
       `/api/teacher/lesson-sessions/${sessionId}/assignment-seed?type=practice`,

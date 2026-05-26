@@ -22,6 +22,7 @@ import {
   buildTeachingDeckFromSession,
   teachingDeckNeedsRebuild,
 } from "@/lib/lessons/build-teaching-deck";
+import { deleteLessonSession } from "@/lib/lessons/session-delete";
 
 function toObjectId(id: string): mongoose.Types.ObjectId | null {
   try {
@@ -30,6 +31,18 @@ function toObjectId(id: string): mongoose.Types.ObjectId | null {
     return null;
   }
 }
+
+const AssessmentItemSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(["multiple_choice", "short_answer", "fill_blank", "practical_task", "project"]),
+  title: z.string().trim().max(300).default(""),
+  question: z.string().trim().max(8000).default(""),
+  options: z.array(z.string().trim().max(500)).optional(),
+  correctAnswer: z.string().trim().max(2000).optional().nullable(),
+  rubric: z.string().trim().max(4000).optional().nullable(),
+  estimatedMinutes: z.number().int().min(0).max(120).optional().nullable(),
+  aiGenerated: z.boolean().default(true),
+});
 
 const PatchSchema = z.object({
   title: z.string().trim().min(1).max(220).optional(),
@@ -40,6 +53,7 @@ const PatchSchema = z.object({
   adminVisibility: z.boolean().optional(),
   contentBlocks: z.array(z.record(z.string(), z.unknown())).optional(),
   markAllAiReviewed: z.boolean().optional(),
+  assessmentItems: z.array(AssessmentItemSchema).optional(),
 });
 
 export async function GET(
@@ -211,6 +225,10 @@ export async function PATCH(
       contentChanged = true;
     }
 
+    if (parsed.data.assessmentItems !== undefined) {
+      session.assessmentItems = parsed.data.assessmentItems;
+    }
+
     if (parsed.data.parentVisibility !== undefined) {
       session.parentVisibility = parsed.data.parentVisibility;
     }
@@ -264,6 +282,46 @@ export async function PATCH(
     if (e instanceof Response) return e;
     console.error("[lesson-sessions PATCH]", e);
     const message = e instanceof Error ? e.message : "Failed to update session";
+    return Response.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const context = await requireTeacher();
+    await connectToDatabase();
+
+    const gate = await gateLessonsModule(context.schoolId);
+    if (!gate.ok) {
+      return Response.json({ success: false, error: gate.error }, { status: gate.status });
+    }
+    if (!can(context.permissions, PERMISSIONS.lessonsUpdate)) {
+      return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const result = await deleteLessonSession({
+      sessionId: id,
+      schoolId: context.schoolId,
+      teacherId: context.teacherId,
+      isAdmin: context.isAdmin,
+    });
+
+    if (!result.deleted) {
+      return Response.json(
+        { success: false, error: result.error ?? "Failed to delete session" },
+        { status: result.status ?? 500 },
+      );
+    }
+
+    return Response.json({ success: true });
+  } catch (e: unknown) {
+    if (e instanceof Response) return e;
+    console.error("[lesson-sessions DELETE]", e);
+    const message = e instanceof Error ? e.message : "Failed to delete session";
     return Response.json({ success: false, error: message }, { status: 500 });
   }
 }

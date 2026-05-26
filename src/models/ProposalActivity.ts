@@ -5,6 +5,7 @@ export type ProposalActivityAction =
   | "updated"
   | "pdf_generated"
   | "sent"
+  | "reply_received"
   | "status_changed"
   | "follow_up_added"
   | "archived"
@@ -26,7 +27,7 @@ const proposalActivitySchema = new Schema<IProposalActivity>(
     proposalId: { type: Schema.Types.ObjectId, ref: "Proposal", required: true, index: true },
     action: {
       type: String,
-      enum: ["created", "updated", "pdf_generated", "sent", "status_changed", "follow_up_added", "archived", "duplicated", "public_link_updated"],
+      enum: ["created", "updated", "pdf_generated", "sent", "reply_received", "status_changed", "follow_up_added", "archived", "duplicated", "public_link_updated"],
       required: true,
       index: true,
     },

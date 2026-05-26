@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { glassInsetClass, glassPanelClass } from "@/lib/ui/glass-surfaces";
 import type { GradebookAssessment, GradebookCategory, GradebookStudent } from "@/hooks/teacher/useTeacherGradebook";
 import { GradebookHeader } from "./GradebookHeader";
 import { GradebookCell } from "./GradebookCell";
@@ -89,14 +90,14 @@ export function GradebookGrid({
 
   if (students.length === 0) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center text-sm text-white/60">
+      <div className={cn(glassInsetClass, "rounded-2xl p-8 text-center text-sm text-white/60")}>
         No students found in this class group for the current period.
       </div>
     );
   }
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <div className={cn(glassPanelClass, "overflow-hidden rounded-2xl")}>
       <div className="overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-0 text-sm text-white/70">
           <GradebookHeader categories={mergedCategories} />

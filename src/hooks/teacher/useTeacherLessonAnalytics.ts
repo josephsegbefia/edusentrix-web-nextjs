@@ -16,7 +16,7 @@ export function useTeacherLessonAnalytics(from: Date | null, to: Date | null, en
         from: toIsoParam(from!),
         to: toIsoParam(to!),
       });
-      const res = await fetch(`/api/teacher/lessons/analytics?${params}`, {
+      const res = await fetch(`/api/teacher/lesson-sessions/analytics?${params}`, {
         cache: "no-store",
       });
       const json = (await res.json().catch(() => null)) as Response | null;

@@ -2,7 +2,13 @@ import { Schema, model, models, type Model, type Types } from "mongoose";
 
 export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
 
-export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai" | "pdf_gemini" | "pdf_manual";
+export type SchemeImportSourceKind =
+  | "spreadsheet"
+  | "pdf_parse_tables"
+  | "pdf_excavator"
+  | "pdf_ai"
+  | "pdf_gemini"
+  | "pdf_manual";
 
 export interface ISchemeImportParsedRow {
   rowIndex: number;
@@ -13,7 +19,10 @@ export interface ISchemeImportParsedRow {
   subStrand?: string | null;
   contentStandard?: string | null;
   indicators?: string[];
+  learningOutcomes?: string[];
+  teachingLearningActivities?: string | null;
   resources?: string[];
+  assessment?: string[];
   learningObjective: string | null;
   notes: string | null;
   rowType?: "teaching" | "revision" | "examination" | "holiday" | "other";
@@ -54,7 +63,10 @@ const parsedRowSchema = new Schema<ISchemeImportParsedRow>(
     subStrand: { type: String, trim: true, maxlength: 260, default: null },
     contentStandard: { type: String, trim: true, maxlength: 600, default: null },
     indicators: [{ type: String, trim: true, maxlength: 600 }],
+    learningOutcomes: [{ type: String, trim: true, maxlength: 1000 }],
+    teachingLearningActivities: { type: String, trim: true, maxlength: 8000, default: null },
     resources: [{ type: String, trim: true, maxlength: 500 }],
+    assessment: [{ type: String, trim: true, maxlength: 1000 }],
     learningObjective: { type: String, trim: true, maxlength: 5000, default: null },
     notes: { type: String, trim: true, maxlength: 5000, default: null },
     rowType: {
@@ -76,7 +88,14 @@ const schemeImportJobSchema = new Schema<ISchemeImportJob>(
     createdByUserId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     sourceKind: {
       type: String,
-    enum: ["spreadsheet", "pdf_ai", "pdf_gemini", "pdf_manual"],
+    enum: [
+      "spreadsheet",
+      "pdf_parse_tables",
+      "pdf_excavator",
+      "pdf_ai",
+      "pdf_gemini",
+      "pdf_manual",
+    ],
       default: "spreadsheet",
       index: true,
     },

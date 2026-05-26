@@ -20,6 +20,7 @@ import { StudentBehaviourTab } from "@/components/admin/students/detail/StudentB
 import { StudentRelationshipsTab } from "@/components/admin/students/detail/StudentRelationshipsTab";
 import { StudentActivityLogTab } from "@/components/admin/students/detail/StudentActivityLogTab";
 import { StudentInsightsTab } from "@/components/admin/students/detail/StudentInsightsTab";
+import { StudentDangerZoneSection } from "@/components/admin/students/detail/StudentDangerZoneSection";
 
 function getInitialTab(sp: URLSearchParams | null): StudentDetailTabId {
   if (!sp) return "overview";
@@ -315,6 +316,12 @@ function StudentDetailContent() {
           <StudentInsightsTab studentId={studentId!} />
         ) : null}
       </div>
+
+      <StudentDangerZoneSection
+        studentId={studentId!}
+        studentName={student.fullName}
+        status={student.status}
+      />
     </div>
   );
 }

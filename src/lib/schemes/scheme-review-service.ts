@@ -392,6 +392,7 @@ export async function getAdminSchemeDetail(input: {
       learningObjectives: objectives,
       coreCompetencies: row.coreCompetencies ?? [],
       teachingResources: row.teachingResources ?? [],
+      teachingLearningActivities: row.teachingLearningActivities ?? undefined,
       assessmentIdeas: row.assessmentIdeas ?? [],
       plannedStartDate: row.plannedStartDate
         ? new Date(row.plannedStartDate).toISOString()

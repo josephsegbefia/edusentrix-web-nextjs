@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  buildSchemeItemsContext,
   findLessonNoteForTeacher,
   lessonNoteTeachingMetadata,
   lessonNoteToLeoContext,
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
     const sectionKeys = getAllocatableNoteSectionKeys(note);
     const payload = lessonNoteToLeoContext(note);
     const teachingMetadata = await lessonNoteTeachingMetadata(note);
+    const schemeContext = await buildSchemeItemsContext(note);
     const sessionsJson = JSON.stringify(parsed.data.sessions);
 
     const result = await runLessonsLeoCompletion({
@@ -65,6 +67,7 @@ export async function POST(req: Request) {
     {
       "timetableSlotId": string (must match input),
       "timetableSlotIds": string[] (copy input ids when present),
+      "scheduledDate": string (copy input scheduledDate when present),
       "sequenceInWeek": number,
       "title": string (concise teaching session title in English),
       "noteSectionKeys": string[] (subset of allowed keys only),
@@ -92,7 +95,7 @@ ${payload}
 
 Teaching context:
 ${JSON.stringify(teachingMetadata)}
-
+${schemeContext ? `\n${schemeContext}\n` : ""}
 Timetable sessions:
 ${sessionsJson}`,
       maxTokens: 4000,
@@ -115,6 +118,7 @@ ${sessionsJson}`,
         timetableSlotIds: Array.isArray(row.timetableSlotIds)
           ? (row.timetableSlotIds as string[]).map(String)
           : input?.timetableSlotIds ?? [],
+        scheduledDate: String(row.scheduledDate || input?.scheduledDate || ""),
         sequenceInWeek: Number(row.sequenceInWeek || input?.sequenceInWeek || index + 1),
         title: String(row.title || input?.title || `Session ${index + 1}`).slice(0, 220),
         noteSectionKeys: keys,

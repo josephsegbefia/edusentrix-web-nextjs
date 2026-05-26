@@ -126,7 +126,24 @@ export async function GET(req: Request) {
 
     const suggestedItems =
       topic.length > 0
-        ? items.filter((it) => it.title.toLowerCase().includes(topic)).slice(0, 12)
+        ? items
+            .filter((it) => {
+              const haystack = [
+                it.title,
+                it.topic,
+                it.subtopic,
+                it.strand,
+                it.subStrand,
+                it.contentStandard,
+                it.indicator,
+                ...(it.learningObjectives ?? []),
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+              return topic.split(/\s+/).every((word) => haystack.includes(word));
+            })
+            .slice(0, 12)
         : items.slice(0, 12);
 
     return Response.json({

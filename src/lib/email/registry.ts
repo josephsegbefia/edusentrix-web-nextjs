@@ -553,6 +553,41 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateRegistryEntry> = {
     brand: "school",
     preferenceClass: "transactional",
   },
+
+  // --- Proposal / Growth Center ---
+  PLATFORM_PROPOSAL: {
+    messageClass: "manual",
+    trafficClass: "manual",
+    priority: "normal",
+    sensitivity: "low",
+    secureContentMode: "none",
+    senderFamily: "hello",
+    mailboxScope: "platform",
+    brand: "edusentrix",
+    preferenceClass: "manual",
+  },
+  PLATFORM_PROPOSAL_FOLLOW_UP: {
+    messageClass: "manual",
+    trafficClass: "manual",
+    priority: "normal",
+    sensitivity: "low",
+    secureContentMode: "none",
+    senderFamily: "hello",
+    mailboxScope: "platform",
+    brand: "edusentrix",
+    preferenceClass: "manual",
+  },
+  PLATFORM_ADMIN_REPLY_NOTIFICATION: {
+    messageClass: "system",
+    trafficClass: "transactional",
+    priority: "high",
+    sensitivity: "low",
+    secureContentMode: "none",
+    senderFamily: "hello",
+    mailboxScope: "platform",
+    brand: "edusentrix",
+    preferenceClass: "transactional",
+  },
 };
 
 export function lookupTemplateRegistry(

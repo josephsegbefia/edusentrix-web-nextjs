@@ -118,6 +118,15 @@ export function ContextStep({
         </div>
       </div>
 
+      <LessonNoteSchemeLinkPanel formData={formData} onUpdate={onUpdate} />
+
+      {formData.weekEndingDate ? (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          <span className="font-medium">Scheme week ending:</span>{" "}
+          {formatDateLabel(formData.weekEndingDate)}
+        </div>
+      ) : null}
+
       {/* Topic */}
       <div className="space-y-2">
         <Label className="text-white/70">Topic *</Label>
@@ -223,15 +232,6 @@ export function ContextStep({
           className="border-white/10 bg-white/5 text-white"
         />
       </div>
-
-      <LessonNoteSchemeLinkPanel formData={formData} onUpdate={onUpdate} />
-
-      {formData.weekEndingDate ? (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          <span className="font-medium">Scheme week ending:</span>{" "}
-          {formatDateLabel(formData.weekEndingDate)}
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { MetricLabelWithInfo } from "@/components/ui/metric-info-tip";
+import { TEACHER_ENROLLED_STUDENTS_METRIC } from "@/lib/metrics/student-count-metric-copy";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -50,7 +52,7 @@ function SummaryCard({
   tone,
   loading,
 }: {
-  label: string;
+  label: React.ReactNode;
   value: string;
   subtitle: string;
   icon: React.ReactNode;
@@ -61,7 +63,7 @@ function SummaryCard({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 shadow-xl shadow-black/30 backdrop-blur",
+        "group relative overflow-hidden rounded-2xl border bg-linear-to-br p-5 shadow-xl shadow-black/30 backdrop-blur",
         config.border,
         config.bg
       )}
@@ -76,9 +78,9 @@ function SummaryCard({
       />
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
             {label}
-          </p>
+          </div>
           <p className={cn("text-3xl font-bold tracking-tight", config.value)}>
             {loading ? (
               <span className="inline-block h-8 w-20 animate-pulse rounded bg-white/10" />
@@ -243,9 +245,15 @@ export default function TeacherClassesPage() {
           loading={isLoading}
         />
         <SummaryCard
-          label="Students"
+          label={
+            <MetricLabelWithInfo
+              label={TEACHER_ENROLLED_STUDENTS_METRIC.label}
+              tooltip={TEACHER_ENROLLED_STUDENTS_METRIC.tooltip}
+              labelClassName="font-semibold uppercase tracking-[0.2em] text-white/50 normal-case"
+            />
+          }
           value={`${totalStudents}`}
-          subtitle="Across your classes"
+          subtitle={TEACHER_ENROLLED_STUDENTS_METRIC.shortDescription}
           icon={<Users className="h-5 w-5" />}
           tone="emerald"
           loading={isLoading}

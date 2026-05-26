@@ -51,6 +51,24 @@ export const STATUS_COLORS: Record<LessonNoteStatus, string> = {
   rejected: "bg-rose-500/20 text-rose-200",
 };
 
+export type LessonNoteDeleteImpact = {
+  noteId: string;
+  topic: string;
+  status: LessonNoteStatus;
+  className: string | null;
+  subjectName: string | null;
+  weekOf: string | null;
+  canDelete: boolean;
+  blockReason: string | null;
+  weekPlanCount: number;
+  sessionCount: number;
+  completedDeliveryCount: number;
+  legacyLessonCount: number;
+  linkedHomeworkCount: number;
+  reviewCommentCount: number;
+  warnings: string[];
+};
+
 export function normalizeLessonNoteStatus(status: string): LessonNoteStatus {
   if (status === "published") return "approved";
   if (

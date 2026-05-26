@@ -926,35 +926,21 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
       return Response.json({ success: false, error: "Invalid lesson note ID" }, { status: 400 });
     }
 
-    // Check if note exists and can be deleted
-    const existing = await LessonNote.findOne({
-      _id: noteId,
-      schoolId: context.schoolId,
-      teacherId: context.teacherId,
-    })
-      .select("status")
-      .lean() as Pick<ILessonNote, "status"> | null;
-
-    if (!existing) {
-      return Response.json({ success: false, error: "Lesson note not found" }, { status: 404 });
-    }
-
-    // Prevent deleting approved notes unless admin
-    if (!context.isAdmin && existing.status === "approved") {
-      return Response.json(
-        { success: false, error: "Cannot delete approved notes" },
-        { status: 403 }
-      );
-    }
-
-    const result = await LessonNote.deleteOne({
-      _id: noteId,
-      schoolId: context.schoolId,
-      teacherId: context.teacherId,
+    const { deleteLessonNote } = await import("@/lib/lesson-notes/lesson-note-delete");
+    const result = await deleteLessonNote({
+      noteId,
+      actor: {
+        role: "teacher",
+        schoolId: context.schoolId,
+        teacherId: context.teacherId,
+      },
     });
 
-    if (!result.deletedCount) {
-      return Response.json({ success: false, error: "Lesson note not found" }, { status: 404 });
+    if (!result.deleted) {
+      return Response.json(
+        { success: false, error: result.error ?? "Failed to delete lesson note" },
+        { status: result.status ?? 400 },
+      );
     }
 
     return Response.json({ success: true });

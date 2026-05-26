@@ -1,12 +1,18 @@
 import mongoose from "mongoose";
+import { after } from "next/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { requireTeacher } from "@/lib/auth/requireTeacher";
+import { buildExploreWorkerContextForClass } from "@/lib/learn/explore/explore-class-context";
+import { scheduleExploreGenerationForDeliveredSession } from "@/lib/learn/explore/explore-delivery-schedule.service";
+import { runExploreGenerationForClaimedJob } from "@/lib/learn/explore/explore-lazy-generate.service";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS } from "@/lib/rbac";
 import { LessonDelivery } from "@/models/LessonDelivery";
+import { LessonFlashcardDeck } from "@/models/LessonFlashcardDeck";
 import { LessonSession } from "@/models/LessonSession";
 import { gateLessonsModule } from "@/lib/lessons/lesson-gates";
 import { writeCoverageForCompletedDelivery } from "@/lib/lessons/complete-lesson-delivery";
+import { applyStudentPublishAfterDeliveryComplete } from "@/lib/lessons/publish-session-after-complete";
 import { canCompleteLessonDelivery } from "@/lib/lessons/session-access";
 
 function toObjectId(id: string): mongoose.Types.ObjectId | null {
@@ -102,12 +108,61 @@ export async function POST(
       teacherId: context.teacherId,
     });
 
+    const publishResult = applyStudentPublishAfterDeliveryComplete({
+      session,
+      requireTeacherReviewForAiContent: gate.settings.requireTeacherReviewForAiContent,
+    });
+
+    let studentPublished = false;
+    if (publishResult.published) {
+      await session.save();
+      studentPublished = true;
+      await LessonFlashcardDeck.updateOne(
+        { schoolId: context.schoolId, sessionId: session._id },
+        {
+          $set: { status: "published" },
+          $addToSet: { publishToClassGroupIds: session.classGroupId },
+        }
+      );
+    }
+
+    const exploreSchedule = await scheduleExploreGenerationForDeliveredSession({
+      schoolId: context.schoolId,
+      classGroupId: session.classGroupId,
+      sessionId: session._id,
+      subjectOfferingId: session.subjectOfferingId,
+    });
+
+    if (exploreSchedule.runInBackground && exploreSchedule.jobId) {
+      const workerContext = await buildExploreWorkerContextForClass({
+        schoolId: context.schoolId,
+        classGroupId: session.classGroupId,
+      });
+
+      if (workerContext) {
+        const jobId = exploreSchedule.jobId;
+        after(async () => {
+          try {
+            await connectToDatabase();
+            await runExploreGenerationForClaimedJob({
+              auth: workerContext,
+              jobId,
+            });
+          } catch (error) {
+            console.error("[lesson-deliveries complete] explore generation:", error);
+          }
+        });
+      }
+    }
+
     return Response.json({
       success: true,
       data: {
         status: delivery.status,
         completedAt: delivery.completedAt.toISOString(),
         coverageRecordsWritten,
+        studentPublished,
+        studentPublishBlockedReason: publishResult.blockedReason ?? null,
       },
     });
   } catch (e: unknown) {

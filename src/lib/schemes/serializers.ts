@@ -63,6 +63,7 @@ export function serializeSchemeItemRow(row: ISchemeItem) {
     learningObjective: row.learningObjective ?? null,
     coreCompetencies: row.coreCompetencies ?? [],
     teachingResources: row.teachingResources ?? [],
+    teachingLearningActivities: row.teachingLearningActivities ?? null,
     assessmentIdeas: row.assessmentIdeas ?? [],
     notes: row.notes ?? null,
     plannedStartDate: row.plannedStartDate

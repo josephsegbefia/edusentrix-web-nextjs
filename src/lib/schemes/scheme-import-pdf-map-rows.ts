@@ -5,6 +5,7 @@ import {
   clampSchemeItemShortText,
   clampSchemeItemShortTextOrNull,
 } from "@/lib/schemes/scheme-item-field-limits";
+import { splitImportList } from "@/lib/schemes/scheme-import-columns";
 
 const MAX_ROWS = 80;
 
@@ -19,17 +20,29 @@ function rowErrors(title: string, weekNumber: number | null): string[] {
 }
 
 function cleanList(items: unknown): string[] {
-  if (!Array.isArray(items)) return [];
-  return items.map((item) => String(item ?? "").trim()).filter(Boolean).slice(0, 20);
+  if (Array.isArray(items)) {
+    return items.map((item) => String(item ?? "").trim()).filter(Boolean).slice(0, 20);
+  }
+  const text = String(items ?? "").trim();
+  if (!text) return [];
+  return splitImportList(text);
+}
+
+function cleanText(value: unknown, maxLen: number): string | null {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  return text.length > maxLen ? text.slice(0, maxLen) : text;
 }
 
 function pickTitle(raw: Record<string, unknown>): string {
-  for (const key of ["title", "subStrand", "strand", "contentStandard", "topic", "theme"]) {
+  for (const key of ["title", "subStrand", "substrand", "strand", "contentStandard", "topic", "theme"]) {
     const v = raw[key];
     if (typeof v === "string" && v.trim().length >= 2) return v.trim();
   }
   const indicators = cleanList(raw.indicators);
   if (indicators[0]) return indicators[0];
+  const outcomes = cleanList(raw.learningOutcomes);
+  if (outcomes[0]) return outcomes[0];
   const notes = raw.notes;
   if (typeof notes === "string" && notes.trim().length >= 2) {
     return notes.trim().slice(0, 120);
@@ -94,6 +107,42 @@ export function mapAiRowsToSchemeImportRows(rows: Array<Record<string, unknown>>
         ? Math.min(1, Math.max(0, confidenceRaw))
         : null;
 
+    const indicators = cleanList(r.indicators);
+    const learningOutcomes = cleanList(r.learningOutcomes ?? r.learning_outcomes);
+    let teachingLearningActivities =
+      cleanText(
+        r.teachingLearningActivities ??
+          r.teaching_learning_activities ??
+          r.teachingActivities ??
+          r.activities,
+        8000,
+      ) ?? null;
+    const resources = cleanList(r.resources);
+    let assessment = cleanList(r.assessment ?? r.assessments);
+
+    // ── Recovery: rescue TLA/assessment that the model placed in `notes` ────
+    // Some models drop non-standard column labels into notes. We detect
+    // activity-keyword phrases and extract them if the real fields are empty.
+    const notesText = typeof r.notes === "string" ? r.notes.trim() : "";
+    if (!teachingLearningActivities && notesText) {
+      const activitySignal =
+        /activit|guided\s+practice|demonstration|discussion|group\s+work|hands[- ]on|explore|investigate|observ/i;
+      if (activitySignal.test(notesText)) {
+        teachingLearningActivities = notesText;
+        // notes will be cleared below since we rescued it
+      }
+    }
+    if (assessment.length === 0 && notesText && !teachingLearningActivities) {
+      const assessmentSignal =
+        /assessment|evaluation|classwork|homework|exercise|quiz|test|project\s+work/i;
+      if (assessmentSignal.test(notesText)) {
+        assessment = [notesText];
+      }
+    }
+    // If we rescued TLA from notes, clear notes so it isn't duplicated.
+    const finalNotes =
+      notesText && notesText === teachingLearningActivities ? null : (notes ?? null);
+
     out.push({
       rowIndex: out.length + 2,
       weekNumber,
@@ -111,10 +160,13 @@ export function mapAiRowsToSchemeImportRows(rows: Array<Record<string, unknown>>
             : null,
       contentStandard:
         typeof r.contentStandard === "string" ? r.contentStandard.trim() || null : null,
-      indicators: cleanList(r.indicators),
-      resources: cleanList(r.resources),
+      indicators,
+      learningOutcomes,
+      teachingLearningActivities,
+      resources,
+      assessment,
       learningObjective,
-      notes,
+      notes: finalNotes,
       rowType: parseRowType(r.rowType),
       skipped: false,
       errors: rowErrors(title, weekNumber),

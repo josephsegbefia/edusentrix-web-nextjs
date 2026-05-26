@@ -146,16 +146,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return Response.json({ success: false, error: "Session not found" }, { status: 404 });
     }
 
-    if (loaded.delivery?.status !== "completed") {
-      return Response.json(
-        {
-          success: false,
-          error: "Add flashcards after you mark this session complete.",
-        },
-        { status: 400 },
-      );
-    }
-
     const raw = await req.json().catch(() => null);
     const bulkParsed = BulkCardsSchema.safeParse(raw);
     if (bulkParsed.success) {

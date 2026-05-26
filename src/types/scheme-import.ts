@@ -1,6 +1,12 @@
 export type SchemeImportJobStatus = "parsed" | "confirmed" | "cancelled" | "failed";
 
-export type SchemeImportSourceKind = "spreadsheet" | "pdf_ai" | "pdf_gemini" | "pdf_manual";
+export type SchemeImportSourceKind =
+  | "spreadsheet"
+  | "pdf_parse_tables"
+  | "pdf_excavator"
+  | "pdf_ai"
+  | "pdf_gemini"
+  | "pdf_manual";
 
 export interface SchemeImportParsedRowClient {
   rowIndex: number;
@@ -11,7 +17,10 @@ export interface SchemeImportParsedRowClient {
   subStrand?: string | null;
   contentStandard?: string | null;
   indicators?: string[];
+  learningOutcomes?: string[];
+  teachingLearningActivities?: string | null;
   resources?: string[];
+  assessment?: string[];
   learningObjective: string | null;
   notes: string | null;
   rowType?: "teaching" | "revision" | "examination" | "holiday" | "other";

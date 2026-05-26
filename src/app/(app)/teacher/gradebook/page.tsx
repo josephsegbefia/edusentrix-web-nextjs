@@ -5,9 +5,11 @@ import { BookOpenCheck } from "lucide-react";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { GradebookSelector } from "@/components/teacher/gradebook/GradebookSelector";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 export default function TeacherGradebookPage() {
   const { data: classesData, isLoading } = useTeacherClasses();
@@ -50,40 +52,38 @@ export default function TeacherGradebookPage() {
 
   if (!canView) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Gradebook</h1>
-          <p className="text-sm text-white/60">Record and publish grades once access is enabled.</p>
-        </div>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60">
-                <BookOpenCheck className="h-4 w-4" />
-              </span>
-              Gradebook access required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-              Your role doesn&apos;t currently include gradebook permissions. Ask an admin to grant gradebook access.
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={BookOpenCheck}
+          title="Gradebook"
+          subtitle="Record and publish grades once access is enabled."
+        />
+        <GlassPanel className="p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-400/30 bg-teal-500/15 text-teal-200">
+              <BookOpenCheck className="h-5 w-5" />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Gradebook access required</h2>
+              <p className="mt-2 text-sm text-white/60">
+                Your role doesn&apos;t currently include gradebook permissions. Ask an admin to grant
+                gradebook access.
+              </p>
+            </div>
+          </div>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-white">Gradebook</h1>
-        <p className="text-sm text-white/60">
-          Jump into a class gradebook to record marks, review totals, and publish results.
-        </p>
-      </div>
-
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={BookOpenCheck}
+        title="Gradebook"
+        subtitle="Jump into a class gradebook to record marks, review totals, and publish results."
+      />
       <GradebookSelector classes={classes} loading={isLoading} />
-    </div>
+    </WorkspacePageShell>
   );
 }

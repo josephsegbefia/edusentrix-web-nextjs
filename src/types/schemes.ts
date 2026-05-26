@@ -58,6 +58,7 @@ export interface SchemeItemRow {
   learningObjective: string | null;
   coreCompetencies: string[];
   teachingResources: string[];
+  teachingLearningActivities?: string | null;
   assessmentIdeas: string[];
   notes: string | null;
   plannedStartDate: string | null;
@@ -169,6 +170,7 @@ export type AdminSchemeDetailPayload = {
     learningObjectives: string[];
     coreCompetencies?: string[];
     teachingResources?: string[];
+    teachingLearningActivities?: string | null;
     assessmentIdeas?: string[];
     plannedStartDate?: string;
     plannedEndDate?: string;

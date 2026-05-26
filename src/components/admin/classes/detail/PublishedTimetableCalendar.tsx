@@ -4,6 +4,7 @@ import * as React from "react";
 import dynamic from "next/dynamic";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import {
+  AlertTriangle,
   BookOpen,
   Clock,
   Coffee,
@@ -49,6 +50,8 @@ type PublishedTimetableCalendarProps = {
   gapFills: PublishedGapFillDTO[];
   dayScheduleSegments: PublishedDayScheduleSegmentDTO[];
   calendarKey?: string;
+  /** Number of slots whose teacher comes from the timetable snapshot only (no active assignment). */
+  staleTeacherSlotCount?: number;
 };
 
 type EventKind =
@@ -198,28 +201,40 @@ function renderEventContent(arg: EventContentArg) {
       return <div className="p-1 text-xs text-white/80">{arg.event.title}</div>;
     }
     const durationMinutes = minutesBetween(slot.startTime, slot.endTime);
+    const isSlotSource = slot.teacherLinkSource === "slot";
+    const teacherDetail =
+      slot.teacherName && slot.teacherName !== "Unassigned"
+        ? isSlotSource
+          ? `${slot.teacherName} (no current assignment)`
+          : slot.teacherName
+        : "Teacher not assigned";
     return (
       <PublishedEventCard
         icon={BookOpen}
-        eyebrow="Lesson"
+        eyebrow={isSlotSource ? "Lesson · assignment mismatch" : "Lesson"}
         title={
           slot.subjectCode ? `${slot.subjectName} · ${slot.subjectCode}` : slot.subjectName
         }
         timeText={timeRangeText(slot.startTime, slot.endTime)}
-        detail={
-          slot.teacherName && slot.teacherName !== "Unassigned"
-            ? slot.teacherName
-            : "Teacher not assigned"
-        }
+        detail={teacherDetail}
         description={slot.classroomLabel ? `Room ${slot.classroomLabel}` : null}
         durationMinutes={durationMinutes}
         isCurrent={isCurrent}
-        tone={{
-          bodyClassName:
-            "border-cyan-400/30 bg-linear-to-br from-cyan-500/20 via-sky-500/10 to-slate-950/80 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]",
-          eyebrowClassName: "text-cyan-100/85",
-          metaClassName: "text-white/65",
-        }}
+        tone={
+          isSlotSource
+            ? {
+                bodyClassName:
+                  "border-amber-400/35 bg-linear-to-br from-amber-500/15 via-amber-900/10 to-slate-950/80 shadow-[0_1px_0_0_rgba(251,191,36,0.12)_inset]",
+                eyebrowClassName: "text-amber-200/90",
+                metaClassName: "text-amber-100/75",
+              }
+            : {
+                bodyClassName:
+                  "border-cyan-400/30 bg-linear-to-br from-cyan-500/20 via-sky-500/10 to-slate-950/80 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset]",
+                eyebrowClassName: "text-cyan-100/85",
+                metaClassName: "text-white/65",
+              }
+        }
       />
     );
   }
@@ -343,6 +358,7 @@ export function PublishedTimetableCalendar({
   gapFills,
   dayScheduleSegments,
   calendarKey = "cal",
+  staleTeacherSlotCount = 0,
 }: PublishedTimetableCalendarProps) {
   const { startHour, endHour } = timeAxis;
   const [now, setNow] = React.useState(() => new Date());
@@ -389,6 +405,16 @@ export function PublishedTimetableCalendar({
             </p>
           </div>
         </div>
+        {staleTeacherSlotCount > 0 && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100/90">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <p>
+              <span className="font-semibold">{staleTeacherSlotCount} slot{staleTeacherSlotCount === 1 ? "" : "s"} have a mismatched teacher.</span>{" "}
+              The teacher shown comes from the timetable snapshot but has no current subject assignment in this class.
+              Go to the <span className="font-medium">Subjects</span> tab to assign the correct teacher, then re-publish the timetable.
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           <span
             className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-medium text-cyan-100/90"
@@ -425,6 +451,15 @@ export function PublishedTimetableCalendar({
             <Clock className="h-3 w-3" />
             Closing
           </span>
+          {staleTeacherSlotCount > 0 && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-200/90"
+              title="Teacher appears in the timetable but has no active subject assignment in this class"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              Assignment mismatch
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent className="p-0 sm:p-0">

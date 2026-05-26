@@ -1,14 +1,14 @@
 import type { Types } from "mongoose";
-import { Lesson } from "@/models/Lesson";
+import { LessonSession } from "@/models/LessonSession";
+import { LessonDelivery } from "@/models/LessonDelivery";
+import { LessonDeliveryReflection } from "@/models/LessonDeliveryReflection";
 import { LessonFlashcard } from "@/models/LessonFlashcard";
 import { LessonFlashcardDeck } from "@/models/LessonFlashcardDeck";
-import { LessonReflection } from "@/models/LessonReflection";
 import { Homework } from "@/models/Homework";
 import { Submission } from "@/models/Submission";
 import { StudentFlashcardProgress } from "@/models/StudentFlashcardProgress";
-import { StudentLessonProgress } from "@/models/StudentLessonProgress";
+import { StudentSessionProgress } from "@/models/StudentSessionProgress";
 import { endOfUtcDay, startOfUtcDay } from "./admin-analytics.service";
-import { getCurriculumCompletionForPublishedLessonsInRange } from "@/lib/lessons/lesson-analytics-curriculum-coverage";
 import {
   getV2CoverageAnalytics,
   type V2CoverageAnalytics,
@@ -56,7 +56,8 @@ export type TeacherLessonAnalyticsResult = {
 };
 
 /**
- * Analytics scoped to one teacher's lessons, reflections, decks, and linked student progress.
+ * Analytics scoped to one teacher's sessions, reflections, decks, and linked student progress.
+ * All queries use the v2 LessonSession / LessonDelivery / StudentSessionProgress models.
  */
 export async function getTeacherLessonAnalytics(
   schoolId: Types.ObjectId,
@@ -67,17 +68,17 @@ export async function getTeacherLessonAnalytics(
   const fromD = startOfUtcDay(from);
   const toD = endOfUtcDay(to);
 
-  const matchTeacher = { schoolId, teacherId };
+  const matchTeacher = { schoolId, ownerTeacherId: teacherId };
 
   const [
     statusAgg,
-    publishedCount,
+    deliveredInRange,
     draftsTotal,
     reflectionsDone,
-    lessonIds,
+    sessionIds,
     deckIds,
   ] = await Promise.all([
-    Lesson.aggregate<{ _id: string; count: number }>([
+    LessonSession.aggregate<{ _id: string; count: number }>([
       {
         $match: {
           ...matchTeacher,
@@ -86,18 +87,22 @@ export async function getTeacherLessonAnalytics(
       },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]),
-    Lesson.countDocuments({
-      ...matchTeacher,
-      publishedAt: { $gte: fromD, $lte: toD },
+    // "Published events" proxy: deliveries completed by this teacher in range
+    LessonDelivery.countDocuments({
+      schoolId,
+      ownerTeacherId: teacherId,
+      status: "completed",
+      completedAt: { $gte: fromD, $lte: toD },
     }),
-    Lesson.countDocuments({ ...matchTeacher, status: "draft" }),
-    LessonReflection.countDocuments({
-      ...matchTeacher,
+    LessonSession.countDocuments({ ...matchTeacher, status: "draft" }),
+    LessonDeliveryReflection.countDocuments({
+      schoolId,
+      teacherId,
       completed: true,
       updatedAt: { $gte: fromD, $lte: toD },
     }),
-    Lesson.find(matchTeacher).distinct("_id"),
-    LessonFlashcardDeck.find(matchTeacher).distinct("_id"),
+    LessonSession.find(matchTeacher).distinct("_id") as Promise<Types.ObjectId[]>,
+    LessonFlashcardDeck.find({ schoolId, teacherId }).distinct("_id") as Promise<Types.ObjectId[]>,
   ]);
 
   const byStatus = { draft: 0, published: 0, archived: 0 };
@@ -110,27 +115,30 @@ export async function getTeacherLessonAnalytics(
     }
   }
 
-  const lessonProgressMatch =
-    lessonIds.length > 0 ? { lessonId: { $in: lessonIds } } : { lessonId: { $in: [] } };
+  const sessionProgressMatch =
+    sessionIds.length > 0
+      ? { sessionId: { $in: sessionIds } }
+      : { sessionId: { $in: [] as Types.ObjectId[] } };
   const deckMatch =
-    deckIds.length > 0 ? { deckId: { $in: deckIds } } : { deckId: { $in: [] } };
+    deckIds.length > 0
+      ? { deckId: { $in: deckIds } }
+      : { deckId: { $in: [] as Types.ObjectId[] } };
 
   const [
     totalCards,
     reviewSessions,
     activeStudentsAgg,
-    lessonViewEngagementRows,
-    lessonViewDistinctStudents,
-    lessonCompletionsInRange,
-    lessonCompletionsDistinctStudents,
-    curriculumCompletionInRange,
+    engagementsInRange,
+    distinctStudentsAgg,
+    completionsInRange,
+    completionsDistinctStudentsAgg,
     linkedTasksCreatedInRange,
     linkedTasksPublishedInRange,
     linkedTaskTypeAgg,
     linkedHomeworkIds,
   ] = await Promise.all([
-    lessonIds.length > 0
-      ? LessonFlashcard.countDocuments({ schoolId, lessonId: { $in: lessonIds } })
+    sessionIds.length > 0
+      ? LessonFlashcard.countDocuments({ schoolId, sessionId: { $in: sessionIds } })
       : Promise.resolve(0),
     StudentFlashcardProgress.countDocuments({
       schoolId,
@@ -148,33 +156,33 @@ export async function getTeacherLessonAnalytics(
       { $group: { _id: "$studentId" } },
       { $count: "count" },
     ]),
-    StudentLessonProgress.countDocuments({
+    StudentSessionProgress.countDocuments({
       schoolId,
-      ...lessonProgressMatch,
+      ...sessionProgressMatch,
       lastActivityAt: { $gte: fromD, $lte: toD },
     }),
-    StudentLessonProgress.aggregate<{ count: number }>([
+    StudentSessionProgress.aggregate<{ count: number }>([
       {
         $match: {
           schoolId,
-          ...lessonProgressMatch,
+          ...sessionProgressMatch,
           lastActivityAt: { $gte: fromD, $lte: toD },
         },
       },
       { $group: { _id: "$studentId" } },
       { $count: "count" },
     ]),
-    StudentLessonProgress.countDocuments({
+    StudentSessionProgress.countDocuments({
       schoolId,
-      ...lessonProgressMatch,
+      ...sessionProgressMatch,
       completionStatus: "completed",
       completedAt: { $gte: fromD, $lte: toD },
     }),
-    StudentLessonProgress.aggregate<{ count: number }>([
+    StudentSessionProgress.aggregate<{ count: number }>([
       {
         $match: {
           schoolId,
-          ...lessonProgressMatch,
+          ...sessionProgressMatch,
           completionStatus: "completed",
           completedAt: { $gte: fromD, $lte: toD },
         },
@@ -182,17 +190,16 @@ export async function getTeacherLessonAnalytics(
       { $group: { _id: "$studentId" } },
       { $count: "count" },
     ]),
-    getCurriculumCompletionForPublishedLessonsInRange(schoolId, fromD, toD, teacherId),
     Homework.countDocuments({
       schoolId,
       teacherId,
-      sourceLessonId: { $in: lessonIds.length > 0 ? lessonIds : [] },
+      sourceSessionId: { $in: sessionIds.length > 0 ? sessionIds : [] },
       createdAt: { $gte: fromD, $lte: toD },
     }),
     Homework.countDocuments({
       schoolId,
       teacherId,
-      sourceLessonId: { $in: lessonIds.length > 0 ? lessonIds : [] },
+      sourceSessionId: { $in: sessionIds.length > 0 ? sessionIds : [] },
       status: "published",
       publishedAt: { $gte: fromD, $lte: toD },
     }),
@@ -201,7 +208,7 @@ export async function getTeacherLessonAnalytics(
         $match: {
           schoolId,
           teacherId,
-          sourceLessonId: { $in: lessonIds.length > 0 ? lessonIds : [] },
+          sourceSessionId: { $in: sessionIds.length > 0 ? sessionIds : [] },
           createdAt: { $gte: fromD, $lte: toD },
         },
       },
@@ -210,12 +217,11 @@ export async function getTeacherLessonAnalytics(
     Homework.find({
       schoolId,
       teacherId,
-      sourceLessonId: { $in: lessonIds.length > 0 ? lessonIds : [] },
-    }).distinct("_id"),
+      sourceSessionId: { $in: sessionIds.length > 0 ? sessionIds : [] },
+    }).distinct("_id") as Promise<Types.ObjectId[]>,
   ]);
 
-  const linkedQuizCountInRange =
-    linkedTaskTypeAgg.find((r) => r._id === "quiz")?.n ?? 0;
+  const linkedQuizCountInRange = linkedTaskTypeAgg.find((r) => r._id === "quiz")?.n ?? 0;
   const linkedAssignmentCountInRange = linkedTaskTypeAgg
     .filter((r) => r._id === "assignment" || r._id === "project" || r._id === "practice")
     .reduce((sum, r) => sum + r.n, 0);
@@ -259,6 +265,7 @@ export async function getTeacherLessonAnalytics(
       { $project: { _id: 0, avgScore: 1, gradedCount: 1 } },
     ]),
   ]);
+
   const distinctLearnersSubmittedInRange = learnersSubmittedAgg[0]?.count ?? 0;
   const gradedSubmissionsInRange = gradedSubmissionsAgg[0]?.gradedCount ?? 0;
   const averageScorePercentInRange =
@@ -267,20 +274,19 @@ export async function getTeacherLessonAnalytics(
       : null;
 
   const activeStudentsInRange = activeStudentsAgg[0]?.count ?? 0;
-  const distinctLessonViewers = lessonViewDistinctStudents[0]?.count ?? 0;
-  const completionsInRange = lessonCompletionsInRange;
-  const distinctStudentsCompletedInRange = lessonCompletionsDistinctStudents[0]?.count ?? 0;
+  const distinctStudentsInRange = distinctStudentsAgg[0]?.count ?? 0;
+  const distinctStudentsCompletedInRange = completionsDistinctStudentsAgg[0]?.count ?? 0;
 
   const completionRateAmongEngagementsPercent =
-    lessonViewEngagementRows > 0
-      ? Math.min(100, Math.round((100 * completionsInRange) / lessonViewEngagementRows))
+    engagementsInRange > 0
+      ? Math.min(100, Math.round((100 * completionsInRange) / engagementsInRange))
       : null;
 
   const learnerCompletionRatePercent =
-    distinctLessonViewers > 0
+    distinctStudentsInRange > 0
       ? Math.min(
           100,
-          Math.round((100 * distinctStudentsCompletedInRange) / distinctLessonViewers)
+          Math.round((100 * distinctStudentsCompletedInRange) / distinctStudentsInRange)
         )
       : null;
 
@@ -291,13 +297,24 @@ export async function getTeacherLessonAnalytics(
     to: toD,
   });
 
+  // Curriculum completion: v2 coverage provides the same signal via deliveries
+  const curriculumCompletionInRange = {
+    publishedLessonsInRange: v2Coverage.deliveriesCompletedInRange,
+    studentSlotsTotal: engagementsInRange,
+    completionsForPublishedLessonsInRange: completionsInRange,
+    coveragePercent:
+      engagementsInRange > 0
+        ? Math.min(100, Math.round((100 * completionsInRange) / engagementsInRange))
+        : null,
+  };
+
   return {
     range: { from: fromD.toISOString(), to: toD.toISOString() },
     v2Coverage,
     myLessons: {
       createdInRange: createdTotal,
       createdInRangeByStatus: byStatus,
-      publishedEventsInRange: publishedCount,
+      publishedEventsInRange: deliveredInRange,
       draftsPending: draftsTotal,
       reflectionsCompletedInRange: reflectionsDone,
     },
@@ -308,8 +325,8 @@ export async function getTeacherLessonAnalytics(
       activeStudentsInRange,
     },
     studentLessons: {
-      engagementsInRange: lessonViewEngagementRows,
-      distinctStudentsInRange: distinctLessonViewers,
+      engagementsInRange,
+      distinctStudentsInRange,
       completionsInRange,
       distinctStudentsCompletedInRange,
       completionRateAmongEngagementsPercent,

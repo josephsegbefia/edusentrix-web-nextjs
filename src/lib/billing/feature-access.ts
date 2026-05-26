@@ -11,6 +11,7 @@ export type SubscriptionFeatureKey =
   | "analytics"
   | "curriculum_scheme"
   | "lesson_notes"
+  | "edusentrix_learn"
   | "examinations"
   | "question_bank"
   | "ai_lesson_notes"
@@ -45,6 +46,7 @@ const FEATURE_ALIASES: Record<SubscriptionFeatureKey, string[]> = {
   analytics: ["reports", "analytics"],
   curriculum_scheme: ["curriculum_scheme", "academics"],
   lesson_notes: ["lesson_notes", "ai_lesson_notes", "academics"],
+  edusentrix_learn: ["edusentrix_learn", "learn", "lesson_notes", "ai_lesson_notes"],
   examinations: ["examinations", "question_bank"],
   question_bank: ["question_bank", "examinations"],
   ai_lesson_notes: ["reports", "ai_reports", "ai_lesson_notes"],

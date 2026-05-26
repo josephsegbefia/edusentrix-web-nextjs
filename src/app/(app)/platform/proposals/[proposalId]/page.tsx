@@ -19,7 +19,7 @@ export default async function PlatformProposalDetailPage({
   if (!gate.ok) return gate.res;
   await connectToDatabase();
   const { proposalId } = await params;
-  const proposal = await Proposal.findById(proposalId);
+  const proposal = await Proposal.findById(proposalId).lean();
   if (!proposal) notFound();
   const [activities, sendLogs] = await Promise.all([
     ProposalActivity.find({ proposalId: proposal._id }).sort({ createdAt: -1 }).limit(50).lean(),

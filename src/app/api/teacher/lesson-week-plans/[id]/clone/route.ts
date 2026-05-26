@@ -105,24 +105,6 @@ export async function POST(
       );
     }
 
-    const existing = await LessonWeekPlan.findOne({
-      schoolId: context.schoolId,
-      classGroupId: targetClassOid,
-      subjectOfferingId: sourcePlan.subjectOfferingId,
-      weekStartDate: weekStart,
-    })
-      .select("_id")
-      .lean();
-    if (existing) {
-      return Response.json(
-        {
-          success: false,
-          error: "A week plan already exists for that class, subject, and week.",
-        },
-        { status: 409 },
-      );
-    }
-
     const sourceSessions = await LessonSession.find({ weekPlanId: sourcePlan._id })
       .sort({ sequenceInWeek: 1 })
       .lean();
@@ -214,7 +196,10 @@ export async function POST(
     });
 
     if (!created.ok) {
-      return Response.json({ success: false, error: created.error }, { status: created.status });
+      return Response.json(
+        { success: false, error: created.error, details: created.details ?? null },
+        { status: created.status },
+      );
     }
 
     for (let i = 0; i < created.sessions.length && i < sourceSessions.length; i += 1) {

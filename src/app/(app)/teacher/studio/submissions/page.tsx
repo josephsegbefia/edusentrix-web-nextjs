@@ -11,7 +11,6 @@ import {
   FileCheck2,
   FolderKanban,
   Search,
-  Sparkles,
   UserCircle2,
   XCircle,
 } from "lucide-react";
@@ -34,6 +33,15 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All status" },
@@ -73,6 +81,34 @@ function initialsFromName(name?: string | null) {
     .slice(0, 2);
   if (segments.length === 0) return "ST";
   return segments.map((segment) => segment[0]?.toUpperCase() || "").join("") || "ST";
+}
+
+type StatSummaryCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  iconClassName: string;
+};
+
+function StatSummaryCard({ icon, label, value, iconClassName }: StatSummaryCardProps) {
+  return (
+    <Card className={glassPanelClass}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <span
+          className={cn(
+            "flex h-10 w-10 items-center justify-center rounded-xl border shadow-inner shadow-white/5",
+            iconClassName
+          )}
+        >
+          {icon}
+        </span>
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-white/45">{label}</p>
+          <p className="text-xl font-semibold text-white">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function TeacherSubmissionsPage() {
@@ -151,102 +187,81 @@ export default function TeacherSubmissionsPage() {
   }, [submissions]);
 
   const nextPendingSubmission = React.useMemo(
-    () => submissions.find((submission) => submission.status === "submitted" || submission.status === "late") || null,
+    () =>
+      submissions.find(
+        (submission) => submission.status === "submitted" || submission.status === "late"
+      ) || null,
     [submissions]
   );
 
+  const headerActions = nextPendingSubmission ? (
+    <Button asChild className={glassPrimaryButtonClass}>
+      <Link href={`/teacher/studio/submissions/${nextPendingSubmission.id}`}>
+        Open next pending
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+    </Button>
+  ) : null;
+
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-indigo-500/15 via-white/5 to-cyan-500/10 shadow-2xl shadow-black/35 backdrop-blur">
-        <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="space-y-3">
-            <Badge className="w-fit bg-white/10 text-white/80">
-              <Sparkles className="h-3.5 w-3.5" />
-              Studio review
-            </Badge>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Submissions</h1>
-              <p className="text-sm text-white/65">
-                Review student work across all assignments with a cleaner grading queue.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-indigo-500/20 text-indigo-100">{stats.total} total</Badge>
-              <Badge className="bg-amber-500/20 text-amber-100">{stats.pending} pending</Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-100">{stats.graded} graded</Badge>
-              <Badge className="bg-rose-500/20 text-rose-100">{stats.returned} returned</Badge>
-            </div>
-          </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={ClipboardCheck}
+        title="Submissions"
+        subtitle="Review student work across all assignments with a cleaner grading queue."
+        badge={
+          !isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {stats.pending} pending
+            </span>
+          ) : undefined
+        }
+        actions={headerActions}
+      />
 
-          <div className="flex flex-col gap-2 lg:items-end">
-            {nextPendingSubmission ? (
-              <Button
-                asChild
-                className="bg-indigo-500/30 text-indigo-50 hover:bg-indigo-500/40"
-              >
-                <Link href={`/teacher/studio/submissions/${nextPendingSubmission.id}`}>
-                  Open next pending
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/60">
-                No pending submissions right now
-              </div>
-            )}
-            <p className="text-xs text-white/45">Tip: use filters to focus by class or subject.</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="border border-white/10 bg-white/5 backdrop-blur">
-          <CardContent className="flex items-center gap-3 p-4">
-            <span className="rounded-xl border border-amber-400/25 bg-amber-500/20 p-2.5 text-amber-100">
-              <Clock3 className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Pending</p>
-              <p className="text-xl font-semibold text-white">{stats.pending}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border border-white/10 bg-white/5 backdrop-blur">
-          <CardContent className="flex items-center gap-3 p-4">
-            <span className="rounded-xl border border-emerald-400/25 bg-emerald-500/20 p-2.5 text-emerald-100">
-              <CheckCircle2 className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Graded</p>
-              <p className="text-xl font-semibold text-white">{stats.graded}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border border-white/10 bg-white/5 backdrop-blur">
-          <CardContent className="flex items-center gap-3 p-4">
-            <span className="rounded-xl border border-rose-400/25 bg-rose-500/20 p-2.5 text-rose-100">
-              <XCircle className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Returned</p>
-              <p className="text-xl font-semibold text-white">{stats.returned}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border border-white/10 bg-white/5 backdrop-blur">
-          <CardContent className="flex items-center gap-3 p-4">
-            <span className="rounded-xl border border-indigo-400/25 bg-indigo-500/20 p-2.5 text-indigo-100">
-              <FileCheck2 className="h-4 w-4" />
-            </span>
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-white/45">Total</p>
-              <p className="text-xl font-semibold text-white">{stats.total}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex flex-wrap gap-2">
+        <Badge className="border border-white/10 bg-white/5 text-white/70">
+          {stats.total} total
+        </Badge>
+        <Badge className="border border-amber-400/20 bg-amber-500/15 text-amber-200">
+          {stats.pending} pending
+        </Badge>
+        <Badge className="border border-emerald-400/20 bg-emerald-500/15 text-emerald-200">
+          {stats.graded} graded
+        </Badge>
+        <Badge className="border border-rose-400/20 bg-rose-500/15 text-rose-200">
+          {stats.returned} returned
+        </Badge>
       </div>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatSummaryCard
+          icon={<Clock3 className="h-4 w-4" />}
+          label="Pending"
+          value={stats.pending}
+          iconClassName="border-amber-400/30 bg-amber-500/20 text-amber-100"
+        />
+        <StatSummaryCard
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          label="Graded"
+          value={stats.graded}
+          iconClassName="border-emerald-400/30 bg-emerald-500/20 text-emerald-100"
+        />
+        <StatSummaryCard
+          icon={<XCircle className="h-4 w-4" />}
+          label="Returned"
+          value={stats.returned}
+          iconClassName="border-rose-400/30 bg-rose-500/20 text-rose-100"
+        />
+        <StatSummaryCard
+          icon={<FileCheck2 className="h-4 w-4" />}
+          label="Total"
+          value={stats.total}
+          iconClassName="border-teal-400/30 bg-teal-500/20 text-teal-100"
+        />
+      </div>
+
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="text-lg">Filter submissions</CardTitle>
         </CardHeader>
@@ -321,7 +336,7 @@ export default function TeacherSubmissionsPage() {
             <Button
               type="button"
               variant="outline"
-              className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+              className={glassSecondaryButtonClass}
               onClick={() => {
                 setStatusFilter("all");
                 setSubjectFilter("all");
@@ -336,13 +351,20 @@ export default function TeacherSubmissionsPage() {
         </CardContent>
       </Card>
 
-      {!canGrade && (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
+      {!canGrade ? (
+        <div className={cn(glassInsetClass, "rounded-2xl p-4 text-sm text-white/60")}>
           You can review submissions, but grading is disabled for your role.
         </div>
-      )}
+      ) : null}
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      {!nextPendingSubmission && !isLoading ? (
+        <GlassPanel className="p-4" glow="cyan">
+          <p className="text-sm text-white/60">No pending submissions right now.</p>
+          <p className="mt-1 text-xs text-white/45">Use filters to focus by class or subject.</p>
+        </GlassPanel>
+      ) : null}
+
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="text-lg">Submission inbox</CardTitle>
         </CardHeader>
@@ -350,11 +372,11 @@ export default function TeacherSubmissionsPage() {
           {isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 6 }).map((_, idx) => (
-                <div key={idx} className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+                <div key={idx} className={cn(glassInsetClass, "h-20 animate-pulse rounded-2xl")} />
               ))}
             </div>
           ) : filteredSubmissions.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/60">
+            <div className={cn(glassInsetClass, "rounded-2xl p-6 text-center text-white/60")}>
               No submissions match this filter.
             </div>
           ) : (
@@ -363,7 +385,10 @@ export default function TeacherSubmissionsPage() {
                 <Link
                   key={submission.id}
                   href={`/teacher/studio/submissions/${submission.id}`}
-                  className="block rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/10"
+                  className={cn(
+                    glassInsetClass,
+                    "block rounded-2xl p-4 transition hover:border-white/20 hover:bg-white/10"
+                  )}
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex items-start gap-3">
@@ -386,11 +411,11 @@ export default function TeacherSubmissionsPage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-white/45">
                           <span>{submission.assignment?.subject?.name || "Subject"}</span>
-                          {submission.student?.admissionNo && (
+                          {submission.student?.admissionNo ? (
                             <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
                               {submission.student.admissionNo}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -405,12 +430,12 @@ export default function TeacherSubmissionsPage() {
                         >
                           {submission.status.replace(/_/g, " ").toUpperCase()}
                         </Badge>
-                        {submission.isLate && (
+                        {submission.isLate ? (
                           <Badge className="rounded-full bg-amber-500/20 text-amber-200">
                             Late submission
                           </Badge>
-                        )}
-                        <Badge className="rounded-full bg-indigo-500/20 text-indigo-100">
+                        ) : null}
+                        <Badge className="rounded-full border border-teal-400/20 bg-teal-500/15 text-teal-100">
                           {submission.score !== null ? `${submission.score} pts` : "Ungraded"}
                         </Badge>
                       </div>
@@ -424,7 +449,7 @@ export default function TeacherSubmissionsPage() {
                           {formatDateTime(submission.submittedAt)}
                         </span>
                       </div>
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-200">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-teal-200">
                         Open submission
                         <ArrowRight className="h-3.5 w-3.5" />
                       </span>
@@ -436,6 +461,6 @@ export default function TeacherSubmissionsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePageShell>
   );
 }

@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -11,6 +13,22 @@ import { serializeProposal } from "@/lib/proposals/serialize";
 import { PlatformPageHeader } from "@/components/platform/platform-page-primitives";
 import { ProposalPreviewClient } from "@/components/platform/proposals/ProposalPreviewClient";
 
+function getLogoDataUri(): string | null {
+  const candidates = [
+    path.join(process.cwd(), "public", "logo", "edusentrix-logo-transparent.png"),
+    path.join(process.cwd(), "public", "logo", "edusentrix-logo.png"),
+  ];
+  for (const logoPath of candidates) {
+    try {
+      const data = fs.readFileSync(logoPath);
+      return `data:image/png;base64,${data.toString("base64")}`;
+    } catch {
+      // try next
+    }
+  }
+  return null;
+}
+
 export default async function PlatformProposalPreviewPage({
   params,
 }: {
@@ -21,10 +39,10 @@ export default async function PlatformProposalPreviewPage({
   await connectToDatabase();
   await ensureDefaultProposalData(gate.actor.userId);
   const { proposalId } = await params;
-  const proposal = await Proposal.findById(proposalId);
+  const proposal = await Proposal.findById(proposalId).lean();
   if (!proposal) notFound();
-  const branding = await ProposalBranding.findOne({});
-  const html = renderProposalHtml(proposal, branding);
+  const branding = await ProposalBranding.findOne({}).lean();
+  const html = renderProposalHtml(proposal, branding, getLogoDataUri());
 
   return (
     <div className="space-y-6">

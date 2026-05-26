@@ -9,21 +9,39 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+/**
+ * Legacy URL: /parent/wards/[id]/lessons/[lessonId]
+ * This page bridges old lesson IDs (which may be legacy Lesson._id or session IDs)
+ * to the session-based display. It queries the session detail API directly since
+ * all lesson IDs are now session IDs after the v2 migration.
+ */
+
+type SummaryBlock = {
+  id: string;
+  type: string;
+  title: string | null;
+  bodyHtml: string;
+};
+
+type SessionSummaryData = {
+  sessionId: string;
+  title: string;
+  scheduledDate: string;
+  summaryBlocks: SummaryBlock[];
+  planNotesExcerpt: string | null;
+};
+
 type DetailJson =
-  | {
-      success: true;
-      data: {
-        lesson: {
-          id: string;
-          title: string;
-          subjectName: string | null;
-          scheduledAt: string | null;
-          publishedAt: string | null;
-        };
-        parentSummaryHtml: string | null;
-      };
-    }
+  | { success: true; data: SessionSummaryData }
   | { success: false; error: string };
+
+function formatDate(dateStr: string) {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default function ParentWardLessonDetailPage() {
   const params = useParams();
@@ -31,11 +49,13 @@ export default function ParentWardLessonDetailPage() {
   const lessonId = typeof params.lessonId === "string" ? params.lessonId : null;
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["parent-ward-lesson-detail", wardId, lessonId],
+    queryKey: ["parent-ward-lesson-session-detail", wardId, lessonId],
     queryFn: async () => {
-      const res = await fetch(`/api/parent/wards/${wardId}/lessons/${lessonId}`, {
-        cache: "no-store",
-      });
+      // Try the v2 session endpoint first (lesson IDs are now session IDs)
+      const res = await fetch(
+        `/api/parent/wards/${wardId}/lesson-sessions/${lessonId}`,
+        { cache: "no-store" }
+      );
       const json = (await res.json().catch(() => null)) as DetailJson | null;
       if (!res.ok || !json || !json.success) {
         const msg =
@@ -63,7 +83,7 @@ export default function ParentWardLessonDetailPage() {
         </Button>
         <div>
           <h1 className="text-xl font-semibold text-white">Lesson summary</h1>
-          <p className="text-sm text-white/50">Written for families — not full lesson content</p>
+          <p className="text-sm text-white/50">Written for families</p>
         </div>
       </div>
 
@@ -78,38 +98,47 @@ export default function ParentWardLessonDetailPage() {
       )}
 
       {data && (
-        <Card className="border border-white/10 bg-white/5">
-          <CardHeader>
-            <CardTitle className="text-lg text-white">{data.lesson.title}</CardTitle>
-            <div className="text-sm text-white/50">
-              {[data.lesson.subjectName, data.lesson.publishedAt ? formatDate(data.lesson.publishedAt) : null]
-                .filter(Boolean)
-                .join(" · ")}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {data.parentSummaryHtml ? (
-              <div
-                className="parent-lesson-summary prose prose-invert max-w-none text-sm text-white/85 [&_a]:text-teal-300 [&_ul]:list-disc [&_ul]:pl-5"
-                // Teacher-reviewed HTML from Leo; script tags stripped at save
-                dangerouslySetInnerHTML={{ __html: data.parentSummaryHtml }}
-              />
-            ) : (
-              <p className="text-sm text-white/55">
-                Your teacher hasn&apos;t added a family-facing summary for this lesson yet.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card className="border border-white/10 bg-white/5">
+            <CardHeader>
+              <CardTitle className="text-lg text-white">{data.title}</CardTitle>
+              {data.scheduledDate && (
+                <div className="text-sm text-white/50">{formatDate(data.scheduledDate)}</div>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {data.summaryBlocks.length > 0 ? (
+                <div className="space-y-4">
+                  {data.summaryBlocks.map((block) => (
+                    <div key={block.id} className="space-y-1">
+                      {block.title && (
+                        <h3 className="text-sm font-semibold text-white/80">{block.title}</h3>
+                      )}
+                      <div
+                        className="prose prose-sm prose-invert max-w-none text-white/75 [&_a]:text-teal-300 [&_ul]:pl-5"
+                        dangerouslySetInnerHTML={{ __html: block.bodyHtml }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-white/55">
+                  Your teacher hasn&apos;t published a family-facing summary for this lesson yet.
+                </p>
+              )}
+
+              {data.planNotesExcerpt && (
+                <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/40">
+                    Teacher&apos;s plan notes
+                  </p>
+                  <p className="text-sm text-white/65">{data.planNotesExcerpt}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }

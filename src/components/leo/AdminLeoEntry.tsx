@@ -617,12 +617,12 @@ export function AdminLeoEntry() {
       <button
         type="button"
         className={cn(
-          "pointer-events-auto flex items-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-400/15 px-4 py-2.5 text-sm font-medium text-amber-100 shadow-lg shadow-black/30 backdrop-blur-sm",
-          "hover:bg-amber-400/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300/60"
+          "pointer-events-auto flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-300 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-950/30",
+          "hover:bg-amber-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300/70"
         )}
         onClick={() => setOpen((current) => !current)}
       >
-        <LeoIcon className="h-4 w-4 text-amber-200" />
+        <LeoIcon className="h-4 w-4 text-slate-950" />
         Ask Leo
       </button>
       {confirmationDialog}

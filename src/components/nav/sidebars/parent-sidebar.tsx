@@ -24,6 +24,7 @@ import {
   ClipboardList,
   BookOpen,
 } from "lucide-react";
+import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
   premiumSideItem,
   premiumSideItemActive,
@@ -107,6 +108,12 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           label: "Attendance",
           href: "/parent/attendance",
           icon: ClipboardCheck,
+        },
+        {
+          label: "EduSentrix Learn",
+          href: "/parent/learn",
+          icon: LearnLogoIcon,
+          feature: "edusentrix_learn",
         },
       ],
     },

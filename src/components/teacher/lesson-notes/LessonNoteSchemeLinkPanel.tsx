@@ -54,14 +54,40 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
   const applySelectedRows = () => {
     const primary = selectedItems[0];
     if (!primary) return;
+
     const indicatorText = selectedItems
       .flatMap((item) => (item.indicator || "").split(/\n|,/))
-      .map((item) => item.trim())
+      .map((s) => s.trim())
       .filter(Boolean);
+
     const resources = selectedItems
       .flatMap((item) => item.teachingResources || [])
-      .map((item) => item.trim())
+      .map((s) => s.trim())
       .filter(Boolean);
+
+    // Merge all learning objectives from selected rows (deduped).
+    const incomingObjectives = selectedItems
+      .flatMap((item) => item.learningObjectives ?? [])
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const existingOutcomes: string[] = (formData.curriculum?.learningOutcomes ?? []) as string[];
+    const mergedOutcomes = Array.from(new Set([...existingOutcomes, ...incomingObjectives]));
+
+    // Merge assessment ideas.
+    const incomingAssessment = selectedItems
+      .flatMap((item) => item.assessmentIdeas ?? [])
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const existingChecks: string[] = (formData.assessment?.inClassChecks ?? []) as string[];
+    const mergedChecks = Array.from(new Set([...existingChecks, ...incomingAssessment]));
+
+    // Teaching & learning activities from the primary row (first selected).
+    const tla = primary.teachingLearningActivities?.trim() ?? "";
+    const existingContent = (formData.body as Record<string, unknown> | undefined)?.content as string | undefined;
+    const mergedContent = tla
+      ? tla + (existingContent ? `\n\n${existingContent}` : "")
+      : existingContent ?? "";
+
     onUpdate({
       topic: formData.topic.trim() ? formData.topic : primary.title || formData.topic,
       curriculum: {
@@ -72,15 +98,24 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
         indicators: indicatorText.length
           ? indicatorText.map((text) => ({ refNo: text, text }))
           : formData.curriculum.indicators,
+        learningOutcomes: mergedOutcomes.length ? mergedOutcomes : existingOutcomes,
       },
       tlms: Array.from(new Set([...formData.tlms, ...resources])),
       references: Array.from(
-        new Set([
-          ...formData.references,
-          primary.contentStandard,
-          ...indicatorText,
-        ].filter(Boolean) as string[])
+        new Set(
+          [...formData.references, primary.contentStandard, ...indicatorText].filter(
+            Boolean,
+          ) as string[],
+        ),
       ),
+      assessment: {
+        ...(formData.assessment as Record<string, unknown> | undefined),
+        inClassChecks: mergedChecks,
+      },
+      body: {
+        ...(formData.body as Record<string, unknown> | undefined),
+        ...(mergedContent ? { content: mergedContent } : {}),
+      },
     });
   };
 
@@ -194,8 +229,19 @@ export function LessonNoteSchemeLinkPanel({ formData, onUpdate }: Props) {
                   <p>Content standard: {selectedItems[0].contentStandard}</p>
                 ) : null}
                 {selectedItems[0].indicator ? <p>Indicators: {selectedItems[0].indicator}</p> : null}
+                {selectedItems[0].learningObjectives?.length ? (
+                  <p>Learning objectives: {selectedItems[0].learningObjectives.slice(0, 3).join("; ")}</p>
+                ) : null}
+                {selectedItems[0].teachingLearningActivities ? (
+                  <p className="line-clamp-2">
+                    Teaching &amp; learning activities: {selectedItems[0].teachingLearningActivities}
+                  </p>
+                ) : null}
                 {selectedItems[0].teachingResources?.length ? (
                   <p>Resources: {selectedItems[0].teachingResources.join(", ")}</p>
+                ) : null}
+                {selectedItems[0].assessmentIdeas?.length ? (
+                  <p>Assessment: {selectedItems[0].assessmentIdeas.join(", ")}</p>
                 ) : null}
               </div>
             </div>

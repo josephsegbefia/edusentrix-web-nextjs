@@ -1,4 +1,5 @@
 import type { ISchemeImportParsedRow } from "@/models/SchemeImportJob";
+import { splitImportList } from "@/lib/schemes/scheme-import-columns";
 import { clampSchemeItemShortText, clampSchemeItemShortTextOrNull } from "@/lib/schemes/scheme-item-field-limits";
 
 function cleanString(value: unknown): string | null {
@@ -13,13 +14,7 @@ function cleanStringList(value: unknown): string[] {
       .filter(Boolean)
       .slice(0, 20);
   }
-  const text = cleanString(value);
-  if (!text) return [];
-  return text
-    .split(/\n|;|,(?=\s*[A-Z]?\d|\s*[A-Za-z])/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 20);
+  return splitImportList(cleanString(value));
 }
 
 function inferTitle(row: ISchemeImportParsedRow): string {
@@ -29,6 +24,7 @@ function inferTitle(row: ISchemeImportParsedRow): string {
     cleanString(row.subStrand) ||
     cleanString(row.strand) ||
     cleanString(row.contentStandard) ||
+    cleanString(row.learningOutcomes?.[0]) ||
     cleanString(row.indicators?.[0]) ||
     ""
   );
@@ -85,7 +81,10 @@ export function normalizeParsedImportRows(rows: ISchemeImportParsedRow[]): ISche
       subStrand: clampSchemeItemShortTextOrNull(cleanString(r.subStrand)),
       contentStandard: cleanString(r.contentStandard),
       indicators: cleanStringList(r.indicators),
+      learningOutcomes: cleanStringList(r.learningOutcomes),
+      teachingLearningActivities: cleanString(r.teachingLearningActivities),
       resources: cleanStringList(r.resources),
+      assessment: cleanStringList(r.assessment),
       learningObjective: cleanString(r.learningObjective),
       notes: cleanString(r.notes),
       weekNumber: r.weekNumber ?? null,

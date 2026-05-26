@@ -49,14 +49,32 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const [proposals, total] = await Promise.all([
+    const [proposals, total, pipelineCounts] = await Promise.all([
       Proposal.find(query)
         .sort({ updatedAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
       Proposal.countDocuments(query),
+      Proposal.aggregate([
+        { $match: { status: { $ne: "archived" } } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]) as Promise<{ _id: string; count: number }[]>,
     ]);
+
+    const countMap: Record<string, number> = {};
+    for (const { _id, count } of pipelineCounts) {
+      countMap[_id] = count;
+    }
+
+    const pipeline = {
+      draft: countMap.draft ?? 0,
+      ready: countMap.ready ?? 0,
+      outreach: (countMap.sent ?? 0) + (countMap.followed_up ?? 0),
+      demo: countMap.demo_scheduled ?? 0,
+      pilot: countMap.pilot_started ?? 0,
+      won: countMap.accepted ?? 0,
+    };
 
     return NextResponse.json({
       success: true,
@@ -68,6 +86,7 @@ export async function GET(req: NextRequest) {
           total,
           totalPages: Math.max(1, Math.ceil(total / limit)),
         },
+        pipeline,
       },
     });
   } catch (error) {
@@ -95,7 +114,8 @@ export async function POST(req: NextRequest) {
         ? await ProposalTemplate.findById(parsed.data.templateId)
         : defaultTemplate;
     const template = selectedTemplate || defaultTemplate;
-    const preparedByName = parsed.data.preparedByName || gate.actor.email || "EduSentrix";
+    // Prefer explicit name; never fall back to an email address as a display name.
+    const preparedByName = parsed.data.preparedByName || "The EduSentrix Team";
     const variables = proposalVariables({
       ...parsed.data,
       preparedBy: preparedByName,
@@ -158,7 +178,7 @@ export async function POST(req: NextRequest) {
       metadata: { templateId: String(template._id) },
     });
 
-    return NextResponse.json({ success: true, data: serializeProposal(proposal) }, { status: 201 });
+    return NextResponse.json({ success: true, data: serializeProposal(proposal.toObject()) }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Failed to create proposal" },

@@ -15,12 +15,23 @@ import type { TimetableSlotPreview } from "@/types/lessons-v2";
 export type WeekPlanSessionInput = {
   timetableSlotId: string;
   timetableSlotIds?: string[];
+  scheduledDate?: string;
   title: string;
   include?: boolean;
   noteSectionKeys?: string[];
   schemeItemIds?: string[];
   coverageWeight?: number;
   contentBlocks?: LessonContentBlock[];
+};
+
+export type WeekPlanCreateConflictDetails = {
+  code: "TIMETABLE_SLOT_CONFLICT" | "DUPLICATE_SELECTED_SLOT";
+  message: string;
+  conflictingSlotIds: string[];
+  scheduledDate?: string;
+  startTime?: string;
+  endTime?: string;
+  existingLessonTitle?: string;
 };
 
 function toObjectId(id: string): mongoose.Types.ObjectId | null {
@@ -77,6 +88,17 @@ export async function createWeekPlanWithSessions(input: {
     schemeItemIds: mongoose.Types.ObjectId[];
     coverageWeight: number;
     contentBlocks: LessonContentBlock[];
+    scheduledDate: string;
+  };
+
+  type ConflictSessionRow = {
+    _id: mongoose.Types.ObjectId;
+    title: string;
+    scheduledDate: Date;
+    startTime: string;
+    endTime: string;
+    timetableSlotId?: mongoose.Types.ObjectId | null;
+    timetableSlotIds?: mongoose.Types.ObjectId[];
   };
 
   let rows: Row[] = [];
@@ -101,6 +123,7 @@ export async function createWeekPlanWithSessions(input: {
           .filter((id): id is mongoose.Types.ObjectId => Boolean(id)),
         coverageWeight: row.coverageWeight ?? 0,
         contentBlocks: normalizeContentBlocks(row.contentBlocks ?? []),
+        scheduledDate: row.scheduledDate ?? slot.scheduledDate,
       });
     }
   } else {
@@ -112,6 +135,7 @@ export async function createWeekPlanWithSessions(input: {
       schemeItemIds: [],
       coverageWeight: defaultWeight,
       contentBlocks: [],
+      scheduledDate: slot.scheduledDate,
     }));
   }
 
@@ -132,6 +156,82 @@ export async function createWeekPlanWithSessions(input: {
   const weightCheck = validateCoverageWeights(rows.map((r) => r.coverageWeight));
   if (!weightCheck.ok) {
     return { ok: false as const, status: 400, error: weightCheck.error };
+  }
+
+  const selectedSlotKeys = rows.flatMap((row) =>
+    (row.slot.timetableSlotIds?.length ? row.slot.timetableSlotIds : [row.slot.id]).map(
+      (slotId) => `${row.scheduledDate}:${slotId}`,
+    ),
+  );
+  const uniqueSelectedSlotKeys = new Set(selectedSlotKeys);
+  if (uniqueSelectedSlotKeys.size !== selectedSlotKeys.length) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "The selected week plan uses the same timetable period more than once.",
+      details: {
+        code: "DUPLICATE_SELECTED_SLOT",
+        message: "The selected week plan uses the same timetable period more than once.",
+        conflictingSlotIds: selectedSlotKeys.filter(
+          (id, index) => selectedSlotKeys.indexOf(id) !== index,
+        ),
+      } satisfies WeekPlanCreateConflictDetails,
+    };
+  }
+
+  const selectedSlotOids = Array.from(
+    new Set(rows.flatMap((row) => (row.slot.timetableSlotIds?.length ? row.slot.timetableSlotIds : [row.slot.id]))),
+  )
+    .map((id) => toObjectId(id))
+    .filter((id): id is mongoose.Types.ObjectId => Boolean(id));
+  const scheduledDates = [...new Set(rows.map((row) => row.scheduledDate))].map(
+    (date) => new Date(`${date}T00:00:00.000Z`),
+  );
+  const conflicts = await LessonSession.find({
+    schoolId: input.schoolId,
+    classGroupId: input.classGroupId,
+    status: { $ne: "archived" },
+    scheduledDate: { $in: scheduledDates },
+    $or: [
+      { timetableSlotId: { $in: selectedSlotOids } },
+      { timetableSlotIds: { $in: selectedSlotOids } },
+    ],
+  })
+    .select("_id title scheduledDate startTime endTime timetableSlotId timetableSlotIds")
+    .lean<ConflictSessionRow[]>();
+
+  const relevantConflicts = conflicts.filter((conflict) => {
+    const date = conflict.scheduledDate.toISOString().slice(0, 10);
+    const ids = [
+      ...(conflict.timetableSlotIds?.map((id) => String(id)) ?? []),
+      ...(conflict.timetableSlotId ? [String(conflict.timetableSlotId)] : []),
+    ];
+    return ids.some((id) => uniqueSelectedSlotKeys.has(`${date}:${id}`));
+  });
+
+  if (relevantConflicts.length > 0) {
+    const conflict = relevantConflicts[0]!;
+    const date = conflict.scheduledDate.toISOString().slice(0, 10);
+    const conflictingSlotIds = [
+      ...(conflict.timetableSlotIds?.map((id) => String(id)) ?? []),
+      ...(conflict.timetableSlotId ? [String(conflict.timetableSlotId)] : []),
+    ];
+    const conflictingSlotKeys = conflictingSlotIds.map((id) => `${date}:${id}`);
+    const message = `This week already has a lesson planned for ${date}, ${conflict.startTime}-${conflict.endTime}: ${conflict.title}. Choose a different timetable period.`;
+    return {
+      ok: false as const,
+      status: 409,
+      error: message,
+      details: {
+        code: "TIMETABLE_SLOT_CONFLICT",
+        message,
+        conflictingSlotIds: Array.from(new Set([...conflictingSlotIds, ...conflictingSlotKeys])),
+        scheduledDate: date,
+        startTime: conflict.startTime,
+        endTime: conflict.endTime,
+        existingLessonTitle: conflict.title,
+      } satisfies WeekPlanCreateConflictDetails,
+    };
   }
 
   const plan = await LessonWeekPlan.create({
@@ -163,7 +263,7 @@ export async function createWeekPlanWithSessions(input: {
     const slotOids = slotIdStrings
       .map((id) => toObjectId(id))
       .filter((id): id is mongoose.Types.ObjectId => Boolean(id));
-    const scheduledDate = new Date(`${slot.scheduledDate}T00:00:00.000Z`);
+    const scheduledDate = new Date(`${rows[i]!.scheduledDate}T00:00:00.000Z`);
     const session = await LessonSession.create({
       schoolId: input.schoolId,
       weekPlanId: plan._id,

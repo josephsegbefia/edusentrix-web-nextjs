@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { AssignmentBuilder, type AssignmentFormValues } from "@/components/teacher/studio/AssignmentBuilder";
@@ -11,9 +10,11 @@ import {
   readSessionStudioSeed,
   clearSessionStudioSeed,
 } from "@/lib/lessons/session-studio-seed-storage";
-import { Button } from "@/components/ui/button";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 export default function TeacherAssignmentCreatePage() {
   const router = useRouter();
@@ -24,7 +25,6 @@ export default function TeacherAssignmentCreatePage() {
   const canCreate = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPublish = can(permissions, PERMISSIONS.assignmentsPublish);
   const requestedType = searchParams.get("type");
-  const lessonId = searchParams.get("lessonId");
   const sessionId = searchParams.get("sessionId");
   const useStoredSeed = searchParams.get("seed") === "stored";
   const [seedValues, setSeedValues] = React.useState<Partial<AssignmentFormValues> | null>(null);
@@ -53,15 +53,13 @@ export default function TeacherAssignmentCreatePage() {
       return;
     }
 
-    if (!lessonId && !sessionId) {
+    if (!sessionId) {
       setSeedValues(null);
       return;
     }
 
     setIsLoadingSeed(true);
-    const seedUrl = sessionId
-      ? `/api/teacher/lesson-sessions/${sessionId}/assignment-seed?type=${initialType}`
-      : `/api/teacher/lessons/${lessonId}/assignment-seed?type=${initialType}`;
+    const seedUrl = `/api/teacher/lesson-sessions/${sessionId}/assignment-seed?type=${initialType}`;
     void fetch(seedUrl, {
       cache: "no-store",
     })
@@ -109,13 +107,15 @@ export default function TeacherAssignmentCreatePage() {
     return () => {
       ignore = true;
     };
-  }, [lessonId, sessionId, useStoredSeed, initialType, busyToast]);
+  }, [sessionId, useStoredSeed, initialType, busyToast]);
 
   if (!canCreate) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/70">
-        You do not have permission to create assignments.
-      </div>
+      <WorkspacePageShell>
+        <GlassPanel className="p-8 text-center">
+          <p className="text-white/70">You do not have permission to create assignments.</p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
@@ -134,7 +134,6 @@ export default function TeacherAssignmentCreatePage() {
       instructions: values.instructions,
       type: values.type,
       subjectId: values.subjectId,
-      sourceLessonId: lessonId || undefined,
       sourceSessionId: sessionId || undefined,
       classGroupIds: values.classGroupIds,
       dueDate: values.dueDate.toISOString(),
@@ -172,23 +171,14 @@ export default function TeacherAssignmentCreatePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Button
-          asChild
-          variant="outline"
-          className="mb-3 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-        >
-          <Link href="/teacher/studio/assignments">
-            <ArrowLeft className="h-4 w-4" />
-            Back to assignments
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-semibold text-white">Create Assignment</h1>
-        <p className="text-sm text-white/60">
-          Build a new assignment and publish when you are ready.
-        </p>
-      </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={ClipboardList}
+        title="Create assignment"
+        subtitle="Build a new assignment and publish when you are ready."
+        backHref="/teacher/studio/assignments"
+        backLabel="Back to assignments"
+      />
       <AssignmentBuilder
         initialValues={{ type: initialType, ...(seedValues ?? {}) }}
         onSubmit={handleSubmit}
@@ -199,6 +189,6 @@ export default function TeacherAssignmentCreatePage() {
       {isLoadingSeed ? (
         <p className="text-xs text-white/50">Prefilling from lesson...</p>
       ) : null}
-    </div>
+    </WorkspacePageShell>
   );
 }

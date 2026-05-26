@@ -16,7 +16,10 @@ interface ResponsiveModalProps {
   description?: string;
   children: React.ReactNode;
   className?: string;
+  /** Backdrop layer — use z-[100]+ so modals sit above the app topbar (z-50) and page chrome. */
   zIndexClass?: string;
+  /** Dialog panel layer — should be one step above the overlay when both are set. */
+  contentZIndexClass?: string;
   showCloseButton?: boolean;
 }
 
@@ -35,7 +38,8 @@ export function ResponsiveModal({
   description,
   children,
   className,
-  zIndexClass = "z-50",
+  zIndexClass = "z-[100]",
+  contentZIndexClass = "z-[101]",
   showCloseButton = true,
 }: ResponsiveModalProps) {
   return (
@@ -74,7 +78,7 @@ export function ResponsiveModal({
           className={cn(
             // Base positioning
             "fixed",
-            zIndexClass,
+            contentZIndexClass,
             // Mobile: bottom sheet style
             "inset-x-4 bottom-4 top-auto max-h-[85vh]",
             // Desktop: centered modal

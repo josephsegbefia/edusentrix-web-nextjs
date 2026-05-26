@@ -32,7 +32,7 @@ export function ConfirmationDialog({
   onConfirm,
   onCancel,
   className,
-  zIndexClass = "z-50",
+  zIndexClass = "z-[100]",
 }: ConfirmationDialogProps) {
   return (
     <Modal

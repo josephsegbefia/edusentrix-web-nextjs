@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { Check, Loader2, MoveRight, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,12 @@ import {
   type LessonContentBlockType,
 } from "@/types/lesson-content-blocks";
 import {
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
+import {
   PremiumSelect,
   PremiumSelectContent,
   PremiumSelectItem,
@@ -23,6 +29,8 @@ import {
 import { LessonContentBlocksRenderer } from "@/components/lessons/LessonContentBlocksRenderer";
 import { cn } from "@/lib/utils";
 
+export type SessionTarget = { id: string; title: string };
+
 type Props = {
   blocks: LessonContentBlock[];
   onChange: (blocks: LessonContentBlock[]) => void;
@@ -30,6 +38,9 @@ type Props = {
   leoEnabled?: boolean;
   leoLoading?: boolean;
   readOnly?: boolean;
+  /** When provided, each block shows a "Move to session →" action. */
+  sessionTargets?: SessionTarget[];
+  onMoveBlock?: (blockId: string, targetSessionId: string) => void;
 };
 
 function newBlock(type: LessonContentBlockType, order: number): LessonContentBlock {
@@ -53,6 +64,8 @@ export function LessonContentBlocksEditor({
   leoEnabled = false,
   leoLoading = false,
   readOnly = false,
+  sessionTargets,
+  onMoveBlock,
 }: Props) {
   const [preview, setPreview] = React.useState(false);
 
@@ -175,6 +188,31 @@ export function LessonContentBlocksEditor({
                     />
                     Reviewed
                   </label>
+                ) : null}
+                {!readOnly && sessionTargets && sessionTargets.length > 0 && onMoveBlock ? (
+                  <PremiumDropdownMenu>
+                    <PremiumDropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 gap-1 px-2 text-xs text-white/50 hover:bg-white/10 hover:text-white/80"
+                      >
+                        <MoveRight className="h-3.5 w-3.5" />
+                        Move to
+                      </Button>
+                    </PremiumDropdownMenuTrigger>
+                    <PremiumDropdownMenuContent align="end">
+                      {sessionTargets.map((target) => (
+                        <PremiumDropdownMenuItem
+                          key={target.id}
+                          onClick={() => onMoveBlock(block.id, target.id)}
+                        >
+                          {target.title}
+                        </PremiumDropdownMenuItem>
+                      ))}
+                    </PremiumDropdownMenuContent>
+                  </PremiumDropdownMenu>
                 ) : null}
                 {!readOnly ? (
                   <Button

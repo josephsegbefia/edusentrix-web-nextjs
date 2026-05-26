@@ -32,6 +32,7 @@ import {
   FileText,
 } from "lucide-react";
 import { LeoIcon } from "@/components/icons/LeoIcon";
+import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
   premiumSideItem,
   premiumSideItemActive,
@@ -114,6 +115,12 @@ const navSections: NavSection[] = [
         href: "/platform/schools",
         icon: Building2,
         requiredPermissions: ["platform.schools.read"],
+      },
+      {
+        label: "EduSentrix Learn",
+        href: "/platform/learn",
+        icon: LearnLogoIcon,
+        requiredPermissions: ["platform.learn.read"],
       },
       {
         label: "Staff",

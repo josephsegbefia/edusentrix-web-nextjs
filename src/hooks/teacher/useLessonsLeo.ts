@@ -104,4 +104,81 @@ export function useGenerateSessionFlashcards() {
   });
 }
 
+export type LessonAssessmentItem = {
+  id: string;
+  type: "multiple_choice" | "short_answer" | "fill_blank" | "practical_task" | "project";
+  title: string;
+  question: string;
+  options?: string[];
+  correctAnswer?: string | null;
+  rubric?: string | null;
+  estimatedMinutes?: number | null;
+  aiGenerated: boolean;
+};
+
+export function useGenerateSessionAssessment() {
+  return useMutation({
+    mutationFn: async (body: {
+      sessionId: string;
+      count?: number;
+      preferredTypes?: string[];
+    }) => {
+      const res = await fetch("/api/leo/lessons/generate-session-assessment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to generate assessment");
+      }
+      const items = (json.data as { assessmentItems?: LessonAssessmentItem[] })?.assessmentItems;
+      return Array.isArray(items) ? items : ([] as LessonAssessmentItem[]);
+    },
+  });
+}
+
+export function useGenerateSessionFactCards() {
+  return useMutation({
+    mutationFn: async (body: { sessionId: string; count?: number }) => {
+      const res = await fetch("/api/leo/lessons/generate-session-fact-cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to generate fact cards");
+      }
+      const cards = (
+        json.data as { factCards?: Array<{ fact: string; detail: string; tags?: string[] }> }
+      )?.factCards;
+      return Array.isArray(cards) ? cards : [];
+    },
+  });
+}
+
+export function useGenerateBoardNotes() {
+  return useMutation({
+    mutationFn: async (body: { sessionId: string }) => {
+      const res = await fetch("/api/leo/lessons/generate-board-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to generate board notes");
+      }
+      const bn = (
+        json.data as {
+          boardNotes?: { contentHtml: string; generatedAt: string; aiGenerated: boolean };
+        }
+      )?.boardNotes;
+      if (!bn?.contentHtml) throw new Error("No board notes returned");
+      return bn;
+    },
+  });
+}
+
 export type { WeekSplitSessionProposal };

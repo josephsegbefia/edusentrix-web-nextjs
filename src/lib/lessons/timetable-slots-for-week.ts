@@ -3,6 +3,7 @@ import "server-only";
 import mongoose from "mongoose";
 import { TimetableSlot, type ITimetableSlot } from "@/models/TimetableSlot";
 import { SubjectOffering } from "@/models/SubjectOffering";
+import { LessonSession } from "@/models/LessonSession";
 import { resolvePublishedTimetableContext } from "@/lib/timetable/read-model";
 import type { TimetableSlotPreview } from "@/types/lessons-v2";
 
@@ -25,6 +26,10 @@ function addDaysUtc(d: Date, days: number): Date {
   const next = new Date(d);
   next.setUTCDate(next.getUTCDate() + days);
   return next;
+}
+
+function endOfWeekUtc(d: Date): Date {
+  return addDaysUtc(dateOnlyUtc(d), 6);
 }
 
 /** Map JS Sunday=0..Saturday=6 slot day to date within [weekStart, weekEnd]. */
@@ -168,5 +173,115 @@ export async function listTimetableSlotsForClassSubjectWeek(input: {
     hasPublishedTimetable: true,
     timetableVersionId: ctx.versionId,
     slots,
+  };
+}
+
+export async function listAvailableTimetableSlotsForClassSubjectUpcoming(input: {
+  schoolId: mongoose.Types.ObjectId;
+  classGroupId: mongoose.Types.ObjectId;
+  subjectOfferingId: mongoose.Types.ObjectId;
+  subjectId?: mongoose.Types.ObjectId | null;
+  startDate: Date;
+  teacherId?: mongoose.Types.ObjectId | null;
+  lookaheadWeeks?: number;
+  maxSlots?: number;
+}): Promise<{
+  hasPublishedTimetable: boolean;
+  timetableVersionId: mongoose.Types.ObjectId | null;
+  slots: TimetableSlotPreview[];
+  plannedSlots: Array<
+    TimetableSlotPreview & {
+      existingLessonTitle: string;
+    }
+  >;
+}> {
+  const lookaheadWeeks = Math.max(1, Math.min(input.lookaheadWeeks ?? 8, 16));
+  const maxSlots = Math.max(1, Math.min(input.maxSlots ?? 12, 40));
+  const start = dateOnlyUtc(input.startDate);
+  const candidates: TimetableSlotPreview[] = [];
+  let hasPublishedTimetable = false;
+  let timetableVersionId: mongoose.Types.ObjectId | null = null;
+
+  for (let offset = 0; offset < lookaheadWeeks; offset += 1) {
+    const weekStart = addDaysUtc(start, offset * 7);
+    const weekEnd = endOfWeekUtc(weekStart);
+    const week = await listTimetableSlotsForClassSubjectWeek({
+      schoolId: input.schoolId,
+      classGroupId: input.classGroupId,
+      subjectOfferingId: input.subjectOfferingId,
+      subjectId: input.subjectId ?? null,
+      weekStartDate: weekStart,
+      weekEndDate: weekEnd,
+      teacherId: input.teacherId ?? null,
+    });
+
+    hasPublishedTimetable = hasPublishedTimetable || week.hasPublishedTimetable;
+    timetableVersionId = timetableVersionId || week.timetableVersionId;
+    candidates.push(...week.slots);
+  }
+
+  if (candidates.length === 0) {
+    return { hasPublishedTimetable, timetableVersionId, slots: [], plannedSlots: [] };
+  }
+
+  const slotIds = Array.from(
+    new Set(
+      candidates.flatMap((slot) =>
+        slot.timetableSlotIds?.length ? slot.timetableSlotIds : [slot.id],
+      ),
+    ),
+  )
+    .map((id) => new mongoose.Types.ObjectId(id));
+  const scheduledDates = Array.from(new Set(candidates.map((slot) => slot.scheduledDate))).map(
+    (date) => new Date(`${date}T00:00:00.000Z`),
+  );
+  const conflicts = await LessonSession.find({
+    schoolId: input.schoolId,
+    classGroupId: input.classGroupId,
+    status: { $ne: "archived" },
+    scheduledDate: { $in: scheduledDates },
+    $or: [{ timetableSlotId: { $in: slotIds } }, { timetableSlotIds: { $in: slotIds } }],
+  })
+    .select("title scheduledDate timetableSlotId timetableSlotIds")
+    .lean<
+      Array<{
+        title: string;
+        scheduledDate: Date;
+        timetableSlotId?: mongoose.Types.ObjectId | null;
+        timetableSlotIds?: mongoose.Types.ObjectId[];
+      }>
+    >();
+
+  const conflictByKey = new Map<string, string>();
+  for (const conflict of conflicts) {
+    const date = formatDateYmdUtc(conflict.scheduledDate);
+    const ids = [
+      ...(conflict.timetableSlotIds?.map((id) => String(id)) ?? []),
+      ...(conflict.timetableSlotId ? [String(conflict.timetableSlotId)] : []),
+    ];
+    for (const id of ids) {
+      conflictByKey.set(`${date}:${id}`, conflict.title);
+    }
+  }
+
+  const plannedSlots: Array<TimetableSlotPreview & { existingLessonTitle: string }> = [];
+  const availableSlots: TimetableSlotPreview[] = [];
+  for (const slot of candidates) {
+    const ids = slot.timetableSlotIds?.length ? slot.timetableSlotIds : [slot.id];
+    const existingLessonTitle = ids
+      .map((id) => conflictByKey.get(`${slot.scheduledDate}:${id}`))
+      .find(Boolean);
+    if (existingLessonTitle) {
+      plannedSlots.push({ ...slot, existingLessonTitle });
+    } else {
+      availableSlots.push(slot);
+    }
+  }
+
+  return {
+    hasPublishedTimetable,
+    timetableVersionId,
+    slots: availableSlots.slice(0, maxSlots),
+    plannedSlots,
   };
 }

@@ -14,6 +14,9 @@ export function useTeacherLessonNoteDelete() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["teacher-lesson-notes"] });
+      qc.invalidateQueries({ queryKey: ["teacher-lesson-note"] });
+      qc.invalidateQueries({ queryKey: ["teacher-lesson-week-plans"] });
+      qc.invalidateQueries({ queryKey: ["teacher-lesson-sessions"] });
     },
   });
 }

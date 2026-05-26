@@ -6,15 +6,16 @@ import Image from "next/image";
 import { BookOpen, ExternalLink, FolderOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useStudentLessonResources } from "@/hooks/student/useStudentLessonResources";
+import { useStudentSessionResources } from "@/hooks/student/useStudentSessionResources";
 import type { StudentLessonResourceRow } from "@/types/lesson-resources";
 
 type Props = {
+  /** Accepts a session ID (v2) — the prop name is kept for backwards compat. */
   lessonId: string;
 };
 
 export function StudentLessonResourcesList({ lessonId }: Props) {
-  const { data, isLoading, error } = useStudentLessonResources(lessonId, true);
+  const { data, isLoading, error } = useStudentSessionResources(lessonId, true);
   const items = data?.data.items || [];
 
   if (isLoading) {

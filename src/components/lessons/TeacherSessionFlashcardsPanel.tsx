@@ -80,18 +80,55 @@ export function TeacherSessionFlashcardsPanel({
     setShowAdd(false);
   };
 
-  const generateWithLeo = async () => {
-    const drafted = await busyToast.promise(generateLeo.mutateAsync({ sessionId, maxCards: 10 }), {
-      loading: "Leo is drafting flashcards…",
-      success: (rows) => `${rows.length} draft cards ready`,
-      error: (e) => (e instanceof Error ? e.message : "Generation failed"),
-    });
-    if (!drafted?.length) return;
-    await busyToast.promise(bulkMut.mutateAsync(drafted), {
-      loading: "Saving cards…",
-      success: "Flashcards saved — review before students study",
-      error: (e) => (e instanceof Error ? e.message : "Failed to save"),
-    });
+  /**
+   * Card-by-card generation: generate one card at a time, save each to the DB
+   * after it appears so the teacher sees them appearing sequentially.
+   */
+  const generateCardByCard = async (total: number) => {
+    let generated = 0;
+    for (let i = 0; i < total; i++) {
+      let drafted: Array<{ front: string; back: string }> = [];
+      try {
+        drafted = await generateLeo.mutateAsync({ sessionId, maxCards: 1 });
+      } catch {
+        break;
+      }
+      if (!drafted.length) break;
+      try {
+        await bulkMut.mutateAsync(drafted);
+        generated += 1;
+      } catch {
+        break;
+      }
+    }
+    if (generated > 0) {
+      busyToast.success(
+        `${generated} flashcard${generated === 1 ? "" : "s"} generated and saved`,
+      );
+    } else {
+      busyToast.error("Leo could not generate cards. Try again or add them manually.");
+    }
+  };
+
+  const generateWithLeo = async (mode: "one-by-one" | "bulk" = "one-by-one") => {
+    if (mode === "bulk") {
+      await busyToast.promise(
+        (async () => {
+          const drafted = await generateLeo.mutateAsync({ sessionId, maxCards: 10 });
+          if (!drafted.length) throw new Error("Leo did not return any cards.");
+          await bulkMut.mutateAsync(drafted);
+        })(),
+        {
+          loading: "Leo is generating all flashcards…",
+          success: "Flashcards saved",
+          error: (e) => (e instanceof Error ? e.message : "Generation failed"),
+        },
+      );
+    } else {
+      busyToast.show("Generating flashcards one by one…");
+      await generateCardByCard(8);
+      busyToast.hide();
+    }
   };
 
   const submitEdit = async () => {
@@ -143,21 +180,36 @@ export function TeacherSessionFlashcardsPanel({
           {canWrite && (
             <div className="flex flex-wrap gap-2">
               {leoEnabled && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void generateWithLeo()}
-                  disabled={generateLeo.isPending || bulkMut.isPending}
-                  className="border-white/10 bg-white/5 text-white/75"
-                >
-                  {generateLeo.isPending ? (
-                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="mr-1 h-4 w-4" />
-                  )}
-                  Draft with Leo
-                </Button>
+                <PremiumDropdownMenu>
+                  <PremiumDropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={generateLeo.isPending || bulkMut.isPending}
+                      className="border-violet-400/30 bg-violet-500/10 text-violet-100"
+                    >
+                      {generateLeo.isPending || bulkMut.isPending ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="mr-1 h-4 w-4" />
+                      )}
+                      Generate with Leo
+                    </Button>
+                  </PremiumDropdownMenuTrigger>
+                  <PremiumDropdownMenuContent align="end">
+                    <PremiumDropdownMenuItem
+                      onClick={() => void generateWithLeo("one-by-one")}
+                    >
+                      Card by card (watch them appear)
+                    </PremiumDropdownMenuItem>
+                    <PremiumDropdownMenuItem
+                      onClick={() => void generateWithLeo("bulk")}
+                    >
+                      Generate all at once
+                    </PremiumDropdownMenuItem>
+                  </PremiumDropdownMenuContent>
+                </PremiumDropdownMenu>
               )}
               <Button
                 type="button"
@@ -187,7 +239,7 @@ export function TeacherSessionFlashcardsPanel({
           ) : cards.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 py-10 text-center text-sm text-white/50">
               <Sparkles className="mx-auto mb-2 h-8 w-8 text-white/25" />
-              No flashcards yet. Add pairs manually or draft with Leo after you complete the session.
+              No flashcards yet. Add pairs manually or generate them with Leo.
             </div>
           ) : (
             <ul className="space-y-3">

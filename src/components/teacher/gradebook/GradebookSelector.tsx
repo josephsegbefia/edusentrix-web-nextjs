@@ -3,10 +3,21 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Layers, Users } from "lucide-react";
-import { PremiumSelect, PremiumSelectContent, PremiumSelectItem, PremiumSelectTrigger, PremiumSelectValue } from "@/components/ui/premium-select";
+import {
+  PremiumSelect,
+  PremiumSelectContent,
+  PremiumSelectItem,
+  PremiumSelectTrigger,
+  PremiumSelectValue,
+} from "@/components/ui/premium-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 export type GradebookSubjectOption = {
   id: string;
@@ -24,6 +35,14 @@ type GradebookSelectorProps = {
   classes: GradebookClassOption[];
   loading?: boolean;
 };
+
+function GradebookIconBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-teal-400/30 bg-linear-to-br from-teal-500/20 to-cyan-500/15 text-teal-200 shadow-inner shadow-white/5">
+      {children}
+    </span>
+  );
+}
 
 export function GradebookSelector({ classes, loading }: GradebookSelectorProps) {
   const router = useRouter();
@@ -62,15 +81,15 @@ export function GradebookSelector({ classes, loading }: GradebookSelectorProps) 
 
   if (loading) {
     return (
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="text-lg">Gradebook access</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="h-12 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
-            <div className="h-12 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
-            <div className="h-10 w-40 animate-pulse rounded-full border border-white/10 bg-white/5" />
+            <div className={cn(glassInsetClass, "h-12 animate-pulse rounded-2xl")} />
+            <div className={cn(glassInsetClass, "h-12 animate-pulse rounded-2xl")} />
+            <div className={cn(glassInsetClass, "h-10 w-40 animate-pulse rounded-full")} />
           </div>
         </CardContent>
       </Card>
@@ -79,18 +98,19 @@ export function GradebookSelector({ classes, loading }: GradebookSelectorProps) 
 
   if (classes.length === 0) {
     return (
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60">
+            <GradebookIconBadge>
               <BookOpen className="h-4 w-4" />
-            </span>
+            </GradebookIconBadge>
             Gradebook access
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-            You have no active class assignments yet. Ask an admin to assign you a class and subject to unlock the gradebook.
+          <div className={cn(glassInsetClass, "rounded-2xl p-4 text-sm text-white/60")}>
+            You have no active class assignments yet. Ask an admin to assign you a class and subject to
+            unlock the gradebook.
           </div>
         </CardContent>
       </Card>
@@ -99,12 +119,12 @@ export function GradebookSelector({ classes, loading }: GradebookSelectorProps) 
 
   return (
     <div className="space-y-6">
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-indigo-500/20 text-indigo-200">
+            <GradebookIconBadge>
               <Layers className="h-4 w-4" />
-            </span>
+            </GradebookIconBadge>
             Open a gradebook
           </CardTitle>
         </CardHeader>
@@ -153,15 +173,15 @@ export function GradebookSelector({ classes, loading }: GradebookSelectorProps) 
             <Button
               onClick={handleOpen}
               disabled={!selectedClassId || !selectedSubjectId}
-              className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
+              className={glassPrimaryButtonClass}
             >
               Open gradebook
             </Button>
-            {selectedClass && (
+            {selectedClass ? (
               <span className="text-xs text-white/50">
                 {subjectOptions.length} subject{subjectOptions.length !== 1 ? "s" : ""} available
               </span>
-            )}
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -174,8 +194,8 @@ export function GradebookSelector({ classes, loading }: GradebookSelectorProps) 
               type="button"
               onClick={() => router.push(`/teacher/gradebook/${group.id}/${subject.id}`)}
               className={cn(
-                "group text-left rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent p-4 transition hover:-translate-y-0.5 hover:border-white/20",
-                "shadow-lg shadow-black/20"
+                glassPanelClass,
+                "group p-4 text-left transition hover:-translate-y-0.5 hover:border-white/20"
               )}
             >
               <div className="flex items-center justify-between gap-4">

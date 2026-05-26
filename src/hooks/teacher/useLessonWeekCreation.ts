@@ -5,6 +5,26 @@ import type {
   WeekCreationContextResponse,
 } from "@/types/lessons-v2";
 
+export type WeekPlanCreateConflictDetails = {
+  code: "TIMETABLE_SLOT_CONFLICT" | "DUPLICATE_SELECTED_SLOT";
+  message: string;
+  conflictingSlotIds: string[];
+  scheduledDate?: string;
+  startTime?: string;
+  endTime?: string;
+  existingLessonTitle?: string;
+};
+
+export class LessonWeekPlanCreateError extends Error {
+  details?: WeekPlanCreateConflictDetails | null;
+
+  constructor(message: string, details?: WeekPlanCreateConflictDetails | null) {
+    super(message);
+    this.name = "LessonWeekPlanCreateError";
+    this.details = details;
+  }
+}
+
 export function useWeekCreationContext(
   noteId: string | null,
   classGroupId: string | null,
@@ -49,7 +69,10 @@ export function useCreateLessonWeekPlan() {
       });
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
-        throw new Error(json?.error || "Failed to create week plan");
+        throw new LessonWeekPlanCreateError(
+          json?.error || "Failed to create week plan",
+          json?.details ?? null,
+        );
       }
       return json as { success: true; data: { weekPlan: LessonWeekPlansListResponse["data"]["weekGroups"][0]["plans"][0] } };
     },

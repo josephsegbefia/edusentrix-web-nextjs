@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { FileText, NotebookPen, Sparkles } from "lucide-react";
+import { FileText, NotebookPen } from "lucide-react";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import { cn } from "@/lib/utils";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 export default function TeacherJournalPage() {
   const { data: classesData, isLoading } = useTeacherClasses();
@@ -70,62 +79,53 @@ export default function TeacherJournalPage() {
 
   if (!canView) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Class Journal</h1>
-          <p className="text-sm text-white/60">Journal access is currently locked.</p>
-        </div>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60">
-                <FileText className="h-4 w-4" />
-              </span>
-              Journal access required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-              Ask an admin to grant journal permissions for your account.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={FileText}
+          title="Class journal"
+          subtitle="Keep an auditable class-by-class timeline of lessons and follow-up actions."
+        />
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/70">Journal access is currently locked.</p>
+          <p className="mt-2 text-xs text-white/50">
+            Ask an admin to grant journal permissions for your account.
+          </p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-indigo-500/15 via-white/5 to-cyan-500/10 shadow-2xl shadow-black/35 backdrop-blur">
-        <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="space-y-3">
-            <Badge className="w-fit bg-white/10 text-white/80">
-              <Sparkles className="h-3.5 w-3.5" />
-              Teaching continuity
-            </Badge>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Class Journal</h1>
-              <p className="text-sm text-white/65">
-                Keep an auditable class-by-class timeline of lessons delivered, reflections, and
-                follow-up actions.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-white/10 text-white/80">{stats.totalClasses} classes</Badge>
-              <Badge className="bg-cyan-500/20 text-cyan-100">{stats.totalSubjects} subjects</Badge>
-              <Badge className="bg-indigo-500/20 text-indigo-100">{stats.totalStudents} students</Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-100">
-                {stats.homeroomClasses} homeroom
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={FileText}
+        title="Class journal"
+        subtitle="Keep an auditable class-by-class timeline of lessons delivered, reflections, and follow-up actions."
+        badge={
+          !isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {stats.totalClasses} class{stats.totalClasses === 1 ? "" : "es"}
+            </span>
+          ) : undefined
+        }
+      />
+
+      <div className="flex flex-wrap gap-2">
+        <Badge className="border border-cyan-400/20 bg-cyan-500/15 text-cyan-200">
+          {stats.totalSubjects} subjects
+        </Badge>
+        <Badge className="border border-white/10 bg-white/5 text-white/70">
+          {stats.totalStudents} students
+        </Badge>
+        <Badge className="border border-emerald-400/20 bg-emerald-500/15 text-emerald-200">
+          {stats.homeroomClasses} homeroom
+        </Badge>
+      </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, idx) => (
-            <Card key={idx} className="border border-white/10 bg-white/5 p-4">
+            <Card key={idx} className={cn(glassPanelClass, "p-4")}>
               <div className="space-y-3">
                 <Skeleton className="h-5 w-2/3" />
                 <Skeleton className="h-4 w-1/2" />
@@ -135,15 +135,20 @@ export default function TeacherJournalPage() {
           ))}
         </div>
       ) : classEntries.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
-          No classes assigned yet. Once classes are assigned, journals will show here.
-        </div>
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/60">
+            No classes assigned yet. Once classes are assigned, journals will show here.
+          </p>
+        </GlassPanel>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {classEntries.map((entry) => (
             <Card
               key={entry.id}
-              className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition hover:border-white/20"
+              className={cn(
+                glassPanelClass,
+                "transition hover:border-white/20 hover:-translate-y-0.5"
+              )}
             >
               <CardHeader>
                 <CardTitle className="flex items-start justify-between gap-3 text-lg">
@@ -159,17 +164,14 @@ export default function TeacherJournalPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
+                <div className={cn(glassInsetClass, "rounded-2xl p-4 text-sm text-white/60")}>
                   Capture what happened in class and keep your record ready for coordination and
                   reporting.
                 </div>
-                <Button
-                  asChild
-                  className="w-full bg-indigo-500/25 text-indigo-100 hover:bg-indigo-500/35"
-                >
+                <Button asChild className={cn("w-full", glassPrimaryButtonClass)}>
                   <Link href={`/teacher/journal/${entry.id}`}>
                     <NotebookPen className="h-4 w-4" />
-                    Open Journal
+                    Open journal
                   </Link>
                 </Button>
               </CardContent>
@@ -177,6 +179,6 @@ export default function TeacherJournalPage() {
           ))}
         </div>
       )}
-    </div>
+    </WorkspacePageShell>
   );
 }

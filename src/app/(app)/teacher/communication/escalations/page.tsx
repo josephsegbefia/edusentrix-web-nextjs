@@ -13,7 +13,6 @@ import {
   RefreshCcw,
   Search,
   ShieldAlert,
-  Sparkles,
   UserRound,
 } from "lucide-react";
 import {
@@ -53,6 +52,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 const NO_STUDENT_VALUE = "__no_student__";
 
@@ -89,7 +97,7 @@ const statusTone: Record<EscalationSummary["status"], string> = {
 
 const typeTone: Record<EscalationSummary["type"], string> = {
   discipline: "bg-rose-500/20 text-rose-100",
-  academic: "bg-indigo-500/20 text-indigo-100",
+  academic: "bg-teal-500/20 text-teal-100",
   welfare: "bg-cyan-500/20 text-cyan-100",
   other: "bg-white/10 text-white/70",
 };
@@ -154,7 +162,12 @@ function EscalationCard({
   const TypeIcon = typeIcon[escalation.type];
 
   return (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition hover:border-white/20">
+    <Card
+      className={cn(
+        glassPanelClass,
+        "transition hover:border-white/20 hover:-translate-y-0.5"
+      )}
+    >
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -386,63 +399,68 @@ export default function TeacherEscalationsPage() {
     await refetch();
   };
 
+  const headerActions = (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant="outline"
+        onClick={() => void refetch()}
+        className={glassSecondaryButtonClass}
+      >
+        <RefreshCcw className="h-4 w-4" />
+        Refresh
+      </Button>
+      {canEscalate ? (
+        <Button onClick={openCreateDialog} className={glassPrimaryButtonClass}>
+          <Plus className="h-4 w-4" />
+          New escalation
+        </Button>
+      ) : null}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-rose-500/15 via-white/5 to-amber-500/10 shadow-2xl shadow-black/35 backdrop-blur">
-        <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="space-y-3">
-            <Badge className="w-fit bg-white/10 text-white/80">
-              <Sparkles className="h-3.5 w-3.5" />
-              Student support workflow
-            </Badge>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Escalations</h1>
-              <p className="text-sm text-white/65">
-                Escalations are formal incident records for issues that need counselor, pastoral,
-                or school leadership follow-up beyond normal classroom handling.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-white/10 text-white/80">{stats.total} total</Badge>
-              <Badge className="bg-rose-500/20 text-rose-100">{stats.open} open</Badge>
-              <Badge className="bg-amber-500/20 text-amber-100">{stats.inReview} in review</Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-100">{stats.resolved} resolved</Badge>
-              <Badge className="bg-white/10 text-white/70">{stats.closed} closed</Badge>
-            </div>
-          </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={AlertTriangle}
+        title="Escalations"
+        subtitle="Formal incident records for issues that need counselor, pastoral, or school leadership follow-up beyond normal classroom handling."
+        badge={
+          !isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {stats.total} escalation{stats.total === 1 ? "" : "s"}
+            </span>
+          ) : undefined
+        }
+        actions={headerActions}
+      />
 
-          <div className="flex flex-col gap-2 lg:items-end">
-            <Button
-              variant="outline"
-              onClick={() => void refetch()}
-              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
-            >
-              <RefreshCcw className="h-4 w-4" />
-              Refresh
-            </Button>
-            {canEscalate ? (
-              <Button
-                onClick={openCreateDialog}
-                className="group bg-rose-500/30 text-rose-50 hover:bg-rose-500/40"
-              >
-                <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-                New escalation
-              </Button>
-            ) : (
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
-                You can view escalations, but creating and status updates are restricted.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap gap-2">
+        <Badge className="border border-rose-400/20 bg-rose-500/15 text-rose-200">
+          {stats.open} open
+        </Badge>
+        <Badge className="border border-amber-400/20 bg-amber-500/15 text-amber-200">
+          {stats.inReview} in review
+        </Badge>
+        <Badge className="border border-emerald-400/20 bg-emerald-500/15 text-emerald-200">
+          {stats.resolved} resolved
+        </Badge>
+        <Badge className="border border-white/10 bg-white/5 text-white/70">
+          {stats.closed} closed
+        </Badge>
+      </div>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      {!canEscalate && (
+        <div className={cn(glassInsetClass, "rounded-xl px-3 py-2 text-xs text-white/60")}>
+          You can view escalations, but creating and status updates are restricted.
+        </div>
+      )}
+
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="text-lg">What escalations are and how to use them</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className={cn(glassInsetClass, "p-4")}>
             <h3 className="text-sm font-semibold text-white">What an escalation is</h3>
             <p className="mt-2 text-sm text-white/65">
               Use escalations to formally document incidents such as behavior concerns, academic
@@ -450,7 +468,7 @@ export default function TeacherEscalationsPage() {
               support from school leadership.
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+          <div className={cn(glassInsetClass, "p-4")}>
             <h3 className="text-sm font-semibold text-white">How to use this page</h3>
             <ol className="mt-2 space-y-1.5 text-sm text-white/65">
               <li>1. Click `New escalation` and choose a type.</li>
@@ -462,7 +480,7 @@ export default function TeacherEscalationsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="text-lg">Filter escalations</CardTitle>
         </CardHeader>
@@ -510,7 +528,7 @@ export default function TeacherEscalationsPage() {
                 placeholder="Search title, student, description"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+                className={cn(glassInsetClass, "pl-9 text-white placeholder:text-white/35")}
               />
             </div>
           </div>
@@ -523,7 +541,7 @@ export default function TeacherEscalationsPage() {
                 setTypeFilter("all");
                 setSearchQuery("");
               }}
-              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+              className={glassSecondaryButtonClass}
             >
               Reset filters
             </Button>
@@ -534,7 +552,7 @@ export default function TeacherEscalationsPage() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <div key={idx} className={cn(glassInsetClass, "rounded-2xl p-6")}>
               <div className="space-y-3">
                 <Skeleton className="h-5 w-1/3" />
                 <Skeleton className="h-4 w-2/3" />
@@ -557,9 +575,15 @@ export default function TeacherEscalationsPage() {
           </div>
         </Card>
       ) : filteredEscalations.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
-          No escalations match your current filters.
-        </div>
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/60">No escalations match your current filters.</p>
+          {canEscalate && escalations.length === 0 ? (
+            <Button onClick={openCreateDialog} className={cn("mt-4", glassPrimaryButtonClass)}>
+              <Plus className="h-4 w-4" />
+              New escalation
+            </Button>
+          ) : null}
+        </GlassPanel>
       ) : (
         <div className="space-y-4">
           {filteredEscalations.map((escalation) => (
@@ -580,7 +604,7 @@ export default function TeacherEscalationsPage() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/65">
+            <div className={cn(glassInsetClass, "p-3 text-xs text-white/65")}>
               Describe facts clearly: what happened, who was involved, and any action already
               taken in class.
             </div>
@@ -655,7 +679,7 @@ export default function TeacherEscalationsPage() {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Short escalation summary"
-                className="border-white/10 bg-white/5 text-white"
+                className={cn(glassInsetClass, "text-white")}
               />
             </div>
 
@@ -667,7 +691,7 @@ export default function TeacherEscalationsPage() {
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="Include timeline, observed impact, and interventions already attempted."
-                className="min-h-[120px] border-white/10 bg-white/5 text-white"
+                className={cn(glassInsetClass, "min-h-[120px] text-white")}
               />
             </div>
           </div>
@@ -676,20 +700,20 @@ export default function TeacherEscalationsPage() {
             <Button
               variant="outline"
               onClick={() => setCreateOpen(false)}
-              className="border-white/10 text-white/60"
+              className={glassSecondaryButtonClass}
             >
               Cancel
             </Button>
             <Button
               onClick={() => void handleCreate()}
               disabled={!canEscalate}
-              className="bg-rose-500/30 text-rose-50 hover:bg-rose-500/40"
+              className={glassPrimaryButtonClass}
             >
               Log escalation
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </WorkspacePageShell>
   );
 }

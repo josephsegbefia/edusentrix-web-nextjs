@@ -11,10 +11,13 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { gateLessonsFeature, gateLessonsModule } from "@/lib/lessons/lesson-gates";
 import { Lesson, type ILesson } from "@/models/Lesson";
 import { LessonNote, type ILessonNote } from "@/models/LessonNote";
+import { SchemeItem } from "@/models/SchemeItem";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
 import { Subject } from "@/models/Subject";
 import { SubjectOffering } from "@/models/SubjectOffering";
+
+const MAX_SCHEME_CONTEXT_CHARS = 4_000;
 
 export const LESSONS_LEO_DISCLAIMER =
   "Leo output is a draft for teacher review only. Nothing is published to students automatically.";
@@ -124,6 +127,68 @@ export async function findLessonWithNoteForTeacher(
 }
 
 /**
+ * Fetch scheme items linked to a note and return a compact context string for AI prompts.
+ * Returns an empty string when no scheme link exists or items are not found.
+ */
+export async function buildSchemeItemsContext(note: ILessonNote): Promise<string> {
+  const itemIds = note.schemeItemIds;
+  if (!itemIds || itemIds.length === 0) return "";
+  const items = await SchemeItem.find({
+    _id: { $in: itemIds },
+    schoolId: note.schoolId,
+  })
+    .select(
+      "topic subtopic strand subStrand contentStandard indicator learningObjectives assessmentIdeas teachingLearningActivities teachingResources notes",
+    )
+    .lean<
+      Array<{
+        topic?: string | null;
+        subtopic?: string | null;
+        strand?: string | null;
+        subStrand?: string | null;
+        contentStandard?: string | null;
+        indicator?: string | null;
+        learningObjectives?: string[];
+        assessmentIdeas?: string[];
+        teachingLearningActivities?: string | null;
+        teachingResources?: string[];
+        notes?: string | null;
+      }>
+    >();
+  if (items.length === 0) return "";
+  const text = items
+    .map((item, i) => {
+      const lines = [
+        `Scheme item ${i + 1}:`,
+        item.strand && `  Strand: ${item.strand}`,
+        item.subStrand && `  Sub-strand: ${item.subStrand}`,
+        item.topic && `  Topic: ${item.topic}`,
+        item.subtopic && `  Subtopic: ${item.subtopic}`,
+        item.contentStandard && `  Content standard: ${item.contentStandard}`,
+        item.indicator && `  Indicator: ${item.indicator}`,
+        item.learningObjectives?.length &&
+          `  Objectives: ${item.learningObjectives.join("; ")}`,
+        item.teachingLearningActivities &&
+          `  Teaching & learning activities: ${item.teachingLearningActivities}`,
+        item.teachingResources?.length &&
+          `  Teaching resources: ${item.teachingResources.join(", ")}`,
+        item.assessmentIdeas?.length &&
+          `  Assessment ideas: ${item.assessmentIdeas.join("; ")}`,
+        item.notes && `  Notes: ${item.notes}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      return lines;
+    })
+    .join("\n\n");
+  let out = `Linked scheme of learning items:\n${text}`;
+  if (out.length > MAX_SCHEME_CONTEXT_CHARS) {
+    out = out.slice(0, MAX_SCHEME_CONTEXT_CHARS) + "\n...(truncated)";
+  }
+  return out;
+}
+
+/**
  * Serialize note fields safe for model input (reflection omitted — often post-lesson / private).
  */
 export function lessonNoteToLeoContext(note: ILessonNote): string {
@@ -204,6 +269,8 @@ export async function runLessonsLeoCompletion(args: {
   systemInstruction: string;
   userPrompt: string;
   maxTokens?: number;
+  /** Override model. Defaults to "gpt-4o-mini". Use "gpt-4o" for deep content generation. */
+  model?: "gpt-4o-mini" | "gpt-4o";
 }): Promise<
   | {
       ok: true;
@@ -220,7 +287,7 @@ export async function runLessonsLeoCompletion(args: {
   let completion;
   try {
     completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: args.model ?? "gpt-4o-mini",
       messages: [
         {
           role: "system",

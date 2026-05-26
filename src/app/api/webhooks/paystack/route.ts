@@ -37,6 +37,14 @@ import {
 import { PaymentIntent } from "@/models/PaymentIntent";
 import { StoreOrder } from "@/models/StoreOrder";
 import { SchoolDisbursement } from "@/models/SchoolDisbursement";
+import { AcademicPeriod } from "@/models/AcademicPeriod";
+import { AuditEvent } from "@/models/AuditEvent";
+import { Notification } from "@/models/Notification";
+import { LearnPaymentIntent } from "@/models/LearnPaymentIntent";
+import {
+  fulfillLearnPaymentSuccess,
+  markLearnPaymentFailed,
+} from "@/lib/learn/fulfill-learn-payment";
 import { writeTransactionalAuditEvent } from "@/lib/audit/writeTransactionalAuditEvent";
 import {
   buildPaystackWebhookAuditContext,
@@ -75,6 +83,8 @@ interface PaystackEvent {
       tierId?: string;
       storeOrderId?: string;
       parentUserId?: string;
+      accountId?: string;
+      academicPeriodId?: string | null;
       admissionApplicationId?: string;
       admissionCycleId?: string;
       edusentrixTransactionFeeMinor?: number | string | null;
@@ -154,6 +164,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ received: true });
       }
       if (
+        metadata?.type === "learn_access" &&
+        metadata?.paymentIntentId &&
+        metadata?.studentId &&
+        metadata?.schoolId
+      ) {
+        await handleLearnAccessSuccess(event);
+        return NextResponse.json({ received: true });
+      }
+      if (
         metadata?.type === "admissions_fee" &&
         metadata?.admissionApplicationId
       ) {
@@ -174,6 +193,13 @@ export async function POST(req: NextRequest) {
         metadata?.admissionApplicationId
       ) {
         await handleAdmissionsFeeFailure(event);
+        return NextResponse.json({ received: true });
+      }
+      if (
+        metadata?.type === "learn_access" &&
+        metadata?.paymentIntentId
+      ) {
+        await handleLearnAccessFailure(event);
         return NextResponse.json({ received: true });
       }
     }
@@ -198,6 +224,45 @@ export async function POST(req: NextRequest) {
 // ============================================================================
 // Event Handlers
 // ============================================================================
+
+async function handleLearnAccessSuccess(event: PaystackEvent) {
+  const { data } = event;
+  const { reference, status } = data;
+  if (status !== "success" || !reference) return;
+
+  const outcome = await fulfillLearnPaymentSuccess({
+    reference,
+    verification: {
+      id: data.id,
+      reference,
+      status: data.status,
+      amount: data.amount,
+      currency: data.currency,
+      channel: data.channel,
+      paid_at: data.paid_at ?? null,
+      metadata: data.metadata ?? null,
+    },
+    actorType: "webhook",
+  });
+
+  if (!outcome.ok) {
+    console.error("Paystack webhook: Learn fulfillment failed", {
+      reference,
+      message: outcome.message,
+    });
+  }
+}
+
+async function handleLearnAccessFailure(event: PaystackEvent) {
+  const paymentIntentId = event.data.metadata?.paymentIntentId;
+  if (!paymentIntentId || !mongoose.Types.ObjectId.isValid(paymentIntentId)) return;
+
+  await markLearnPaymentFailed({
+    paymentIntentId: new mongoose.Types.ObjectId(paymentIntentId),
+    reference: event.data.reference,
+    failureReason: event.data.gateway_response || "Paystack charge failed.",
+  });
+}
 
 async function handleFeePaymentSuccess(event: PaystackEvent, req: NextRequest) {
   const { data } = event;

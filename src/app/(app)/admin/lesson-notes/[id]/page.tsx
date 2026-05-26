@@ -3,7 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, CheckCheck, Loader2, RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CheckCheck, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import {
+  LessonNoteDeleteDialog,
+  type LessonNoteDeleteTarget,
+} from "@/components/teacher/lesson-notes/LessonNoteDeleteDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/useToast";
@@ -17,9 +22,11 @@ import { ApprovalActionsPanel } from "@/components/teacher/lesson-notes/Approval
 import type { LessonNoteStatus } from "@/types/lesson-notes";
 
 export default function AdminLessonNoteDetailPage() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const toast = useToast();
   const noteId = typeof params?.id === "string" ? params.id : null;
+  const [deleteTarget, setDeleteTarget] = React.useState<LessonNoteDeleteTarget | null>(null);
   const { data, isLoading, error, refetch } = useAdminLessonNote(noteId);
   const updateComment = useUpdateAdminLessonNoteComment();
 
@@ -100,6 +107,28 @@ export default function AdminLessonNoteDetailPage() {
             Back to inbox
           </Link>
         </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            setDeleteTarget({
+              id: note.id,
+              topic: note.topic,
+              className: note.className,
+              subjectName: note.subjectName,
+              teacherName: note.teacherName,
+              weekLabel: note.weekOf
+                ? `Week of ${new Date(note.weekOf).toLocaleDateString("en-GB")}`
+                : null,
+              status: note.status as LessonNoteStatus,
+            })
+          }
+          className="border-rose-500/30 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Remove note
+        </Button>
       </div>
 
       <LessonNoteReadonlyView
@@ -140,7 +169,16 @@ export default function AdminLessonNoteDetailPage() {
         }
         renderSectionFooter={(section) => (
           <AdminReviewCommentComposer noteId={note.id} section={section} />
-        )}
+        )        }
+      />
+
+      <LessonNoteDeleteDialog
+        mode="admin"
+        target={deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        onDeleted={() => router.push("/admin/lesson-notes")}
       />
     </div>
   );

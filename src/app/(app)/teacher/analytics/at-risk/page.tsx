@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { RefreshCw, Search } from "lucide-react";
+import { AlertTriangle, RefreshCw, Search } from "lucide-react";
 import { useTeacherAtRisk } from "@/hooks/teacher/useTeacherAtRisk";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import { useBusyToast } from "@/hooks/useBusyToast";
@@ -17,7 +16,15 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
 import { cn } from "@/lib/utils";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 function formatMetric(value?: number | null) {
   if (value === null || value === undefined) return "—";
@@ -48,6 +55,8 @@ export default function TeacherAtRiskPage() {
   });
 
   const refreshing = atRiskQuery.isFetching;
+  const allStudents = atRiskQuery.data?.data.students || [];
+  const totalCount = atRiskQuery.data?.data.total ?? allStudents.length;
 
   const handleRefresh = React.useCallback(async () => {
     await busyToast.promise(atRiskQuery.refetch(), {
@@ -57,7 +66,7 @@ export default function TeacherAtRiskPage() {
     });
   }, [busyToast, atRiskQuery]);
 
-  const students = (atRiskQuery.data?.data.students || []).filter((student) => {
+  const students = allStudents.filter((student) => {
     if (!search.trim()) return true;
     const query = search.toLowerCase();
     return (
@@ -66,75 +75,102 @@ export default function TeacherAtRiskPage() {
     );
   });
 
+  const stats = React.useMemo(() => {
+    const high = allStudents.filter((student) => student.riskLevel === "high").length;
+    const medium = allStudents.filter((student) => student.riskLevel === "medium").length;
+    return { high, medium };
+  }, [allStudents]);
+
+  const refreshAction = (
+    <Button
+      onClick={handleRefresh}
+      variant="outline"
+      className={glassSecondaryButtonClass}
+      disabled={refreshing}
+    >
+      <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+      Refresh
+    </Button>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Students At Risk</h1>
-          <p className="text-sm text-white/60">
-            Identify learners who need extra support based on attendance, submissions, and scores.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-            disabled={refreshing}
-          >
-            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-            Refresh
-          </Button>
-          <Button
-            asChild
-            className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
-          >
-            <Link href="/teacher/analytics">Back to Analytics</Link>
-          </Button>
-        </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={AlertTriangle}
+        title="Students at risk"
+        subtitle="Identify learners who need extra support based on attendance, submissions, and scores."
+        backHref="/teacher/analytics"
+        backLabel="Back to analytics"
+        badge={
+          !atRiskQuery.isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {totalCount} student{totalCount === 1 ? "" : "s"}
+            </span>
+          ) : undefined
+        }
+        actions={refreshAction}
+      />
+
+      <div className="flex flex-wrap gap-2">
+        <Badge className="border border-rose-400/20 bg-rose-500/15 text-rose-200">
+          {stats.high} high risk
+        </Badge>
+        <Badge className="border border-amber-400/20 bg-amber-500/15 text-amber-200">
+          {stats.medium} medium risk
+        </Badge>
+        {search.trim() ? (
+          <Badge className="border border-white/10 bg-white/5 text-white/70">
+            {students.length} shown
+          </Badge>
+        ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
-        <PremiumSelect value={selectedClassId} onValueChange={setSelectedClassId}>
-          <PremiumSelectTrigger>
-            <PremiumSelectValue placeholder="All classes" />
-          </PremiumSelectTrigger>
-          <PremiumSelectContent>
-            <PremiumSelectItem value="all">All classes</PremiumSelectItem>
-            {classOptions.map((item) => (
-              <PremiumSelectItem key={item.id} value={item.id}>
-                {item.name}
-              </PremiumSelectItem>
-            ))}
-          </PremiumSelectContent>
-        </PremiumSelect>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-white/40" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by name or ID"
-            className="border-white/10 bg-white/5 pl-9 text-white"
-          />
+      <Card className={cn(glassPanelClass, "p-4")}>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+          <PremiumSelect value={selectedClassId} onValueChange={setSelectedClassId}>
+            <PremiumSelectTrigger>
+              <PremiumSelectValue placeholder="All classes" />
+            </PremiumSelectTrigger>
+            <PremiumSelectContent>
+              <PremiumSelectItem value="all">All classes</PremiumSelectItem>
+              {classOptions.map((item) => (
+                <PremiumSelectItem key={item.id} value={item.id}>
+                  {item.name}
+                </PremiumSelectItem>
+              ))}
+            </PremiumSelectContent>
+          </PremiumSelect>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name or ID"
+              className={cn(glassInsetClass, "pl-9 text-white placeholder:text-white/35")}
+            />
+          </div>
         </div>
-      </div>
+      </Card>
 
       {atRiskQuery.isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+            <div key={idx} className={cn(glassInsetClass, "h-24 animate-pulse rounded-2xl")} />
           ))}
         </div>
       ) : students.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
-          No at-risk students found for the current filters.
-        </div>
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/60">No at-risk students found for the current filters.</p>
+        </GlassPanel>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {students.map((student) => (
             <Card
               key={student.id}
-              className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur"
+              className={cn(
+                glassPanelClass,
+                "transition hover:border-white/20 hover:-translate-y-0.5"
+              )}
             >
               <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -163,27 +199,27 @@ export default function TeacherAtRiskPage() {
                     <Badge className="bg-amber-500/20 text-amber-200">Submissions</Badge>
                   )}
                   {student.flags.score && (
-                    <Badge className="bg-indigo-500/20 text-indigo-200">Scores</Badge>
+                    <Badge className="bg-teal-500/20 text-teal-200">Scores</Badge>
                   )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 text-xs text-white/70">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className={cn(glassInsetClass, "p-3")}>
                     <div className="text-[10px] uppercase text-white/40">Attendance</div>
                     <div className="mt-1 text-sm text-white">{formatMetric(student.attendanceRate)}</div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className={cn(glassInsetClass, "p-3")}>
                     <div className="text-[10px] uppercase text-white/40">Submissions</div>
                     <div className="mt-1 text-sm text-white">{formatMetric(student.submissionRate)}</div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                  <div className={cn(glassInsetClass, "p-3")}>
                     <div className="text-[10px] uppercase text-white/40">Average Score</div>
                     <div className="mt-1 text-sm text-white">{formatMetric(student.averageScore)}</div>
                   </div>
                 </div>
 
                 {student.reasons.length > 0 && (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/60">
+                  <div className={cn(glassInsetClass, "p-3 text-xs text-white/60")}>
                     {student.reasons.join(" · ")}
                   </div>
                 )}
@@ -192,6 +228,6 @@ export default function TeacherAtRiskPage() {
           ))}
         </div>
       )}
-    </div>
+    </WorkspacePageShell>
   );
 }

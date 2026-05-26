@@ -91,6 +91,7 @@ export type LessonSessionDetailDto = LessonWeekPlanSessionDto & {
 export type CreateWeekPlanSessionInput = {
   timetableSlotId: string;
   timetableSlotIds?: string[];
+  scheduledDate?: string;
   title: string;
   include?: boolean;
   noteSectionKeys?: string[];
@@ -160,6 +161,8 @@ export type WeekCreationContextResponse = {
     canCreate: boolean;
     blockReason: string | null;
     allocatableNoteSectionKeys: string[];
+    /** Scheme item IDs linked to the lesson note — used to pre-seed sessions. */
+    noteSchemeItemIds: string[];
     enableLeoLessonTools: boolean;
     requireTeacherReviewForAiContent: boolean;
   };

@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
 import {
@@ -14,9 +13,11 @@ import {
   readSessionStudioSeed,
   clearSessionStudioSeed,
 } from "@/lib/lessons/session-studio-seed-storage";
-import { Button } from "@/components/ui/button";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
 
 export default function TeacherQuizCreatePage() {
   const router = useRouter();
@@ -26,7 +27,6 @@ export default function TeacherQuizCreatePage() {
   const permissions = contextData?.data.permissions as Permission[] | undefined;
   const canCreate = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPublish = can(permissions, PERMISSIONS.assignmentsPublish);
-  const lessonId = searchParams.get("lessonId");
   const sessionId = searchParams.get("sessionId");
   const useStoredSeed = searchParams.get("seed") === "stored";
   const [seedValues, setSeedValues] = React.useState<Partial<AssignmentFormValues> | null>(null);
@@ -49,25 +49,20 @@ export default function TeacherQuizCreatePage() {
           maxScore: stored.maxScore,
           questions: stored.questions ?? [],
         });
-        setSeedSource(stored.questions?.length ? "content" : "none");
         clearSessionStudioSeed(sessionId);
       }
       return;
     }
 
-    if (!lessonId && !sessionId) {
+    if (!sessionId) {
       setSeedValues(null);
       setSeedSource(null);
       return;
     }
 
     setIsLoadingSeed(true);
-    const seedUrl = sessionId
-      ? `/api/teacher/lesson-sessions/${sessionId}/assignment-seed?type=quiz`
-      : `/api/teacher/lessons/${lessonId}/assignment-seed?type=quiz`;
-    void fetch(seedUrl, {
-      cache: "no-store",
-    })
+    const seedUrl = `/api/teacher/lesson-sessions/${sessionId}/assignment-seed?type=quiz`;
+    void fetch(seedUrl, { cache: "no-store" })
       .then(async (res) => {
         const json = (await res.json().catch(() => null)) as
           | {
@@ -84,6 +79,7 @@ export default function TeacherQuizCreatePage() {
             }
           | { success: false; error?: string }
           | null;
+
         if (!res.ok || !json || !json.success) {
           throw new Error(
             json && "error" in json && typeof json.error === "string"
@@ -95,6 +91,7 @@ export default function TeacherQuizCreatePage() {
         setSeedValues({
           title: json.data.title,
           instructions: json.data.instructions,
+          type: "quiz",
           subjectId: json.data.subjectId || "",
           classGroupIds: json.data.classGroupIds,
           maxScore: json.data.maxScore,
@@ -113,13 +110,15 @@ export default function TeacherQuizCreatePage() {
     return () => {
       ignore = true;
     };
-  }, [lessonId, sessionId, useStoredSeed, busyToast]);
+  }, [sessionId, useStoredSeed, busyToast]);
 
   if (!canCreate) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/70">
-        You do not have permission to create quizzes.
-      </div>
+      <WorkspacePageShell>
+        <GlassPanel className="p-8 text-center">
+          <p className="text-white/70">You do not have permission to create quizzes.</p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
@@ -141,12 +140,13 @@ export default function TeacherQuizCreatePage() {
       instructions: values.instructions,
       type: "quiz" as const,
       subjectId: values.subjectId,
-      sourceLessonId: lessonId || undefined,
       sourceSessionId: sessionId || undefined,
       classGroupIds: values.classGroupIds,
       dueDate: values.dueDate.toISOString(),
+      latePolicy: values.latePolicy,
+      latePenaltyPercent: values.latePenaltyPercent ?? undefined,
       maxScore: values.maxScore,
-      quizTimeLimitMinutes: values.quizTimeLimitMinutes ?? null,
+      quizTimeLimitMinutes: values.quizTimeLimitMinutes ?? undefined,
       weight: values.weight ?? undefined,
       rubricId: values.rubricId ?? undefined,
       attachments: values.attachments,
@@ -178,23 +178,14 @@ export default function TeacherQuizCreatePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Button
-          asChild
-          variant="outline"
-          className="mb-3 border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-        >
-          <Link href="/teacher/studio/quizzes">
-            <ArrowLeft className="h-4 w-4" />
-            Back to quizzes
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-semibold text-white">Create Quiz</h1>
-        <p className="text-sm text-white/60">
-          Build a quiz and publish when you are ready.
-        </p>
-      </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={HelpCircle}
+        title="Create quiz"
+        subtitle="Build a quiz and publish when you are ready."
+        backHref="/teacher/studio/quizzes"
+        backLabel="Back to quizzes"
+      />
       <AssignmentBuilder
         initialValues={{ type: "quiz", ...(seedValues ?? {}) }}
         onSubmit={handleSubmit}
@@ -205,15 +196,15 @@ export default function TeacherQuizCreatePage() {
       {isLoadingSeed ? (
         <p className="text-xs text-white/50">Prefilling from lesson...</p>
       ) : null}
-      {!isLoadingSeed && lessonId && seedSource ? (
+      {!isLoadingSeed && sessionId && seedSource ? (
         <p className="text-xs text-white/45">
           {seedSource === "flashcards"
-            ? "Starter quiz questions loaded from this lesson's flashcards."
+            ? "Starter quiz questions loaded from this session's flashcards."
             : seedSource === "assessment"
-              ? "Starter quiz questions loaded from this lesson's assessment content."
+              ? "Starter quiz questions loaded from this session's assessment content."
               : "No auto-generated starter questions found; quiz starts blank."}
         </p>
       ) : null}
-    </div>
+    </WorkspacePageShell>
   );
 }

@@ -130,8 +130,33 @@ export function TeacherSchemeReadOnlyView({ schemeId }: TeacherSchemeReadOnlyVie
                       {item.subStrand ? <p>{item.subStrand}</p> : null}
                     </div>
                   </div>
-                  {item.teachingResources.length || item.assessmentIdeas.length || item.notes ? (
-                    <div className="mt-4 grid gap-3 border-t border-white/10 pt-3 text-sm md:grid-cols-3">
+                  {item.contentStandard ? (
+                    <p className="mt-2 text-sm text-white/55">
+                      <span className="text-white/40">Content standard: </span>
+                      {item.contentStandard}
+                    </p>
+                  ) : null}
+                  {item.indicator ? (
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-white/55">
+                      <span className="text-white/40">Indicators: </span>
+                      {item.indicator}
+                    </p>
+                  ) : null}
+                  {item.teachingLearningActivities ||
+                  item.teachingResources.length ||
+                  item.assessmentIdeas.length ||
+                  item.notes ? (
+                    <div className="mt-4 grid gap-3 border-t border-white/10 pt-3 text-sm md:grid-cols-2 lg:grid-cols-4">
+                      {item.teachingLearningActivities ? (
+                        <div className="md:col-span-2">
+                          <p className="text-xs uppercase tracking-wide text-white/40">
+                            Teaching &amp; learning activities
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap text-white/65">
+                            {item.teachingLearningActivities}
+                          </p>
+                        </div>
+                      ) : null}
                       {item.teachingResources.length ? (
                         <div>
                           <p className="text-xs uppercase tracking-wide text-white/40">Resources</p>

@@ -40,8 +40,8 @@ export async function POST(
 
     const attachments = parsed.data.includeGeneratedFile && proposal.pdfDataBase64
       ? [{
-          name: proposal.pdfFileName || "proposal.html",
-          mimeType: "text/html",
+          name: proposal.pdfFileName?.replace(/\.html?$/i, ".pdf") || "proposal.pdf",
+          mimeType: "application/pdf",
           contentBase64: proposal.pdfDataBase64,
         }]
       : undefined;

@@ -20,10 +20,11 @@ export async function GET(
     return NextResponse.json({ success: false, error: "Generate the proposal file first" }, { status: 404 });
   }
   const buffer = Buffer.from(proposal.pdfDataBase64, "base64");
+  const filename = (proposal.pdfFileName || "proposal.pdf").replace(/\.html?$/i, ".pdf");
   return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${proposal.pdfFileName || "proposal.html"}"`,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }

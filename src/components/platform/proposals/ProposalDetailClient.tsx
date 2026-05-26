@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Check, Eye, Loader2, Save, Send, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, Check, Eye, Loader2, MessageSquareQuote, Save, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,10 +16,22 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
-import { RichTextEditor, extractPlainText } from "@/components/ui/rich-text-editor";
+// TipTap v3 + Turbopack can cause "Maximum call stack size exceeded" during
+// module initialisation. Lazy-loading with ssr:false defers TipTap entirely
+// to the client bundle and avoids the Turbopack resolver collision.
+//
+// No `loading:` callback — providing one renders a <div> on the client during
+// initial hydration while the server rendered null, shifting React's useId
+// counter and causing aria-controls mismatches on all downstream Radix
+// Select components. Without it, both sides render null initially.
+const RichTextEditor = dynamic(
+  () => import("@/components/ui/rich-text-editor").then((m) => ({ default: m.RichTextEditor })),
+  { ssr: false },
+);
 import { PlatformPill, PlatformSection, formatDate, formatTimestamp } from "@/components/platform/platform-page-primitives";
 import { ProposalStatusBadge } from "@/components/platform/proposals/ProposalStatusBadge";
 import type { PlatformProposal, ProposalActivity, ProposalSendLog } from "@/components/platform/proposals/types";
+import { ProposalSendPanel } from "@/components/platform/proposals/ProposalSendPanel";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
@@ -32,17 +45,21 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
   const router = useRouter();
   const [proposal, setProposal] = React.useState(initialData.proposal);
   const [activities, setActivities] = React.useState(initialData.activities);
+  const [sendLogs, setSendLogs] = React.useState(initialData.sendLogs);
   const [saving, setSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [leoLoading, setLeoLoading] = React.useState(false);
   const [leoInstruction, setLeoInstruction] = React.useState("");
   const [activeSectionKey, setActiveSectionKey] = React.useState(proposal.sections[0]?.key || "");
+  const [loggingReply, setLoggingReply] = React.useState(false);
+  const [replyNote, setReplyNote] = React.useState("");
+  const [showReplyLog, setShowReplyLog] = React.useState(false);
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const activeSection = proposal.sections.find((section) => section.key === activeSectionKey) || proposal.sections[0];
 
   function hasSectionContent(content: string) {
-    return extractPlainText(content).length > 0;
+    return content.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim().length > 0;
   }
 
   function updateProposal(patch: Partial<PlatformProposal>) {
@@ -99,6 +116,34 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
     const res = await fetch(`/api/platform/proposals/${proposal.id}/activity`, { cache: "no-store" });
     const json = await res.json().catch(() => null);
     if (res.ok && json?.success) setActivities(json.data.activities);
+  }
+
+  async function logReply() {
+    if (!replyNote.trim()) {
+      toast.error("Add a note describing the reply before logging it.");
+      return;
+    }
+    setLoggingReply(true);
+    try {
+      const res = await fetch(`/api/platform/proposals/${proposal.id}/log-reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: replyNote.trim() }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) throw new Error(json?.error || "Could not log reply");
+      toast.success("Reply logged");
+      setReplyNote("");
+      setShowReplyLog(false);
+      await refreshActivity();
+      if (proposal.status === "sent") {
+        setProposal((prev) => ({ ...prev, status: "followed_up" }));
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not log reply");
+    } finally {
+      setLoggingReply(false);
+    }
   }
 
   async function generateSectionWithLeo() {
@@ -301,7 +346,69 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
         </PlatformSection>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
+        {/* Send panel — primary action */}
+        <ProposalSendPanel
+          proposal={proposal}
+          sendLogs={sendLogs}
+          onSent={(log) => {
+            setSendLogs((prev) => [log, ...prev]);
+            setProposal((prev) => ({
+              ...prev,
+              status: "sent",
+              sentAt: log.sentAt,
+            }));
+            void refreshActivity();
+          }}
+        />
+
+        {/* Log a reply */}
+        <div className="rounded-2xl border border-white/10 bg-white/3">
+          <button
+            type="button"
+            onClick={() => setShowReplyLog((v) => !v)}
+            className="flex w-full items-center gap-3 px-4 py-3 text-left"
+          >
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/15">
+              <MessageSquareQuote className="h-3.5 w-3.5 text-violet-300" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">Log a reply</p>
+              <p className="text-xs text-white/45">Record a reply or response you received from this school.</p>
+            </div>
+          </button>
+          {showReplyLog && (
+            <div className="space-y-3 border-t border-white/10 px-4 pb-4 pt-3">
+              <Textarea
+                value={replyNote}
+                onChange={(e) => setReplyNote(e.target.value)}
+                placeholder="e.g. Principal Mensah called back — interested, requested pricing breakdown for 450 students"
+                className="min-h-24 border-white/10 bg-white/5 text-white placeholder:text-white/30"
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowReplyLog(false)}
+                  className="border-white/10 bg-white/5 text-white/60"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => void logReply()}
+                  disabled={loggingReply || !replyNote.trim()}
+                  className="bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 disabled:opacity-50"
+                >
+                  {loggingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquareQuote className="h-4 w-4" />}
+                  {loggingReply ? "Logging…" : "Log reply"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Status */}
         <PlatformSection title="Status" description="Pipeline and document readiness.">
           <div className="space-y-3">
             <ProposalStatusBadge status={proposal.status} />
@@ -334,6 +441,7 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
           </div>
         </PlatformSection>
 
+        {/* Follow-up */}
         <PlatformSection title="Follow-up" description="Keep sales motion visible.">
           <div className="space-y-3">
             <CustomDatePicker
@@ -345,34 +453,19 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
           </div>
         </PlatformSection>
 
+        {/* Activity */}
         <PlatformSection title="Activity" description="Recent proposal history.">
-          <div className="space-y-3">
-            {activities.slice(0, 8).map((activity) => (
-              <div key={activity.id} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
-                <div className="flex items-center gap-2 text-white">
-                  <CalendarDays className="h-4 w-4 text-cyan-200" />
-                  {activity.message}
-                </div>
-                <div className="mt-1 text-xs text-white/45">{formatTimestamp(activity.createdAt)}</div>
-              </div>
-            ))}
-          </div>
-        </PlatformSection>
-
-        <PlatformSection title="Send logs" description="Email delivery attempts.">
           <div className="space-y-2">
-            {initialData.sendLogs.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/50">
-                No send logs yet.
-              </div>
+            {activities.length === 0 ? (
+              <p className="text-sm text-white/40">No activity yet.</p>
             ) : (
-              initialData.sendLogs.map((log) => (
-                <div key={log.id} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/65">
-                  <div className="flex items-center gap-2 text-white">
-                    <Send className="h-4 w-4 text-emerald-200" />
-                    {log.recipientEmail}
+              activities.slice(0, 12).map((activity) => (
+                <div key={activity.id} className="rounded-xl border border-white/8 bg-white/3 px-3 py-2.5 text-sm">
+                  <div className="flex items-start gap-2 text-white/80">
+                    <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300/70" />
+                    <span className="leading-snug">{activity.message}</span>
                   </div>
-                  <div className="mt-1 text-xs text-white/45">{log.status} · {formatTimestamp(log.createdAt)}</div>
+                  <div className="mt-1 pl-5.5 text-xs text-white/35">{formatTimestamp(activity.createdAt)}</div>
                 </div>
               ))
             )}

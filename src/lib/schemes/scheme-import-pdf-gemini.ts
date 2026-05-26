@@ -9,12 +9,14 @@ import {
 } from "@/lib/schemes/scheme-import-pdf-map-rows";
 import {
   buildSchemePdfUserPrompt,
-  clipPdfTextForExtraction,
+  chunkPdfText,
   SCHEME_PDF_EXTRACTION_SYSTEM_PROMPT,
+  SCHEME_PDF_MAX_INPUT_CHARS,
 } from "@/lib/schemes/scheme-import-pdf-prompt";
 
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const REQUEST_TIMEOUT_MS = 120_000;
+const GEMINI_RETRY_DELAYS_MS = [0, 8_000, 20_000, 40_000, 60_000];
 
 export function getGeminiApiKey(): string | null {
   const key =
@@ -54,8 +56,8 @@ async function callGeminiGenerateContent(args: {
       systemInstruction: { parts: [{ text: args.systemPrompt }] },
       contents: [{ role: "user", parts: [{ text: args.userPrompt }] }],
       generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 4096,
+        temperature: 0.1,
+        maxOutputTokens: 16384,
         responseMimeType: "application/json",
       },
     }),
@@ -93,73 +95,144 @@ async function callGeminiGenerateContent(args: {
   return { text, totalTokens };
 }
 
+type SchemeRow = ReturnType<typeof parseSchemeRowsFromModelJson>[number];
+
+function deduplicateChunkRows(rows: SchemeRow[]): SchemeRow[] {
+  const seenWeekNumbers = new Set<number>();
+  const result: SchemeRow[] = [];
+  for (const row of rows) {
+    if (row.weekNumber != null) {
+      if (seenWeekNumbers.has(row.weekNumber)) continue;
+      seenWeekNumbers.add(row.weekNumber);
+    }
+    result.push(row);
+  }
+  return result;
+}
+
 export async function extractSchemeRowsWithGeminiFromPdfText(args: {
   rawText: string;
   schoolId: mongoose.Types.ObjectId;
-}): Promise<{ ok: true; rows: ReturnType<typeof parseSchemeRowsFromModelJson> } | { ok: false; error: string }> {
+}): Promise<{ ok: true; rows: SchemeRow[] } | { ok: false; error: string }> {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
     return { ok: false, error: "Gemini is not configured (missing GEMINI_API_KEY or GOOGLE_AI_API_KEY)" };
   }
 
-  const clipped = clipPdfTextForExtraction(args.rawText);
-  if (!clipped.trim()) {
+  const rawText = args.rawText.trim();
+  if (!rawText) {
     return { ok: false, error: "No extractable text from PDF (try a text-based PDF, not a scan)" };
   }
 
-  const userPrompt = buildSchemePdfUserPrompt(clipped);
-  let lastError = "Gemini request failed";
+  const chunks =
+    rawText.length <= SCHEME_PDF_MAX_INPUT_CHARS
+      ? [rawText]
+      : chunkPdfText(rawText);
 
-  try {
-    const result = await callGeminiGenerateContent({
-      apiKey,
-      systemPrompt: SCHEME_PDF_EXTRACTION_SYSTEM_PROMPT,
-      userPrompt,
-    });
+  console.log(`[scheme-import] Gemini processing PDF with ${chunks.length} chunk(s), total chars: ${rawText.length}`);
 
-    let parsedJson: unknown;
-    try {
-      parsedJson = parseJsonFromModelText(result.text);
-    } catch {
-      return { ok: false, error: "Invalid JSON from Gemini" };
+  const allRows: SchemeRow[] = [];
+  let totalTokensUsed = 0;
+  let firstChunkError: string | null = null;
+
+  for (let i = 0; i < chunks.length; i++) {
+    let chunkSuccess = false;
+
+    for (let attempt = 0; attempt < GEMINI_RETRY_DELAYS_MS.length; attempt++) {
+      if (GEMINI_RETRY_DELAYS_MS[attempt] > 0) {
+        console.info("[scheme-import] Gemini retry wait", {
+          chunk: i,
+          attempt,
+          waitMs: GEMINI_RETRY_DELAYS_MS[attempt],
+        });
+        await new Promise((resolve) => setTimeout(resolve, GEMINI_RETRY_DELAYS_MS[attempt]));
+      }
+
+      try {
+        const result = await callGeminiGenerateContent({
+          apiKey,
+          systemPrompt: SCHEME_PDF_EXTRACTION_SYSTEM_PROMPT,
+          userPrompt: buildSchemePdfUserPrompt(chunks[i], i, chunks.length),
+        });
+
+        let parsedJson: unknown;
+        try {
+          parsedJson = parseJsonFromModelText(result.text);
+        } catch {
+          if (i === 0) firstChunkError = "Invalid JSON from Gemini";
+          break;
+        }
+
+        allRows.push(...parseSchemeRowsFromModelJson(parsedJson));
+        totalTokensUsed += result.totalTokens;
+        chunkSuccess = true;
+        break;
+      } catch (e: unknown) {
+        const status =
+          e && typeof e === "object" && "status" in e
+            ? Number((e as { status?: number }).status)
+            : undefined;
+        const err = formatGeminiImportError(e, status);
+        const isConnectivity = /connection|fetch failed|econnreset|network|timeout/i.test(err);
+
+        console.warn("[scheme-import] Gemini attempt failed", {
+          chunk: i,
+          attempt: attempt + 1,
+          connectivity: isConnectivity,
+          error: err,
+        });
+
+        const isAuth = status === 401 || status === 403 || /api key|unauthenticated/i.test(err);
+        if (isAuth) {
+          // Key/auth errors won't resolve with retries.
+          if (i === 0) firstChunkError = err;
+          break;
+        }
+
+        if (attempt >= GEMINI_RETRY_DELAYS_MS.length - 1) {
+          console.error("[scheme-import] Gemini chunk exhausted retries", { chunk: i, error: e });
+          if (i === 0) firstChunkError = err;
+        }
+      }
     }
 
-    const rows = parseSchemeRowsFromModelJson(parsedJson);
-    if (rows.length === 0) {
-      return {
-        ok: false,
-        error:
-          "Gemini could not identify scheme rows in this PDF. Try CSV/XLSX, or a clearer text-based NaCCA export.",
-      };
-    }
-
-    await trackUsage({
-      schoolId: args.schoolId,
-      provider: "openai",
-      metricKey: "ai_calls",
-      quantity: 1,
-      unitLabel: "calls",
-      allocationMethod: "direct",
-      sourceType: "manual",
-      notes: "Scheme PDF import Gemini fallback extraction.",
-    });
-    await trackUsage({
-      schoolId: args.schoolId,
-      provider: "openai",
-      metricKey: "total_tokens",
-      quantity: result.totalTokens,
-      unitLabel: "tokens",
-      allocationMethod: "direct",
-      sourceType: "manual",
-      notes: "Scheme PDF import Gemini fallback tokens.",
-    });
-
-    return { ok: true, rows };
-  } catch (e: unknown) {
-    const status =
-      e && typeof e === "object" && "status" in e ? Number((e as { status?: number }).status) : undefined;
-    lastError = formatGeminiImportError(e, status);
-    console.error("[scheme-import] Gemini error", e);
-    return { ok: false, error: lastError };
+    if (!chunkSuccess && i === 0 && firstChunkError) break;
   }
+
+  if (firstChunkError) {
+    return { ok: false, error: firstChunkError };
+  }
+
+  const rows = deduplicateChunkRows(allRows);
+
+  if (rows.length === 0) {
+    return {
+      ok: false,
+      error:
+        "Gemini could not identify scheme rows in this PDF. Try CSV/XLSX, or a clearer text-based NaCCA export.",
+    };
+  }
+
+  await trackUsage({
+    schoolId: args.schoolId,
+    provider: "openai",
+    metricKey: "ai_calls",
+    quantity: chunks.length,
+    unitLabel: "calls",
+    allocationMethod: "direct",
+    sourceType: "manual",
+    notes: `Scheme PDF import Gemini fallback extraction (${chunks.length} chunk(s)).`,
+  });
+  await trackUsage({
+    schoolId: args.schoolId,
+    provider: "openai",
+    metricKey: "total_tokens",
+    quantity: totalTokensUsed,
+    unitLabel: "tokens",
+    allocationMethod: "direct",
+    sourceType: "manual",
+    notes: "Scheme PDF import Gemini fallback tokens.",
+  });
+
+  return { ok: true, rows };
 }

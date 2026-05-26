@@ -1,16 +1,22 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BookOpen,
-  ChevronRight,
   ClipboardCheck,
   Filter,
   MessageSquare,
   Search,
   Sparkles,
+  Trash2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  LessonNoteDeleteDialog,
+  type LessonNoteDeleteTarget,
+} from "@/components/teacher/lesson-notes/LessonNoteDeleteDialog";
+import type { LessonNoteStatus } from "@/types/lesson-notes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +30,6 @@ import {
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
 import { useAdminLessonNotes } from "@/hooks/admin/useAdminLessonNotes";
-import type { LessonNoteStatus } from "@/types/lesson-notes";
 
 const STATUS_OPTIONS: Array<{ value: LessonNoteStatus | "all"; label: string }> = [
   { value: "all", label: "All statuses" },
@@ -50,7 +55,9 @@ export function AdminLessonNotesInbox({
   description = "Track every teacher lesson note across the school and review sections with comments.",
   emptyMessage = "Adjust the filters or wait for teachers to submit notes.",
 }: AdminLessonNotesInboxProps = {}) {
+  const router = useRouter();
   const [search, setSearch] = React.useState("");
+  const [deleteTarget, setDeleteTarget] = React.useState<LessonNoteDeleteTarget | null>(null);
   const [teacherId, setTeacherId] = React.useState("all");
   const [classGroupId, setClassGroupId] = React.useState("all");
   const [subjectId, setSubjectId] = React.useState("all");
@@ -337,27 +344,65 @@ export function AdminLessonNotesInbox({
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {entries.map((note) => (
-            <Link key={note.id} href={`/admin/lesson-notes/${note.id}`} className="block">
-              <Card
-                className={cn(
-                  glassPanel,
-                  "group h-full transition-all duration-200 hover:border-sky-400/25 hover:shadow-sky-950/20"
-                )}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-2">
-                      <CardTitle className="text-base text-white transition-colors group-hover:text-sky-100">
-                        {note.topic}
-                      </CardTitle>
-                      <div className="text-sm text-white/55">
-                        {note.teacherName || "Unknown teacher"} • {note.className}
-                        {note.subjectName ? ` • ${note.subjectName}` : ""}
-                      </div>
+            <Card
+              key={note.id}
+              className={cn(
+                glassPanel,
+                "group h-full cursor-pointer transition-all duration-200 hover:border-sky-400/25 hover:shadow-sky-950/20",
+              )}
+              onClick={() => router.push(`/admin/lesson-notes/${note.id}`)}
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <CardTitle className="text-base text-white transition-colors group-hover:text-sky-100">
+                      {note.topic}
+                    </CardTitle>
+                    <div className="text-sm text-white/55">
+                      {note.teacherName || "Unknown teacher"} • {note.className}
+                      {note.subjectName ? ` • ${note.subjectName}` : ""}
                     </div>
-                    <ChevronRight className="h-5 w-5 text-white/30 transition-transform group-hover:translate-x-1 group-hover:text-sky-200/80" />
                   </div>
-                </CardHeader>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        router.push(`/admin/lesson-notes/${note.id}`);
+                      }}
+                      className="h-8 w-8 rounded-full border border-white/10 bg-white/5 p-0 text-sky-200 hover:bg-sky-500/15"
+                      aria-label={`Review ${note.topic}`}
+                    >
+                      <BookOpen className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDeleteTarget({
+                          id: note.id,
+                          topic: note.topic,
+                          className: note.className,
+                          subjectName: note.subjectName,
+                          teacherName: note.teacherName,
+                          weekLabel: note.weekOf
+                            ? `Week of ${new Date(note.weekOf).toLocaleDateString("en-GB")}`
+                            : null,
+                          status: note.status as LessonNoteStatus,
+                        });
+                      }}
+                      className="h-8 w-8 rounded-full border border-rose-500/30 bg-rose-500/10 p-0 text-rose-200 hover:bg-rose-500/20"
+                      aria-label={`Remove ${note.topic}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex flex-wrap gap-2">
                     <Badge className="border border-white/10 bg-white/10 text-white/75">
@@ -380,11 +425,18 @@ export function AdminLessonNotesInbox({
                     Review note
                   </div>
                 </CardContent>
-              </Card>
-            </Link>
+            </Card>
           ))}
         </div>
       )}
+
+      <LessonNoteDeleteDialog
+        mode="admin"
+        target={deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      />
     </div>
   );
 }

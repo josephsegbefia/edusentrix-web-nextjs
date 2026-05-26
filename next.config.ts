@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     // !! TEMPORARY: Allow build with TS errors until Mongoose types are fixed
     ignoreBuildErrors: true,
   },
-  serverExternalPackages: ["imapflow", "pino", "pino-pretty", "xlsx", "pdf-parse"],
+  serverExternalPackages: ["imapflow", "pino", "pino-pretty", "xlsx", "pdf-parse", "pdfexcavator", "@react-pdf/renderer"],
   images: {
     remotePatterns: [
       {

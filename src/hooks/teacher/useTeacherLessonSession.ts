@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LessonSessionDetailDto } from "@/types/lessons-v2";
 import type { LessonContentBlock } from "@/types/lesson-content-blocks";
 import type { LessonDeliveryStatus } from "@/types/lessons-v2";
+import type { LessonAssessmentItem } from "@/hooks/teacher/useLessonsLeo";
 
 type SessionResponse = {
   success: boolean;
@@ -41,18 +42,21 @@ export function useTeacherLessonSession(sessionId: string | null) {
   });
 }
 
+type SessionPatch = {
+  title?: string;
+  planNotes?: string | null;
+  studentVisibility?: "hidden" | "published";
+  parentVisibility?: boolean;
+  adminVisibility?: boolean;
+  contentBlocks?: LessonContentBlock[];
+  markAllAiReviewed?: boolean;
+  assessmentItems?: LessonAssessmentItem[];
+};
+
 export function useUpdateTeacherLessonSession(sessionId: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (patch: {
-      title?: string;
-      planNotes?: string | null;
-      studentVisibility?: "hidden" | "published";
-      parentVisibility?: boolean;
-      adminVisibility?: boolean;
-      contentBlocks?: LessonContentBlock[];
-      markAllAiReviewed?: boolean;
-    }) => {
+    mutationFn: async (patch: SessionPatch) => {
       const res = await fetch(`/api/teacher/lesson-sessions/${sessionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -69,6 +73,11 @@ export function useUpdateTeacherLessonSession(sessionId: string | null) {
       void qc.invalidateQueries({ queryKey: ["teacher-lesson-week-plans"] });
     },
   });
+}
+
+/** Alias for useUpdateTeacherLessonSession — accepts non-null sessionId. */
+export function useUpdateLessonSession(sessionId: string) {
+  return useUpdateTeacherLessonSession(sessionId);
 }
 
 export function useUpdateLessonDelivery() {

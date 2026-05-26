@@ -39,6 +39,8 @@ import type { TeacherDetailTabId } from "@/components/admin/teachers/detail/Teac
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { LeoTeacherAssignmentsPanel } from "@/components/admin/teachers/LeoTeacherAssignmentsPanel";
 import { TeacherProfessionalInfoCard } from "@/components/admin/teachers/detail/TeacherProfessionalInfoCard";
+import { MetricLabelWithInfo } from "@/components/ui/metric-info-tip";
+import { ADMIN_TEACHER_SEAT_CAPACITY_METRIC } from "@/lib/metrics/student-count-metric-copy";
 
 type TeacherOverviewTabProps = {
   teacher: {
@@ -130,7 +132,7 @@ function getStatusLabel(status: TeacherStatus): string {
 // Stat card component
 type StatCardProps = {
   icon: React.ElementType;
-  label: string;
+  label: React.ReactNode;
   value: React.ReactNode;
   description?: string;
   tone: "indigo" | "purple" | "emerald" | "amber" | "cyan" | "rose";
@@ -189,9 +191,9 @@ function StatCard({
           <Icon className={cn("h-5 w-5", style.iconColor)} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-white/45">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-white/45">
             {label}
-          </p>
+          </div>
           <div
             className={cn(
               "mt-1 text-xl font-semibold text-white",
@@ -414,12 +416,18 @@ export function TeacherOverviewTab({
               />
               <StatCard
                 icon={Users}
-                label="Students"
+                label={
+                  <MetricLabelWithInfo
+                    label={ADMIN_TEACHER_SEAT_CAPACITY_METRIC.label}
+                    tooltip={ADMIN_TEACHER_SEAT_CAPACITY_METRIC.tooltip}
+                    labelClassName="normal-case tracking-normal"
+                  />
+                }
                 value={workloadStudents ?? "—"}
                 description={
                   maxStudents
-                    ? `of ${maxStudents} max capacity`
-                    : "Total students"
+                    ? `of ${maxStudents} max · ${ADMIN_TEACHER_SEAT_CAPACITY_METRIC.shortDescription}`
+                    : ADMIN_TEACHER_SEAT_CAPACITY_METRIC.shortDescription
                 }
                 tone="amber"
               />
@@ -733,12 +741,17 @@ export function TeacherOverviewTab({
                   <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                     <div className="mb-3 flex items-center gap-2">
                       <Users className="h-4 w-4 text-amber-400" />
-                      <p className="text-xs font-medium text-white/60">
-                        Students
-                      </p>
+                      <MetricLabelWithInfo
+                        label={ADMIN_TEACHER_SEAT_CAPACITY_METRIC.label}
+                        tooltip={ADMIN_TEACHER_SEAT_CAPACITY_METRIC.tooltip}
+                        labelClassName="text-xs font-medium text-white/60 normal-case tracking-normal"
+                      />
                     </div>
                     <p className="text-2xl font-bold text-white">
                       {workload.current.students}
+                    </p>
+                    <p className="mt-1 text-[11px] text-white/40">
+                      {ADMIN_TEACHER_SEAT_CAPACITY_METRIC.shortDescription}
                     </p>
                     {workload.capacity.maxStudents && (
                       <div className="mt-3">

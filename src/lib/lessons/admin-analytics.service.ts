@@ -1,18 +1,17 @@
 import type { Types } from "mongoose";
 import mongoose from "mongoose";
-import { Lesson } from "@/models/Lesson";
+import { LessonSession } from "@/models/LessonSession";
+import { LessonDelivery } from "@/models/LessonDelivery";
+import { LessonDeliveryReflection } from "@/models/LessonDeliveryReflection";
 import { LessonFlashcard } from "@/models/LessonFlashcard";
-import { LessonReflection } from "@/models/LessonReflection";
 import { StudentFlashcardProgress } from "@/models/StudentFlashcardProgress";
+import { StudentSessionProgress } from "@/models/StudentSessionProgress";
 import { Teacher } from "@/models/Teacher";
 import { User } from "@/models/User";
 import { ClassGroup } from "@/models/ClassGroup";
 import { Grade } from "@/models/Grade";
-import { StudentLessonProgress } from "@/models/StudentLessonProgress";
-import { getCurriculumCompletionForPublishedLessonsInRange } from "@/lib/lessons/lesson-analytics-curriculum-coverage";
 import { Homework } from "@/models/Homework";
 import { Submission } from "@/models/Submission";
-import { LessonCollaborationComment } from "@/models/LessonCollaborationComment";
 import {
   getV2CoverageAnalytics,
   type V2CoverageAnalytics,
@@ -24,15 +23,14 @@ export type LessonAnalyticsResult = {
     total: number;
     byStatus: { draft: number; published: number; archived: number };
   };
-  /** Lessons whose `publishedAt` fell in the range (including republish events). */
+  /** Deliveries completed in range (v2 proxy for "published events"). */
   publishedEventsInRange: number;
-  /** All lessons currently in `draft` (snapshot counts). */
+  /** All sessions currently in `draft` (snapshot counts). */
   currentDraftsTotal: number;
-  /** Reflections marked completed with `updatedAt` in range. */
+  /** Delivery reflections marked completed with `updatedAt` in range. */
   reflectionsCompletedInRange: number;
   topTeachers: Array<{ teacherId: string; name: string; count: number }>;
   classCoverage: Array<{ classGroupId: string; label: string; publishedLessonsInRange: number }>;
-  /** Roster-weighted completion vs lessons published in the range (see curriculum coverage helper). */
   curriculumCompletionInRange: {
     publishedLessonsInRange: number;
     studentSlotsTotal: number;
@@ -41,27 +39,15 @@ export type LessonAnalyticsResult = {
   };
   flashcards: {
     totalCards: number;
-    /** Progress rows with `lastReviewedAt` in range (proxy for review activity). */
     reviewSessionsInRange: number;
-    /** Distinct students with review activity in range. */
     activeStudentsInRange: number;
   };
-  /** Student lesson reads: rows with `lastActivityAt` in range (a student opened a lesson at least once in the window). */
   studentLessons: {
     engagementsInRange: number;
     distinctStudentsInRange: number;
-    /** Rows with `completionStatus === completed` and `completedAt` in range. */
     completionsInRange: number;
     distinctStudentsCompletedInRange: number;
-    /**
-     * Share of student–lesson progress rows with activity in the range that were marked completed in the range (0–100).
-     * Null when there were no engagements in the range.
-     */
     completionRateAmongEngagementsPercent: number | null;
-    /**
-     * Share of distinct students with any lesson activity in the range who marked at least one lesson studied in the range (0–100).
-     * Null when there were no active learners in the range.
-     */
     learnerCompletionRatePercent: number | null;
   };
   lessonTasks: {
@@ -89,6 +75,7 @@ export type LessonAnalyticsResult = {
     }>;
   };
   v2Coverage: V2CoverageAnalytics;
+  /** Collaboration is no longer tracked; zeroed out for backwards-compat. */
   collaboration: {
     lessonsWithCollaboratorsTotal: number;
     lessonsUpdatedByCollaboratorsInRange: number;
@@ -171,7 +158,9 @@ async function classLabels(
   schoolId: Types.ObjectId,
   classGroupIds: Types.ObjectId[]
 ): Promise<Map<string, string>> {
-  const uniq = [...new Set(classGroupIds.map(String))].map((s) => new mongoose.Types.ObjectId(s));
+  const uniq = [...new Set(classGroupIds.map(String))].map(
+    (s) => new mongoose.Types.ObjectId(s)
+  );
   if (uniq.length === 0) return new Map();
 
   const groups = (await ClassGroup.find({
@@ -181,7 +170,9 @@ async function classLabels(
     .select("name gradeId")
     .lean()) as Array<{ _id: Types.ObjectId; name: string; gradeId?: Types.ObjectId }>;
 
-  const gradeIds = [...new Set(groups.map((g) => g.gradeId).filter(Boolean) as Types.ObjectId[])];
+  const gradeIds = [
+    ...new Set(groups.map((g) => g.gradeId).filter(Boolean) as Types.ObjectId[]),
+  ];
   const grades =
     gradeIds.length > 0
       ? ((await Grade.find({ _id: { $in: gradeIds } })
@@ -210,7 +201,7 @@ export async function getLessonAnalytics(
 
   const [
     statusAgg,
-    publishedCount,
+    deliveredInRange,
     draftsTotal,
     reflectionsDone,
     teacherAgg,
@@ -218,27 +209,18 @@ export async function getLessonAnalytics(
     totalCards,
     reviewSessions,
     activeStudentsAgg,
-    lessonViewEngagementRows,
-    lessonViewDistinctStudents,
-    lessonCompletionsInRange,
-    lessonCompletionsDistinctStudents,
+    engagementsInRange,
+    distinctStudentsAgg,
+    completionsInRange,
+    completionsDistinctStudentsAgg,
     linkedTasksCreatedInRange,
     linkedTasksPublishedInRange,
     linkedTaskTypeAgg,
     linkedHomeworkIds,
-    lessonsWithCollaboratorsTotal,
-    lessonsUpdatedByCollaboratorsInRange,
-    commentsCreatedInRange,
-    commentsResolvedInRange,
-    openCommentsNow,
     taskTeacherAgg,
     taskClassAgg,
-    hotspotAgg,
   ] = await Promise.all([
-    Lesson.aggregate<{
-      _id: string;
-      count: number;
-    }>([
+    LessonSession.aggregate<{ _id: string; count: number }>([
       {
         $match: {
           ...matchSchool,
@@ -247,33 +229,38 @@ export async function getLessonAnalytics(
       },
       { $group: { _id: "$status", count: { $sum: 1 } } },
     ]),
-    Lesson.countDocuments({
+    // "Published events" proxy: deliveries completed in range
+    LessonDelivery.countDocuments({
       ...matchSchool,
-      publishedAt: { $gte: fromD, $lte: toD },
+      status: "completed",
+      completedAt: { $gte: fromD, $lte: toD },
     }),
-    Lesson.countDocuments({ ...matchSchool, status: "draft" }),
-    LessonReflection.countDocuments({
+    LessonSession.countDocuments({ ...matchSchool, status: "draft" }),
+    LessonDeliveryReflection.countDocuments({
       ...matchSchool,
       completed: true,
       updatedAt: { $gte: fromD, $lte: toD },
     }),
-    Lesson.aggregate<{ _id: Types.ObjectId; count: number }>([
+    // Top teachers by sessions delivered in range
+    LessonDelivery.aggregate<{ _id: Types.ObjectId; count: number }>([
       {
         $match: {
           ...matchSchool,
-          createdAt: { $gte: fromD, $lte: toD },
+          status: "completed",
+          completedAt: { $gte: fromD, $lte: toD },
         },
       },
-      { $group: { _id: "$teacherId", count: { $sum: 1 } } },
+      { $group: { _id: "$ownerTeacherId", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 15 },
     ]),
-    Lesson.aggregate<{ _id: Types.ObjectId; count: number }>([
+    // Class coverage by completed deliveries in range
+    LessonDelivery.aggregate<{ _id: Types.ObjectId; count: number }>([
       {
         $match: {
           ...matchSchool,
-          status: "published",
-          publishedAt: { $gte: fromD, $lte: toD },
+          status: "completed",
+          completedAt: { $gte: fromD, $lte: toD },
         },
       },
       { $group: { _id: "$classGroupId", count: { $sum: 1 } } },
@@ -295,11 +282,11 @@ export async function getLessonAnalytics(
       { $group: { _id: "$studentId" } },
       { $count: "count" },
     ]),
-    StudentLessonProgress.countDocuments({
+    StudentSessionProgress.countDocuments({
       ...matchSchool,
       lastActivityAt: { $gte: fromD, $lte: toD },
     }),
-    StudentLessonProgress.aggregate<{ count: number }>([
+    StudentSessionProgress.aggregate<{ count: number }>([
       {
         $match: {
           ...matchSchool,
@@ -309,12 +296,12 @@ export async function getLessonAnalytics(
       { $group: { _id: "$studentId" } },
       { $count: "count" },
     ]),
-    StudentLessonProgress.countDocuments({
+    StudentSessionProgress.countDocuments({
       ...matchSchool,
       completionStatus: "completed",
       completedAt: { $gte: fromD, $lte: toD },
     }),
-    StudentLessonProgress.aggregate<{ count: number }>([
+    StudentSessionProgress.aggregate<{ count: number }>([
       {
         $match: {
           ...matchSchool,
@@ -327,12 +314,12 @@ export async function getLessonAnalytics(
     ]),
     Homework.countDocuments({
       ...matchSchool,
-      sourceLessonId: { $exists: true, $ne: null },
+      sourceSessionId: { $exists: true, $ne: null },
       createdAt: { $gte: fromD, $lte: toD },
     }),
     Homework.countDocuments({
       ...matchSchool,
-      sourceLessonId: { $exists: true, $ne: null },
+      sourceSessionId: { $exists: true, $ne: null },
       status: "published",
       publishedAt: { $gte: fromD, $lte: toD },
     }),
@@ -340,7 +327,7 @@ export async function getLessonAnalytics(
       {
         $match: {
           ...matchSchool,
-          sourceLessonId: { $exists: true, $ne: null },
+          sourceSessionId: { $exists: true, $ne: null },
           createdAt: { $gte: fromD, $lte: toD },
         },
       },
@@ -348,38 +335,13 @@ export async function getLessonAnalytics(
     ]),
     Homework.find({
       ...matchSchool,
-      sourceLessonId: { $exists: true, $ne: null },
-    }).distinct("_id"),
-    Lesson.countDocuments({
-      ...matchSchool,
-      "collaboratorTeacherIds.0": { $exists: true },
-    }),
-    Lesson.countDocuments({
-      ...matchSchool,
-      "collaboratorTeacherIds.0": { $exists: true },
-      updatedAt: { $gte: fromD, $lte: toD },
-    }),
-    LessonCollaborationComment.countDocuments({
-      ...matchSchool,
-      createdAt: { $gte: fromD, $lte: toD },
-    }),
-    LessonCollaborationComment.countDocuments({
-      ...matchSchool,
-      status: "resolved",
-      resolvedAt: { $gte: fromD, $lte: toD },
-    }),
-    LessonCollaborationComment.countDocuments({
-      ...matchSchool,
-      status: "open",
-    }),
-    Homework.aggregate<{
-      _id: Types.ObjectId;
-      linkedTasksCreatedInRange: number;
-    }>([
+      sourceSessionId: { $exists: true, $ne: null },
+    }).distinct("_id") as Promise<Types.ObjectId[]>,
+    Homework.aggregate<{ _id: Types.ObjectId; linkedTasksCreatedInRange: number }>([
       {
         $match: {
           ...matchSchool,
-          sourceLessonId: { $exists: true, $ne: null },
+          sourceSessionId: { $exists: true, $ne: null },
           createdAt: { $gte: fromD, $lte: toD },
         },
       },
@@ -387,26 +349,17 @@ export async function getLessonAnalytics(
       { $sort: { linkedTasksCreatedInRange: -1 } },
       { $limit: 10 },
     ]),
-    Homework.aggregate<{
-      _id: Types.ObjectId;
-      linkedTasksCreatedInRange: number;
-    }>([
+    Homework.aggregate<{ _id: Types.ObjectId; linkedTasksCreatedInRange: number }>([
       {
         $match: {
           ...matchSchool,
-          sourceLessonId: { $exists: true, $ne: null },
+          sourceSessionId: { $exists: true, $ne: null },
           createdAt: { $gte: fromD, $lte: toD },
         },
       },
       { $unwind: "$classGroupIds" },
       { $group: { _id: "$classGroupIds", linkedTasksCreatedInRange: { $sum: 1 } } },
       { $sort: { linkedTasksCreatedInRange: -1 } },
-      { $limit: 10 },
-    ]),
-    LessonCollaborationComment.aggregate<{ _id: Types.ObjectId; openCommentsNow: number }>([
-      { $match: { ...matchSchool, status: "open" } },
-      { $group: { _id: "$lessonId", openCommentsNow: { $sum: 1 } } },
-      { $sort: { openCommentsNow: -1 } },
       { $limit: 10 },
     ]),
   ]);
@@ -424,10 +377,10 @@ export async function getLessonAnalytics(
   const teacherIds = teacherAgg.map((t) => t._id);
   const classIds = classAgg.map((c) => c._id);
 
-  const [teacherNames, classLabelMap, curriculumCompletionInRange] = await Promise.all([
+  const [teacherNames, classLabelMap, v2Coverage] = await Promise.all([
     teacherDisplayNames(schoolId, teacherIds),
     classLabels(schoolId, classIds),
-    getCurriculumCompletionForPublishedLessonsInRange(schoolId, fromD, toD),
+    getV2CoverageAnalytics({ schoolId, from: fromD, to: toD }),
   ]);
 
   const rankingTeacherIds = taskTeacherAgg.map((row) => row._id);
@@ -450,6 +403,8 @@ export async function getLessonAnalytics(
   }));
 
   const activeStudentsInRange = activeStudentsAgg[0]?.count ?? 0;
+  const distinctStudentsInRange = distinctStudentsAgg[0]?.count ?? 0;
+  const distinctStudentsCompletedInRange = completionsDistinctStudentsAgg[0]?.count ?? 0;
   const linkedQuizCountInRange = linkedTaskTypeAgg.find((r) => r._id === "quiz")?.n ?? 0;
   const linkedAssignmentCountInRange = linkedTaskTypeAgg
     .filter((r) => r._id === "assignment" || r._id === "project" || r._id === "practice")
@@ -488,6 +443,7 @@ export async function getLessonAnalytics(
       { $project: { _id: 0, avgScore: 1, gradedCount: 1 } },
     ]),
   ]);
+
   const distinctLearnersSubmittedInRange = learnersSubmittedAgg[0]?.count ?? 0;
   const gradedSubmissionsInRange = gradedSubmissionsAgg[0]?.gradedCount ?? 0;
   const averageScorePercentInRange =
@@ -517,7 +473,11 @@ export async function getLessonAnalytics(
       { $unwind: "$homework" },
       { $group: { _id: "$homework.teacherId", submissionsInRange: { $sum: 1 } } },
     ]),
-    Submission.aggregate<{ _id: Types.ObjectId; gradedSubmissionsInRange: number; avgScore: number | null }>([
+    Submission.aggregate<{
+      _id: Types.ObjectId;
+      gradedSubmissionsInRange: number;
+      avgScore: number | null;
+    }>([
       {
         $match: {
           ...matchSchool,
@@ -567,18 +527,24 @@ export async function getLessonAnalytics(
     ]),
   ]);
 
-  const teacherSubmissionMap = new Map(teacherSubmissionAgg.map((row) => [String(row._id), row.submissionsInRange]));
+  const teacherSubmissionMap = new Map(
+    teacherSubmissionAgg.map((row) => [String(row._id), row.submissionsInRange])
+  );
   const teacherGradedMap = new Map(
     teacherGradedAgg.map((row) => [
       String(row._id),
       {
         gradedSubmissionsInRange: row.gradedSubmissionsInRange,
         averageScorePercentInRange:
-          row.avgScore != null ? Math.max(0, Math.min(100, Math.round(row.avgScore))) : null,
+          row.avgScore != null
+            ? Math.max(0, Math.min(100, Math.round(row.avgScore)))
+            : null,
       },
     ])
   );
-  const classSubmissionMap = new Map(classSubmissionAgg.map((row) => [String(row._id), row.submissionsInRange]));
+  const classSubmissionMap = new Map(
+    classSubmissionAgg.map((row) => [String(row._id), row.submissionsInRange])
+  );
 
   const teacherRanking = taskTeacherAgg.map((row) => {
     const graded = teacherGradedMap.get(String(row._id));
@@ -599,65 +565,42 @@ export async function getLessonAnalytics(
     submissionsInRange: classSubmissionMap.get(String(row._id)) ?? 0,
   }));
 
-  const hotspotLessonIds = hotspotAgg.map((row) => row._id);
-  const hotspotLessons = hotspotLessonIds.length
-    ? await Lesson.find({ _id: { $in: hotspotLessonIds }, schoolId })
-        .select("_id title")
-        .lean()
-    : [];
-  const hotspotTitleMap = new Map(
-    hotspotLessons.map((row: { _id: Types.ObjectId; title?: string }) => [
-      String(row._id),
-      row.title || "Lesson",
-    ])
-  );
-  const hotspots = hotspotAgg.map((row) => ({
-    lessonId: String(row._id),
-    lessonTitle: hotspotTitleMap.get(String(row._id)) || "Lesson",
-    openCommentsNow: row.openCommentsNow,
-  }));
-
-  const distinctLessonViewers = lessonViewDistinctStudents[0]?.count ?? 0;
-
-  const completionsInRange = lessonCompletionsInRange;
-  const distinctStudentsCompletedInRange = lessonCompletionsDistinctStudents[0]?.count ?? 0;
-
   const completionRateAmongEngagementsPercent =
-    lessonViewEngagementRows > 0
-      ? Math.min(
-          100,
-          Math.round((100 * completionsInRange) / lessonViewEngagementRows)
-        )
+    engagementsInRange > 0
+      ? Math.min(100, Math.round((100 * completionsInRange) / engagementsInRange))
       : null;
 
   const learnerCompletionRatePercent =
-    distinctLessonViewers > 0
+    distinctStudentsInRange > 0
       ? Math.min(
           100,
-          Math.round((100 * distinctStudentsCompletedInRange) / distinctLessonViewers)
+          Math.round((100 * distinctStudentsCompletedInRange) / distinctStudentsInRange)
         )
       : null;
-
-  const v2Coverage = await getV2CoverageAnalytics({ schoolId, from: fromD, to: toD });
 
   return {
     range: { from: fromD.toISOString(), to: toD.toISOString() },
     v2Coverage,
     createdInRange: { total: createdTotal, byStatus },
-    publishedEventsInRange: publishedCount,
+    publishedEventsInRange: deliveredInRange,
     currentDraftsTotal: draftsTotal,
     reflectionsCompletedInRange: reflectionsDone,
     topTeachers,
     classCoverage,
-    curriculumCompletionInRange,
+    curriculumCompletionInRange: {
+      publishedLessonsInRange: deliveredInRange,
+      studentSlotsTotal: engagementsInRange,
+      completionsForPublishedLessonsInRange: completionsInRange,
+      coveragePercent: completionRateAmongEngagementsPercent,
+    },
     flashcards: {
       totalCards,
       reviewSessionsInRange: reviewSessions,
       activeStudentsInRange,
     },
     studentLessons: {
-      engagementsInRange: lessonViewEngagementRows,
-      distinctStudentsInRange: distinctLessonViewers,
+      engagementsInRange,
+      distinctStudentsInRange,
       completionsInRange,
       distinctStudentsCompletedInRange,
       completionRateAmongEngagementsPercent,
@@ -675,13 +618,14 @@ export async function getLessonAnalytics(
       teacherRanking,
       classRanking,
     },
+    // Collaboration removed in v2 — zeroed for backwards compatibility
     collaboration: {
-      lessonsWithCollaboratorsTotal,
-      lessonsUpdatedByCollaboratorsInRange,
-      commentsCreatedInRange,
-      commentsResolvedInRange,
-      openCommentsNow,
-      hotspots,
+      lessonsWithCollaboratorsTotal: 0,
+      lessonsUpdatedByCollaboratorsInRange: 0,
+      commentsCreatedInRange: 0,
+      commentsResolvedInRange: 0,
+      openCommentsNow: 0,
+      hotspots: [],
     },
   };
 }

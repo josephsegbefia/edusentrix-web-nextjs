@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, FileUp, Loader2, Sparkles } from "lucide-react";
-import { DocumentUploader } from "@/components/upload/DocumentUploader";
+import { SchemeImportDocumentUploader } from "@/components/schemes/SchemeImportDocumentUploader";
 import { useClasses } from "@/hooks/admin/useClasses";
 import { useAcademicPeriods } from "@/hooks/admin/useAcademicPeriods";
 import { useSchool } from "@/hooks/admin/useSchool";
@@ -33,6 +33,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+function formatImportCell(value: string | string[] | null | undefined, maxLen = 280): string {
+  const text = Array.isArray(value)
+    ? value.filter(Boolean).join("; ")
+    : typeof value === "string"
+      ? value.trim()
+      : "";
+  if (!text) return "-";
+  return text.length > maxLen ? `${text.slice(0, maxLen)}…` : text;
+}
 
 function makeTitle(input: { grade?: string; subject?: string; period?: string }) {
   return [input.grade || "Grade", input.subject || "Subject", input.period || "Term"]
@@ -145,7 +155,7 @@ function AdminSchemeImportInner() {
     try {
       setParsePhase(
         isPdf
-          ? "Download complete. Extracting scheme rows with OpenAI. If OpenAI fails, the app will use manual PDF parsing…"
+          ? "Download complete. Extracting tables from PDF locally (pdf-parse, then PDFExcavator). AI is only used if local extraction cannot read the layout…"
           : "Reading spreadsheet rows…",
       );
       const created = await createMutation.mutateAsync({
@@ -271,9 +281,8 @@ function AdminSchemeImportInner() {
         {!jobId || job?.status === "failed" ? (
           <div className="mt-4 max-w-xl">
             {schoolRes?.data?.id ? (
-              <DocumentUploader
+              <SchemeImportDocumentUploader
                 schoolId={schoolRes.data.id}
-                category="teacher"
                 label="Upload .pdf, .csv, or .xlsx"
                 onUploaded={(payload) =>
                   handleUploaded({
@@ -335,10 +344,49 @@ function AdminSchemeImportInner() {
         </div>
       ) : null}
 
+      {job?.status === "parsed" &&
+      (job.sourceKind === "pdf_parse_tables" || job.sourceKind === "pdf_excavator") ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 text-sm text-emerald-100">
+          <p className="font-medium">Extracted locally from PDF tables</p>
+          <p className="mt-1">
+            {job.sourceKind === "pdf_parse_tables"
+              ? "Used pdf-parse table detection (no AI required)."
+              : "Used PDFExcavator table detection (no AI required)."}{" "}
+            Review all columns before confirming.
+          </p>
+        </div>
+      ) : null}
+
       {job?.status === "parsed" && job.parseWarning ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 text-sm text-amber-100">
-          <p className="font-medium">Manual PDF parser used</p>
+          <p className="font-medium">
+            {/api key|authenticate|not configured/i.test(job.parseWarning)
+              ? "AI extraction unavailable — limited manual parse"
+              : "Manual PDF parser used — columns may be incomplete"}
+          </p>
           <p className="mt-1">{job.parseWarning}</p>
+          {job.fileUrl &&
+          /connection|econnreset|network|fetch failed|timed out/i.test(job.parseWarning) ? (
+            <div className="mt-3 border-t border-amber-500/20 pt-3">
+              <p className="mb-2 text-xs text-amber-200/80">
+                AI extraction failed due to a network issue, not a PDF problem. Try again once your
+                connection is stable.
+              </p>
+              <Button
+                type="button"
+                onClick={() => void retryFailedImport()}
+                disabled={createMutation.isPending || Boolean(parsePhase)}
+                className="bg-amber-200 text-amber-950 hover:bg-white disabled:opacity-50"
+              >
+                {createMutation.isPending || parsePhase ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                Retry AI extraction
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -432,12 +480,21 @@ function AdminSchemeImportInner() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-white/10 bg-white/5 hover:bg-white/5">
-                    <TableHead className="text-white/55">Use</TableHead>
-                    <TableHead className="text-white/55">Week</TableHead>
-                    <TableHead className="text-white/55">Topic</TableHead>
-                    <TableHead className="text-white/55">Strand</TableHead>
-                    <TableHead className="text-white/55">Content / Indicators</TableHead>
-                    <TableHead className="text-white/55">Resources</TableHead>
+                    <TableHead className="sticky left-0 z-10 min-w-[52px] bg-slate-950/90 text-white/55">
+                      Use
+                    </TableHead>
+                    <TableHead className="min-w-[100px] text-white/55">Week ending</TableHead>
+                    <TableHead className="min-w-[180px] text-white/55">Topic</TableHead>
+                    <TableHead className="min-w-[120px] text-white/55">Strand</TableHead>
+                    <TableHead className="min-w-[120px] text-white/55">Sub-strand</TableHead>
+                    <TableHead className="min-w-[160px] text-white/55">Content standard</TableHead>
+                    <TableHead className="min-w-[160px] text-white/55">Indicators</TableHead>
+                    <TableHead className="min-w-[160px] text-white/55">Learning outcomes</TableHead>
+                    <TableHead className="min-w-[200px] text-white/55">
+                      Teaching &amp; learning activities
+                    </TableHead>
+                    <TableHead className="min-w-[140px] text-white/55">Resources</TableHead>
+                    <TableHead className="min-w-[140px] text-white/55">Assessment</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -458,10 +515,12 @@ function AdminSchemeImportInner() {
                         />
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm text-white/70">
-                        {row.weekNumber ?? "-"}
-                        {row.weekEnding ? <div className="text-xs text-white/40">{row.weekEnding}</div> : null}
+                        {row.weekEnding || "-"}
+                        {row.weekNumber != null ? (
+                          <div className="text-xs text-white/40">Week {row.weekNumber}</div>
+                        ) : null}
                       </TableCell>
-                      <TableCell className="min-w-[220px]">
+                      <TableCell className="min-w-[180px]">
                         <Input
                           value={row.title}
                           onChange={(event) =>
@@ -475,18 +534,29 @@ function AdminSchemeImportInner() {
                           className="border-white/10 bg-white/5 text-white"
                         />
                       </TableCell>
-                      <TableCell className="max-w-[220px] text-xs text-white/60">
-                        {row.strand || "-"}
-                        {row.subStrand ? <div className="mt-1 text-white/40">{row.subStrand}</div> : null}
+                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-white/60">
+                        {formatImportCell(row.strand)}
                       </TableCell>
-                      <TableCell className="max-w-[300px] text-xs text-white/60">
-                        {row.contentStandard || "-"}
-                        {(row.indicators || []).length ? (
-                          <div className="mt-1 text-white/45">{(row.indicators || []).join("; ")}</div>
-                        ) : null}
+                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-white/60">
+                        {formatImportCell(row.subStrand)}
                       </TableCell>
-                      <TableCell className="max-w-[220px] text-xs text-white/55">
-                        {(row.resources || []).length ? (row.resources || []).join("; ") : "-"}
+                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-white/60">
+                        {formatImportCell(row.contentStandard)}
+                      </TableCell>
+                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-white/60">
+                        {formatImportCell(row.indicators)}
+                      </TableCell>
+                      <TableCell className="max-w-[240px] whitespace-pre-wrap text-xs text-white/60">
+                        {formatImportCell(row.learningOutcomes)}
+                      </TableCell>
+                      <TableCell className="max-w-[280px] whitespace-pre-wrap text-xs text-white/55">
+                        {formatImportCell(row.teachingLearningActivities, 400)}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-white/55">
+                        {formatImportCell(row.resources)}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] whitespace-pre-wrap text-xs text-white/55">
+                        {formatImportCell(row.assessment)}
                       </TableCell>
                     </TableRow>
                   ))}

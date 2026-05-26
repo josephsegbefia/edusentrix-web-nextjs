@@ -141,14 +141,22 @@ async function buildMetadata(
     0
   );
 
+  // Storage uploads are not AI — do not gate on expensive-ai access mode.
   const storageLimit = await checkUsageLimit({
     schoolId: context.schoolId,
     limitKey: "maxStorageBytes",
     increment: incomingBytes,
-    expensive: true,
   });
   if (!storageLimit.allowed) {
-    throw new Error("Storage limit reached for this subscription.");
+    const limitGb =
+      storageLimit.limit != null
+        ? `${(storageLimit.limit / (1024 * 1024 * 1024)).toFixed(1)} GB`
+        : null;
+    throw new Error(
+      storageLimit.reason === "limit_exceeded" && limitGb
+        ? `Storage limit reached (${limitGb} on your plan). Remove old files or contact your school admin.`
+        : "Storage limit reached for this subscription.",
+    );
   }
 
   const filesWithCustomIds = files.map((file, index) => ({

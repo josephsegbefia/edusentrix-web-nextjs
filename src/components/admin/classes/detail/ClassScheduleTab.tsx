@@ -134,6 +134,9 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
 
   if (showReadOnly && publishedQuery.data) {
     const p = publishedQuery.data;
+    const staleTeacherSlotCount = (p.data ?? []).filter(
+      (s) => s.teacherLinkSource === "slot"
+    ).length;
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -197,6 +200,7 @@ export function ClassScheduleTab({ className, classId, gradeId }: ClassScheduleT
           gapFills={p.gapFills ?? []}
           dayScheduleSegments={p.dayScheduleSegments ?? []}
           calendarKey={periodId}
+          staleTeacherSlotCount={staleTeacherSlotCount}
         />
         {confirmationDialog}
       </div>

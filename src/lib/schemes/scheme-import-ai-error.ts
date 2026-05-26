@@ -63,6 +63,9 @@ export function formatOpenAiImportError(error: unknown): string {
   ) {
     return "Leo could not authenticate with OpenAI (invalid or expired API key).";
   }
+  if (/model_not_found|model .* not found|does not exist/.test(combined)) {
+    return "OpenAI model is not available for this API key (model_not_found). Set OPENAI_SCHEME_IMPORT_MODEL or use a key with gpt-4o / gpt-4o-mini access.";
+  }
   if (hasStatus(error, 403) || /permission|forbidden|not authorized/.test(combined)) {
     return "OpenAI rejected the request because the key does not have access to this operation or model.";
   }
@@ -127,4 +130,29 @@ export function isRetryableAiProviderError(error: unknown): boolean {
 
 export function isAiConnectivityError(message: string): boolean {
   return /connection|network|econnreset|fetch failed|interrupted|timeout/i.test(message);
+}
+
+/** True when the provider rejected the call due to keys, auth, or model access — not PDF content. */
+export function isAiConfigurationError(message: string | null | undefined): boolean {
+  if (!message?.trim()) return false;
+  const m = message.toLowerCase();
+  return (
+    /not configured|missing openai_api_key|missing gemini|invalid or missing api key|invalid or expired api key/.test(
+      m,
+    ) ||
+    /could not authenticate|api key not valid|does not have access to this operation or model/.test(m) ||
+    /model_not_found|model is not available/.test(m)
+  );
+}
+
+export function isOpenAiModelOrAccessError(error: unknown): boolean {
+  const parts = walkErrors(error);
+  const combined = parts.join(" ").toLowerCase();
+  return (
+    /model_not_found|model .* not found|does not have access|permission|forbidden|not authorized/.test(
+      combined,
+    ) ||
+    hasStatus(error, 403) ||
+    hasStatus(error, 404)
+  );
 }

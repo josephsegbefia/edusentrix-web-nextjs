@@ -75,37 +75,71 @@ const GenerateRequestSchema = z.object({
 
 type GenerateRequest = z.infer<typeof GenerateRequestSchema>;
 
-function buildSystemPrompt(templateType: string): string {
-  const basePrompt = `You are an experienced curriculum-aware teacher helping to create high-quality lesson notes.
+function buildSystemPrompt(templateType: string, action: string): string {
+  const basePrompt = `You are an experienced curriculum-aware teacher helping to create high-quality lesson notes for Ghanaian schools.
 Your responses should:
 - stay tightly scoped to the requested section only
 - be practical, classroom-ready, and teacher-friendly
-- use clear professional language
+- use clear professional language appropriate for the grade level
 - respect the selected curriculum or lesson-planning template
 - avoid inventing facts when the context is thin
+- use Ghana-appropriate examples and contexts where helpful
+- never use abusive, demeaning, frightening, or discouraging language
 
 Always respond with valid JSON only, no markdown formatting.`;
 
+  const isDeepAction = action === "generate_body" || action === "generate_assessment_section";
+
   if (templateType === "NACCA_3_PHASE") {
+    const phaseGuidance = isDeepAction
+      ? `
+Deep content rules for NaCCA 3-phase body:
+STARTER (5–10 min): Activate relevant prior knowledge with a direct question or quick activity. State the learning target in plain learner language ("By the end of today, you will be able to…"). Do not simply re-read the topic.
+MAIN (20–30 min): Build concepts using a concrete → abstract → practice sequence. Include:
+  - At least one clearly explained, step-by-step worked example with commentary
+  - A second example or variation for longer sessions (>35 min)
+  - Named common misconceptions with specific, supportive correction wording
+  - Guided practice with expected answers or solution notes
+  - Teacher questioning prompts that probe understanding beyond recall
+PLENARY (5–10 min): Formative check (quick questions or exit-ticket style task) + brief summary that connects to the next lesson.
+Each phase must include timeMins. Rich-text fields use HTML (<p>, <ul>, <li>, <strong>, <em>).`
+      : "";
     return `${basePrompt}
 
-This lesson uses the NaCCA 3-phase structure:
-- starter
-- main activity
-- plenary`;
+This lesson uses the NaCCA 3-phase structure: starter, main activity, plenary.${phaseGuidance}`;
   }
 
   if (templateType === "CLASSIC_JHS") {
+    const stepGuidance = isDeepAction
+      ? `
+Deep content rules for Classic JHS body:
+OBJECTIVES: Write one general objective and 3–5 specific, measurable objectives aligned to the curriculum indicators.
+RPK: Identify the exact prior knowledge learners must hold. Phrase it as what learners already know or can do.
+INTRODUCTION: A concrete motivating hook — real-world question, diagram, or short story — that makes the topic relevant before any formal definition.
+PRESENTATION STEPS: Each step must have teacherActivity, learnerActivity, boardWork, keyQuestions, and timeMins.
+  - teacherActivity: explain the concept clearly with at least one worked example per step. Include step-by-step reasoning, not just instructions.
+  - learnerActivity: a guided or independent practice task with expected output
+  - keyQuestions: at least two questions per step — one recall, one application
+  - boardWork: exact text, worked examples, or diagrams to write on the board
+CORE POINTS: 4–6 key facts or rules learners must remember, stated concisely.
+EVALUATION: Include 3–5 specific evaluation questions with model answers and marking notes.`
+      : "";
     return `${basePrompt}
 
-This lesson uses the Classic JHS structure:
-- objectives
-- relevant previous knowledge
-- introduction
-- presentation steps
-- core points
-- evaluation
-- remarks`;
+This lesson uses the Classic JHS structure: objectives, relevant previous knowledge, introduction, presentation steps, core points, evaluation, remarks.${stepGuidance}`;
+  }
+
+  if (templateType === "SIMPLE") {
+    const simpleGuidance = isDeepAction
+      ? `
+Deep content rules for Simple body:
+- objectives: clear, measurable, stated in learner language
+- content: must include (a) a definition or concept explanation, (b) at least one worked example with step-by-step reasoning, (c) a common misconception callout, (d) a practice activity with expected answers.
+Use HTML for rich formatting.`
+      : "";
+    return `${basePrompt}
+
+This is a quick/simple lesson note.${simpleGuidance}`;
   }
 
   return basePrompt;
@@ -215,11 +249,11 @@ Rules:
 function buildBodyPrompt(data: GenerateRequest): string {
   const contextBlock = buildContextBlock(data);
   const currentDraft = data.existingContent
-    ? `Current body draft summary:\n${data.existingContent}\n\n`
+    ? `Current body draft to improve upon:\n${data.existingContent}\n\n`
     : "";
 
   if (data.templateType === "CLASSIC_JHS") {
-    return `Generate only the lesson BODY for this Classic JHS note.
+    return `Generate a thorough, classroom-ready lesson BODY for this Classic JHS note.
 
 ${contextBlock}
 
@@ -227,44 +261,55 @@ ${currentDraft}Respond with:
 {
   "body": {
     "objectives": {
-      "general": "General objective",
-      "specific": ["Specific objective"]
+      "general": "One overarching objective aligned to the content standard",
+      "specific": ["3-5 measurable specific objectives using action verbs (identify, explain, calculate, demonstrate, etc.)"]
     },
-    "rpk": "Relevant previous knowledge (HTML formatted)",
-    "introduction": "Lesson introduction (HTML formatted)",
+    "rpk": "<p>Exactly what learners already know that this lesson builds on. Be specific — name the prior topic or skill.</p>",
+    "introduction": "<p>A concrete motivating hook: a real-world question, brief scenario, or familiar context that makes the topic relevant before any formal definition.</p>",
     "presentationSteps": [
       {
-        "stepTitle": "Step title",
-        "teacherActivity": "Teacher activity (HTML formatted)",
-        "learnerActivity": "Learner activity (HTML formatted)",
-        "boardWork": "Board work",
-        "keyQuestions": ["Question"],
+        "stepTitle": "Step title (e.g. Concept Introduction, Worked Example, Guided Practice)",
+        "teacherActivity": "<p>Detailed teacher explanation including at least one fully worked example with step-by-step reasoning. For Mathematics include concrete numbers and full solution. Name any common misconceptions and show supportive correction.</p>",
+        "learnerActivity": "<p>Specific task learners complete — individual, pair, or group. State the expected output or answer.</p>",
+        "boardWork": "Exact text, diagram labels, or worked solution to write on the board",
+        "keyQuestions": ["One recall question", "One application question that probes deeper understanding"],
         "timeMins": 10
       }
     ],
-    "corePoints": ["Key point"],
+    "corePoints": ["4-6 key facts or rules stated concisely — what learners must remember"],
     "evaluation": {
-      "questions": ["Question"],
-      "answers": ["Answer"],
-      "markingNotes": "Marking notes"
+      "questions": ["3-5 specific evaluation questions"],
+      "answers": ["Corresponding model answers"],
+      "markingNotes": "Guidance for marking or common errors to watch for"
     },
-    "remarks": "Optional remarks placeholder"
+    "remarks": ""
   }
-}`;
+}
+
+Rules:
+- Use HTML (<p>, <ul>, <li>, <strong>, <em>) for rich-text fields.
+- Include at least 2 presentation steps for a 40-minute lesson; 3 steps for longer.
+- Each step's teacherActivity must explain the concept, not just list tasks.
+- Do not use placeholder text — generate real, subject-specific content.`;
   }
 
   if (data.templateType === "SIMPLE") {
-    return `Generate only the lesson BODY for this quick note.
+    return `Generate a thorough lesson BODY for this quick note.
 
 ${contextBlock}
 
 ${currentDraft}Respond with:
 {
   "body": {
-    "objectives": "Learning objectives (HTML formatted)",
-    "content": "Lesson content and activities (HTML formatted)"
+    "objectives": "<p>Clear learning objectives in learner language — what students will be able to do after this lesson.</p>",
+    "content": "<p>[Definition/concept explanation]</p><p>[Worked example with step-by-step reasoning]</p><p>[Common misconception and supportive correction]</p><p>[Practice activity with expected answers]</p>"
   }
-}`;
+}
+
+Rules:
+- Use HTML for both fields.
+- The content field must include a definition/concept, a worked example, a misconception note, and a practice activity.
+- Do not use placeholder headings — write real content.`;
   }
 
   const templateDef = getTemplateDefinition(data.templateType);
@@ -285,7 +330,16 @@ ${currentDraft}Respond with:
     })
     .join(",\n");
 
-  return `Generate only the lesson BODY for this note.
+  const phaseGuidanceForNaCCA = data.templateType === "NACCA_3_PHASE"
+    ? `
+
+Teaching sequence guidance:
+- starter: Activate prior knowledge with a direct question or quick activity. State the learning target in learner language. Do not simply re-read the topic title.
+- main: Concrete → abstract → practice. Include at least one fully worked example with commentary. Name common misconceptions and give supportive corrections. Include guided practice questions with expected answers.
+- plenary: Formative check (2-3 quick questions or exit task) + brief summary connecting to the next lesson.`
+    : "";
+
+  return `Generate a thorough, classroom-ready lesson BODY for this note.
 
 ${contextBlock}
 
@@ -294,15 +348,16 @@ ${currentDraft}Respond with:
   "body": {
 ${phaseSkeleton}
   }
-}
+}${phaseGuidanceForNaCCA}
 
 Rules:
-- Use HTML for rich-text fields.
-- Keep the response limited to the body structure only.`;
+- Use HTML (<p>, <ul>, <li>, <strong>, <em>) for rich-text fields.
+- Fill every field with real, subject-specific content — no placeholder text.
+- Include worked examples, specific questions, and clear teacher guidance.`;
 }
 
 function buildAssessmentSectionPrompt(data: GenerateRequest): string {
-  return `Generate only the assessment and reflection fields for this lesson note.
+  return `Generate a thorough, indicator-grounded assessment section for this lesson note.
 
 ${buildContextBlock(data)}
 
@@ -311,13 +366,21 @@ ${data.existingContent || "None yet"}
 
 Respond with:
 {
-  "inClassChecks": ["Short formative check"],
-  "exitTicket": "Short exit ticket prompt",
-  "homework": "Homework or follow-up task (HTML formatted)",
-  "learnerReflection": "Learner reflection prompt (HTML formatted)",
-  "teacherReflection": "Teacher reflection prompt (HTML formatted)",
-  "nextLessonLink": "How this lesson connects to the next one"
-}`;
+  "inClassChecks": [
+    "2-3 specific formative check questions to ask during the lesson — tied to the indicators, not generic"
+  ],
+  "exitTicket": "A focused exit-ticket task (1-2 questions) that reveals whether learners met the learning target. Include the expected correct answer in parentheses.",
+  "homework": "<p>A specific homework task tied to today's indicators. For skills subjects include practice problems with expected answers. For knowledge subjects include a short response or application task. State clearly what learners should produce.</p>",
+  "learnerReflection": "<p>2 reflection prompts for learners: one about what they learned, one about a question they still have or something they want to explore further.</p>",
+  "teacherReflection": "<p>2 reflection prompts for the teacher: one about what worked well and what to adjust, one about which learners need follow-up support based on today's evidence.</p>",
+  "nextLessonLink": "One sentence: what prior knowledge from today's lesson will the next lesson build on?"
+}
+
+Rules:
+- inClassChecks must be specific questions, not instructions like "observe learners".
+- exitTicket must name the topic and include what correct looks like.
+- homework must go beyond "read pages X-Y" — assign a task with a measurable output.
+- Do not use placeholder wording.`;
 }
 
 function buildExpandSectionPrompt(data: GenerateRequest): string {
@@ -450,7 +513,14 @@ export async function POST(req: Request) {
     }
 
     const data = parsed.data;
-    const systemPrompt = buildSystemPrompt(data.templateType);
+
+    // Deep content actions use gpt-4o for richer, more structured output.
+    const deepActions = new Set(["generate_body", "generate_assessment_section"]);
+    const useDeepModel = deepActions.has(data.action);
+    const modelToUse = useDeepModel ? "gpt-4o" : "gpt-4o-mini";
+    const maxTokensForAction = useDeepModel ? 6000 : 4000;
+
+    const systemPrompt = buildSystemPrompt(data.templateType, data.action);
     let userPrompt: string;
 
     switch (data.action) {
@@ -496,14 +566,14 @@ export async function POST(req: Request) {
     });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: modelToUse,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.7,
+      temperature: useDeepModel ? 0.6 : 0.7,
       response_format: { type: "json_object" },
-      max_tokens: 4000,
+      max_tokens: maxTokensForAction,
     });
 
     const responseText = completion.choices[0]?.message?.content;

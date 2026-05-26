@@ -38,6 +38,7 @@ export interface ISchemeItem {
   learningObjective?: string | null;
   coreCompetencies?: string[];
   teachingResources?: string[];
+  teachingLearningActivities?: string | null;
   assessmentIdeas?: string[];
   notes?: string | null;
   rowType?: "teaching" | "revision" | "examination" | "holiday" | "other";
@@ -79,6 +80,7 @@ const schemeItemSchema = new Schema<ISchemeItem>(
     learningObjective: { type: String, trim: true, maxlength: 5000, default: null },
     coreCompetencies: [{ type: String, trim: true, maxlength: 500 }],
     teachingResources: [{ type: String, trim: true, maxlength: 500 }],
+    teachingLearningActivities: { type: String, trim: true, maxlength: 8000, default: null },
     assessmentIdeas: [{ type: String, trim: true, maxlength: 1000 }],
     notes: { type: String, trim: true, maxlength: 5000, default: null },
     rowType: {

@@ -11,7 +11,6 @@ import {
   Plus,
   Search,
   Send,
-  Sparkles,
   Trash2,
   Users,
 } from "lucide-react";
@@ -38,6 +37,15 @@ import {
 import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 const statusOptions = [
   { value: "all", label: "All statuses" },
@@ -54,7 +62,7 @@ const statusOptions = [
 const statusStyles: Record<TeacherCommunicationSummary["status"], string> = {
   draft: "bg-amber-500/20 text-amber-200",
   scheduled: "bg-sky-500/20 text-sky-200",
-  queued: "bg-indigo-500/20 text-indigo-200",
+  queued: "bg-teal-500/20 text-teal-200",
   sending: "bg-cyan-500/20 text-cyan-200",
   sent: "bg-emerald-500/20 text-emerald-200",
   partially_sent: "bg-orange-500/20 text-orange-200",
@@ -154,76 +162,69 @@ export default function TeacherNoticesPage() {
 
   if (!canView) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Notices</h1>
-          <p className="text-sm text-white/60">You don&apos;t have access to notices yet.</p>
-        </div>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60">
-                <Megaphone className="h-4 w-4" />
-              </span>
-              Notices locked
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-              Ask your admin to enable notice permissions for your account.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={Megaphone}
+          title="Notices"
+          subtitle="Send class updates through app inbox and email."
+        />
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/70">You don&apos;t have access to notices yet.</p>
+          <p className="mt-2 text-xs text-white/50">
+            Ask your admin to enable notice permissions for your account.
+          </p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
+  const newNoticeAction = canPublish ? (
+    <Button asChild className={glassPrimaryButtonClass}>
+      <Link href="/teacher/communication/notices/new">
+        <Plus className="h-4 w-4" />
+        New notice
+      </Link>
+    </Button>
+  ) : null;
+
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-emerald-500/15 via-white/5 to-sky-500/10 shadow-2xl shadow-black/35 backdrop-blur">
-        <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="space-y-3">
-            <Badge className="w-fit bg-white/10 text-white/80">
-              <Sparkles className="h-3.5 w-3.5" />
-              Communication hub
-            </Badge>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">Notices</h1>
-              <p className="text-sm text-white/65">
-                Send class updates through the communications engine with app inbox and email delivery.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-emerald-500/20 text-emerald-100">{stats.total} total</Badge>
-              <Badge className="bg-amber-500/20 text-amber-100">{stats.drafts} drafts</Badge>
-              <Badge className="bg-sky-500/20 text-sky-100">{stats.scheduled} scheduled</Badge>
-              <Badge className="bg-indigo-500/20 text-indigo-100">{stats.sent} sent</Badge>
-              <Badge className="bg-white/10 text-white/70">{stats.archived} archived</Badge>
-            </div>
-          </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={Megaphone}
+        title="Notices"
+        subtitle="Send class updates through the communications engine with app inbox and email delivery."
+        badge={
+          !isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {stats.total} notice{stats.total === 1 ? "" : "s"}
+            </span>
+          ) : undefined
+        }
+        actions={newNoticeAction}
+      />
 
-          <div className="flex flex-col gap-2 lg:items-end">
-            {canPublish && (
-              <Button
-                asChild
-                className="group bg-emerald-500/30 text-emerald-50 hover:bg-emerald-500/40"
-              >
-                <Link href="/teacher/communication/notices/new">
-                  <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-                  New notice
-                </Link>
-              </Button>
-            )}
-            {!canPublish && (
-              <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
-                Drafting available. Publishing is restricted for your role.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap gap-2">
+        <Badge className="border border-amber-400/20 bg-amber-500/15 text-amber-200">
+          {stats.drafts} drafts
+        </Badge>
+        <Badge className="border border-sky-400/20 bg-sky-500/15 text-sky-200">
+          {stats.scheduled} scheduled
+        </Badge>
+        <Badge className="border border-emerald-400/20 bg-emerald-500/15 text-emerald-200">
+          {stats.sent} sent
+        </Badge>
+        <Badge className="border border-white/10 bg-white/5 text-white/70">
+          {stats.archived} archived
+        </Badge>
+      </div>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      {!canPublish && (
+        <div className={cn(glassInsetClass, "rounded-xl px-3 py-2 text-xs text-white/60")}>
+          Drafting available. Publishing is restricted for your role.
+        </div>
+      )}
+
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="text-lg">Filter notices</CardTitle>
         </CardHeader>
@@ -248,7 +249,7 @@ export default function TeacherNoticesPage() {
                 placeholder="Search notices"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+                className={cn(glassInsetClass, "pl-9 text-white placeholder:text-white/35")}
               />
             </div>
           </div>
@@ -262,7 +263,7 @@ export default function TeacherNoticesPage() {
                 setSearch("");
                 setPage(1);
               }}
-              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+              className={glassSecondaryButtonClass}
             >
               Reset filters
             </Button>
@@ -273,19 +274,29 @@ export default function TeacherNoticesPage() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="h-36 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+            <div key={idx} className={cn(glassInsetClass, "h-36 animate-pulse rounded-2xl")} />
           ))}
         </div>
       ) : notices.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
-          No notices yet. Create your first class notice to reach parents through app and email.
-        </div>
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/60">
+            No notices yet. Create your first class notice to reach parents through app and email.
+          </p>
+          {canPublish && (
+            <Button asChild className={cn("mt-4", glassPrimaryButtonClass)}>
+              <Link href="/teacher/communication/notices/new">
+                <Plus className="h-4 w-4" />
+                New notice
+              </Link>
+            </Button>
+          )}
+        </GlassPanel>
       ) : (
         <div className="space-y-4">
           {notices.map((notice) => (
             <Card
               key={notice.id}
-              className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition hover:border-white/20"
+              className={cn(glassPanelClass, "transition hover:border-white/20 hover:-translate-y-0.5")}
             >
               <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-2">
@@ -294,7 +305,7 @@ export default function TeacherNoticesPage() {
                     <Badge className={cn("rounded-full px-2.5 py-0.5", statusStyles[notice.status])}>
                       {notice.status.replace("_", " ").toUpperCase()}
                     </Badge>
-                    <Badge className="rounded-full bg-indigo-500/20 px-2.5 py-0.5 text-indigo-200">
+                    <Badge className="rounded-full border border-teal-400/20 bg-teal-500/15 px-2.5 py-0.5 text-teal-200">
                       CLASS GROUPS
                     </Badge>
                   </div>
@@ -315,7 +326,11 @@ export default function TeacherNoticesPage() {
                   {canPublish && (
                     <PremiumDropdownMenu>
                       <PremiumDropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 text-white/60 hover:bg-white/10 hover:text-white">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-white/60 hover:bg-white/10 hover:text-white"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </PremiumDropdownMenuTrigger>
@@ -344,7 +359,12 @@ export default function TeacherNoticesPage() {
               </CardHeader>
 
               <CardContent>
-                <div className="grid gap-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/55 sm:grid-cols-4">
+                <div
+                  className={cn(
+                    glassInsetClass,
+                    "grid gap-2 rounded-xl p-3 text-xs text-white/55 sm:grid-cols-4"
+                  )}
+                >
                   <div className="inline-flex items-center gap-1.5">
                     <Users className="h-3.5 w-3.5" />
                     {notice.audience.classGroupIds?.length || 0} class groups
@@ -366,7 +386,12 @@ export default function TeacherNoticesPage() {
             </Card>
           ))}
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">
+            <div
+              className={cn(
+                glassInsetClass,
+                "flex items-center justify-between rounded-2xl p-3 text-sm text-white/60"
+              )}
+            >
               <span>
                 Page {pagination.page} of {pagination.totalPages}
               </span>
@@ -375,7 +400,7 @@ export default function TeacherNoticesPage() {
                   variant="outline"
                   disabled={page <= 1}
                   onClick={() => setPage((value) => Math.max(1, value - 1))}
-                  className="border-white/10 bg-white/5 text-white/70"
+                  className={glassSecondaryButtonClass}
                 >
                   Previous
                 </Button>
@@ -383,7 +408,7 @@ export default function TeacherNoticesPage() {
                   variant="outline"
                   disabled={page >= pagination.totalPages}
                   onClick={() => setPage((value) => value + 1)}
-                  className="border-white/10 bg-white/5 text-white/70"
+                  className={glassSecondaryButtonClass}
                 >
                   Next
                 </Button>
@@ -392,6 +417,6 @@ export default function TeacherNoticesPage() {
           )}
         </div>
       )}
-    </div>
+    </WorkspacePageShell>
   );
 }

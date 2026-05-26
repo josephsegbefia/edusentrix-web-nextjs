@@ -6,6 +6,8 @@ export const LESSON_CONTENT_BLOCK_TYPES = [
   "check",
   "resource_embed",
   "exit_ticket",
+  "teacher_note",
+  "did_you_know",
 ] as const;
 
 export type LessonContentBlockType = (typeof LESSON_CONTENT_BLOCK_TYPES)[number];
@@ -18,6 +20,8 @@ export const LESSON_CONTENT_BLOCK_LABELS: Record<LessonContentBlockType, string>
   check: "Quick check",
   resource_embed: "Resource",
   exit_ticket: "Exit ticket",
+  teacher_note: "Teacher note",
+  did_you_know: "Did you know",
 };
 
 export type LessonContentBlock = {
@@ -56,6 +60,7 @@ export type StudentLessonSessionContentDto = {
 export type WeekSplitSessionProposal = {
   timetableSlotId: string;
   timetableSlotIds?: string[];
+  scheduledDate?: string;
   sequenceInWeek: number;
   title: string;
   noteSectionKeys: string[];

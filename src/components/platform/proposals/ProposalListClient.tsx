@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/premium-select";
 import { PlatformPill, formatDate } from "@/components/platform/platform-page-primitives";
 import { ProposalStatusBadge } from "@/components/platform/proposals/ProposalStatusBadge";
+import { ProposalPipeline, type ProposalPipelineCounts } from "@/components/platform/proposals/ProposalPipeline";
 import type { PlatformProposal } from "@/components/platform/proposals/types";
 import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 
@@ -29,12 +30,16 @@ type ResponseShape = {
   data: {
     proposals: PlatformProposal[];
     pagination: { page: number; totalPages: number; total: number };
+    pipeline?: ProposalPipelineCounts;
   };
 };
 
 export function ProposalListClient() {
   const [proposals, setProposals] = React.useState<PlatformProposal[]>([]);
   const [pagination, setPagination] = React.useState({ page: 1, totalPages: 1, total: 0 });
+  const [pipeline, setPipeline] = React.useState<ProposalPipelineCounts>({
+    draft: 0, ready: 0, outreach: 0, demo: 0, pilot: 0, won: 0,
+  });
   const [loading, setLoading] = React.useState(true);
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("all");
@@ -57,6 +62,7 @@ export function ProposalListClient() {
       if (!res.ok || !json) throw new Error("Failed to load proposals");
       setProposals(json.data.proposals);
       setPagination(json.data.pagination);
+      if (json.data.pipeline) setPipeline(json.data.pipeline);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load proposals");
     } finally {
@@ -105,6 +111,14 @@ export function ProposalListClient() {
 
   return (
     <div className="space-y-5">
+      <ProposalPipeline
+        counts={pipeline}
+        activeFilter={status !== "all" ? status : undefined}
+        onFilter={(s) => {
+          setStatus(s);
+          setPage(1);
+        }}
+      />
       <div className="grid gap-3 md:grid-cols-[1fr_220px_auto]">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />

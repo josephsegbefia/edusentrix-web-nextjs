@@ -35,39 +35,20 @@ import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
-const toneStyles: Record<
-  string,
-  { border: string; bg: string; icon: string; glow: string; value: string }
-> = {
-  indigo: {
-    border: "border-indigo-500/30",
-    bg: "from-indigo-500/15 via-indigo-500/5 to-transparent",
-    icon: "text-indigo-300",
-    glow: "bg-indigo-500/20",
-    value: "text-indigo-100",
-  },
-  emerald: {
-    border: "border-emerald-500/30",
-    bg: "from-emerald-500/15 via-emerald-500/5 to-transparent",
-    icon: "text-emerald-300",
-    glow: "bg-emerald-500/20",
-    value: "text-emerald-100",
-  },
-  amber: {
-    border: "border-amber-500/30",
-    bg: "from-amber-500/15 via-amber-500/5 to-transparent",
-    icon: "text-amber-300",
-    glow: "bg-amber-500/20",
-    value: "text-amber-100",
-  },
-  rose: {
-    border: "border-rose-500/30",
-    bg: "from-rose-500/15 via-rose-500/5 to-transparent",
-    icon: "text-rose-300",
-    glow: "bg-rose-500/20",
-    value: "text-rose-100",
-  },
+const summaryIconTone: Record<string, string> = {
+  emerald: "border-emerald-400/30 bg-emerald-500/20 text-emerald-100",
+  teal: "border-teal-400/30 bg-teal-500/20 text-teal-100",
+  amber: "border-amber-400/30 bg-amber-500/20 text-amber-100",
+  rose: "border-rose-400/30 bg-rose-500/20 text-rose-100",
 };
 
 function formatDateLabel(value?: string | null) {
@@ -102,32 +83,17 @@ function SummaryCard({
   value: string;
   subtitle: string;
   icon: React.ReactNode;
-  tone: keyof typeof toneStyles;
+  tone: keyof typeof summaryIconTone;
   loading?: boolean;
 }) {
-  const config = toneStyles[tone];
   return (
-    <div
-      className={cn(
-        "group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 shadow-xl shadow-black/30 backdrop-blur",
-        config.border,
-        config.bg
-      )}
-    >
-      <div
-        className={cn(
-          "pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl transition-opacity duration-300",
-          config.glow,
-          "opacity-50"
-        )}
-        aria-hidden="true"
-      />
-      <div className="relative z-10 flex items-start justify-between gap-4">
+    <div className={cn(glassPanelClass, "p-4")}>
+      <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50">
             {label}
           </p>
-          <p className={cn("text-3xl font-bold tracking-tight", config.value)}>
+          <p className="text-3xl font-bold tracking-tight text-white">
             {loading ? (
               <span className="inline-block h-8 w-20 animate-pulse rounded bg-white/10" />
             ) : (
@@ -136,14 +102,14 @@ function SummaryCard({
           </p>
           <p className="text-xs text-white/50">{subtitle}</p>
         </div>
-        <div
+        <span
           className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/5",
-            config.icon
+            "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border",
+            summaryIconTone[tone]
           )}
         >
           {icon}
-        </div>
+        </span>
       </div>
     </div>
   );
@@ -260,27 +226,19 @@ export default function TeacherAnalyticsPage() {
 
   if (!canView) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Analytics</h1>
-          <p className="text-sm text-white/60">Access to analytics is currently locked.</p>
-        </div>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60">
-                <BarChart3 className="h-4 w-4" />
-              </span>
-              Analytics access required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-              Ask an admin to grant analytics permissions for your account.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={BarChart3}
+          title="Analytics"
+          subtitle="Track completion, attendance trends, and class performance."
+        />
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/70">Access to analytics is currently locked.</p>
+          <p className="mt-2 text-xs text-white/50">
+            Ask an admin to grant analytics permissions for your account.
+          </p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
@@ -296,27 +254,36 @@ export default function TeacherAnalyticsPage() {
     0
   );
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Analytics</h1>
-          <p className="text-sm text-white/60">
-            Track completion, attendance trends, and class performance in one view.
-          </p>
-        </div>
-        <Button
-          onClick={handleRefresh}
-          variant="outline"
-          className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-          disabled={refreshing}
-        >
-          <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
-          Refresh
-        </Button>
-      </div>
+  const refreshAction = (
+    <Button
+      onClick={handleRefresh}
+      variant="outline"
+      className={glassSecondaryButtonClass}
+      disabled={refreshing}
+    >
+      <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+      Refresh
+    </Button>
+  );
 
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 lg:grid-cols-4">
+  return (
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={BarChart3}
+        title="Analytics"
+        subtitle="Track completion, attendance trends, and class performance in one view."
+        badge={
+          !completionQuery.isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {formatPercent(completionSummary?.completionRate)} completion
+            </span>
+          ) : undefined
+        }
+        actions={refreshAction}
+      />
+
+      <Card className={cn(glassPanelClass, "p-4")}>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
         <PremiumSelect value={selectedClassId} onValueChange={setSelectedClassId}>
           <PremiumSelectTrigger>
             <PremiumSelectValue placeholder="All classes" />
@@ -356,7 +323,8 @@ export default function TeacherAnalyticsPage() {
           onChange={setEndDate}
           placeholder="End date"
         />
-      </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
@@ -372,7 +340,7 @@ export default function TeacherAnalyticsPage() {
           value={formatPercent(attendanceSummary?.attendanceRate)}
           subtitle="Homeroom attendance"
           icon={<CalendarDays className="h-5 w-5" />}
-          tone="indigo"
+          tone="teal"
           loading={attendanceQuery.isLoading}
         />
         <SummaryCard
@@ -396,7 +364,7 @@ export default function TeacherAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-emerald-500/20 text-emerald-200">
@@ -409,16 +377,16 @@ export default function TeacherAnalyticsPage() {
             {completionQuery.isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, idx) => (
-                  <div key={idx} className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+                  <div key={idx} className="h-20 animate-pulse rounded-2xl" />
                 ))}
               </div>
             ) : assignments.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/60">
+              <div className={cn(glassInsetClass, "rounded-2xl p-6 text-center text-white/60")}>
                 No published assignments yet.
               </div>
             ) : (
               assignments.slice(0, 6).map((assignment: TeacherCompletionAssignment) => (
-                <div key={assignment.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div key={assignment.id} className={cn(glassInsetClass, "rounded-2xl p-4")}>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-white">{assignment.title}</p>
@@ -453,10 +421,10 @@ export default function TeacherAnalyticsPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <Card className={glassPanelClass}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-indigo-500/20 text-indigo-200">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-teal-500/20 text-teal-200">
                   <Users className="h-4 w-4" />
                 </span>
                 Attendance Insights
@@ -479,19 +447,19 @@ export default function TeacherAnalyticsPage() {
               </div>
               <div className="space-y-3 text-xs text-white/60">
                 {(attendanceQuery.data?.data.byClass || []).length === 0 ? (
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center text-white/50">
+                  <div className={cn(glassInsetClass, "rounded-2xl p-3 text-center text-white/50")}>
                     No attendance records yet.
                   </div>
                 ) : (
                   attendanceQuery.data?.data.byClass.slice(0, 4).map((entry) => (
-                    <div key={entry.classGroupId} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div key={entry.classGroupId} className={cn(glassInsetClass, "rounded-xl p-3")}>
                       <div className="flex items-center justify-between">
                         <span>{entry.className}</span>
                         <span className="text-white/70">{entry.attendanceRate}%</span>
                       </div>
                       <div className="mt-2 h-2 w-full rounded-full bg-white/10">
                         <div
-                          className="h-2 rounded-full bg-indigo-400/60"
+                          className="h-2 rounded-full bg-teal-400/60"
                           style={{ width: `${Math.min(100, entry.attendanceRate)}%` }}
                         />
                       </div>
@@ -502,7 +470,7 @@ export default function TeacherAnalyticsPage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+          <Card className={glassPanelClass}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-amber-500/20 text-amber-200">
@@ -513,9 +481,9 @@ export default function TeacherAnalyticsPage() {
             </CardHeader>
             <CardContent>
               {performanceQuery.isLoading ? (
-                <div className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+                <div className="h-32 animate-pulse rounded-2xl" />
               ) : performanceDistribution.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/60">
+                <div className={cn(glassInsetClass, "rounded-2xl p-6 text-center text-white/60")}>
                   No gradebook data yet.
                 </div>
               ) : (
@@ -547,7 +515,7 @@ export default function TeacherAnalyticsPage() {
         </div>
       </div>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className={glassPanelClass}>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-rose-500/20 text-rose-200">
@@ -558,20 +526,20 @@ export default function TeacherAnalyticsPage() {
           <Button
             asChild
             variant="outline"
-            className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+            className={glassSecondaryButtonClass}
           >
             <Link href="/teacher/analytics/at-risk">View full list</Link>
           </Button>
         </CardHeader>
         <CardContent>
           {!canViewAtRisk ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/60">
+            <div className={cn(glassInsetClass, "rounded-2xl p-6 text-center text-white/60")}>
               At-risk insights are locked. Ask an admin to enable access.
             </div>
           ) : atRiskQuery.isLoading ? (
-            <div className="h-28 animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+            <div className={cn(glassInsetClass, "h-28 animate-pulse rounded-2xl")} />
           ) : atRiskPreview.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/60">
+            <div className={cn(glassInsetClass, "rounded-2xl p-6 text-center text-white/60")}>
               No at-risk students detected yet.
             </div>
           ) : (
@@ -579,7 +547,10 @@ export default function TeacherAnalyticsPage() {
               {atRiskPreview.map((student) => (
                 <div
                   key={student.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className={cn(
+                    glassInsetClass,
+                    "flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between"
+                  )}
                 >
                   <div>
                     <div className="text-sm font-semibold text-white">{student.name}</div>
@@ -595,7 +566,7 @@ export default function TeacherAnalyticsPage() {
                       <Badge className="bg-amber-500/20 text-amber-200">Submissions</Badge>
                     )}
                     {student.flags.score && (
-                      <Badge className="bg-indigo-500/20 text-indigo-200">Scores</Badge>
+                      <Badge className="bg-teal-500/20 text-teal-200">Scores</Badge>
                     )}
                   </div>
                 </div>
@@ -604,6 +575,6 @@ export default function TeacherAnalyticsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePageShell>
   );
 }

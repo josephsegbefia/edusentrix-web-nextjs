@@ -78,7 +78,16 @@ export function DocumentUploader({
       setUploadProgress(Math.min(95, progress));
     },
     onUploadError: (error) => {
-      uploadErrorMessage.current = error.message || "Upload failed";
+      const cause =
+        error.cause instanceof Error
+          ? error.cause.message
+          : typeof error.cause === "string"
+            ? error.cause
+            : null;
+      uploadErrorMessage.current =
+        error.message === "Failed to run middleware" && cause
+          ? cause
+          : error.message || "Upload failed";
     },
   });
 

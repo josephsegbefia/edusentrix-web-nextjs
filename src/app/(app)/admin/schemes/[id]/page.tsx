@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   BookOpen,
   CheckCircle2,
+  FilePlus,
   Loader2,
   Send,
   ShieldAlert,
@@ -279,15 +280,15 @@ export default function AdminSchemeReviewDetailPage() {
                   <TableHeader>
                     <TableRow className="border-white/10 bg-white/5 hover:bg-white/5">
                       <TableHead className="text-white/55">Week</TableHead>
-                      <TableHead className="text-white/55">Order</TableHead>
                       <TableHead className="text-white/55">Topic</TableHead>
                       <TableHead className="text-white/55">Strand</TableHead>
-                      <TableHead className="text-white/55">Indicator</TableHead>
-                      <TableHead className="text-white/55">Objectives</TableHead>
+                      <TableHead className="text-white/55">Content standard</TableHead>
+                      <TableHead className="text-white/55">Indicators / Objectives</TableHead>
+                      <TableHead className="text-white/55">Teaching &amp; learning activities</TableHead>
                       <TableHead className="text-white/55">Resources</TableHead>
                       <TableHead className="text-white/55">Assessment</TableHead>
-                      <TableHead className="text-white/55">Dates</TableHead>
                       <TableHead className="text-white/55">Coverage</TableHead>
+                      <TableHead className="sr-only">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -304,11 +305,13 @@ export default function AdminSchemeReviewDetailPage() {
                           className="border-white/5 align-top hover:bg-white/[0.03]"
                         >
                           <TableCell className="whitespace-nowrap text-white/80">
-                            {item.weekNumber}
+                            {item.weekNumber ?? "—"}
+                            {item.lessonOrder != null ? (
+                              <div className="text-xs text-white/40">Order {item.lessonOrder}</div>
+                            ) : null}
                           </TableCell>
-                          <TableCell className="text-white/65">{item.lessonOrder ?? "—"}</TableCell>
                           <TableCell className="max-w-[200px] text-sm text-white/85">
-                            <div className="font-medium">{item.topic}</div>
+                            <div className="font-medium">{item.topic ?? item.title}</div>
                             {item.subtopic ? (
                               <div className="mt-0.5 text-xs text-white/45">{item.subtopic}</div>
                             ) : null}
@@ -320,12 +323,34 @@ export default function AdminSchemeReviewDetailPage() {
                             ) : null}
                           </TableCell>
                           <TableCell className="max-w-[180px] text-xs text-white/65">
-                            {item.indicator ?? "—"}
+                            {item.contentStandard ?? "—"}
                           </TableCell>
-                          <TableCell className="max-w-[220px] text-xs text-white/65">
-                            {item.learningObjectives?.length
-                              ? item.learningObjectives.join("; ")
-                              : "—"}
+                          <TableCell className="max-w-[200px] text-xs text-white/65">
+                            {item.indicator ? (
+                              <p className="whitespace-pre-wrap">{item.indicator}</p>
+                            ) : null}
+                            {item.learningObjectives?.length ? (
+                              <ul className="mt-1 list-disc space-y-0.5 pl-3 text-white/50">
+                                {item.learningObjectives.slice(0, 4).map((obj, i) => (
+                                  <li key={i}>{obj}</li>
+                                ))}
+                                {item.learningObjectives.length > 4 ? (
+                                  <li className="text-white/35">
+                                    +{item.learningObjectives.length - 4} more
+                                  </li>
+                                ) : null}
+                              </ul>
+                            ) : null}
+                            {!item.indicator && !item.learningObjectives?.length ? "—" : null}
+                          </TableCell>
+                          <TableCell className="max-w-[220px] text-xs text-white/55">
+                            {item.teachingLearningActivities ? (
+                              <p className="line-clamp-4 whitespace-pre-wrap">
+                                {item.teachingLearningActivities}
+                              </p>
+                            ) : (
+                              "—"
+                            )}
                           </TableCell>
                           <TableCell className="max-w-[160px] text-xs text-white/55">
                             {item.teachingResources?.length
@@ -337,13 +362,19 @@ export default function AdminSchemeReviewDetailPage() {
                               ? item.assessmentIdeas.join("; ")
                               : "—"}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs text-white/55">
-                            {item.plannedStartDate || item.plannedEndDate
-                              ? `${item.plannedStartDate ? new Date(item.plannedStartDate).toLocaleDateString() : "—"} – ${item.plannedEndDate ? new Date(item.plannedEndDate).toLocaleDateString() : "—"}`
-                              : "—"}
-                          </TableCell>
                           <TableCell className="text-xs capitalize text-white/55">
                             {item.coverageStatus ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {(status === "approved" || status === "active") ? (
+                              <Link
+                                href={`/teacher/lesson-notes?createFromSchemeItem=${item.id}`}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-teal-200 hover:bg-white/10"
+                              >
+                                <FilePlus className="h-3.5 w-3.5" />
+                                Create note
+                              </Link>
+                            ) : null}
                           </TableCell>
                         </TableRow>
                       ))

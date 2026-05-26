@@ -4,14 +4,12 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  ArrowLeft,
   Edit3,
   FileText,
   MoreHorizontal,
   NotebookPen,
   RefreshCw,
   Search,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
@@ -50,6 +48,15 @@ import { cn } from "@/lib/utils";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import { TeacherLessonWeekPlansPanel } from "@/components/lessons/TeacherLessonWeekPlansPanel";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import { GlassPanel } from "@/components/ui/glass-panel";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
@@ -95,7 +102,12 @@ function JournalEntryCard({
   onDelete: (entry: TeacherJournalEntry) => void;
 }) {
   return (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur transition hover:border-white/20">
+    <Card
+      className={cn(
+        glassPanelClass,
+        "transition hover:border-white/20 hover:-translate-y-0.5"
+      )}
+    >
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -110,7 +122,7 @@ function JournalEntryCard({
               {entry.status === "published" ? "Published" : "Draft"}
             </Badge>
             {entry.attachments.length > 0 ? (
-              <Badge className="bg-indigo-500/20 text-indigo-200">
+              <Badge className="border border-teal-400/20 bg-teal-500/15 text-teal-200">
                 {entry.attachments.length} attachment{entry.attachments.length > 1 ? "s" : ""}
               </Badge>
             ) : null}
@@ -349,98 +361,84 @@ export default function TeacherClassJournalPage() {
 
   if (!canView) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-white">Class Journal</h1>
-          <p className="text-sm text-white/60">Journal access is currently locked.</p>
-        </div>
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/60">
-                <NotebookPen className="h-4 w-4" />
-              </span>
-              Journal access required
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
-              Ask an admin to grant journal permissions for your account.
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={NotebookPen}
+          title="Class journal"
+          subtitle="Capture lesson delivery and follow-up actions."
+          backHref="/teacher/journal"
+          backLabel="Back to journals"
+        />
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-white/70">Journal access is currently locked.</p>
+          <p className="mt-2 text-xs text-white/50">
+            Ask an admin to grant journal permissions for your account.
+          </p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
   if (!classGroupId || classAssignments.length === 0) {
     return (
-      <div className="space-y-6">
-        <Button
-          asChild
-          variant="outline"
-          className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
-        >
-          <Link href="/teacher/journal">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Journals
-          </Link>
-        </Button>
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/60">
-          This class is not available in your assignments.
-        </div>
-      </div>
+      <WorkspacePageShell>
+        <WorkspacePageHeader
+          icon={NotebookPen}
+          title="Class journal"
+          subtitle="This class is not available in your assignments."
+          backHref="/teacher/journal"
+          backLabel="Back to journals"
+        />
+        <GlassPanel className="p-6 text-center">
+          <p className="text-sm text-white/60">
+            This class is not available in your assignments.
+          </p>
+        </GlassPanel>
+      </WorkspacePageShell>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden border border-white/10 bg-linear-to-br from-indigo-500/15 via-white/5 to-emerald-500/10 shadow-2xl shadow-black/35 backdrop-blur">
-        <CardContent className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <div className="space-y-3">
-            <Badge className="w-fit bg-white/10 text-white/80">
-              <Sparkles className="h-3.5 w-3.5" />
-              Class recordbook
-            </Badge>
-            <div>
-              <h1 className="text-2xl font-semibold text-white">{className} Journal</h1>
-              <p className="text-sm text-white/65">
-                Capture lesson delivery, tasks, and follow-up actions in a chronological class log.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-white/10 text-white/80">{stats.total} entries</Badge>
-              <Badge className="bg-amber-500/20 text-amber-100">{stats.drafts} drafts</Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-100">{stats.published} published</Badge>
-              <Badge className="bg-indigo-500/20 text-indigo-100">
-                Last update {formatDateTime(stats.latest)}
-              </Badge>
-            </div>
-          </div>
+  const refreshAction = (
+    <Button
+      onClick={handleRefresh}
+      variant="outline"
+      className={glassSecondaryButtonClass}
+      disabled={journalQuery.isFetching}
+    >
+      <RefreshCw className={cn("h-4 w-4", journalQuery.isFetching && "animate-spin")} />
+      Refresh
+    </Button>
+  );
 
-          <div className="flex flex-col gap-2 lg:items-end">
-            <Button
-              asChild
-              variant="outline"
-              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
-            >
-              <Link href="/teacher/journal">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Journals
-              </Link>
-            </Button>
-            <Button
-              onClick={handleRefresh}
-              variant="outline"
-              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
-              disabled={journalQuery.isFetching}
-            >
-              <RefreshCw className={cn("h-4 w-4", journalQuery.isFetching && "animate-spin")} />
-              Refresh
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+  return (
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={NotebookPen}
+        title={`${className} journal`}
+        subtitle="Capture lesson delivery, tasks, and follow-up actions in a chronological class log."
+        backHref="/teacher/journal"
+        backLabel="Back to journals"
+        badge={
+          !journalQuery.isLoading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {stats.total} entr{stats.total === 1 ? "y" : "ies"}
+            </span>
+          ) : undefined
+        }
+        actions={refreshAction}
+      />
+
+      <div className="flex flex-wrap gap-2">
+        <Badge className="border border-amber-400/20 bg-amber-500/15 text-amber-200">
+          {stats.drafts} drafts
+        </Badge>
+        <Badge className="border border-emerald-400/20 bg-emerald-500/15 text-emerald-200">
+          {stats.published} published
+        </Badge>
+        <Badge className="border border-white/10 bg-white/5 text-white/70">
+          Last update {formatDateTime(stats.latest)}
+        </Badge>
+      </div>
 
       {canViewLessons && classGroupId ? (
         <TeacherLessonWeekPlansPanel
@@ -449,18 +447,18 @@ export default function TeacherClassJournalPage() {
         />
       ) : null}
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-indigo-500/20 text-indigo-200">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-teal-400/30 bg-teal-500/20 text-teal-100">
               <NotebookPen className="h-4 w-4" />
             </span>
-            New Journal Entry
+            New journal entry
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!canWrite ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
+            <div className={cn(glassInsetClass, "rounded-2xl p-4 text-sm text-white/60")}>
               You can view entries, but journal editing is locked for your role.
             </div>
           ) : null}
@@ -470,7 +468,7 @@ export default function TeacherClassJournalPage() {
               value={entryTitle}
               onChange={(event) => setEntryTitle(event.target.value)}
               placeholder="Entry title (optional)"
-              className="border-white/10 bg-white/5 text-white"
+              className={cn(glassInsetClass, "text-white")}
               disabled={!canWrite}
             />
             <PremiumSelect
@@ -518,14 +516,14 @@ export default function TeacherClassJournalPage() {
             value={entryContent}
             onChange={(event) => setEntryContent(event.target.value)}
             placeholder="Write what happened in class, assigned tasks, and next steps."
-            className="min-h-[140px] border-white/10 bg-white/5 text-white"
+            className={cn(glassInsetClass, "min-h-[140px] text-white")}
             disabled={!canWrite}
           />
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => void handleCreateEntry()}
-              className="bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/35"
+              className={glassPrimaryButtonClass}
               disabled={!canWrite || createMutation.isPending || !entryContent.trim()}
             >
               Save Entry
@@ -537,7 +535,7 @@ export default function TeacherClassJournalPage() {
         </CardContent>
       </Card>
 
-      <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+      <Card className={glassPanelClass}>
         <CardHeader>
           <CardTitle className="text-lg">Filter entries</CardTitle>
         </CardHeader>
@@ -587,7 +585,7 @@ export default function TeacherClassJournalPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search entries"
-                className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-white/35"
+                className={cn(glassInsetClass, "pl-9 text-white placeholder:text-white/35")}
               />
             </div>
           </div>
@@ -602,7 +600,7 @@ export default function TeacherClassJournalPage() {
                 setEndDate(null);
                 setSearch("");
               }}
-              className="border-white/10 bg-white/5 text-white/75 hover:bg-white/10"
+              className={glassSecondaryButtonClass}
             >
               Reset filters
             </Button>
@@ -613,7 +611,7 @@ export default function TeacherClassJournalPage() {
       {journalQuery.isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <Card key={idx} className="border border-white/10 bg-white/5 p-6">
+            <Card key={idx} className={cn(glassPanelClass, "p-6")}>
               <div className="space-y-3">
                 <Skeleton className="h-5 w-1/3" />
                 <Skeleton className="h-4 w-2/3" />
@@ -628,7 +626,7 @@ export default function TeacherClassJournalPage() {
           <p className="text-sm text-red-100/80">Failed to load journal entries. Please refresh.</p>
         </Card>
       ) : entries.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/60">
+        <div className={cn(glassInsetClass, "rounded-2xl p-8 text-center text-white/60")}>
           No journal entries yet. Start with your first class record above.
         </div>
       ) : (
@@ -662,7 +660,7 @@ export default function TeacherClassJournalPage() {
                 value={editTitle}
                 onChange={(event) => setEditTitle(event.target.value)}
                 placeholder="Entry title (optional)"
-                className="border-white/10 bg-white/5 text-white"
+                className={cn(glassInsetClass, "text-white")}
               />
               <PremiumSelect value={editSubjectId} onValueChange={setEditSubjectId}>
                 <PremiumSelectTrigger>
@@ -703,7 +701,7 @@ export default function TeacherClassJournalPage() {
               value={editContent}
               onChange={(event) => setEditContent(event.target.value)}
               placeholder="Update your journal note..."
-              className="min-h-[140px] border-white/10 bg-white/5 text-white"
+              className={cn(glassInsetClass, "min-h-[140px] text-white")}
             />
           </div>
 
@@ -711,14 +709,14 @@ export default function TeacherClassJournalPage() {
             <Button
               variant="outline"
               onClick={closeEditDialog}
-              className="border-white/10 text-white/60"
+              className={glassSecondaryButtonClass}
             >
               Cancel
             </Button>
             <Button
               onClick={() => void handleUpdateEntry()}
               disabled={updateMutation.isPending || !editContent.trim()}
-              className="bg-indigo-500/25 text-indigo-100 hover:bg-indigo-500/35"
+              className={glassPrimaryButtonClass}
             >
               Save changes
             </Button>
@@ -739,6 +737,6 @@ export default function TeacherClassJournalPage() {
         onCancel={() => setEntryToDelete(null)}
         onConfirm={() => void handleDeleteEntry()}
       />
-    </div>
+    </WorkspacePageShell>
   );
 }

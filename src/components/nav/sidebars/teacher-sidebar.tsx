@@ -41,6 +41,7 @@ import {
   Presentation,
   PieChart,
 } from "lucide-react";
+import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
   premiumSideItem,
   premiumSideItemActive,
@@ -172,6 +173,12 @@ const navSections: NavSection[] = [
         label: "Rubrics",
         href: "/teacher/studio/rubrics",
         icon: CheckSquare,
+      },
+      {
+        label: "EduSentrix Learn",
+        href: "/teacher/learn",
+        icon: LearnLogoIcon,
+        feature: "edusentrix_learn",
       },
     ],
   },

@@ -8,11 +8,16 @@ import {
   ArrowRight,
   CalendarDays,
   Check,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Loader2,
+  Plus,
   Presentation,
+  RefreshCw,
   Sparkles,
   Split,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +25,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  PremiumDropdownMenu,
+  PremiumDropdownMenuContent,
+  PremiumDropdownMenuItem,
+  PremiumDropdownMenuTrigger,
+} from "@/components/ui/premium-dropdown-menu";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -29,6 +40,7 @@ import {
 } from "@/components/ui/premium-select";
 import { useTeacherClasses } from "@/hooks/teacher/useTeacherClasses";
 import {
+  LessonWeekPlanCreateError,
   useCreateLessonWeekPlan,
   useWeekCreationContext,
 } from "@/hooks/teacher/useLessonWeekCreation";
@@ -40,11 +52,21 @@ import { LessonContentBlocksEditor } from "@/components/lessons/LessonContentBlo
 import { useGenerateSessionContent, useProposeWeekSplit } from "@/hooks/teacher/useLessonsLeo";
 import { validateCoverageWeights } from "@/lib/lessons/coverage-weights";
 
+/** Human-readable description of what each standard section key contains. */
+const SECTION_KEY_DESCRIPTIONS: Record<string, string> = {
+  context: "Topic context, references, week, and duration.",
+  curriculum: "Strand, sub-strand, content standard, indicators, and learning outcomes.",
+  resources: "Teaching and learning materials (TLMs) and external resources.",
+  body: "Main lesson phases — starter, main activities, and plenary content.",
+  assessment: "In-class checks, exit ticket, homework, and reflection prompts.",
+};
+
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 type WizardStep = "context" | "timetable" | "split" | "content" | "review";
 
 type SlotDraft = {
+  slotDraftId: string;
   timetableSlotId: string;
   timetableSlotIds: string[];
   periodCount: number;
@@ -57,10 +79,15 @@ type SlotDraft = {
   dayOfWeek: number;
   durationMinutes: number;
   noteSectionKeys: string[];
+  schemeItemIds: string[];
   coverageWeight: number;
   contentBlocks: LessonContentBlock[];
   focusSummary?: string;
 };
+
+function makeSlotDraftId(slot: { scheduledDate: string; id: string }) {
+  return `${slot.scheduledDate}:${slot.id}`;
+}
 
 function applyDefaultSplit(slots: SlotDraft[], sectionKeys: string[]): SlotDraft[] {
   const included = slots.filter((s) => s.include);
@@ -69,7 +96,7 @@ function applyDefaultSplit(slots: SlotDraft[], sectionKeys: string[]): SlotDraft
   const weight = 1 / n;
   return slots.map((slot) => {
     if (!slot.include) return { ...slot, coverageWeight: 0, noteSectionKeys: [] };
-    const sessionIndex = included.findIndex((s) => s.timetableSlotId === slot.timetableSlotId);
+    const sessionIndex = included.findIndex((s) => s.slotDraftId === slot.slotDraftId);
     const keysForSession = sectionKeys.filter((_, i) => i % n === sessionIndex);
     return {
       ...slot,
@@ -93,6 +120,9 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
   const [planTitle, setPlanTitle] = React.useState("");
   const [slotDrafts, setSlotDrafts] = React.useState<SlotDraft[]>([]);
   const [activeContentIndex, setActiveContentIndex] = React.useState(0);
+  const [conflictNotice, setConflictNotice] = React.useState<string | null>(null);
+  const [leoSplitApplied, setLeoSplitApplied] = React.useState(false);
+  const [expandedPreviews, setExpandedPreviews] = React.useState<Set<string>>(new Set());
   const autoSplitKeyRef = React.useRef<string | null>(null);
 
   const { data: classesData } = useTeacherClasses();
@@ -110,18 +140,30 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
 
   const applyLeoProposals = React.useCallback((proposals: WeekSplitSessionProposal[]) => {
     setSlotDrafts((prev) =>
-      prev.map((slot) => {
-        const proposal = proposals.find((p) => p.timetableSlotId === slot.timetableSlotId);
+      prev.map((slot, index) => {
+        const proposal =
+          proposals[index] ??
+          proposals.find(
+            (p) =>
+              p.timetableSlotId === slot.timetableSlotId &&
+              (!p.scheduledDate || p.scheduledDate === slot.scheduledDate),
+          );
         if (!proposal || !slot.include) return slot;
         return {
           ...slot,
           title: proposal.title || slot.title,
           noteSectionKeys: proposal.noteSectionKeys,
+          // Accept Leo's schemeItemIds if provided; keep existing ones otherwise.
+          schemeItemIds:
+            Array.isArray(proposal.schemeItemIds) && proposal.schemeItemIds.length > 0
+              ? proposal.schemeItemIds
+              : slot.schemeItemIds,
           coverageWeight: proposal.coverageWeight,
           focusSummary: proposal.focusSummary,
         };
       }),
     );
+    setLeoSplitApplied(true);
   }, []);
 
   React.useEffect(() => {
@@ -134,8 +176,10 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
     if (!ctx) return;
     const topic = ctx.lessonNote.topic || "Lesson";
     setPlanTitle((prev) => prev || `${topic} — ${ctx.weekLabel}`);
+    const noteSchemeItemIds = ctx.noteSchemeItemIds ?? [];
     setSlotDrafts(
       ctx.timetableSlots.map((slot, index) => ({
+        slotDraftId: makeSlotDraftId(slot),
         timetableSlotId: slot.id,
         timetableSlotIds: slot.timetableSlotIds?.length ? slot.timetableSlotIds : [slot.id],
         periodCount: slot.periodCount || 1,
@@ -148,6 +192,8 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
         dayOfWeek: slot.dayOfWeek,
         durationMinutes: slot.durationMinutes,
         noteSectionKeys: [],
+        // Seed every session with the note's scheme item IDs so Leo enrichment works immediately.
+        schemeItemIds: noteSchemeItemIds,
         coverageWeight: 0,
         contentBlocks: [],
       })),
@@ -185,6 +231,29 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
     applyLeoProposals(proposals);
   };
 
+  const moveBlockBetweenSessions = React.useCallback(
+    (blockId: string, targetSlotDraftId: string) => {
+      setSlotDrafts((prev) => {
+        const source = prev.find((s) => s.contentBlocks.some((b) => b.id === blockId));
+        if (!source || source.slotDraftId === targetSlotDraftId) return prev;
+        const block = source.contentBlocks.find((b) => b.id === blockId);
+        if (!block) return prev;
+        return prev.map((s) => {
+          if (s.slotDraftId === source.slotDraftId) {
+            const updated = s.contentBlocks.filter((b) => b.id !== blockId);
+            return { ...s, contentBlocks: updated.map((b, i) => ({ ...b, order: i })) };
+          }
+          if (s.slotDraftId === targetSlotDraftId) {
+            const moved = { ...block, order: s.contentBlocks.length };
+            return { ...s, contentBlocks: [...s.contentBlocks, moved] };
+          }
+          return s;
+        });
+      });
+    },
+    [],
+  );
+
   const generateAllSessionContent = async () => {
     if (!leoEnabled || includedSlots.length === 0) return;
     const generated = new Map<string, LessonContentBlock[]>();
@@ -206,7 +275,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
               focusSummary: slot.focusSummary,
             },
           });
-          generated.set(slot.timetableSlotId, blocks);
+          generated.set(slot.slotDraftId, blocks);
         }
       })(),
       {
@@ -218,7 +287,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
 
     setSlotDrafts((prev) =>
       prev.map((slot) => {
-        const blocks = generated.get(slot.timetableSlotId);
+        const blocks = generated.get(slot.slotDraftId);
         return blocks ? { ...slot, contentBlocks: blocks } : slot;
       }),
     );
@@ -226,7 +295,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
 
   React.useEffect(() => {
     if (!ctx || !leoEnabled || slotDrafts.length === 0 || proposeSplit.isPending) return;
-    const autoKey = `${noteId}:${classGroupId}:${ctx.weekStartDate}:${slotDrafts.map((s) => s.timetableSlotId).join(",")}`;
+    const autoKey = `${noteId}:${classGroupId}:${ctx.weekStartDate}:${slotDrafts.map((s) => s.slotDraftId).join(",")}`;
     if (autoSplitKeyRef.current === autoKey) return;
     autoSplitKeyRef.current = autoKey;
 
@@ -235,6 +304,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
       .map((s, index) => ({
         timetableSlotId: s.timetableSlotId,
         timetableSlotIds: s.timetableSlotIds,
+        scheduledDate: s.scheduledDate,
         sequenceInWeek: index + 1,
         title: s.title,
         durationMinutes: s.durationMinutes,
@@ -300,34 +370,80 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
 
   const submit = async () => {
     if (!ctx || !classGroupId) return;
-    const sessions: CreateWeekPlanSessionInput[] = slotDrafts
-      .filter((s) => s.include)
+    const includedDrafts = slotDrafts.filter((s) => s.include);
+    const includedDates = includedDrafts.map((s) => s.scheduledDate).sort();
+    const planStartDate = includedDates[0] ?? ctx.weekStartDate;
+    const planEndDate = includedDates[includedDates.length - 1] ?? ctx.weekEndDate;
+    const sessions: CreateWeekPlanSessionInput[] = includedDrafts
       .map((s) => ({
         timetableSlotId: s.timetableSlotId,
         timetableSlotIds: s.timetableSlotIds,
+        scheduledDate: s.scheduledDate,
         title: s.title.trim(),
         include: true,
         noteSectionKeys: s.noteSectionKeys,
+        schemeItemIds: s.schemeItemIds,
         coverageWeight: s.coverageWeight,
         contentBlocks: s.contentBlocks,
       }));
 
-    await busyToast.promise(
-      createMutation.mutateAsync({
-        lessonNoteId: noteId,
-        classGroupId,
-        weekStartDate: ctx.weekStartDate,
-        weekEndDate: ctx.weekEndDate,
-        weekLabel: ctx.weekLabel,
-        title: planTitle.trim() || undefined,
-        sessions,
-      }),
-      {
-        loading: "Creating weekly lessons…",
-        success: "Weekly lessons created",
-        error: (e) => (e instanceof Error ? e.message : "Failed to create week plan"),
-      },
-    );
+    try {
+      await busyToast.promise(
+        createMutation.mutateAsync({
+          lessonNoteId: noteId,
+          classGroupId,
+          weekStartDate: planStartDate,
+          weekEndDate: planEndDate,
+          weekLabel: ctx.weekLabel,
+          title: planTitle.trim() || undefined,
+          sessions,
+        }),
+        {
+          loading: "Creating weekly lessons…",
+          success: "Weekly lessons created",
+          error: (e) =>
+            e instanceof LessonWeekPlanCreateError &&
+            e.details?.code === "TIMETABLE_SLOT_CONFLICT"
+              ? "That timetable period is already planned. Pick a different date or period."
+              : e instanceof Error
+                ? e.message
+                : "Failed to create week plan",
+        },
+      );
+    } catch (error) {
+      if (
+        error instanceof LessonWeekPlanCreateError &&
+        error.details?.code === "TIMETABLE_SLOT_CONFLICT"
+      ) {
+        const conflictSlotIds = new Set(error.details.conflictingSlotIds);
+        setSlotDrafts((prev) =>
+          prev.map((slot) =>
+            slot.timetableSlotIds.some((slotId) =>
+              conflictSlotIds.has(slotId) || conflictSlotIds.has(`${slot.scheduledDate}:${slotId}`),
+            ) ||
+            conflictSlotIds.has(slot.timetableSlotId) ||
+            conflictSlotIds.has(slot.slotDraftId)
+              ? { ...slot, include: false }
+              : slot,
+          ),
+        );
+        setConflictNotice(
+          [
+            "That period is already planned.",
+            error.details.scheduledDate && error.details.startTime && error.details.endTime
+              ? `${error.details.scheduledDate}, ${error.details.startTime}-${error.details.endTime}`
+              : null,
+            error.details.existingLessonTitle ? `Existing lesson: ${error.details.existingLessonTitle}` : null,
+            "Choose another available timetable period below, then continue.",
+          ]
+            .filter(Boolean)
+            .join(" "),
+        );
+        setStep("timetable");
+        return;
+      }
+      return;
+    }
 
     const classQuery = classGroupId ? `?classGroupId=${encodeURIComponent(classGroupId)}` : "";
     router.push(`/teacher/lessons${classQuery}`);
@@ -463,12 +579,17 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
+            {conflictNotice ? (
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                {conflictNotice}
+              </div>
+            ) : null}
             {slotDrafts.length === 0 ? (
               <p className="text-sm text-white/50">No timetable slots available.</p>
             ) : (
               slotDrafts.map((slot) => (
                 <div
-                  key={slot.timetableSlotId}
+                  key={slot.slotDraftId}
                   className={cn(
                     "rounded-xl border p-3 transition",
                     slot.include
@@ -480,13 +601,16 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                     <Checkbox
                       checked={slot.include}
                       onCheckedChange={(checked) =>
-                        setSlotDrafts((prev) =>
-                          prev.map((s) =>
-                            s.timetableSlotId === slot.timetableSlotId
-                              ? { ...s, include: checked === true }
-                              : s,
-                          ),
-                        )
+                        {
+                          setConflictNotice(null);
+                          setSlotDrafts((prev) =>
+                            prev.map((s) =>
+                              s.slotDraftId === slot.slotDraftId
+                                ? { ...s, include: checked === true }
+                                : s,
+                            ),
+                          );
+                        }
                       }
                       className="mt-1"
                     />
@@ -503,7 +627,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                         onChange={(e) =>
                           setSlotDrafts((prev) =>
                             prev.map((s) =>
-                              s.timetableSlotId === slot.timetableSlotId
+                              s.slotDraftId === slot.slotDraftId
                                 ? { ...s, title: e.target.value }
                                 : s,
                             ),
@@ -528,88 +652,241 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
       {step === "split" ? (
         <Card className="border border-white/10 bg-linear-to-br from-white/6 via-white/4 to-transparent shadow-lg shadow-black/20 backdrop-blur-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg text-white">
-              <Split className="h-5 w-5 text-teal-300" />
-              Content split
-            </CardTitle>
-            <p className="text-xs text-white/50">
-              Assign lesson note sections to each session. Coverage weights must sum to 1.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg text-white">
+                  <Split className="h-5 w-5 text-teal-300" />
+                  Content split
+                </CardTitle>
+                <p className="mt-1 text-xs text-white/50">
+                  Decide which parts of your lesson note each session will cover. You can move sections between sessions and edit the teaching focus.
+                </p>
+              </div>
+              {leoEnabled ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={proposeSplit.isPending}
+                  onClick={() => void runLeoSplit()}
+                  className="border-violet-400/30 bg-violet-500/10 text-violet-100"
+                >
+                  {proposeSplit.isPending ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  {leoSplitApplied ? "Re-suggest with Leo" : "Suggest with Leo"}
+                </Button>
+              ) : null}
+            </div>
+            {leoSplitApplied ? (
+              <div className="flex items-center gap-1.5 rounded-lg border border-violet-400/20 bg-violet-500/8 px-3 py-2 text-xs text-violet-200/80">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-400" />
+                Leo suggested this split. Review each session and adjust as needed.
+              </div>
+            ) : null}
           </CardHeader>
           <CardContent className="space-y-4">
-            {leoEnabled ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={proposeSplit.isPending}
-                onClick={() => void runLeoSplit()}
-                className="border-violet-400/30 bg-violet-500/10 text-violet-100"
-              >
-                {proposeSplit.isPending ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                )}
-                Propose split with Leo
-              </Button>
-            ) : null}
-            {includedSlots.map((slot) => (
-              <div
-                key={slot.timetableSlotId}
-                className="rounded-xl border border-white/10 bg-white/5 p-3 space-y-3"
-              >
-                <p className="text-sm font-medium text-white/90">{slot.title}</p>
-                <p className="text-xs text-white/45">
-                  {DAY_LABELS[slot.dayOfWeek] ?? "Day"} · {slot.startTime}–{slot.endTime} ·{" "}
-                  {slot.isDoublePeriod ? `Double period (${slot.durationMinutes} mins)` : `${slot.durationMinutes} mins`}
-                </p>
-                {slot.focusSummary ? (
-                  <p className="text-xs text-white/50">{slot.focusSummary}</p>
-                ) : null}
-                <div className="flex flex-wrap gap-3">
-                  {sectionKeys.map((key) => (
-                    <label key={key} className="flex items-center gap-2 text-xs text-white/70">
-                      <Checkbox
-                        checked={slot.noteSectionKeys.includes(key)}
-                        onCheckedChange={(checked) =>
-                          setSlotDrafts((prev) =>
-                            prev.map((s) => {
-                              if (s.timetableSlotId !== slot.timetableSlotId) return s;
-                              const keys = new Set(s.noteSectionKeys);
-                              if (checked) keys.add(key);
-                              else keys.delete(key);
-                              return { ...s, noteSectionKeys: Array.from(keys) };
-                            }),
-                          )
+            {includedSlots.map((slot) => {
+              const unassignedKeys = sectionKeys.filter((k) => !slot.noteSectionKeys.includes(k));
+              const previewExpanded = expandedPreviews.has(slot.slotDraftId);
+              return (
+                <div
+                  key={slot.slotDraftId}
+                  className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3"
+                >
+                  {/* Period header */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-white/90">{slot.title}</span>
+                    {slot.isDoublePeriod ? (
+                      <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-teal-200">
+                        Double period
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-white/45">
+                    {DAY_LABELS[slot.dayOfWeek] ?? "Day"} · {slot.scheduledDate} · {slot.startTime}–{slot.endTime} · {slot.durationMinutes} min
+                  </p>
+
+                  {/* Teaching focus / focusSummary */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-wide text-white/40">
+                      Teaching focus
+                    </Label>
+                    <Input
+                      value={slot.focusSummary ?? ""}
+                      onChange={(e) =>
+                        setSlotDrafts((prev) =>
+                          prev.map((s) =>
+                            s.slotDraftId === slot.slotDraftId
+                              ? { ...s, focusSummary: e.target.value }
+                              : s,
+                          ),
+                        )
+                      }
+                      placeholder="What should students be able to do after this session?"
+                      className="border-white/10 bg-black/20 text-sm text-white placeholder:text-white/30"
+                    />
+                  </div>
+
+                  {/* Assigned section chips */}
+                  <div className="space-y-2">
+                    <Label className="text-[11px] uppercase tracking-wide text-white/40">
+                      Lesson note sections
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {slot.noteSectionKeys.map((key) => (
+                        <div
+                          key={key}
+                          className="flex items-center gap-1 rounded-full border border-teal-400/25 bg-teal-500/10 pl-3 pr-1.5 py-1 text-xs text-teal-100"
+                        >
+                          <span>{key}</span>
+                          {/* Move-to-session: only show if other sessions exist */}
+                          {includedSlots.length > 1 ? (
+                            <PremiumDropdownMenu>
+                              <PremiumDropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="ml-0.5 rounded p-0.5 text-teal-300/60 hover:bg-teal-500/20 hover:text-teal-100"
+                                  title="Move to another session"
+                                >
+                                  <ChevronRight className="h-3 w-3" />
+                                </button>
+                              </PremiumDropdownMenuTrigger>
+                              <PremiumDropdownMenuContent align="start">
+                                {includedSlots
+                                  .filter((other) => other.slotDraftId !== slot.slotDraftId)
+                                  .map((other) => (
+                                    <PremiumDropdownMenuItem
+                                      key={other.slotDraftId}
+                                      onClick={() =>
+                                        setSlotDrafts((prev) =>
+                                          prev.map((s) => {
+                                            if (s.slotDraftId === slot.slotDraftId) {
+                                              return {
+                                                ...s,
+                                                noteSectionKeys: s.noteSectionKeys.filter(
+                                                  (k) => k !== key,
+                                                ),
+                                              };
+                                            }
+                                            if (s.slotDraftId === other.slotDraftId) {
+                                              return {
+                                                ...s,
+                                                noteSectionKeys: s.noteSectionKeys.includes(key)
+                                                  ? s.noteSectionKeys
+                                                  : [...s.noteSectionKeys, key],
+                                              };
+                                            }
+                                            return s;
+                                          }),
+                                        )
+                                      }
+                                    >
+                                      Move to {other.title}
+                                    </PremiumDropdownMenuItem>
+                                  ))}
+                              </PremiumDropdownMenuContent>
+                            </PremiumDropdownMenu>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="ml-0.5 rounded p-0.5 text-teal-300/60 hover:bg-rose-500/20 hover:text-rose-300"
+                            onClick={() =>
+                              setSlotDrafts((prev) =>
+                                prev.map((s) =>
+                                  s.slotDraftId === slot.slotDraftId
+                                    ? {
+                                        ...s,
+                                        noteSectionKeys: s.noteSectionKeys.filter((k) => k !== key),
+                                      }
+                                    : s,
+                                ),
+                              )
+                            }
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {unassignedKeys.length > 0 ? (
+                        <PremiumDropdownMenu>
+                          <PremiumDropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/50 hover:bg-white/10 hover:text-white/80"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Add section
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </PremiumDropdownMenuTrigger>
+                          <PremiumDropdownMenuContent align="start">
+                            {unassignedKeys.map((key) => (
+                              <PremiumDropdownMenuItem
+                                key={key}
+                                onClick={() =>
+                                  setSlotDrafts((prev) =>
+                                    prev.map((s) =>
+                                      s.slotDraftId === slot.slotDraftId
+                                        ? { ...s, noteSectionKeys: [...s.noteSectionKeys, key] }
+                                        : s,
+                                    ),
+                                  )
+                                }
+                              >
+                                {key}
+                                {SECTION_KEY_DESCRIPTIONS[key] ? (
+                                  <span className="ml-2 text-white/40">
+                                    — {SECTION_KEY_DESCRIPTIONS[key]}
+                                  </span>
+                                ) : null}
+                              </PremiumDropdownMenuItem>
+                            ))}
+                          </PremiumDropdownMenuContent>
+                        </PremiumDropdownMenu>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Section content preview (collapsible) */}
+                  {slot.noteSectionKeys.length > 0 ? (
+                    <div>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-[11px] text-white/35 hover:text-white/60"
+                        onClick={() =>
+                          setExpandedPreviews((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(slot.slotDraftId)) next.delete(slot.slotDraftId);
+                            else next.add(slot.slotDraftId);
+                            return next;
+                          })
                         }
-                      />
-                      {key}
-                    </label>
-                  ))}
+                      >
+                        {previewExpanded ? (
+                          <ChevronDown className="h-3 w-3" />
+                        ) : (
+                          <ChevronRight className="h-3 w-3" />
+                        )}
+                        {previewExpanded ? "Hide" : "Show"} section descriptions
+                      </button>
+                      {previewExpanded ? (
+                        <ul className="mt-2 space-y-1">
+                          {slot.noteSectionKeys.map((key) => (
+                            <li key={key} className="text-xs text-white/45">
+                              <span className="font-medium text-white/60">{key}:</span>{" "}
+                              {SECTION_KEY_DESCRIPTIONS[key] ?? "Custom section."}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-white/50">Coverage</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={slot.coverageWeight}
-                    onChange={(e) =>
-                      setSlotDrafts((prev) =>
-                        prev.map((s) =>
-                          s.timetableSlotId === slot.timetableSlotId
-                            ? { ...s, coverageWeight: Number(e.target.value) || 0 }
-                            : s,
-                        ),
-                      )
-                    }
-                    className="h-8 w-24 border-white/10 bg-black/20 text-white"
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       ) : null}
@@ -646,7 +923,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
               ) : null}
               {includedSlots.map((slot, index) => (
                 <Button
-                  key={slot.timetableSlotId}
+                  key={slot.slotDraftId}
                   type="button"
                   size="sm"
                   variant={activeContentIndex === index ? "default" : "outline"}
@@ -667,12 +944,16 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                 onChange={(blocks) =>
                   setSlotDrafts((prev) =>
                     prev.map((s) =>
-                      s.timetableSlotId === activeSlot.timetableSlotId ? { ...s, contentBlocks: blocks } : s,
+                      s.slotDraftId === activeSlot.slotDraftId ? { ...s, contentBlocks: blocks } : s,
                     ),
                   )
                 }
                 leoEnabled={leoEnabled}
                 leoLoading={generateContent.isPending}
+                sessionTargets={includedSlots
+                  .filter((s) => s.slotDraftId !== activeSlot.slotDraftId)
+                  .map((s) => ({ id: s.slotDraftId, title: s.title }))}
+                onMoveBlock={moveBlockBetweenSessions}
                 onGenerateWithLeo={
                   leoEnabled
                     ? async () => {
@@ -700,7 +981,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                         );
                         setSlotDrafts((prev) =>
                           prev.map((s) =>
-                            s.timetableSlotId === activeSlot.timetableSlotId
+                            s.slotDraftId === activeSlot.slotDraftId
                               ? { ...s, contentBlocks: blocks }
                               : s,
                           ),
@@ -736,7 +1017,7 @@ export function TeacherLessonWeekCreateWizard({ noteId, initialClassGroupId }: P
                 .filter((s) => s.include)
                 .map((s) => (
                   <li
-                    key={s.timetableSlotId}
+                    key={s.slotDraftId}
                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm"
                   >
                     <p className="font-medium text-white/90">{s.title}</p>

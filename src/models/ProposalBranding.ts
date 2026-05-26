@@ -30,7 +30,7 @@ const proposalBrandingSchema = new Schema<IProposalBranding>(
     secondaryColor: { type: String, required: true, default: "#06B6D4", trim: true },
     accentColor: { type: String, default: "#0EA5E9", trim: true },
     website: { type: String, required: true, default: "https://www.tryedusentrix.app", trim: true },
-    contactEmail: { type: String, required: true, default: "joseph.segbefia@tryedusentrix.app", trim: true },
+    contactEmail: { type: String, required: true, default: "hello@tryedusentrix.app", trim: true },
     whatsapp: { type: String, required: true, default: "0504211501", trim: true },
     address: { type: String, default: "", trim: true },
     footerText: {

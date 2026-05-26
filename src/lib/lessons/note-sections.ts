@@ -1,6 +1,10 @@
 import "server-only";
 
+import type { Types } from "mongoose";
 import type { ILessonNote } from "@/models/LessonNote";
+import { SchemeItem } from "@/models/SchemeItem";
+
+const MAX_SCHEME_ENRICHMENT_CHARS = 3_000;
 
 const STANDARD_SECTION_KEYS = [
   "context",
@@ -20,6 +24,75 @@ export function getAllocatableNoteSectionKeys(note: ILessonNote): string[] {
     if (keys.length > 0) return keys;
   }
   return [...STANDARD_SECTION_KEYS];
+}
+
+/**
+ * Enrich a note slice with content from linked SchemeItems.
+ * Call this before serialising the slice for an AI prompt when the session has schemeItemIds.
+ * Falls back to noteSchemeItemIds when schemeItemIds is empty.
+ */
+export async function enrichSliceWithSchemeItems(
+  slice: Record<string, unknown>,
+  schemeItemIds: Types.ObjectId[] | string[],
+  schoolId: Types.ObjectId,
+  noteSchemeItemIds?: Types.ObjectId[] | string[],
+): Promise<Record<string, unknown>> {
+  const ids =
+    schemeItemIds.length > 0 ? schemeItemIds : (noteSchemeItemIds ?? []);
+  if (ids.length === 0) return slice;
+  const items = await SchemeItem.find({
+    _id: { $in: ids },
+    schoolId,
+  })
+    .select(
+      "topic subtopic strand subStrand contentStandard indicator learningObjectives assessmentIdeas teachingLearningActivities teachingResources notes",
+    )
+    .lean<
+      Array<{
+        topic?: string | null;
+        subtopic?: string | null;
+        strand?: string | null;
+        subStrand?: string | null;
+        contentStandard?: string | null;
+        indicator?: string | null;
+        learningObjectives?: string[];
+        assessmentIdeas?: string[];
+        teachingLearningActivities?: string | null;
+        teachingResources?: string[];
+        notes?: string | null;
+      }>
+    >();
+  if (items.length === 0) return slice;
+  const lines = items
+    .map((item, i) => {
+      const parts = [
+        `Scheme item ${i + 1}:`,
+        item.strand && `  Strand: ${item.strand}`,
+        item.subStrand && `  Sub-strand: ${item.subStrand}`,
+        item.topic && `  Topic: ${item.topic}`,
+        item.subtopic && `  Subtopic: ${item.subtopic}`,
+        item.contentStandard && `  Content standard: ${item.contentStandard}`,
+        item.indicator && `  Indicator: ${item.indicator}`,
+        item.learningObjectives?.length &&
+          `  Objectives: ${item.learningObjectives.join("; ")}`,
+        item.teachingLearningActivities &&
+          `  Teaching & learning activities: ${item.teachingLearningActivities}`,
+        item.teachingResources?.length &&
+          `  Teaching resources: ${item.teachingResources.join(", ")}`,
+        item.assessmentIdeas?.length &&
+          `  Assessment ideas: ${item.assessmentIdeas.join("; ")}`,
+        item.notes && `  Notes: ${item.notes}`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      return parts;
+    })
+    .join("\n\n");
+  let schemeText = lines;
+  if (schemeText.length > MAX_SCHEME_ENRICHMENT_CHARS) {
+    schemeText = schemeText.slice(0, MAX_SCHEME_ENRICHMENT_CHARS) + "\n...(truncated)";
+  }
+  return { ...slice, schemeItems: schemeText };
 }
 
 export function sliceNoteContextForSections(note: ILessonNote, sectionKeys: string[]): Record<string, unknown> {

@@ -12,7 +12,9 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
-import { useStudentLessonFlashcards, useStudentFlashcardProgress } from "@/hooks/student/useStudentLessonFlashcards";
+import { useStudentSessionFlashcards, useStudentSessionFlashcardProgress } from "@/hooks/student/useStudentSessionFlashcards";
+const useStudentLessonFlashcards = useStudentSessionFlashcards;
+const useStudentFlashcardProgress = useStudentSessionFlashcardProgress;
 import type { FlashcardProgressStatus } from "@/models/StudentFlashcardProgress";
 
 const STATUS_LABEL: Record<FlashcardProgressStatus, string> = {

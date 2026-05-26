@@ -10,6 +10,7 @@ export type PlatformPermissionCategory =
   | "Support"
   | "Applications"
   | "Growth"
+  | "EduSentrix Learn"
   | "System";
 
 export const PLATFORM_PERMISSION_KEYS = [
@@ -50,6 +51,13 @@ export const PLATFORM_PERMISSION_KEYS = [
   "platform.proposals.manageTemplates",
   "platform.proposals.manageBranding",
   "platform.proposals.manageFollowUps",
+  "platform.learn.read",
+  "platform.learn.manage",
+  "platform.learn.giftAccess",
+  "platform.learn.pricing.manage",
+  "platform.learn.payments.read",
+  "platform.learn.analytics.read",
+  "platform.learn.audit.read",
   "platform.system.featureFlags.read",
   "platform.system.featureFlags.manage",
   "platform.system.settings.read",
@@ -365,6 +373,62 @@ export const PLATFORM_PERMISSION_REGISTRY: Record<
     description: "Update follow-up dates, follow-up notes, and proposal pipeline statuses.",
     category: "Growth",
     riskLevel: "medium",
+    assignable: true,
+  },
+  "platform.learn.read": {
+    key: "platform.learn.read",
+    label: "View EduSentrix Learn",
+    description: "View EduSentrix Learn schools, students, access status, and operational summaries.",
+    category: "EduSentrix Learn",
+    riskLevel: "low",
+    assignable: true,
+  },
+  "platform.learn.manage": {
+    key: "platform.learn.manage",
+    label: "Manage EduSentrix Learn",
+    description: "Manage EduSentrix Learn school access, student access records, and operational controls.",
+    category: "EduSentrix Learn",
+    riskLevel: "high",
+    assignable: true,
+  },
+  "platform.learn.giftAccess": {
+    key: "platform.learn.giftAccess",
+    label: "Gift Learn Access",
+    description: "Grant or revoke platform-gifted EduSentrix Learn access for eligible students.",
+    category: "EduSentrix Learn",
+    riskLevel: "high",
+    assignable: true,
+  },
+  "platform.learn.pricing.manage": {
+    key: "platform.learn.pricing.manage",
+    label: "Manage Learn Pricing",
+    description: "Update EduSentrix Learn price and platform-level Learn settings.",
+    category: "EduSentrix Learn",
+    riskLevel: "critical",
+    assignable: true,
+  },
+  "platform.learn.payments.read": {
+    key: "platform.learn.payments.read",
+    label: "View Learn Payments",
+    description: "View parent-paid EduSentrix Learn payment intents and revenue summaries.",
+    category: "EduSentrix Learn",
+    riskLevel: "medium",
+    assignable: true,
+  },
+  "platform.learn.analytics.read": {
+    key: "platform.learn.analytics.read",
+    label: "View Learn Analytics",
+    description: "View EduSentrix Learn adoption and activity analytics across schools.",
+    category: "EduSentrix Learn",
+    riskLevel: "medium",
+    assignable: true,
+  },
+  "platform.learn.audit.read": {
+    key: "platform.learn.audit.read",
+    label: "View Learn Audit Trail",
+    description: "View sensitive EduSentrix Learn access, credential, payment, and settings audit events.",
+    category: "EduSentrix Learn",
+    riskLevel: "high",
     assignable: true,
   },
   "platform.system.featureFlags.read": {

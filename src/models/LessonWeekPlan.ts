@@ -59,7 +59,7 @@ const lessonWeekPlanSchema = new Schema<ILessonWeekPlan>(
 
 lessonWeekPlanSchema.index(
   { schoolId: 1, classGroupId: 1, subjectOfferingId: 1, weekStartDate: 1 },
-  { unique: true },
+  { name: "lesson_week_plan_class_subject_week_lookup" },
 );
 
 export const LessonWeekPlan: Model<ILessonWeekPlan> =

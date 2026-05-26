@@ -31,6 +31,13 @@ import {
   type CalendarOccurrence,
 } from "@/components/academic-calendar/CalendarViews";
 import { cn } from "@/lib/utils";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 type PeriodOption = {
   id: string;
@@ -257,29 +264,30 @@ export default function TeacherCalendarPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <CalendarRange className="h-6 w-6 text-brand" />
-            <h1 className="text-2xl font-bold text-white">Academic Calendar</h1>
-          </div>
-          <p className="text-sm text-white/50">
-            Published events shared with you by the school.
-          </p>
-        </div>
-      </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={CalendarRange}
+        title="Academic calendar"
+        subtitle="Published events shared with you by the school."
+        badge={
+          selectedPeriod?.isCurrent ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              Current period
+            </span>
+          ) : undefined
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
+          <Card className={glassPanelClass}>
             <CardHeader>
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
-                School Calendar
+                School calendar
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+              <div className={cn(glassInsetClass, "p-4")}>
                 <div className="text-sm font-semibold text-white">
                   {calendar?.name || "No calendar for this term"}
                 </div>
@@ -292,7 +300,7 @@ export default function TeacherCalendarPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-white/10 bg-white/5">
+          <Card className={glassPanelClass}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
                 Filters
@@ -306,7 +314,7 @@ export default function TeacherCalendarPage() {
                   value={selectedPeriodId || "none"}
                   onValueChange={(value) => setSelectedPeriodId(value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-brand">
+                  <SelectTrigger className="border border-white/10 bg-white/5 text-white hover:bg-white/10 focus:ring-1 focus:ring-teal-400/50">
                     <SelectValue placeholder="Select period" />
                   </SelectTrigger>
                   <SelectContent className={premiumSelectContent}>
@@ -319,7 +327,7 @@ export default function TeacherCalendarPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="rounded-xl border border-white/5 bg-black/20 p-3 text-sm text-white/60">
+              <div className={cn(glassInsetClass, "p-3 text-sm text-white/60")}>
                 {inPeriodEvents.length} event{inPeriodEvents.length === 1 ? "" : "s"} inside this period
               </div>
               {outsidePeriodEvents.length > 0 && (
@@ -340,7 +348,7 @@ export default function TeacherCalendarPage() {
         </div>
 
         <div className="space-y-4">
-          <Card className="border-white/10 bg-white/5">
+          <Card className={glassPanelClass}>
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-lg text-white">
@@ -349,13 +357,15 @@ export default function TeacherCalendarPage() {
                 <p className="text-sm text-white/50">{describePeriod(selectedPeriod)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/30 p-1">
+                <div className={cn(glassInsetClass, "flex items-center gap-1 rounded-full p-1")}>
                   <button
                     type="button"
                     onClick={() => setView("month")}
                     className={cn(
-                      "rounded-full px-3 py-1 text-xs font-semibold",
-                      view === "month" ? "bg-white/10 text-white" : "text-white/50"
+                      "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                      view === "month"
+                        ? "bg-teal-500/25 text-teal-100"
+                        : "text-white/50 hover:text-white/80"
                     )}
                   >
                     Month
@@ -364,8 +374,10 @@ export default function TeacherCalendarPage() {
                     type="button"
                     onClick={() => setView("agenda")}
                     className={cn(
-                      "rounded-full px-3 py-1 text-xs font-semibold",
-                      view === "agenda" ? "bg-white/10 text-white" : "text-white/50"
+                      "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                      view === "agenda"
+                        ? "bg-teal-500/25 text-teal-100"
+                        : "text-white/50 hover:text-white/80"
                     )}
                   >
                     Agenda
@@ -374,7 +386,7 @@ export default function TeacherCalendarPage() {
                 <Button
                   size="icon"
                   variant="outline"
-                  className="border-white/10"
+                  className={glassSecondaryButtonClass}
                   onClick={() => setMonth(addMonths(month, -1))}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -382,7 +394,7 @@ export default function TeacherCalendarPage() {
                 <Button
                   size="icon"
                   variant="outline"
-                  className="border-white/10"
+                  className={glassSecondaryButtonClass}
                   onClick={() => setMonth(addMonths(month, 1))}
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -391,13 +403,13 @@ export default function TeacherCalendarPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {loading && (
-                <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-center text-white/50">
+                <div className={cn(glassInsetClass, "rounded-2xl p-6 text-center text-white/50")}>
                   Loading calendar...
                 </div>
               )}
 
               {!loading && !calendar && (
-                <div className="rounded-2xl border border-white/10 bg-black/30 p-10 text-center text-white/60">
+                <div className={cn(glassInsetClass, "rounded-2xl p-10 text-center text-white/60")}>
                   No published calendar is available for {describePeriod(selectedPeriod)}.
                 </div>
               )}
@@ -448,7 +460,7 @@ export default function TeacherCalendarPage() {
         className="sm:max-w-2xl"
       >
         {!selectedOccurrence ? (
-          <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm text-white/60">
+          <div className={cn(glassInsetClass, "p-4 text-sm text-white/60")}>
             Select an event to view details.
           </div>
         ) : (
@@ -464,9 +476,9 @@ export default function TeacherCalendarPage() {
               )}
             </div>
 
-            <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+            <div className={cn(glassInsetClass, "space-y-3 rounded-xl p-4")}>
               <div className="flex items-start gap-2">
-                <CalendarRange className="mt-0.5 h-4 w-4 text-brand" />
+                <CalendarRange className="mt-0.5 h-4 w-4 text-teal-300" />
                 <div>
                   <p className="font-medium text-white">
                     {selectedEvent?.title || selectedOccurrence.title}
@@ -498,6 +510,6 @@ export default function TeacherCalendarPage() {
           </div>
         )}
       </Modal>
-    </div>
+    </WorkspacePageShell>
   );
 }

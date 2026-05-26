@@ -48,7 +48,8 @@ Use this as a starting point when navigating the codebase. Verify exact paths wi
 - `src/app/(app)/platform`: platform admin/operator surfaces where present.
 - `src/components`: shared and module-specific React components.
 - `src/components/ui`: shared UI primitives and reusable UI building blocks.
-- `src/components/admin/students`: current premium admin UI reference.
+- `src/components/admin/students`: premium UI reference (student list + detail).
+- `src/lib/ui/glass-surfaces.ts`, `src/components/ui/glass-panel.tsx`, `src/components/ui/workspace-page-shell.tsx`, `src/components/ui/workspace-page-header.tsx`: shared glass workspace primitives for all roles.
 - `src/lib`: shared utilities, auth helpers, permission helpers, services, and server/client helpers.
 - `src/models`: Mongoose models and database schemas.
 - `src/hooks`: reusable React hooks where present.
@@ -64,10 +65,11 @@ Before coding:
 
 1. Read this file.
 2. Inspect the existing module and nearby patterns.
-3. Identify whether the change is school-scoped, platform-scoped, public, or cross-tenant.
-4. Confirm the correct role, permission, and `schoolId` scoping rules.
-5. Check whether the feature touches legacy subject relationships, subject offerings, timetables, finance, communications, subscriptions, or permissions.
-6. Prefer small, focused changes that are easy to review.
+3. For new or restyled UI pages, verify the premium glass standard (see **UI Standard**) against `/admin/students/[id]?tab=overview` and use shared glass primitives when applicable.
+4. Identify whether the change is school-scoped, platform-scoped, public, or cross-tenant.
+5. Confirm the correct role, permission, and `schoolId` scoping rules.
+6. Check whether the feature touches legacy subject relationships, subject offerings, timetables, finance, communications, subscriptions, or permissions.
+7. Prefer small, focused changes that are easy to review.
 
 While coding:
 
@@ -128,18 +130,29 @@ When making changes, preserve these principles:
 
 ## UI Standard
 
-The premium glassy admin UI is currently best represented by `/admin/students` and its components under `src/components/admin/students`. New admin surfaces should feel consistent with that page unless a feature has a strong reason to use a different established module style.
+The premium glassy workspace UI is defined by `/admin/students` (list) and `/admin/students/[id]?tab=overview` (detail). **All roles** (admin, teacher, parent, student, bursar, platform) should match this look on operational pages unless a module has a strong, documented reason not to.
+
+### Before building or restyling a page
+
+1. Open the reference route (`/admin/students/[id]?tab=overview`) or read `src/components/admin/students/detail/StudentOverviewTab.tsx`.
+2. Prefer shared primitives over one-off classes:
+   - `glassPanelClass`, `glassInsetClass`, button tokens in `src/lib/ui/glass-surfaces.ts`
+   - `GlassPanel` for cards with top shine + optional glow
+   - `WorkspacePageShell` for page ambient blurs + vertical rhythm
+   - `WorkspacePageHeader` for back link, gradient title, subtitle, icon, actions
+3. Do not ship flat `text-2xl font-semibold` headers or weak `bg-white/5 shadow-lg` cards when the screen is meant to be premium workspace UI.
 
 ### Visual Language
 
-Use this general style for admin/workspace screens:
+Use this general style for workspace screens (admin, teacher, and other app roles):
 
-- Dark glass surfaces with restrained depth:
+- Dark glass surfaces with restrained depth (primary panel):
   - `border border-white/10`
-  - `bg-white/5`
   - `bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black`
   - `shadow-2xl shadow-black/40`
   - `backdrop-blur-xl`
+  - optional top shine: `bg-linear-to-r from-transparent via-white/15 to-transparent`
+  - nested/inset blocks: `glassInsetClass` (`rounded-xl border border-white/10 bg-white/5`)
 - Rounded containers should usually be `rounded-xl`, `rounded-2xl`, or `sm:rounded-2xl`. Avoid overly bubbly UI.
 - Use subtle top shine lines and radial highlights sparingly:
   - `bg-linear-to-r from-transparent via-white/15 to-transparent`
@@ -156,6 +169,7 @@ Use this general style for admin/workspace screens:
 ### Layout
 
 - Build the actual working surface as the first screen, not a marketing landing page.
+- Wrap full pages in `WorkspacePageShell`; use `WorkspacePageHeader` for icon + gradient title + subtitle + back link.
 - Use strong page headers with icon, title, concise subtitle, and clear primary actions.
 - Use cards for repeated items, modals, and contained tools. Do not nest cards inside cards.
 - Prefer dense, scannable operational layouts over oversized decorative sections.

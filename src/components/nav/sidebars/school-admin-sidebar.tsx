@@ -49,7 +49,9 @@ import {
   Bell,
   ChevronDown,
   ClipboardSignature,
+  Presentation,
 } from "lucide-react";
+import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
   premiumSideItem,
   premiumSideItemActive,
@@ -189,6 +191,11 @@ const navSections: NavSection[] = [
         ],
       },
       {
+        label: "Lesson sessions",
+        href: "/admin/lessons/sessions",
+        icon: Presentation,
+      },
+      {
         label: "Lesson analytics",
         href: "/admin/lessons/analytics",
         icon: BarChart3,
@@ -197,6 +204,11 @@ const navSections: NavSection[] = [
         label: "Lesson audit log",
         href: "/admin/lessons/audit",
         icon: ScrollText,
+      },
+      {
+        label: "EduSentrix Learn",
+        href: "/admin/learn",
+        icon: LearnLogoIcon,
       },
       {
         label: "Curriculum",

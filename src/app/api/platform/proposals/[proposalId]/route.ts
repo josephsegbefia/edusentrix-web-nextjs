@@ -14,6 +14,11 @@ async function getProposalOr404(id: string) {
   return Proposal.findById(id);
 }
 
+async function getProposalLeanOr404(id: string) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  return Proposal.findById(id).lean();
+}
+
 export async function GET(
   _req: NextRequest,
   ctx: { params: Promise<{ proposalId: string }> },
@@ -23,7 +28,7 @@ export async function GET(
     if (!gate.ok) return gate.res;
     await connectToDatabase();
     const { proposalId } = await ctx.params;
-    const proposal = await getProposalOr404(proposalId);
+    const proposal = await getProposalLeanOr404(proposalId);
     if (!proposal) {
       return NextResponse.json({ success: false, error: "Proposal not found" }, { status: 404 });
     }
@@ -115,7 +120,7 @@ export async function PATCH(
       actorId: gate.actor.userId,
     });
 
-    return NextResponse.json({ success: true, data: serializeProposal(proposal) });
+    return NextResponse.json({ success: true, data: serializeProposal(proposal.toObject()) });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Failed to update proposal" },
@@ -161,7 +166,7 @@ export async function DELETE(
       message: "Proposal archived.",
       actorId: gate.actor.userId,
     });
-    return NextResponse.json({ success: true, data: serializeProposal(proposal) });
+    return NextResponse.json({ success: true, data: serializeProposal(proposal.toObject()) });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : "Failed to delete proposal" },

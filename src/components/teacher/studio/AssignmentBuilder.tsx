@@ -38,6 +38,13 @@ import {
   PremiumDropdownMenuTrigger,
 } from "@/components/ui/premium-dropdown-menu";
 import { RubricWizardModal, type RubricWizardResult } from "./RubricWizardModal";
+import { cn } from "@/lib/utils";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+  glassSecondaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 export type AssignmentAttachment = {
   name: string;
@@ -601,7 +608,7 @@ export function AssignmentBuilder({
   };
 
   const basicsSection = (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className={glassPanelClass}>
       <CardHeader>
         <CardTitle className="text-lg">Assignment Details</CardTitle>
       </CardHeader>
@@ -658,7 +665,7 @@ export function AssignmentBuilder({
   );
 
   const audienceSection = (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className={glassPanelClass}>
       <CardHeader>
         <CardTitle className="text-lg">Audience & Schedule</CardTitle>
       </CardHeader>
@@ -764,7 +771,7 @@ export function AssignmentBuilder({
   );
 
   const questionsSection = (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className={glassPanelClass}>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-lg">Questions (Optional)</CardTitle>
@@ -779,14 +786,14 @@ export function AssignmentBuilder({
       </CardHeader>
       <CardContent className="space-y-4">
         {values.questions.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/15 bg-white/5 p-6 text-center text-white/50">
+          <div className={cn(glassInsetClass, "rounded-2xl border-dashed p-6 text-center text-white/50")}>
             No questions added yet.
           </div>
         ) : (
           values.questions.map((question, questionIndex) => (
             <div
               key={question.id || questionIndex}
-              className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4"
+              className={cn(glassInsetClass, "space-y-3 rounded-2xl p-4")}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-white">Question {questionIndex + 1}</p>
@@ -894,7 +901,7 @@ export function AssignmentBuilder({
   );
 
   const gradingSection = (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className={glassPanelClass}>
       <CardHeader>
         <CardTitle className="text-lg">Grading Setup</CardTitle>
       </CardHeader>
@@ -1025,7 +1032,7 @@ export function AssignmentBuilder({
   );
 
   const attachmentsSection = (
-    <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+    <Card className={glassPanelClass}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg">Attachments</CardTitle>
         <Button type="button" variant="ghost" onClick={addAttachment} className="text-white/70 hover:bg-white/10">
@@ -1035,14 +1042,17 @@ export function AssignmentBuilder({
       </CardHeader>
       <CardContent className="space-y-4">
         {values.attachments.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-white/50">
+          <div className={cn(glassInsetClass, "rounded-2xl p-6 text-center text-white/50")}>
             No attachments added yet.
           </div>
         ) : (
           values.attachments.map((attachment, index) => (
             <div
               key={`${attachment.name}-${index}`}
-              className="grid grid-cols-1 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-[1.2fr_1.6fr_0.8fr_auto] md:items-center"
+              className={cn(
+                glassInsetClass,
+                "grid grid-cols-1 gap-3 rounded-2xl p-4 md:grid-cols-[1.2fr_1.6fr_0.8fr_auto] md:items-center"
+              )}
             >
               <Input
                 value={attachment.name}
@@ -1092,9 +1102,9 @@ export function AssignmentBuilder({
   );
 
   const summaryBanner = (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+    <div className={cn(glassInsetClass, "rounded-2xl p-4 text-sm text-white/70")}>
       <div className="flex flex-wrap items-center gap-2">
-        <Sparkles className="h-4 w-4 text-brand" />
+        <Sparkles className="h-4 w-4 text-teal-300" />
         <span>
           {values.questions.length} question{values.questions.length === 1 ? "" : "s"} • {values.attachments.length} attachment
           {values.attachments.length === 1 ? "" : "s"}
@@ -1125,7 +1135,7 @@ export function AssignmentBuilder({
         type="button"
         onClick={() => handleSubmit(false)}
         disabled={isSubmitting}
-        className="bg-white/10 text-white hover:bg-white/20"
+        className={glassSecondaryButtonClass}
       >
         {mode === "create" ? "Save Draft" : "Save Changes"}
       </Button>
@@ -1134,7 +1144,7 @@ export function AssignmentBuilder({
           type="button"
           onClick={() => handleSubmit(true)}
           disabled={isSubmitting}
-          className="bg-indigo-500/20 text-indigo-100 hover:bg-indigo-500/30"
+          className={glassPrimaryButtonClass}
         >
           {mode === "create" ? "Publish Now" : "Publish"}
         </Button>
@@ -1145,7 +1155,7 @@ export function AssignmentBuilder({
   return (
     <div className="space-y-6">
       {layout === "wizard" ? (
-        <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
+        <Card className={glassPanelClass}>
           <CardContent className="space-y-4 p-5">
             <div className="flex items-center justify-between">
               <div className="text-sm text-white/70">
@@ -1155,9 +1165,12 @@ export function AssignmentBuilder({
                 {WIZARD_STEPS.map((step, index) => (
                   <span
                     key={step.id}
-                    className={`h-1.5 w-8 rounded-full transition-all ${
-                      index + 1 <= wizardStep ? "bg-brand" : "bg-white/20"
-                    }`}
+                    className={cn(
+                      "h-1.5 w-8 rounded-full transition-all",
+                      index + 1 <= wizardStep
+                        ? "bg-linear-to-r from-teal-400 to-cyan-400"
+                        : "bg-white/20"
+                    )}
                   />
                 ))}
               </div>
@@ -1198,7 +1211,7 @@ export function AssignmentBuilder({
             variant="outline"
             onClick={() => setWizardStep((prev) => Math.max(prev - 1, 1))}
             disabled={wizardStep === 1}
-            className="border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+            className={glassSecondaryButtonClass}
           >
             <ChevronLeft className="h-4 w-4" />
             Back
@@ -1209,7 +1222,7 @@ export function AssignmentBuilder({
               type="button"
               onClick={() => setWizardStep((prev) => Math.min(prev + 1, WIZARD_STEPS.length))}
               disabled={!isStepValid}
-              className="bg-brand text-brand-foreground hover:bg-brand/90"
+              className={glassPrimaryButtonClass}
             >
               Next
               <ChevronRight className="h-4 w-4" />

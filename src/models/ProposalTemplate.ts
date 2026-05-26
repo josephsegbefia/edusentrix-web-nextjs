@@ -33,7 +33,7 @@ export const ProposalTemplateSectionSchema = new Schema<IProposalTemplateSection
     key: { type: String, required: true, trim: true },
     title: { type: String, required: true, trim: true },
     subtitle: { type: String, default: "", trim: true },
-    content: { type: String, required: true },
+    content: { type: String, default: "" },
     order: { type: Number, required: true, default: 0 },
     enabled: { type: Boolean, default: true },
     displayStyle: {

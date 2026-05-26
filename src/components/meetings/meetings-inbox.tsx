@@ -11,6 +11,7 @@ import {
   Search,
   Users,
   Video,
+  type LucideIcon,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -24,8 +25,15 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import { WorkspacePageShell } from "@/components/ui/workspace-page-shell";
+import { WorkspacePageHeader } from "@/components/ui/workspace-page-header";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { cn } from "@/lib/utils";
+import {
+  glassInsetClass,
+  glassPanelClass,
+  glassPrimaryButtonClass,
+} from "@/lib/ui/glass-surfaces";
 
 type ViewerRole = "school_admin" | "teacher" | "bursar" | "parent" | null;
 
@@ -149,14 +157,47 @@ function countLabel(counts: Record<string, number>) {
     .join(" · ");
 }
 
+function StatSummaryCard({
+  label,
+  value,
+  icon,
+  iconClassName,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  iconClassName: string;
+}) {
+  return (
+    <div className={cn(glassPanelClass, "p-4")}>
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "flex h-10 w-10 items-center justify-center rounded-xl border",
+            iconClassName
+          )}
+        >
+          {icon}
+        </span>
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">{label}</p>
+          <p className="text-2xl font-semibold text-white">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MeetingsInbox({
   title,
   description,
   roomBasePath,
+  icon: HeaderIcon = Video,
 }: {
   title: string;
   description: string;
   roomBasePath: string;
+  icon?: LucideIcon;
 }) {
   const [search, setSearch] = React.useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
@@ -217,37 +258,54 @@ export function MeetingsInbox({
   }, [meetings]);
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[30px] border border-white/10 bg-linear-to-br from-sky-500/12 via-slate-950 to-emerald-500/10 p-6 shadow-[0_24px_80px_-40px_rgba(14,165,233,0.45)]">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <Badge className="border border-sky-400/25 bg-sky-500/10 text-sky-100">
-              In-app meetings
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-white">{title}</h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/65">{description}</p>
-            </div>
-          </div>
+    <WorkspacePageShell>
+      <WorkspacePageHeader
+        icon={HeaderIcon}
+        title={title}
+        subtitle={description}
+        badge={
+          !loading ? (
+            <span className="rounded-full border border-teal-400/30 bg-teal-500/15 px-3 py-1 text-xs font-medium text-teal-200">
+              {stats.total} meeting{stats.total === 1 ? "" : "s"}
+            </span>
+          ) : undefined
+        }
+      />
 
-          <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-white/35">Ready now</p>
-              <p className="mt-2 text-2xl font-semibold text-white">{stats.ready}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-white/35">Upcoming</p>
-              <p className="mt-2 text-2xl font-semibold text-white">{stats.upcoming}</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs uppercase tracking-[0.22em] text-white/35">Hosted by you</p>
-              <p className="mt-2 text-2xl font-semibold text-white">{stats.hosted}</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div className="flex flex-wrap gap-2">
+        <Badge className="border border-emerald-400/20 bg-emerald-500/15 text-emerald-200">
+          {stats.ready} ready now
+        </Badge>
+        <Badge className="border border-sky-400/20 bg-sky-500/15 text-sky-200">
+          {stats.upcoming} upcoming
+        </Badge>
+        <Badge className="border border-white/10 bg-white/5 text-white/70">
+          {stats.hosted} hosted by you
+        </Badge>
+      </div>
 
-      <Card className="border-white/10 bg-white/[0.03]">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatSummaryCard
+          label="Ready now"
+          value={stats.ready}
+          icon={<Video className="h-4 w-4" />}
+          iconClassName="border-emerald-400/30 bg-emerald-500/20 text-emerald-100"
+        />
+        <StatSummaryCard
+          label="Upcoming"
+          value={stats.upcoming}
+          icon={<CalendarDays className="h-4 w-4" />}
+          iconClassName="border-sky-400/30 bg-sky-500/20 text-sky-100"
+        />
+        <StatSummaryCard
+          label="Hosted by you"
+          value={stats.hosted}
+          icon={<Users className="h-4 w-4" />}
+          iconClassName="border-teal-400/30 bg-teal-500/20 text-teal-100"
+        />
+      </div>
+
+      <Card className={glassPanelClass}>
         <CardHeader className="gap-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -264,7 +322,7 @@ export function MeetingsInbox({
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search meetings"
-                  className="border-white/10 bg-white/[0.04] pl-9 text-white placeholder:text-white/35"
+                  className={cn(glassInsetClass, "pl-9 text-white placeholder:text-white/35")}
                 />
               </div>
 
@@ -286,7 +344,12 @@ export function MeetingsInbox({
 
         <CardContent className="space-y-3">
           {loading ? (
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/10 px-4 py-8 text-sm text-white/55">
+            <div
+              className={cn(
+                glassInsetClass,
+                "flex items-center gap-3 rounded-2xl px-4 py-8 text-sm text-white/55"
+              )}
+            >
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading meetings...
             </div>
@@ -295,14 +358,22 @@ export function MeetingsInbox({
               {error}
             </div>
           ) : meetings.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-10 text-center text-sm text-white/45">
+            <div
+              className={cn(
+                glassInsetClass,
+                "rounded-2xl border-dashed px-4 py-10 text-center text-sm text-white/45"
+              )}
+            >
               No meetings matched this filter.
             </div>
           ) : (
             meetings.map((meeting) => (
               <div
                 key={meeting.id}
-                className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4"
+                className={cn(
+                  glassPanelClass,
+                  "rounded-2xl p-4 transition hover:border-white/20 hover:-translate-y-0.5"
+                )}
               >
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -335,11 +406,7 @@ export function MeetingsInbox({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        asChild
-                        size="sm"
-                        className="rounded-full bg-brand px-4 text-brand-foreground hover:bg-brand/90"
-                      >
+                      <Button asChild size="sm" className={glassPrimaryButtonClass}>
                         <Link href={`${roomBasePath}/${meeting.id}`}>
                           {meeting.viewer.canJoin ? "Join room" : "View room"}
                           <ArrowRight className="ml-2 h-4 w-4" />
@@ -350,15 +417,17 @@ export function MeetingsInbox({
 
                   <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr]">
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
+                      <div className={cn(glassInsetClass, "p-3")}>
                         <div className="flex items-center gap-2 text-white/75">
                           <CalendarDays className="h-4 w-4 text-white/35" />
-                          <span className="text-sm">{formatMeetingRange(meeting.startsAt, meeting.endsAt)}</span>
+                          <span className="text-sm">
+                            {formatMeetingRange(meeting.startsAt, meeting.endsAt)}
+                          </span>
                         </div>
                         <p className="mt-2 text-xs text-white/40">{meeting.calendar.name}</p>
                       </div>
 
-                      <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
+                      <div className={cn(glassInsetClass, "p-3")}>
                         <div className="flex items-center gap-2 text-white/75">
                           <Clock3 className="h-4 w-4 text-white/35" />
                           <span className="text-sm">{providerMessage(meeting)}</span>
@@ -369,14 +438,14 @@ export function MeetingsInbox({
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
+                    <div className={cn(glassInsetClass, "p-3")}>
                       <div className="flex items-center gap-2 text-sm text-white/80">
                         <Users className="h-4 w-4 text-white/35" />
-                        <span>{countLabel(meeting.counts) || `${meeting.participantCount} invited`}</span>
+                        <span>
+                          {countLabel(meeting.counts) || `${meeting.participantCount} invited`}
+                        </span>
                       </div>
-                      <p className="mt-2 text-xs text-white/40">
-                        Hosted by {meeting.host.name}
-                      </p>
+                      <p className="mt-2 text-xs text-white/40">Hosted by {meeting.host.name}</p>
                     </div>
                   </div>
 
@@ -384,7 +453,10 @@ export function MeetingsInbox({
                     {meeting.participants.slice(0, 6).map((participant) => (
                       <div
                         key={`${meeting.id}:${participant.userId}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-2.5 py-1"
+                        className={cn(
+                          glassInsetClass,
+                          "inline-flex items-center gap-2 rounded-full px-2.5 py-1"
+                        )}
                       >
                         <Avatar className="h-7 w-7 border border-white/10">
                           <AvatarImage src={participant.avatarUrl || ""} alt={participant.name} />
@@ -407,6 +479,6 @@ export function MeetingsInbox({
           )}
         </CardContent>
       </Card>
-    </div>
+    </WorkspacePageShell>
   );
 }

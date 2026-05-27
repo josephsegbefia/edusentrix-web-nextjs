@@ -21,12 +21,6 @@ import {
   toDelegationNavItems,
 } from "@/lib/delegations/service";
 import type { DelegationNavItem } from "@/lib/delegations/types";
-import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
-import {
-  canUseExpensiveAi,
-  expensiveAiBlockedMessage,
-} from "@/lib/billing/expensive-ai-access";
-import type { SchoolAccessMode } from "@/lib/billing/resolve-school-access-mode";
 
 function parseTermNumber(term?: string | null) {
   if (!term) return null;
@@ -259,12 +253,10 @@ export async function GET() {
         },
         academicPlanning: academicPlanningForTeacher,
         subscription: {
-          accessMode,
-          canUseExpensiveAi: canUseExpensiveAiNow,
-          hasAiLessonNotes,
-          expensiveAiBlockedReason: canUseExpensiveAiNow
-            ? null
-            : expensiveAiBlockedMessage(accessMode),
+          accessMode: "full",
+          canUseExpensiveAi: true,
+          hasAiLessonNotes: true,
+          expensiveAiBlockedReason: null,
         },
         permissions,
         delegations: delegationsNav,

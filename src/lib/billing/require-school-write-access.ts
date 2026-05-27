@@ -1,12 +1,5 @@
 import mongoose from "mongoose";
-import { resolveSchoolAccessMode } from "@/lib/billing/resolve-school-access-mode";
-
-const DEFAULT_ALLOWED_RESTRICTED_ACTIONS = new Set([
-  "subscription.view",
-  "subscription.renewal_request",
-  "billing.contact_support",
-  "billing.download_usage_summary",
-]);
+import type { SchoolAccessMode } from "@/lib/billing/resolve-school-access-mode";
 
 export class SchoolWriteAccessError extends Error {
   statusCode = 403;
@@ -21,27 +14,11 @@ export class SchoolWriteAccessError extends Error {
   }
 }
 
-export async function requireSchoolWriteAccess(input: {
+/** No subscription write restrictions. */
+export async function requireSchoolWriteAccess(_input: {
   schoolId: string | mongoose.Types.ObjectId;
   action: string;
   allowedRestrictedActions?: string[];
 }) {
-  const accessMode = await resolveSchoolAccessMode(input.schoolId);
-  const allowedActions = new Set([
-    ...DEFAULT_ALLOWED_RESTRICTED_ACTIONS,
-    ...(input.allowedRestrictedActions || []),
-  ]);
-
-  if (
-    (accessMode === "restricted_read_only" || accessMode === "suspended") &&
-    !allowedActions.has(input.action)
-  ) {
-    throw new SchoolWriteAccessError(
-      "This school subscription does not currently allow this action.",
-      accessMode,
-      input.action
-    );
-  }
-
-  return { accessMode };
+  return { accessMode: "full" as SchoolAccessMode };
 }

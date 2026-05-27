@@ -26,6 +26,10 @@ import {
 } from "lucide-react";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
+  SidebarNavItemIcon,
+  SidebarNavItemLabel,
+} from "@/components/nav/sidebars/SidebarLearnNav";
+import {
   premiumSideItem,
   premiumSideItemActive,
 } from "@/components/ui/premium";
@@ -47,8 +51,6 @@ import { SidebarSchoolIdentity } from "@/components/nav/sidebars/SidebarSchoolId
 import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
 import { useUnreadNotificationCount } from "@/hooks/parent/useParentNotifications";
 import { useUnreadMessageCount } from "@/hooks/parent/useParentMessages";
-import { useSubscription } from "@/hooks/useSubscription";
-import { hasTierFeature, type SubscriptionFeatureKey } from "@/lib/billing/feature-access";
 import { useSidebar } from "@/providers/sidebar-provider";
 
 // Navigation structure with sections
@@ -60,7 +62,6 @@ type NavSection = {
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
     badgeCount?: number; // For unread notifications/messages count
-    feature?: SubscriptionFeatureKey;
   }>;
 };
 
@@ -113,7 +114,6 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           label: "EduSentrix Learn",
           href: "/parent/learn",
           icon: LearnLogoIcon,
-          feature: "edusentrix_learn",
         },
       ],
     },
@@ -124,25 +124,21 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           label: "Fees & Payments",
           href: "/parent/fees",
           icon: DollarSign,
-          feature: "parent_payments",
         },
         {
           label: "Payment History",
           href: "/parent/payments",
           icon: FileText,
-          feature: "parent_payments",
         },
         {
           label: "School store",
           href: "/parent/store",
           icon: ShoppingBag,
-          feature: "parent_payments",
         },
         {
           label: "Supply lists",
           href: "/parent/supplies",
           icon: ClipboardList,
-          feature: "parent_payments",
         },
       ],
     },
@@ -180,7 +176,6 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           label: "Reports",
           href: "/parent/reports",
           icon: TrendingUp,
-          feature: "reports",
         },
       ],
     },
@@ -200,8 +195,6 @@ function NavContent({
     useUnreadNotificationCount();
   const { data: unreadMessages, isError: unreadMessagesError } =
     useUnreadMessageCount();
-  const { data: subscription } = useSubscription();
-
   const navSections = React.useMemo(
     () =>
       getNavSections(
@@ -215,22 +208,7 @@ function NavContent({
       unreadNotificationsError,
     ]
   );
-  const enabledFeatures = React.useMemo(
-    () => (Array.isArray(subscription?.features) ? subscription.features : []),
-    [subscription]
-  );
-  const sections = React.useMemo(
-    () =>
-      navSections
-        .map((section) => ({
-          ...section,
-          items: section.items.filter(
-            (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
-          ),
-        }))
-        .filter((section) => section.items.length > 0),
-    [enabledFeatures, navSections]
-  );
+  const sections = navSections;
 
   return (
     <nav className={cn("space-y-5", collapsed && "space-y-3")}>
@@ -268,7 +246,7 @@ function NavContent({
                         )}
                         activeClassName="nav-active"
                       >
-                        <Icon className="h-4 w-4 shrink-0" />
+                        <SidebarNavItemIcon href={href} icon={Icon} />
                         {badge && (
                           <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[9px] font-semibold text-brand-foreground">
                             {badge}
@@ -296,8 +274,12 @@ function NavContent({
                   )}
                   activeClassName="nav-active"
                 >
-                  <Icon className={cn("h-4 w-4 shrink-0", active && "text-amber-300")} />
-                  <span className="truncate">{label}</span>
+                  <SidebarNavItemIcon
+                    href={href}
+                    icon={Icon}
+                    className={cn("h-4 w-4 shrink-0", active && "text-amber-300")}
+                  />
+                  <SidebarNavItemLabel href={href} label={label} />
                   {badge && (
                     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/20 px-1.5 text-[10px] font-medium text-brand">
                       {badge}

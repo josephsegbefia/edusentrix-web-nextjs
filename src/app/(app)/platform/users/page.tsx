@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
+import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal/versions";
 import {
   PlatformMetricCard,
   PlatformMetricGrid,
@@ -50,16 +51,26 @@ function unique<T>(items: T[]) {
 export default async function PlatformUsersPage() {
   await connectToDatabase();
 
-  const [totalUsers, platformAdmins, pendingOnboarding, invitedMemberships, suspendedMemberships] =
+  const legalOutdatedFilter = {
+    $or: [
+      { termsAccepted: { $ne: true } },
+      { privacyAccepted: { $ne: true } },
+      { termsVersion: { $ne: TERMS_VERSION } },
+      { privacyVersion: { $ne: PRIVACY_VERSION } },
+    ],
+  };
+
+  const [totalUsers, platformAdmins, pendingOnboarding, invitedMemberships, suspendedMemberships, legalOutdatedUsers] =
     await Promise.all([
       User.countDocuments({}),
       User.countDocuments({ role: "platform_admin" }),
       User.countDocuments({ pendingOnboarding: true }),
       UserMembership.countDocuments({ status: "invited" }),
       UserMembership.countDocuments({ status: "suspended" }),
+      User.countDocuments(legalOutdatedFilter),
     ]);
 
-  const [recentUsers, exceptionMemberships, schoolRollup] = await Promise.all([
+  const [recentUsers, exceptionMemberships, schoolRollup, legalOutdatedSample] = await Promise.all([
     User.find({})
       .sort({ createdAt: -1 })
       .limit(40)
@@ -121,6 +132,26 @@ export default async function PlatformUsersPage() {
       { $sort: { users: -1, active: -1 } },
       { $limit: 10 },
     ]),
+    User.find(legalOutdatedFilter)
+      .sort({ updatedAt: -1 })
+      .limit(20)
+      .select("email name firstName lastName role schoolId termsAccepted privacyAccepted termsVersion privacyVersion updatedAt")
+      .lean<
+        Array<{
+          _id: unknown;
+          email: string;
+          name?: string | null;
+          firstName?: string | null;
+          lastName?: string | null;
+          role?: string | null;
+          schoolId?: unknown | null;
+          termsAccepted?: boolean | null;
+          privacyAccepted?: boolean | null;
+          termsVersion?: string | null;
+          privacyVersion?: string | null;
+          updatedAt: Date;
+        }>
+      >(),
   ]);
 
   const recentUserIds = recentUsers.map((user) => user._id);
@@ -157,6 +188,9 @@ export default async function PlatformUsersPage() {
     ...recentMemberships.map((membership) => String(membership.schoolId)),
     ...exceptionMemberships.map((membership) => String(membership.schoolId)),
     ...schoolRollup.map((row) => String(row._id)),
+    ...legalOutdatedSample
+      .map((user) => (user.schoolId ? String(user.schoolId) : null))
+      .filter((id): id is string => Boolean(id)),
   ]);
 
   const schools = schoolIds.length
@@ -245,6 +279,13 @@ export default async function PlatformUsersPage() {
           value={(invitedMemberships + suspendedMemberships).toLocaleString()}
           note={`${invitedMemberships} invited and ${suspendedMemberships} suspended memberships.`}
           tone="rose"
+        />
+        <PlatformMetricCard
+          icon={Shield}
+          label="Legal Reacceptance Needed"
+          value={legalOutdatedUsers.toLocaleString()}
+          note="Users missing current Terms/Privacy acceptance version."
+          tone={legalOutdatedUsers > 0 ? "amber" : "emerald"}
         />
       </PlatformMetricGrid>
 
@@ -367,6 +408,70 @@ export default async function PlatformUsersPage() {
           </div>
         </PlatformSection>
       </div>
+
+      <PlatformSection
+        title="Legal Acceptance Exceptions"
+        description="Users who have not accepted the current Terms/Privacy versions and should be revalidated at next sign-in."
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-white/45">
+                <th className="pb-3 font-medium">User</th>
+                <th className="pb-3 font-medium">Role</th>
+                <th className="pb-3 font-medium">School</th>
+                <th className="pb-3 font-medium">Issue</th>
+                <th className="pb-3 font-medium">Last Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {legalOutdatedSample.length > 0 ? (
+                legalOutdatedSample.map((user) => {
+                  const issues: string[] = [];
+                  if (!user.termsAccepted) issues.push("Terms not accepted");
+                  if (!user.privacyAccepted) issues.push("Privacy not accepted");
+                  if (user.termsAccepted && user.termsVersion !== TERMS_VERSION) {
+                    issues.push("Terms version outdated");
+                  }
+                  if (user.privacyAccepted && user.privacyVersion !== PRIVACY_VERSION) {
+                    issues.push("Privacy version outdated");
+                  }
+                  return (
+                    <tr key={String(user._id)} className="border-b border-white/5 align-top">
+                      <td className="py-3 pr-4">
+                        <p className="font-medium text-white">{displayName(user)}</p>
+                        <p className="text-xs text-white/45">{user.email}</p>
+                      </td>
+                      <td className="py-3 pr-4 text-white/80">
+                        {user.role ? ROLE_LABELS[user.role] || user.role : "Unknown"}
+                      </td>
+                      <td className="py-3 pr-4 text-white/65">
+                        {user.schoolId ? schoolMap.get(String(user.schoolId)) || "Unknown school" : "Platform-only"}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {issues.map((issue) => (
+                            <PlatformPill key={issue} tone="amber">
+                              {issue}
+                            </PlatformPill>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-3 text-white/55">{formatTimestamp(user.updatedAt)}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-sm text-white/45">
+                    No legal acceptance exceptions found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </PlatformSection>
 
       <PlatformSection
         title="Schools With The Broadest Access Footprint"

@@ -1,10 +1,7 @@
 import mongoose from "mongoose";
-import { computeSubscriptionPricing } from "@/lib/platform-billing/subscription-pricing";
 import { resolveTransactionFeeConfigForSchool } from "@/lib/billing/transaction-fees";
 import { maskAccountNumber } from "@/lib/platform-billing/payout-security";
 import { School } from "@/models/School";
-import { SchoolSubscription } from "@/models/SchoolSubscription";
-import { SubscriptionEvent } from "@/models/SubscriptionEvent";
 import { UsageMetric } from "@/models/UsageMetric";
 import { ProvisioningJob } from "@/models/ProvisioningJob";
 import {
@@ -15,7 +12,7 @@ import {
 import { getSchoolSetupProgress } from "@/lib/platform/schools/setup-progress";
 
 export async function getPlatformSchoolList() {
-  const [schools, subscriptions, usageMetrics] = await Promise.all([
+  const [schools, usageMetrics] = await Promise.all([
     School.find({})
       .select("name status createdBy bank billing")
       .sort({ name: 1 })
@@ -62,21 +59,6 @@ export async function getPlatformSchoolList() {
           };
         };
       }>>(),
-    SchoolSubscription.find({})
-      .select(
-        "schoolId tierCode tierName status basePriceMinor manualPriceOverrideMinor discountMode discountValue effectivePriceMinor"
-      )
-      .lean<Array<{
-        schoolId: mongoose.Types.ObjectId;
-        tierCode?: string | null;
-        tierName?: string | null;
-        status?: string;
-        basePriceMinor?: number;
-        manualPriceOverrideMinor?: number | null;
-        discountMode?: "none" | "percent" | "fixed";
-        discountValue?: number | null;
-        effectivePriceMinor?: number;
-      }>>(),
     UsageMetric.aggregate<{
       _id: mongoose.Types.ObjectId;
       totalEstimatedCostMinor: number;
@@ -92,29 +74,17 @@ export async function getPlatformSchoolList() {
     ]),
   ]);
 
-  const subscriptionsBySchool = new Map(
-    subscriptions.map((subscription) => [String(subscription.schoolId), subscription])
-  );
   const usageBySchool = new Map(
     usageMetrics.map((row) => [String(row._id), row])
   );
 
   return schools.map((school) => {
     const schoolId = String(school._id);
-    const subscription = subscriptionsBySchool.get(schoolId);
     const usage = usageBySchool.get(schoolId);
     const feeConfig = resolveTransactionFeeConfigForSchool(
       school.billing?.transactionFees || null
     );
     const paymentSetupStatus = deriveSchoolPaymentSetupStatus(school);
-    const pricing = subscription
-      ? computeSubscriptionPricing({
-          basePriceMinor: subscription.basePriceMinor || 0,
-          manualPriceOverrideMinor: subscription.manualPriceOverrideMinor || null,
-          discountMode: subscription.discountMode || "none",
-          discountValue: subscription.discountValue ?? null,
-        })
-      : null;
 
     return {
       id: schoolId,
@@ -130,18 +100,7 @@ export async function getPlatformSchoolList() {
         updatedAt: school.billing?.transactionFees?.updatedAt?.toISOString?.() || null,
       },
       effectiveTransactionFee: feeConfig,
-      subscription: subscription
-        ? {
-            tierCode: subscription.tierCode || null,
-            tierName: subscription.tierName || null,
-            status: subscription.status || "draft",
-            effectivePriceMinor: Math.max(
-              0,
-              Math.round(Number(subscription.effectivePriceMinor || 0))
-            ),
-            discountExposureMinor: pricing?.discountAmountMinor || 0,
-          }
-        : null,
+      subscription: null,
       usage: {
         totalEstimatedCostMinor: Math.max(
           0,
@@ -159,7 +118,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   }
 
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
-  const [school, subscription, usageMetrics, subscriptionEvents, latestProvisioningJob, setupProgress] =
+  const [school, usageMetrics, latestProvisioningJob, setupProgress] =
     await Promise.all([
     School.findById(schoolIdObj)
       .select(
@@ -224,25 +183,6 @@ export async function getPlatformSchoolDetail(schoolId: string) {
           };
         };
       } | null>(),
-    SchoolSubscription.findOne({ schoolId: schoolIdObj })
-      .select(
-        "tierId tierCode tierName status basePriceMinor manualPriceOverrideMinor discountMode discountValue effectivePriceMinor note pilotEndsAt updatedAt"
-      )
-      .lean<{
-        _id: mongoose.Types.ObjectId;
-        tierId?: mongoose.Types.ObjectId | null;
-        tierCode?: string | null;
-        tierName?: string | null;
-        status?: string;
-        basePriceMinor?: number;
-        manualPriceOverrideMinor?: number | null;
-        discountMode?: "none" | "percent" | "fixed";
-        discountValue?: number | null;
-        effectivePriceMinor?: number;
-        note?: string | null;
-        pilotEndsAt?: Date | null;
-        updatedAt?: Date | null;
-      } | null>(),
     UsageMetric.find({ schoolId: schoolIdObj })
       .sort({ updatedAt: -1 })
       .limit(25)
@@ -256,16 +196,6 @@ export async function getPlatformSchoolDetail(schoolId: string) {
         periodStart: Date;
         periodEnd: Date;
         updatedAt?: Date | null;
-      }>>(),
-    SubscriptionEvent.find({ schoolId: schoolIdObj })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean<Array<{
-        _id: mongoose.Types.ObjectId;
-        eventType: string;
-        summary: string;
-        actorEmail?: string | null;
-        createdAt: Date;
       }>>(),
     ProvisioningJob.findOne({
       schoolId: schoolIdObj,
@@ -297,15 +227,6 @@ export async function getPlatformSchoolDetail(schoolId: string) {
     (sum, metric) => sum + Math.max(0, Math.round(Number(metric.estimatedCostMinor || 0))),
     0
   );
-  const pricing = subscription
-    ? computeSubscriptionPricing({
-        basePriceMinor: subscription.basePriceMinor || 0,
-        manualPriceOverrideMinor: subscription.manualPriceOverrideMinor || null,
-        discountMode: subscription.discountMode || "none",
-        discountValue: subscription.discountValue ?? null,
-      })
-    : null;
-
   return {
     id: String(school._id),
     name: school.name || "Unnamed School",
@@ -381,28 +302,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
       updatedAt: school.billing?.transactionFees?.updatedAt?.toISOString?.() || null,
     },
     effectiveTransactionFee: feeConfig,
-    subscription: subscription
-      ? {
-          id: String(subscription._id),
-          tierId: subscription.tierId ? String(subscription.tierId) : null,
-          tierCode: subscription.tierCode || null,
-          tierName: subscription.tierName || null,
-          status: subscription.status || "draft",
-          basePriceMinor: Math.max(0, Math.round(Number(subscription.basePriceMinor || 0))),
-          manualPriceOverrideMinor:
-            subscription.manualPriceOverrideMinor ?? null,
-          discountMode: subscription.discountMode || "none",
-          discountValue: subscription.discountValue ?? null,
-          effectivePriceMinor: Math.max(
-            0,
-            Math.round(Number(subscription.effectivePriceMinor || 0))
-          ),
-          discountExposureMinor: pricing?.discountAmountMinor || 0,
-          note: subscription.note || null,
-          pilotEndsAt: subscription.pilotEndsAt?.toISOString?.().slice(0, 10) || null,
-          updatedAt: subscription.updatedAt?.toISOString?.() || null,
-        }
-      : null,
+    subscription: null,
     usage: {
       totalEstimatedCostMinor,
       metricsCount: usageMetrics.length,
@@ -421,12 +321,6 @@ export async function getPlatformSchoolDetail(schoolId: string) {
         updatedAt: metric.updatedAt?.toISOString?.() || null,
       })),
     },
-    events: subscriptionEvents.map((event) => ({
-      id: String(event._id),
-      eventType: event.eventType,
-      summary: event.summary,
-      actorEmail: event.actorEmail || null,
-      createdAt: event.createdAt.toISOString(),
-    })),
+    events: [],
   };
 }

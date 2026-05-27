@@ -53,6 +53,10 @@ import {
 } from "lucide-react";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
+  SidebarNavItemIcon,
+  SidebarNavItemLabel,
+} from "@/components/nav/sidebars/SidebarLearnNav";
+import {
   premiumSideItem,
   premiumSideItemActive,
 } from "@/components/ui/premium";
@@ -280,11 +284,6 @@ const navSections: NavSection[] = [
         href: "/admin/finance",
         icon: Landmark,
         exact: true,
-      },
-      {
-        label: "Subscription",
-        href: "/admin/billing",
-        icon: Wallet,
       },
       {
         label: "Reconciliation",
@@ -802,7 +801,7 @@ function NavContent({
                         )}
                         activeClassName="nav-active"
                       >
-                        <Icon className="h-4 w-4 shrink-0" />
+                        <SidebarNavItemIcon href={href} icon={Icon} className="h-4 w-4 shrink-0" />
                         {showNavBadge ? (
                           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-slate-950 bg-sky-400 px-1 text-[9px] font-bold text-slate-950">
                             {navBadgeCount > 9 ? "9+" : navBadgeCount}
@@ -857,8 +856,12 @@ function NavContent({
                   )}
                   activeClassName="nav-active"
                 >
-                  <Icon className={cn("h-4 w-4 shrink-0", active && "text-violet-400")} />
-                  <span className="truncate">{label}</span>
+                  <SidebarNavItemIcon
+                    href={href}
+                    icon={Icon}
+                    className={cn("h-4 w-4 shrink-0", active && "text-violet-400")}
+                  />
+                  <SidebarNavItemLabel href={href} label={label} />
                   {showNavBadge ? (
                     <span className="ml-auto rounded-full border border-sky-300/20 bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-sky-100">
                       {navBadgeCount > 99 ? "99+" : navBadgeCount}

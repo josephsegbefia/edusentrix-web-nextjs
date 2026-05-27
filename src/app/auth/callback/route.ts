@@ -15,7 +15,6 @@ import {
   bindPaymentSetupDelegateToSchool,
   replaceBillingOwnerOnSchool,
 } from "@/lib/school-payments/billing-owner-lifecycle";
-
 /** Role-based landing */
 function decideNextPath(u: {
   role?: string;

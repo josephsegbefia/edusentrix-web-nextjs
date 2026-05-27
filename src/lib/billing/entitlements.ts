@@ -1,33 +1,22 @@
 import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { getCurrentMonthRange } from "@/lib/platform-billing/period-range";
-import { computeSubscriptionPricing } from "@/lib/platform-billing/subscription-pricing";
 import { School } from "@/models/School";
-import { SchoolSubscription } from "@/models/SchoolSubscription";
-import { SubscriptionTier } from "@/models/SubscriptionTier";
 import { Student } from "@/models/Student";
 import { Teacher } from "@/models/Teacher";
-import { UsageMetric } from "@/models/UsageMetric";
-import { UsageEvent, type UsageEventCategory } from "@/models/UsageEvent";
-import type { PlatformBillingProvider } from "@/lib/platform-billing/providers";
 import { isSchoolPaymentReady } from "@/lib/school-payments/payment-setup";
 import {
-  hasTierFeature,
-  resolveTierLimits,
   type SubscriptionFeatureKey,
   type SubscriptionLimitKey,
   type SubscriptionLimits,
 } from "@/lib/billing/feature-access";
-import {
-  normalizeSubscriptionStatus,
-  type BillingCadence,
-  type SubscriptionLifecycleMode,
-  type SubscriptionStatus,
+import type {
+  BillingCadence,
+  SubscriptionLifecycleMode,
+  SubscriptionStatus,
 } from "@/lib/platform-billing/subscription-pricing";
-import {
-  resolveAccessModeFromSubscription,
-  type SchoolAccessMode,
-} from "@/lib/billing/resolve-school-access-mode";
+import type { SchoolAccessMode } from "@/lib/billing/resolve-school-access-mode";
+import type { UsageEventCategory } from "@/models/UsageEvent";
+import type { PlatformBillingProvider } from "@/lib/platform-billing/providers";
 
 export type SubscriptionSnapshot = {
   schoolId: string;
@@ -90,6 +79,103 @@ export type TrackUsageInput = {
   notes?: string | null;
 };
 
+const UNLIMITED_LIMITS: SubscriptionLimits = {
+  maxStudents: null,
+  maxTeachers: null,
+  maxInvitationsPerMonth: null,
+  maxAICallsPerMonth: null,
+  maxStorageBytes: null,
+};
+
+function normalizeSchoolId(schoolId: string | mongoose.Types.ObjectId) {
+  return typeof schoolId === "string"
+    ? new mongoose.Types.ObjectId(schoolId)
+    : schoolId;
+}
+
+/** Lightweight school context — no subscription tier gating. */
+export async function getSchoolSubscriptionSnapshot(
+  schoolId: string | mongoose.Types.ObjectId
+): Promise<SubscriptionSnapshot | null> {
+  await connectToDatabase();
+
+  const schoolIdObj = normalizeSchoolId(schoolId);
+  const [school, students, teachers] = await Promise.all([
+    School.findById(schoolIdObj)
+      .select("name status createdBy bank billing")
+      .lean<{
+        _id: mongoose.Types.ObjectId;
+        name?: string;
+        status?: string;
+        bank?: unknown;
+        billing?: unknown;
+      } | null>(),
+    Student.countDocuments({ schoolId: schoolIdObj }),
+    Teacher.countDocuments({ schoolId: schoolIdObj, status: "active" }),
+  ]);
+
+  if (!school) return null;
+
+  return {
+    schoolId: String(school._id),
+    schoolName: school.name || "Unnamed School",
+    schoolStatus: school.status || "pending",
+    paymentReady: isSchoolPaymentReady(school),
+    subscription: {
+      id: null,
+      status: "active",
+      normalizedStatus: "active",
+      accessMode: "full",
+      tierId: null,
+      tierCode: null,
+      tierName: null,
+      tierVersion: null,
+      lifecycleMode: null,
+      billingCadence: null,
+      startsAt: null,
+      endsAt: null,
+      trialEndsAt: null,
+      gracePeriodEndsAt: null,
+      basePriceMinor: 0,
+      manualPriceOverrideMinor: null,
+      discountMode: "none",
+      discountValue: null,
+      effectivePriceMinor: 0,
+      pilotEndsAt: null,
+    },
+    pricing: {
+      baseTierPriceMinor: 0,
+      effectiveBasePriceMinor: 0,
+      discountAmountMinor: 0,
+      finalPriceMinor: 0,
+    },
+    features: [],
+    limits: UNLIMITED_LIMITS,
+    usage: {
+      students: Math.max(0, students),
+      teachers: Math.max(0, teachers),
+    },
+    hasFeature() {
+      return true;
+    },
+  };
+}
+
+export async function hasFeature(
+  _schoolId: string | mongoose.Types.ObjectId,
+  _featureKey: SubscriptionFeatureKey
+) {
+  return true;
+}
+
+export async function checkLimit(
+  _schoolId: string | mongoose.Types.ObjectId,
+  _limitKey: SubscriptionLimitKey,
+  _increment = 1
+) {
+  return { allowed: true, current: 0, limit: null };
+}
+
 export function inferUsageCategory(input: {
   provider: PlatformBillingProvider;
   metricKey: string;
@@ -116,300 +202,7 @@ export function inferUsageCategory(input: {
   return "other";
 }
 
-function normalizeSchoolId(schoolId: string | mongoose.Types.ObjectId) {
-  return typeof schoolId === "string"
-    ? new mongoose.Types.ObjectId(schoolId)
-    : schoolId;
-}
-
-export async function getSchoolSubscriptionSnapshot(
-  schoolId: string | mongoose.Types.ObjectId
-): Promise<SubscriptionSnapshot | null> {
-  await connectToDatabase();
-
-  const schoolIdObj = normalizeSchoolId(schoolId);
-  const [school, subscription, students, teachers] = await Promise.all([
-    School.findById(schoolIdObj)
-      .select("name status createdBy bank billing")
-      .lean<{
-        _id: mongoose.Types.ObjectId;
-        name?: string;
-        status?: string;
-        createdBy?: mongoose.Types.ObjectId | null;
-        bank?: {
-          bankName?: string | null;
-          branchName?: string | null;
-          sortCode?: string | null;
-          accountName?: string | null;
-          accountNumber?: string | null;
-        } | null;
-        billing?: {
-          status?: "unprovisioned" | "provisioned" | "failed" | null;
-          paymentSetup?: {
-            status?:
-              | "not_started"
-              | "awaiting_billing_owner"
-              | "details_submitted"
-              | "pending_provisioning"
-              | "review_required"
-              | "provisioned"
-              | "failed"
-              | null;
-            ownerUserId?: mongoose.Types.ObjectId | null;
-            ownerName?: string | null;
-            ownerEmail?: string | null;
-          } | null;
-          paystack?: {
-            subaccountCode?: string | null;
-            subaccountId?: string | null;
-            lastError?: string | null;
-          } | null;
-        };
-      } | null>(),
-    SchoolSubscription.findOne({ schoolId: schoolIdObj })
-      .select(
-        "tierId tierCode tierName tierVersion status lifecycleMode billingCadence startsAt endsAt trialEndsAt pilotEndsAt gracePeriodEndsAt manualAccessModeOverride basePriceMinor manualPriceOverrideMinor discountMode discountValue effectivePriceMinor includedLimitsSnapshot featuresSnapshot"
-      )
-      .lean<{
-        _id: mongoose.Types.ObjectId;
-        tierId?: mongoose.Types.ObjectId | null;
-        tierCode?: string | null;
-        tierName?: string | null;
-        tierVersion?: number | null;
-        status?: SubscriptionStatus;
-        lifecycleMode?: SubscriptionLifecycleMode | null;
-        billingCadence?: BillingCadence | null;
-        startsAt?: Date | null;
-        endsAt?: Date | null;
-        trialEndsAt?: Date | null;
-        gracePeriodEndsAt?: Date | null;
-        manualAccessModeOverride?: SchoolAccessMode | null;
-        basePriceMinor?: number;
-        manualPriceOverrideMinor?: number | null;
-        discountMode?: "none" | "percent" | "fixed";
-        discountValue?: number | null;
-        effectivePriceMinor?: number;
-        pilotEndsAt?: Date | null;
-        includedLimitsSnapshot?: Partial<SubscriptionLimits> | null;
-        featuresSnapshot?: string[] | null;
-      } | null>(),
-    Student.countDocuments({ schoolId: schoolIdObj }),
-    Teacher.countDocuments({ schoolId: schoolIdObj, status: "active" }),
-  ]);
-
-  if (!school) return null;
-
-  const tier = subscription?.tierId
-    ? await SubscriptionTier.findById(subscription.tierId)
-        .select("features studentLimit")
-        .lean<{
-          features?: string[];
-          studentLimit?: number | null;
-        } | null>()
-    : null;
-  const features = Array.isArray(subscription?.featuresSnapshot)
-    ? subscription.featuresSnapshot
-    : Array.isArray(tier?.features)
-      ? tier.features
-      : [];
-  const tierLimits = resolveTierLimits({
-    tierCode: subscription?.tierCode || null,
-    studentLimit:
-      typeof tier?.studentLimit === "number" ? tier.studentLimit : null,
-  });
-  const limits = {
-    ...tierLimits,
-    ...(subscription?.includedLimitsSnapshot || {}),
-  } as SubscriptionLimits;
-
-  const pricing = computeSubscriptionPricing({
-    basePriceMinor: subscription?.basePriceMinor || 0,
-    manualPriceOverrideMinor: subscription?.manualPriceOverrideMinor || null,
-    discountMode: subscription?.discountMode || "none",
-    discountValue: subscription?.discountValue ?? null,
-  });
-
-  const normalizedStatus = normalizeSubscriptionStatus(subscription?.status);
-  const accessMode = resolveAccessModeFromSubscription(subscription);
-
-  return {
-    schoolId: String(school._id),
-    schoolName: school.name || "Unnamed School",
-    schoolStatus: school.status || "pending",
-    paymentReady: isSchoolPaymentReady(school),
-    subscription: {
-      id: subscription ? String(subscription._id) : null,
-      status: subscription?.status || "draft",
-      normalizedStatus,
-      accessMode,
-      tierId: subscription?.tierId ? String(subscription.tierId) : null,
-      tierCode: subscription?.tierCode || null,
-      tierName: subscription?.tierName || null,
-      tierVersion: subscription?.tierVersion ?? null,
-      lifecycleMode: subscription?.lifecycleMode || null,
-      billingCadence: subscription?.billingCadence || null,
-      startsAt: subscription?.startsAt?.toISOString?.().slice(0, 10) || null,
-      endsAt: subscription?.endsAt?.toISOString?.().slice(0, 10) || null,
-      trialEndsAt: subscription?.trialEndsAt?.toISOString?.().slice(0, 10) || null,
-      gracePeriodEndsAt:
-        subscription?.gracePeriodEndsAt?.toISOString?.().slice(0, 10) || null,
-      basePriceMinor: Math.max(0, Math.round(Number(subscription?.basePriceMinor || 0))),
-      manualPriceOverrideMinor: subscription?.manualPriceOverrideMinor ?? null,
-      discountMode: subscription?.discountMode || "none",
-      discountValue: subscription?.discountValue ?? null,
-      effectivePriceMinor: Math.max(0, Math.round(Number(subscription?.effectivePriceMinor || 0))),
-      pilotEndsAt: subscription?.pilotEndsAt?.toISOString?.().slice(0, 10) || null,
-    },
-    pricing,
-    features,
-    limits,
-    usage: {
-      students: Math.max(0, students),
-      teachers: Math.max(0, teachers),
-    },
-    hasFeature(featureKey: SubscriptionFeatureKey) {
-      return hasTierFeature(features, featureKey);
-    },
-  };
-}
-
-export async function hasFeature(
-  schoolId: string | mongoose.Types.ObjectId,
-  featureKey: SubscriptionFeatureKey
-) {
-  const snapshot = await getSchoolSubscriptionSnapshot(schoolId);
-  if (!snapshot) return false;
-  return snapshot.hasFeature(featureKey);
-}
-
-export async function checkLimit(
-  schoolId: string | mongoose.Types.ObjectId,
-  limitKey: SubscriptionLimitKey,
-  increment = 1
-) {
-  const snapshot = await getSchoolSubscriptionSnapshot(schoolId);
-  if (!snapshot) {
-    return { allowed: false, current: 0, limit: null };
-  }
-
-  let current = 0;
-  if (limitKey === "maxStudents") {
-    current = snapshot.usage.students;
-  } else if (limitKey === "maxTeachers") {
-    current = snapshot.usage.teachers;
-  } else {
-    await connectToDatabase();
-
-    const schoolIdObj = normalizeSchoolId(schoolId);
-    const monthRange = getCurrentMonthRange();
-    const query: Record<string, unknown> = {
-      schoolId: schoolIdObj,
-    };
-
-    if (limitKey === "maxInvitationsPerMonth") {
-      query.provider = "internal";
-      query.metricKey = "invitations_sent";
-      query.periodStart = monthRange.periodStart;
-      query.periodEnd = monthRange.periodEnd;
-    } else if (limitKey === "maxAICallsPerMonth") {
-      query.provider = "openai";
-      query.metricKey = "ai_calls";
-      query.periodStart = monthRange.periodStart;
-      query.periodEnd = monthRange.periodEnd;
-    } else if (limitKey === "maxStorageBytes") {
-      query.provider = "uploadthing";
-      query.metricKey = "uploaded_bytes";
-    }
-
-    const aggregate = await UsageMetric.aggregate<{ total: number }>([
-      { $match: query },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: { $ifNull: ["$quantity", 0] } },
-        },
-      },
-    ]);
-
-    current = Math.max(0, Number(aggregate[0]?.total || 0));
-  }
-  const limit = snapshot.limits[limitKey];
-
-  return {
-    allowed: limit === null ? true : current + increment <= limit,
-    current,
-    limit,
-  };
-}
-
-export async function trackUsage(input: TrackUsageInput) {
-  await connectToDatabase();
-
-  const { periodStart, periodEnd } = getCurrentMonthRange();
-  const schoolIdObj = normalizeSchoolId(input.schoolId);
-  const quantity = Math.max(0, Number(input.quantity || 1));
-  const unitCostMinor = Math.max(0, Math.round(Number(input.unitCostMinor || 0)));
-  const estimatedCostMinor =
-    input.estimatedCostMinor !== undefined
-      ? Math.max(0, Math.round(Number(input.estimatedCostMinor || 0)))
-      : Math.max(0, Math.round(quantity * unitCostMinor));
-
-  const metric = await UsageMetric.findOneAndUpdate(
-    {
-      schoolId: schoolIdObj,
-      provider: input.provider,
-      metricKey: input.metricKey,
-      periodStart,
-      periodEnd,
-    },
-    {
-      $inc: {
-        quantity,
-        estimatedCostMinor,
-      },
-      $set: {
-        unitLabel: input.unitLabel || "units",
-        unitCostMinor,
-        allocationMethod: input.allocationMethod || "manual",
-        sourceType: input.sourceType || "manual",
-        notes: input.notes || null,
-        updatedBy: input.actorId || null,
-        updatedByEmail: input.actorEmail || null,
-        updatedAt: new Date(),
-      },
-    },
-    {
-      new: true,
-      upsert: true,
-      setDefaultsOnInsert: true,
-    }
-  );
-
-  await UsageEvent.create({
-    schoolId: schoolIdObj,
-    provider: input.provider,
-    category:
-      input.category ||
-      inferUsageCategory({
-        provider: input.provider,
-        metricKey: input.metricKey,
-      }),
-    metricKey: input.metricKey,
-    quantity,
-    unitLabel: input.unitLabel || "units",
-    unitCostMinor,
-    estimatedCostMinor,
-    allocationMethod: input.allocationMethod || "manual",
-    sourceType: input.sourceType || "manual",
-    actorId: input.actorId || null,
-    actorEmail: input.actorEmail || null,
-    entityType: input.entityType || null,
-    entityId: input.entityId || null,
-    periodStart,
-    periodEnd,
-    metadata: input.metadata || null,
-    notes: input.notes || null,
-  });
-
-  return metric;
+/** No-op — usage metering removed with subscription gating. */
+export async function trackUsage(_input: TrackUsageInput) {
+  return null;
 }

@@ -19,6 +19,7 @@ import {
   PIPELINE_STAGE_LABELS,
   resolveEffectivePipelineStage,
 } from "@/constants/application-pipeline";
+import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal/versions";
 
 // Optional: ensure useful indexes in your model file (shown below).
 // applicationSchema.index({ status: 1, createdAt: -1 });
@@ -186,6 +187,10 @@ const BodySchema = z.object({
   city: z.string().optional(),
   region: GhanaRegionSchema,
   message: z.string().optional(),
+  termsAccepted: z.literal(true),
+  privacyAccepted: z.literal(true),
+  termsVersion: z.string().min(1),
+  privacyVersion: z.string().min(1),
 });
 
 export async function POST(req: NextRequest) {
@@ -202,9 +207,28 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
+    if (
+      body.data.termsVersion !== TERMS_VERSION ||
+      body.data.privacyVersion !== PRIVACY_VERSION
+    ) {
+      return NextResponse.json(
+        { error: "Please reload and accept the latest Terms and Privacy Policy." },
+        { status: 400 }
+      );
+    }
+
+    const policyAcceptedIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      null;
+    const policyAcceptedUserAgent = req.headers.get("user-agent") || null;
+
     const app = await Application.create({
       ...body.data,
       status: "submitted",
+      policyAcceptedAt: new Date(),
+      policyAcceptedIp,
+      policyAcceptedUserAgent,
     });
 
     console.log("POST /api/platform/applications - Application created:", app);

@@ -22,6 +22,10 @@ export type CurrentAppUser = {
   role?: AppRole;
   schoolId?: string;
   pendingOnboarding?: boolean;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  termsVersion?: string;
+  privacyVersion?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -96,6 +100,10 @@ export async function getCurrentUser(
     role: doc.role as AppRole | undefined,
     schoolId: doc.schoolId ? String(doc.schoolId) : undefined,
     pendingOnboarding: !!doc.pendingOnboarding,
+    termsAccepted: !!doc.termsAccepted,
+    privacyAccepted: !!doc.privacyAccepted,
+    termsVersion: doc.termsVersion ?? undefined,
+    privacyVersion: doc.privacyVersion ?? undefined,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };

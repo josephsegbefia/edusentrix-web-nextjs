@@ -23,6 +23,7 @@ import {
 } from "@/constants/ghanaRegions";
 import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
+import { PRIVACY_VERSION, TERMS_VERSION } from "@/lib/legal/versions";
 import {
   ArrowRight,
   Award,
@@ -54,6 +55,14 @@ const FormSchema = z.object({
   city: z.string().optional(),
   region: GhanaRegionSchema,
   message: z.string().optional(),
+  termsVersion: z.literal(TERMS_VERSION),
+  privacyVersion: z.literal(PRIVACY_VERSION),
+  termsAccepted: z.literal("on", {
+    errorMap: () => ({ message: "You must accept the Terms of Use to continue." }),
+  }),
+  privacyAccepted: z.literal("on", {
+    errorMap: () => ({ message: "You must accept the Privacy Policy to continue." }),
+  }),
 });
 
 async function parseApiError(res: Response) {
@@ -433,10 +442,15 @@ export default function EnrollPage() {
     setLoading(true);
 
     const doSubmit = async () => {
+      const payload = {
+        ...result.data,
+        termsAccepted: true,
+        privacyAccepted: true,
+      };
       const res = await fetch("/api/platform/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(result.data),
+        body: JSON.stringify(payload),
         cache: "no-store",
       });
 
@@ -773,6 +787,41 @@ export default function EnrollPage() {
                       className="rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder:text-white/25 transition-all duration-200 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                  <input type="hidden" name="termsVersion" value={TERMS_VERSION} />
+                  <input type="hidden" name="privacyVersion" value={PRIVACY_VERSION} />
+                  <label className="flex items-start gap-3 text-sm text-white/70">
+                    <input
+                      type="checkbox"
+                      name="termsAccepted"
+                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-brand focus:ring-brand/40"
+                      required
+                    />
+                    <span>
+                      I have read and accept the{" "}
+                      <Link href="/terms" target="_blank" className="text-cyan-300 hover:text-cyan-200">
+                        Terms of Use
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 text-sm text-white/70">
+                    <input
+                      type="checkbox"
+                      name="privacyAccepted"
+                      className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/20 text-brand focus:ring-brand/40"
+                      required
+                    />
+                    <span>
+                      I have read and accept the{" "}
+                      <Link href="/privacy" target="_blank" className="text-cyan-300 hover:text-cyan-200">
+                        Privacy Policy
+                      </Link>
+                      .
+                    </span>
+                  </label>
                 </div>
 
                 {/* Submit */}

@@ -210,11 +210,6 @@ import {
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
-import { ensureDefaultSubscriptionTiers } from "@/lib/platform-billing/subscription-tiers";
-import { computeSubscriptionPricing } from "@/lib/platform-billing/subscription-pricing";
-import { SchoolSubscription } from "@/models/SchoolSubscription";
-import { SubscriptionEvent } from "@/models/SubscriptionEvent";
-
 const BodySchema = z.object({
   note: z.string().optional(),
 });
@@ -234,8 +229,6 @@ export async function POST(
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   await connectToDatabase();
-  const defaultTiers = await ensureDefaultSubscriptionTiers();
-  const defaultTier = defaultTiers[0] || null;
   const session = await mongoose.connection.startSession();
   const { id } = await ctx.params;
   const applicationAuditIdempotencyKey = resolveAuditIdempotencyKey(
@@ -291,72 +284,6 @@ export async function POST(
       }
       schoolIdCreated = school._id;
 
-      if (defaultTier) {
-        const existingSubscription = await SchoolSubscription.findOne({
-          schoolId: school._id,
-        })
-          .session(session)
-          .select("_id");
-        const trialDays = Math.max(
-          1,
-          Number(process.env.SUBSCRIPTION_TRIAL_DAYS || "30")
-        );
-        const pilotEndsAt = new Date();
-        pilotEndsAt.setUTCDate(pilotEndsAt.getUTCDate() + trialDays);
-        const pricing = computeSubscriptionPricing({
-          basePriceMinor: defaultTier.priceMinor,
-        });
-
-        const subscription = await SchoolSubscription.findOneAndUpdate(
-          { schoolId: school._id },
-          {
-            $set: {
-              tierId: defaultTier._id,
-              tierCode: defaultTier.code,
-              tierName: defaultTier.name,
-              status: "trial",
-              basePriceMinor: defaultTier.priceMinor,
-              manualPriceOverrideMinor: null,
-              discountMode: "none",
-              discountValue: null,
-              effectivePriceMinor: pricing.finalPriceMinor,
-              pilotEndsAt,
-              updatedBy: platformAdminId,
-              updatedByEmail: null,
-            },
-          },
-          {
-            new: true,
-            upsert: true,
-            setDefaultsOnInsert: true,
-            session,
-          }
-        );
-
-        await SubscriptionEvent.create(
-          [
-            {
-              schoolId: school._id,
-              subscriptionId: subscription._id,
-              eventType: existingSubscription
-                ? "subscription_updated"
-                : "subscription_assigned",
-              actorId: platformAdminId,
-              actorEmail: null,
-              summary:
-                "Pilot subscription trial was provisioned automatically after application approval.",
-              metadata: {
-                reason: "application_approved",
-                tierCode: defaultTier.code,
-                trialDays,
-                pilotEndsAt: pilotEndsAt.toISOString(),
-              },
-            },
-          ],
-          { session }
-        );
-      }
-
       // 2) Local user (by email)
       const adminFullName = `${app.adminFirstName} ${app.adminLastName}`.trim();
       const userEmail = app.adminEmail.toLowerCase();
@@ -376,6 +303,13 @@ export async function POST(
               role: "school_admin",
               schoolId: school._id,
               pendingOnboarding: true,
+              termsAccepted: !!app.termsAccepted,
+              privacyAccepted: !!app.privacyAccepted,
+              termsVersion: app.termsVersion || null,
+              privacyVersion: app.privacyVersion || null,
+              policyAcceptedAt: app.policyAcceptedAt || null,
+              policyAcceptedIp: app.policyAcceptedIp || null,
+              policyAcceptedUserAgent: app.policyAcceptedUserAgent || null,
             },
           },
           { session }
@@ -391,6 +325,13 @@ export async function POST(
               role: "school_admin",
               schoolId: school._id,
               pendingOnboarding: true,
+              termsAccepted: !!app.termsAccepted,
+              privacyAccepted: !!app.privacyAccepted,
+              termsVersion: app.termsVersion || null,
+              privacyVersion: app.privacyVersion || null,
+              policyAcceptedAt: app.policyAcceptedAt || null,
+              policyAcceptedIp: app.policyAcceptedIp || null,
+              policyAcceptedUserAgent: app.policyAcceptedUserAgent || null,
             },
           ],
           { session }

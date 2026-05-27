@@ -22,7 +22,6 @@ import { StudentCreditBalance } from "@/models/StudentCreditBalance";
 import { Student } from "@/models/Student";
 import { allocateToInvoiceLineItems } from "@/lib/fees/allocateToInvoiceLineItems";
 import { applyAllocationsToInvoice } from "@/lib/fees/applyAllocationsToInvoice";
-import { applySuccessfulSubscriptionCheckoutIntent } from "@/lib/billing/subscription-checkout";
 import { formatMoney } from "@/lib/fees/money";
 import { buildTransferReconciliationUpdate } from "@/lib/finance/disbursements";
 import {
@@ -151,10 +150,6 @@ export async function POST(req: NextRequest) {
     // Handle charge.success event
     if (event.event === "charge.success") {
       const { metadata } = event.data;
-      if (metadata?.type === "subscription_upgrade") {
-        await handleSubscriptionUpgradeSuccess(event);
-        return NextResponse.json({ received: true });
-      }
       if (
         metadata?.type === "store_order" &&
         metadata?.storeOrderId &&
@@ -728,38 +723,6 @@ async function handleStoreOrderSuccess(event: PaystackEvent) {
   }
 
   console.log(`Paystack webhook: Store order paid ${storeOrderId}, ref ${reference}`);
-}
-
-async function handleSubscriptionUpgradeSuccess(event: PaystackEvent) {
-  const { data } = event;
-
-  if (data.status !== "success") return;
-
-  const checkoutIntentId = data.metadata?.subscriptionCheckoutIntentId;
-  if (!checkoutIntentId) {
-    console.error("Paystack webhook: Missing subscription checkout metadata");
-    return;
-  }
-
-  await connectToDatabase();
-
-  const applied = await applySuccessfulSubscriptionCheckoutIntent({
-    checkoutIntentId,
-    paystackReference: data.reference,
-    paidAt: data.paid_at ? new Date(data.paid_at) : new Date(),
-  });
-
-  if (!applied) {
-    console.error("Paystack webhook: Failed to apply subscription checkout", {
-      reference: data.reference,
-      checkoutIntentId,
-    });
-    return;
-  }
-
-  console.log(
-    `Paystack webhook: Subscription checkout applied for ref ${data.reference}`
-  );
 }
 
 async function handleTransferUpdate(event: PaystackEvent) {

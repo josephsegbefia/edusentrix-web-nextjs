@@ -36,8 +36,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarSchoolIdentity } from "@/components/nav/sidebars/SidebarSchoolIdentity";
 import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
-import { useSubscription } from "@/hooks/useSubscription";
-import { hasTierFeature, type SubscriptionFeatureKey } from "@/lib/billing/feature-access";
 import { useSchoolPaymentSetup } from "@/hooks/admin/useSchoolPaymentSetup";
 import type { DelegatedAdminNavItem } from "@/lib/delegations/delegate-admin-access";
 
@@ -48,7 +46,6 @@ type NavSection = {
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
-    feature?: SubscriptionFeatureKey;
     allowCollapseWhenActive?: boolean;
     children?: Array<{
       label: string;
@@ -78,7 +75,6 @@ const navSections: NavSection[] = [
         href: "/admin/finance",
         icon: Landmark,
         exact: true,
-        feature: "fees",
       },
       {
         label: "Transactions",
@@ -89,13 +85,11 @@ const navSections: NavSection[] = [
         label: "Fees & Payments",
         href: "/admin/fees",
         icon: DollarSign,
-        feature: "fees",
       },
       {
         label: "School store",
         href: "/admin/store",
         icon: ShoppingBag,
-        feature: "fees",
         allowCollapseWhenActive: true,
         children: [
           {
@@ -119,7 +113,6 @@ const navSections: NavSection[] = [
         label: "Disbursements",
         href: "/admin/finance/disbursements",
         icon: Send,
-        feature: "disbursements",
       },
     ],
   },
@@ -159,12 +152,7 @@ function NavContent({
   delegatedNavItems?: DelegatedAdminNavItem[];
 }) {
   const pathname = usePathname();
-  const { data: subscription } = useSubscription();
   const { data: paymentSetup } = useSchoolPaymentSetup({ allowForbidden: true });
-  const enabledFeatures = React.useMemo(
-    () => (Array.isArray(subscription?.features) ? subscription.features : []),
-    [subscription]
-  );
   const paymentSetupItems = React.useMemo(() => {
     if (!paymentSetup || paymentSetup.accessMode !== "finance_delegate") {
       return [] as NavSection["items"];
@@ -247,9 +235,7 @@ function NavContent({
           section.title === "Finance Operations"
             ? [...section.items, ...paymentSetupItems]
             : section.items;
-        const items = mergedItems.filter(
-          (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)
-        );
+        const items = mergedItems;
         if (items.length === 0) return null;
 
         return (

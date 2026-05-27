@@ -43,6 +43,10 @@ import {
 } from "lucide-react";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
+  SidebarNavItemIcon,
+  SidebarNavItemLabel,
+} from "@/components/nav/sidebars/SidebarLearnNav";
+import {
   premiumSideItem,
   premiumSideItemActive,
 } from "@/components/ui/premium";
@@ -62,8 +66,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarSchoolIdentity } from "@/components/nav/sidebars/SidebarSchoolIdentity";
 import { SidebarFooterBranding } from "@/components/nav/sidebars/SidebarFooterBranding";
-import { useSubscription } from "@/hooks/useSubscription";
-import { hasTierFeature, type SubscriptionFeatureKey } from "@/lib/billing/feature-access";
 import { useSidebar } from "@/providers/sidebar-provider";
 
 type NavSection = {
@@ -73,7 +75,6 @@ type NavSection = {
     href: string;
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
-    feature?: SubscriptionFeatureKey;
     permission?: Permission;
     badgeCount?: number;
   }>;
@@ -178,7 +179,6 @@ const navSections: NavSection[] = [
         label: "EduSentrix Learn",
         href: "/teacher/learn",
         icon: LearnLogoIcon,
-        feature: "edusentrix_learn",
       },
     ],
   },
@@ -220,7 +220,6 @@ const navSections: NavSection[] = [
         href: "/teacher/analytics",
         icon: BarChart3,
         exact: true,
-        feature: "reports",
       },
       {
         label: "At-Risk List",
@@ -323,16 +322,10 @@ function NavContent({
   const [navGroupExpanded, setNavGroupExpanded] = React.useState<Record<string, boolean>>({});
   const { data } = useTeacherContext();
   const { data: unreadNotifications } = useTeacherUnreadNotificationCount();
-  const { data: subscription } = useSubscription();
   const permissions = data?.data.permissions as Permission[] | undefined;
   const studioEnabled = data?.data.features?.teacherStudioEnabled ?? true;
   const canViewStudio = can(permissions, PERMISSIONS.assignmentsView);
   const showStudio = studioEnabled && canViewStudio;
-  const enabledFeatures = React.useMemo(
-    () => (Array.isArray(subscription?.features) ? subscription.features : []),
-    [subscription]
-  );
-
   const homeroomClassGroupId = data?.data?.teacher?.homeroomClassGroupId;
 
   const sections = React.useMemo(
@@ -362,7 +355,7 @@ function NavContent({
             ),
         }))
         .filter((section) => section.items.length > 0),
-    [enabledFeatures, showStudio, homeroomClassGroupId, permissions, unreadNotifications]
+    [showStudio, homeroomClassGroupId, permissions, unreadNotifications]
   );
 
   const filteredLessonNavChildren = React.useMemo(
@@ -562,7 +555,7 @@ function NavContent({
                             )}
                             activeClassName="nav-active"
                           >
-                            <Icon className="h-4 w-4 shrink-0" />
+                            <SidebarNavItemIcon href={href} icon={Icon} className="h-4 w-4 shrink-0" />
                             {badgeCount ? (
                               <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-rose-400 ring-2 ring-[#10131f]" />
                             ) : null}
@@ -587,8 +580,12 @@ function NavContent({
                       )}
                       activeClassName="nav-active"
                     >
-                      <Icon className={cn("h-4 w-4 shrink-0", active && "text-emerald-300")} />
-                      <span className="truncate">{label}</span>
+                      <SidebarNavItemIcon
+                        href={href}
+                        icon={Icon}
+                        className={cn("h-4 w-4 shrink-0", active && "text-emerald-300")}
+                      />
+                      <SidebarNavItemLabel href={href} label={label} />
                       {badgeCount ? (
                         <span className="ml-auto rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-semibold text-rose-100">
                           {badgeCount > 99 ? "99+" : badgeCount}

@@ -128,10 +128,10 @@ export default async function PlatformSettingsPage() {
               <ArrowRight className="ml-3 h-4 w-4" />
             </Link>
             <Link
-              href="/platform/billing/sync"
+              href="/platform/reconciliation"
               className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
             >
-              <span>Provider Sync</span>
+              <span>Reconciliation</span>
               <ArrowRight className="ml-3 h-4 w-4" />
             </Link>
           </>

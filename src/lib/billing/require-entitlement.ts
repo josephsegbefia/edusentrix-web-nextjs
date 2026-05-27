@@ -3,15 +3,10 @@ import {
   getSchoolSubscriptionSnapshot,
   type SubscriptionSnapshot,
 } from "@/lib/billing/entitlements";
-import { checkUsageLimit } from "@/lib/billing/check-usage-limit";
 import type {
   SubscriptionFeatureKey,
   SubscriptionLimitKey,
 } from "@/lib/billing/feature-access";
-import {
-  canUseExpensiveAi,
-  expensiveAiBlockedMessage,
-} from "@/lib/billing/expensive-ai-access";
 
 export class EntitlementError extends Error {
   statusCode = 403;
@@ -30,6 +25,7 @@ export class EntitlementError extends Error {
   }
 }
 
+/** No subscription entitlement checks — returns snapshot when school exists. */
 export async function requireEntitlement(input: {
   schoolId: string | mongoose.Types.ObjectId;
   featureKey?: SubscriptionFeatureKey;
@@ -43,57 +39,9 @@ export async function requireEntitlement(input: {
 
   if (!snapshot) {
     throw new EntitlementError(
-      "No subscription was found for this school.",
+      "School not found.",
       "SUBSCRIPTION_NOT_FOUND"
     );
-  }
-
-  const accessMode = snapshot.subscription.accessMode;
-  if (input.expensive && !canUseExpensiveAi(accessMode)) {
-    throw new EntitlementError(
-      expensiveAiBlockedMessage(accessMode),
-      "ACCESS_MODE_BLOCKED",
-      { accessMode }
-    );
-  }
-
-  if (input.featureKey && !snapshot.hasFeature(input.featureKey)) {
-    throw new EntitlementError(
-      "This feature is not included in the current subscription.",
-      "FEATURE_NOT_INCLUDED",
-      {
-        featureKey: input.featureKey,
-        accessMode,
-        tierCode: snapshot.subscription.tierCode,
-      }
-    );
-  }
-
-  if (input.limitKey) {
-    const decision = await checkUsageLimit({
-      schoolId: input.schoolId,
-      limitKey: input.limitKey,
-      increment: input.increment,
-      expensive: input.expensive,
-      snapshot,
-    });
-
-    if (!decision.allowed) {
-      throw new EntitlementError(
-        decision.reason === "access_mode_blocked"
-          ? expensiveAiBlockedMessage(decision.accessMode ?? "suspended")
-          : "This action would exceed the current subscription limit.",
-        decision.reason === "access_mode_blocked"
-          ? "ACCESS_MODE_BLOCKED"
-          : "USAGE_LIMIT_EXCEEDED",
-        {
-          limitKey: input.limitKey,
-          current: decision.current,
-          limit: decision.limit,
-          accessMode: decision.accessMode,
-        }
-      );
-    }
   }
 
   return snapshot;

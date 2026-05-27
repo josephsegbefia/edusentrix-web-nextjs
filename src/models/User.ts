@@ -16,6 +16,13 @@ export interface IUser {
   role?: AppRole; // single role (you decided to move from roles[] to role)
   schoolId?: Types.ObjectId | null;
   pendingOnboarding?: boolean;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  termsVersion?: string;
+  privacyVersion?: string;
+  policyAcceptedAt?: Date | null;
+  policyAcceptedIp?: string | null;
+  policyAcceptedUserAgent?: string | null;
   dateOfBirth?: Date;
   address?: string;
   /** Platform-only capability keys for granular operator permissions. When absent/empty, platform admins retain full legacy access. */
@@ -56,6 +63,13 @@ const userSchema = new Schema<IUser>(
 
     schoolId: { type: Schema.Types.ObjectId, ref: "School", default: null },
     pendingOnboarding: { type: Boolean, default: false },
+    termsAccepted: { type: Boolean, default: false },
+    privacyAccepted: { type: Boolean, default: false },
+    termsVersion: { type: String, default: null },
+    privacyVersion: { type: String, default: null },
+    policyAcceptedAt: { type: Date, default: null },
+    policyAcceptedIp: { type: String, default: null },
+    policyAcceptedUserAgent: { type: String, default: null },
     dateOfBirth: Date,
     address: String,
     platformPermissionKeys: {

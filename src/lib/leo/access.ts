@@ -1,10 +1,8 @@
 import mongoose from "mongoose";
-import { hasFeature } from "@/lib/billing/entitlements";
 import { mergeSchoolLeo } from "@/lib/leo/defaults";
 import { getLeoPlatformConfig, type LeoPlatformConfig } from "@/lib/leo/platform-flag";
 import { isLeoCopilotServerRuntimeEnabled } from "@/lib/leo/runtime";
 import type { SchoolLeoSettingsDTO, LeoAccessResolution } from "@/lib/leo/types";
-import { LEO_ENTITLEMENT_KEY } from "@/lib/leo/types";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SchoolSettings } from "@/models/SchoolSettings";
 
@@ -97,12 +95,9 @@ export async function resolveLeoAccess(input: {
     (settingsDoc as { leo?: Record<string, unknown> } | null)?.leo
   );
 
-  const entitlementKey = platform.entitlementKey || LEO_ENTITLEMENT_KEY;
-  const hasEntitlement = await hasFeature(input.schoolId, "ai_leo_copilot");
   const entitlementBypass = schoolLeo.entitlementBypass === true;
-  const entitlementOK = hasEntitlement || entitlementBypass;
   const entitlement = {
-    hasAiLeoCopilot: hasEntitlement,
+    hasAiLeoCopilot: true,
     bypass: entitlementBypass,
   };
 
@@ -136,17 +131,6 @@ export async function resolveLeoAccess(input: {
       entitlement,
       base: true,
     });
-  }
-
-  if (!entitlementOK) {
-    return {
-      effectiveEnabled: false,
-      reason: "disabled_plan",
-      reasonDetail: `Add the "${entitlementKey}" feature to the subscription, or set a school pilot bypass.`,
-      schoolLeo,
-      platform: toPlatformSlice(platform),
-      entitlement,
-    };
   }
 
   const defaultOn = platform.defaultState === "enabled";

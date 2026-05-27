@@ -25,6 +25,14 @@ function isDemoHostMiddleware(req: NextRequest): boolean {
 
 const DEMO_SESSION_COOKIE = "edusentrix_demo_session";
 const DEMO_PUBLIC_PREFIXES = [
+  "/about",
+  "/contact",
+  "/terms",
+  "/privacy",
+  "/enroll",
+  "/legal/",
+  "/api/account/legal-acceptance",
+  "/api/public/contact",
   "/api/demo/",
   "/favicon.ico",
   "/_next",
@@ -36,7 +44,12 @@ const DEMO_PUBLIC_PREFIXES = [
 // Define public routes (everything else is protected)
 const isPublicRoute = createRouteMatcher([
   "/", // landing/marketing
+  "/about",
+  "/contact",
+  "/terms",
+  "/privacy",
   "/enroll", // enrollment form
+  "/legal/(.*)", // legal acceptance gate — reachable without password check
   "/apply(.*)", // public school admission application + tracker pages
   "/upload/parent-document(.*)", // tokenized guardian upload (not under /parent — avoids parent app layout)
   "/auth/callback", // our centralized router after login
@@ -44,6 +57,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/banks/search",
+  "/api/public/contact",
   "/api/public/admissions(.*)", // public admission application APIs
   "/api/public/students/parent-documents(.*)", // public parent document upload APIs
   "/api/uploadthing(.*)", // UploadThing callback + handshake endpoints
@@ -52,6 +66,7 @@ const isPublicRoute = createRouteMatcher([
   // Secret URL + OTP-gated first platform admin bootstrap (see PLATFORM_ADMIN_BOOTSTRAP_SECRET)
   "/platform-bootstrap(.*)",
   "/api/platform/bootstrap(.*)",
+  "/api/account/legal-acceptance",
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
@@ -108,15 +123,22 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       "/",
       "/sign-in",
       "/sign-up",
+      "/about",
+      "/contact",
+      "/terms",
+      "/privacy",
+      "/legal/",
       "/apply",
       "/auth/callback",
       "/favicon.ico",
       "/api/banks/search",
+      "/api/public/contact",
       "/api/public/admissions",
       "/api/public/students/parent-documents",
       "/upload/parent-document",
       "/api/uploadthing",
       "/api/webhooks/brevo",
+      "/api/account/legal-acceptance",
       "/platform-bootstrap",
       "/api/platform/bootstrap",
     ].some((p) => pathname === p || pathname.startsWith(p));

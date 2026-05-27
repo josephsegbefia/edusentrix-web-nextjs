@@ -147,13 +147,6 @@ export default async function PlatformReconciliationPage() {
         actions={
           <>
             <Link
-              href="/platform/billing"
-              className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <span>Billing Command Center</span>
-              <ArrowRight className="ml-3 h-4 w-4" />
-            </Link>
-            <Link
               href="/platform/audit"
               className="inline-flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
             >

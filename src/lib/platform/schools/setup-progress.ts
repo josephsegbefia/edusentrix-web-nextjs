@@ -7,7 +7,6 @@ import { FeeStructure } from "@/models/FeeStructure";
 import { Grade } from "@/models/Grade";
 import { Guardian } from "@/models/Guardian";
 import { School } from "@/models/School";
-import { SchoolSubscription } from "@/models/SchoolSubscription";
 import { Student } from "@/models/Student";
 import { SubjectOffering } from "@/models/SubjectOffering";
 import { Teacher } from "@/models/Teacher";
@@ -36,7 +35,6 @@ export async function getSchoolSetupProgress(
 
   const [
     school,
-    subscriptionCount,
     academicPeriodCount,
     gradeCount,
     classGroupCount,
@@ -50,7 +48,6 @@ export async function getSchoolSetupProgress(
     School.findById(schoolObjectId)
       .select("name email city region bank billing")
       .lean(),
-    SchoolSubscription.countDocuments({ schoolId: schoolObjectId }),
     AcademicPeriod.countDocuments({ schoolId: schoolObjectId }),
     Grade.countDocuments({ schoolId: schoolObjectId }),
     ClassGroup.countDocuments({ schoolId: schoolObjectId }),
@@ -80,12 +77,6 @@ export async function getSchoolSetupProgress(
       label: "School profile",
       complete: profileComplete,
       detail: profileComplete ? "Profile has core contact details" : "Add email, city, and region",
-    },
-    {
-      key: "subscription",
-      label: "Subscription",
-      complete: subscriptionCount > 0,
-      detail: subscriptionCount > 0 ? "Subscription record exists" : "Assign a subscription tier",
     },
     {
       key: "academic_calendar",

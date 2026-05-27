@@ -53,10 +53,6 @@ export const PLATFORM_ROUTE_ACCESS_RULES: PlatformRouteAccessRule[] = [
     requiredPermissions: ["platform.schools.create"],
   },
   {
-    href: "/platform/billing",
-    requiredPermissions: ["platform.billing.read"],
-  },
-  {
     href: "/platform/reconciliation",
     requiredPermissions: ["platform.billing.read"],
   },

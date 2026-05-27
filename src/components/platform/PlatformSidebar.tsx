@@ -34,6 +34,10 @@ import {
 import { LeoIcon } from "@/components/icons/LeoIcon";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
+  SidebarNavItemIcon,
+  SidebarNavItemLabel,
+} from "@/components/nav/sidebars/SidebarLearnNav";
+import {
   premiumSideItem,
   premiumSideItemActive,
 } from "@/components/ui/premium";
@@ -129,12 +133,6 @@ const navSections: NavSection[] = [
         requiredPermissions: ["platform.staff.read"],
       },
       {
-        label: "Pilot",
-        href: "/platform/pilot",
-        icon: FlaskConical,
-        requiredPermissions: ["platform.schools.read"],
-      },
-      {
         label: "Delegations",
         href: "/platform/delegations",
         icon: ClipboardList,
@@ -149,62 +147,14 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: "Revenue",
+    title: "Operations",
     items: [
-      {
-        label: "Billing Overview",
-        href: "/platform/billing",
-        icon: Banknote,
-        exact: true,
-        requiredPermissions: ["platform.billing.read"],
-      },
-      {
-        label: "Revenue Analytics",
-        href: "/platform/billing/revenue",
-        icon: BarChart3,
-        requiredPermissions: ["platform.billing.read"],
-      },
-      {
-        label: "Usage Ledger",
-        href: "/platform/billing/usage",
-        icon: DatabaseZap,
-        requiredPermissions: ["platform.billing.read"],
-      },
-      {
-        label: "Cost Ledger",
-        href: "/platform/billing/costs",
-        icon: DatabaseZap,
-        requiredPermissions: ["platform.billing.read"],
-      },
-      {
-        label: "Provider Sync",
-        href: "/platform/billing/sync",
-        icon: RefreshCw,
-        requiredPermissions: ["platform.billing.read"],
-      },
-      {
-        label: "Billing Events",
-        href: "/platform/billing/events",
-        icon: Clock3,
-        requiredPermissions: ["platform.billing.read"],
-      },
-      {
-        label: "Subscription Tiers",
-        href: "/platform/billing/tiers",
-        icon: Flag,
-        requiredPermissions: ["platform.billing.read"],
-      },
       {
         label: "Reconciliation",
         href: "/platform/reconciliation",
         icon: Landmark,
         requiredPermissions: ["platform.billing.read"],
       },
-    ],
-  },
-  {
-    title: "Operations",
-    items: [
       {
         label: "Email Inbox",
         href: "/platform/email",
@@ -324,7 +274,7 @@ function NavContent({
                         activeClassName="nav-active"
                       >
                         <span className="relative inline-flex shrink-0">
-                          <Icon className="h-4 w-4 shrink-0" />
+                          <SidebarNavItemIcon href={href} icon={Icon} className="h-4 w-4 shrink-0" />
                           {href === PLATFORM_APPLICATIONS_HREF ? (
                             <ApplicationsNavPendingBadge collapsed />
                           ) : null}
@@ -347,8 +297,14 @@ function NavContent({
                   className={cn(premiumSideItem, active && premiumSideItemActive)}
                   activeClassName="nav-active"
                 >
-                  <Icon className={cn("h-4 w-4 shrink-0", active && "text-cyan-300")} />
-                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  <SidebarNavItemIcon
+                    href={href}
+                    icon={Icon}
+                    className={cn("h-4 w-4 shrink-0", active && "text-cyan-300")}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <SidebarNavItemLabel href={href} label={label} />
+                  </span>
                   {href === PLATFORM_APPLICATIONS_HREF ? (
                     <ApplicationsNavPendingBadge collapsed={false} />
                   ) : null}

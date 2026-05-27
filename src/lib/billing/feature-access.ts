@@ -103,16 +103,12 @@ const DEFAULT_LIMITS: Record<string, Omit<SubscriptionLimits, "maxStudents">> = 
   },
 };
 
+/** All features enabled until subscription gating is rebuilt. */
 export function hasTierFeature(
-  features: string[],
-  featureKey: SubscriptionFeatureKey
+  _features: string[],
+  _featureKey: SubscriptionFeatureKey
 ) {
-  const normalized = new Set(
-    features.map((feature) => feature.trim().toLowerCase()).filter(Boolean)
-  );
-
-  const candidates = FEATURE_ALIASES[featureKey] || [featureKey];
-  return candidates.some((candidate) => normalized.has(candidate));
+  return true;
 }
 
 export function resolveTierLimits(input: {

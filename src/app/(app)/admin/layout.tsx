@@ -13,10 +13,7 @@ import { AdminDelegatePathGuard } from "@/components/auth/admin-delegate-path-gu
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { AdminMainContent } from "@/components/nav/sidebars/admin-main-content";
 import { AdminContextualDelegateBar } from "@/components/delegations/AdminContextualDelegateBar";
-import { getSchoolSubscriptionSnapshot } from "@/lib/billing/entitlements";
-import { AdminTrialBanner } from "@/components/billing/AdminTrialBanner";
 import { AdminLeoEntry } from "@/components/leo/AdminLeoEntry";
-import SuspendedOverlay from "@/components/billing/SuspendedOverlay";
 import { AssistedAccessBanner } from "@/components/platform/assisted-access/AssistedAccessBanner";
 
 export default async function AdminLayout({
@@ -27,30 +24,15 @@ export default async function AdminLayout({
   const user = await requireUser();
   const shell = await resolveAdminShellAccess(user);
 
-  const snapshot = user.schoolId
-    ? await getSchoolSubscriptionSnapshot(user.schoolId)
-    : null;
-
-  if (
-    snapshot &&
-    (snapshot.subscription.status === "suspended" ||
-      snapshot.subscription.status === "cancelled")
-  ) {
-    return <SuspendedOverlay status={snapshot.subscription.status} />;
-  }
-
   if (shell.kind === "delegated_admin") {
     return (
       <>
-      <AuthRefreshHandler />
-      <AssistedAccessBanner />
-      <AdminDelegatePathGuard
+        <AuthRefreshHandler />
+        <AssistedAccessBanner />
+        <AdminDelegatePathGuard
           allowedPrefixes={shell.allowedPathPrefixes}
           homeHref={shell.homeHref}
         />
-        {snapshot?.subscription.status === "trial" ? (
-          <AdminTrialBanner endsAt={snapshot.subscription.pilotEndsAt || null} />
-        ) : null}
         <SidebarProvider>
           <div className="flex min-h-[calc(100vh-3.5rem)]">
             <DelegatedAdminSidebar
@@ -82,9 +64,6 @@ export default async function AdminLayout({
           shell.kind === "bursar" ? shell.delegatedAdminPrefixes : []
         }
       />
-      {snapshot?.subscription.status === "trial" ? (
-        <AdminTrialBanner endsAt={snapshot.subscription.pilotEndsAt || null} />
-      ) : null}
       <SidebarProvider>
         <div className="flex min-h-[calc(100vh-3.5rem)]">
           {isBillingOwner ? (

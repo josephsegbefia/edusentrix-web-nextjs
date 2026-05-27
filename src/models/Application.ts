@@ -19,6 +19,13 @@ export interface IApplication {
   city?: string;
   region: GhanaRegion;
   message?: string;
+  termsAccepted: boolean;
+  privacyAccepted: boolean;
+  termsVersion?: string;
+  privacyVersion?: string;
+  policyAcceptedAt?: Date | null;
+  policyAcceptedIp?: string | null;
+  policyAcceptedUserAgent?: string | null;
   status: "submitted" | "reviewed" | "approved" | "rejected";
   /** Sales / pipeline stage (optional on legacy documents). */
   stage?: ApplicationPipelineStage;
@@ -43,6 +50,13 @@ const applicationSchema = new Schema<IApplication>(
     city: String,
     region: { type: String, enum: GHANA_REGIONS, required: true },
     message: String,
+    termsAccepted: { type: Boolean, default: false },
+    privacyAccepted: { type: Boolean, default: false },
+    termsVersion: { type: String, default: null },
+    privacyVersion: { type: String, default: null },
+    policyAcceptedAt: { type: Date, default: null },
+    policyAcceptedIp: { type: String, default: null },
+    policyAcceptedUserAgent: { type: String, default: null },
     status: {
       type: String,
       enum: ["submitted", "reviewed", "approved", "rejected"],

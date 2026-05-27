@@ -96,8 +96,8 @@ const S = StyleSheet.create({
   lhLogoRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   // "Edu" / "Sentrix" split — simulates the gradient blend the logo uses
   lhWordmark: { flexDirection: "row", alignItems: "baseline" },
-  lhBrandEdu: { fontSize: 20, fontFamily: "Helvetica-Bold", color: "#0891B2" },
-  lhBrandSentrix: { fontSize: 20, fontFamily: "Helvetica-Bold", color: "#38bdf8" },
+  lhBrandEdu: { fontSize: 20, fontFamily: "Helvetica-Bold", color: "#7B16FF" },
+  lhBrandSentrix: { fontSize: 20, fontFamily: "Helvetica-Bold", color: "#00E5FF" },
   lhTagline: { fontSize: 7, color: "#94A3B8", marginTop: 4 },
   lhContact: { alignItems: "flex-end" },
   lhLine: { fontSize: 8, color: MUTED, marginTop: 2 },

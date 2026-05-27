@@ -1,3 +1,4 @@
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { DemoLandingForm } from "./DemoLandingForm";
 
 export function DemoLandingPage() {
@@ -11,10 +12,7 @@ export function DemoLandingPage() {
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            Try{" "}
-            <span className="bg-linear-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              EduSentrix
-            </span>
+            Try <EduSentrixWordmark className="text-4xl sm:text-5xl" />
           </h1>
           <p className="mt-4 text-base text-gray-400 sm:text-lg">
             Explore the full platform with realistic school data.

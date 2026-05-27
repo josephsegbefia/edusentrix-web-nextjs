@@ -10,6 +10,8 @@ import {
   HeroText,
   ParallaxFloat,
 } from "@/components/landing/scroll-animations";
+import { CreditCard, Receipt, Smartphone } from "lucide-react";
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { isDemoMode } from "@/lib/demo/runtime";
 import { DemoLandingPage } from "@/components/demo/DemoLandingPage";
@@ -28,13 +30,11 @@ export default function HomePage() {
     <main className="min-h-dvh bg-neutral-950 text-white antialiased">
       <SiteNav />
       <HeroSection />
-      <LogoStrip />
       <PainSolution />
       <FeatureGrid />
       <HowItWorks />
       <MetricsTestimonials />
       <Integrations />
-      <PricingTeaser />
       <FAQ />
       <FinalCTA />
       <Footer />
@@ -48,7 +48,7 @@ function SiteNav() {
     <header className="sticky top-0 z-50 border-b border-white/5 bg-neutral-950/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="group inline-flex items-center gap-4">
-          <div className="relative flex h-12 w-[3.65rem] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg shadow-black/30 ring-1 ring-white/5 transition-all duration-200 group-hover:scale-[1.03] group-hover:border-cyan-400/25 group-hover:shadow-cyan-500/15 sm:h-14 sm:w-[4.35rem]">
+          <div className="relative flex h-12 w-[3.65rem] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/3 shadow-lg shadow-black/30 ring-1 ring-white/5 transition-all duration-200 group-hover:scale-[1.03] group-hover:border-cyan-400/25 group-hover:shadow-cyan-500/15 sm:h-14 sm:w-[4.35rem]">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 via-transparent to-cyan-400/12"
@@ -63,9 +63,7 @@ function SiteNav() {
             />
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-semibold tracking-tight text-white transition-colors group-hover:text-violet-200 sm:text-[1.35rem]">
-              EduSentrix
-            </span>
+            <EduSentrixWordmark className="text-xl font-semibold tracking-tight sm:text-[1.35rem]" />
             <span className="hidden text-[11px] font-medium uppercase tracking-[0.24em] text-white/35 sm:block">
               School OS for Africa
             </span>
@@ -74,7 +72,6 @@ function SiteNav() {
         <nav className="hidden items-center gap-8 text-sm font-medium lg:flex">
           <a href="#features" className="text-white/60 transition-colors hover:text-white">Features</a>
           <a href="#how" className="text-white/60 transition-colors hover:text-white">How it works</a>
-          <a href="#pricing" className="text-white/60 transition-colors hover:text-white">Pricing</a>
           <a href="#faq" className="text-white/60 transition-colors hover:text-white">FAQ</a>
         </nav>
         <div className="flex items-center gap-3">
@@ -149,7 +146,7 @@ function HeroSection() {
 
             <HeroText delay={0.2}>
               <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-white/60 lg:mx-0">
-                EduSentrix is the modern school OS for Africa: web + mobile,
+                <EduSentrixWordmark /> is the modern school OS for Africa: web + mobile,
                 Mobile Money and Paystack ready, fast onboarding, and optional AI
                 to automate the boring stuff.
               </p>
@@ -259,28 +256,6 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━ LOGO STRIP ━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function LogoStrip() {
-  return (
-    <ScrollReveal variant="fadeIn" duration={0.8}>
-      <div className="border-y border-white/5 bg-white/1 py-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.25em] text-white/30">
-            Trusted by schools across Ghana
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
-            {["Prestige Academy", "Bright Future School", "Cape Coast Int'l", "Achimota Prep", "Kumasi Elite"].map((name) => (
-              <span key={name} className="text-sm font-medium text-white/20 transition-colors hover:text-white/40">
-                {name}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </ScrollReveal>
-  );
-}
-
 /* ━━━━━━━━━━━━━━━━━━━━━━ PAIN → SOLUTION ━━━━━━━━━━━━━━━━━━━━━━━━ */
 function PainSolution() {
   return (
@@ -326,7 +301,7 @@ function PainSolution() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-white">How EduSentrix solves it</h2>
+              <h2 className="text-xl font-bold text-white">How <EduSentrixWordmark /> solves it</h2>
               <ul className="mt-5 space-y-3">
                 {[
                   "Smart fee + installment plans with automated reminders",
@@ -571,186 +546,85 @@ function Testimonial({ quote, author, avatar }: { quote: string; author: string;
   );
 }
 
-/* ━━━━━━━━━━━━━━━━━━━━ INTEGRATIONS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* ━━━━━━━━━━━━━━━━━━━━ PAYMENTS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-function MoMoLogo() {
-  return (
-    <svg className="h-8 w-8" viewBox="0 0 48 48" fill="none">
-      <rect width="48" height="48" rx="10" fill="#FFCB05" />
-      <text x="24" y="20" textAnchor="middle" fill="#000" fontSize="8" fontWeight="800" fontFamily="Arial, sans-serif">MTN</text>
-      <text x="24" y="33" textAnchor="middle" fill="#000" fontSize="9" fontWeight="700" fontFamily="Arial, sans-serif">MoMo</text>
-    </svg>
-  );
-}
-
-function TelecelLogo() {
-  return (
-    <svg className="h-8 w-8" viewBox="0 0 48 48" fill="none">
-      <rect width="48" height="48" rx="10" fill="#E30613" />
-      <text x="24" y="28" textAnchor="middle" fill="#FFF" fontSize="9" fontWeight="800" fontFamily="Arial, sans-serif">TC</text>
-    </svg>
-  );
-}
-
-function ATMoneyLogo() {
-  return (
-    <svg className="h-8 w-8" viewBox="0 0 48 48" fill="none">
-      <rect width="48" height="48" rx="10" fill="#003DA5" />
-      <rect y="30" width="48" height="18" rx="0" fill="#E4002B" />
-      <text x="24" y="26" textAnchor="middle" fill="#FFF" fontSize="16" fontWeight="900" fontFamily="Arial, sans-serif">AT</text>
-    </svg>
-  );
-}
-
-function WhatsAppLogo() {
-  return (
-    <svg className="h-8 w-8" viewBox="0 0 48 48" fill="none">
-      <rect width="48" height="48" rx="10" fill="#25D366" />
-      <path d="M34.6 28.4c-.5-.2-2.8-1.4-3.3-1.5-.4-.2-.7-.2-1 .2-.3.5-1.2 1.5-1.5 1.8-.3.3-.5.3-1 .1-.5-.2-2-.7-3.8-2.4-1.4-1.3-2.4-2.8-2.6-3.3-.3-.5 0-.7.2-1 .2-.2.5-.5.7-.8.2-.3.3-.5.5-.8.2-.3.1-.6 0-.8-.1-.2-1-2.6-1.5-3.5-.4-.9-.8-.8-1-.8h-.9c-.3 0-.8.1-1.3.6-.4.5-1.7 1.6-1.7 4s1.7 4.6 2 4.9c.2.3 3.3 5.1 8.1 7.2 1.1.5 2 .8 2.7 1 1.1.4 2.2.3 3 .2.9-.1 2.8-1.2 3.2-2.3.4-1.1.4-2 .3-2.3-.1-.2-.4-.3-.9-.5m-8.6 11.8c-3.4 0-6.7-1.2-9.3-3.4l-.7-.4-6 1.6 1.6-5.8-.5-.7c-2.4-3.9-3.7-8.4-3.7-13 0-13.4 10.9-24.2 24.3-24.2 6.5 0 12.6 2.5 17.1 7.1s7.1 10.7 7.1 17.2c0 13.4-10.9 24.3-24.3 24.3" transform="scale(0.5) translate(13, 11)" fill="#FFF" />
-    </svg>
-  );
-}
+const PAYMENT_HIGHLIGHTS = [
+  {
+    icon: Receipt,
+    title: "Fee plans",
+    body: "Term fees, installments, and automated reminders.",
+    accent: "from-violet-500/20 to-purple-500/5",
+    iconClass: "text-violet-300",
+    borderClass: "border-violet-500/25",
+  },
+  {
+    icon: Smartphone,
+    title: "Mobile money",
+    body: "MTN MoMo, Telecel Cash, and AT Money in one flow.",
+    accent: "from-emerald-500/20 to-teal-500/5",
+    iconClass: "text-emerald-300",
+    borderClass: "border-emerald-500/25",
+  },
+  {
+    icon: CreditCard,
+    title: "Card payments",
+    body: "Visa and Mastercard through secure Paystack checkout.",
+    accent: "from-cyan-500/20 to-blue-500/5",
+    iconClass: "text-cyan-300",
+    borderClass: "border-cyan-500/25",
+  },
+] as const;
 
 function Integrations() {
-  const items: { name: string; desc: string; logo: React.ReactNode; category: string; comingSoon?: boolean }[] = [
-    { name: "MTN MoMo", desc: "Mobile money collections", logo: <MoMoLogo />, category: "Payments" },
-    { name: "Telecel Cash", desc: "Mobile money payments", logo: <TelecelLogo />, category: "Payments" },
-    { name: "AT Money", desc: "Mobile money coverage", logo: <ATMoneyLogo />, category: "Payments" },
-    { name: "WhatsApp", desc: "Parent messaging", logo: <WhatsAppLogo />, category: "Messaging", comingSoon: true },
-  ];
-
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
       <ScrollReveal>
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-neutral-900 to-neutral-950 p-8 sm:p-10">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-sm font-medium text-blue-300">
-              Integrations
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-neutral-900 to-neutral-950 p-8 sm:p-10">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-20 top-0 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl"
+          />
+
+          <div className="relative mx-auto max-w-3xl text-center">
+            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-300">
+              <Receipt className="h-3.5 w-3.5" aria-hidden />
+              Payments
             </span>
-            <h3 className="text-2xl font-bold text-white sm:text-3xl">Works with your tools</h3>
-            <p className="mt-3 text-white/60">
-              Mobile money payments and parent messaging that fit your school&apos;s workflow.
+            <h3 className="text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+              Collect fees on every channel parents already use
+            </h3>
+            <p className="mt-4 text-base leading-relaxed text-white/60 sm:text-lg">
+              Mobile money from Ghana&apos;s major networks — plus card checkout — all reconciled to
+              one school ledger.
             </p>
           </div>
 
-          <div className="mx-auto mt-8 flex max-w-sm justify-center gap-6">
-            <div className="flex items-center gap-2 text-xs font-medium text-white/40">
-              <span className="h-2 w-2 rounded-full bg-violet-500" />
-              Payments
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium text-white/40">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Messaging
-            </div>
-          </div>
-
           <StaggerContainer
-            className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-5 sm:grid-cols-4"
+            className="relative mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-3"
             staggerDelay={0.08}
           >
-            {items.map((x) => (
-              <StaggerItem key={x.name} variant="scaleIn">
-                <div className="group relative rounded-2xl border border-white/10 bg-white/5 p-6 text-center transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-1">
-                  {x.comingSoon && (
-                    <span className="absolute right-2.5 top-2.5 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
-                      Soon
-                    </span>
-                  )}
-                  <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                    {x.logo}
+            {PAYMENT_HIGHLIGHTS.map((item) => (
+              <StaggerItem key={item.title} variant="scaleIn">
+                <div
+                  className={`flex h-full flex-col rounded-2xl border bg-linear-to-br p-5 text-left ${item.borderClass} ${item.accent} border-white/10`}
+                >
+                  <div
+                    className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border bg-black/20 ${item.borderClass}`}
+                  >
+                    <item.icon className={`h-5 w-5 ${item.iconClass}`} aria-hidden />
                   </div>
-                  <div className="text-sm font-semibold text-white">
-                    {x.name}
-                  </div>
-                  <div className="mt-1 text-[11px] text-white/40">{x.desc}</div>
-                  <div className="mt-2.5">
-                    <span className={`inline-block h-1.5 w-1.5 rounded-full ${x.category === "Payments" ? "bg-violet-500" : "bg-emerald-500"}`} />
-                  </div>
+                  <div className="text-sm font-semibold text-white">{item.title}</div>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">{item.body}</p>
                 </div>
               </StaggerItem>
             ))}
           </StaggerContainer>
         </div>
       </ScrollReveal>
-    </section>
-  );
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━ PRICING TEASER ━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function PricingTeaser() {
-  return (
-    <section id="pricing" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-      <ScrollReveal className="mx-auto mb-12 max-w-3xl text-center">
-        <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-sm font-medium text-amber-300">
-          Pricing
-        </span>
-        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          Simple, transparent pricing
-        </h2>
-        <p className="mt-4 text-lg text-white/60">Choose the plan that works for your school. No hidden fees.</p>
-      </ScrollReveal>
-
-      <StaggerContainer className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2" staggerDelay={0.15}>
-        {/* Basic Plan */}
-        <StaggerItem variant="slideRight">
-          <div className="rounded-2xl border border-white/10 bg-neutral-900/50 p-6 transition-all duration-300 hover:border-white/20 sm:p-8">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-white">Basic</h3>
-            </div>
-            <ul className="mb-6 space-y-3">
-              {["Fees & Installments", "Student Records & Notices", "Timetables", "MoMo + Paystack"].map((item) => (
-                <li key={item} className="flex items-center gap-3 text-sm text-white/70">
-                  <svg className="h-5 w-5 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/enroll" className="block w-full rounded-xl bg-white/10 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-white/20">
-              Enrol your school
-            </Link>
-          </div>
-        </StaggerItem>
-
-        {/* Premium Plan */}
-        <StaggerItem variant="slideLeft">
-          <div className="relative overflow-hidden rounded-2xl border border-violet-500/30 bg-linear-to-br from-violet-500/10 to-purple-500/5 p-6 transition-all duration-300 hover:border-violet-500/40 sm:p-8">
-            <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-violet-500/20 blur-2xl" />
-            <div className="relative">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25">
-                  <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-white">Premium</h3>
-                <span className="rounded-full border border-violet-500/30 bg-violet-500/20 px-2.5 py-0.5 text-xs font-medium text-violet-300">
-                  Popular
-                </span>
-              </div>
-              <ul className="mb-6 space-y-3">
-                {["Everything in Basic", "Advanced Analytics", "EduAI Assistant", "Priority Support"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-sm text-white/70">
-                    <svg className="h-5 w-5 shrink-0 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/enroll" className="block w-full rounded-xl bg-linear-to-r from-violet-500 to-purple-600 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-violet-500/25 transition-all hover:shadow-violet-500/40">
-                Contact us
-              </Link>
-            </div>
-          </div>
-        </StaggerItem>
-      </StaggerContainer>
     </section>
   );
 }
@@ -859,7 +733,7 @@ function Footer() {
         <div>
           <div className="inline-flex items-center gap-2.5">
             <Image src={EDUSENTRIX_LOGO_PATH} alt={EDUSENTRIX_LOGO_ALT} width={36} height={36} className="rounded-xl" />
-            <span className="text-lg font-semibold tracking-tight text-white">EduSentrix</span>
+            <EduSentrixWordmark className="text-lg font-semibold tracking-tight" />
           </div>
           <p className="mt-4 leading-relaxed text-white/50">
             Built by Appsentrix for schools in Ghana & Africa.
@@ -882,7 +756,6 @@ function Footer() {
           <div className="mb-4 font-semibold text-white">Product</div>
           <ul className="space-y-3 text-white/50">
             <li><a href="#features" className="transition-colors hover:text-white">Features</a></li>
-            <li><a href="#pricing" className="transition-colors hover:text-white">Pricing</a></li>
             <li><a href="#faq" className="transition-colors hover:text-white">FAQ</a></li>
           </ul>
         </div>

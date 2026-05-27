@@ -21,6 +21,7 @@ import {
   GhanaRegionSchema,
   type GhanaRegion,
 } from "@/constants/ghanaRegions";
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import {
   ArrowRight,
@@ -176,9 +177,7 @@ function MarketingPanel() {
       {/* Logo */}
       <div className="flex items-center gap-3">
         <Image src={EDUSENTRIX_LOGO_PATH} alt={EDUSENTRIX_LOGO_ALT} width={40} height={40} className="rounded-xl" />
-        <span className="text-lg font-semibold tracking-tight text-white">
-          EduSentrix
-        </span>
+        <EduSentrixWordmark className="text-lg" />
       </div>
 
       {/* Headline */}
@@ -195,9 +194,7 @@ function MarketingPanel() {
           <span className="bg-linear-to-br from-white via-white to-white/60 bg-clip-text text-transparent">
             Get your school on{" "}
           </span>
-          <span className="bg-linear-to-r from-violet-400 to-brand bg-clip-text text-transparent">
-            EduSentrix
-          </span>
+          <EduSentrixWordmark className="text-[2.5rem] sm:text-5xl" />
         </h1>
 
         <p className="max-w-md text-base leading-7 text-white/50">
@@ -575,7 +572,7 @@ export default function EnrollPage() {
               <div className="flex items-center gap-3">
                 <Image src={EDUSENTRIX_LOGO_PATH} alt={EDUSENTRIX_LOGO_ALT} width={36} height={36} className="rounded-xl" />
                 <div>
-                  <p className="text-sm font-semibold text-white">EduSentrix</p>
+                  <EduSentrixWordmark className="text-sm" />
                   <p className="text-xs text-white/35">
                     The modern school OS for Africa
                   </p>

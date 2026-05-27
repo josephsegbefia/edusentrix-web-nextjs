@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
@@ -71,8 +72,8 @@ export function SidebarPlatformIdentity({
       <div className="flex items-center gap-3">
         <LogoFrame collapsed={false} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold tracking-tight text-white">
-            EduSentrix Platform
+          <p className="truncate text-[13px] tracking-tight text-white">
+            <EduSentrixWordmark className="text-[13px]" /> Platform
           </p>
           <p className="mt-0.5 truncate text-[11px] leading-4 text-white/40">
             Cross-school operations and controls

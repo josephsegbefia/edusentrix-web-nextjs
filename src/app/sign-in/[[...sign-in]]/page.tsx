@@ -5,6 +5,7 @@ import * as SignIn from "@clerk/elements/sign-in";
 import { useClerk, useSignIn, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { AuthSessionConflictCard } from "@/components/auth/AuthSessionConflictCard";
 import {
@@ -339,9 +340,7 @@ function BrandPanel() {
               className="object-contain px-1.5 py-1"
             />
           </div>
-          <span className="text-lg font-semibold tracking-tight text-white">
-            EduSentrix
-          </span>
+          <EduSentrixWordmark className="text-lg" />
         </div>
 
         <div className="space-y-5">
@@ -760,7 +759,7 @@ export default function SignInPage() {
                                 />
                               </div>
                               <div>
-                                <p className="text-sm font-semibold text-white">EduSentrix</p>
+                                <EduSentrixWordmark className="text-sm" />
                                 <p className="text-xs text-white/40">The modern school OS for Africa</p>
                               </div>
                             </div>

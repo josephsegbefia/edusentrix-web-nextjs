@@ -25,6 +25,7 @@ import {
   Users,
 } from "lucide-react";
 import { AuthSessionConflictCard } from "@/components/auth/AuthSessionConflictCard";
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 
 const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_CLERK_GOOGLE_ENABLED === "true";
@@ -210,9 +211,7 @@ function BrandPanel({ hasInvitationTicket }: { hasInvitationTicket: boolean }) {
               className="object-contain px-1.5 py-1"
             />
           </div>
-          <span className="text-lg font-semibold tracking-tight text-white">
-            EduSentrix
-          </span>
+          <EduSentrixWordmark className="text-lg" />
         </div>
 
         <div className="space-y-5">
@@ -491,7 +490,7 @@ function SignUpPageContent() {
                                 />
                               </div>
                               <div>
-                                <p className="text-sm font-semibold text-white">EduSentrix</p>
+                                <EduSentrixWordmark className="text-sm" />
                                 <p className="text-xs text-white/40">
                                   The modern school OS for Africa
                                 </p>

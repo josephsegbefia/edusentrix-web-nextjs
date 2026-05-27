@@ -140,7 +140,7 @@ export function renderProposalHtml(
       font-weight: 900;
       letter-spacing: -0.02em;
       line-height: 1;
-      background: linear-gradient(90deg, ${primary} 0%, ${secondary} 55%, #38bdf8 100%);
+      background: linear-gradient(90deg, #7B16FF 0%, #1E66FF 48%, #00E5FF 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;

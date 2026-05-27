@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
@@ -84,14 +85,9 @@ export function Logo({
         />
       </div>
       {showText && (
-        <span
-          className={cn(
-            "font-semibold text-white tracking-tight leading-none",
-            textSizeMap[textSize]
-          )}
-        >
-          EduSentrix
-        </span>
+        <EduSentrixWordmark
+          className={cn("leading-none", textSizeMap[textSize])}
+        />
       )}
     </div>
   );

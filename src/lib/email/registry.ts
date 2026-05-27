@@ -588,6 +588,17 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateRegistryEntry> = {
     brand: "edusentrix",
     preferenceClass: "transactional",
   },
+  CONTACT_FORM_SUBMISSION: {
+    messageClass: "system",
+    trafficClass: "transactional",
+    priority: "high",
+    sensitivity: "low",
+    secureContentMode: "none",
+    senderFamily: "support",
+    mailboxScope: "platform",
+    brand: "edusentrix",
+    preferenceClass: "transactional",
+  },
 };
 
 export function lookupTemplateRegistry(

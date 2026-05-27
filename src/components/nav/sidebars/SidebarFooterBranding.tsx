@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
@@ -53,8 +54,8 @@ export function SidebarFooterBranding({
           />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold tracking-wide text-white/50">
-            Powered by EduSentrix
+          <p className="text-[11px] tracking-wide text-white/50">
+            Powered by <EduSentrixWordmark className="text-[11px]" />
           </p>
           <p className="text-[10px] leading-4 text-white/30">
             Built by Appsentrix

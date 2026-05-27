@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
+import { EduSentrixWordmark } from "@/components/brand/EduSentrixWordmark";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { formatMoney } from "@/lib/fees/money";
 import { ensureDefaultSubscriptionTiers } from "@/lib/platform-billing/subscription-tiers";
@@ -13,7 +14,7 @@ export default async function PricingPage() {
       <div className="mx-auto max-w-6xl">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/70">
-            EduSentrix Pricing
+            <EduSentrixWordmark className="text-xs uppercase tracking-[0.18em]" /> Pricing
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
             Pilot pricing built from operational cost visibility

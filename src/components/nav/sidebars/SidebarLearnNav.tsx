@@ -18,17 +18,24 @@ export function isLearnSidebarHref(href: string) {
   );
 }
 
-/** Larger Learn mark for sidebar nav (fills icon slot). */
+/** Learn mark sized to match lucide icons (h-4 w-4 slot) so rows stay aligned. */
 export function SidebarLearnNavIcon({ className }: { className?: string }) {
   return (
-    <Image
-      src="/logo/learn/logo-mark-leo-learning.png"
-      alt=""
+    <span
+      className={cn(
+        "relative inline-flex h-4 w-4 shrink-0 items-center justify-center",
+        className
+      )}
       aria-hidden="true"
-      width={28}
-      height={28}
-      className={cn("h-7 w-7 shrink-0 object-cover", className)}
-    />
+    >
+      <Image
+        src="/logo/learn/logo-mark-leo-learning.png"
+        alt=""
+        width={20}
+        height={20}
+        className="h-5 w-5 object-cover"
+      />
+    </span>
   );
 }
 

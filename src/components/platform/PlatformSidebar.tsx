@@ -17,9 +17,11 @@ import {
   Settings,
   Building2,
   Landmark,
+  CreditCard,
   FlaskConical,
   Presentation,
   BarChart3,
+  Bell,
   DatabaseZap,
   RefreshCw,
   Clock3,
@@ -121,12 +123,6 @@ const navSections: NavSection[] = [
         requiredPermissions: ["platform.schools.read"],
       },
       {
-        label: "EduSentrix Learn",
-        href: "/platform/learn",
-        icon: LearnLogoIcon,
-        requiredPermissions: ["platform.learn.read"],
-      },
-      {
         label: "Staff",
         href: "/platform/staff",
         icon: Users,
@@ -144,11 +140,23 @@ const navSections: NavSection[] = [
         icon: ListTodo,
         requiredPermissions: ["platform.implementation.read"],
       },
+      {
+        label: "EduSentrix Learn",
+        href: "/platform/learn",
+        icon: LearnLogoIcon,
+        requiredPermissions: ["platform.learn.read"],
+      },
     ],
   },
   {
     title: "Operations",
     items: [
+      {
+        label: "Subscriptions",
+        href: "/platform/subscriptions",
+        icon: CreditCard,
+        requiredPermissions: ["platform.billing.read"],
+      },
       {
         label: "Reconciliation",
         href: "/platform/reconciliation",
@@ -302,9 +310,7 @@ function NavContent({
                     icon={Icon}
                     className={cn("h-4 w-4 shrink-0", active && "text-cyan-300")}
                   />
-                  <span className="min-w-0 flex-1">
-                    <SidebarNavItemLabel href={href} label={label} />
-                  </span>
+                  <SidebarNavItemLabel href={href} label={label} />
                   {href === PLATFORM_APPLICATIONS_HREF ? (
                     <ApplicationsNavPendingBadge collapsed={false} />
                   ) : null}

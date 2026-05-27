@@ -20,6 +20,23 @@ export interface IAdmissionCycleApplicationFee {
   instructions?: string;
 }
 
+/**
+ * Admission cycle–level platform transaction charge override.
+ * When set, these values take precedence over the global PaymentChargePolicy
+ * for admission_fee payment category for this cycle only.
+ *
+ * Spec §18.3.
+ */
+export interface IAdmissionCycleFeeSettings {
+  /** Override platform charge rate in basis points (100 bps = 1%). null = use global policy. */
+  platformChargeBpsOverride: number | null;
+  /** Override payer mode. null = use global policy. */
+  payerModeOverride: "payer_pays" | "school_absorbs" | "waived" | null;
+  /** Reason for the override (internal note). */
+  overrideNote?: string | null;
+  updatedAt: Date;
+}
+
 export interface IAdmissionCycleEmailTemplate {
   subject: string;
   htmlBody: string;
@@ -54,6 +71,7 @@ export interface IAdmissionCycle {
   intakeGradeIds: Types.ObjectId[];
   targetAcademicPeriodId?: Types.ObjectId | null;
   applicationFee?: IAdmissionCycleApplicationFee | null;
+  feeSettings?: IAdmissionCycleFeeSettings | null;
   acceptsApplicationsFrom: Date;
   acceptsApplicationsUntil?: Date | null;
   decisionDueBy?: Date | null;
@@ -85,6 +103,20 @@ const applicationFeeSchema = new Schema<IAdmissionCycleApplicationFee>(
       default: "manual_record",
     },
     instructions: { type: String, default: undefined },
+  },
+  { _id: false }
+);
+
+const admissionCycleFeeSettingsSchema = new Schema<IAdmissionCycleFeeSettings>(
+  {
+    platformChargeBpsOverride: { type: Number, min: 0, max: 10000, default: null },
+    payerModeOverride: {
+      type: String,
+      enum: ["payer_pays", "school_absorbs", "waived", null],
+      default: null,
+    },
+    overrideNote: { type: String, trim: true, default: null },
+    updatedAt: { type: Date, default: () => new Date() },
   },
   { _id: false }
 );
@@ -143,6 +175,7 @@ const admissionCycleSchema = new Schema<IAdmissionCycle>(
       default: null,
     },
     applicationFee: { type: applicationFeeSchema, default: null },
+    feeSettings: { type: admissionCycleFeeSettingsSchema, default: null },
     acceptsApplicationsFrom: { type: Date, required: true },
     acceptsApplicationsUntil: { type: Date, default: null },
     decisionDueBy: { type: Date, default: null },

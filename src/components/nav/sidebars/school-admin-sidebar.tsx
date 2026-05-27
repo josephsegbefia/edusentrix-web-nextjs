@@ -14,6 +14,7 @@ import {
   FileText,
   BarChart3,
   Settings,
+  CreditCard,
   School,
   UserCog,
   Mail,
@@ -210,11 +211,6 @@ const navSections: NavSection[] = [
         icon: ScrollText,
       },
       {
-        label: "EduSentrix Learn",
-        href: "/admin/learn",
-        icon: LearnLogoIcon,
-      },
-      {
         label: "Curriculum",
         href: "/admin/settings/curriculum",
         icon: GraduationCap,
@@ -248,6 +244,11 @@ const navSections: NavSection[] = [
         label: "Promotions",
         href: "/admin/promotions",
         icon: TrendingUp,
+      },
+      {
+        label: "EduSentrix Learn",
+        href: "/admin/learn",
+        icon: LearnLogoIcon,
       },
     ],
   },
@@ -381,6 +382,11 @@ const navSections: NavSection[] = [
         label: "Email",
         href: "/admin/email",
         icon: Mail,
+      },
+      {
+        label: "Subscription",
+        href: "/admin/subscription",
+        icon: CreditCard,
       },
       {
         label: "Settings",

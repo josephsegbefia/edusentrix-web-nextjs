@@ -3,14 +3,54 @@ import { Schema, model, models, Types, type Model } from "mongoose";
 export type SubscriptionEventType =
   | "subscription_assigned"
   | "subscription_updated"
+  | "subscription_renewed"
   | "subscription_suspended"
   | "subscription_reactivated"
-  | "subscription_cancelled";
+  | "subscription_cancelled"
+  | "subscription_expired"
+  | "subscription_upgraded"
+  | "subscription_downgraded"
+  | "grace_period_started"
+  | "grace_period_ended"
+  | "pilot_ended"
+  | "access_mode_override"
+  | "addon_purchased"
+  | "addon_credited"
+  | "usage_event"
+  | "renewal_requested"
+  | "renewal_confirmed"
+  | "renewal_failed"
+  | "payment_recorded"
+  | "entitlement_audit";
+
+export const SUBSCRIPTION_EVENT_TYPES: SubscriptionEventType[] = [
+  "subscription_assigned",
+  "subscription_updated",
+  "subscription_renewed",
+  "subscription_suspended",
+  "subscription_reactivated",
+  "subscription_cancelled",
+  "subscription_expired",
+  "subscription_upgraded",
+  "subscription_downgraded",
+  "grace_period_started",
+  "grace_period_ended",
+  "pilot_ended",
+  "access_mode_override",
+  "addon_purchased",
+  "addon_credited",
+  "usage_event",
+  "renewal_requested",
+  "renewal_confirmed",
+  "renewal_failed",
+  "payment_recorded",
+  "entitlement_audit",
+];
 
 export interface ISubscriptionEvent {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
-  subscriptionId: Types.ObjectId;
+  subscriptionId?: Types.ObjectId | null;
   eventType: SubscriptionEventType;
   actorId?: Types.ObjectId | null;
   actorEmail?: string | null;
@@ -29,18 +69,12 @@ const subscriptionEventSchema = new Schema<ISubscriptionEvent>({
   subscriptionId: {
     type: Schema.Types.ObjectId,
     ref: "SchoolSubscription",
-    required: true,
+    default: null,
     index: true,
   },
   eventType: {
     type: String,
-    enum: [
-      "subscription_assigned",
-      "subscription_updated",
-      "subscription_suspended",
-      "subscription_reactivated",
-      "subscription_cancelled",
-    ],
+    enum: SUBSCRIPTION_EVENT_TYPES,
     required: true,
     index: true,
   },

@@ -42,6 +42,7 @@ import { useConfirmationDialog } from "@/hooks/useConfirmationDialog";
 import { cn } from "@/lib/utils";
 import { DelegateModuleBanner } from "@/components/delegations/DelegateModuleBanner";
 import type { MeetingsCapabilities } from "@/lib/meetings/meetings-capabilities";
+import { useSchoolSubscription } from "@/hooks/useSchoolSubscription";
 
 type CalendarOption = {
   id: string;
@@ -454,6 +455,9 @@ function SelectedParticipantPreview({
 
 export default function AdminMeetingsPage() {
   const { confirm, confirmationDialog } = useConfirmationDialog();
+  const { data: subscriptionData } = useSchoolSubscription();
+  const meetingMinutesBalance =
+    subscriptionData?.usage?.meetingParticipantMinutesRemaining ?? null;
   const [capabilities, setCapabilities] = React.useState<MeetingsCapabilities | null>(
     null
   );
@@ -1388,6 +1392,53 @@ export default function AdminMeetingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Meeting credit estimate panel — §Slice 17 */}
+            {(() => {
+              const startsAt = combineDateAndTime(form.startDate, form.startTime);
+              const endsAt = combineDateAndTime(form.endDate, form.endTime);
+              const durationMins =
+                startsAt && endsAt && endsAt > startsAt
+                  ? Math.round((endsAt.getTime() - startsAt.getTime()) / 60_000)
+                  : 0;
+              const participantCount = selectedRecipients.length;
+              const estimatedMinutes = durationMins * participantCount;
+
+              if (estimatedMinutes <= 0 || meetingMinutesBalance === null) return null;
+
+              const isLow = meetingMinutesBalance < estimatedMinutes;
+              return (
+                <div
+                  className={cn(
+                    "flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm",
+                    isLow
+                      ? "border-amber-400/25 bg-amber-500/10 text-amber-100"
+                      : "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
+                  )}
+                >
+                  <Wallet className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div className="space-y-0.5">
+                    <p>
+                      This meeting needs approximately{" "}
+                      <strong>{estimatedMinutes.toLocaleString()} participant-minutes</strong>
+                      {" "}({durationMins} min × {participantCount} participant{participantCount !== 1 ? "s" : ""}).
+                    </p>
+                    <p>
+                      Your current balance is{" "}
+                      <strong>
+                        {meetingMinutesBalance.toLocaleString()} participant-minutes
+                      </strong>
+                      {isLow && (
+                        <> — insufficient for this meeting. Purchase more credits or reduce the meeting duration/participants.</>
+                      )}
+                      {!isLow && (
+                        <> after scheduling, {(meetingMinutesBalance - estimatedMinutes).toLocaleString()} will remain.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:flex-row md:items-center md:justify-between">
               <div className="text-sm text-white/55">

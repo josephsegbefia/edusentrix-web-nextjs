@@ -124,6 +124,11 @@ export async function POST(req: NextRequest) {
     ]);
     await connectToDatabase();
 
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const commGate = await requireSchoolFeature(schoolId, FEATURE_KEYS.COMMUNICATION_NOTICES);
+    if (commGate) return commGate;
+
     const parsed = CreateCommunicationSchema.safeParse(await req.json());
     if (!parsed.success) {
       return Response.json({ success: false, error: parsed.error.issues[0]?.message || "Invalid payload" }, { status: 400 });

@@ -376,6 +376,7 @@ type CheckoutPreview = {
   platformFeeMinor: number;
   estimatedSchoolNetMinor: number;
   processorFeeNote: string;
+  payerMode?: "payer_pays" | "school_absorbs" | "waived";
   paystackKeyMode: PaystackKeyMode;
 };
 
@@ -517,6 +518,7 @@ function FeesPageContent() {
           json.data?.estimatedSchoolNetMinor || invoice.balanceDueMinor || 0
         ),
         processorFeeNote: String(json.data?.processorFeeNote || ""),
+        payerMode: (json.data?.payerMode as "payer_pays" | "school_absorbs" | "waived") ?? "school_absorbs",
         paystackKeyMode: (json.data?.paystackKeyMode || "unset") as PaystackKeyMode,
       });
     } catch (checkoutError) {
@@ -664,50 +666,76 @@ function FeesPageContent() {
                 </p>
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="flex items-center justify-between gap-4 text-sm">
-                  <span className="text-white/60">Parent payment amount</span>
-                  <span className="font-semibold text-white">
-                    {formatMoney(checkoutPreview.parentPayableMinor)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-4 text-sm">
-                  <span className="text-white/60">
-                    EduSentrix fee (deducted from school)
-                  </span>
-                  <span className="font-medium text-amber-200">
-                    {formatMoney(checkoutPreview.platformFeeMinor)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-sm">
-                  <span className="text-white/60">
-                    Estimated school settlement before processor fee
-                  </span>
-                  <span className="font-medium text-emerald-200">
-                    {formatMoney(checkoutPreview.estimatedSchoolNetMinor)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
-                    <AlertCircle className="h-4 w-4 text-amber-300" />
+              {/* §25.13 — fee breakdown varies by payer mode */}
+              {checkoutPreview.payerMode === "payer_pays" ? (
+                // Payer pays: parent pays base + service fee
+                <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between gap-4 text-sm">
+                    <span className="text-white/60">School charge</span>
+                    <span className="font-semibold text-white">
+                      {formatMoney(checkoutPreview.amountMinor)}
+                    </span>
                   </div>
-                  <div className="space-y-1 text-sm">
-                    <p className="font-medium text-amber-200">
-                      The school bears this service fee
-                    </p>
-                    <p className="text-amber-100/75">
-                      You will be charged only the invoice amount. The Edusentrix
-                      transaction fee is deducted from the school&apos;s settlement.
-                    </p>
-                    <p className="text-amber-100/65">
-                      {checkoutPreview.processorFeeNote}
-                    </p>
+                  {checkoutPreview.platformFeeMinor > 0 && (
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="text-white/60">EduSentrix service fee</span>
+                      <span className="font-medium text-amber-200">
+                        {formatMoney(checkoutPreview.platformFeeMinor)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-sm">
+                    <span className="font-medium text-white">Total to pay</span>
+                    <span className="text-lg font-bold text-white">
+                      {formatMoney(checkoutPreview.parentPayableMinor)}
+                    </span>
                   </div>
+                  <p className="text-xs text-white/45">
+                    {checkoutPreview.processorFeeNote}
+                  </p>
                 </div>
-              </div>
+              ) : (
+                // School absorbs or waived: parent pays only the invoice amount
+                <>
+                  <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="text-white/60">Total to pay</span>
+                      <span className="text-lg font-bold text-white">
+                        {formatMoney(checkoutPreview.parentPayableMinor)}
+                      </span>
+                    </div>
+                    {checkoutPreview.platformFeeMinor > 0 && (
+                      <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3 text-sm">
+                        <span className="text-white/60">
+                          Estimated school settlement before processor fee
+                        </span>
+                        <span className="font-medium text-emerald-200">
+                          {formatMoney(checkoutPreview.estimatedSchoolNetMinor)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20">
+                        <AlertCircle className="h-4 w-4 text-amber-300" />
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <p className="font-medium text-amber-200">
+                          The school bears this service fee
+                        </p>
+                        <p className="text-amber-100/75">
+                          You will be charged only the invoice amount. The EduSentrix
+                          transaction fee is deducted from the school&apos;s settlement.
+                        </p>
+                        <p className="text-amber-100/65">
+                          {checkoutPreview.processorFeeNote}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

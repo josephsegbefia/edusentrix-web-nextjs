@@ -137,6 +137,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const ctx = await requireTeacher();
+
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const schemeGate = await requireSchoolFeature(ctx.schoolId, FEATURE_KEYS.ACADEMICS_SCHEMES);
+    if (schemeGate) return schemeGate;
+
     if (!ctx.isAdmin) {
       return Response.json(
         { success: false, error: "Only school admins can create or upload schemes of learning." },

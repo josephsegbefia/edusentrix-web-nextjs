@@ -11,6 +11,15 @@ const BulkCreateLearnAccountsSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const ctx = await requireSchoolAdmin();
+
+    // Subscription gate (no-op while SUBSCRIPTION_API_GATES_ENABLED=false)
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const learnGate = await requireSchoolFeature(ctx.schoolId, FEATURE_KEYS.LEARN_MANAGE);
+    if (!learnGate.allowed) {
+      return NextResponse.json({ success: false, error: (learnGate as any).reason }, { status: (learnGate as any).statusCode ?? 403 });
+    }
+
     const parsed = BulkCreateLearnAccountsSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(

@@ -1,43 +1,49 @@
+/**
+ * UsageEvent model — §11.6
+ *
+ * Immutable ledger of individual usage events (AI calls, meeting minutes,
+ * storage writes, exports, etc.) for per-school cost attribution, audit,
+ * and platform analytics. This is separate from SubscriptionEvent which
+ * tracks lifecycle changes.
+ */
+
 import { Schema, model, models, Types, type Model } from "mongoose";
-import type { PlatformBillingProvider } from "@/lib/platform-billing/providers";
-import type {
-  UsageAllocationMethod,
-  UsageMetricSourceType,
-} from "@/models/UsageMetric";
 
 export type UsageEventCategory =
   | "ai"
+  | "meeting"
   | "storage"
-  | "video"
-  | "notification"
   | "payment"
-  | "app_usage"
-  | "invitation"
+  | "notification"
   | "export"
   | "other";
 
 export interface IUsageEvent {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
-  provider: PlatformBillingProvider;
+  userId?: Types.ObjectId | null;
+  /** High-level category for dashboards and alerting. */
   category: UsageEventCategory;
+  /** Canonical metric key matching a LIMIT_KEYS entry where applicable. */
   metricKey: string;
+  /** Number of units consumed (credits, bytes, minutes, count). */
   quantity: number;
+  /** Human-readable unit label, e.g. "credits", "bytes", "participant-minutes". */
   unitLabel: string;
-  unitCostMinor: number;
-  estimatedCostMinor: number;
-  allocationMethod: UsageAllocationMethod;
-  sourceType: UsageMetricSourceType;
-  actorId?: Types.ObjectId | null;
-  actorEmail?: string | null;
+  /** Links to a UsageBalance.balanceType when this event deducts from a balance. */
+  balanceType?: string | null;
+  /** Optional reference entity (lesson note, meeting, invoice, etc.). */
   entityType?: string | null;
   entityId?: Types.ObjectId | null;
-  periodStart?: Date | null;
-  periodEnd?: Date | null;
+  /** Provider that performed the action (e.g. "openai", "livekit", "uploadthing"). */
+  provider?: string | null;
+  /** Estimated platform cost in minor currency units (informational only). */
+  estimatedCostMinor?: number | null;
+  /** Whether this event was a reserve, finalize, or refund in the credit flow. */
+  creditFlowStage?: "reserve" | "finalize" | "refund" | "direct" | null;
+  /** Free-form metadata (action name, model version, file name, etc.). */
   metadata?: Record<string, unknown> | null;
-  notes?: string | null;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 const usageEventSchema = new Schema<IUsageEvent>(
@@ -48,71 +54,38 @@ const usageEventSchema = new Schema<IUsageEvent>(
       required: true,
       index: true,
     },
-    provider: {
-      type: String,
-      enum: [
-        "clerk",
-        "mongodb",
-        "vercel",
-        "openai",
-        "uploadthing",
-        "paystack",
-        "email",
-        "storage",
-        "internal",
-      ],
-      required: true,
-      index: true,
-    },
+    userId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     category: {
       type: String,
-      enum: [
-        "ai",
-        "storage",
-        "video",
-        "notification",
-        "payment",
-        "app_usage",
-        "invitation",
-        "export",
-        "other",
-      ],
+      enum: ["ai", "meeting", "storage", "payment", "notification", "export", "other"],
       required: true,
-      default: "other",
-      index: true,
     },
-    metricKey: { type: String, required: true, trim: true, index: true },
-    quantity: { type: Number, required: true, min: 0 },
+    metricKey: { type: String, required: true, trim: true },
+    quantity: { type: Number, required: true },
     unitLabel: { type: String, required: true, trim: true },
-    unitCostMinor: { type: Number, required: true, default: 0, min: 0 },
-    estimatedCostMinor: { type: Number, required: true, default: 0, min: 0 },
-    allocationMethod: {
-      type: String,
-      enum: ["direct", "weighted", "manual"],
-      required: true,
-      default: "manual",
-    },
-    sourceType: {
-      type: String,
-      enum: ["manual", "provider_sync", "system_estimate"],
-      required: true,
-      default: "manual",
-    },
-    actorId: { type: Schema.Types.ObjectId, ref: "User", default: null },
-    actorEmail: { type: String, default: null, trim: true },
+    balanceType: { type: String, default: null, trim: true },
     entityType: { type: String, default: null, trim: true },
     entityId: { type: Schema.Types.ObjectId, default: null },
-    periodStart: { type: Date, default: null, index: true },
-    periodEnd: { type: Date, default: null, index: true },
+    provider: { type: String, default: null, trim: true },
+    estimatedCostMinor: { type: Number, default: null },
+    creditFlowStage: {
+      type: String,
+      enum: ["reserve", "finalize", "refund", "direct", null],
+      default: null,
+    },
     metadata: { type: Schema.Types.Mixed, default: null },
-    notes: { type: String, default: null, trim: true },
   },
-  { timestamps: true }
+  {
+    timestamps: { createdAt: true, updatedAt: false },
+  }
 );
 
+// Queries: per-school usage over a time range, by category or metric
 usageEventSchema.index({ schoolId: 1, createdAt: -1 });
 usageEventSchema.index({ schoolId: 1, category: 1, createdAt: -1 });
 usageEventSchema.index({ schoolId: 1, metricKey: 1, createdAt: -1 });
+usageEventSchema.index({ schoolId: 1, balanceType: 1, createdAt: -1 });
+// Entity lookups
 usageEventSchema.index({ entityType: 1, entityId: 1 });
 
 export const UsageEvent: Model<IUsageEvent> =

@@ -80,6 +80,11 @@ export async function POST(req: NextRequest) {
   const { schoolId, userId } = await requireFinanceStaff();
   await connectToDatabase();
 
+  const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+  const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+  const feeGate = await requireSchoolFeature(schoolId, FEATURE_KEYS.FINANCE_FEES);
+  if (feeGate) return feeGate;
+
   // ✅ start session from the SAME connection as the Invoice model
   const session = await Invoice.db.startSession();
 

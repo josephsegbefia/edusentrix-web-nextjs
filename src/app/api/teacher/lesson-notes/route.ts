@@ -536,6 +536,14 @@ export async function POST(req: Request) {
     const context = await requireTeacher();
     await connectToDatabase();
 
+    // Subscription gate (no-op while SUBSCRIPTION_API_GATES_ENABLED=false)
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const noteGate = await requireSchoolFeature(context.schoolId, FEATURE_KEYS.ACADEMICS_LESSON_NOTES);
+    if (!noteGate.allowed) {
+      return Response.json({ success: false, error: (noteGate as any).reason }, { status: (noteGate as any).statusCode ?? 403 });
+    }
+
     if (!can(context.permissions, PERMISSIONS.journalWrite)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }

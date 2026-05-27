@@ -96,6 +96,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const ctx = await requireTeacher();
+
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const examGate = await requireSchoolFeature(ctx.schoolId, FEATURE_KEYS.ASSESSMENT_EXAMINATIONS);
+    if (examGate) return examGate;
+
     if (!can(ctx.permissions, PERMISSIONS.examsCreate)) {
       return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
     }

@@ -1,0 +1,9 @@
+import type { ReactNode } from "react";
+import { requirePageFeature } from "@/lib/subscriptions/require-page-feature";
+import { FEATURE_KEYS } from "@/lib/subscriptions/feature-keys";
+
+export default async function LessonNotesLayout({ children }: { children: ReactNode }) {
+  const gate = await requirePageFeature(FEATURE_KEYS.ACADEMICS_LESSON_NOTES);
+  if (gate) return gate;
+  return <>{children}</>;
+}

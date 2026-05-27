@@ -166,6 +166,16 @@ export async function POST(req: NextRequest) {
     const context = await requireMeetingsPermission("meetings.create");
     await connectToDatabase();
 
+    const { requireSchoolFeature, enforceSchoolLimit } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const { LIMIT_KEYS } = await import("@/lib/subscriptions/limit-keys");
+    const meetingGate = await requireSchoolFeature(context.schoolId, FEATURE_KEYS.MEETINGS_VIDEO);
+    if (meetingGate) return meetingGate;
+    const limitResult = await enforceSchoolLimit({ schoolId: context.schoolId, limitKey: LIMIT_KEYS.meetingParticipantMinutesPerTerm });
+    if (!limitResult.allowed) {
+      return Response.json({ success: false, error: limitResult.reason ?? "Meeting minute limit reached." }, { status: 403 });
+    }
+
     const parsed = createMeetingSchema.safeParse(await req.json());
     if (!parsed.success) {
       return NextResponse.json(

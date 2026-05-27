@@ -141,6 +141,19 @@ async function buildMetadata(
     0
   );
 
+  // Check document storage feature entitlement first (§13A.9).
+  const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+  const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+  const featureResult = await requireSchoolFeature(
+    context.schoolId,
+    FEATURE_KEYS.DOCUMENTS_STORAGE
+  );
+  if (!featureResult.allowed) {
+    throw new Error(
+      "Document storage is not available on your current plan. Please contact your platform administrator."
+    );
+  }
+
   // Storage uploads are not AI — do not gate on expensive-ai access mode.
   const storageLimit = await checkUsageLimit({
     schoolId: context.schoolId,

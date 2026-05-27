@@ -83,6 +83,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Check document storage feature entitlement before issuing upload signature (§13A.9).
+  // Platform admins bypass this check so they can upload to any school.
+  if (!isPlatformAdmin) {
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const featureResult = await requireSchoolFeature(schoolId, FEATURE_KEYS.DOCUMENTS_STORAGE);
+    if (!featureResult.allowed) {
+      return NextResponse.json(
+        { error: "Document storage is not available on your current plan." },
+        { status: 403 }
+      );
+    }
+  }
+
   // Initialize Cloudinary
   initCloudinary();
 

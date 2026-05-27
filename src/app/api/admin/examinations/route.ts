@@ -93,6 +93,13 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const ctx = await requireSchoolAdmin();
+    // Subscription gate — no-op while SUBSCRIPTION_API_GATES_ENABLED=false
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const examGate = await requireSchoolFeature(ctx.schoolId, FEATURE_KEYS.ASSESSMENT_EXAMINATIONS);
+    if (!examGate.allowed) {
+      return Response.json({ success: false, error: (examGate as any).reason }, { status: (examGate as any).statusCode ?? 403 });
+    }
     await connectToDatabase();
     await ensureDefaultExamTypesForSchool(ctx.schoolId);
 

@@ -53,6 +53,50 @@ export const PLATFORM_ROUTE_ACCESS_RULES: PlatformRouteAccessRule[] = [
     requiredPermissions: ["platform.schools.create"],
   },
   {
+    href: "/platform/subscriptions",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscription-plans",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscription-billing",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscription-notifications",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscriptions/schools",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscriptions/payment-charges",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscriptions/add-ons",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscriptions/usage",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscriptions/invoices",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscriptions/leakage",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
+    href: "/platform/subscriptions/settings",
+    requiredPermissions: ["platform.billing.read"],
+  },
+  {
     href: "/platform/reconciliation",
     requiredPermissions: ["platform.billing.read"],
   },

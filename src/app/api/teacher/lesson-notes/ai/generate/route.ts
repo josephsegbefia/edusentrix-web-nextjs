@@ -482,6 +482,29 @@ export async function POST(req: Request) {
   try {
     const context = await requireTeacher();
     await connectToDatabase();
+
+    // New subscription gate (no-op while SUBSCRIPTION_API_GATES_ENABLED=false)
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const aiGate = await requireSchoolFeature(context.schoolId, FEATURE_KEYS.AI_LESSON_GENERATION);
+    if (!aiGate.allowed) {
+      return Response.json({ success: false, error: (aiGate as any).reason }, { status: (aiGate as any).statusCode ?? 403 });
+    }
+
+    // Reserve Leo credit before calling AI (reserve/finalize/refund pattern)
+    const { reserveUsageCredits, finalizeUsageCredits, refundUsageCredits } = await import(
+      "@/lib/subscriptions/usage-tracker"
+    );
+    const { ok: reserveOk, reservation, reason: reserveReason } = await reserveUsageCredits(
+      context.schoolId,
+      "leo_credits",
+      1,
+      "Leo AI lesson generation"
+    );
+    if (!reserveOk || !reservation) {
+      return Response.json({ success: false, error: reserveReason ?? "Insufficient Leo AI credits." }, { status: 429 });
+    }
+
     await enforceSchoolLimit({
       schoolId: context.schoolId,
       limitKey: "maxAICallsPerMonth",
@@ -589,9 +612,14 @@ export async function POST(req: Request) {
       if (jsonMatch) {
         aiResponse = JSON.parse(jsonMatch[0]);
       } else {
+        // Refund credits — AI returned unparseable output
+        await refundUsageCredits(reservation, "AI response parse failure").catch(() => {});
         throw new Error("Failed to parse AI response");
       }
     }
+
+    // Finalize credit usage after successful generation
+    await finalizeUsageCredits(reservation, 1).catch(() => {});
 
     await trackUsage({
       schoolId: context.schoolId,
@@ -630,3 +658,4 @@ export async function POST(req: Request) {
     return Response.json({ success: false, error: message }, { status: 500 });
   }
 }
+

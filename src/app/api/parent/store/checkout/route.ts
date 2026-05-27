@@ -301,10 +301,27 @@ export async function POST(req: NextRequest) {
       )
       .lean<SchoolRow | null>();
     const subaccountCode = school?.billing?.paystack?.subaccountCode ?? null;
-    const feeBreakdown = computeTransactionFee(
-      totalMinor,
-      resolveTransactionFeeConfigForSchool(school?.billing?.transactionFees || null)
-    );
+
+    // Subscription-aware fee resolution (no-op while SUBSCRIPTION_PAYMENT_CHARGES_ENABLED=false)
+    let feeBreakdown: { feeMinor: number; percent: number; capMinor: number | null };
+    try {
+      const { resolveTransactionChargeConfig, computeTransactionFeeFromConfig } = await import(
+        "@/lib/subscriptions/transaction-fees"
+      );
+      const { SchoolSubscription } = await import("@/models/SchoolSubscription");
+      const sub = await SchoolSubscription.findOne({ schoolId: context.schoolId })
+        .select("tierCode transactionChargeOverride")
+        .lean<{ tierCode?: string; transactionChargeOverride?: unknown } | null>();
+      const planCode = sub?.tierCode as import("@/lib/subscriptions/plan-codes").PlanCode | null | undefined;
+      const resolution = resolveTransactionChargeConfig(planCode ?? null, sub?.transactionChargeOverride as any ?? null);
+      const fee = computeTransactionFeeFromConfig(totalMinor, resolution.schoolFeesConfig);
+      feeBreakdown = { feeMinor: fee, percent: resolution.schoolFeesConfig.ratePercent, capMinor: resolution.schoolFeesConfig.capMinor };
+    } catch {
+      feeBreakdown = computeTransactionFee(
+        totalMinor,
+        resolveTransactionFeeConfigForSchool(school?.billing?.transactionFees || null)
+      );
+    }
 
     const schoolForPayments = school as SchoolForPaymentCheck | null;
     if (!schoolForPayments || !isSchoolPaymentReady(schoolForPayments) || !subaccountCode) {

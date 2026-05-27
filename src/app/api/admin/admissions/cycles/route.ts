@@ -62,6 +62,11 @@ export async function POST(req: NextRequest) {
     requireAdmissionsPermission(ctx, "admissions.manage_cycle");
     await connectToDatabase();
 
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const admissionsGate = await requireSchoolFeature(ctx.schoolId, FEATURE_KEYS.ADMISSIONS);
+    if (admissionsGate) return admissionsGate;
+
     const body = await req.json();
     const parsed = CreateAdmissionCycleSchema.safeParse(body);
     if (!parsed.success) {

@@ -1,0 +1,9 @@
+import type { ReactNode } from "react";
+import { requirePageFeature } from "@/lib/subscriptions/require-page-feature";
+import { FEATURE_KEYS } from "@/lib/subscriptions/feature-keys";
+
+export default async function ExaminationsLayout({ children }: { children: ReactNode }) {
+  const gate = await requirePageFeature(FEATURE_KEYS.ASSESSMENT_EXAMINATIONS);
+  if (gate) return gate;
+  return <>{children}</>;
+}

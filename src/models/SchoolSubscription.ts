@@ -6,6 +6,22 @@ import type {
   SubscriptionStatus,
 } from "@/lib/platform-billing/subscription-pricing";
 
+/** Typed school-specific overrides — §11.2 */
+export interface ISchoolSubscriptionOverrides {
+  /** Custom price per student per term in minor units. */
+  pricePerStudentPerTermMinor?: number | null;
+  /** Custom minimum term fee in minor units. */
+  minimumTermFeeMinor?: number | null;
+  /** Feature keys to add on top of the plan (Pilot/custom contracts). */
+  featuresAdd?: string[];
+  /** Feature keys to remove from the plan. */
+  featuresRemove?: string[];
+  /** Per-limit overrides, e.g. { maxStudents: 200 }. */
+  limits?: Record<string, number | null>;
+  /** Transaction fee policy snapshot override for this school. */
+  transactionFees?: Record<string, unknown> | null;
+}
+
 export interface ISchoolSubscription {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
@@ -25,6 +41,11 @@ export interface ISchoolSubscription {
   gracePeriodEndsAt?: Date | null;
   academicYearId?: Types.ObjectId | null;
   academicTermId?: Types.ObjectId | null;
+  /**
+   * Active student count snapshot captured at assignment/renewal time.
+   * Used for billing calculations (§11.2).
+   */
+  studentCountSnapshot: number;
   basePriceMinor: number;
   manualPriceOverrideMinor?: number | null;
   discountMode: SubscriptionDiscountMode;
@@ -36,6 +57,8 @@ export interface ISchoolSubscription {
   trialLimitsSnapshot?: Record<string, number | null> | null;
   pilotLimitsSnapshot?: Record<string, number | null> | null;
   usageResetPolicy?: "term" | "annual" | "custom" | null;
+  /** Typed school-specific overrides for pricing, features, and limits. */
+  schoolOverrides?: ISchoolSubscriptionOverrides | null;
   manualAccessModeOverride?:
     | "full"
     | "trial_limited"
@@ -101,6 +124,7 @@ const schoolSubscriptionSchema = new Schema<ISchoolSubscription>(
     gracePeriodEndsAt: { type: Date, default: null },
     academicYearId: { type: Schema.Types.ObjectId, ref: "AcademicYear", default: null },
     academicTermId: { type: Schema.Types.ObjectId, ref: "AcademicTerm", default: null },
+    studentCountSnapshot: { type: Number, required: true, default: 0 },
     basePriceMinor: { type: Number, required: true, default: 0 },
     manualPriceOverrideMinor: { type: Number, default: null },
     discountMode: {
@@ -119,6 +143,20 @@ const schoolSubscriptionSchema = new Schema<ISchoolSubscription>(
     usageResetPolicy: {
       type: String,
       enum: ["term", "annual", "custom", null],
+      default: null,
+    },
+    schoolOverrides: {
+      type: new Schema(
+        {
+          pricePerStudentPerTermMinor: { type: Number, default: null },
+          minimumTermFeeMinor: { type: Number, default: null },
+          featuresAdd: [{ type: String, trim: true }],
+          featuresRemove: [{ type: String, trim: true }],
+          limits: { type: Schema.Types.Mixed, default: null },
+          transactionFees: { type: Schema.Types.Mixed, default: null },
+        },
+        { _id: false }
+      ),
       default: null,
     },
     manualAccessModeOverride: {

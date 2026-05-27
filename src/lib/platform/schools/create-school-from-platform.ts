@@ -5,6 +5,7 @@ import { PlatformTask } from "@/models/PlatformTask";
 import { School, type SchoolType } from "@/models/School";
 import { User } from "@/models/User";
 import { UserMembership } from "@/models/UserMembership";
+import { assignPilotSubscription } from "@/lib/subscriptions/assign-pilot-subscription";
 
 export type CreateSchoolFromPlatformInput = {
   actorUserId: mongoose.Types.ObjectId;
@@ -116,6 +117,18 @@ export async function createSchoolFromPlatform(input: CreateSchoolFromPlatformIn
       createdVia: "platform_operations_console",
     },
   });
+
+  // Automatically assign a Pilot subscription on school creation.
+  // Wrapped in try-catch so a subscription failure never blocks school creation.
+  try {
+    await assignPilotSubscription({
+      schoolId: school._id,
+      actorEmail: null,
+    });
+  } catch (err) {
+    // Log but do not propagate — the school is still usable without a subscription.
+    console.error("[createSchoolFromPlatform] Failed to assign pilot subscription:", err);
+  }
 
   return { school, adminUser, task };
 }

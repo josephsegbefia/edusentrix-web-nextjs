@@ -178,10 +178,38 @@ export async function POST(req: NextRequest) {
       )
       .lean<SchoolRow | null>();
     const subaccountCode = school?.billing?.paystack?.subaccountCode ?? null;
-    const feeBreakdown = computeTransactionFee(
-      amountMinor,
-      resolveTransactionFeeConfigForSchool(school?.billing?.transactionFees || null)
-    );
+
+    // Canonical payment charge resolution — §13A.12, §25.13
+    let platformChargeMinor = 0;
+    let parentPayerMode: "payer_pays" | "school_absorbs" | "waived" = "school_absorbs";
+    let parentPayableMinor = amountMinor;
+    try {
+      const { resolvePaymentChargePolicy } = await import(
+        "@/lib/subscriptions/resolve-payment-charge-policy"
+      );
+      const resolved = await resolvePaymentChargePolicy({
+        schoolId: context.schoolId,
+        category: "school_fee",
+        amountMinor,
+      });
+      platformChargeMinor = resolved.chargeMinor;
+      parentPayerMode = resolved.payerMode;
+      // If payer pays, parent pays base + platform fee; otherwise parent pays only the base
+      parentPayableMinor =
+        parentPayerMode === "payer_pays"
+          ? amountMinor + resolved.chargeMinor
+          : amountMinor;
+    } catch {
+      // Fallback to existing legacy fee calculation
+      const legacyBreakdown = computeTransactionFee(
+        amountMinor,
+        resolveTransactionFeeConfigForSchool(school?.billing?.transactionFees || null)
+      );
+      platformChargeMinor = legacyBreakdown.feeMinor;
+      // Legacy always uses school absorbs
+      parentPayerMode = "school_absorbs";
+      parentPayableMinor = amountMinor;
+    }
 
     if (!school || !isSchoolPaymentReady(school) || !subaccountCode) {
       const paymentSetupStatus = school
@@ -207,12 +235,17 @@ export async function POST(req: NextRequest) {
           invoiceId: String(invoice._id),
           invoiceNumber: invoice.invoiceNumber || "School Fees",
           amountMinor,
-          parentPayableMinor: amountMinor,
-          platformFeeMinor: feeBreakdown.feeMinor,
-          estimatedSchoolNetMinor: Math.max(0, amountMinor - feeBreakdown.feeMinor),
+          parentPayableMinor,
+          platformFeeMinor: platformChargeMinor,
+          estimatedSchoolNetMinor: Math.max(
+            0,
+            parentPayerMode === "payer_pays"
+              ? amountMinor
+              : amountMinor - platformChargeMinor
+          ),
           processorFeeNote:
             "Payment processor charges are calculated by the gateway at payment time and are deducted from the school's settlement.",
-          feeResponsibility: "school",
+          payerMode: parentPayerMode,
           paystackKeyMode,
         },
       });
@@ -236,7 +269,9 @@ export async function POST(req: NextRequest) {
       studentId: invoice.studentId,
       invoiceId: invoice._id,
       amountMinor,
-      platformFeeMinor: feeBreakdown.feeMinor,
+      platformFeeMinor: platformChargeMinor,
+      payerMode: parentPayerMode,
+      parentPayableMinor,
       status: "initiated",
       paymentMethod: "paystack",
       idempotencyKey: randomUUID(),

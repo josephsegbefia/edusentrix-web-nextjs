@@ -25,6 +25,7 @@ import { glassPanelClass, glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
 import { getFeaturePlanDiff } from "@/lib/subscriptions/plan-defaults";
 import { cn } from "@/lib/utils";
+import { SyncDefaultPlansButton } from "./SyncDefaultPlansButton";
 
 export const dynamic = "force-dynamic";
 
@@ -256,13 +257,16 @@ export default async function PlatformSubscriptionPlansPage() {
         title="Subscription plans"
         description="Manage the plan catalogue that schools are subscribed to. Pilot, Starter, Growth, and Enterprise. Run the seed script to initialise default plans."
         actions={
-          <Link
-            href="/platform/schools"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/10 hover:text-white"
-          >
-            <Layers className="h-4 w-4" />
-            View schools
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <SyncDefaultPlansButton />
+            <Link
+              href="/platform/schools"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/10 hover:text-white"
+            >
+              <Layers className="h-4 w-4" />
+              View schools
+            </Link>
+          </div>
         }
       />
 
@@ -303,7 +307,7 @@ export default async function PlatformSubscriptionPlansPage() {
           <div>
             <p className="text-sm font-semibold text-amber-200">Default plans not yet seeded</p>
             <p className="mt-1 text-xs text-white/55">
-              Run{" "}
+              Use <span className="font-medium text-white/75">Sync defaults</span> above, or run{" "}
               <code className="rounded bg-white/10 px-1 font-mono text-white/70">
                 npm run seed:subscription-plans
               </code>{" "}

@@ -8,6 +8,8 @@ const {
   BREVO_DEFAULT_FROM_EMAIL,
   BREVO_DEFAULT_FROM_NAME,
   BREVO_BILLING_FROM_EMAIL,
+  BREVO_SUPPORT_FROM_EMAIL,
+  SUPPORT_EMAIL,
 } = process.env;
 
 let apiInstance: SibApiV3Sdk.TransactionalEmailsApi | null = null;
@@ -20,6 +22,8 @@ function getConfig() {
     defaultFromName: BREVO_DEFAULT_FROM_NAME || "Edusentrix",
     billingFromEmail:
       BREVO_BILLING_FROM_EMAIL || "billing@tryedusentrix.app",
+    supportFromEmail:
+      BREVO_SUPPORT_FROM_EMAIL || SUPPORT_EMAIL || "support@tryedusentrix.app",
   };
 }
 
@@ -134,8 +138,9 @@ export function resolveSenderEmail(
   switch (senderFamily) {
     case "billing":
       return config.billingFromEmail;
-    case "hello":
     case "support":
+      return config.supportFromEmail;
+    case "hello":
     default:
       return config.defaultFromEmail;
   }

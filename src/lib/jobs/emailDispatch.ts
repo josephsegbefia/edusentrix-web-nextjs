@@ -15,6 +15,7 @@ import { lookupTemplateRegistry } from "@/lib/email/registry";
 import { isRetryableError, computeBackoffMs } from "@/lib/email/policy";
 import { checkRateLimit, recordSend } from "@/lib/email/rate-limiter";
 import { updateBatchCounters } from "@/lib/email/batch-scheduler";
+import { handleProposalInboundReply } from "@/lib/proposals/reply-handler";
 
 const MAX_BATCH_SIZE = 50;
 const STALE_MINUTES = 15;
@@ -196,7 +197,7 @@ async function processInboundRoute(job: IEmailDispatchJob): Promise<void> {
 
   const routingToken = message.routingToken;
   const thread = routingToken
-    ? await EmailThread.findOne({ routingToken }).select("_id").lean()
+    ? await EmailThread.findOne({ routingToken }).select("_id mailboxScope relatedEntityType relatedEntityId").lean()
     : null;
 
   if (!thread) {
@@ -220,6 +221,17 @@ async function processInboundRoute(job: IEmailDispatchJob): Promise<void> {
     },
   });
   await updateThreadAfterMessage(String(thread._id), "inbound");
+
+  if (thread.mailboxScope === "platform" && thread.relatedEntityType === "Proposal" && thread.relatedEntityId) {
+    await handleProposalInboundReply({
+      proposalId: String(thread.relatedEntityId),
+      fromEmail: message.from,
+      fromName: message.fromName ?? null,
+      subject: message.subject,
+      threadId: String(thread._id),
+    });
+  }
+
   await EmailDispatchJob.findByIdAndUpdate(job._id, {
     $set: { status: "done", lastError: null, lockedAt: null },
   });

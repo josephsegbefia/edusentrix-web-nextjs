@@ -135,10 +135,7 @@ export async function createEmailBatch(
     const replyAlias =
       registry.mailboxScope === "school" && input.schoolId
         ? buildSchoolReplyAlias(input.schoolId, routingToken)
-        : buildPlatformReplyAlias(
-            registry.senderFamily === "billing" ? "billing" : "support",
-            routingToken,
-          );
+        : buildPlatformReplyAlias(registry.senderFamily, routingToken);
 
     const thread = await findOrCreateThread({
       mailboxScope: registry.mailboxScope,
@@ -271,7 +268,7 @@ function resolveMailboxKey(
     const kind = registry.senderFamily === "billing" ? "billing" : "general";
     return `school:${schoolId}:${kind}`;
   }
-  return `platform_${registry.senderFamily === "billing" ? "billing" : "support"}`;
+  return `platform_${registry.senderFamily}`;
 }
 
 function resolveThreadType(registry: {

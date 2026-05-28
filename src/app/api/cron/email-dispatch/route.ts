@@ -4,7 +4,7 @@ import { runEmailDispatchJob } from "@/lib/jobs/emailDispatch";
 export const dynamic = "force-dynamic";
 
 function isAuthorized(req: NextRequest) {
-  const secret = process.env.EMAIL_DISPATCH_CRON_SECRET;
+  const secret = process.env.EMAIL_DISPATCH_CRON_SECRET || process.env.CRON_SECRET;
   if (!secret) return false;
   const bearer = req.headers.get("authorization") || "";
   const xSecret = req.headers.get("x-cron-secret") || "";

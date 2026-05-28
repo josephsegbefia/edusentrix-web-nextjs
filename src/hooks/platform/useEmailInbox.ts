@@ -128,7 +128,7 @@ export function usePlatformCompose() {
       htmlContent: string;
       textContent?: string;
       attachments?: PlatformEmailAttachment[];
-      senderFamily?: "support" | "billing";
+      senderFamily?: "hello" | "support" | "billing";
     }) => {
       const res = await fetch("/api/platform/email/compose", {
         method: "POST",

@@ -185,7 +185,7 @@ export async function sendTrackedBrevoEmail(
     const urgentOnlyBlocked =
       preference.urgentOnly && !["critical", "high"].includes(registry.priority);
     const categoryBlocked = categoryKey
-      ? !isCategoryAllowed(preference, categoryKey, registry.preferenceClass === "transactional")
+      ? !isCategoryAllowed(preference, categoryKey, false)
       : false;
     const channelBlocked = preference.channels.email === false;
 
@@ -260,10 +260,7 @@ export async function sendTrackedBrevoEmail(
   const replyAlias =
     registry.mailboxScope === "school" && input.schoolId
       ? buildSchoolReplyAlias(input.schoolId, routingToken)
-      : buildPlatformReplyAlias(
-          registry.senderFamily === "billing" ? "billing" : "support",
-          routingToken,
-        );
+      : buildPlatformReplyAlias(registry.senderFamily, routingToken);
 
   const fromEmail = resolveSenderEmail(registry.senderFamily);
   const fromName =
@@ -456,7 +453,7 @@ function resolveMailboxKey(
       registry.senderFamily === "billing" ? "billing" : "general";
     return `school:${schoolId}:${kind}`;
   }
-  return `platform_${registry.senderFamily === "billing" ? "billing" : "support"}`;
+  return `platform_${registry.senderFamily}`;
 }
 
 function resolveThreadType(registry: {

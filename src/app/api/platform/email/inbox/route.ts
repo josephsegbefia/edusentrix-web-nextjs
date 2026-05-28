@@ -24,8 +24,10 @@ export async function GET(req: NextRequest) {
 
     if (mailbox === "billing") {
       filter.mailboxKey = "platform_billing";
-    } else {
+    } else if (mailbox === "support") {
       filter.mailboxKey = "platform_support";
+    } else {
+      filter.mailboxKey = "platform_hello";
     }
 
     if (status && status !== "all") {
@@ -61,6 +63,7 @@ export async function GET(req: NextRequest) {
         relatedEntityType: t.relatedEntityType,
         relatedEntityId: t.relatedEntityId,
         mailboxKey: t.mailboxKey,
+        createdAt: t.createdAt?.toISOString(),
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });

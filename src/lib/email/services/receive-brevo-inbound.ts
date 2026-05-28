@@ -4,7 +4,7 @@ import { EmailMessage } from "@/models/EmailMessage";
 import { EmailThread } from "@/models/EmailThread";
 import { EmailDispatchJob } from "@/models/EmailDispatchJob";
 import { parseReplyAlias } from "../routing";
-import { updateThreadAfterMessage } from "../threading";
+import { findOrCreateThread, updateThreadAfterMessage } from "../threading";
 import { handleProposalInboundReply } from "@/lib/proposals/reply-handler";
 
 export interface BrevoInboundPayload {
@@ -23,6 +23,22 @@ export interface InboundReceiveResult {
   messageId: string;
   threadId?: string;
   routed: boolean;
+}
+
+function normaliseEmail(value?: string | null) {
+  return value?.trim().toLowerCase() || "";
+}
+
+function directPlatformMailboxForRecipient(email: string) {
+  const normalized = normaliseEmail(email);
+  const hello = normaliseEmail(process.env.BREVO_DEFAULT_FROM_EMAIL || "hello@tryedusentrix.app");
+  const support = normaliseEmail(process.env.SUPPORT_EMAIL || process.env.BREVO_SUPPORT_FROM_EMAIL || "support@tryedusentrix.app");
+  const billing = normaliseEmail(process.env.BREVO_BILLING_FROM_EMAIL || "billing@tryedusentrix.app");
+
+  if (normalized === hello) return { mailboxKey: "platform_hello", threadType: "support" as const };
+  if (normalized === support) return { mailboxKey: "platform_support", threadType: "support" as const };
+  if (normalized === billing) return { mailboxKey: "platform_billing", threadType: "billing" as const };
+  return null;
 }
 
 /**
@@ -65,6 +81,9 @@ export async function receiveBrevoInbound(
   let schoolId: string | undefined;
   let mailboxScope: "platform" | "school" = "platform";
   let mailboxKey = "platform_support";
+  let routedThread:
+    | { relatedEntityType?: string | null; relatedEntityId?: unknown }
+    | null = null;
 
   if (parsed) {
     if (parsed.scope === "school" && parsed.schoolId) {
@@ -86,6 +105,23 @@ export async function receiveBrevoInbound(
 
     if (thread) {
       threadId = String(thread._id);
+      routedThread = thread;
+    }
+  } else {
+    const directMailbox = directPlatformMailboxForRecipient(toAddress);
+    if (directMailbox) {
+      mailboxScope = "platform";
+      mailboxKey = directMailbox.mailboxKey;
+      const thread = await findOrCreateThread({
+        mailboxScope,
+        mailboxKey,
+        subject: payload.subject || "(No subject)",
+        threadType: directMailbox.threadType,
+        participantEmail: payload.sender.email,
+        participantName: payload.sender.name || null,
+      });
+      threadId = String(thread._id);
+      routedThread = thread;
     }
   }
 
@@ -121,9 +157,9 @@ export async function receiveBrevoInbound(
     await updateThreadAfterMessage(threadId, "inbound");
 
     // Fire proposal reply notification if this thread is linked to a Proposal.
-    if (parsed?.scope === "platform" && thread?.relatedEntityType === "Proposal" && thread.relatedEntityId) {
+    if (parsed?.scope === "platform" && routedThread?.relatedEntityType === "Proposal" && routedThread.relatedEntityId) {
       void handleProposalInboundReply({
-        proposalId: String(thread.relatedEntityId),
+        proposalId: String(routedThread.relatedEntityId),
         fromEmail: payload.sender.email,
         fromName: payload.sender.name ?? null,
         subject: payload.subject,

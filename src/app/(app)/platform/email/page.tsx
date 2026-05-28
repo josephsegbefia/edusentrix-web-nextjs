@@ -247,8 +247,8 @@ function PlatformComposeView({ onSent }: { onSent: () => void }) {
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
   const [attachments, setAttachments] = React.useState<ComposeAttachment[]>([]);
-  const [senderFamily, setSenderFamily] = React.useState<"support" | "billing">(
-    "support",
+  const [senderFamily, setSenderFamily] = React.useState<"hello" | "support" | "billing">(
+    "hello",
   );
 
   const handleSend = async () => {
@@ -278,7 +278,7 @@ function PlatformComposeView({ onSent }: { onSent: () => void }) {
         <div className="space-y-2">
           <Label className="text-white/70">Send As</Label>
           <div className="flex gap-2">
-            {(["support", "billing"] as const).map((f) => (
+            {(["hello", "support", "billing"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setSenderFamily(f)}
@@ -566,7 +566,7 @@ export default function PlatformEmailPage() {
         <>
           {/* Mailbox filter */}
           <div className="flex gap-2">
-            {["support", "billing"].map((mb) => (
+            {["hello", "support", "billing"].map((mb) => (
               <button
                 key={mb}
                 onClick={() => {

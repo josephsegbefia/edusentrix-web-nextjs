@@ -49,8 +49,8 @@ const ComposeSchema = z.object({
         ) <= MAX_TOTAL_ATTACHMENT_BYTES,
       { message: "Attachments can be up to 12 MB total." },
     ),
-  mailbox: z.enum(["support", "billing"]).optional().default("support"),
-  senderFamily: z.enum(["support", "billing"]).optional(),
+  mailbox: z.enum(["hello", "support", "billing"]).optional().default("hello"),
+  senderFamily: z.enum(["hello", "support", "billing"]).optional(),
   relatedEntityType: z.string().trim().max(80).optional(),
   relatedEntityId: z.string().trim().max(80).optional(),
 });
@@ -59,6 +59,12 @@ function estimateBase64Bytes(value: string) {
   const clean = value.replace(/\s/g, "");
   const padding = clean.endsWith("==") ? 2 : clean.endsWith("=") ? 1 : 0;
   return Math.max(0, Math.floor((clean.length * 3) / 4) - padding);
+}
+
+function templateKeyForSender(senderFamily: "hello" | "support" | "billing") {
+  if (senderFamily === "billing") return "PLATFORM_BILLING_MANUAL_EMAIL";
+  if (senderFamily === "hello") return "PLATFORM_HELLO_MANUAL_EMAIL";
+  return "PLATFORM_MANUAL_EMAIL";
 }
 
 export async function POST(req: NextRequest) {
@@ -84,7 +90,7 @@ export async function POST(req: NextRequest) {
       htmlContent: parsed.data.htmlContent,
       textContent: parsed.data.textContent,
       attachments: parsed.data.attachments,
-      templateKey: "PLATFORM_MANUAL_EMAIL",
+      templateKey: templateKeyForSender(mailbox),
       actorId: String((guard.me as any)._id),
       actorRole: "platform_admin",
       threadType: mailbox === "billing" ? "billing" : "support",

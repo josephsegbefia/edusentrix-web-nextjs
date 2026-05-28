@@ -22,6 +22,19 @@ export interface ISchoolSubscriptionOverrides {
   transactionFees?: Record<string, unknown> | null;
 }
 
+export interface IPendingPlanChange {
+  targetTierId: Types.ObjectId;
+  targetTierCode: string;
+  targetTierName: string;
+  targetTierVersion?: number | null;
+  changeKind: "downgrade" | "upgrade" | "lateral";
+  effectiveAt: Date;
+  requestedByEmail?: string | null;
+  requestedAt: Date;
+  note?: string | null;
+  quoteSnapshot?: Record<string, unknown> | null;
+}
+
 export interface ISchoolSubscription {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
@@ -59,6 +72,7 @@ export interface ISchoolSubscription {
   usageResetPolicy?: "term" | "annual" | "custom" | null;
   /** Typed school-specific overrides for pricing, features, and limits. */
   schoolOverrides?: ISchoolSubscriptionOverrides | null;
+  pendingPlanChange?: IPendingPlanChange | null;
   manualAccessModeOverride?:
     | "full"
     | "trial_limited"
@@ -159,6 +173,32 @@ const schoolSubscriptionSchema = new Schema<ISchoolSubscription>(
       ),
       default: null,
     },
+    pendingPlanChange: {
+      type: new Schema(
+        {
+          targetTierId: {
+            type: Schema.Types.ObjectId,
+            ref: "SubscriptionTier",
+            required: true,
+          },
+          targetTierCode: { type: String, required: true, trim: true },
+          targetTierName: { type: String, required: true, trim: true },
+          targetTierVersion: { type: Number, default: null },
+          changeKind: {
+            type: String,
+            enum: ["downgrade", "upgrade", "lateral"],
+            required: true,
+          },
+          effectiveAt: { type: Date, required: true },
+          requestedByEmail: { type: String, default: null, trim: true },
+          requestedAt: { type: Date, default: () => new Date() },
+          note: { type: String, default: null, trim: true },
+          quoteSnapshot: { type: Schema.Types.Mixed, default: null },
+        },
+        { _id: false }
+      ),
+      default: null,
+    },
     manualAccessModeOverride: {
       type: String,
       enum: [
@@ -185,6 +225,7 @@ schoolSubscriptionSchema.index({ endsAt: 1 });
 schoolSubscriptionSchema.index({ trialEndsAt: 1 });
 schoolSubscriptionSchema.index({ pilotEndsAt: 1 });
 schoolSubscriptionSchema.index({ gracePeriodEndsAt: 1 });
+schoolSubscriptionSchema.index({ "pendingPlanChange.effectiveAt": 1 });
 
 export const SchoolSubscription: Model<ISchoolSubscription> =
   (models.SchoolSubscription as Model<ISchoolSubscription>) ||

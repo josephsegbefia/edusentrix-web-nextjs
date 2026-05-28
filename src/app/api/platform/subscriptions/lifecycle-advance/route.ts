@@ -14,7 +14,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SchoolSubscription } from "@/models/SchoolSubscription";
@@ -28,11 +27,8 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const body = await req.json().catch(() => ({}));
   const parsed = BodySchema.safeParse(body);
@@ -67,7 +63,7 @@ export async function POST(req: NextRequest) {
         subscriptionId: sub._id,
         eventType: "grace_period_started",
         summary: `Subscription expired — entered grace period. Grace ends: ${sub.gracePeriodEndsAt?.toLocaleDateString("en-GH") ?? "unknown"}.`,
-        actorEmail: auth.email ?? null,
+        actorEmail: perm.actor.email ?? null,
         metadata: { previousStatus: "active", trigger: "platform_lifecycle_advance" },
       });
     }
@@ -91,7 +87,7 @@ export async function POST(req: NextRequest) {
         subscriptionId: sub._id,
         eventType: "grace_period_ended",
         summary: "Grace period ended — moved to restricted read-only access.",
-        actorEmail: auth.email ?? null,
+        actorEmail: perm.actor.email ?? null,
         metadata: { previousStatus: "grace", trigger: "platform_lifecycle_advance" },
       });
     }
@@ -117,7 +113,7 @@ export async function POST(req: NextRequest) {
           subscriptionId: sub._id,
           eventType: "subscription_suspended",
           summary: `Auto-suspended after ${suspendAfterHours}h in restricted read-only.`,
-          actorEmail: auth.email ?? null,
+          actorEmail: perm.actor.email ?? null,
           metadata: { previousStatus: "restricted_read_only", suspendAfterHours, trigger: "platform_lifecycle_advance" },
         });
       }

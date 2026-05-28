@@ -12,7 +12,6 @@ import { SubscriptionInvoice } from "@/models/SubscriptionInvoice";
 
 export async function GET(req: NextRequest) {
   const auth = await requireSchoolAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
 
   const { schoolId } = auth;
 

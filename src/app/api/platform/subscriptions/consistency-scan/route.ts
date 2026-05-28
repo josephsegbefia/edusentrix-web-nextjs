@@ -7,7 +7,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { runEntitlementConsistencyScan } from "@/lib/subscriptions/consistency-scanner";
@@ -18,11 +17,8 @@ const BodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.billing.read");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.billing.read");
+  if (!perm.ok) return perm.res;
 
   const body = await req.json().catch(() => ({}));
   const parsed = BodySchema.safeParse(body);

@@ -4,6 +4,7 @@ export interface ISubscriptionCheckoutIntent {
   _id: Types.ObjectId;
   schoolId: Types.ObjectId;
   subscriptionId?: Types.ObjectId | null;
+  invoiceId?: Types.ObjectId | null;
   targetTierId: Types.ObjectId;
   targetTierCode: string;
   targetTierName: string;
@@ -41,6 +42,12 @@ const subscriptionCheckoutIntentSchema =
         ref: "SchoolSubscription",
         default: null,
       },
+      invoiceId: {
+        type: Schema.Types.ObjectId,
+        ref: "SubscriptionInvoice",
+        default: null,
+        index: true,
+      },
       targetTierId: {
         type: Schema.Types.ObjectId,
         ref: "SubscriptionTier",
@@ -77,6 +84,7 @@ const subscriptionCheckoutIntentSchema =
   );
 
 subscriptionCheckoutIntentSchema.index({ schoolId: 1, createdAt: -1 });
+subscriptionCheckoutIntentSchema.index({ schoolId: 1, invoiceId: 1 });
 subscriptionCheckoutIntentSchema.index({ schoolId: 1, paystackReference: 1 });
 subscriptionCheckoutIntentSchema.index({ status: 1, expiresAt: 1 });
 

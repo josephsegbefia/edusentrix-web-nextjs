@@ -6,7 +6,7 @@ export const PLAN_CODES = {
   PILOT: "pilot",
   STARTER: "starter",
   GROWTH: "growth",
-  PREMIUM: "premium",
+  ENTERPRISE: "enterprise",
 } as const;
 
 export type PlanCode = (typeof PLAN_CODES)[keyof typeof PLAN_CODES];
@@ -24,28 +24,28 @@ export const PLAN_META: Record<
   pilot: {
     label: "Pilot",
     description:
-      "Custom onboarding, sales demo, and controlled trial. Assigned only by platform admins.",
+      "Non-public testing and onboarding plan. Platform admins choose the enabled modules, limits, expiry date, and payment mode per school.",
     sortOrder: 0,
     publicVisible: false,
   },
   starter: {
     label: "Starter",
     description:
-      "Core school records, admissions, fees, and payment collection for smaller schools.",
+      "Core digitization for records, admissions, student/parent/staff management, fees, invoices, payment collection, notices, basic documents, and basic reports.",
     sortOrder: 1,
     publicVisible: true,
   },
   growth: {
     label: "Growth",
     description:
-      "Full academic operations including lesson notes, schemes, curriculum, limited Leo AI, and advanced reporting.",
+      "Operational academic plan with everything in Starter plus schemes of learning, lesson notes, lessons, basic examinations, question bank, Learn activation eligibility, and limited Leo AI credits.",
     sortOrder: 2,
     publicVisible: true,
   },
-  premium: {
-    label: "Premium",
+  enterprise: {
+    label: "Enterprise",
     description:
-      "Full school OS with advanced analytics, automation, higher AI and storage allowances, and meeting access.",
+      "Full school operating system for advanced academics, analytics, automation, priority support, higher AI/storage allowances, meeting access, audit/compliance, and custom configuration.",
     sortOrder: 3,
     publicVisible: true,
   },

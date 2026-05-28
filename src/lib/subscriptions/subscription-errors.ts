@@ -6,7 +6,7 @@
  * Spec §19.1 — Structured Errors.
  *
  * Usage:
- *   throw new FeatureGatedError(FEATURE_KEYS.AI_LEO, "premium");
+ *   throw new FeatureGatedError(FEATURE_KEYS.AI_LEO, "enterprise");
  *   throw new LimitExceededError(LIMIT_KEYS.maxStudents, 300, 500);
  *   throw new AccessModeError("restricted_read_only");
  *   throw new UsageExhaustedError("leo_credits", 0, 100);

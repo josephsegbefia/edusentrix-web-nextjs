@@ -7,7 +7,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SubscriptionEvent } from "@/models/SubscriptionEvent";
@@ -15,15 +14,8 @@ import { SubscriptionEvent } from "@/models/SubscriptionEvent";
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.billing.read");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+  const perm = await requirePlatformPermission("platform.billing.read");
+  if (!perm.ok) return perm.res;
 
   const { id: schoolId } = await params;
   if (!mongoose.Types.ObjectId.isValid(schoolId)) {

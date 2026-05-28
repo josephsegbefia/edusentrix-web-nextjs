@@ -51,7 +51,7 @@ const PLAN_TONE: Record<string, string> = {
   pilot: "border-violet-500/30 bg-violet-500/10 text-violet-200",
   starter: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
   growth: "border-teal-500/30 bg-teal-500/10 text-teal-200",
-  premium: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  enterprise: "border-amber-500/30 bg-amber-500/10 text-amber-200",
 };
 
 const ADDON_LABELS: Record<string, string> = {

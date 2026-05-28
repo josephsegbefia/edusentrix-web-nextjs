@@ -71,17 +71,11 @@ const DEFAULT_LIMITS: Record<string, Omit<SubscriptionLimits, "maxStudents">> = 
     maxAICallsPerMonth: 300,
     maxStorageBytes: 25 * GB,
   },
-  premium: {
+  enterprise: {
     maxTeachers: null,
     maxInvitationsPerMonth: 500,
     maxAICallsPerMonth: 1200,
     maxStorageBytes: 100 * GB,
-  },
-  enterprise: {
-    maxTeachers: null,
-    maxInvitationsPerMonth: null,
-    maxAICallsPerMonth: null,
-    maxStorageBytes: null,
   },
   pilot_starter: {
     maxTeachers: 25,

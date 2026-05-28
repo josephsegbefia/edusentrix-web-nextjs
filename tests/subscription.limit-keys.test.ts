@@ -64,8 +64,8 @@ describe("DEFAULT_PLAN_LIMITS", () => {
     assert.equal(DEFAULT_PLAN_LIMITS.growth.maxStudents, 1500);
   });
 
-  it("Premium maxStudents is null (unlimited)", () => {
-    assert.equal(DEFAULT_PLAN_LIMITS.premium.maxStudents, null);
+  it("Enterprise maxStudents is null (unlimited)", () => {
+    assert.equal(DEFAULT_PLAN_LIMITS.enterprise.maxStudents, null);
   });
 
   it("Starter has no Leo credits (0)", () => {
@@ -76,8 +76,8 @@ describe("DEFAULT_PLAN_LIMITS", () => {
     assert.equal(DEFAULT_PLAN_LIMITS.growth.leoCreditsPerTerm, 500);
   });
 
-  it("Premium has 2500 Leo credits per term", () => {
-    assert.equal(DEFAULT_PLAN_LIMITS.premium.leoCreditsPerTerm, 2500);
+  it("Enterprise has 2500 Leo credits per term", () => {
+    assert.equal(DEFAULT_PLAN_LIMITS.enterprise.leoCreditsPerTerm, 2500);
   });
 
   it("Pilot maxStudents is 0 (must be set explicitly)", () => {
@@ -92,8 +92,8 @@ describe("DEFAULT_PLAN_LIMITS", () => {
     assert.equal(DEFAULT_PLAN_LIMITS.growth.maxStorageBytes, 25 * ONE_GB);
   });
 
-  it("Premium storage is 100GB", () => {
-    assert.equal(DEFAULT_PLAN_LIMITS.premium.maxStorageBytes, 100 * ONE_GB);
+  it("Enterprise storage is 100GB", () => {
+    assert.equal(DEFAULT_PLAN_LIMITS.enterprise.maxStorageBytes, 100 * ONE_GB);
   });
 
   it("all limit values are number | null (no strings)", () => {

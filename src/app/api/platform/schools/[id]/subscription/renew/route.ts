@@ -20,12 +20,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
+import { Student } from "@/models/Student";
 import { SchoolSubscription } from "@/models/SchoolSubscription";
+import { SubscriptionTier } from "@/models/SubscriptionTier";
 import { recordSubscriptionEvent } from "@/lib/subscriptions/record-event";
+import { SubscriptionInvoice } from "@/models/SubscriptionInvoice";
+import { applyPlanToSubscription } from "@/lib/subscriptions/apply-plan-change";
+import {
+  computeSubscriptionBasePrice,
+  computeSubscriptionPricing,
+} from "@/lib/platform-billing/subscription-pricing";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -46,15 +53,8 @@ const RenewSchema = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const { id: schoolId } = await params;
   if (!mongoose.Types.ObjectId.isValid(schoolId)) {
@@ -109,17 +109,65 @@ export async function POST(req: NextRequest, { params }: Params) {
       ? new Date(renewalEndsAt.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000)
       : null;
 
-  // Recalculate effective price
-  let basePriceMinor = sub.basePriceMinor;
-  let effectivePriceMinor = manualPriceOverrideMinor ?? sub.effectivePriceMinor;
-  const resolvedDiscountMode = discountMode ?? sub.discountMode;
-  const resolvedDiscountValue = discountValue ?? sub.discountValue;
+  let workingSub = sub;
+  let appliedPendingPlanChange: {
+    targetPlanCode: string;
+    targetPlanName: string;
+  } | null = null;
 
-  if (resolvedDiscountMode === "percent" && resolvedDiscountValue) {
-    effectivePriceMinor = Math.round(basePriceMinor * (1 - resolvedDiscountValue / 100));
-  } else if (resolvedDiscountMode === "fixed" && resolvedDiscountValue) {
-    effectivePriceMinor = Math.max(0, basePriceMinor - resolvedDiscountValue);
+  if (
+    sub.pendingPlanChange &&
+    sub.pendingPlanChange.effectiveAt.getTime() <= renewalStartsAt.getTime()
+  ) {
+    const pendingPlan = await SubscriptionTier.findById(sub.pendingPlanChange.targetTierId);
+    if (!pendingPlan) {
+      return NextResponse.json(
+        { success: false, error: "Pending plan change target plan was not found." },
+        { status: 409 }
+      );
+    }
+    await applyPlanToSubscription({
+      subscription: sub,
+      targetPlan: pendingPlan,
+      actorEmail: perm.actor.email ?? null,
+      note: sub.pendingPlanChange.note ?? null,
+      eventType: sub.pendingPlanChange.changeKind === "downgrade" ? "subscription_downgraded" : "subscription_updated",
+      eventSummary: `Scheduled ${sub.pendingPlanChange.changeKind} to ${pendingPlan.name} applied during renewal.`,
+    });
+    appliedPendingPlanChange = {
+      targetPlanCode: pendingPlan.code,
+      targetPlanName: pendingPlan.name,
+    };
+    const refreshed = await SchoolSubscription.findById(sub._id);
+    if (refreshed) workingSub = refreshed;
   }
+
+  const [plan, studentCountSnapshot] = await Promise.all([
+    workingSub.tierId ? SubscriptionTier.findById(workingSub.tierId).lean<any>() : null,
+    Student.countDocuments({
+      schoolId: new mongoose.Types.ObjectId(schoolId),
+      status: "active",
+    }),
+  ]);
+
+  // Recalculate effective price from the current active student count.
+  const resolvedDiscountMode = discountMode ?? workingSub.discountMode;
+  const resolvedDiscountValue = discountValue ?? workingSub.discountValue;
+  const basePriceBreakdown = computeSubscriptionBasePrice({
+    studentCount: studentCountSnapshot,
+    pricePerStudentPerTermMinor: plan?.pricing?.pricePerStudentPerTermMinor ?? null,
+    minimumTermFeeMinor: plan?.pricing?.minimumTermFeeMinor ?? workingSub.basePriceMinor,
+    annualDiscountPercent: plan?.pricing?.annualDiscountPercent ?? null,
+    billingCadence: workingSub.billingCadence ?? "term",
+  });
+  const pricing = computeSubscriptionPricing({
+    basePriceMinor: basePriceBreakdown.basePriceMinor,
+    manualPriceOverrideMinor,
+    discountMode: resolvedDiscountMode,
+    discountValue: resolvedDiscountValue,
+  });
+  const basePriceMinor = pricing.baseTierPriceMinor;
+  const effectivePriceMinor = pricing.finalPriceMinor;
 
   const updateData = {
     status: "active",
@@ -127,30 +175,83 @@ export async function POST(req: NextRequest, { params }: Params) {
     endsAt: renewalEndsAt,
     gracePeriodEndsAt: newGracePeriodEndsAt,
     manualAccessModeOverride: null,
+    studentCountSnapshot,
+    basePriceMinor,
     effectivePriceMinor,
     ...(manualPriceOverrideMinor != null ? { manualPriceOverrideMinor } : {}),
     ...(discountMode != null ? { discountMode } : {}),
     ...(discountValue != null ? { discountValue } : {}),
     ...(note ? { note } : {}),
-    updatedByEmail: auth.email ?? null,
+    updatedByEmail: perm.actor.email ?? null,
   };
 
-  await SchoolSubscription.findByIdAndUpdate(sub._id, { $set: updateData });
+  await SchoolSubscription.findByIdAndUpdate(workingSub._id, { $set: updateData });
+
+  let invoice = null;
+  if (effectivePriceMinor > 0) {
+    invoice = await SubscriptionInvoice.create({
+      schoolId: new mongoose.Types.ObjectId(schoolId),
+      subscriptionId: workingSub._id,
+      status: "issued",
+      currency: "GHS",
+      lines: [
+        {
+          lineType: "plan_charge",
+          description: `${plan?.name ?? workingSub.tierName ?? "Subscription"} renewal (${workingSub.billingCadence ?? "term"})`,
+          quantity: 1,
+          unitPriceMinor: effectivePriceMinor,
+          subtotalMinor: effectivePriceMinor,
+          reference: plan?._id ? String(plan._id) : null,
+        },
+      ],
+      subtotalMinor: effectivePriceMinor,
+      taxMinor: 0,
+      totalMinor: effectivePriceMinor,
+      billingPeriodStart: renewalStartsAt,
+      billingPeriodEnd: renewalEndsAt,
+      issuedAt: new Date(),
+      dueAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      note: note ?? "Subscription renewal invoice.",
+      createdByEmail: perm.actor.email ?? null,
+    });
+  }
 
   await recordSubscriptionEvent({
     schoolId: new mongoose.Types.ObjectId(schoolId),
-    subscriptionId: sub._id,
+    subscriptionId: workingSub._id,
     eventType: "subscription_renewed",
-    actorEmail: auth.email ?? null,
+    actorEmail: perm.actor.email ?? null,
     summary: `Subscription renewed by platform admin. New period: ${renewalStartsAt.toDateString()} → ${renewalEndsAt.toDateString()}.${note ? ` Note: ${note}` : ""}`,
     metadata: {
       renewalStartsAt: renewalStartsAt.toISOString(),
       renewalEndsAt: renewalEndsAt.toISOString(),
       gracePeriodEndsAt: newGracePeriodEndsAt?.toISOString() ?? null,
       effectivePriceMinor,
+      studentCountSnapshot,
+      pricingBreakdown: basePriceBreakdown,
       previousStatus: sub.status,
+      appliedPendingPlanChange,
+      invoiceId: invoice ? String(invoice._id) : null,
+      invoiceNumber: invoice?.invoiceNumber ?? null,
     },
   });
+
+  if (invoice) {
+    await recordSubscriptionEvent({
+      schoolId: new mongoose.Types.ObjectId(schoolId),
+      subscriptionId: workingSub._id,
+      eventType: "subscription_invoice_issued",
+      actorEmail: perm.actor.email ?? null,
+      summary: `Renewal invoice ${invoice.invoiceNumber} issued for ${minorToGHS(effectivePriceMinor)}.`,
+      metadata: {
+        invoiceId: String(invoice._id),
+        invoiceNumber: invoice.invoiceNumber,
+        totalMinor: invoice.totalMinor,
+        billingPeriodStart: renewalStartsAt.toISOString(),
+        billingPeriodEnd: renewalEndsAt.toISOString(),
+      },
+    });
+  }
 
   return NextResponse.json({
     success: true,
@@ -161,7 +262,14 @@ export async function POST(req: NextRequest, { params }: Params) {
       renewalEndsAt: renewalEndsAt.toISOString(),
       gracePeriodEndsAt: newGracePeriodEndsAt?.toISOString() ?? null,
       effectivePriceMinor,
+      studentCountSnapshot,
       status: "active",
+      appliedPendingPlanChange,
+      invoice: invoice ? { _id: String(invoice._id), invoiceNumber: invoice.invoiceNumber } : null,
     },
   });
+}
+
+function minorToGHS(minor: number) {
+  return `GHS ${(minor / 100).toLocaleString("en-GH", { minimumFractionDigits: 2 })}`;
 }

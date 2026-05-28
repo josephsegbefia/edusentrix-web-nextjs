@@ -13,10 +13,56 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  computeSubscriptionBasePrice,
   computeSubscriptionPricing,
   normalizeSubscriptionStatus,
   isActiveSubscriptionStatus,
 } from "../src/lib/platform-billing/subscription-pricing";
+
+describe("computeSubscriptionBasePrice — per-student and minimum term pricing", () => {
+  it("uses the per-student subtotal when it is above the minimum term fee", () => {
+    const result = computeSubscriptionBasePrice({
+      studentCount: 200,
+      pricePerStudentPerTermMinor: 25_00,
+      minimumTermFeeMinor: 2_500_00,
+      billingCadence: "term",
+    });
+
+    assert.equal(result.perStudentSubtotalPerTermMinor, 5_000_00);
+    assert.equal(result.termBasePriceMinor, 5_000_00);
+    assert.equal(result.basePriceMinor, 5_000_00);
+    assert.equal(result.minimumStudentThreshold, 100);
+  });
+
+  it("uses the minimum term fee when the student subtotal is below it", () => {
+    const result = computeSubscriptionBasePrice({
+      studentCount: 65,
+      pricePerStudentPerTermMinor: 25_00,
+      minimumTermFeeMinor: 2_500_00,
+      billingCadence: "term",
+    });
+
+    assert.equal(result.perStudentSubtotalPerTermMinor, 1_625_00);
+    assert.equal(result.termBasePriceMinor, 2_500_00);
+    assert.equal(result.basePriceMinor, 2_500_00);
+    assert.equal(result.minimumStudentThreshold, 100);
+  });
+
+  it("annual billing charges three terms before annual discount", () => {
+    const result = computeSubscriptionBasePrice({
+      studentCount: 65,
+      pricePerStudentPerTermMinor: 25_00,
+      minimumTermFeeMinor: 2_500_00,
+      annualDiscountPercent: 10,
+      billingCadence: "annual",
+    });
+
+    assert.equal(result.termBasePriceMinor, 2_500_00);
+    assert.equal(result.billingTerms, 3);
+    assert.equal(result.annualDiscountAmountMinor, 750_00);
+    assert.equal(result.basePriceMinor, 6_750_00);
+  });
+});
 
 describe("computeSubscriptionPricing — base pricing", () => {
   it("returns baseTierPriceMinor as finalPrice when no override or discount", () => {

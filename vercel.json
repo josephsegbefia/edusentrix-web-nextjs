@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/email-dispatch",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/subscription-renewal-notices",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-plan-changes",
+      "schedule": "15 0 * * *"
+    }
+  ]
+}

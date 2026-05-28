@@ -3,6 +3,7 @@
 import * as React from "react";
 import {
   AlertTriangle,
+  ArrowUpDown,
   BarChart3,
   Banknote,
   BookOpen,
@@ -11,6 +12,7 @@ import {
   CircleDashed,
   CreditCard,
   Database,
+  FileDown,
   Loader2,
   Lock,
   RefreshCw,
@@ -224,6 +226,25 @@ export default function AdminSubscriptionPage() {
 
   React.useEffect(() => { load(); }, [load]);
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") !== "subscription") return;
+    const reference = params.get("reference") || params.get("trxref");
+    if (!reference) return;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/subscription/checkout-status?reference=${encodeURIComponent(reference)}`);
+        const json = await res.json();
+        if (json.success && json.data?.status === "succeeded") {
+          await load();
+        }
+      } catch {
+        // Non-blocking. Webhook still fulfills the payment.
+      }
+    })();
+  }, [load]);
+
   if (loading) {
     return (
       <div className="flex min-h-64 items-center justify-center">
@@ -406,6 +427,9 @@ export default function AdminSubscriptionPage() {
           </div>
 
           {/* Invoices */}
+          <PlanChangePanel currentPlanCode={sub.planCode ?? null} />
+
+          {/* Invoices */}
           <InvoicePanel />
 
           {/* Event history */}
@@ -477,6 +501,30 @@ type InvoiceItem = {
   issuedAt: string | null;
 };
 
+type PlanOption = {
+  _id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  pricing?: {
+    pricePerStudentPerTermMinor?: number | null;
+    minimumTermFeeMinor?: number | null;
+    annualDiscountPercent?: number | null;
+  } | null;
+};
+
+type PlanChangeQuote = {
+  kind: "upgrade" | "downgrade" | "lateral";
+  amountDueNowMinor: number;
+  targetPeriodPriceMinor: number;
+  currentPeriodPriceMinor: number;
+  proratedCreditMinor: number;
+  proratedTargetChargeMinor: number;
+  effectiveAt: "immediate" | "renewal";
+  scheduledAt: string | null;
+  note: string;
+};
+
 const INV_STATUS_PILL: Record<string, string> = {
   issued: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
   paid: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
@@ -484,21 +532,176 @@ const INV_STATUS_PILL: Record<string, string> = {
   forgiven: "border-violet-500/30 bg-violet-500/10 text-violet-200",
 };
 
-function InvoicePanel() {
-  const [invoices, setInvoices] = React.useState<InvoiceItem[]>([]);
-  const [loadingInv, setLoadingInv] = React.useState(true);
+function PlanChangePanel({ currentPlanCode }: { currentPlanCode: string | null }) {
+  const [plans, setPlans] = React.useState<PlanOption[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = React.useState("");
+  const [quote, setQuote] = React.useState<PlanChangeQuote | null>(null);
+  const [loadingPlans, setLoadingPlans] = React.useState(false);
+  const [requesting, setRequesting] = React.useState(false);
+  const [message, setMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     (async () => {
+      setLoadingPlans(true);
+      try {
+        const res = await fetch("/api/admin/subscription/plan-change");
+        const json = await res.json();
+        if (json.success) setPlans(json.data);
+      } catch {
+        // Non-blocking.
+      } finally {
+        setLoadingPlans(false);
+      }
+    })();
+  }, []);
+
+  const selectedPlan = plans.find((plan) => plan._id === selectedPlanId) ?? null;
+
+  async function requestQuote() {
+    if (!selectedPlanId) return;
+    setRequesting(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/subscription/plan-change", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetPlanId: selectedPlanId }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setQuote(json.data.quote ?? json.data);
+        setMessage(
+          json.data.invoice
+            ? `Invoice ${json.data.invoice.invoiceNumber} issued. Use Pay on the invoice below to complete the upgrade.`
+            : json.data.pendingPlanChange
+              ? `Downgrade scheduled for ${new Date(json.data.pendingPlanChange.effectiveAt).toLocaleDateString("en-GH", { dateStyle: "medium" })}.`
+            : "Plan change request recorded. EduSentrix billing will review and confirm the change."
+        );
+      } else {
+        setMessage(typeof json.error === "string" ? json.error : "Unable to request plan change.");
+      }
+    } catch {
+      setMessage("Unable to request plan change.");
+    } finally {
+      setRequesting(false);
+    }
+  }
+
+  if (loadingPlans) return null;
+  const visiblePlans = plans.filter((plan) => plan.code !== currentPlanCode);
+  if (!visiblePlans.length) return null;
+
+  return (
+    <div className={cn(glassPanelClass, "px-5 py-4")}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
+      <div className="mb-3 flex items-center gap-2">
+        <ArrowUpDown className="h-4 w-4 text-white/50" />
+        <p className="text-sm font-semibold text-white/80">Plan changes</p>
+      </div>
+      <div className="space-y-3">
+        <div className="grid gap-2">
+          {visiblePlans.map((plan) => (
+            <button
+              key={plan._id}
+              type="button"
+              onClick={() => {
+                setSelectedPlanId(plan._id);
+                setQuote(null);
+                setMessage(null);
+              }}
+              className={cn(
+                "rounded-xl border px-3 py-3 text-left transition",
+                selectedPlanId === plan._id
+                  ? "border-cyan-400/40 bg-cyan-400/10"
+                  : "border-white/10 bg-white/5 hover:border-white/20"
+              )}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold text-white/80">{plan.name}</span>
+                {plan.pricing?.pricePerStudentPerTermMinor ? (
+                  <span className="text-[11px] text-white/40">
+                    {formatGHS(plan.pricing.pricePerStudentPerTermMinor)} / student / term
+                  </span>
+                ) : null}
+              </div>
+              {plan.description ? (
+                <p className="mt-1 text-xs text-white/40">{plan.description}</p>
+              ) : null}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          disabled={!selectedPlanId || requesting}
+          onClick={requestQuote}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {requesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
+          Request smart quote
+        </button>
+
+        {quote && selectedPlan ? (
+          <div className={cn(glassInsetClass, "space-y-1 px-4 py-3 text-xs")}>
+            <Row label="Target plan" value={selectedPlan.name} />
+            <Row label="Change type" value={quote.kind} />
+            <Row label="Current plan value" value={formatGHS(quote.currentPeriodPriceMinor)} />
+            <Row label="Target plan value" value={formatGHS(quote.targetPeriodPriceMinor)} />
+            <Row label="Prorated credit" value={formatGHS(quote.proratedCreditMinor)} />
+            <Row label="Prorated target charge" value={formatGHS(quote.proratedTargetChargeMinor)} />
+            <Row label="Amount due now" value={formatGHS(quote.amountDueNowMinor)} />
+            <Row
+              label="Effective"
+              value={quote.effectiveAt === "renewal" && quote.scheduledAt
+                ? new Date(quote.scheduledAt).toLocaleDateString("en-GH", { dateStyle: "medium" })
+                : "After billing confirmation"}
+            />
+            <p className="pt-2 text-[11px] text-white/35">{quote.note}</p>
+          </div>
+        ) : null}
+
+        {message ? <p className="text-xs text-white/40">{message}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function InvoicePanel() {
+  const [invoices, setInvoices] = React.useState<InvoiceItem[]>([]);
+  const [loadingInv, setLoadingInv] = React.useState(true);
+  const [payingId, setPayingId] = React.useState<string | null>(null);
+
+  const loadInvoices = React.useCallback(async () => {
       try {
         const res = await fetch("/api/admin/subscription/invoices");
         const json = await res.json();
         if (json.success) setInvoices(json.data);
       } catch { /* silent */ }
       finally { setLoadingInv(false); }
-    })();
   }, []);
 
+  React.useEffect(() => {
+    loadInvoices();
+  }, [loadInvoices]);
+
+  async function startCheckout(invoiceId: string) {
+    setPayingId(invoiceId);
+    try {
+      const res = await fetch(`/api/admin/subscription/invoices/${invoiceId}/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ returnPath: "/admin/subscription" }),
+      });
+      const json = await res.json();
+      if (json.success && json.data?.authorizationUrl) {
+        window.location.href = json.data.authorizationUrl;
+      }
+    } catch {
+      // Keep the panel stable; user can retry.
+    } finally {
+      setPayingId(null);
+    }
+  }
   if (loadingInv) return null;
   if (invoices.length === 0) return null;
 
@@ -527,6 +730,26 @@ function InvoicePanel() {
               <span className="font-mono text-xs text-white/60">
                 GHS {(inv.totalMinor / 100).toLocaleString("en-GH", { minimumFractionDigits: 2 })}
               </span>
+              {inv.status === "issued" || inv.status === "overdue" ? (
+                <button
+                  type="button"
+                  onClick={() => startCheckout(inv._id)}
+                  disabled={payingId === inv._id}
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-100 transition hover:bg-emerald-500/20 disabled:opacity-50"
+                >
+                  {payingId === inv._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
+                  Pay
+                </button>
+              ) : null}
+              {inv.status === "paid" ? (
+                <a
+                  href={`/api/admin/subscription/invoices/${inv._id}/receipt`}
+                  className="rounded-lg border border-white/10 bg-white/5 p-1 text-white/45 transition hover:text-white"
+                  aria-label={`Download receipt for ${inv.invoiceNumber}`}
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                </a>
+              ) : null}
             </div>
           </div>
         ))}

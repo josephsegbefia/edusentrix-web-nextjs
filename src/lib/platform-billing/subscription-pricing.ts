@@ -64,12 +64,85 @@ export type SubscriptionPricingInput = {
   discountValue?: number | null;
 };
 
+export const TERMS_PER_ACADEMIC_YEAR = 3;
+
+export type SubscriptionBasePriceInput = {
+  pricePerStudentPerTermMinor?: number | null;
+  minimumTermFeeMinor?: number | null;
+  annualDiscountPercent?: number | null;
+  billingCadence?: BillingCadence | null;
+  studentCount?: number | null;
+};
+
+export type SubscriptionBasePriceBreakdown = {
+  studentCount: number;
+  pricePerStudentPerTermMinor: number | null;
+  perStudentSubtotalPerTermMinor: number;
+  minimumTermFeeMinor: number | null;
+  minimumStudentThreshold: number | null;
+  termBasePriceMinor: number;
+  billingTerms: number;
+  annualDiscountPercent: number | null;
+  annualDiscountAmountMinor: number;
+  basePriceMinor: number;
+};
+
 export type SubscriptionPricingBreakdown = {
   baseTierPriceMinor: number;
   effectiveBasePriceMinor: number;
   discountAmountMinor: number;
   finalPriceMinor: number;
 };
+
+function normaliseMinor(value: number | null | undefined): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return null;
+  return Math.round(value);
+}
+
+export function computeSubscriptionBasePrice(
+  input: SubscriptionBasePriceInput
+): SubscriptionBasePriceBreakdown {
+  const studentCount = Math.max(0, Math.round(input.studentCount ?? 0));
+  const pricePerStudentPerTermMinor = normaliseMinor(input.pricePerStudentPerTermMinor);
+  const minimumTermFeeMinor = normaliseMinor(input.minimumTermFeeMinor);
+
+  const perStudentSubtotalPerTermMinor =
+    pricePerStudentPerTermMinor != null ? studentCount * pricePerStudentPerTermMinor : 0;
+
+  const termBasePriceMinor = Math.max(
+    perStudentSubtotalPerTermMinor,
+    minimumTermFeeMinor ?? 0
+  );
+
+  const billingTerms = input.billingCadence === "annual" ? TERMS_PER_ACADEMIC_YEAR : 1;
+  const annualSubtotalMinor = termBasePriceMinor * billingTerms;
+  const annualDiscountPercent =
+    input.billingCadence === "annual" && typeof input.annualDiscountPercent === "number"
+      ? Math.min(100, Math.max(0, input.annualDiscountPercent))
+      : null;
+  const annualDiscountAmountMinor =
+    annualDiscountPercent != null
+      ? Math.round((annualSubtotalMinor * annualDiscountPercent) / 100)
+      : 0;
+
+  const minimumStudentThreshold =
+    minimumTermFeeMinor != null && pricePerStudentPerTermMinor != null && pricePerStudentPerTermMinor > 0
+      ? Math.ceil(minimumTermFeeMinor / pricePerStudentPerTermMinor)
+      : null;
+
+  return {
+    studentCount,
+    pricePerStudentPerTermMinor,
+    perStudentSubtotalPerTermMinor,
+    minimumTermFeeMinor,
+    minimumStudentThreshold,
+    termBasePriceMinor,
+    billingTerms,
+    annualDiscountPercent,
+    annualDiscountAmountMinor,
+    basePriceMinor: Math.max(0, annualSubtotalMinor - annualDiscountAmountMinor),
+  };
+}
 
 export function computeSubscriptionPricing(
   input: SubscriptionPricingInput

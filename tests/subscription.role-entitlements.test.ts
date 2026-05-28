@@ -174,9 +174,9 @@ describe("SubscriptionError class hierarchy", () => {
   });
 
   it("FeatureGatedError message includes feature and plan", () => {
-    const err = new FeatureGatedError(FEATURE_KEYS.AI_LEO, "premium");
+    const err = new FeatureGatedError(FEATURE_KEYS.AI_LEO, "enterprise");
     assert.ok(err.message.includes(FEATURE_KEYS.AI_LEO));
-    assert.ok(err.message.includes("premium"));
+    assert.ok(err.message.includes("enterprise"));
   });
 
   it("FeatureGatedError without requiredPlan still works", () => {
@@ -229,7 +229,7 @@ describe("SubscriptionError class hierarchy", () => {
   });
 
   it("toApiResponse returns consistent shape", () => {
-    const err = new FeatureGatedError(FEATURE_KEYS.AI_LEO, "premium");
+    const err = new FeatureGatedError(FEATURE_KEYS.AI_LEO, "enterprise");
     const resp = err.toApiResponse();
     assert.equal(resp.success, false);
     assert.equal(typeof resp.error, "string");

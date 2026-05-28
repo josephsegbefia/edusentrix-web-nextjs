@@ -22,7 +22,7 @@ import {
   PlatformSection,
 } from "@/components/platform/platform-page-primitives";
 import { glassPanelClass, glassInsetClass } from "@/lib/ui/glass-surfaces";
-import { PLAN_CODES, PLAN_META } from "@/lib/subscriptions/plan-codes";
+import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -52,21 +52,21 @@ const PLAN_TONE: Record<string, string> = {
   pilot: "border-violet-500/30 bg-violet-500/10",
   starter: "border-cyan-500/30 bg-cyan-500/10",
   growth: "border-teal-500/30 bg-teal-500/10",
-  premium: "border-amber-500/30 bg-amber-500/10",
+  enterprise: "border-amber-500/30 bg-amber-500/10",
 };
 
 const PLAN_ACCENT: Record<string, string> = {
   pilot: "text-violet-200",
   starter: "text-cyan-200",
   growth: "text-teal-200",
-  premium: "text-amber-200",
+  enterprise: "text-amber-200",
 };
 
 const PLAN_ICON_TONE: Record<string, string> = {
   pilot: "bg-violet-500/10 text-violet-300",
   starter: "bg-cyan-500/10 text-cyan-300",
   growth: "bg-teal-500/10 text-teal-300",
-  premium: "bg-amber-500/10 text-amber-300",
+  enterprise: "bg-amber-500/10 text-amber-300",
 };
 
 function PlanCard({ plan }: { plan: PlanRow }) {
@@ -82,6 +82,12 @@ function PlanCard({ plan }: { plan: PlanRow }) {
   const minFeeLabel =
     plan.pricing?.minimumTermFeeMinor != null
       ? `GHS ${(plan.pricing.minimumTermFeeMinor / 100).toLocaleString()} min / term`
+      : null;
+  const minimumStudentThreshold =
+    plan.pricing?.minimumTermFeeMinor != null &&
+    plan.pricing?.pricePerStudentPerTermMinor != null &&
+    plan.pricing.pricePerStudentPerTermMinor > 0
+      ? Math.ceil(plan.pricing.minimumTermFeeMinor / plan.pricing.pricePerStudentPerTermMinor)
       : null;
 
   return (
@@ -151,6 +157,12 @@ function PlanCard({ plan }: { plan: PlanRow }) {
             </>
           ) : null}
         </div>
+        {minimumStudentThreshold != null ? (
+          <p className="mt-2 text-xs leading-relaxed text-white/40">
+            Minimum applies below {minimumStudentThreshold} active students. Annual billing is three terms
+            after any configured annual discount.
+          </p>
+        ) : null}
         <p className="mt-1 text-xs text-white/35">
           {plan.billingCadence} billing · v{plan.version}
         </p>
@@ -206,10 +218,10 @@ export default async function PlatformSubscriptionPlansPage() {
   await connectToDatabase();
 
   const [plans, totalPlans, activePlans, publicPlans] = await Promise.all([
-    SubscriptionTier.find({}).sort({ sortOrder: 1, active: -1 }).lean<PlanRow[]>(),
-    SubscriptionTier.countDocuments({}),
-    SubscriptionTier.countDocuments({ active: true }),
-    SubscriptionTier.countDocuments({ publicVisible: true }),
+    SubscriptionTier.find({ code: { $in: Object.values(PLAN_CODES) } }).sort({ sortOrder: 1, active: -1 }).lean<PlanRow[]>(),
+    SubscriptionTier.countDocuments({ code: { $in: Object.values(PLAN_CODES) } }),
+    SubscriptionTier.countDocuments({ code: { $in: Object.values(PLAN_CODES) }, active: true }),
+    SubscriptionTier.countDocuments({ code: { $in: Object.values(PLAN_CODES) }, publicVisible: true }),
   ]);
 
   const hasSeededPlans = plans.some((p) =>
@@ -221,7 +233,7 @@ export default async function PlatformSubscriptionPlansPage() {
       <PlatformPageHeader
         eyebrow="Revenue Management"
         title="Subscription plans"
-        description="Manage the plan catalogue that schools are subscribed to. Pilot, Starter, Growth, and Premium. Run the seed script to initialise default plans."
+        description="Manage the plan catalogue that schools are subscribed to. Pilot, Starter, Growth, and Enterprise. Run the seed script to initialise default plans."
         actions={
           <Link
             href="/platform/schools"
@@ -274,7 +286,7 @@ export default async function PlatformSubscriptionPlansPage() {
               <code className="rounded bg-white/10 px-1 font-mono text-white/70">
                 npm run seed:subscription-plans
               </code>{" "}
-              to create the Pilot, Starter, Growth, and Premium plans with their default features and
+              to create the Pilot, Starter, Growth, and Enterprise plans with their default features and
               limits. You can customise them here after seeding.
             </p>
           </div>
@@ -283,7 +295,7 @@ export default async function PlatformSubscriptionPlansPage() {
 
       <PlatformSection
         title="Plan catalogue"
-        description="The four canonical plans. Pilot is platform-admin only. Starter, Growth, and Premium are available for assignment."
+        description="The four canonical plans. Pilot is platform-admin only. Starter, Growth, and Enterprise are available for assignment."
       >
         {plans.length === 0 ? (
           <div className={cn(glassInsetClass, "py-12 text-center")}>

@@ -13,8 +13,8 @@
  * not duplicated. Safe to re-run.
  */
 
-import "../src/lib/env";
 import mongoose from "mongoose";
+import { config as loadEnv } from "dotenv";
 import { connectToDatabase } from "../src/db/connectToDatabase";
 import { SubscriptionTier } from "../src/models/SubscriptionTier";
 import {
@@ -33,6 +33,8 @@ import { FEATURE_KEYS } from "../src/lib/subscriptions/feature-keys";
 const isDryRun = process.argv.includes("--dryRun");
 const isDrop = process.argv.includes("--drop");
 
+loadEnv({ path: ".env.local" });
+
 function featuresForPlan(code: keyof typeof PLAN_CODES): string[] {
   const planCode = PLAN_CODES[code];
   const entries = PLAN_ENTITLEMENTS[planCode];
@@ -44,7 +46,9 @@ function featuresForPlan(code: keyof typeof PLAN_CODES): string[] {
 const PLAN_SEEDS = [
   {
     code: PLAN_CODES.PILOT,
-    ...PLAN_META.pilot,
+    name: PLAN_META.pilot.label,
+    description: PLAN_META.pilot.description,
+    publicVisible: PLAN_META.pilot.publicVisible,
     priceMinor: 0,
     billingCadence: "custom" as const,
     pricing: {
@@ -63,11 +67,13 @@ const PLAN_SEEDS = [
     version: 1,
     active: true,
     provisional: false,
-    sortOrder: 0,
+    sortOrder: PLAN_META.pilot.sortOrder,
   },
   {
     code: PLAN_CODES.STARTER,
-    ...PLAN_META.starter,
+    name: PLAN_META.starter.label,
+    description: PLAN_META.starter.description,
+    publicVisible: PLAN_META.starter.publicVisible,
     priceMinor: 800_00,       // GHS 800 minimum per term (in pesewas)
     billingCadence: "term" as const,
     pricing: {
@@ -82,11 +88,13 @@ const PLAN_SEEDS = [
     version: 1,
     active: true,
     provisional: false,
-    sortOrder: 1,
+    sortOrder: PLAN_META.starter.sortOrder,
   },
   {
     code: PLAN_CODES.GROWTH,
-    ...PLAN_META.growth,
+    name: PLAN_META.growth.label,
+    description: PLAN_META.growth.description,
+    publicVisible: PLAN_META.growth.publicVisible,
     priceMinor: 1500_00,
     billingCadence: "term" as const,
     pricing: {
@@ -101,11 +109,13 @@ const PLAN_SEEDS = [
     version: 1,
     active: true,
     provisional: false,
-    sortOrder: 2,
+    sortOrder: PLAN_META.growth.sortOrder,
   },
   {
-    code: PLAN_CODES.PREMIUM,
-    ...PLAN_META.premium,
+    code: PLAN_CODES.ENTERPRISE,
+    name: PLAN_META.enterprise.label,
+    description: PLAN_META.enterprise.description,
+    publicVisible: PLAN_META.enterprise.publicVisible,
     priceMinor: 2500_00,
     billingCadence: "term" as const,
     pricing: {
@@ -115,12 +125,12 @@ const PLAN_SEEDS = [
       annualDiscountPercent: 10,
       onboardingFeeMinor: null,
     },
-    features: featuresForPlan("PREMIUM"),
-    limits: DEFAULT_PLAN_LIMITS.premium,
+    features: featuresForPlan("ENTERPRISE"),
+    limits: DEFAULT_PLAN_LIMITS.enterprise,
     version: 1,
     active: true,
     provisional: false,
-    sortOrder: 3,
+    sortOrder: PLAN_META.enterprise.sortOrder,
   },
 ];
 
@@ -139,7 +149,7 @@ async function run() {
     const { code, ...data } = plan;
 
     if (isDryRun) {
-      console.log(`  [DRY] Would upsert plan: ${code} — ${data.label}`);
+      console.log(`  [DRY] Would upsert plan: ${code} — ${data.name}`);
       continue;
     }
 
@@ -148,7 +158,7 @@ async function run() {
       { $set: data },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
-    console.log(`  ✅  ${code.padEnd(10)} — ${data.label} (id: ${result._id})`);
+    console.log(`  ✅  ${code.padEnd(10)} — ${data.name} (id: ${result._id})`);
   }
 
   if (!isDryRun) {

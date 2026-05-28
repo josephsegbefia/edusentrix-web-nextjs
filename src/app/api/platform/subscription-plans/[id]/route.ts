@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
+import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
 
 const UpdatePlanSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
@@ -33,15 +33,8 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.billing.read");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+  const perm = await requirePlatformPermission("platform.billing.read");
+  if (!perm.ok) return perm.res;
 
   const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -49,7 +42,10 @@ export async function GET(
   }
 
   await connectToDatabase();
-  const plan = await SubscriptionTier.findById(id).lean();
+  const plan = await SubscriptionTier.findOne({
+    _id: id,
+    code: { $in: Object.values(PLAN_CODES) },
+  }).lean();
 
   if (!plan) {
     return NextResponse.json({ success: false, error: "Plan not found." }, { status: 404 });
@@ -63,15 +59,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -89,8 +78,8 @@ export async function PATCH(
 
   await connectToDatabase();
 
-  const updated = await SubscriptionTier.findByIdAndUpdate(
-    id,
+  const updated = await SubscriptionTier.findOneAndUpdate(
+    { _id: id, code: { $in: Object.values(PLAN_CODES) } },
     { $set: parsed.data },
     { new: true, runValidators: true }
   ).lean();

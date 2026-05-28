@@ -3,8 +3,8 @@
  * audit-entitlements.ts
  *
  * Runs a plan matrix consistency check:
- * 1. Starter cannot access Growth/Premium-only features.
- * 2. Growth cannot access Premium-only features unless explicitly included.
+ * 1. Starter cannot access Growth/Enterprise-only features.
+ * 2. Growth cannot access Enterprise-only features unless explicitly included.
  * 3. Pilot cannot access anything not explicitly enabled.
  * 4. Unknown feature keys are denied.
  * 5. Every FEATURE_KEYS value is present in PLAN_ENTITLEMENTS.
@@ -52,7 +52,7 @@ for (const [key, access] of Object.entries(pilotEntitlements)) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Starter must not include Growth/Premium-only academic/AI features
+// 3. Starter must not include Growth/Enterprise-only academic/AI features
 // ---------------------------------------------------------------------------
 const STARTER_FORBIDDEN = [
   FEATURE_KEYS.ACADEMICS_SCHEMES,
@@ -81,7 +81,7 @@ for (const key of STARTER_FORBIDDEN) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. Growth must not include Premium-only full features
+// 4. Growth must not include Enterprise-only full features
 // ---------------------------------------------------------------------------
 const GROWTH_FORBIDDEN_AS_YES = [
   FEATURE_KEYS.ANALYTICS_ADVANCED,
@@ -91,9 +91,9 @@ for (const key of GROWTH_FORBIDDEN_AS_YES) {
   const access = PLAN_ENTITLEMENTS.growth?.[key];
   if (access === "YES") {
     issues.push({
-      kind: "GROWTH_PREMIUM_LEAKAGE",
+      kind: "GROWTH_ENTERPRISE_LEAKAGE",
       feature: key,
-      detail: `Growth grants "${key}" as YES but this is Premium-only. Use LIMITED or NO.`,
+      detail: `Growth grants "${key}" as YES but this is Enterprise-only. Use LIMITED or NO.`,
     });
   }
 }

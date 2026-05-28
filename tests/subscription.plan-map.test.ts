@@ -3,8 +3,8 @@
  *
  * P0.9 — verifies:
  * - Every plan has a decision for every feature key.
- * - Starter does not include Growth/Premium-only features.
- * - Growth does not include Premium-only advanced analytics.
+ * - Starter does not include Growth/Enterprise-only features.
+ * - Growth does not include Enterprise-only advanced analytics.
  * - Pilot is OPTIONAL-only (no YES).
  * - getPlanAccess returns "NO" for unknown plan or null plan.
  */
@@ -104,19 +104,19 @@ describe("plan-entitlements map", () => {
     assert.notEqual(level, "YES", "Growth should not have full YES advanced analytics");
   });
 
-  it("Premium includes advanced analytics YES", () => {
-    const level = PLAN_ENTITLEMENTS.premium[FEATURE_KEYS.ANALYTICS_ADVANCED];
-    assert.equal(level, "YES", "Premium must have YES advanced analytics");
+  it("Enterprise includes advanced analytics YES", () => {
+    const level = PLAN_ENTITLEMENTS.enterprise[FEATURE_KEYS.ANALYTICS_ADVANCED];
+    assert.equal(level, "YES", "Enterprise must have YES advanced analytics");
   });
 
-  it("Premium includes meetings video (LIMITED — has allowance)", () => {
-    const level = PLAN_ENTITLEMENTS.premium[FEATURE_KEYS.MEETINGS_VIDEO];
-    assert.ok(level === "YES" || level === "LIMITED", "Premium should include meetings");
+  it("Enterprise includes meetings video (LIMITED — has allowance)", () => {
+    const level = PLAN_ENTITLEMENTS.enterprise[FEATURE_KEYS.MEETINGS_VIDEO];
+    assert.ok(level === "YES" || level === "LIMITED", "Enterprise should include meetings");
   });
 
-  it("Premium includes priority support", () => {
-    const level = PLAN_ENTITLEMENTS.premium[FEATURE_KEYS.SUPPORT_PRIORITY];
-    assert.equal(level, "YES", "Premium must have priority support");
+  it("Enterprise includes priority support", () => {
+    const level = PLAN_ENTITLEMENTS.enterprise[FEATURE_KEYS.SUPPORT_PRIORITY];
+    assert.equal(level, "YES", "Enterprise must have priority support");
   });
 
   it("Growth includes priority support", () => {
@@ -142,6 +142,6 @@ describe("plan-entitlements map", () => {
   it("getPlanAccess returns correct level for known plan+feature", () => {
     assert.equal(getPlanAccess("growth", FEATURE_KEYS.ACADEMICS_LESSON_NOTES), "YES");
     assert.equal(getPlanAccess("starter", FEATURE_KEYS.ACADEMICS_LESSON_NOTES), "NO");
-    assert.equal(getPlanAccess("premium", FEATURE_KEYS.ANALYTICS_ADVANCED), "YES");
+    assert.equal(getPlanAccess("enterprise", FEATURE_KEYS.ANALYTICS_ADVANCED), "YES");
   });
 });

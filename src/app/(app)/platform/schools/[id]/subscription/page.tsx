@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowUpDown,
   Banknote,
   Calendar,
   CheckCircle2,
@@ -49,6 +50,7 @@ type PlanOption = {
 
 type SubData = {
   school: { id: string; name: string; status: string };
+  activeStudentCount: number;
   subscription: {
     _id: string;
     tierId: string | null;
@@ -61,6 +63,7 @@ type SubData = {
     endsAt: string | null;
     pilotEndsAt: string | null;
     gracePeriodEndsAt: string | null;
+    studentCountSnapshot: number;
     effectivePriceMinor: number;
     basePriceMinor: number;
     manualPriceOverrideMinor: number | null;
@@ -68,6 +71,15 @@ type SubData = {
     discountValue: number | null;
     featuresSnapshot: string[];
     note: string | null;
+    pendingPlanChange?: {
+      targetTierCode: string;
+      targetTierName: string;
+      changeKind: string;
+      effectiveAt: string;
+      requestedByEmail?: string | null;
+      requestedAt: string;
+      note?: string | null;
+    } | null;
   } | null;
   plan: PlanOption | null;
   events: Array<{
@@ -78,6 +90,31 @@ type SubData = {
     createdAt: string;
   }>;
 };
+
+type TabId = "overview" | "pricing" | "features" | "charges" | "usage" | "events";
+
+type PlanChangeQuote = {
+  kind: "upgrade" | "downgrade" | "lateral";
+  currentPlanCode: string | null;
+  targetPlanCode: string;
+  currentPeriodPriceMinor: number;
+  targetPeriodPriceMinor: number;
+  proratedCreditMinor: number;
+  proratedTargetChargeMinor: number;
+  amountDueNowMinor: number;
+  effectiveAt: "immediate" | "renewal";
+  scheduledAt: string | null;
+  note: string;
+};
+
+const TABS: Array<{ id: TabId; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "pricing", label: "Pricing" },
+  { id: "features", label: "Features" },
+  { id: "charges", label: "Charges" },
+  { id: "usage", label: "Usage & Add-ons" },
+  { id: "events", label: "Events" },
+];
 
 const STATUS_TONE: Record<string, string> = {
   active: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
@@ -93,6 +130,20 @@ const STATUS_TONE: Record<string, string> = {
 
 function minorToGHS(minor: number): string {
   return `GHS ${(minor / 100).toLocaleString("en-GH", { minimumFractionDigits: 2 })}`;
+}
+
+function billingPeriodLabel(cadence?: string | null): string {
+  if (cadence === "annual") return "year";
+  if (cadence === "monthly") return "month";
+  if (cadence === "custom") return "custom period";
+  return "term";
+}
+
+function minimumStudentThreshold(plan: PlanOption): number | null {
+  const rate = plan.pricing?.pricePerStudentPerTermMinor;
+  const minimum = plan.pricing?.minimumTermFeeMinor;
+  if (!rate || !minimum) return null;
+  return Math.ceil(minimum / rate);
 }
 
 export default function SchoolSubscriptionPage() {
@@ -116,6 +167,7 @@ export default function SchoolSubscriptionPage() {
   const [discountMode, setDiscountMode] = React.useState<"none" | "percent" | "fixed">("none");
   const [discountValue, setDiscountValue] = React.useState("");
   const [note, setNote] = React.useState("");
+  const [activeTab, setActiveTab] = React.useState<TabId>("overview");
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -208,20 +260,8 @@ export default function SchoolSubscriptionPage() {
     );
   }
 
-  const currentSub = data?.subscription;
+  const currentSub = data?.subscription ?? null;
   const selectedPlan = plans.find((p) => p._id === selectedPlanId);
-
-  type TabId = "overview" | "pricing" | "features" | "charges" | "usage" | "events";
-  const [activeTab, setActiveTab] = React.useState<TabId>("overview");
-
-  const TABS: Array<{ id: TabId; label: string }> = [
-    { id: "overview", label: "Overview" },
-    { id: "pricing", label: "Pricing" },
-    { id: "features", label: "Features" },
-    { id: "charges", label: "Charges" },
-    { id: "usage", label: "Usage & Add-ons" },
-    { id: "events", label: "Events" },
-  ];
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -260,7 +300,7 @@ export default function SchoolSubscriptionPage() {
                 ) : null}
                 {currentSub.effectivePriceMinor > 0 ? (
                   <span className="text-xs text-white/40">
-                    {minorToGHS(currentSub.effectivePriceMinor)} / {currentSub.billingCadence ?? "term"}
+                    {minorToGHS(currentSub.effectivePriceMinor)} / {billingPeriodLabel(currentSub.billingCadence)}
                   </span>
                 ) : null}
               </div>
@@ -348,10 +388,22 @@ export default function SchoolSubscriptionPage() {
                   )}
                   {selectedPlan.pricing?.minimumTermFeeMinor != null && (
                     <span>
-                      Min: GHS {(selectedPlan.pricing.minimumTermFeeMinor / 100).toLocaleString()}
+                      Min: GHS {(selectedPlan.pricing.minimumTermFeeMinor / 100).toLocaleString()} / term
                     </span>
                   )}
+                  {minimumStudentThreshold(selectedPlan) != null ? (
+                    <span>
+                      Minimum applies below {minimumStudentThreshold(selectedPlan)} students
+                    </span>
+                  ) : null}
                 </div>
+                {selectedPlan.pricing?.pricePerStudentPerTermMinor != null ? (
+                  <p className="mt-2 text-[11px] leading-relaxed text-white/35">
+                    Pricing is calculated per term as the greater of active students multiplied by
+                    the per-student rate, or the plan minimum. Annual billing covers three terms and
+                    then applies the annual discount when configured.
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -530,6 +582,8 @@ export default function SchoolSubscriptionPage() {
                 <Row label="Status" value={currentSub.status} />
                 <Row label="Mode" value={currentSub.lifecycleMode ?? "—"} />
                 <Row label="Cadence" value={currentSub.billingCadence ?? "—"} />
+                <Row label="Active students" value={`${data?.activeStudentCount ?? currentSub.studentCountSnapshot ?? 0}`} />
+                <Row label="Billed students" value={`${currentSub.studentCountSnapshot ?? 0}`} />
                 <Row
                   label="Starts"
                   value={currentSub.startsAt ? new Date(currentSub.startsAt).toLocaleDateString("en-GH") : "—"}
@@ -544,6 +598,10 @@ export default function SchoolSubscriptionPage() {
                     value={new Date(currentSub.gracePeriodEndsAt).toLocaleDateString("en-GH")}
                   />
                 ) : null}
+                <Row
+                  label="Base price"
+                  value={currentSub.basePriceMinor > 0 ? minorToGHS(currentSub.basePriceMinor) : "Free / Custom"}
+                />
                 <Row
                   label="Effective price"
                   value={currentSub.effectivePriceMinor > 0 ? minorToGHS(currentSub.effectivePriceMinor) : "Free / Custom"}
@@ -572,6 +630,8 @@ export default function SchoolSubscriptionPage() {
                 <Row label="Status" value={currentSub.status} />
                 <Row label="Lifecycle mode" value={currentSub.lifecycleMode ?? "—"} />
                 <Row label="Billing cadence" value={currentSub.billingCadence ?? "—"} />
+                <Row label="Active students" value={`${data?.activeStudentCount ?? currentSub.studentCountSnapshot ?? 0}`} />
+                <Row label="Billed students" value={`${currentSub.studentCountSnapshot ?? 0}`} />
                 <Row
                   label="Starts"
                   value={currentSub.startsAt ? new Date(currentSub.startsAt).toLocaleDateString("en-GH") : "—"}
@@ -586,6 +646,10 @@ export default function SchoolSubscriptionPage() {
                     value={new Date(currentSub.gracePeriodEndsAt).toLocaleDateString("en-GH")}
                   />
                 )}
+                <Row
+                  label="Base price"
+                  value={currentSub.basePriceMinor > 0 ? minorToGHS(currentSub.basePriceMinor) : "Free / Custom"}
+                />
                 <Row
                   label="Effective price"
                   value={currentSub.effectivePriceMinor > 0 ? minorToGHS(currentSub.effectivePriceMinor) : "Free / Custom"}
@@ -613,6 +677,12 @@ export default function SchoolSubscriptionPage() {
             )}
           </div>
           <div className="space-y-5">
+            <PlatformPlanChangePanel
+              schoolId={schoolId}
+              plans={plans}
+              currentSub={currentSub}
+              reload={load}
+            />
             <RenewalPanel schoolId={schoolId} currentSub={currentSub} reload={load} />
             <AccessModePanel schoolId={schoolId} currentSub={currentSub} reload={load} />
           </div>
@@ -677,6 +747,161 @@ export default function SchoolSubscriptionPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PlatformPlanChangePanel({
+  schoolId,
+  plans,
+  currentSub,
+  reload,
+}: {
+  schoolId: string;
+  plans: PlanOption[];
+  currentSub: SubData["subscription"] | null;
+  reload: () => void;
+}) {
+  const [targetPlanId, setTargetPlanId] = React.useState("");
+  const [quote, setQuote] = React.useState<PlanChangeQuote | null>(null);
+  const [note, setNote] = React.useState("");
+  const [loadingQuote, setLoadingQuote] = React.useState(false);
+  const [applying, setApplying] = React.useState(false);
+
+  const eligiblePlans = plans.filter((plan) => plan._id !== currentSub?.tierId && plan.code !== "pilot");
+  const targetPlan = plans.find((plan) => plan._id === targetPlanId) ?? null;
+
+  async function requestQuote(apply: boolean) {
+    if (!targetPlanId || !currentSub) return;
+    if (apply) setApplying(true);
+    else setLoadingQuote(true);
+    try {
+      const res = await fetch(`/api/platform/schools/${schoolId}/subscription/plan-change`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetPlanId, apply, note: note || null }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const nextQuote = json.data.quote ?? json.data;
+        setQuote(nextQuote);
+        if (apply) {
+          if (json.data.scheduled) {
+            toast.success("Plan downgrade scheduled for renewal.");
+          } else if (json.data.invoice?.invoiceNumber) {
+            toast.success(`Plan changed. Invoice ${json.data.invoice.invoiceNumber} issued.`);
+          } else {
+            toast.success("Plan changed.");
+          }
+          await reload();
+        }
+      } else {
+        toast.error(typeof json.error === "string" ? json.error : "Plan change failed.");
+      }
+    } catch {
+      toast.error("Network error.");
+    } finally {
+      setLoadingQuote(false);
+      setApplying(false);
+    }
+  }
+
+  if (!currentSub || eligiblePlans.length === 0) return null;
+
+  return (
+    <div className={cn(glassPanelClass, "px-5 py-4")}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
+      <div className="mb-3 flex items-center gap-2">
+        <ArrowUpDown className="h-4 w-4 text-white/45" />
+        <p className="text-xs font-semibold text-white/50">Smart plan change</p>
+      </div>
+
+      {currentSub.pendingPlanChange ? (
+        <div className={cn(glassInsetClass, "mb-3 px-3 py-2 text-xs")}>
+          <p className="font-medium text-amber-200">
+            Pending {currentSub.pendingPlanChange.changeKind}: {currentSub.pendingPlanChange.targetTierName}
+          </p>
+          <p className="mt-1 text-white/35">
+            Effective {new Date(currentSub.pendingPlanChange.effectiveAt).toLocaleDateString("en-GH", { dateStyle: "medium" })}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="space-y-3">
+        <PremiumSelect
+          value={targetPlanId}
+          onValueChange={(value) => {
+            setTargetPlanId(value);
+            setQuote(null);
+          }}
+        >
+          <PremiumSelectTrigger className="w-full">
+            <PremiumSelectValue placeholder="Choose target plan" />
+          </PremiumSelectTrigger>
+          <PremiumSelectContent>
+            {eligiblePlans.map((plan) => (
+              <PremiumSelectItem key={plan._id} value={plan._id}>
+                {plan.name}
+              </PremiumSelectItem>
+            ))}
+          </PremiumSelectContent>
+        </PremiumSelect>
+
+        {targetPlan ? (
+          <p className="text-[11px] text-white/35">
+            {targetPlan.name}: {targetPlan.pricing?.pricePerStudentPerTermMinor != null
+              ? `${minorToGHS(targetPlan.pricing.pricePerStudentPerTermMinor)} per student per term`
+              : "custom pricing"}
+          </p>
+        ) : null}
+
+        <textarea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          rows={2}
+          placeholder="Operator note for activity log and invoice context"
+          className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white outline-none placeholder:text-white/20 focus:border-white/20"
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={!targetPlanId || loadingQuote || applying}
+            onClick={() => requestQuote(false)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loadingQuote ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Quote
+          </button>
+          <button
+            type="button"
+            disabled={!targetPlanId || loadingQuote || applying}
+            onClick={() => requestQuote(true)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-teal-400/30 bg-teal-500/15 px-3 py-2 text-xs font-semibold text-teal-100 transition hover:bg-teal-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {applying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
+            Apply
+          </button>
+        </div>
+
+        {quote ? (
+          <div className={cn(glassInsetClass, "space-y-1 px-3 py-3 text-xs")}>
+            <Row label="Change type" value={quote.kind} />
+            <Row label="Current value" value={minorToGHS(quote.currentPeriodPriceMinor)} />
+            <Row label="Target value" value={minorToGHS(quote.targetPeriodPriceMinor)} />
+            <Row label="Prorated credit" value={minorToGHS(quote.proratedCreditMinor)} />
+            <Row label="Prorated charge" value={minorToGHS(quote.proratedTargetChargeMinor)} />
+            <Row label="Due now" value={minorToGHS(quote.amountDueNowMinor)} />
+            <Row
+              label="Effective"
+              value={quote.effectiveAt === "renewal" && quote.scheduledAt
+                ? new Date(quote.scheduledAt).toLocaleDateString("en-GH", { dateStyle: "medium" })
+                : "Immediate"}
+            />
+            <p className="pt-2 text-[11px] text-white/35">{quote.note}</p>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

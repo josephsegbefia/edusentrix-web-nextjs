@@ -8,14 +8,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
+import { Student } from "@/models/Student";
 import { SchoolSubscription } from "@/models/SchoolSubscription";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
+import { SubscriptionEvent } from "@/models/SubscriptionEvent";
 import { recordSubscriptionEvent } from "@/lib/subscriptions/record-event";
-import { normaliseSubscriptionStatus, isKnownPlanCode } from "@/lib/subscriptions/plan-codes";
+import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
+import {
+  computeSubscriptionBasePrice,
+  computeSubscriptionPricing,
+} from "@/lib/platform-billing/subscription-pricing";
 
 const AssignSubscriptionSchema = z.object({
   planId: z.string().trim().min(1, "Plan is required"),
@@ -34,16 +39,9 @@ const AssignSubscriptionSchema = z.object({
 type Params = { params: Promise<{ id: string }> };
 
 // GET — return current subscription for the school
-export async function GET(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.billing.read");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+export async function GET(_req: NextRequest, { params }: Params) {
+  const perm = await requirePlatformPermission("platform.billing.read");
+  if (!perm.ok) return perm.res;
 
   const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -52,13 +50,17 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   await connectToDatabase();
 
-  const [school, sub, events] = await Promise.all([
+  const [school, sub, events, activeStudentCount] = await Promise.all([
     School.findById(id).select("name status").lean<any>(),
     SchoolSubscription.findOne({ schoolId: id }).lean<any>(),
     SubscriptionEvent.find({ schoolId: id })
       .sort({ createdAt: -1 })
       .limit(20)
       .lean<any[]>(),
+    Student.countDocuments({
+      schoolId: new mongoose.Types.ObjectId(id),
+      status: "active",
+    }),
   ]);
 
   if (!school) {
@@ -68,13 +70,17 @@ export async function GET(req: NextRequest, { params }: Params) {
   // Fetch plan details if subscription exists
   let plan = null;
   if (sub?.tierId) {
-    plan = await SubscriptionTier.findById(sub.tierId).lean<any>();
+    plan = await SubscriptionTier.findOne({
+      _id: sub.tierId,
+      code: { $in: Object.values(PLAN_CODES) },
+    }).lean<any>();
   }
 
   return NextResponse.json({
     success: true,
     data: {
       school: { id: String(school._id), name: school.name, status: school.status },
+      activeStudentCount,
       subscription: sub
         ? {
             ...sub,
@@ -96,15 +102,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 // POST — assign or update subscription
 export async function POST(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const { id: schoolId } = await params;
   if (!mongoose.Types.ObjectId.isValid(schoolId)) {
@@ -128,7 +127,10 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const [school, plan] = await Promise.all([
     School.findById(schoolId).select("name status").lean<any>(),
-    SubscriptionTier.findById(parsed.data.planId).lean<any>(),
+    SubscriptionTier.findOne({
+      _id: parsed.data.planId,
+      code: { $in: Object.values(PLAN_CODES) },
+    }).lean<any>(),
   ]);
 
   if (!school) {
@@ -165,15 +167,28 @@ export async function POST(req: NextRequest, { params }: Params) {
   // Determine status
   const status = lifecycleMode === "pilot" ? "pilot" : "active";
 
-  // Calculate effective price
-  const basePriceMinor = plan.pricing?.minimumTermFeeMinor ?? plan.priceMinor ?? 0;
-  let effectivePriceMinor = manualPriceOverrideMinor ?? basePriceMinor;
+  const studentCountSnapshot = await Student.countDocuments({
+    schoolId: new mongoose.Types.ObjectId(schoolId),
+    status: "active",
+  });
 
-  if (discountMode === "percent" && discountValue) {
-    effectivePriceMinor = Math.round(effectivePriceMinor * (1 - discountValue / 100));
-  } else if (discountMode === "fixed" && discountValue) {
-    effectivePriceMinor = Math.max(0, effectivePriceMinor - discountValue);
-  }
+  const basePriceBreakdown = computeSubscriptionBasePrice({
+    studentCount: studentCountSnapshot,
+    pricePerStudentPerTermMinor: plan.pricing?.pricePerStudentPerTermMinor ?? null,
+    minimumTermFeeMinor: plan.pricing?.minimumTermFeeMinor ?? plan.priceMinor ?? null,
+    annualDiscountPercent: plan.pricing?.annualDiscountPercent ?? null,
+    billingCadence,
+  });
+
+  const pricing = computeSubscriptionPricing({
+    basePriceMinor: basePriceBreakdown.basePriceMinor,
+    manualPriceOverrideMinor,
+    discountMode,
+    discountValue,
+  });
+
+  const basePriceMinor = pricing.baseTierPriceMinor;
+  const effectivePriceMinor = pricing.finalPriceMinor;
 
   const existingSub = await SchoolSubscription.findOne({ schoolId });
   const isUpdate = !!existingSub;
@@ -195,6 +210,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     endsAt: endsAtDate,
     pilotEndsAt: pilotEndsAtDate,
     gracePeriodEndsAt,
+    studentCountSnapshot,
     basePriceMinor,
     manualPriceOverrideMinor: manualPriceOverrideMinor ?? null,
     discountMode,
@@ -204,7 +220,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     includedLimitsSnapshot: limitsSnapshot,
     note: note ?? null,
     updatedBy: null,
-    updatedByEmail: auth.email ?? null,
+    updatedByEmail: perm.actor.email ?? null,
   };
 
   let subscription;
@@ -223,7 +239,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     schoolId: new mongoose.Types.ObjectId(schoolId),
     subscriptionId: subscription!._id,
     eventType: isUpdate ? "subscription_updated" : "subscription_assigned",
-    actorEmail: auth.email ?? null,
+    actorEmail: perm.actor.email ?? null,
     summary: isUpdate
       ? `Subscription updated to ${plan.name} (${plan.code}) by platform admin.`
       : `Subscription assigned: ${plan.name} (${plan.code}) — ${lifecycleMode} mode.`,
@@ -232,6 +248,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       lifecycleMode,
       billingCadence,
       effectivePriceMinor,
+      studentCountSnapshot,
+      pricingBreakdown: basePriceBreakdown,
       startsAt: startsAtDate.toISOString(),
       endsAt: endsAtDate?.toISOString() ?? null,
     },

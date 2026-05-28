@@ -92,6 +92,7 @@ export default function PlatformSubscriptionPlanDetailPage() {
   const [publicVisible, setPublicVisible] = React.useState(false);
   const [pricePerStudent, setPricePerStudent] = React.useState<string>("");
   const [minFee, setMinFee] = React.useState<string>("");
+  const [minimumStudents, setMinimumStudents] = React.useState<string>("");
   const [annualDiscount, setAnnualDiscount] = React.useState<string>("");
 
   React.useEffect(() => {
@@ -116,13 +117,20 @@ export default function PlatformSubscriptionPlanDetailPage() {
               ? String(p.pricing.minimumTermFeeMinor / 100)
               : ""
           );
+          setMinimumStudents(
+            p.pricing?.minimumTermFeeMinor != null &&
+              p.pricing?.pricePerStudentPerTermMinor != null &&
+              p.pricing.pricePerStudentPerTermMinor > 0
+              ? String(Math.ceil(p.pricing.minimumTermFeeMinor / p.pricing.pricePerStudentPerTermMinor))
+              : ""
+          );
           setAnnualDiscount(
             p.pricing?.annualDiscountPercent != null
               ? String(p.pricing.annualDiscountPercent)
               : ""
           );
         } else {
-          toast.error("Plan not found.");
+          toast.error(typeof json.error === "string" ? json.error : "Failed to load plan.");
         }
       })
       .catch(() => toast.error("Failed to load plan."))
@@ -151,6 +159,17 @@ export default function PlatformSubscriptionPlanDetailPage() {
     if (!plan || saving) return;
     setSaving(true);
     try {
+      const pricePerStudentMinor = pricePerStudent
+        ? Math.round(parseFloat(pricePerStudent) * 100)
+        : null;
+      const minimumStudentsCount = minimumStudents ? parseInt(minimumStudents, 10) : null;
+      const minimumTermFeeMinor =
+        pricePerStudentMinor != null && minimumStudentsCount != null && minimumStudentsCount > 0
+          ? pricePerStudentMinor * minimumStudentsCount
+          : minFee
+            ? Math.round(parseFloat(minFee) * 100)
+            : null;
+
       const res = await fetch(`/api/platform/subscription-plans/${plan._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -160,8 +179,8 @@ export default function PlatformSubscriptionPlanDetailPage() {
           features: Array.from(selectedFeatures),
           pricing: {
             ...plan.pricing,
-            pricePerStudentPerTermMinor: pricePerStudent ? Math.round(parseFloat(pricePerStudent) * 100) : null,
-            minimumTermFeeMinor: minFee ? Math.round(parseFloat(minFee) * 100) : null,
+            pricePerStudentPerTermMinor: pricePerStudentMinor,
+            minimumTermFeeMinor,
             annualDiscountPercent: annualDiscount ? parseFloat(annualDiscount) : null,
           },
         }),
@@ -169,6 +188,11 @@ export default function PlatformSubscriptionPlanDetailPage() {
       const json = await res.json();
       if (json.success) {
         setPlan(json.data);
+        setMinFee(
+          json.data.pricing?.minimumTermFeeMinor != null
+            ? String(json.data.pricing.minimumTermFeeMinor / 100)
+            : ""
+        );
         toast.success("Plan updated.");
       } else {
         toast.error(typeof json.error === "string" ? json.error : "Update failed.");
@@ -323,6 +347,34 @@ export default function PlatformSubscriptionPlanDetailPage() {
                     className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/25"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs text-white/50">
+                  Minimum billable students
+                </label>
+                <div className="mt-1 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={minimumStudents}
+                    onChange={(e) => {
+                      setMinimumStudents(e.target.value);
+                      const rate = pricePerStudent ? parseFloat(pricePerStudent) : 0;
+                      const count = e.target.value ? parseInt(e.target.value, 10) : 0;
+                      if (rate > 0 && count > 0) {
+                        setMinFee(String(rate * count));
+                      }
+                    }}
+                    placeholder="e.g. 100"
+                    className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/25"
+                  />
+                  <span className="text-xs text-white/40">students</span>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-white/30">
+                  Below this count, the plan minimum is charged. Minimum term fee is calculated as
+                  this count multiplied by the per-student term price.
+                </p>
               </div>
               <div>
                 <label className="block text-xs text-white/50">Annual discount (%)</label>

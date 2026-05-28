@@ -229,9 +229,9 @@ export const PLAN_ENTITLEMENTS: Record<PlanCode, PlanEntitlementRow> = {
   },
 
   // ---------------------------------------------------------------------------
-  // PREMIUM — full smart school OS with higher limits and meetings.
+  // ENTERPRISE — full smart school OS with higher limits and meetings.
   // ---------------------------------------------------------------------------
-  premium: {
+  enterprise: {
     // Core
     [FEATURE_KEYS.SCHOOL_PROFILE]: "YES",
     [FEATURE_KEYS.ACADEMIC_PERIODS]: "YES",

@@ -46,7 +46,7 @@ export const ONE_GB = 1_073_741_824;
  * Default numeric plan limits (v1).
  * Pilot values are "must be set explicitly" — defaults to 0 / blocked.
  */
-export const DEFAULT_PLAN_LIMITS: Record<"pilot" | "starter" | "growth" | "premium", PlanLimits> = {
+export const DEFAULT_PLAN_LIMITS: Record<"pilot" | "starter" | "growth" | "enterprise", PlanLimits> = {
   pilot: {
     maxStudents: 0,              // must be set per pilot school
     maxTeachers: 0,
@@ -80,7 +80,7 @@ export const DEFAULT_PLAN_LIMITS: Record<"pilot" | "starter" | "growth" | "premi
     reportExportsPerTerm: 20,
     examGenerationsPerTerm: 30,
   },
-  premium: {
+  enterprise: {
     maxStudents: null,           // negotiated / unlimited
     maxTeachers: null,
     maxInvitationsPerMonth: null,

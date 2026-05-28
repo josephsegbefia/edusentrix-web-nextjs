@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { AddOnPackage } from "@/models/AddOnPackage";
@@ -26,11 +25,8 @@ const PatchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -52,11 +48,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {

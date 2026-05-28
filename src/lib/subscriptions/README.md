@@ -132,7 +132,7 @@ The `resolvePaymentChargePolicy` function follows this 4-level precedence order:
 | Pilot | `pilot` | Free onboarding. Limited features explicitly enabled. |
 | Starter | `starter` | Core school ops: students, fees, comms, basic academics. |
 | Growth | `growth` | Adds schemes, lesson notes, Leo AI, examinations. |
-| Premium | `premium` | Adds advanced analytics, meetings, priority support, higher limits. |
+| Enterprise | `enterprise` | Adds advanced analytics, meetings, priority support, higher limits. |
 
 ---
 

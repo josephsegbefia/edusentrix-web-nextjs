@@ -47,7 +47,7 @@ const PLAN_PILL: Record<string, string> = {
   pilot: "border-violet-500/30 bg-violet-500/10 text-violet-200",
   starter: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
   growth: "border-teal-500/30 bg-teal-500/10 text-teal-200",
-  premium: "border-amber-500/30 bg-amber-500/10 text-amber-200",
+  enterprise: "border-amber-500/30 bg-amber-500/10 text-amber-200",
 };
 
 function formatGHS(minor: number) {
@@ -159,7 +159,7 @@ export default function SchoolSubscriptionsListPage() {
           <option value="pilot">Pilot</option>
           <option value="starter">Starter</option>
           <option value="growth">Growth</option>
-          <option value="premium">Premium</option>
+          <option value="enterprise">Enterprise</option>
         </select>
         <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer">
           <input

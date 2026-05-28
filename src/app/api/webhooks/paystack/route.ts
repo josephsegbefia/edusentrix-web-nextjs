@@ -53,6 +53,7 @@ import {
   markFeeFailedByReference,
   markFeePaidByReference,
 } from "@/lib/admissions/fee-payments";
+import { fulfillSubscriptionCheckoutSuccess } from "@/lib/subscriptions/subscription-checkout";
 
 // ============================================================================
 // Types
@@ -174,6 +175,13 @@ export async function POST(req: NextRequest) {
         await handleAdmissionsFeeSuccess(event);
         return NextResponse.json({ received: true });
       }
+      if (
+        metadata?.type === "subscription_invoice" &&
+        metadata?.subscriptionCheckoutIntentId
+      ) {
+        await handleSubscriptionInvoiceSuccess(event);
+        return NextResponse.json({ received: true });
+      }
       if (metadata?.invoiceId && metadata?.studentId && metadata?.schoolId) {
         await handleFeePaymentSuccess(event, req);
         return NextResponse.json({ received: true });
@@ -243,6 +251,33 @@ async function handleLearnAccessSuccess(event: PaystackEvent) {
   if (!outcome.ok) {
     console.error("Paystack webhook: Learn fulfillment failed", {
       reference,
+      message: outcome.message,
+    });
+  }
+}
+
+async function handleSubscriptionInvoiceSuccess(event: PaystackEvent) {
+  const { data } = event;
+  if (data.status !== "success" || !data.reference) return;
+
+  const outcome = await fulfillSubscriptionCheckoutSuccess({
+    reference: data.reference,
+    verification: {
+      id: data.id,
+      reference: data.reference,
+      status: data.status,
+      amount: data.amount,
+      currency: data.currency,
+      channel: data.channel,
+      paid_at: data.paid_at ?? null,
+      metadata: data.metadata ?? null,
+    },
+    actorType: "webhook",
+  });
+
+  if (!outcome.ok) {
+    console.error("Paystack webhook: Subscription checkout fulfillment failed", {
+      reference: data.reference,
       message: outcome.message,
     });
   }

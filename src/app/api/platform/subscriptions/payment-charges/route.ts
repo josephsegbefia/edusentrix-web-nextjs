@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { PaymentChargePolicy, PAYMENT_CATEGORIES } from "@/models/PaymentChargePolicy";
@@ -25,11 +24,8 @@ const CreatePolicySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.billing.read");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.billing.read");
+  if (!perm.ok) return perm.res;
 
   await connectToDatabase();
 
@@ -58,11 +54,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const body = await req.json();
   const parsed = CreatePolicySchema.safeParse(body);
@@ -78,7 +71,7 @@ export async function POST(req: NextRequest) {
   const policy = await PaymentChargePolicy.create({
     ...parsed.data,
     currency: "GHS",
-    createdByEmail: auth.email ?? null,
+    createdByEmail: perm.actor.email ?? null,
   });
 
   return NextResponse.json(

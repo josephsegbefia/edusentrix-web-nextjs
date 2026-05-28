@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
@@ -25,11 +24,8 @@ const CreateAddOnSchema = z.object({
 });
 
 export async function GET(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.billing.read");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.billing.read");
+  if (!perm.ok) return perm.res;
 
   const { id: schoolId } = await params;
   if (!mongoose.Types.ObjectId.isValid(schoolId)) {
@@ -55,11 +51,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 }
 
 export async function POST(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const { id: schoolId } = await params;
   if (!mongoose.Types.ObjectId.isValid(schoolId)) {
@@ -95,14 +88,14 @@ export async function POST(req: NextRequest, { params }: Params) {
     status: "pending",
     note: parsed.data.note ?? null,
     invoiceReference: parsed.data.invoiceReference ?? null,
-    createdByEmail: auth.email ?? null,
+    createdByEmail: perm.actor.email ?? null,
   });
 
   await recordSubscriptionEvent({
     schoolId: new mongoose.Types.ObjectId(schoolId),
     subscriptionId: sub?._id ?? null,
     eventType: "addon_purchased",
-    actorEmail: auth.email ?? null,
+    actorEmail: perm.actor.email ?? null,
     summary: `Add-on created: ${addon.addonType} × ${addon.quantity}. Status: pending. Created by platform admin.`,
     metadata: {
       addonId: String(addon._id),

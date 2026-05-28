@@ -40,7 +40,7 @@ type LockedModulePageProps = {
    * Which plan unlocks this feature.
    * If omitted, the component derives it from PLAN_META.
    */
-  requiredPlan?: "starter" | "growth" | "premium";
+  requiredPlan?: "starter" | "growth" | "enterprise";
   /** Current plan name — shown as "you are on X". */
   currentPlanName?: string | null;
   /** Whether the enforcement is actually on. When false, shows a softer message. */
@@ -57,7 +57,7 @@ const MODULE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }
   communications: Zap,
 };
 
-const PLAN_REQUIRED_FOR_FEATURE: Record<string, "starter" | "growth" | "premium"> = {
+const PLAN_REQUIRED_FOR_FEATURE: Record<string, "starter" | "growth" | "enterprise"> = {
   "academics.schemes": "growth",
   "academics.lesson_notes": "growth",
   "academics.curriculum": "growth",
@@ -67,17 +67,17 @@ const PLAN_REQUIRED_FOR_FEATURE: Record<string, "starter" | "growth" | "premium"
   "ai.leo": "growth",
   "ai.lesson_generation": "growth",
   "ai.exam_generation": "growth",
-  "ai.analytics": "premium",
-  "analytics.advanced": "premium",
+  "ai.analytics": "enterprise",
+  "analytics.advanced": "enterprise",
   "learn.manage": "growth",
   "learn.student_access": "growth",
-  "meetings.video": "premium",
+  "meetings.video": "enterprise",
   "communications.messaging": "growth",
-  "communications.community": "premium",
+  "communications.community": "enterprise",
   "finance.reconciliation": "starter",
   "finance.disbursements": "growth",
   "support.priority": "growth",
-  "developer.api_access": "premium",
+  "developer.api_access": "enterprise",
 };
 
 export function LockedModulePage({
@@ -87,14 +87,14 @@ export function LockedModulePage({
   enforcementEnabled = false,
 }: LockedModulePageProps) {
   const def = FEATURE_DEFINITIONS[featureKey as keyof typeof FEATURE_DEFINITIONS];
-  const module = def?.module ?? featureKey.split(".")[0];
+  const featureModule = def?.module ?? featureKey.split(".")[0];
   const label = def?.label ?? featureKey;
   const description = def?.description ?? "This module is not available on your current plan.";
 
   const requiredPlanCode = requiredPlanProp ?? PLAN_REQUIRED_FOR_FEATURE[featureKey] ?? "growth";
   const requiredPlanMeta = PLAN_META[requiredPlanCode];
 
-  const Icon = MODULE_ICON_MAP[module] ?? Lock;
+  const Icon = MODULE_ICON_MAP[featureModule] ?? Lock;
 
   return (
     <div className="flex min-h-[480px] items-center justify-center px-4 py-12">

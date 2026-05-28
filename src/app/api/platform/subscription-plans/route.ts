@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
-import { PLAN_CODES, isKnownPlanCode } from "@/lib/subscriptions/plan-codes";
-import { FEATURE_KEYS, isKnownFeatureKey } from "@/lib/subscriptions/feature-keys";
-import { isKnownLimitKey } from "@/lib/subscriptions/limit-keys";
+import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
 
 const CreatePlanSchema = z.object({
   code: z.string().trim().min(1).max(40),
@@ -34,22 +31,17 @@ const CreatePlanSchema = z.object({
 
 // GET /api/platform/subscription-plans
 export async function GET(req: NextRequest) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.billing.read");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+  const perm = await requirePlatformPermission("platform.billing.read");
+  if (!perm.ok) return perm.res;
 
   await connectToDatabase();
 
   const url = new URL(req.url);
   const activeOnly = url.searchParams.get("activeOnly") !== "false";
 
-  const query = activeOnly ? { active: true } : {};
+  const query = activeOnly
+    ? { code: { $in: Object.values(PLAN_CODES) }, active: true }
+    : { code: { $in: Object.values(PLAN_CODES) } };
   const plans = await SubscriptionTier.find(query).sort({ sortOrder: 1 }).lean();
 
   return NextResponse.json({ success: true, data: plans });
@@ -57,21 +49,21 @@ export async function GET(req: NextRequest) {
 
 // POST /api/platform/subscription-plans
 export async function POST(req: NextRequest) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const body = await req.json();
   const parsed = CreatePlanSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { success: false, error: parsed.error.flatten().fieldErrors },
+      { status: 422 }
+    );
+  }
+
+  if (!Object.values(PLAN_CODES).includes(parsed.data.code as any)) {
+    return NextResponse.json(
+      { success: false, error: "Only Pilot, Starter, Growth, and Enterprise plans are allowed." },
       { status: 422 }
     );
   }

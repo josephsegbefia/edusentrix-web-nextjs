@@ -19,7 +19,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { School } from "@/models/School";
@@ -43,15 +42,8 @@ const PatchAccessModeSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-  }
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) {
-    return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
-  }
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const { id: schoolId } = await params;
   if (!mongoose.Types.ObjectId.isValid(schoolId)) {
@@ -93,7 +85,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const updates: Record<string, unknown> = {
     manualAccessModeOverride: accessMode,
-    updatedByEmail: auth.email ?? null,
+    updatedByEmail: perm.actor.email ?? null,
   };
 
   if (accessMode && statusMap[accessMode]) {
@@ -124,7 +116,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     schoolId: new mongoose.Types.ObjectId(schoolId),
     subscriptionId: sub._id,
     eventType,
-    actorEmail: auth.email ?? null,
+    actorEmail: perm.actor.email ?? null,
     summary: accessMode
       ? `Access mode manually set to "${accessMode}" by platform admin.${reason ? ` Reason: ${reason}` : ""}`
       : `Manual access mode override cleared by platform admin.`,

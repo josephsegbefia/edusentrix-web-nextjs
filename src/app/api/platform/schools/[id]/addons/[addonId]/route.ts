@@ -10,7 +10,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { requirePlatformAdmin } from "@/lib/auth/requirePlatformAdmin";
 import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-permission";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SubscriptionAddOn, type AddOnType } from "@/models/SubscriptionAddOn";
@@ -36,11 +35,8 @@ const PatchAddOnSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
-  const auth = await requirePlatformAdmin();
-  if (!auth.success) return NextResponse.json({ success: false, error: auth.error }, { status: 401 });
-
-  const perm = await requirePlatformPermission(auth.userId, "platform.subscriptions.manage");
-  if (!perm.success) return NextResponse.json({ success: false, error: perm.error }, { status: 403 });
+  const perm = await requirePlatformPermission("platform.subscriptions.manage");
+  if (!perm.ok) return perm.res;
 
   const { id: schoolId, addonId } = await params;
   if (
@@ -117,7 +113,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       schoolId: new mongoose.Types.ObjectId(schoolId),
       subscriptionId: addon.subscriptionId ?? null,
       eventType: "addon_credited",
-      actorEmail: auth.email ?? null,
+      actorEmail: perm.actor.email ?? null,
       summary: `Add-on credited: ${addon.addonType} × ${addon.quantity}. Applied to usage balance.`,
       metadata: {
         addonId: String(addon._id),

@@ -10,6 +10,10 @@ export type SubscriptionEventType =
   | "subscription_expired"
   | "subscription_upgraded"
   | "subscription_downgraded"
+  | "subscription_pricing_recalculated"
+  | "subscription_renewal_notice_sent"
+  | "subscription_invoice_issued"
+  | "plan_change_requested"
   | "grace_period_started"
   | "grace_period_ended"
   | "pilot_ended"
@@ -33,6 +37,10 @@ export const SUBSCRIPTION_EVENT_TYPES: SubscriptionEventType[] = [
   "subscription_expired",
   "subscription_upgraded",
   "subscription_downgraded",
+  "subscription_pricing_recalculated",
+  "subscription_renewal_notice_sent",
+  "subscription_invoice_issued",
+  "plan_change_requested",
   "grace_period_started",
   "grace_period_ended",
   "pilot_ended",
@@ -87,6 +95,15 @@ const subscriptionEventSchema = new Schema<ISubscriptionEvent>({
 
 subscriptionEventSchema.index({ schoolId: 1, createdAt: -1 });
 subscriptionEventSchema.index({ subscriptionId: 1, createdAt: -1 });
+
+function blockMutation(next: (err?: Error) => void) {
+  next(new Error("Subscription events are immutable. Create a new event instead."));
+}
+
+subscriptionEventSchema.pre("updateOne", blockMutation);
+subscriptionEventSchema.pre("findOneAndUpdate", blockMutation);
+subscriptionEventSchema.pre("deleteOne", blockMutation);
+subscriptionEventSchema.pre("findOneAndDelete", blockMutation);
 
 export const SubscriptionEvent: Model<ISubscriptionEvent> =
   (models.SubscriptionEvent as Model<ISubscriptionEvent>) ||

@@ -6,7 +6,7 @@
  * - Pilot schools: fees waived (no payment processing expected).
  * - Starter: standard platform fee (payer_pays, 2.5%, no cap).
  * - Growth: same as starter but with school-absorbed option per school override.
- * - Premium: negotiable — defaults to standard, can be overridden per school.
+ * - Enterprise: negotiable — defaults to standard, can be overridden per school.
  *
  * Returns a TransactionChargeResolution with rate, payer mode, and a human
  * label for the school admin subscription page.
@@ -127,7 +127,7 @@ export function resolveTransactionChargeConfig(
 
   // Build base from plan
   const basePayer: TransactionPayerMode =
-    planCode === PLAN_CODES.PREMIUM ? "school_absorbs" : "payer_pays";
+    planCode === PLAN_CODES.ENTERPRISE ? "school_absorbs" : "payer_pays";
 
   let schoolFeesConfig = makeStandardConfig(basePayer);
   let admissionFeesConfig = makeStandardConfig("payer_pays"); // always parent-paid

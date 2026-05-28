@@ -16,6 +16,7 @@ type Params = { params: Promise<{ id: string }> };
 
 const Schema = z.object({
   targetPlanId: z.string().trim().min(1),
+  targetBillingCadence: z.enum(["term", "annual"]).optional(),
   apply: z.boolean().default(false),
   note: z.string().trim().max(500).nullable().optional(),
 });
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const quote = computePlanChangeQuote({
     currentSubscription: sub,
     targetPlan,
+    targetBillingCadence: parsed.data.targetBillingCadence,
     studentCount,
   });
 
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ success: true, data: quote });
   }
 
-  if (quote.kind === "downgrade") {
+  if (quote.kind === "downgrade" || (quote.kind === "lateral" && quote.cadenceChange)) {
     await SchoolSubscription.updateOne(
       { _id: sub._id },
       {
@@ -72,6 +74,7 @@ export async function POST(req: NextRequest, { params }: Params) {
             targetTierCode: targetPlan.code,
             targetTierName: targetPlan.name,
             targetTierVersion: targetPlan.version ?? 1,
+            targetBillingCadence: quote.cadenceChange ? quote.targetBillingCadence : null,
             changeKind: quote.kind,
             effectiveAt: quote.scheduledAt ? new Date(quote.scheduledAt) : sub.endsAt ?? new Date(),
             requestedByEmail: perm.actor.email ?? null,
@@ -89,7 +92,9 @@ export async function POST(req: NextRequest, { params }: Params) {
       subscriptionId: sub._id,
       eventType: "plan_change_requested",
       actorEmail: perm.actor.email ?? null,
-      summary: `Downgrade to ${targetPlan.name} scheduled for renewal.`,
+      summary: quote.kind === "downgrade"
+        ? `Downgrade to ${targetPlan.name} scheduled for renewal.`
+        : `Cadence change to ${quote.targetBillingCadence} scheduled for next term.`,
       metadata: {
         targetPlanId: String(targetPlan._id),
         targetPlanCode: targetPlan.code,
@@ -106,6 +111,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     targetPlan,
     actorEmail: perm.actor.email ?? null,
     note: parsed.data.note ?? null,
+    targetBillingCadence: parsed.data.targetBillingCadence ?? null,
     eventType: quote.kind === "upgrade" ? "subscription_upgraded" : "subscription_updated",
     eventSummary: `Subscription changed to ${targetPlan.name}.`,
   });
@@ -132,6 +138,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       totalMinor: quote.amountDueNowMinor,
       billingPeriodStart: new Date(),
       billingPeriodEnd: sub.endsAt ?? null,
+      billingCoverage: sub.billingCoverage ?? null,
       issuedAt: new Date(),
       dueAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       note: "Prorated plan change invoice.",

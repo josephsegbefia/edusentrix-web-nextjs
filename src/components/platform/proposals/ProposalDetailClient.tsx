@@ -49,6 +49,7 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
   const [saving, setSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [leoLoading, setLeoLoading] = React.useState(false);
+  const [leoAllLoading, setLeoAllLoading] = React.useState(false);
   const [leoInstruction, setLeoInstruction] = React.useState("");
   const [activeSectionKey, setActiveSectionKey] = React.useState(proposal.sections[0]?.key || "");
   const [loggingReply, setLoggingReply] = React.useState(false);
@@ -174,6 +175,38 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
     }
   }
 
+  async function generateAllWithLeo() {
+    setLeoAllLoading(true);
+    try {
+      const res = await fetch(`/api/platform/proposals/${proposal.id}/leo-all`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instruction: leoInstruction,
+          tone: "formal",
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Leo could not generate proposal content");
+      }
+      setProposal(json.data.proposal);
+      const firstSectionKey = json.data.proposal.sections[0]?.key;
+      if (firstSectionKey) setActiveSectionKey(firstSectionKey);
+      toast.success(
+        json.data.source === "fallback"
+          ? "Draft filled. Configure OpenAI for richer Leo output."
+          : "Leo filled all sections",
+      );
+      setLeoInstruction("");
+      await refreshActivity();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Leo could not generate proposal content");
+    } finally {
+      setLeoAllLoading(false);
+    }
+  }
+
   async function deleteProposal() {
     const isArchived = proposal.status === "archived";
     const decision = await confirm({
@@ -244,7 +277,21 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
           </div>
         </PlatformSection>
 
-        <PlatformSection title="Section editor" description="Edit proposal sections. Disabled sections stay in draft but do not render in the final preview.">
+        <PlatformSection
+          title="Section editor"
+          description="Edit proposal sections. Disabled sections stay in draft but do not render in the final preview."
+          action={
+            <Button
+              type="button"
+              onClick={() => void generateAllWithLeo()}
+              disabled={leoAllLoading || leoLoading}
+              className="bg-cyan-500/20 text-cyan-100 hover:bg-cyan-500/30"
+            >
+              {leoAllLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {leoAllLoading ? "Leo is filling..." : "Generate all with Leo"}
+            </Button>
+          }
+        >
           <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
             <div className="space-y-2">
               {proposal.sections.map((section) => {
@@ -316,7 +363,7 @@ export function ProposalDetailClient({ initialData }: { initialData: DetailPaylo
                       <Button
                         type="button"
                         onClick={() => void generateSectionWithLeo()}
-                        disabled={leoLoading}
+                        disabled={leoLoading || leoAllLoading}
                         className="bg-amber-500/20 text-amber-100 hover:bg-amber-500/30"
                       >
                         {leoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

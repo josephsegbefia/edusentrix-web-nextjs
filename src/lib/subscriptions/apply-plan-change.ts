@@ -22,8 +22,10 @@ export async function applyPlanToSubscription(input: {
   note?: string | null;
   eventType?: "subscription_upgraded" | "subscription_downgraded" | "subscription_updated";
   eventSummary?: string;
+  targetBillingCadence?: BillingCadence | null;
 }) {
   const { subscription, targetPlan } = input;
+  const billingCadence = normalizeCadence(input.targetBillingCadence ?? subscription.billingCadence);
   const studentCountSnapshot = await Student.countDocuments({
     schoolId: subscription.schoolId,
     status: "active",
@@ -34,7 +36,7 @@ export async function applyPlanToSubscription(input: {
     pricePerStudentPerTermMinor: targetPlan.pricing?.pricePerStudentPerTermMinor ?? null,
     minimumTermFeeMinor: targetPlan.pricing?.minimumTermFeeMinor ?? targetPlan.priceMinor ?? null,
     annualDiscountPercent: targetPlan.pricing?.annualDiscountPercent ?? null,
-    billingCadence: normalizeCadence(subscription.billingCadence),
+    billingCadence,
   });
 
   const pricing = computeSubscriptionPricing({
@@ -52,6 +54,8 @@ export async function applyPlanToSubscription(input: {
         tierCode: targetPlan.code,
         tierName: targetPlan.name,
         tierVersion: targetPlan.version ?? 1,
+        billingCadence,
+        usageResetPolicy: billingCadence === "annual" ? "annual" : "term",
         studentCountSnapshot,
         basePriceMinor: pricing.baseTierPriceMinor,
         effectivePriceMinor: pricing.finalPriceMinor,
@@ -78,6 +82,7 @@ export async function applyPlanToSubscription(input: {
       basePriceMinor: pricing.baseTierPriceMinor,
       effectivePriceMinor: pricing.finalPriceMinor,
       pricingBreakdown: basePriceBreakdown,
+      billingCadence,
     },
   });
 
@@ -128,6 +133,7 @@ export async function applyDuePendingPlanChanges(options?: {
           targetPlan,
           actorEmail: options?.actorEmail ?? pending.requestedByEmail ?? "system",
           note: pending.note ?? null,
+          targetBillingCadence: pending.targetBillingCadence ?? null,
           eventType: pending.changeKind === "downgrade" ? "subscription_downgraded" : "subscription_updated",
           eventSummary: `Scheduled ${pending.changeKind} to ${targetPlan.name} applied.`,
         });

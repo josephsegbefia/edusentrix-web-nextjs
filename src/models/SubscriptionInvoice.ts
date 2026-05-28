@@ -56,6 +56,7 @@ export interface ISubscriptionInvoice {
   dueAt?: Date | null;
   paidAt?: Date | null;
   paidReference?: string | null;
+  billingCoverage?: Record<string, unknown> | null;
   note?: string | null;
   createdBy?: Types.ObjectId | null;
   createdByEmail?: string | null;
@@ -102,6 +103,7 @@ const subscriptionInvoiceSchema = new Schema<ISubscriptionInvoice>(
     dueAt: { type: Date, default: null },
     paidAt: { type: Date, default: null },
     paidReference: { type: String, trim: true, default: null },
+    billingCoverage: { type: Schema.Types.Mixed, default: null },
     note: { type: String, trim: true, default: null },
     createdBy: { type: Schema.Types.ObjectId, default: null },
     createdByEmail: { type: String, trim: true, default: null },

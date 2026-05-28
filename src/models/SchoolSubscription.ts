@@ -27,6 +27,7 @@ export interface IPendingPlanChange {
   targetTierCode: string;
   targetTierName: string;
   targetTierVersion?: number | null;
+  targetBillingCadence?: "term" | "annual" | "monthly" | "custom" | null;
   changeKind: "downgrade" | "upgrade" | "lateral";
   effectiveAt: Date;
   requestedByEmail?: string | null;
@@ -70,6 +71,7 @@ export interface ISchoolSubscription {
   trialLimitsSnapshot?: Record<string, number | null> | null;
   pilotLimitsSnapshot?: Record<string, number | null> | null;
   usageResetPolicy?: "term" | "annual" | "custom" | null;
+  billingCoverage?: Record<string, unknown> | null;
   /** Typed school-specific overrides for pricing, features, and limits. */
   schoolOverrides?: ISchoolSubscriptionOverrides | null;
   pendingPlanChange?: IPendingPlanChange | null;
@@ -159,6 +161,7 @@ const schoolSubscriptionSchema = new Schema<ISchoolSubscription>(
       enum: ["term", "annual", "custom", null],
       default: null,
     },
+    billingCoverage: { type: Schema.Types.Mixed, default: null },
     schoolOverrides: {
       type: new Schema(
         {
@@ -184,6 +187,11 @@ const schoolSubscriptionSchema = new Schema<ISchoolSubscription>(
           targetTierCode: { type: String, required: true, trim: true },
           targetTierName: { type: String, required: true, trim: true },
           targetTierVersion: { type: Number, default: null },
+          targetBillingCadence: {
+            type: String,
+            enum: ["term", "annual", "monthly", "custom", null],
+            default: null,
+          },
           changeKind: {
             type: String,
             enum: ["downgrade", "upgrade", "lateral"],

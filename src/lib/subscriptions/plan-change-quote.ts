@@ -31,6 +31,8 @@ export type PlanChangeQuote = {
   effectiveAt: "immediate" | "renewal";
   scheduledAt: string | null;
   billingCadence: BillingCadence;
+  targetBillingCadence: BillingCadence;
+  cadenceChange: boolean;
   studentCount: number;
   note: string;
 };
@@ -56,6 +58,7 @@ export function computePlanChangeQuote(input: {
     "tierCode" | "billingCadence" | "startsAt" | "endsAt" | "effectivePriceMinor" | "manualPriceOverrideMinor" | "discountMode" | "discountValue"
   >;
   targetPlan: Pick<ISubscriptionTier, "code" | "name" | "priceMinor" | "pricing">;
+  targetBillingCadence?: BillingCadence | null;
   studentCount: number;
   now?: Date;
 }): PlanChangeQuote {
@@ -68,12 +71,14 @@ export function computePlanChangeQuote(input: {
     targetRank > currentRank ? "upgrade" : targetRank < currentRank ? "downgrade" : "lateral";
 
   const billingCadence = normalizeCadence(input.currentSubscription.billingCadence);
+  const targetBillingCadence = normalizeCadence(input.targetBillingCadence ?? billingCadence);
+  const cadenceChange = targetBillingCadence !== billingCadence;
   const targetBase = computeSubscriptionBasePrice({
     studentCount: input.studentCount,
     pricePerStudentPerTermMinor: input.targetPlan.pricing?.pricePerStudentPerTermMinor ?? null,
     minimumTermFeeMinor: input.targetPlan.pricing?.minimumTermFeeMinor ?? input.targetPlan.priceMinor ?? null,
     annualDiscountPercent: input.targetPlan.pricing?.annualDiscountPercent ?? null,
-    billingCadence,
+    billingCadence: targetBillingCadence,
   });
   const targetPricing = computeSubscriptionPricing({
     basePriceMinor: targetBase.basePriceMinor,
@@ -94,6 +99,7 @@ export function computePlanChangeQuote(input: {
     kind === "upgrade"
       ? Math.max(0, proratedTargetChargeMinor - proratedCreditMinor)
       : 0;
+  const scheduleForRenewal = kind === "downgrade" || (kind === "lateral" && cadenceChange);
 
   return {
     kind,
@@ -105,16 +111,20 @@ export function computePlanChangeQuote(input: {
     proratedTargetChargeMinor,
     amountDueNowMinor,
     remainingPeriodRatio,
-    effectiveAt: kind === "downgrade" ? "renewal" : "immediate",
+    effectiveAt: scheduleForRenewal ? "renewal" : "immediate",
     scheduledAt:
-      kind === "downgrade" && input.currentSubscription.endsAt
+      scheduleForRenewal && input.currentSubscription.endsAt
         ? input.currentSubscription.endsAt.toISOString()
         : null,
     billingCadence,
+    targetBillingCadence,
+    cadenceChange,
     studentCount: Math.max(0, Math.round(input.studentCount)),
     note:
       kind === "downgrade"
         ? "Downgrades are scheduled for renewal by default so the school keeps access already paid for; no automatic refund is issued."
+        : cadenceChange
+          ? "Same-tier cadence changes are scheduled from the next term so current paid coverage remains intact."
         : kind === "upgrade"
           ? "Upgrade amount is the prorated difference between the current plan value and the target plan value for the remaining billing period."
           : "Same-rank plan changes are treated as immediate updates when confirmed by platform billing.",

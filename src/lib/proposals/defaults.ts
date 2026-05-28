@@ -97,6 +97,12 @@ const baseSections: Array<Pick<IProposalTemplateSection, "key" | "title" | "cont
     content: "",
   },
   {
+    key: "subscription_pricing",
+    title: "Subscription Options & Pricing",
+    displayStyle: "table",
+    content: "",
+  },
+  {
     key: "next_step",
     title: "Recommended Next Step",
     displayStyle: "highlight",

@@ -14,6 +14,7 @@ import { recordSubscriptionEvent } from "@/lib/subscriptions/record-event";
 
 const Schema = z.object({
   targetPlanId: z.string().trim().min(1),
+  targetBillingCadence: z.enum(["term", "annual"]).optional(),
   note: z.string().trim().max(500).optional(),
 });
 
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
   const quote = computePlanChangeQuote({
     currentSubscription: sub,
     targetPlan,
+    targetBillingCadence: parsed.data.targetBillingCadence,
     studentCount,
   });
 
@@ -107,6 +109,7 @@ export async function POST(req: NextRequest) {
       totalMinor: quote.amountDueNowMinor,
       billingPeriodStart: new Date(),
       billingPeriodEnd: sub.endsAt ?? null,
+      billingCoverage: sub.billingCoverage ?? null,
       issuedAt: new Date(),
       dueAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       note: parsed.data.note ?? "School-admin requested plan upgrade.",
@@ -127,12 +130,13 @@ export async function POST(req: NextRequest) {
         targetPlanCode: targetPlan.code,
       },
     });
-  } else if (quote.kind === "downgrade") {
+  } else if (quote.kind === "downgrade" || (quote.kind === "lateral" && quote.cadenceChange)) {
     const effectiveAt = quote.scheduledAt ? new Date(quote.scheduledAt) : sub.endsAt ?? new Date();
     pendingPlanChange = {
       targetTierId: targetPlan._id,
       targetTierCode: targetPlan.code,
       targetTierName: targetPlan.name,
+      targetBillingCadence: quote.cadenceChange ? quote.targetBillingCadence : null,
       changeKind: quote.kind,
       effectiveAt,
       requestedAt: new Date(),

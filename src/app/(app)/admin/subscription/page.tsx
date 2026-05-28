@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { glassPanelClass, glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { SubscriptionEventLog } from "@/components/subscriptions/SubscriptionEventLog";
+import { SubscriptionBillingGuideButton } from "@/components/subscriptions/SubscriptionBillingGuideButton";
 import { cn } from "@/lib/utils";
 import { LIMIT_KEYS, ONE_GB } from "@/lib/subscriptions/limit-keys";
 import { getAccessModeBannerMessage } from "@/lib/subscriptions/access-mode";
@@ -283,13 +284,16 @@ export default function AdminSubscriptionPage() {
               Plan details, feature access, and usage for {data.schoolName}.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={load}
-            className="rounded-xl border border-white/10 bg-white/5 p-2 text-white/40 transition hover:text-white"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <SubscriptionBillingGuideButton pdfHref="/api/admin/subscription/billing-guide.pdf" />
+            <button
+              type="button"
+              onClick={load}
+              className="rounded-xl border border-white/10 bg-white/5 p-2 text-white/40 transition hover:text-white"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -364,6 +368,9 @@ export default function AdminSubscriptionPage() {
                   {sub.lifecycleMode ? (
                     <Row label="Mode" value={sub.lifecycleMode} />
                   ) : null}
+                  {sub.billingCoverage?.summary ? (
+                    <Row label="Coverage" value={String(sub.billingCoverage.summary)} />
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -427,7 +434,7 @@ export default function AdminSubscriptionPage() {
           </div>
 
           {/* Invoices */}
-          <PlanChangePanel currentPlanCode={sub.planCode ?? null} />
+          <PlanChangePanel currentPlanCode={sub.planCode ?? null} currentBillingCadence={sub.billingCadence ?? "term"} />
 
           {/* Invoices */}
           <InvoicePanel />
@@ -522,6 +529,9 @@ type PlanChangeQuote = {
   proratedTargetChargeMinor: number;
   effectiveAt: "immediate" | "renewal";
   scheduledAt: string | null;
+  billingCadence?: string;
+  targetBillingCadence?: string;
+  cadenceChange?: boolean;
   note: string;
 };
 
@@ -532,9 +542,18 @@ const INV_STATUS_PILL: Record<string, string> = {
   forgiven: "border-violet-500/30 bg-violet-500/10 text-violet-200",
 };
 
-function PlanChangePanel({ currentPlanCode }: { currentPlanCode: string | null }) {
+function PlanChangePanel({
+  currentPlanCode,
+  currentBillingCadence,
+}: {
+  currentPlanCode: string | null;
+  currentBillingCadence: string;
+}) {
   const [plans, setPlans] = React.useState<PlanOption[]>([]);
   const [selectedPlanId, setSelectedPlanId] = React.useState("");
+  const [targetBillingCadence, setTargetBillingCadence] = React.useState<"term" | "annual">(
+    currentBillingCadence === "annual" ? "annual" : "term"
+  );
   const [quote, setQuote] = React.useState<PlanChangeQuote | null>(null);
   const [loadingPlans, setLoadingPlans] = React.useState(false);
   const [requesting, setRequesting] = React.useState(false);
@@ -565,7 +584,7 @@ function PlanChangePanel({ currentPlanCode }: { currentPlanCode: string | null }
       const res = await fetch("/api/admin/subscription/plan-change", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetPlanId: selectedPlanId }),
+        body: JSON.stringify({ targetPlanId: selectedPlanId, targetBillingCadence }),
       });
       const json = await res.json();
       if (json.success) {
@@ -574,7 +593,7 @@ function PlanChangePanel({ currentPlanCode }: { currentPlanCode: string | null }
           json.data.invoice
             ? `Invoice ${json.data.invoice.invoiceNumber} issued. Use Pay on the invoice below to complete the upgrade.`
             : json.data.pendingPlanChange
-              ? `Downgrade scheduled for ${new Date(json.data.pendingPlanChange.effectiveAt).toLocaleDateString("en-GH", { dateStyle: "medium" })}.`
+              ? `${json.data.pendingPlanChange.changeKind === "lateral" ? "Cadence change" : "Downgrade"} scheduled for ${new Date(json.data.pendingPlanChange.effectiveAt).toLocaleDateString("en-GH", { dateStyle: "medium" })}.`
             : "Plan change request recorded. EduSentrix billing will review and confirm the change."
         );
       } else {
@@ -588,7 +607,7 @@ function PlanChangePanel({ currentPlanCode }: { currentPlanCode: string | null }
   }
 
   if (loadingPlans) return null;
-  const visiblePlans = plans.filter((plan) => plan.code !== currentPlanCode);
+  const visiblePlans = plans;
   if (!visiblePlans.length) return null;
 
   return (
@@ -606,6 +625,7 @@ function PlanChangePanel({ currentPlanCode }: { currentPlanCode: string | null }
               type="button"
               onClick={() => {
                 setSelectedPlanId(plan._id);
+                setTargetBillingCadence(currentBillingCadence === "annual" ? "annual" : "term");
                 setQuote(null);
                 setMessage(null);
               }}
@@ -631,6 +651,27 @@ function PlanChangePanel({ currentPlanCode }: { currentPlanCode: string | null }
           ))}
         </div>
 
+        <div className={cn(glassInsetClass, "grid grid-cols-2 gap-2 p-1")}>
+          {(["term", "annual"] as const).map((cadence) => (
+            <button
+              key={cadence}
+              type="button"
+              onClick={() => {
+                setTargetBillingCadence(cadence);
+                setQuote(null);
+              }}
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs font-medium capitalize transition",
+                targetBillingCadence === cadence
+                  ? "bg-cyan-400/15 text-cyan-100"
+                  : "text-white/40 hover:bg-white/5 hover:text-white/70"
+              )}
+            >
+              {cadence === "term" ? "Termly" : "Annual"}
+            </button>
+          ))}
+        </div>
+
         <button
           type="button"
           disabled={!selectedPlanId || requesting}
@@ -645,6 +686,7 @@ function PlanChangePanel({ currentPlanCode }: { currentPlanCode: string | null }
           <div className={cn(glassInsetClass, "space-y-1 px-4 py-3 text-xs")}>
             <Row label="Target plan" value={selectedPlan.name} />
             <Row label="Change type" value={quote.kind} />
+            <Row label="Target cadence" value={quote.targetBillingCadence ?? targetBillingCadence} />
             <Row label="Current plan value" value={formatGHS(quote.currentPeriodPriceMinor)} />
             <Row label="Target plan value" value={formatGHS(quote.targetPeriodPriceMinor)} />
             <Row label="Prorated credit" value={formatGHS(quote.proratedCreditMinor)} />

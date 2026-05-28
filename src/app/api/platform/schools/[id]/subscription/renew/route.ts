@@ -33,14 +33,9 @@ import {
   computeSubscriptionBasePrice,
   computeSubscriptionPricing,
 } from "@/lib/platform-billing/subscription-pricing";
+import { resolveBillingCoverage } from "@/lib/subscriptions/billing-coverage";
 
 type Params = { params: Promise<{ id: string }> };
-
-const CADENCE_DAYS: Record<string, number> = {
-  term: 120,
-  annual: 365,
-  monthly: 31,
-};
 
 const RenewSchema = z.object({
   newEndsAt: z.string().datetime({ offset: true }).nullable().optional(),
@@ -93,22 +88,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     note,
   } = parsed.data;
 
-  // Calculate new period
   const renewalStartsAt = new Date();
-
-  let renewalEndsAt: Date | null = null;
-  if (newEndsAt) {
-    renewalEndsAt = new Date(newEndsAt);
-  } else {
-    const cadenceDays = CADENCE_DAYS[sub.billingCadence ?? "term"] ?? 120;
-    renewalEndsAt = new Date(renewalStartsAt.getTime() + cadenceDays * 24 * 60 * 60 * 1000);
-  }
-
-  const newGracePeriodEndsAt =
-    gracePeriodDays > 0
-      ? new Date(renewalEndsAt.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000)
-      : null;
-
   let workingSub = sub;
   let appliedPendingPlanChange: {
     targetPlanCode: string;
@@ -131,6 +111,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       targetPlan: pendingPlan,
       actorEmail: perm.actor.email ?? null,
       note: sub.pendingPlanChange.note ?? null,
+      targetBillingCadence: sub.pendingPlanChange.targetBillingCadence ?? null,
       eventType: sub.pendingPlanChange.changeKind === "downgrade" ? "subscription_downgraded" : "subscription_updated",
       eventSummary: `Scheduled ${sub.pendingPlanChange.changeKind} to ${pendingPlan.name} applied during renewal.`,
     });
@@ -141,6 +122,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     const refreshed = await SchoolSubscription.findById(sub._id);
     if (refreshed) workingSub = refreshed;
   }
+
+  const billingCoverage = await resolveBillingCoverage({
+    schoolId,
+    billingCadence: workingSub.billingCadence ?? "term",
+    startsAt: renewalStartsAt,
+    preferNextTerm: true,
+  });
+  const renewalEndsAt = newEndsAt ? new Date(newEndsAt) : new Date(billingCoverage.endsAt);
+
+  const newGracePeriodEndsAt =
+    gracePeriodDays > 0
+      ? new Date(renewalEndsAt.getTime() + gracePeriodDays * 24 * 60 * 60 * 1000)
+      : null;
 
   const [plan, studentCountSnapshot] = await Promise.all([
     workingSub.tierId ? SubscriptionTier.findById(workingSub.tierId).lean<any>() : null,
@@ -178,6 +172,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     studentCountSnapshot,
     basePriceMinor,
     effectivePriceMinor,
+    usageResetPolicy: workingSub.billingCadence === "annual" ? "annual" : "term",
+    billingCoverage,
     ...(manualPriceOverrideMinor != null ? { manualPriceOverrideMinor } : {}),
     ...(discountMode != null ? { discountMode } : {}),
     ...(discountValue != null ? { discountValue } : {}),
@@ -209,6 +205,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       totalMinor: effectivePriceMinor,
       billingPeriodStart: renewalStartsAt,
       billingPeriodEnd: renewalEndsAt,
+      billingCoverage,
       issuedAt: new Date(),
       dueAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       note: note ?? "Subscription renewal invoice.",
@@ -229,6 +226,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       effectivePriceMinor,
       studentCountSnapshot,
       pricingBreakdown: basePriceBreakdown,
+      billingCoverage,
       previousStatus: sub.status,
       appliedPendingPlanChange,
       invoiceId: invoice ? String(invoice._id) : null,
@@ -249,6 +247,7 @@ export async function POST(req: NextRequest, { params }: Params) {
         totalMinor: invoice.totalMinor,
         billingPeriodStart: renewalStartsAt.toISOString(),
         billingPeriodEnd: renewalEndsAt.toISOString(),
+        billingCoverage,
       },
     });
   }

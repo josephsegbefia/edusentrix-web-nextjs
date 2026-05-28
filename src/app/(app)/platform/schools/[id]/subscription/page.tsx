@@ -29,6 +29,7 @@ import {
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import { glassPanelClass, glassInsetClass, glassPrimaryButtonClass } from "@/lib/ui/glass-surfaces";
 import { SubscriptionEventLog } from "@/components/subscriptions/SubscriptionEventLog";
+import { SubscriptionBillingGuideButton } from "@/components/subscriptions/SubscriptionBillingGuideButton";
 import { cn } from "@/lib/utils";
 import { PLAN_META } from "@/lib/subscriptions/plan-codes";
 import { ACCESS_MODE_LABELS } from "@/lib/subscriptions/access-mode";
@@ -70,6 +71,7 @@ type SubData = {
     discountMode: string;
     discountValue: number | null;
     featuresSnapshot: string[];
+    billingCoverage?: { summary?: string; termCount?: number; alignedToAcademicPeriods?: boolean } | null;
     note: string | null;
     pendingPlanChange?: {
       targetTierCode: string;
@@ -104,6 +106,9 @@ type PlanChangeQuote = {
   amountDueNowMinor: number;
   effectiveAt: "immediate" | "renewal";
   scheduledAt: string | null;
+  billingCadence?: string;
+  targetBillingCadence?: string;
+  cadenceChange?: boolean;
   note: string;
 };
 
@@ -309,6 +314,7 @@ export default function SchoolSubscriptionPage() {
             )}
           </div>
           <div className="flex gap-2">
+            <SubscriptionBillingGuideButton pdfHref="/api/platform/subscriptions/billing-guide.pdf" />
             <button
               type="button"
               onClick={load}
@@ -630,6 +636,9 @@ export default function SchoolSubscriptionPage() {
                 <Row label="Status" value={currentSub.status} />
                 <Row label="Lifecycle mode" value={currentSub.lifecycleMode ?? "—"} />
                 <Row label="Billing cadence" value={currentSub.billingCadence ?? "—"} />
+                {currentSub.billingCoverage?.summary ? (
+                  <Row label="Coverage" value={currentSub.billingCoverage.summary} />
+                ) : null}
                 <Row label="Active students" value={`${data?.activeStudentCount ?? currentSub.studentCountSnapshot ?? 0}`} />
                 <Row label="Billed students" value={`${currentSub.studentCountSnapshot ?? 0}`} />
                 <Row
@@ -763,12 +772,15 @@ function PlatformPlanChangePanel({
   reload: () => void;
 }) {
   const [targetPlanId, setTargetPlanId] = React.useState("");
+  const [targetBillingCadence, setTargetBillingCadence] = React.useState<"term" | "annual">(
+    currentSub?.billingCadence === "annual" ? "annual" : "term"
+  );
   const [quote, setQuote] = React.useState<PlanChangeQuote | null>(null);
   const [note, setNote] = React.useState("");
   const [loadingQuote, setLoadingQuote] = React.useState(false);
   const [applying, setApplying] = React.useState(false);
 
-  const eligiblePlans = plans.filter((plan) => plan._id !== currentSub?.tierId && plan.code !== "pilot");
+  const eligiblePlans = plans.filter((plan) => plan.code !== "pilot");
   const targetPlan = plans.find((plan) => plan._id === targetPlanId) ?? null;
 
   async function requestQuote(apply: boolean) {
@@ -779,7 +791,7 @@ function PlatformPlanChangePanel({
       const res = await fetch(`/api/platform/schools/${schoolId}/subscription/plan-change`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetPlanId, apply, note: note || null }),
+        body: JSON.stringify({ targetPlanId, targetBillingCadence, apply, note: note || null }),
       });
       const json = await res.json();
       if (json.success) {
@@ -787,7 +799,7 @@ function PlatformPlanChangePanel({
         setQuote(nextQuote);
         if (apply) {
           if (json.data.scheduled) {
-            toast.success("Plan downgrade scheduled for renewal.");
+            toast.success(nextQuote?.cadenceChange ? "Cadence change scheduled for next term." : "Plan downgrade scheduled for renewal.");
           } else if (json.data.invoice?.invoiceNumber) {
             toast.success(`Plan changed. Invoice ${json.data.invoice.invoiceNumber} issued.`);
           } else {
@@ -832,6 +844,7 @@ function PlatformPlanChangePanel({
           value={targetPlanId}
           onValueChange={(value) => {
             setTargetPlanId(value);
+            setTargetBillingCadence(currentSub?.billingCadence === "annual" ? "annual" : "term");
             setQuote(null);
           }}
         >
@@ -854,6 +867,27 @@ function PlatformPlanChangePanel({
               : "custom pricing"}
           </p>
         ) : null}
+
+        <div className={cn(glassInsetClass, "grid grid-cols-2 gap-2 p-1")}>
+          {(["term", "annual"] as const).map((cadence) => (
+            <button
+              key={cadence}
+              type="button"
+              onClick={() => {
+                setTargetBillingCadence(cadence);
+                setQuote(null);
+              }}
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs font-medium capitalize transition",
+                targetBillingCadence === cadence
+                  ? "bg-cyan-400/15 text-cyan-100"
+                  : "text-white/40 hover:bg-white/5 hover:text-white/70"
+              )}
+            >
+              {cadence === "term" ? "Termly" : "Annual"}
+            </button>
+          ))}
+        </div>
 
         <textarea
           value={note}
@@ -887,6 +921,7 @@ function PlatformPlanChangePanel({
         {quote ? (
           <div className={cn(glassInsetClass, "space-y-1 px-3 py-3 text-xs")}>
             <Row label="Change type" value={quote.kind} />
+            <Row label="Target cadence" value={quote.targetBillingCadence ?? targetBillingCadence} />
             <Row label="Current value" value={minorToGHS(quote.currentPeriodPriceMinor)} />
             <Row label="Target value" value={minorToGHS(quote.targetPeriodPriceMinor)} />
             <Row label="Prorated credit" value={minorToGHS(quote.proratedCreditMinor)} />

@@ -76,6 +76,7 @@ export type SchoolEntitlementSnapshot = {
     effectivePriceMinor: number;
     billingCadence: string | null;
     lifecycleMode: string | null;
+    billingCoverage?: Record<string, unknown> | null;
   };
 
   features: string[];
@@ -310,6 +311,7 @@ export async function resolveSchoolEntitlements(
       effectivePriceMinor: sub?.effectivePriceMinor ?? 0,
       billingCadence: sub?.billingCadence ?? null,
       lifecycleMode: sub?.lifecycleMode ?? null,
+      billingCoverage: sub?.billingCoverage ?? null,
     },
 
     features,

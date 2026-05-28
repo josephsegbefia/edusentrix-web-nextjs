@@ -21,6 +21,7 @@ import {
   computeSubscriptionBasePrice,
   computeSubscriptionPricing,
 } from "@/lib/platform-billing/subscription-pricing";
+import { resolveBillingCoverage } from "@/lib/subscriptions/billing-coverage";
 
 const AssignSubscriptionSchema = z.object({
   planId: z.string().trim().min(1, "Plan is required"),
@@ -155,7 +156,12 @@ export async function POST(req: NextRequest, { params }: Params) {
   } = parsed.data;
 
   const startsAtDate = startsAt ? new Date(startsAt) : new Date();
-  const endsAtDate = endsAt ? new Date(endsAt) : null;
+  const billingCoverage = await resolveBillingCoverage({
+    schoolId,
+    billingCadence,
+    startsAt: startsAtDate,
+  });
+  const endsAtDate = endsAt ? new Date(endsAt) : new Date(billingCoverage.endsAt);
   const pilotEndsAtDate = pilotEndsAt ? new Date(pilotEndsAt) : null;
 
   // Calculate grace period end
@@ -218,6 +224,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     effectivePriceMinor,
     featuresSnapshot,
     includedLimitsSnapshot: limitsSnapshot,
+    usageResetPolicy: billingCadence === "annual" ? "annual" : "term",
+    billingCoverage,
     note: note ?? null,
     updatedBy: null,
     updatedByEmail: perm.actor.email ?? null,
@@ -250,6 +258,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       effectivePriceMinor,
       studentCountSnapshot,
       pricingBreakdown: basePriceBreakdown,
+      billingCoverage,
       startsAt: startsAtDate.toISOString(),
       endsAt: endsAtDate?.toISOString() ?? null,
     },

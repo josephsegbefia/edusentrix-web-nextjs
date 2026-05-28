@@ -5,6 +5,7 @@ export type PlatformProposal = {
   recipientName: string;
   recipientTitle: string;
   recipientEmail: string;
+  recipientPhone: string;
   title: string;
   proposalType: "general" | "pilot" | "full_implementation" | "pricing" | "demo_follow_up";
   selectedModules: string[];

@@ -23,6 +23,7 @@ import {
 } from "@/components/platform/platform-page-primitives";
 import { glassPanelClass, glassInsetClass } from "@/lib/ui/glass-surfaces";
 import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
+import { getFeaturePlanDiff } from "@/lib/subscriptions/plan-defaults";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +74,9 @@ function PlanCard({ plan }: { plan: PlanRow }) {
   const tone = PLAN_TONE[plan.code] ?? "border-white/10 bg-white/5";
   const accent = PLAN_ACCENT[plan.code] ?? "text-white/80";
   const iconTone = PLAN_ICON_TONE[plan.code] ?? "bg-white/5 text-white/60";
+  const featureDiff = getFeaturePlanDiff({ code: plan.code, features: plan.features });
+  const displayFeatures = featureDiff.configured.length > 0 ? featureDiff.configured : featureDiff.defaults;
+  const hasCustomFeatures = !featureDiff.matchesDefault;
 
   const perStudentLabel =
     plan.pricing?.pricePerStudentPerTermMinor != null
@@ -171,10 +175,19 @@ function PlanCard({ plan }: { plan: PlanRow }) {
       {/* Features summary */}
       <div className="flex-1 px-5 py-4">
         <p className="mb-2 text-xs font-medium text-white/50">Included features</p>
-        <p className="text-sm font-semibold text-white">{plan.features.length}</p>
-        {plan.features.length > 0 ? (
+        <div className="flex flex-wrap items-baseline gap-2">
+          <p className="text-sm font-semibold text-white">{displayFeatures.length}</p>
+          {hasCustomFeatures ? (
+            <span className="text-[11px] text-amber-200/80">
+              customised from {featureDiff.defaults.length} defaults
+            </span>
+          ) : (
+            <span className="text-[11px] text-white/35">default set</span>
+          )}
+        </div>
+        {displayFeatures.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-1">
-            {plan.features.slice(0, 6).map((f) => (
+            {displayFeatures.slice(0, 6).map((f) => (
               <span
                 key={f}
                 className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-white/50"
@@ -182,15 +195,22 @@ function PlanCard({ plan }: { plan: PlanRow }) {
                 {f}
               </span>
             ))}
-            {plan.features.length > 6 ? (
+            {displayFeatures.length > 6 ? (
               <span className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] text-white/40">
-                +{plan.features.length - 6} more
+                +{displayFeatures.length - 6} more
               </span>
             ) : null}
           </div>
         ) : (
           <p className="mt-1 text-xs text-white/30">Configured per school (Pilot)</p>
         )}
+        {featureDiff.removed.length > 0 || featureDiff.added.length > 0 ? (
+          <p className="mt-2 text-[11px] leading-relaxed text-white/35">
+            {featureDiff.removed.length > 0 ? `${featureDiff.removed.length} default removed` : null}
+            {featureDiff.removed.length > 0 && featureDiff.added.length > 0 ? " · " : null}
+            {featureDiff.added.length > 0 ? `${featureDiff.added.length} custom added` : null}
+          </p>
+        ) : null}
       </div>
 
       {/* Footer action */}
@@ -224,9 +244,10 @@ export default async function PlatformSubscriptionPlansPage() {
     SubscriptionTier.countDocuments({ code: { $in: Object.values(PLAN_CODES) }, publicVisible: true }),
   ]);
 
-  const hasSeededPlans = plans.some((p) =>
-    Object.values(PLAN_CODES).includes(p.code as any)
-  );
+  const canonicalPlanCodes = Object.values(PLAN_CODES);
+  const presentPlanCodes = new Set(plans.map((p) => p.code));
+  const missingPlanCodes = canonicalPlanCodes.filter((code) => !presentPlanCodes.has(code));
+  const hasSeededPlans = missingPlanCodes.length === 0;
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -287,7 +308,7 @@ export default async function PlatformSubscriptionPlansPage() {
                 npm run seed:subscription-plans
               </code>{" "}
               to create the Pilot, Starter, Growth, and Enterprise plans with their default features and
-              limits. You can customise them here after seeding.
+              limits. Missing: {missingPlanCodes.join(", ")}. You can customise them here after seeding.
             </p>
           </div>
         </div>

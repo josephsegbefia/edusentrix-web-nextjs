@@ -22,26 +22,17 @@ import {
   PLAN_META,
 } from "../src/lib/subscriptions/plan-codes";
 import {
-  PLAN_ENTITLEMENTS,
-} from "../src/lib/subscriptions/plan-entitlements";
+  getDefaultFeaturesForPlan,
+} from "../src/lib/subscriptions/plan-defaults";
 import {
   DEFAULT_PLAN_LIMITS,
   ONE_GB,
 } from "../src/lib/subscriptions/limit-keys";
-import { FEATURE_KEYS } from "../src/lib/subscriptions/feature-keys";
 
 const isDryRun = process.argv.includes("--dryRun");
 const isDrop = process.argv.includes("--drop");
 
 loadEnv({ path: ".env.local" });
-
-function featuresForPlan(code: keyof typeof PLAN_CODES): string[] {
-  const planCode = PLAN_CODES[code];
-  const entries = PLAN_ENTITLEMENTS[planCode];
-  return (Object.entries(entries) as [string, string][])
-    .filter(([, level]) => level === "YES" || level === "LIMITED")
-    .map(([key]) => key);
-}
 
 const PLAN_SEEDS = [
   {
@@ -83,7 +74,7 @@ const PLAN_SEEDS = [
       annualDiscountPercent: 10,
       onboardingFeeMinor: null,
     },
-    features: featuresForPlan("STARTER"),
+    features: getDefaultFeaturesForPlan(PLAN_CODES.STARTER),
     limits: DEFAULT_PLAN_LIMITS.starter,
     version: 1,
     active: true,
@@ -104,7 +95,7 @@ const PLAN_SEEDS = [
       annualDiscountPercent: 10,
       onboardingFeeMinor: null,
     },
-    features: featuresForPlan("GROWTH"),
+    features: getDefaultFeaturesForPlan(PLAN_CODES.GROWTH),
     limits: DEFAULT_PLAN_LIMITS.growth,
     version: 1,
     active: true,
@@ -125,7 +116,7 @@ const PLAN_SEEDS = [
       annualDiscountPercent: 10,
       onboardingFeeMinor: null,
     },
-    features: featuresForPlan("ENTERPRISE"),
+    features: getDefaultFeaturesForPlan(PLAN_CODES.ENTERPRISE),
     limits: DEFAULT_PLAN_LIMITS.enterprise,
     version: 1,
     active: true,

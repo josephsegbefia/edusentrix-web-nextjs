@@ -23,6 +23,7 @@ import { glassPanelClass, glassInsetClass, glassPrimaryButtonClass, glassSeconda
 import { FEATURE_KEYS, FEATURE_DEFINITIONS } from "@/lib/subscriptions/feature-keys";
 import { LIMIT_KEYS, ONE_GB } from "@/lib/subscriptions/limit-keys";
 import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
+import { getFeaturePlanDiff, getDefaultFeaturesForPlan } from "@/lib/subscriptions/plan-defaults";
 import { cn } from "@/lib/utils";
 
 type PlanData = {
@@ -155,6 +156,11 @@ export default function PlatformSubscriptionPlanDetailPage() {
     });
   }
 
+  function resetToDefaults() {
+    if (!plan) return;
+    setSelectedFeatures(new Set(getDefaultFeaturesForPlan(plan.code)));
+  }
+
   async function onSave() {
     if (!plan || saving) return;
     setSaving(true);
@@ -224,6 +230,9 @@ export default function PlatformSubscriptionPlanDetailPage() {
   }
 
   const featureGroups = groupFeaturesByModule();
+  const featureDiff = plan
+    ? getFeaturePlanDiff({ code: plan.code, features: Array.from(selectedFeatures) })
+    : { defaults: [], configured: [], added: [], removed: [], matchesDefault: true };
 
   return (
     <div className="space-y-6 p-2 md:p-4">
@@ -424,9 +433,20 @@ export default function PlatformSubscriptionPlanDetailPage() {
                 <h2 className="text-sm font-semibold text-white">Feature access</h2>
                 <p className="text-xs text-white/45">
                   {selectedFeatures.size} of {Object.keys(FEATURE_KEYS).length} features enabled
+                  {" · "}
+                  {featureDiff.matchesDefault
+                    ? "matches default set"
+                    : `${featureDiff.added.length} added, ${featureDiff.removed.length} default removed`}
                 </p>
               </div>
               <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={resetToDefaults}
+                  className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-400/15"
+                >
+                  Reset defaults
+                </button>
                 <button
                   type="button"
                   onClick={() => setSelectedFeatures(new Set(Object.values(FEATURE_KEYS)))}

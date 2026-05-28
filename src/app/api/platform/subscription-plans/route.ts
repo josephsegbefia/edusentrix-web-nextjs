@@ -4,6 +4,7 @@ import { requirePlatformPermission } from "@/lib/platform/auth/require-platform-
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
 import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
+import { getDefaultFeaturesForPlan } from "@/lib/subscriptions/plan-defaults";
 
 const CreatePlanSchema = z.object({
   code: z.string().trim().min(1).max(40),
@@ -25,7 +26,7 @@ const CreatePlanSchema = z.object({
     })
     .optional()
     .nullable(),
-  features: z.array(z.string().trim()).default([]),
+  features: z.array(z.string().trim()).optional(),
   limits: z.record(z.number().nullable()).optional().nullable(),
 });
 
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
 
   const plan = await SubscriptionTier.create({
     ...parsed.data,
+    features: parsed.data.features ?? getDefaultFeaturesForPlan(parsed.data.code),
     provisional: true,
   });
 

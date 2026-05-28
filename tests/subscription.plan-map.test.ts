@@ -15,6 +15,7 @@ import assert from "node:assert/strict";
 import { FEATURE_KEYS } from "../src/lib/subscriptions/feature-keys";
 import { PLAN_ENTITLEMENTS, getPlanAccess } from "../src/lib/subscriptions/plan-entitlements";
 import { PLAN_CODES } from "../src/lib/subscriptions/plan-codes";
+import { getDefaultFeaturesForPlan } from "../src/lib/subscriptions/plan-defaults";
 
 const ALL_PLAN_CODES = Object.values(PLAN_CODES);
 const ALL_FEATURE_KEYS = Object.values(FEATURE_KEYS);
@@ -143,5 +144,12 @@ describe("plan-entitlements map", () => {
     assert.equal(getPlanAccess("growth", FEATURE_KEYS.ACADEMICS_LESSON_NOTES), "YES");
     assert.equal(getPlanAccess("starter", FEATURE_KEYS.ACADEMICS_LESSON_NOTES), "NO");
     assert.equal(getPlanAccess("enterprise", FEATURE_KEYS.ANALYTICS_ADVANCED), "YES");
+  });
+
+  it("default feature sets are derived from YES and LIMITED entitlements", () => {
+    assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.PILOT).length, 0);
+    assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.STARTER).length, 20);
+    assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.GROWTH).length, 35);
+    assert.equal(getDefaultFeaturesForPlan(PLAN_CODES.ENTERPRISE).length, 39);
   });
 });

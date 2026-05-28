@@ -18,15 +18,19 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit")) || 20));
     const skip = (page - 1) * limit;
 
-    const filter: Record<string, unknown> = {
-      mailboxScope: "platform",
-    };
+    const filter: Record<string, unknown> = {};
 
     if (mailbox === "billing") {
+      filter.mailboxScope = "platform";
       filter.mailboxKey = "platform_billing";
     } else if (mailbox === "support") {
-      filter.mailboxKey = "platform_support";
+      // Support tab: platform support + school reply aliases delivered to support@ IMAP
+      filter.$or = [
+        { mailboxScope: "platform", mailboxKey: "platform_support" },
+        { mailboxScope: "school" },
+      ];
     } else {
+      filter.mailboxScope = "platform";
       filter.mailboxKey = "platform_hello";
     }
 

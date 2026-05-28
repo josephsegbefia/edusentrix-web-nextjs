@@ -36,6 +36,7 @@ import {
   usePlatformThread,
   useUpdatePlatformThread,
   usePlatformCompose,
+  usePlatformMailboxSync,
   usePlatformSuppressions,
   useAddSuppression,
   useRemoveSuppression,
@@ -473,7 +474,15 @@ export default function PlatformEmailPage() {
     mailbox: mailboxFilter,
     status: "open",
   });
+  const mailboxSync = usePlatformMailboxSync();
   const threads = inboxQuery.data?.data ?? [];
+
+  const handleSync = async () => {
+    await mailboxSync.mutateAsync(
+      mailboxFilter as "hello" | "support" | "billing",
+    );
+    await inboxQuery.refetch();
+  };
 
   const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: "inbox", label: "Inbox", icon: <Inbox className="h-4 w-4" /> },
@@ -517,25 +526,28 @@ export default function PlatformEmailPage() {
                 </Badge>
               </div>
               <p className="mt-1 text-sm text-white/60">
-                Manage platform support and billing email conversations
+                Hello, support, and billing mailboxes — synced from Spacemail via IMAP
               </p>
             </div>
           </div>
 
-          <Button
-            onClick={() => inboxQuery.refetch()}
-            disabled={inboxQuery.isFetching}
-            variant="ghost"
-            className="gap-2 text-white/60 hover:text-white"
-          >
-            <RefreshCw
-              className={cn(
-                "h-4 w-4",
-                inboxQuery.isFetching && "animate-spin",
-              )}
-            />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => void handleSync()}
+              disabled={mailboxSync.isPending || inboxQuery.isFetching}
+              variant="ghost"
+              className="gap-2 text-emerald-300/90 hover:text-emerald-200"
+            >
+              <RefreshCw
+                className={cn(
+                  "h-4 w-4",
+                  (mailboxSync.isPending || inboxQuery.isFetching) &&
+                    "animate-spin",
+                )}
+              />
+              Sync inbox
+            </Button>
+          </div>
         </div>
       </div>
 

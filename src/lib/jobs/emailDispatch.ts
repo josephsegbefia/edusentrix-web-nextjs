@@ -248,8 +248,8 @@ async function processJob(job: IEmailDispatchJob): Promise<void> {
         await processInboundRoute(job);
         break;
       case "imap_recovery": {
-        const { runImapRecoverySync } = await import("@/lib/jobs/imapRecoverySync");
-        await runImapRecoverySync();
+        const { runImapMailboxSync } = await import("@/lib/jobs/imapMailboxSync");
+        await runImapMailboxSync();
         await EmailDispatchJob.findByIdAndUpdate(job._id, {
           $set: { status: "done", lastError: null },
         });

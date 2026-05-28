@@ -20,6 +20,14 @@ export type {
 } from "./services/send-manual-support-email";
 
 export { receiveBrevoInbound } from "./services/receive-brevo-inbound";
+export { processInboundEmail } from "./services/process-inbound-email";
+export { resolveOutboundReplyTo, usesRoutedReplyTo } from "./reply-to";
+export {
+  getPlatformMailboxConfig,
+  listConfiguredPlatformMailboxes,
+  directPlatformMailboxForRecipient,
+} from "./platform-mailboxes";
+export type { PlatformMailboxId, PlatformMailboxConfig } from "./platform-mailboxes";
 export type {
   BrevoInboundPayload,
   InboundReceiveResult,

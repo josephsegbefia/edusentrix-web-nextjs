@@ -117,6 +117,29 @@ export function useUpdatePlatformThread() {
   });
 }
 
+export function usePlatformMailboxSync() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (mailbox?: "hello" | "support" | "billing") => {
+      const res = await fetch("/api/platform/email/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mailbox ? { mailbox } : {}),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "Failed to sync mailbox");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-email-inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["platform-email-thread"] });
+    },
+  });
+}
+
 export function usePlatformCompose() {
   const queryClient = useQueryClient();
 

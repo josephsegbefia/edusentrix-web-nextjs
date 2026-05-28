@@ -1,29 +1,7 @@
 import "server-only";
 import { ImapFlow } from "imapflow";
 import { simpleParser, type ParsedMail } from "mailparser";
-
-const {
-  SPACEMAIL_IMAP_HOST,
-  SPACEMAIL_IMAP_PORT,
-  SPACEMAIL_IMAP_USER,
-  SPACEMAIL_IMAP_PASSWORD,
-} = process.env;
-
-function getImapConfig() {
-  if (!SPACEMAIL_IMAP_HOST || !SPACEMAIL_IMAP_USER || !SPACEMAIL_IMAP_PASSWORD) {
-    throw new Error("Spacemail IMAP credentials not configured");
-  }
-  return {
-    host: SPACEMAIL_IMAP_HOST,
-    port: parseInt(SPACEMAIL_IMAP_PORT || "993", 10),
-    secure: true,
-    auth: {
-      user: SPACEMAIL_IMAP_USER,
-      pass: SPACEMAIL_IMAP_PASSWORD,
-    },
-    logger: false as const,
-  };
-}
+import type { PlatformMailboxConfig } from "../platform-mailboxes";
 
 export interface FetchedEmail {
   uid: number;
@@ -42,28 +20,36 @@ export interface FetchedEmail {
 }
 
 /**
- * Fetch unseen messages from the Spacemail INBOX since a given UID.
- * Marks them as seen after fetching. Returns parsed emails.
+ * Fetch new messages from a platform Spacemail INBOX since a given UID.
+ * Marks them as seen after fetching.
  */
-export async function fetchNewMessages(opts?: {
+export async function fetchNewMessages(opts: {
+  mailbox: PlatformMailboxConfig;
   sinceUid?: number;
-  mailbox?: string;
   limit?: number;
 }): Promise<{ emails: FetchedEmail[]; highestUid: number }> {
-  const config = getImapConfig();
-  const client = new ImapFlow(config);
+  const client = new ImapFlow({
+    host: opts.mailbox.imap.host,
+    port: opts.mailbox.imap.port,
+    secure: true,
+    auth: {
+      user: opts.mailbox.imap.user,
+      pass: opts.mailbox.imap.password,
+    },
+    logger: false as const,
+  });
 
   const emails: FetchedEmail[] = [];
-  let highestUid = opts?.sinceUid ?? 0;
+  let highestUid = opts.sinceUid ?? 0;
 
   try {
     await client.connect();
 
-    const lock = await client.getMailboxLock(opts?.mailbox || "INBOX");
+    const lock = await client.getMailboxLock("INBOX");
 
     try {
-      const range = opts?.sinceUid ? `${opts.sinceUid + 1}:*` : "1:*";
-      const limit = opts?.limit ?? 100;
+      const range = opts.sinceUid ? `${opts.sinceUid + 1}:*` : "1:*";
+      const limit = opts.limit ?? 100;
       let count = 0;
 
       for await (const message of client.fetch(range, {
@@ -74,7 +60,7 @@ export async function fetchNewMessages(opts?: {
       })) {
         if (count >= limit) break;
 
-        if (message.uid <= (opts?.sinceUid ?? 0)) continue;
+        if (message.uid <= (opts.sinceUid ?? 0)) continue;
 
         try {
           const parsed = await simpleParser(message.source);
@@ -91,7 +77,10 @@ export async function fetchNewMessages(opts?: {
 
           count++;
         } catch (parseErr) {
-          console.error(`Failed to parse IMAP message UID ${message.uid}:`, parseErr);
+          console.error(
+            `Failed to parse IMAP message UID ${message.uid} (${opts.mailbox.id}):`,
+            parseErr,
+          );
         }
       }
     } finally {
@@ -100,7 +89,7 @@ export async function fetchNewMessages(opts?: {
 
     await client.logout();
   } catch (err) {
-    console.error("IMAP fetch error:", err);
+    console.error(`IMAP fetch error (${opts.mailbox.id}):`, err);
     try {
       await client.logout();
     } catch {
@@ -139,7 +128,9 @@ function mapParsedMail(parsed: ParsedMail, uid: number): FetchedEmail {
     messageId: parsed.messageId || null,
     inReplyTo: parsed.inReplyTo || null,
     references: parsed.references
-      ? (Array.isArray(parsed.references) ? parsed.references : [parsed.references])
+      ? Array.isArray(parsed.references)
+        ? parsed.references
+        : [parsed.references]
       : [],
     from: fromAddr?.address || "",
     fromName: fromAddr?.name || null,

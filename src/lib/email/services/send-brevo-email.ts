@@ -12,11 +12,8 @@ import {
   buildSchoolSenderName,
 } from "../providers/brevo-provider";
 import { findOrCreateThread, updateThreadAfterMessage } from "../threading";
-import {
-  buildSchoolReplyAlias,
-  buildPlatformReplyAlias,
-  generateRoutingToken,
-} from "../routing";
+import { generateRoutingToken } from "../routing";
+import { resolveOutboundReplyTo } from "../reply-to";
 import { checkHardSuppression, checkCategoryOptOut } from "../suppressions";
 import { resolveSecureContentMode } from "../sensitivity";
 import { checkRateLimit, recordSend } from "../rate-limiter";
@@ -257,10 +254,14 @@ export async function sendTrackedBrevoEmail(
 
   const routingToken = thread.routingToken || generateRoutingToken();
 
-  const replyAlias =
-    registry.mailboxScope === "school" && input.schoolId
-      ? buildSchoolReplyAlias(input.schoolId, routingToken)
-      : buildPlatformReplyAlias(registry.senderFamily, routingToken);
+  const { replyTo, replyAlias } = resolveOutboundReplyTo({
+    templateKey: input.templateKey,
+    registry,
+    schoolId: input.schoolId,
+    entityId: input.relatedEntityId,
+    routingToken,
+    senderFamily: registry.senderFamily,
+  });
 
   const fromEmail = resolveSenderEmail(registry.senderFamily);
   const fromName =
@@ -279,7 +280,7 @@ export async function sendTrackedBrevoEmail(
     from: fromEmail,
     fromName: fromName || null,
     to: input.to,
-    replyTo: replyAlias,
+    replyTo,
     subject: input.subject,
     htmlBody: htmlContent,
     textBody: textContent || null,
@@ -357,7 +358,7 @@ export async function sendTrackedBrevoEmail(
       attachments: normalizeProviderAttachments(input.attachments),
       fromEmail,
       fromName,
-      replyTo: replyAlias,
+      replyTo,
       tags: [
         input.templateKey,
         registry.trafficClass,
@@ -375,6 +376,7 @@ export async function sendTrackedBrevoEmail(
       $set: {
         status: "sent",
         providerMessageId: result.providerMessageId || null,
+        messageIdHeader: result.providerMessageId || null,
         sentAt: new Date(),
       },
     });

@@ -68,6 +68,42 @@ function estimateBase64Bytes(value: string) {
   return Math.max(0, Math.floor((clean.length * 3) / 4) - padding);
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderSchoolManualEmailBody(args: {
+  htmlContent: string;
+  schoolName: string;
+}) {
+  if (args.htmlContent.includes('data-school-email-context="true"')) {
+    return args.htmlContent;
+  }
+
+  const safeSchoolName = escapeHtml(args.schoolName);
+  return `
+    <div data-school-email-context="true" style="margin:0 0 18px; padding:14px 16px; border-radius:14px; background:#ecfeff; border:1px solid #bae6fd; color:#155e75; font-size:14px; line-height:1.6;">
+      <strong style="color:#0f172a;">${safeSchoolName}</strong> sent this message through EduSentrix.
+    </div>
+    ${args.htmlContent}
+  `;
+}
+
+function renderSchoolManualTextBody(args: {
+  textContent?: string;
+  schoolName: string;
+}) {
+  const text = args.textContent?.trim() || "";
+  const prefix = `${args.schoolName} sent this message through EduSentrix.`;
+  if (text.startsWith(prefix)) return text;
+  return `${prefix}\n\n${text}`.trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { schoolId, userId } = await requireSchoolAdminOrDelegatedAnyPermission([
@@ -105,8 +141,14 @@ export async function POST(req: NextRequest) {
       to: parsed.data.to,
       toName: parsed.data.toName,
       subject: parsed.data.subject,
-      htmlContent: parsed.data.htmlContent,
-      textContent: parsed.data.textContent,
+      htmlContent: renderSchoolManualEmailBody({
+        htmlContent: parsed.data.htmlContent,
+        schoolName,
+      }),
+      textContent: renderSchoolManualTextBody({
+        textContent: parsed.data.textContent,
+        schoolName,
+      }),
       attachments: parsed.data.attachments,
       templateKey: "SCHOOL_MANUAL_EMAIL",
       schoolId: String(schoolIdObj),

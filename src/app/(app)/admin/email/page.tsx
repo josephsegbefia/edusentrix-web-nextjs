@@ -11,6 +11,7 @@ import {
   ComposeAttachmentPicker,
   type ComposeAttachment,
 } from "@/components/email/ComposeAttachmentPicker";
+import { useSchool } from "@/hooks/admin/useSchool";
 import { cn } from "@/lib/utils";
 import {
   Mail,
@@ -47,6 +48,49 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   failed: <XCircle className="h-3.5 w-3.5 text-red-400" />,
   received: <Mail className="h-3.5 w-3.5 text-blue-400" />,
 };
+
+const SCHOOL_EMAIL_TEMPLATES = [
+  {
+    id: "announcement",
+    label: "Announcement",
+    subject: "Important update from {schoolName}",
+    body: `
+      <p>Dear recipient,</p>
+      <p>We are writing from <strong>{schoolName}</strong> to share the following update.</p>
+      <p><br></p>
+      <p>Kindly review this information and contact the school office if you need clarification.</p>
+      <p>Regards,<br>{schoolName}</p>
+    `,
+  },
+  {
+    id: "reminder",
+    label: "Reminder",
+    subject: "Reminder from {schoolName}",
+    body: `
+      <p>Dear recipient,</p>
+      <p>This is a reminder from <strong>{schoolName}</strong>.</p>
+      <p><br></p>
+      <p>Please take the required action at your earliest convenience.</p>
+      <p>Regards,<br>{schoolName}</p>
+    `,
+  },
+  {
+    id: "follow_up",
+    label: "Follow-up",
+    subject: "Follow-up from {schoolName}",
+    body: `
+      <p>Dear recipient,</p>
+      <p>We are following up on behalf of <strong>{schoolName}</strong>.</p>
+      <p><br></p>
+      <p>Please reply to this email if you have any questions or need further assistance.</p>
+      <p>Regards,<br>{schoolName}</p>
+    `,
+  },
+] as const;
+
+function applySchoolTemplateVariables(value: string, schoolName: string) {
+  return value.replaceAll("{schoolName}", schoolName);
+}
 
 function ThreadList({
   threads,
@@ -302,10 +346,17 @@ function MessageView({
 
 function ComposeView({ onSent }: { onSent: () => void }) {
   const compose = useComposeEmail();
+  const { data: schoolPayload } = useSchool();
+  const schoolName = schoolPayload?.data?.name?.trim() || "your school";
   const [to, setTo] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
   const [attachments, setAttachments] = React.useState<ComposeAttachment[]>([]);
+
+  const applyTemplate = (template: (typeof SCHOOL_EMAIL_TEMPLATES)[number]) => {
+    setSubject(applySchoolTemplateVariables(template.subject, schoolName));
+    setBody(applySchoolTemplateVariables(template.body, schoolName));
+  };
 
   const handleSend = async () => {
     if (!to || !subject || !body) return;
@@ -330,6 +381,32 @@ function ComposeView({ onSent }: { onSent: () => void }) {
   return (
     <Card className="border border-white/10 bg-linear-to-br from-slate-900/80 to-slate-950/90 backdrop-blur-xl">
       <CardContent className="space-y-4 p-6">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3">
+          <p className="text-sm font-semibold text-cyan-100">
+            Sent as {schoolName} through EduSentrix
+          </p>
+          <p className="mt-1 text-xs leading-5 text-cyan-50/65">
+            Recipients will see a school context note in the email so the message is clearly from {schoolName}.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-white/70">Templates</Label>
+          <div className="flex flex-wrap gap-2">
+            {SCHOOL_EMAIL_TEMPLATES.map((template) => (
+              <Button
+                key={template.id}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => applyTemplate(template)}
+                className="gap-2 border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                {template.label}
+              </Button>
+            ))}
+          </div>
+        </div>
         <div className="space-y-2">
           <Label className="text-white/70">To</Label>
           <Input

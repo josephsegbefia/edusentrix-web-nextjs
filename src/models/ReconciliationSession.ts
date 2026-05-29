@@ -86,7 +86,7 @@ const sessionSummarySchema = new Schema<IReconciliationSessionSummary>(
     manualMatches: { type: Number, default: 0 },
     errors: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false, suppressReservedKeysWarning: true }
 );
 
 const reconciliationSessionSchema = new Schema<IReconciliationSession>(

@@ -67,7 +67,8 @@ async function persistFetchedEmail(
       imapMailbox: mailboxId,
     });
 
-    return result.messageId ? "persisted" : "duplicate";
+    if (result.duplicate) return "duplicate";
+    return result.messageId ? "persisted" : "error";
   } catch (err) {
     console.error(
       `IMAP sync (${mailboxId}): failed to persist UID ${email.uid}:`,
@@ -99,6 +100,7 @@ export interface ImapMailboxSyncSummary {
  */
 export async function runImapMailboxSync(
   mailboxId?: PlatformMailboxId,
+  opts?: { resetUid?: boolean },
 ): Promise<ImapMailboxSyncSummary> {
   if (process.env.EMAIL_SYNC_ENABLED === "false") {
     return {
@@ -119,7 +121,9 @@ export async function runImapMailboxSync(
   for (const mailbox of targets) {
     if (!mailbox) continue;
 
-    const lastUid = await getLastSyncedUid(mailbox.syncStateTemplateKey);
+    const lastUid = opts?.resetUid
+      ? 0
+      : await getLastSyncedUid(mailbox.syncStateTemplateKey);
 
     try {
       const { emails, highestUid } = await fetchNewMessages({
@@ -131,16 +135,23 @@ export async function runImapMailboxSync(
       let persisted = 0;
       let duplicatesSkipped = 0;
       let errors = 0;
+      let maxPersistedUid = lastUid;
 
       for (const email of emails) {
         const outcome = await persistFetchedEmail(email, mailbox.id);
-        if (outcome === "persisted") persisted++;
-        else if (outcome === "duplicate") duplicatesSkipped++;
-        else errors++;
+        if (outcome === "persisted") {
+          persisted++;
+          if (email.uid > maxPersistedUid) maxPersistedUid = email.uid;
+        } else if (outcome === "duplicate") {
+          duplicatesSkipped++;
+          if (email.uid > maxPersistedUid) maxPersistedUid = email.uid;
+        } else {
+          errors++;
+        }
       }
 
-      if (highestUid > lastUid) {
-        await setLastSyncedUid(mailbox.syncStateTemplateKey, highestUid);
+      if (maxPersistedUid > lastUid) {
+        await setLastSyncedUid(mailbox.syncStateTemplateKey, maxPersistedUid);
       }
 
       results.push({

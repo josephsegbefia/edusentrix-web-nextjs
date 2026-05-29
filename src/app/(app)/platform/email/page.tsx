@@ -12,6 +12,7 @@ import {
   type ComposeAttachment,
 } from "@/components/email/ComposeAttachmentPicker";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   Inbox,
   Mail,
@@ -477,10 +478,27 @@ export default function PlatformEmailPage() {
   const mailboxSync = usePlatformMailboxSync();
   const threads = inboxQuery.data?.data ?? [];
 
-  const handleSync = async () => {
-    await mailboxSync.mutateAsync(
-      mailboxFilter as "hello" | "support" | "billing",
-    );
+  const handleSync = async (reset = false) => {
+    try {
+      const result = await mailboxSync.mutateAsync({
+        mailbox: mailboxFilter as "hello" | "support" | "billing",
+        reset,
+      });
+      const box = result?.data?.mailboxes?.[0];
+      if (box?.skipped) {
+        toast.error(`Sync failed: ${box.skipReason || "IMAP error"}`);
+        return;
+      }
+      const imported = result?.data?.totalPersisted ?? box?.persisted ?? 0;
+      toast.success(
+        imported > 0
+          ? `Synced ${imported} new message${imported === 1 ? "" : "s"}`
+          : "Inbox is up to date",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sync failed");
+      return;
+    }
     await inboxQuery.refetch();
   };
 
@@ -546,6 +564,15 @@ export default function PlatformEmailPage() {
                 )}
               />
               Sync inbox
+            </Button>
+            <Button
+              onClick={() => void handleSync(true)}
+              disabled={mailboxSync.isPending}
+              variant="ghost"
+              className="gap-2 text-white/50 hover:text-white/80"
+              title="Re-import recent mail from Spacemail (use if replies were missed)"
+            >
+              Full resync
             </Button>
           </div>
         </div>

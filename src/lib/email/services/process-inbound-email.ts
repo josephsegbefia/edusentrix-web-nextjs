@@ -30,6 +30,7 @@ export interface InboundProcessResult {
   messageId: string;
   threadId?: string;
   routed: boolean;
+  duplicate?: boolean;
 }
 
 function normaliseMessageId(value?: string | null): string | null {
@@ -124,6 +125,7 @@ export async function processInboundEmail(
         ? String(existingByMsgId.threadId)
         : undefined,
       routed: true,
+      duplicate: true,
     };
   }
 

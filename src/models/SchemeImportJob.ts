@@ -79,7 +79,7 @@ const parsedRowSchema = new Schema<ISchemeImportParsedRow>(
     confidence: { type: Number, min: 0, max: 1, default: null },
     rawText: { type: String, trim: true, maxlength: 4000, default: null },
   },
-  { _id: false }
+  { _id: false, suppressReservedKeysWarning: true }
 );
 
 const schemeImportJobSchema = new Schema<ISchemeImportJob>(

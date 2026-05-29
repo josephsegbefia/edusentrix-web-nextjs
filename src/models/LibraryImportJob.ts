@@ -67,7 +67,7 @@ const libraryImportJobSchema = new Schema<ILibraryImportJob>(
     errors: { type: [errorSchema], default: [] },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 libraryImportJobSchema.index({ schoolId: 1, createdAt: -1 });

@@ -163,7 +163,7 @@ const promotionCycleSchema = new Schema<IPromotionCycle>(
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 promotionCycleSchema.index({ schoolId: 1, status: 1 });

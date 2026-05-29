@@ -22,9 +22,15 @@ export interface PlatformMailboxConfig {
 }
 
 function readEnv(name: string): string | undefined {
-  const value = process.env[name]?.trim();
+  const raw = process.env[name];
+  if (!raw) return undefined;
+  // Strip inline `.env` comments (e.g. `mail.spacemail.com # note`)
+  const value = raw.split("#")[0]?.trim();
   return value || undefined;
 }
+
+/** Spacemail / Spaceship hosted mail uses this IMAP host (not mail.spaceship.com). */
+export const DEFAULT_SPACEMAIL_IMAP_HOST = "mail.spacemail.com";
 
 function resolveMailboxAddress(id: PlatformMailboxId): string {
   if (id === "hello") {
@@ -58,7 +64,8 @@ function resolveImapCredentials(id: PlatformMailboxId): {
   const prefix = id.toUpperCase();
   const sharedHost =
     readEnv(`SPACEMAIL_${prefix}_IMAP_HOST`) ||
-    readEnv("SPACEMAIL_IMAP_HOST");
+    readEnv("SPACEMAIL_IMAP_HOST") ||
+    DEFAULT_SPACEMAIL_IMAP_HOST;
   const sharedPort =
     readEnv(`SPACEMAIL_${prefix}_IMAP_PORT`) ||
     readEnv("SPACEMAIL_IMAP_PORT") ||

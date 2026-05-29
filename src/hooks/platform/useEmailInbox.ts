@@ -121,11 +121,17 @@ export function usePlatformMailboxSync() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (mailbox?: "hello" | "support" | "billing") => {
+    mutationFn: async (opts?: {
+      mailbox?: "hello" | "support" | "billing";
+      reset?: boolean;
+    }) => {
       const res = await fetch("/api/platform/email/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(mailbox ? { mailbox } : {}),
+        body: JSON.stringify({
+          mailbox: opts?.mailbox,
+          reset: opts?.reset ?? false,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);

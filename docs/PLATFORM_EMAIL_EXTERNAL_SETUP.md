@@ -23,6 +23,7 @@ Enable **IMAP** for each and note host (usually `mail.spacemail.com` or `mail.sp
 Shared IMAP host (optional if all use the same host):
 
 ```env
+# Important: use mail.spacemail.com — mail.spaceship.com does not resolve
 SPACEMAIL_IMAP_HOST=mail.spacemail.com
 ```
 

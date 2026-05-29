@@ -77,7 +77,7 @@ const reconciliationRunSchema = new Schema<IReconciliationRun>(
     errorMessage: { type: String, default: null, trim: true },
     metadata: { type: Schema.Types.Mixed, default: null },
   },
-  { timestamps: true }
+  { timestamps: true, suppressReservedKeysWarning: true }
 );
 
 reconciliationRunSchema.index(

@@ -22,8 +22,9 @@ export async function POST(req: NextRequest) {
       mailbox && MAILBOX_IDS.has(mailbox)
         ? (mailbox as PlatformMailboxId)
         : undefined;
+    const resetUid = body.reset === true || body.resetUid === true;
 
-    const result = await runImapMailboxSync(mailboxId);
+    const result = await runImapMailboxSync(mailboxId, { resetUid });
 
     return NextResponse.json({ success: true, data: result });
   } catch (e: unknown) {

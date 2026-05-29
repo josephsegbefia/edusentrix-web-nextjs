@@ -3,6 +3,7 @@ import "server-only";
 import { EmailMessage } from "@/models/EmailMessage";
 import { EmailThread } from "@/models/EmailThread";
 import { EmailDispatchJob } from "@/models/EmailDispatchJob";
+import type { EmailMailboxScope } from "@/models/EmailMessage";
 import { parseReplyAlias } from "../routing";
 import { findOrCreateThread, updateThreadAfterMessage } from "../threading";
 import {
@@ -38,19 +39,54 @@ function normaliseMessageId(value?: string | null): string | null {
   return value.trim().replace(/^<|>$/g, "");
 }
 
-async function findThreadByInReplyTo(
-  inReplyTo?: string | null,
-): Promise<{ threadId: string; thread: { relatedEntityType?: string | null; relatedEntityId?: unknown } } | null> {
-  const normalized = normaliseMessageId(inReplyTo);
-  if (!normalized) return null;
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function messageIdCandidates(values: Array<string | null | undefined>): string[] {
+  const candidates = new Set<string>();
+  for (const value of values) {
+    const normalized = normaliseMessageId(value);
+    if (!normalized) continue;
+    candidates.add(normalized);
+    candidates.add(`<${normalized}>`);
+  }
+  return [...candidates];
+}
+
+async function findThreadByReplyHeaders(args: {
+  inReplyTo?: string | null;
+  references?: string[] | null;
+}): Promise<{
+  threadId: string;
+  thread: {
+    mailboxScope?: EmailMailboxScope | null;
+    mailboxKey?: string | null;
+    schoolId?: unknown;
+    relatedEntityType?: string | null;
+    relatedEntityId?: unknown;
+  };
+} | null> {
+  const candidates = messageIdCandidates([
+    args.inReplyTo,
+    ...(args.references || []),
+  ]);
+  if (candidates.length === 0) return null;
+
+  const regexes = candidates
+    .map((candidate) => normaliseMessageId(candidate))
+    .filter((candidate): candidate is string => Boolean(candidate))
+    .map((candidate) => new RegExp(escapeRegex(candidate), "i"));
 
   const prior = await EmailMessage.findOne({
     direction: "outbound",
     $or: [
-      { messageIdHeader: { $regex: normalized, $options: "i" } },
-      { providerMessageId: { $regex: normalized, $options: "i" } },
-      { messageIdHeader: inReplyTo },
-      { providerMessageId: inReplyTo },
+      { messageIdHeader: { $in: candidates } },
+      { providerMessageId: { $in: candidates } },
+      ...regexes.flatMap((regex) => [
+        { messageIdHeader: regex },
+        { providerMessageId: regex },
+      ]),
     ],
   })
     .select("threadId")
@@ -59,7 +95,7 @@ async function findThreadByInReplyTo(
   if (!prior?.threadId) return null;
 
   const thread = await EmailThread.findById(prior.threadId)
-    .select("relatedEntityType relatedEntityId")
+    .select("mailboxScope mailboxKey schoolId relatedEntityType relatedEntityId")
     .lean();
 
   if (!thread) return null;
@@ -68,6 +104,16 @@ async function findThreadByInReplyTo(
     threadId: String(prior.threadId),
     thread,
   };
+}
+
+function dedupeRecipients(recipients: string[]): string[] {
+  const seen = new Set<string>();
+  return recipients.filter((recipient) => {
+    const normalized = recipient.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
 }
 
 async function maybeNotifyProposalReply(args: {
@@ -99,11 +145,12 @@ async function maybeNotifyProposalReply(args: {
 export async function processInboundEmail(
   input: InboundEmailInput,
 ): Promise<InboundProcessResult> {
-  const routedRecipient = input.recipients.find((recipient) =>
+  const candidateRecipients = dedupeRecipients(input.recipients);
+  const routedRecipient = candidateRecipients.find((recipient) =>
     parseReplyAlias(recipient),
   );
   const toAddress =
-    routedRecipient || input.recipients[0] || input.sender.email;
+    routedRecipient || candidateRecipients[0] || input.sender.email;
 
   if (!toAddress) {
     throw new Error("No recipient address in inbound email");
@@ -164,12 +211,23 @@ export async function processInboundEmail(
       routedThread = thread;
     }
   } else {
-    const inReplyMatch = await findThreadByInReplyTo(input.inReplyTo);
+    const inReplyMatch = await findThreadByReplyHeaders({
+      inReplyTo: input.inReplyTo,
+      references: input.references,
+    });
     if (inReplyMatch) {
       threadId = inReplyMatch.threadId;
       routedThread = inReplyMatch.thread;
+      mailboxScope = inReplyMatch.thread.mailboxScope || mailboxScope;
+      mailboxKey = inReplyMatch.thread.mailboxKey || mailboxKey;
+      schoolId = inReplyMatch.thread.schoolId
+        ? String(inReplyMatch.thread.schoolId)
+        : undefined;
     } else {
-      const directMailbox = directPlatformMailboxForRecipient(toAddress);
+      const directMailbox =
+        candidateRecipients
+          .map((recipient) => directPlatformMailboxForRecipient(recipient))
+          .find(Boolean) || null;
       if (directMailbox) {
         mailboxScope = "platform";
         mailboxKey = directMailbox.mailboxKey;

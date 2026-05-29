@@ -23,7 +23,6 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
-  Sparkles,
   MailPlus,
   Archive,
   RefreshCw,
@@ -31,6 +30,11 @@ import {
   Trash2,
   Plus,
   FileText,
+  ArrowDownLeft,
+  ArrowUpRight,
+  HandCoins,
+  LifeBuoy,
+  Megaphone,
 } from "lucide-react";
 import {
   usePlatformInbox,
@@ -45,6 +49,48 @@ import {
 } from "@/hooks/platform/useEmailInbox";
 
 type TabId = "inbox" | "compose" | "suppressions";
+type MailboxId = "hello" | "support" | "billing";
+
+const MAILBOX_META: Record<
+  MailboxId,
+  {
+    label: string;
+    address: string;
+    description: string;
+    icon: React.ReactNode;
+    accent: string;
+    border: string;
+    bg: string;
+  }
+> = {
+  hello: {
+    label: "Hello",
+    address: "hello@tryedusentrix.app",
+    description: "Proposals, growth outreach, and general platform mail",
+    icon: <Megaphone className="h-5 w-5" />,
+    accent: "text-cyan-300",
+    border: "border-cyan-500/40",
+    bg: "bg-cyan-500/15",
+  },
+  support: {
+    label: "Support",
+    address: "support@tryedusentrix.app",
+    description: "Platform support and school reply aliases routed here",
+    icon: <LifeBuoy className="h-5 w-5" />,
+    accent: "text-emerald-300",
+    border: "border-emerald-500/40",
+    bg: "bg-emerald-500/15",
+  },
+  billing: {
+    label: "Billing",
+    address: "billing@tryedusentrix.app",
+    description: "Invoices, payment follow-ups, and billing conversations",
+    icon: <HandCoins className="h-5 w-5" />,
+    accent: "text-amber-300",
+    border: "border-amber-500/40",
+    bg: "bg-amber-500/15",
+  },
+};
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
   sent: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />,
@@ -57,23 +103,39 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
 function PlatformThreadList({
   threads,
   selectedId,
+  mailbox,
   onSelect,
 }: {
   threads: PlatformEmailThread[];
   selectedId: string | null;
+  mailbox: MailboxId;
   onSelect: (id: string) => void;
 }) {
+  const meta = MAILBOX_META[mailbox];
+
   if (threads.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-white/40">
+      <div className="flex flex-col items-center justify-center py-16 px-6 text-center text-white/40">
         <Inbox className="mb-3 h-10 w-10" />
-        <p className="text-sm">No conversations</p>
+        <p className="text-sm font-medium text-white/60">No conversations</p>
+        <p className="mt-1 text-xs text-white/35">
+          Sync {meta.address} to pull mail from Spacemail
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="divide-y divide-white/5">
+    <div>
+      <div className="border-b border-white/10 px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+          Conversations in
+        </p>
+        <p className={cn("mt-0.5 truncate text-sm font-semibold", meta.accent)}>
+          {meta.address}
+        </p>
+      </div>
+      <div className="divide-y divide-white/5">
       {threads.map((thread) => (
         <button
           key={thread._id}
@@ -113,61 +175,173 @@ function PlatformThreadList({
                   ? new Date(thread.lastMessageAt).toLocaleDateString()
                   : ""}
               </span>
-              <Badge
-                variant="outline"
-                className="text-[10px] border-white/10 text-white/40"
-              >
-                {thread.mailboxKey}
-              </Badge>
+              <span className="text-[10px] text-white/30">
+                {thread.lastMessageAt
+                  ? new Date(thread.lastMessageAt).toLocaleDateString()
+                  : ""}
+              </span>
             </div>
           </div>
         </button>
       ))}
+      </div>
+    </div>
+  );
+}
+
+function MessageBubble({
+  msg,
+}: {
+  msg: NonNullable<PlatformEmailThread["messages"]>[number];
+}) {
+  const isOutbound = msg.direction === "outbound";
+  const timestamp = msg.sentAt || msg.receivedAt || msg.createdAt;
+
+  return (
+    <div
+      className={cn(
+        "flex w-full",
+        isOutbound ? "justify-end" : "justify-start",
+      )}
+    >
+      <div
+        className={cn(
+          "max-w-[92%] rounded-2xl border px-4 py-3 sm:max-w-[85%]",
+          isOutbound
+            ? "border-teal-500/25 bg-teal-500/10"
+            : "border-blue-500/25 bg-blue-500/10",
+        )}
+      >
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Badge
+            variant="outline"
+            className={cn(
+              "gap-1 text-[10px] font-semibold uppercase tracking-wide",
+              isOutbound
+                ? "border-teal-500/30 bg-teal-500/15 text-teal-200"
+                : "border-blue-500/30 bg-blue-500/15 text-blue-200",
+            )}
+          >
+            {isOutbound ? (
+              <>
+                <ArrowUpRight className="h-3 w-3" />
+                Sent
+              </>
+            ) : (
+              <>
+                <ArrowDownLeft className="h-3 w-3" />
+                Received
+              </>
+            )}
+          </Badge>
+          {STATUS_ICON[msg.status] || null}
+          <span className="text-[10px] text-white/35">
+            {timestamp ? new Date(timestamp).toLocaleString() : ""}
+          </span>
+        </div>
+
+        <div className="mb-2 text-xs text-white/50">
+          <span className="font-medium text-white/75">
+            {msg.fromName || msg.from}
+          </span>
+          <span className="mx-1.5 text-white/25">&rarr;</span>
+          <span>{msg.to}</span>
+        </div>
+
+        {msg.subject ? (
+          <p className="mb-2 text-xs font-medium text-white/60">{msg.subject}</p>
+        ) : null}
+
+        {msg.textBody ? (
+          <p className="text-sm text-white/85 whitespace-pre-wrap">{msg.textBody}</p>
+        ) : msg.htmlBody ? (
+          <div
+            className="prose prose-invert prose-sm max-w-none text-white/85"
+            dangerouslySetInnerHTML={{ __html: msg.htmlBody }}
+          />
+        ) : (
+          <p className="text-sm italic text-white/40">No message body</p>
+        )}
+
+        {!!msg.attachments?.length && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {msg.attachments.map((attachment, index) => (
+              <span
+                key={`${attachment.name}-${index}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                {attachment.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function PlatformMessageView({
   threadId,
+  mailbox,
   onBack,
 }: {
   threadId: string;
+  mailbox: MailboxId;
   onBack: () => void;
 }) {
   const { data, isLoading } = usePlatformThread(threadId);
   const updateThread = useUpdatePlatformThread();
   const thread = data?.data;
   const messages = thread?.messages ?? [];
+  const meta = MAILBOX_META[mailbox];
+
+  const incoming = messages.filter((m) => m.direction === "inbound");
+  const outgoing = messages.filter((m) => m.direction === "outbound");
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          className="text-white/60 hover:text-white md:hidden"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        {thread && (
-          <p className="flex-1 truncate text-sm font-medium text-white">
-            {thread.subject}
-          </p>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            updateThread.mutate({ threadId, status: "archived" })
-          }
-          className="text-white/40 hover:text-white"
-        >
-          <Archive className="mr-1 h-4 w-4" /> Archive
-        </Button>
+      <div className="border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="text-white/60 hover:text-white md:hidden"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          {thread && (
+            <p className="min-w-0 flex-1 truncate text-sm font-medium text-white">
+              {thread.subject}
+            </p>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              updateThread.mutate({ threadId, status: "archived" })
+            }
+            className="shrink-0 text-white/40 hover:text-white"
+          >
+            <Archive className="mr-1 h-4 w-4" /> Archive
+          </Button>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Badge
+            variant="outline"
+            className={cn("gap-1.5", meta.border, meta.bg, meta.accent)}
+          >
+            {meta.icon}
+            {meta.address}
+          </Badge>
+          <span className="text-xs text-white/40">
+            {incoming.length} received · {outgoing.length} sent
+          </span>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-8">
         {isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
@@ -178,65 +352,51 @@ function PlatformMessageView({
             ))}
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-center text-sm text-white/40 py-8">
+          <p className="py-8 text-center text-sm text-white/40">
             No messages in this thread
           </p>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg._id}
-              className={cn(
-                "rounded-xl border p-4",
-                msg.direction === "outbound"
-                  ? "border-emerald-500/20 bg-emerald-500/5 ml-8"
-                  : "border-white/10 bg-white/5 mr-8",
-              )}
-            >
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2 text-xs text-white/50">
-                  {STATUS_ICON[msg.status] || null}
-                  <span className="font-medium text-white/70">
-                    {msg.fromName || msg.from}
+          <>
+            {incoming.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-300/90">
+                    <ArrowDownLeft className="h-4 w-4" />
+                    Incoming
+                  </div>
+                  <div className="h-px flex-1 bg-blue-500/20" />
+                  <span className="text-[10px] text-white/35">
+                    {incoming.length} message{incoming.length === 1 ? "" : "s"}
                   </span>
-                  <span>&rarr;</span>
-                  <span>{msg.to}</span>
                 </div>
-                <span className="text-[10px] text-white/30">
-                  {msg.sentAt
-                    ? new Date(msg.sentAt).toLocaleString()
-                    : msg.createdAt
-                      ? new Date(msg.createdAt).toLocaleString()
-                      : ""}
-                </span>
-              </div>
-              <p className="mb-2 text-xs font-medium text-white/60">
-                {msg.subject}
-              </p>
-              {msg.textBody ? (
-                <p className="text-sm text-white/80 whitespace-pre-wrap">
-                  {msg.textBody}
-                </p>
-              ) : msg.htmlBody ? (
-                <div
-                  className="prose prose-invert prose-sm max-w-none text-white/80"
-                  dangerouslySetInnerHTML={{ __html: msg.htmlBody }}
-                />
-              ) : null}
-              {!!msg.attachments?.length && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {msg.attachments.map((attachment, index) => (
-                    <span
-                      key={`${attachment.name}-${index}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/60"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      {attachment.name}
-                    </span>
+                <div className="space-y-4">
+                  {incoming.map((msg) => (
+                    <MessageBubble key={msg._id} msg={msg} />
                   ))}
                 </div>
-              )}
-            </div>
-          ))
+              </section>
+            )}
+
+            {outgoing.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-teal-300/90">
+                    <ArrowUpRight className="h-4 w-4" />
+                    Outgoing
+                  </div>
+                  <div className="h-px flex-1 bg-teal-500/20" />
+                  <span className="text-[10px] text-white/35">
+                    {outgoing.length} message{outgoing.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {outgoing.map((msg) => (
+                    <MessageBubble key={msg._id} msg={msg} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -469,7 +629,7 @@ export default function PlatformEmailPage() {
   const [selectedThreadId, setSelectedThreadId] = React.useState<string | null>(
     null,
   );
-  const [mailboxFilter, setMailboxFilter] = React.useState<string>("support");
+  const [mailboxFilter, setMailboxFilter] = React.useState<MailboxId>("support");
 
   const inboxQuery = usePlatformInbox({
     mailbox: mailboxFilter,
@@ -477,11 +637,12 @@ export default function PlatformEmailPage() {
   });
   const mailboxSync = usePlatformMailboxSync();
   const threads = inboxQuery.data?.data ?? [];
+  const activeMailbox = MAILBOX_META[mailboxFilter];
 
   const handleSync = async (reset = false) => {
     try {
       const result = await mailboxSync.mutateAsync({
-        mailbox: mailboxFilter as "hello" | "support" | "billing",
+        mailbox: mailboxFilter,
         reset,
       });
       const box = result?.data?.mailboxes?.[0];
@@ -527,24 +688,32 @@ export default function PlatformEmailPage() {
 
         <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/20">
-              <Inbox className="h-6 w-6 text-emerald-300" />
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl border",
+              activeMailbox.border,
+              activeMailbox.bg,
+              activeMailbox.accent,
+            )}>
+              {activeMailbox.icon}
             </div>
             <div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <h1 className="bg-linear-to-r from-emerald-200 via-teal-200 to-cyan-300 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent lg:text-4xl">
                   Platform Email
                 </h1>
                 <Badge
                   variant="outline"
-                  className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                  className={cn("gap-1.5", activeMailbox.border, activeMailbox.bg, activeMailbox.accent)}
                 >
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  Support
+                  {activeMailbox.icon}
+                  {activeMailbox.label} inbox
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-white/60">
-                Hello, support, and billing mailboxes — synced from Spacemail via IMAP
+              <p className="mt-1 text-sm font-medium text-white/75">
+                {activeMailbox.address}
+              </p>
+              <p className="mt-0.5 text-xs text-white/45">
+                {activeMailbox.description}
               </p>
             </div>
           </div>
@@ -603,25 +772,48 @@ export default function PlatformEmailPage() {
       {/* Tab Content */}
       {activeTab === "inbox" && (
         <>
-          {/* Mailbox filter */}
-          <div className="flex gap-2">
-            {["hello", "support", "billing"].map((mb) => (
-              <button
-                key={mb}
-                onClick={() => {
-                  setMailboxFilter(mb);
-                  setSelectedThreadId(null);
-                }}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  mailboxFilter === mb
-                    ? "bg-emerald-500/20 text-emerald-300"
-                    : "bg-white/5 text-white/40 hover:text-white/60",
-                )}
-              >
-                {mb.charAt(0).toUpperCase() + mb.slice(1)}
-              </button>
-            ))}
+          {/* Mailbox switcher */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(["hello", "support", "billing"] as const).map((mb) => {
+              const meta = MAILBOX_META[mb];
+              const isActive = mailboxFilter === mb;
+              return (
+                <button
+                  key={mb}
+                  type="button"
+                  onClick={() => {
+                    setMailboxFilter(mb);
+                    setSelectedThreadId(null);
+                  }}
+                  className={cn(
+                    "rounded-xl border p-4 text-left transition-all",
+                    isActive
+                      ? cn(meta.border, meta.bg, "ring-1 ring-white/10 shadow-lg shadow-black/20")
+                      : "border-white/10 bg-white/3 hover:border-white/20 hover:bg-white/5",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className={cn("rounded-lg p-2", isActive ? meta.bg : "bg-white/5", meta.accent)}>
+                      {meta.icon}
+                    </div>
+                    {isActive && (
+                      <Badge className={cn("border-0 text-[10px]", meta.bg, meta.accent)}>
+                        Active
+                      </Badge>
+                    )}
+                  </div>
+                  <p className={cn("mt-3 text-sm font-semibold", isActive ? "text-white" : "text-white/70")}>
+                    {meta.label}
+                  </p>
+                  <p className={cn("mt-0.5 truncate text-xs font-medium", isActive ? meta.accent : "text-white/45")}>
+                    {meta.address}
+                  </p>
+                  <p className="mt-2 line-clamp-2 text-[11px] leading-relaxed text-white/40">
+                    {meta.description}
+                  </p>
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
@@ -650,6 +842,7 @@ export default function PlatformEmailPage() {
                 <PlatformThreadList
                   threads={threads}
                   selectedId={selectedThreadId}
+                  mailbox={mailboxFilter}
                   onSelect={setSelectedThreadId}
                 />
               )}
@@ -665,12 +858,19 @@ export default function PlatformEmailPage() {
               {selectedThreadId ? (
                 <PlatformMessageView
                   threadId={selectedThreadId}
+                  mailbox={mailboxFilter}
                   onBack={() => setSelectedThreadId(null)}
                 />
               ) : (
-                <div className="flex flex-1 flex-col items-center justify-center text-white/30">
-                  <Inbox className="mb-3 h-12 w-12" />
-                  <p className="text-sm">Select a conversation to view</p>
+                <div className="flex flex-1 flex-col items-center justify-center px-6 text-center text-white/30">
+                  <div className={cn("mb-4 rounded-2xl border p-4", activeMailbox.border, activeMailbox.bg, activeMailbox.accent)}>
+                    {activeMailbox.icon}
+                  </div>
+                  <p className="text-sm font-medium text-white/55">
+                    {activeMailbox.label} inbox
+                  </p>
+                  <p className="mt-1 text-xs text-white/35">{activeMailbox.address}</p>
+                  <p className="mt-3 text-sm">Select a conversation to view incoming and outgoing mail</p>
                 </div>
               )}
             </Card>

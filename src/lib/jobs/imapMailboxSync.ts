@@ -19,19 +19,23 @@ async function getLastSyncedUid(templateKey: string): Promise<number> {
     : 0;
 }
 
-async function setLastSyncedUid(templateKey: string, uid: number): Promise<void> {
+async function setLastSyncedUid(
+  templateKey: string,
+  uid: number,
+  mailboxKey: string,
+): Promise<void> {
   await EmailMessage.findOneAndUpdate(
     { templateKey },
     {
       $set: {
         providerMessageId: String(uid),
+        mailboxKey,
         updatedAt: new Date(),
       },
       $setOnInsert: {
         provider: "spaceship",
         direction: "inbound",
         mailboxScope: "platform",
-        mailboxKey: "platform_support",
         from: "system",
         to: "system",
         subject: "IMAP Sync State (internal)",
@@ -57,7 +61,7 @@ async function persistFetchedEmail(
     const result = await processInboundEmail({
       provider: "spaceship",
       sender: { email: email.from, name: email.fromName },
-      recipients: [...email.to, ...email.cc],
+      recipients: [...email.to, ...email.cc, ...email.originalRecipients],
       subject: email.subject,
       htmlBody: email.htmlBody,
       textBody: email.textBody,
@@ -151,7 +155,11 @@ export async function runImapMailboxSync(
       }
 
       if (maxPersistedUid > lastUid) {
-        await setLastSyncedUid(mailbox.syncStateTemplateKey, maxPersistedUid);
+        await setLastSyncedUid(
+          mailbox.syncStateTemplateKey,
+          maxPersistedUid,
+          mailbox.mailboxKey,
+        );
       }
 
       results.push({

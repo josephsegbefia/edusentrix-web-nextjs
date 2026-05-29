@@ -12,6 +12,7 @@ export interface FetchedEmail {
   fromName: string | null;
   to: string[];
   cc: string[];
+  originalRecipients: string[];
   subject: string;
   htmlBody: string | null;
   textBody: string | null;
@@ -50,35 +51,49 @@ export async function fetchNewMessages(opts: {
     try {
       const range = opts.sinceUid ? `${opts.sinceUid + 1}:*` : "1:*";
       const limit = opts.limit ?? 100;
-      let count = 0;
+      const uids: number[] = [];
 
-      for await (const message of client.fetch(range, {
-        uid: true,
-        source: true,
-        flags: true,
-        envelope: true,
-      })) {
-        if (count >= limit) break;
-
+      for await (const message of client.fetch(
+        range,
+        {
+          uid: true,
+          flags: true,
+          envelope: true,
+        },
+        { uid: true },
+      )) {
         if (message.uid <= (opts.sinceUid ?? 0)) continue;
+        uids.push(message.uid);
+        if (uids.length >= limit) break;
+      }
 
+      for (const uid of uids) {
         try {
+          const message = await client.fetchOne(
+            String(uid),
+            {
+              uid: true,
+              source: true,
+              envelope: true,
+            },
+            { uid: true },
+          );
+          if (!message?.source) continue;
+
           const parsed = await simpleParser(message.source);
-          const email = mapParsedMail(parsed, message.uid);
+          const email = mapParsedMail(parsed, uid);
           emails.push(email);
 
-          if (message.uid > highestUid) {
-            highestUid = message.uid;
+          if (uid > highestUid) {
+            highestUid = uid;
           }
 
-          await client.messageFlagsAdd({ uid: message.uid }, ["\\Seen"], {
+          await client.messageFlagsAdd({ uid }, ["\\Seen"], {
             uid: true,
           });
-
-          count++;
         } catch (parseErr) {
           console.error(
-            `Failed to parse IMAP message UID ${message.uid} (${opts.mailbox.id}):`,
+            `Failed to parse IMAP message UID ${uid} (${opts.mailbox.id}):`,
             parseErr,
           );
         }
@@ -117,11 +132,20 @@ function mapParsedMail(parsed: ParsedMail, uid: number): FetchedEmail {
   const headers: Record<string, string> = {};
   if (parsed.headers) {
     for (const [key, value] of parsed.headers) {
-      if (typeof value === "string") {
-        headers[key] = value;
-      }
+      const stringValue = stringifyHeaderValue(value);
+      if (stringValue) headers[key.toLowerCase()] = stringValue;
     }
   }
+
+  const originalRecipients = dedupeAddresses([
+    ...extractAddressesFromHeader(headers["delivered-to"]),
+    ...extractAddressesFromHeader(headers["x-original-to"]),
+    ...extractAddressesFromHeader(headers["x-envelope-to"]),
+    ...extractAddressesFromHeader(headers["envelope-to"]),
+    ...extractAddressesFromHeader(headers["original-recipient"]),
+    ...extractAddressesFromHeader(headers["resent-to"]),
+    ...extractAddressesFromHeader(headers["apparently-to"]),
+  ]);
 
   return {
     uid,
@@ -136,10 +160,43 @@ function mapParsedMail(parsed: ParsedMail, uid: number): FetchedEmail {
     fromName: fromAddr?.name || null,
     to: toAddrs,
     cc: ccAddrs,
+    originalRecipients,
     subject: parsed.subject || "(No subject)",
     htmlBody: parsed.html ? String(parsed.html) : null,
     textBody: parsed.text || null,
     date: parsed.date || new Date(),
     headers,
   };
+}
+
+function stringifyHeaderValue(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => stringifyHeaderValue(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (value && typeof value === "object") {
+    if ("text" in value && typeof value.text === "string") return value.text;
+    if ("value" in value) return stringifyHeaderValue(value.value);
+  }
+  return null;
+}
+
+function extractAddressesFromHeader(value?: string | null): string[] {
+  if (!value) return [];
+  return Array.from(value.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi))
+    .map((match) => match[0].trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function dedupeAddresses(addresses: string[]): string[] {
+  const seen = new Set<string>();
+  return addresses.filter((address) => {
+    const normalized = address.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
 }

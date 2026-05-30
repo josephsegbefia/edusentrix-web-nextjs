@@ -36,6 +36,7 @@ import {
   ChevronRight,
   ChevronDown,
   ClipboardList,
+  CalendarCheck2,
   Table2,
   ClipboardSignature,
   Presentation,
@@ -134,6 +135,11 @@ const navSections: NavSection[] = [
         label: "Marks & Reports",
         href: "/teacher/marks",
         icon: ClipboardList,
+      },
+      {
+        label: "My Exams",
+        href: "/teacher/exams",
+        icon: CalendarCheck2,
       },
       {
         label: "Attendance",

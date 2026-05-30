@@ -101,6 +101,11 @@ function getNavSections(unreadNotifications: number, unreadMessages: number): Na
           icon: GraduationCap,
         },
         {
+          label: "Upcoming Exams",
+          href: "/parent/exams",
+          icon: ClipboardCheck,
+        },
+        {
           label: "Library",
           href: "/parent/library",
           icon: BookOpen,

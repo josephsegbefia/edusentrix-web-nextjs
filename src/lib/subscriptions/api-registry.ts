@@ -233,6 +233,34 @@ export const API_FEATURE_REGISTRY: ApiRegistryEntry[] = [
     methods: ["GET", "POST", "PUT", "DELETE"],
     readGetFree: true,
   },
+  {
+    apiPath: "/api/admin/exams",
+    label: "Exam scheduling & invigilation",
+    requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    readGetFree: true,
+  },
+  {
+    apiPath: "/api/teacher/exams",
+    label: "Teacher exam duties & timetable",
+    requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS,
+    methods: ["GET", "POST"],
+    readGetFree: true,
+  },
+  {
+    apiPath: "/api/parent/exams",
+    label: "Parent published exam timetable",
+    requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS,
+    methods: ["GET"],
+    readGetFree: true,
+  },
+  {
+    apiPath: "/api/student/exams",
+    label: "Student published exam timetable",
+    requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS,
+    methods: ["GET"],
+    readGetFree: true,
+  },
 
   // ---------------------------------------------------------------------------
   // AI / Leo

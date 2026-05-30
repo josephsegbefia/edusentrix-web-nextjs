@@ -102,6 +102,15 @@ export const SCHOOL_ADMIN_ROUTE_REGISTRY: RouteRegistryEntry[] = [
   { path: "/admin/assessments/question-bank", label: "Question Bank", requiredFeature: FEATURE_KEYS.ASSESSMENT_QUESTION_BANK },
 
   // -------------------------------------------------------------------------
+  // Exam scheduling & invigilation (separate from question-bank examinations)
+  // -------------------------------------------------------------------------
+  { path: "/admin/exams/sessions", label: "Exam Sessions", requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS, readOnlyAllowed: true },
+  { path: "/admin/exams/sessions/[sessionId]/timetable", label: "Exam Timetable Builder", requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS },
+  { path: "/admin/exams/sessions/[sessionId]/conflicts", label: "Exam Conflict Review", requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS },
+  { path: "/admin/exams/analytics", label: "Exam Operations", requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS, readOnlyAllowed: true },
+  { path: "/admin/exams/venues", label: "Exam Venues", requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS },
+
+  // -------------------------------------------------------------------------
   // EduSentrix Learn
   // -------------------------------------------------------------------------
   { path: "/admin/learn", label: "EduSentrix Learn", requiredFeature: FEATURE_KEYS.LEARN_MANAGE },
@@ -138,6 +147,7 @@ export const TEACHER_ROUTE_REGISTRY: RouteRegistryEntry[] = [
   { path: "/teacher/lesson-notes/new", label: "New Lesson Note", requiredFeature: FEATURE_KEYS.ACADEMICS_LESSON_NOTES },
   { path: "/teacher/schemes", label: "Schemes of Learning", requiredFeature: FEATURE_KEYS.ACADEMICS_SCHEMES },
   { path: "/teacher/examinations", label: "Examinations", requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS },
+  { path: "/teacher/exams", label: "My Exams", requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS, readOnlyAllowed: true },
   { path: "/teacher/timetables", label: "Timetables", requiredFeature: FEATURE_KEYS.CLASSES },
   { path: "/teacher/communications", label: "Notices", requiredFeature: FEATURE_KEYS.COMMUNICATION_NOTICES },
   { path: "/teacher/learn", label: "EduSentrix Learn", requiredFeature: FEATURE_KEYS.LEARN_MANAGE },
@@ -151,6 +161,7 @@ export const PARENT_ROUTE_REGISTRY: RouteRegistryEntry[] = [
   { path: "/parent/students", label: "My Children", requiredFeature: FEATURE_KEYS.STUDENTS, readOnlyAllowed: true },
   { path: "/parent/payments", label: "Payments", requiredFeature: FEATURE_KEYS.FINANCE_PARENT_PAYMENTS },
   { path: "/parent/notices", label: "Notices", requiredFeature: FEATURE_KEYS.COMMUNICATION_NOTICES },
+  { path: "/parent/exams", label: "Upcoming Exams", requiredFeature: FEATURE_KEYS.ASSESSMENT_EXAMINATIONS, readOnlyAllowed: true },
   { path: "/parent/learn", label: "EduSentrix Learn", requiredFeature: FEATURE_KEYS.LEARN_STUDENT_ACCESS },
 ];
 

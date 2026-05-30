@@ -53,6 +53,7 @@ import {
   Presentation,
   Percent,
   ListChecks,
+  Building2,
 } from "lucide-react";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
@@ -231,6 +232,21 @@ const navSections: NavSection[] = [
         label: "Assessment Plans",
         href: "/admin/academics/assessment-plans",
         icon: ListChecks,
+      },
+      {
+        label: "Exam Sessions",
+        href: "/admin/exams/sessions",
+        icon: CalendarRange,
+      },
+      {
+        label: "Exam Operations",
+        href: "/admin/exams/analytics",
+        icon: BarChart3,
+      },
+      {
+        label: "Exam Venues",
+        href: "/admin/exams/venues",
+        icon: Building2,
       },
       {
         label: "Report card approval",

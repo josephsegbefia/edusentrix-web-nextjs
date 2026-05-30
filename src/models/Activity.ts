@@ -76,6 +76,18 @@ export type ActivityType =
   | "timetable.version.published"
   | "timetable.version.archived"
   | "timetable.backfill.executed"
+  // Exam scheduling
+  | "exam.conflicts.snapshot_synced"
+  | "exam.conflicts.overridden"
+  | "exam.assessment.created"
+  | "exam.assessment.linked"
+  | "exam.assessment.unlinked"
+  | "exam.timetable.published"
+  | "exam.entry.started"
+  | "exam.entry.completed"
+  | "exam.incident.reported"
+  | "exam.sitting.recorded"
+  | "exam.calendar.synced"
   // Promotions
   | "promotion.policy.created"
   | "promotion.policy.activated"

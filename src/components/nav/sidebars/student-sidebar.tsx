@@ -9,6 +9,7 @@ import {
   ClipboardList,
   CalendarClock,
   CalendarDays,
+  CalendarCheck2,
   BarChart3,
   Bell,
   UserCircle2,
@@ -61,6 +62,11 @@ const navSections: NavSection[] = [
         label: "Results",
         href: "/student/results",
         icon: BarChart3,
+      },
+      {
+        label: "Upcoming Exams",
+        href: "/student/exams",
+        icon: CalendarCheck2,
       },
       {
         label: "My Timetable",

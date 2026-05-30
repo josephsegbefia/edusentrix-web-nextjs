@@ -5,21 +5,15 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Award, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { StudentSubjectPerformanceRow } from "@/types/admin/student-academics";
+import type { StrengthOverviewRow } from "@/lib/academics/profile/academic-trends-view-utils";
 
 type Props = {
-  subjects: StudentSubjectPerformanceRow[];
+  subjects: StrengthOverviewRow[];
 };
 
 export function SubjectStrengthsOverview({ subjects }: Props) {
   const subjectsWithScores = React.useMemo(() => {
-    return subjects
-      .filter((s) => s.totalScore !== null)
-      .map((s) => ({
-        ...s,
-        score: s.totalScore ?? 0,
-      }))
-      .sort((a, b) => b.score - a.score);
+    return [...subjects].sort((a, b) => b.score - a.score);
   }, [subjects]);
 
   if (subjectsWithScores.length === 0) {
@@ -96,11 +90,14 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                     <p className="text-sm font-bold text-emerald-100">
                       {subject.score.toFixed(1)}%
                     </p>
-                    {subject.gradeLetter && (
+                    {subject.gradeLabel ? (
                       <p className="text-[10px] text-emerald-200/70">
-                        Grade {subject.gradeLetter}
+                        Grade {subject.gradeLabel}
                       </p>
-                    )}
+                    ) : null}
+                    {subject.sourceLabel ? (
+                      <p className="text-[10px] text-emerald-200/50">{subject.sourceLabel}</p>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -169,7 +166,7 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                       >
                         {subject.score.toFixed(1)}%
                       </p>
-                      {subject.gradeLetter && (
+                      {subject.gradeLabel ? (
                         <p
                           className={cn(
                             "text-[10px]",
@@ -178,9 +175,9 @@ export function SubjectStrengthsOverview({ subjects }: Props) {
                               : "text-amber-200/70"
                           )}
                         >
-                          Grade {subject.gradeLetter}
+                          Grade {subject.gradeLabel}
                         </p>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>

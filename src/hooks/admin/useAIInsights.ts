@@ -35,6 +35,8 @@ type AIInsightsLoadResponse = {
   generatedAt: string | null;
   isStale?: boolean;
   currentFingerprint?: string;
+  insightMode?: "admin" | "teacher" | "parent" | "student";
+  hasAcademicData?: boolean;
 };
 
 type AIInsightsGenerateResponse = {

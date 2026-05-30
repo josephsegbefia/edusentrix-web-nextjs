@@ -300,6 +300,17 @@ Use the established shared UI components:
 - Use `CustomDatePicker` throughout subscription UI.
 - Entitlement guards should protect expensive/write endpoints, not only front-end navigation.
 
+### Student Academic Profile
+
+- Spec: `STUDENT_ACADEMIC_PROFILE_SPEC.md`. Discovery: `docs/STUDENT_ACADEMIC_PROFILE_DISCOVERY.md`. Legacy DTO deprecation: `docs/STUDENT_ACADEMIC_PROFILE_LEGACY_DTO_DEPRECATION.md`.
+- Use `buildStudentAcademicProfileDTO` and `StudentAcademicProfileDTO` (`src/types/academics/student-academic-profile.ts`) for new academics read surfaces. Do not extend `buildStudentAcademicsDTO`; use `buildLegacyStudentAcademicsDTO` only for documented compat routes.
+- Profile APIs: admin `GET /api/admin/students/[id]/academic-profile` (+ breakdown); parent `GET /api/parent/wards/[id]/academic-profile` (+ breakdown); student `GET /api/student/academic-profile` (+ breakdown).
+- Parents and students see **released official data only** unless `allowProgressVisibility` is explicitly enabled. Never expose readiness, internal notes, or draft marks to parent/student UIs.
+- New UI must use **dynamic subject result components** (`SubjectResultsTable`, `ScoreComponentChips`), not hardcoded CA/exam columns.
+- Admin student academics tab: profile-first; legacy `useStudentAcademics` only when `shouldFetchLegacyStudentAcademics(profile)` is true.
+- Do not redesign the whole student detail page or jump into fees/documents/health from profile work. Keep the academics tab simple and aligned with premium glass workspace UI (`WorkspacePageShell`, shared profile components under `src/components/admin/students/detail/`).
+- Do not break `GET /api/parent/reports/download` (snapshot PDF path + legacy PDF fallback).
+
 ### Platform Proposal Center
 
 - Proposal pages belong to Platform Admin/Growth Center.

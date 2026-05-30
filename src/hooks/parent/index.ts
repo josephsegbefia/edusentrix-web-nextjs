@@ -24,4 +24,9 @@ export {
   useUnreadMessageCount,
 } from "./useParentMessages";
 export { useParentReports } from "./useParentReports";
+export {
+  useParentAcademicProfile,
+  useParentAcademicProfileData,
+  useParentAcademicProfileBreakdown,
+} from "./useParentAcademicProfile";
 export { useParentWardLessonSessions } from "./useParentWardLessonSessions";

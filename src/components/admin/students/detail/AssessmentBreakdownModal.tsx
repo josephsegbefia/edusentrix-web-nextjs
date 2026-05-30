@@ -1,4 +1,3 @@
-// src/components/admin/students/detail/AssessmentBreakdownModal.tsx
 "use client";
 
 import * as React from "react";
@@ -8,17 +7,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { AssessmentBreakdownLegacyContent } from "@/components/admin/students/detail/AssessmentBreakdownLegacyContent";
+import { AssessmentBreakdownProfileContent } from "@/components/admin/students/detail/AssessmentBreakdownProfileContent";
 import { useAssessmentBreakdown } from "@/hooks/admin/useAssessmentBreakdown";
-import { Loader2, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useStudentAcademicProfileBreakdown } from "@/hooks/admin/useStudentAcademicProfile";
+import { shouldUseLegacyAssessmentBreakdown } from "@/lib/academics/profile/assessment-breakdown-view-utils";
+import type { AcademicProfileSubjectResultDTO } from "@/types/academics/student-academic-profile";
+import { Loader2 } from "lucide-react";
 
 type Props = {
   studentId: string;
   subjectId: string;
+  /** Academic period id (legacy prop name: termId). */
   termId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  subjectContext?: AcademicProfileSubjectResultDTO | null;
+  periodLabel?: string | null;
+  periodIsReleased?: boolean;
 };
 
 export function AssessmentBreakdownModal({
@@ -27,160 +33,81 @@ export function AssessmentBreakdownModal({
   termId,
   open,
   onOpenChange,
+  subjectContext,
+  periodLabel,
+  periodIsReleased = false,
 }: Props) {
-  const { data, isLoading, isError } = useAssessmentBreakdown(
+  const profileQuery = useStudentAcademicProfileBreakdown({
+    studentId,
+    subjectId,
+    periodId: termId,
+    enabled: open,
+  });
+
+  const useLegacy = shouldUseLegacyAssessmentBreakdown({
+    profileError: profileQuery.isError,
+    breakdown: profileQuery.data?.data,
+  });
+
+  const legacyQuery = useAssessmentBreakdown(
     studentId,
     subjectId,
     termId,
-    open // only fetch when modal is open
+    open && useLegacy
   );
+
+  const breakdown = profileQuery.data?.data;
+  const legacyData = legacyQuery.data?.data;
+  const isLoading =
+    (profileQuery.isLoading && !useLegacy) || (useLegacy && legacyQuery.isLoading);
+  const isError =
+    useLegacy && legacyQuery.isError && !legacyQuery.isLoading && !legacyData;
+
+  const title =
+    subjectContext?.subjectName ??
+    breakdown?.subjectName ??
+    legacyData?.subjectName ??
+    "Assessment breakdown";
+
+  const subtitle = periodLabel ?? legacyData?.termLabel ?? null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto border-white/10 bg-slate-950/95 backdrop-blur">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto border-white/10 bg-slate-950/95 backdrop-blur">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-white/90">
-            {isLoading ? "Loading..." : data?.data.subjectName}
+            {isLoading ? "Loading breakdown…" : `${title} breakdown`}
           </DialogTitle>
-          {data?.data.termLabel && (
-            <p className="text-sm text-muted-foreground">
-              {data.data.termLabel}
-            </p>
-          )}
+          {subtitle ? (
+            <p className="text-sm text-white/50">{subtitle}</p>
+          ) : null}
         </DialogHeader>
 
-        {isLoading && (
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        )}
+        ) : null}
 
-        {isError && (
+        {isError ? (
           <div className="rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-8 text-center">
             <p className="text-sm text-destructive">
               Failed to load assessment breakdown
             </p>
           </div>
-        )}
+        ) : null}
 
-        {data?.data && (
-          <div className="space-y-4">
-            {/* Summary Cards */}
-            {data.data.summary && (
-              <div className="grid grid-cols-3 gap-3">
-                <Card className="border-white/10 bg-linear-to-br from-blue-500/10 to-transparent">
-                  <CardContent className="p-3">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                      CA Total
-                    </p>
-                    <p className="text-lg font-semibold text-white">
-                      {data.data.summary.caTotal.toFixed(1)} /{" "}
-                      {data.data.summary.caMaxTotal.toFixed(1)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="border-white/10 bg-linear-to-br from-purple-500/10 to-transparent">
-                  <CardContent className="p-3">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                      Exam Score
-                    </p>
-                    <p className="text-lg font-semibold text-white">
-                      {data.data.summary.examScore.toFixed(1)} /{" "}
-                      {data.data.summary.examMaxScore.toFixed(1)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card className="border-white/10 bg-linear-to-br from-emerald-500/10 to-transparent">
-                  <CardContent className="p-3">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                      Total Score
-                    </p>
-                    <p className="text-lg font-semibold text-white">
-                      {data.data.summary.totalScore.toFixed(1)}%
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+        {!isLoading && !isError && breakdown && !useLegacy ? (
+          <AssessmentBreakdownProfileContent
+            breakdown={breakdown}
+            subjectContext={subjectContext}
+            periodIsReleased={periodIsReleased}
+          />
+        ) : null}
 
-            {/* Assessments List */}
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-white/90">
-                Assessment Details
-              </h3>
-              {data.data.assessments.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-8 text-center">
-                  <FileText className="mx-auto h-6 w-6 text-muted-foreground/50 mb-2" />
-                  <p className="text-xs text-muted-foreground/90">
-                    No assessments recorded yet
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {data.data.assessments.map((assessment) => {
-                    const percentage = assessment.percentage;
-                    const colorClass =
-                      percentage >= 75
-                        ? "border-emerald-500/30 bg-emerald-500/10"
-                        : percentage >= 60
-                        ? "border-amber-500/30 bg-amber-500/10"
-                        : "border-red-500/30 bg-red-500/10";
-
-                    return (
-                      <Card
-                        key={assessment.id}
-                        className={cn(
-                          "border-white/10 bg-linear-to-br from-white/5 to-transparent",
-                          colorClass
-                        )}
-                      >
-                        <CardContent className="p-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-medium text-white/90">
-                                  {assessment.title}
-                                </span>
-                                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-white/10 text-white/70 uppercase">
-                                  {assessment.assessmentType}
-                                </span>
-                              </div>
-                              {assessment.gradedAt && (
-                                <p className="text-[10px] text-muted-foreground mb-1">
-                                  Graded:{" "}
-                                  {new Date(
-                                    assessment.gradedAt
-                                  ).toLocaleDateString()}
-                                </p>
-                              )}
-                              {assessment.remarks && (
-                                <p className="text-xs text-muted-foreground/80 mt-1">
-                                  {assessment.remarks}
-                                </p>
-                              )}
-                            </div>
-                            <div className="text-right ml-4">
-                              <p className="text-sm font-semibold text-white">
-                                {assessment.score.toFixed(1)} /{" "}
-                                {assessment.maxScore.toFixed(1)}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {percentage.toFixed(1)}%
-                              </p>
-                              <p className="text-[10px] text-muted-foreground/70 mt-1">
-                                Weight: {(assessment.weight * 100).toFixed(0)}%
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {!isLoading && !isError && useLegacy && legacyData ? (
+          <AssessmentBreakdownLegacyContent data={legacyData} />
+        ) : null}
       </DialogContent>
     </Dialog>
   );

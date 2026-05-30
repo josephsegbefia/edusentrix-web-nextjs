@@ -5,14 +5,16 @@ import type { StudentAcademicsDTO } from "@/types/admin/student-academics";
 type UseStudentAcademicsOptions = {
   studentId: string | null | undefined;
   termId?: string | null;
+  enabled?: boolean;
 };
 
 export function useStudentAcademics({
   studentId,
   termId,
+  enabled = true,
 }: UseStudentAcademicsOptions) {
   return useQuery<{ success: boolean; data: StudentAcademicsDTO }>({
-    enabled: !!studentId,
+    enabled: enabled && !!studentId,
     queryKey: ["students", "academics", studentId, termId ?? null],
     queryFn: async () => {
       if (!studentId) throw new Error("Missing studentId");
@@ -47,11 +49,13 @@ export function useStudentAcademics({
  */
 export function useStudentAcademicsData(
   studentId: string | null | undefined,
-  termId?: string | null
+  termId?: string | null,
+  options?: { enabled?: boolean }
 ) {
   const { data, isLoading, isError, error } = useStudentAcademics({
     studentId,
     termId,
+    enabled: options?.enabled,
   });
 
   return {

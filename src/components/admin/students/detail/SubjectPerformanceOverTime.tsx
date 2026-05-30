@@ -21,28 +21,28 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
-import type { StudentSubjectPerformanceRow } from "@/types/admin/student-academics";
+import type {
+  StrengthOverviewRow,
+  SubjectTrendChartPoint,
+} from "@/lib/academics/profile/academic-trends-view-utils";
+import { trendDotColor } from "@/lib/academics/profile/academic-trends-view-utils";
+import type { AcademicTermHistorySource } from "@/types/academics/student-academic-profile";
 
 type Props = {
-  subjects: StudentSubjectPerformanceRow[];
-  subjectHistory?: Record<
-    string,
-    Array<{
-      termId: string;
-      termLabel: string;
-      totalScore: number | null;
-    }>
-  >;
+  subjects: StrengthOverviewRow[];
+  subjectHistory?: Record<string, SubjectTrendChartPoint[]>;
   terms: Array<{
     termId: string;
     label: string;
   }>;
+  showSourceLegend?: boolean;
 };
 
 export function SubjectPerformanceOverTime({
   subjects,
   subjectHistory,
   terms,
+  showSourceLegend = false,
 }: Props) {
   const [selectedSubjectId, setSelectedSubjectId] = React.useState<
     string | null
@@ -104,6 +104,8 @@ export function SubjectPerformanceOverTime({
           term: displayLabel,
           fullLabel: h.termLabel,
           score: h.totalScore ?? 0,
+          source: h.source,
+          sourceLabel: h.sourceLabel,
         };
       })
       .sort((a, b) => {
@@ -223,20 +225,42 @@ export function SubjectPerformanceOverTime({
                   <p className="text-xs font-medium text-white">
                     {selectedSubject.subjectName}
                   </p>
-                  {selectedSubject.shortCode && (
+                  {selectedSubject.shortCode ? (
                     <p className="text-[10px] text-muted-foreground">
                       {selectedSubject.shortCode}
                     </p>
-                  )}
+                  ) : null}
+                  {selectedSubject.sourceLabel ? (
+                    <p className="text-[10px] text-white/45">{selectedSubject.sourceLabel}</p>
+                  ) : null}
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Current Score</p>
+                  <p className="text-xs text-muted-foreground">Current score</p>
                   <p className="text-sm font-bold text-white">
-                    {selectedSubject.totalScore?.toFixed(1) ?? "--"}%
+                    {selectedSubject.score.toFixed(1)}%
                   </p>
+                  {selectedSubject.gradeLabel ? (
+                    <p className="text-[10px] text-white/45">Grade {selectedSubject.gradeLabel}</p>
+                  ) : null}
                 </div>
               </div>
             )}
+            {showSourceLegend ? (
+              <div className="mb-3 flex flex-wrap gap-2 text-[10px] text-white/55">
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  Official
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-amber-400" />
+                  Projected
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-slate-400" />
+                  Legacy
+                </span>
+              </div>
+            ) : null}
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid
@@ -267,12 +291,18 @@ export function SubjectPerformanceOverTime({
                     const data = payload[0].payload as {
                       fullLabel: string;
                       score: number;
+                      sourceLabel?: string;
                     };
                     return (
                       <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
                         <p className="text-xs font-medium text-white mb-1">
                           {data.fullLabel}
                         </p>
+                        {data.sourceLabel ? (
+                          <p className="mb-1 text-[10px] uppercase tracking-wide text-white/45">
+                            {data.sourceLabel}
+                          </p>
+                        ) : null}
                         <p className="text-xs text-primary-200">
                           Score: {data.score.toFixed(1)}%
                         </p>
@@ -291,8 +321,24 @@ export function SubjectPerformanceOverTime({
                   dataKey="score"
                   stroke="#3b82f6"
                   strokeWidth={3}
-                  dot={{ fill: "#3b82f6", r: 6, strokeWidth: 2, stroke: "#ffffff" }}
-                  activeDot={{ r: 8, stroke: "#ffffff", strokeWidth: 2, fill: "#3b82f6" }}
+                  dot={(props) => {
+                    const { cx, cy, payload } = props;
+                    if (cx == null || cy == null) return null;
+                    const source =
+                      (payload as { source?: AcademicTermHistorySource } | undefined)
+                        ?.source ?? "legacy_fallback";
+                    return (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={6}
+                        fill={trendDotColor(source)}
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                      />
+                    );
+                  }}
+                  activeDot={{ r: 8, stroke: "#ffffff", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>

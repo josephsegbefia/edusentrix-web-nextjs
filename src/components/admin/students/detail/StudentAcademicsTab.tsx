@@ -4,16 +4,38 @@ import * as React from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, GraduationCap } from "lucide-react";
+import {
+  readPeriodIdFromSearchParams,
+  writePeriodIdToSearchParams,
+} from "@/lib/academics/profile/academic-period-selector-utils";
 import { useStudentAcademicsData } from "@/hooks/admin/useStudentAcademics";
-import { AcademicSummaryCards } from "./AcademicSummaryCards";
+import { useStudentAcademicProfileData } from "@/hooks/admin/useStudentAcademicProfile";
+import {
+  AcademicSummaryCards,
+  AcademicSummaryCardsSkeleton,
+} from "./AcademicSummaryCards";
+import {
+  AttendanceSummaryPanel,
+  AttendanceSummaryPanelSkeleton,
+} from "./AttendanceSummaryPanel";
+import {
+  ReportStatusPanel,
+  ReportStatusPanelSkeleton,
+} from "./ReportStatusPanel";
 import { TermSelector } from "./TermSelector";
 import { SubjectPerformanceTable } from "./SubjectPerformanceTable";
-import { TeacherCommentsSection } from "./TeacherCommentsSection";
+import { SubjectResultsTable } from "./SubjectResultsTable";
+import {
+  TeacherCommentsSection,
+  TeacherCommentsSectionSkeleton,
+} from "./TeacherCommentsSection";
 import { SubjectStrengthsOverview } from "./SubjectStrengthsOverview";
 import { OverallPerformanceTrend } from "./OverallPerformanceTrend";
 import { SubjectPerformanceOverTime } from "./SubjectPerformanceOverTime";
 import { AssessmentBreakdownModal } from "./AssessmentBreakdownModal";
 import { AIInsightsPanel } from "./AIInsightsPanel";
+import { resolveAcademicTrendsViewData } from "@/lib/academics/profile/academic-trends-view-utils";
+import { shouldFetchLegacyStudentAcademics } from "@/lib/academics/compatibility/academic-profile-to-legacy-dto";
 import { AcademicsDataSourceNotice } from "@/components/academics/AcademicsDataSourceNotice";
 
 type Props = {
@@ -25,19 +47,37 @@ export function StudentAcademicsTab({ studentId }: Props) {
   const router = useRouter();
 
   const searchParamsString = searchParams?.toString() ?? "";
-  const termIdParam = searchParams?.get("termId") ?? null;
+  const periodIdParam = searchParams
+    ? readPeriodIdFromSearchParams(searchParams)
+    : null;
   const [selectedTermId, setSelectedTermId] = React.useState<string | null>(
-    termIdParam
+    periodIdParam
   );
   const [breakdownModalOpen, setBreakdownModalOpen] = React.useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = React.useState<
     string | null
   >(null);
 
-  const { academics, isLoading } = useStudentAcademicsData(
+  const { profile, isLoading: isProfileLoading } = useStudentAcademicProfileData(
     studentId,
     selectedTermId
   );
+
+  const needsLegacyAcademics = React.useMemo(
+    () => shouldFetchLegacyStudentAcademics(profile),
+    [profile]
+  );
+
+  const { academics, isLoading: isAcademicsLoading } = useStudentAcademicsData(
+    studentId,
+    selectedTermId,
+    { enabled: needsLegacyAcademics }
+  );
+
+  const isLoading =
+    isProfileLoading || (needsLegacyAcademics && isAcademicsLoading);
+
+  const legacyAcademics = needsLegacyAcademics ? academics : null;
 
   const handleViewBreakdown = React.useCallback((subjectId: string) => {
     setSelectedSubjectId(subjectId);
@@ -46,46 +86,52 @@ export function StudentAcademicsTab({ studentId }: Props) {
 
   // Sync selectedTermId with URL param and canonicalize invalid term IDs.
   React.useEffect(() => {
-    const termId = searchParams?.get("termId");
+    const periodId = searchParams ? readPeriodIdFromSearchParams(searchParams) : null;
+    const canonicalPeriodId =
+      profile?.selectedPeriod.academicPeriodId ??
+      legacyAcademics?.selectedTermId ??
+      null;
 
-    if (!termId) {
-      if (academics?.selectedTermId && selectedTermId !== academics.selectedTermId) {
-        setSelectedTermId(academics.selectedTermId);
+    if (!periodId) {
+      if (canonicalPeriodId && selectedTermId !== canonicalPeriodId) {
+        setSelectedTermId(canonicalPeriodId);
       }
       return;
     }
 
-    if (!academics) {
-      if (termId !== selectedTermId) {
-        setSelectedTermId(termId);
+    if (!profile && !legacyAcademics) {
+      if (periodId !== selectedTermId) {
+        setSelectedTermId(periodId);
       }
       return;
     }
 
-    const isKnownTermId = academics.term.some((term) => term.termId === termId);
-    if (!isKnownTermId && academics.selectedTermId) {
+    const knownPeriodIds = new Set(
+      (profile?.periods ?? legacyAcademics?.term ?? []).map((entry) =>
+        "academicPeriodId" in entry ? entry.academicPeriodId : entry.termId
+      )
+    );
+
+    if (!knownPeriodIds.has(periodId) && canonicalPeriodId) {
       const params = new URLSearchParams(searchParamsString);
-      const normalizedTermId = academics.selectedTermId;
-      if (selectedTermId !== normalizedTermId) {
-        setSelectedTermId(normalizedTermId);
+      if (selectedTermId !== canonicalPeriodId) {
+        setSelectedTermId(canonicalPeriodId);
       }
-      if (params.get("termId") !== normalizedTermId) {
-        params.set("termId", normalizedTermId);
-        router.replace(`?${params.toString()}`, { scroll: false });
-      }
+      writePeriodIdToSearchParams(params, canonicalPeriodId);
+      router.replace(`?${params.toString()}`, { scroll: false });
       return;
     }
 
-    if (termId !== selectedTermId) {
-      setSelectedTermId(termId);
+    if (periodId !== selectedTermId) {
+      setSelectedTermId(periodId);
     }
-  }, [searchParams, academics, selectedTermId, router, searchParamsString]);
+  }, [searchParams, profile, legacyAcademics, selectedTermId, router, searchParamsString]);
 
   const handleTermChange = React.useCallback(
-    (termId: string) => {
-      setSelectedTermId(termId);
+    (periodId: string) => {
+      setSelectedTermId(periodId);
       const params = new URLSearchParams(searchParamsString);
-      params.set("termId", termId);
+      writePeriodIdToSearchParams(params, periodId);
       router.replace(`?${params.toString()}`, { scroll: false });
     },
     [router, searchParamsString]
@@ -94,23 +140,15 @@ export function StudentAcademicsTab({ studentId }: Props) {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Card
-              key={i}
-              className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl"
-            >
-              <CardContent className="p-4">
-                <div className="h-20 animate-pulse rounded-xl bg-white/5" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <AcademicSummaryCardsSkeleton />
+        <ReportStatusPanelSkeleton />
+        <AttendanceSummaryPanelSkeleton />
+        <TeacherCommentsSectionSkeleton />
       </div>
     );
   }
 
-  if (!academics) {
+  if (!profile && (!needsLegacyAcademics || !legacyAcademics)) {
     return (
       <div className="space-y-6">
         <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -140,67 +178,109 @@ export function StudentAcademicsTab({ studentId }: Props) {
 
   const {
     summary,
-    term: terms,
-    subjects,
-    comments,
+    term: terms = [],
+    subjects = [],
+    comments = [],
     selectedTermLabel,
     schoolLevel,
     multiTermHistory,
     subjectHistory,
-    riskLevel,
-    strongestSubject,
-    weakestSubject,
     dataSource,
     dataSourceNotes,
-  } = academics;
+  } = legacyAcademics ?? {
+    summary: {
+      overallAverage: null,
+      classPosition: null,
+      totalStudents: null,
+      performanceTier: null,
+      trend: "stable" as const,
+      trendDelta: null,
+    },
+    term: [],
+    subjects: [],
+    comments: [],
+    selectedTermLabel: null,
+    schoolLevel: profile?.schoolLevel ?? null,
+  };
 
-  const hasScoredSubjectData = subjects.some(
+  const periodLabel =
+    profile?.selectedPeriod.label ?? selectedTermLabel ?? null;
+
+  const profileSubjects = profile?.subjectResults ?? [];
+  const hasScoredSubjectData = (subjects.length > 0 ? subjects : profileSubjects).some(
     (subject) =>
-      subject.totalScore != null ||
-      subject.caPercentage != null ||
-      subject.examPercentage != null ||
-      subject.gradeLetter != null
+      ("totalScore" in subject && subject.totalScore != null) ||
+      ("caPercentage" in subject && subject.caPercentage != null) ||
+      ("examPercentage" in subject && subject.examPercentage != null) ||
+      ("gradeLetter" in subject && subject.gradeLetter != null) ||
+      ("roundedFinalScore" in subject && subject.roundedFinalScore != null)
   );
-  const hasTermResultData = terms.some((term) => term.averageScore != null);
+  const hasTermResultData = (profile?.periods ?? terms).some((term) =>
+    "averageScore" in term ? term.averageScore != null : false
+  );
   const hasAcademicData =
+    profileSubjects.length > 0 ||
     summary.overallAverage != null ||
+    profile?.summary.finalAverage != null ||
+    profile?.summary.projectedAverage != null ||
     hasTermResultData ||
     hasScoredSubjectData;
+
+  const trendsView = React.useMemo(
+    () =>
+      resolveAcademicTrendsViewData({
+        profile,
+        legacy: legacyAcademics
+          ? {
+              multiTermHistory,
+              subjectHistory,
+              subjects,
+              terms,
+            }
+          : null,
+      }),
+    [profile, legacyAcademics, multiTermHistory, subjectHistory, subjects, terms]
+  );
 
   return (
     <div className="space-y-6">
       <AcademicsDataSourceNotice
-        dataSource={dataSource}
-        dataSourceNotes={dataSourceNotes}
+        dataSource={profile?.dataSource ?? dataSource}
+        dataSourceNotes={profile?.dataSourceNotes ?? dataSourceNotes}
       />
 
-      {/* Summary Cards */}
       <AcademicSummaryCards
-        summary={summary}
-        periodLabel={selectedTermLabel}
-        riskLevel={riskLevel}
-        strongestSubject={strongestSubject}
-        weakestSubject={weakestSubject}
+        profile={profile}
+        legacySummary={legacyAcademics?.summary ?? null}
+        periodLabel={periodLabel}
       />
 
-      {/* Charts Section */}
-      {hasAcademicData && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SubjectStrengthsOverview subjects={subjects} />
-          {multiTermHistory && multiTermHistory.length > 0 && (
-            <OverallPerformanceTrend history={multiTermHistory} />
-          )}
-        </div>
-      )}
+      {profile ? <ReportStatusPanel profile={profile} /> : null}
 
-      {/* Subject Performance Over Time */}
-      {hasAcademicData && hasScoredSubjectData && subjectHistory && (
+      {profile ? <AttendanceSummaryPanel profile={profile} /> : null}
+
+      {hasAcademicData && (trendsView.showStrengths || trendsView.showOverallTrend) ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {trendsView.showStrengths ? (
+            <SubjectStrengthsOverview subjects={trendsView.strengthSubjects} />
+          ) : null}
+          {trendsView.showOverallTrend ? (
+            <OverallPerformanceTrend
+              history={trendsView.overallTrend}
+              showSourceLegend={trendsView.hasMixedSources}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {hasAcademicData && trendsView.showSubjectOverTime ? (
         <SubjectPerformanceOverTime
-          subjects={subjects}
-          subjectHistory={subjectHistory}
-          terms={terms}
+          subjects={trendsView.strengthSubjects}
+          subjectHistory={trendsView.subjectHistory}
+          terms={trendsView.periodOptions}
+          showSourceLegend={trendsView.hasMixedSources}
         />
-      )}
+      ) : null}
 
       {/* Main Academic Performance Card */}
       <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/80 via-slate-950/90 to-black shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -223,15 +303,16 @@ export function StudentAcademicsTab({ studentId }: Props) {
                 Academic Performance
               </CardTitle>
               <p className="text-xs text-white/50">
-                {selectedTermLabel || "Current term"}
+                {periodLabel || "Current period"}
               </p>
             </div>
           </div>
           <TermSelector
+            periods={profile?.periods}
             terms={terms}
-            currentTermId={selectedTermId}
+            currentPeriodId={selectedTermId}
             onChange={handleTermChange}
-            schoolLevel={schoolLevel}
+            schoolLevel={schoolLevel ?? profile?.schoolLevel ?? null}
           />
         </CardHeader>
 
@@ -260,6 +341,13 @@ export function StudentAcademicsTab({ studentId }: Props) {
                 </div>
               </div>
             </div>
+          ) : profileSubjects.length > 0 ? (
+            <SubjectResultsTable
+              subjects={profileSubjects}
+              periodId={selectedTermId}
+              periodIsReleased={profile?.reportStatus.isReleased ?? false}
+              onViewBreakdown={handleViewBreakdown}
+            />
           ) : (
             <SubjectPerformanceTable
               subjects={subjects}
@@ -271,12 +359,14 @@ export function StudentAcademicsTab({ studentId }: Props) {
       </Card>
 
       {/* AI Insights Panel */}
-      {hasAcademicData && (
-        <AIInsightsPanel studentId={studentId} termId={selectedTermId} />
-      )}
+      <AIInsightsPanel
+        studentId={studentId}
+        termId={selectedTermId}
+        hasAcademicData={hasAcademicData && (profile?.aiInsights.available ?? true)}
+        insightMode={profile?.aiInsights.mode ?? "admin"}
+      />
 
-      {/* Teacher Comments */}
-      <TeacherCommentsSection comments={comments} />
+      <TeacherCommentsSection profile={profile} legacyComments={comments} />
 
       {/* Assessment Breakdown Modal */}
       {selectedSubjectId && selectedTermId && (
@@ -286,6 +376,11 @@ export function StudentAcademicsTab({ studentId }: Props) {
           termId={selectedTermId}
           open={breakdownModalOpen}
           onOpenChange={setBreakdownModalOpen}
+          subjectContext={
+            profileSubjects.find((row) => row.subjectId === selectedSubjectId) ?? null
+          }
+          periodLabel={periodLabel}
+          periodIsReleased={profile?.reportStatus.isReleased ?? false}
         />
       )}
     </div>

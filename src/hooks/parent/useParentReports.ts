@@ -1,7 +1,8 @@
 // src/hooks/parent/useParentReports.ts
 import { useQuery } from "@tanstack/react-query";
 
-export type ReportType = "term_report" | "progress_report" | "report_card";
+/** Only released official report card snapshots are downloadable. */
+export type ReportType = "report_card";
 export type ReportStatus = "available" | "pending" | "not_available";
 
 export interface AvailableReport {

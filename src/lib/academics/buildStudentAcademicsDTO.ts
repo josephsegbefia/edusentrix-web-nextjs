@@ -61,7 +61,9 @@ function buildTeacherName(user: any | null | undefined): string | null {
 }
 
 /**
- * Canonical builder for the student's academics DTO.
+ * @deprecated Legacy CA/exam-shaped academics DTO. Use `buildStudentAcademicProfileDTO`
+ * for new features. Call via `buildLegacyStudentAcademicsDTO` from compatibility routes only.
+ * @see docs/STUDENT_ACADEMIC_PROFILE_LEGACY_DTO_DEPRECATION.md
  *
  * - Uses all AcademicPeriods for the school (even if there is no TermResult yet).
  * - Overlays TermResult data per period where available.

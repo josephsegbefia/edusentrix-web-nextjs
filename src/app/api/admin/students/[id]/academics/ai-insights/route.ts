@@ -1,57 +1,24 @@
-// src/app/api/admin/students/[id]/academics/ai-insights/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import {
   requireSchoolAdminOrDelegatedAnyPermission,
   requireSchoolAdminOrDelegatedModuleView,
 } from "@/lib/delegations/requireDelegatedModulePermission";
 import { connectToDatabase } from "@/db/connectToDatabase";
-import { buildStudentAcademicsDTO } from "@/lib/academics/buildStudentAcademicsDTO";
+import { buildStudentAcademicProfileDTO } from "@/lib/academics/profile/buildStudentAcademicProfileDTO";
+import {
+  buildAcademicAIInsightsContext,
+  buildAcademicAIInsightsSystemPrompt,
+  buildAcademicAIInsightsUserPrompt,
+  profileHasAcademicInsightData,
+} from "@/lib/academics/profile/build-academic-ai-insights-context";
 import { AICachedInsight } from "@/models/AICachedInsight";
 import { computeDataFingerprint } from "@/lib/ai/dataFingerprint";
 import OpenAI from "openai";
 import mongoose from "mongoose";
 import { Student } from "@/models/Student";
 
-function buildPromptPayload(academicsDTO: Awaited<ReturnType<typeof buildStudentAcademicsDTO>>, studentName: string): string {
-  const subjectScores = academicsDTO.subjects
-    .map((s) => {
-      const classAvg = academicsDTO.classAverages?.[s.subjectId] ?? null;
-      return `- ${s.subjectName}: ${s.totalScore ?? "N/A"}%${
-        classAvg !== null ? ` (Class avg: ${classAvg}%)` : ""
-      }`;
-    })
-    .join("\n");
-
-  const classAveragesText = academicsDTO.classAverages
-    ? Object.entries(academicsDTO.classAverages)
-        .map(([subjectId, avg]) => {
-          const subject = academicsDTO.subjects.find(
-            (s) => s.subjectId === subjectId
-          );
-          return `- ${subject?.subjectName ?? "Unknown"}: ${avg}%`;
-        })
-        .join("\n")
-    : "Not available";
-
-  const termHistory = academicsDTO.multiTermHistory
-    ?.map(
-      (t) =>
-        `- ${t.label}: Student ${t.averageScore ?? "N/A"}%, Class ${t.classAverage ?? "N/A"}%`
-    )
-    .join("\n") ?? "No history available";
-
-  return `Student: ${studentName}
-Overall Average: ${academicsDTO.summary.overallAverage ?? "N/A"}%
-Class Position: ${academicsDTO.summary.classPosition ?? "N/A"} of ${academicsDTO.summary.totalStudents ?? "N/A"}
-Performance Tier: ${academicsDTO.summary.performanceTier ?? "N/A"}
-Trend: ${academicsDTO.summary.trend} ${academicsDTO.summary.trendDelta ? `(${academicsDTO.summary.trendDelta > 0 ? "+" : ""}${academicsDTO.summary.trendDelta} points)` : ""}
-Risk Level: ${academicsDTO.riskLevel ?? "N/A"}
-Subject Performance:
-${subjectScores}
-Class Averages:
-${classAveragesText}
-Term History:
-${termHistory}`;
+function readPeriodId(searchParams: URLSearchParams, body?: { termId?: string | null; periodId?: string | null }) {
+  return searchParams.get("periodId") ?? searchParams.get("termId") ?? body?.periodId ?? body?.termId ?? null;
 }
 
 /**
@@ -65,8 +32,7 @@ export async function GET(
   try {
     const { schoolId } = await requireSchoolAdminOrDelegatedModuleView("students");
     const { id: studentId } = await params;
-    const searchParams = request.nextUrl.searchParams;
-    const termId = searchParams.get("termId") || null;
+    const periodId = readPeriodId(request.nextUrl.searchParams);
 
     await connectToDatabase();
 
@@ -76,8 +42,8 @@ export async function GET(
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return NextResponse.json({ error: "Invalid studentId" }, { status: 400 });
     }
-    if (termId && !mongoose.Types.ObjectId.isValid(termId)) {
-      return NextResponse.json({ error: "Invalid termId" }, { status: 400 });
+    if (periodId && !mongoose.Types.ObjectId.isValid(periodId)) {
+      return NextResponse.json({ error: "Invalid periodId" }, { status: 400 });
     }
 
     const schoolObjectId =
@@ -96,17 +62,19 @@ export async function GET(
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const academicsDTO = await buildStudentAcademicsDTO({
+    const profile = await buildStudentAcademicProfileDTO({
       schoolId: schoolObjectId,
       studentId,
-      academicPeriodId: termId,
+      academicPeriodId: periodId,
+      visibilityMode: "admin",
+      allowProgressVisibility: true,
     });
 
     const studentName = `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim();
-    const promptPayload = buildPromptPayload(academicsDTO, studentName);
+    const promptPayload = buildAcademicAIInsightsContext(profile, studentName);
     const currentFingerprint = computeDataFingerprint(promptPayload);
 
-    const scopeKey = `${studentId}:${termId ?? "current"}`;
+    const scopeKey = `${studentId}:${periodId ?? "current"}`;
     const cached = await AICachedInsight.findOne({
       schoolId: schoolObjectId,
       scope: "academic",
@@ -122,6 +90,9 @@ export async function GET(
         generatedAt: cached.generatedAt?.toISOString?.() ?? null,
         isStale,
         currentFingerprint: isStale ? currentFingerprint : undefined,
+        insightMode: profile.aiInsights.mode,
+        profileFingerprint: profile.aiInsights.dataFingerprint,
+        hasAcademicData: profileHasAcademicInsightData(profile),
       });
     }
 
@@ -131,6 +102,9 @@ export async function GET(
       source: null,
       generatedAt: null,
       currentFingerprint,
+      insightMode: profile.aiInsights.mode,
+      profileFingerprint: profile.aiInsights.dataFingerprint,
+      hasAcademicData: profileHasAcademicInsightData(profile),
     });
   } catch (error) {
     if (error instanceof Response) return error;
@@ -144,7 +118,6 @@ export async function GET(
 
 /**
  * POST - Generate AI insights and save to cache.
- * Only regenerates when forced or when data has changed (fingerprint).
  */
 export async function POST(
   request: NextRequest,
@@ -164,7 +137,7 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const termId = body.termId ?? null;
+    const periodId = readPeriodId(request.nextUrl.searchParams, body);
 
     await connectToDatabase();
 
@@ -174,8 +147,8 @@ export async function POST(
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return NextResponse.json({ error: "Invalid studentId" }, { status: 400 });
     }
-    if (termId && !mongoose.Types.ObjectId.isValid(termId)) {
-      return NextResponse.json({ error: "Invalid termId" }, { status: 400 });
+    if (periodId && !mongoose.Types.ObjectId.isValid(periodId)) {
+      return NextResponse.json({ error: "Invalid periodId" }, { status: 400 });
     }
 
     const schoolObjectId =
@@ -194,53 +167,27 @@ export async function POST(
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const academicsDTO = await buildStudentAcademicsDTO({
+    const profile = await buildStudentAcademicProfileDTO({
       schoolId: schoolObjectId,
       studentId,
-      academicPeriodId: termId,
+      academicPeriodId: periodId,
+      visibilityMode: "admin",
+      allowProgressVisibility: true,
     });
 
+    if (!profileHasAcademicInsightData(profile)) {
+      return NextResponse.json(
+        {
+          error:
+            "Not enough academic data to generate insights for this period yet.",
+        },
+        { status: 400 }
+      );
+    }
+
     const studentName = `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim();
-    const promptPayload = buildPromptPayload(academicsDTO, studentName);
-    const currentFingerprint = computeDataFingerprint(promptPayload);
-
-    const prompt = `You are an experienced Ghanaian teacher analyzing a student's academic performance. Provide structured insights in JSON format.
-
-${promptPayload}
-
-Provide your analysis in this exact JSON format (no markdown, no code blocks, just valid JSON):
-{
-  "riskLevel": "low|medium|high",
-  "summary": "1-2 sentence overview of the student's academic performance",
-  "strengths": [
-    {
-      "subject": "Subject name",
-      "reason": "Why this is a strength",
-      "score": 85
-    }
-  ],
-  "weaknesses": [
-    {
-      "subject": "Subject name",
-      "reason": "Why this is a weakness",
-      "score": 52,
-      "trend": "improving|declining|stable"
-    }
-  ],
-  "suggestedActions": {
-    "student": ["Actionable advice for the student"],
-    "parent": ["Actionable advice for parents"],
-    "teacher": ["Actionable advice for teachers"]
-  },
-  "prioritySubjects": ["Subject names to focus on"],
-  "insights": {
-    "overallTrend": "Description of overall performance trend",
-    "examVsCA": "Comparison between CA and exam performance",
-    "classComparison": "How student compares to class average"
-  }
-}
-
-Be specific, actionable, and culturally appropriate for Ghanaian education context.`;
+    const context = buildAcademicAIInsightsContext(profile, studentName);
+    const currentFingerprint = computeDataFingerprint(context);
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const completion = await openai.chat.completions.create({
@@ -248,10 +195,12 @@ Be specific, actionable, and culturally appropriate for Ghanaian education conte
       messages: [
         {
           role: "system",
-          content:
-            "You are an experienced Ghanaian teacher providing academic insights. Always respond with valid JSON only, no markdown formatting.",
+          content: buildAcademicAIInsightsSystemPrompt(profile.aiInsights.mode),
         },
-        { role: "user", content: prompt },
+        {
+          role: "user",
+          content: buildAcademicAIInsightsUserPrompt(context),
+        },
       ],
       temperature: 0.7,
       response_format: { type: "json_object" },
@@ -282,7 +231,7 @@ Be specific, actionable, and culturally appropriate for Ghanaian education conte
         }
       : undefined;
 
-    const scopeKey = `${studentId}:${termId ?? "current"}`;
+    const scopeKey = `${studentId}:${periodId ?? "current"}`;
     await AICachedInsight.findOneAndUpdate(
       {
         schoolId: schoolObjectId,
@@ -309,6 +258,7 @@ Be specific, actionable, and culturally appropriate for Ghanaian education conte
       source: "generated",
       generatedAt: new Date().toISOString(),
       tokenUsage,
+      insightMode: profile.aiInsights.mode,
     });
   } catch (error) {
     if (error instanceof Response) return error;

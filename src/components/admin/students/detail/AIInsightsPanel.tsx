@@ -38,11 +38,33 @@ function formatRelativeTime(isoDate: string | null): string {
 type Props = {
   studentId: string;
   termId: string | null;
+  hasAcademicData?: boolean;
+  insightMode?: "admin" | "teacher" | "parent" | "student";
 };
 
-export function AIInsightsPanel({ studentId, termId }: Props) {
+function defaultInsightTab(mode: Props["insightMode"]) {
+  if (mode === "parent") return "parent" as const;
+  if (mode === "student") return "student" as const;
+  return "teacher" as const;
+}
+
+const MODE_LABELS: Record<NonNullable<Props["insightMode"]>, string> = {
+  admin: "Admin",
+  teacher: "Teacher",
+  parent: "Parent",
+  student: "Student",
+};
+
+export function AIInsightsPanel({
+  studentId,
+  termId,
+  hasAcademicData = true,
+  insightMode = "admin",
+}: Props) {
   const [isExpanded, setIsExpanded] = React.useState(true);
-  const [activeTab, setActiveTab] = React.useState<"student" | "parent" | "teacher">("student");
+  const [activeTab, setActiveTab] = React.useState<"student" | "parent" | "teacher">(
+    defaultInsightTab(insightMode)
+  );
 
   const { data, isLoading, isError, refetch } = useAIInsights(studentId, termId, !!studentId);
   const generateMutation = useGenerateAcademicAIInsights(studentId, termId);
@@ -58,7 +80,15 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
     high: "bg-red-500/20 text-red-200 border-red-400/40",
   };
 
-  const showGenerateCTA = !insights && !isLoading && !generateMutation.isPending && !isError;
+  const resolvedMode = data?.insightMode ?? insightMode;
+  const canGenerate = hasAcademicData && (data?.hasAcademicData ?? true);
+
+  const showGenerateCTA =
+    canGenerate &&
+    !insights &&
+    !isLoading &&
+    !generateMutation.isPending &&
+    !isError;
 
   return (
     <Card className="border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
@@ -68,9 +98,15 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 border border-primary/30">
               <LeoIcon className="h-4 w-4 text-primary-200" />
             </div>
-            <CardTitle className="text-sm font-semibold text-white/80">
-              Leo Insights & Recommendations
-            </CardTitle>
+            <div>
+              <CardTitle className="text-sm font-semibold text-white/80">
+                Leo Insights & Recommendations
+              </CardTitle>
+              <p className="text-[10px] text-white/45">
+                {MODE_LABELS[resolvedMode]} mode · profile components, attendance &amp;
+                evidence
+              </p>
+            </div>
           </div>
           <Button
             variant="ghost"
@@ -89,7 +125,16 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
 
       {isExpanded && (
         <CardContent className="space-y-4">
-          {generatedAt && insights && (
+          {!canGenerate ? (
+            <div className="rounded-xl border border-dashed border-white/15 bg-black/30 px-4 py-6 text-center">
+              <p className="text-sm text-white/60">
+                Leo needs graded subject results or report data for this period before
+                generating insights.
+              </p>
+            </div>
+          ) : null}
+
+          {canGenerate && generatedAt && insights && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
               <span className="flex items-center gap-1.5 text-xs text-white/50">
                 <Clock className="h-3.5 w-3.5" />
@@ -117,7 +162,7 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
             </div>
           )}
 
-          {showGenerateCTA && (
+          {canGenerate && showGenerateCTA && (
             <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 px-6 py-8 text-center">
               <div className="flex justify-center mb-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/30 bg-primary/20">
@@ -142,7 +187,7 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
             </div>
           )}
 
-          {(isLoading || generateMutation.isPending) && !insights && (
+          {canGenerate && (isLoading || generateMutation.isPending) && !insights && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">
@@ -184,7 +229,7 @@ export function AIInsightsPanel({ studentId, termId }: Props) {
             </div>
           )}
 
-          {insights && (
+          {canGenerate && insights && (
             <>
               {/* Risk Level Badge */}
               <div className="flex items-center gap-3">

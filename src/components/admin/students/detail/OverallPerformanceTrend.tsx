@@ -21,36 +21,71 @@ import {
   PremiumSelectTrigger,
   PremiumSelectValue,
 } from "@/components/ui/premium-select";
+import type { OverallTrendChartPoint } from "@/lib/academics/profile/academic-trends-view-utils";
+import {
+  trendDotColor,
+  trendSourceLabel,
+} from "@/lib/academics/profile/academic-trends-view-utils";
+import type { AcademicTermHistorySource } from "@/types/academics/student-academic-profile";
 
 type Props = {
-  history: Array<{
-    termId: string;
-    label: string;
-    averageScore: number | null;
-    classAverage: number | null;
-  }>;
+  history: OverallTrendChartPoint[];
+  showSourceLegend?: boolean;
 };
 
-export function OverallPerformanceTrend({ history }: Props) {
+function TrendSourceLegend() {
+  return (
+    <div className="mb-3 flex flex-wrap gap-2 text-[10px] text-white/55">
+      <span className="inline-flex items-center gap-1">
+        <span className="h-2 w-2 rounded-full bg-emerald-400" />
+        Official
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <span className="h-2 w-2 rounded-full bg-amber-400" />
+        Projected
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <span className="h-2 w-2 rounded-full bg-slate-400" />
+        Legacy
+      </span>
+    </div>
+  );
+}
+
+export function OverallPerformanceTrend({ history, showSourceLegend = false }: Props) {
   const [selectedYear, setSelectedYear] = React.useState<string | null>(null);
+
+  const normalizedHistory = React.useMemo(
+    () =>
+      history.map((point) => ({
+        termId: point.termId,
+        label: point.label,
+        averageScore: point.averageScore,
+        classAverage: point.classAverage,
+        source: point.source ?? ("legacy_fallback" as const),
+        isOfficial: point.isOfficial ?? false,
+        sourceLabel: point.sourceLabel ?? trendSourceLabel("legacy_fallback"),
+      })),
+    [history]
+  );
 
   // Extract unique academic years from labels
   const academicYears = React.useMemo(() => {
     const years = new Set<string>();
-    history.forEach((h) => {
+    normalizedHistory.forEach((h) => {
       const yearMatch = h.label.match(/(\d{4})/);
       if (yearMatch) {
         years.add(yearMatch[1]);
       }
     });
     return Array.from(years).sort().reverse();
-  }, [history]);
+  }, [normalizedHistory]);
 
   // Filter data by selected year
   const filteredData = React.useMemo(() => {
-    if (!selectedYear) return history;
-    return history.filter((h) => h.label.includes(selectedYear));
-  }, [history, selectedYear]);
+    if (!selectedYear) return normalizedHistory;
+    return normalizedHistory.filter((h) => h.label.includes(selectedYear));
+  }, [normalizedHistory, selectedYear]);
 
   const chartData = React.useMemo(() => {
     return filteredData
@@ -71,6 +106,9 @@ export function OverallPerformanceTrend({ history }: Props) {
           year: year,
           student: h.averageScore ?? 0,
           class: h.classAverage ?? null,
+          source: h.source,
+          sourceLabel: h.sourceLabel,
+          isOfficial: h.isOfficial,
         };
       });
   }, [filteredData]);
@@ -134,6 +172,7 @@ export function OverallPerformanceTrend({ history }: Props) {
         </div>
       </CardHeader>
       <CardContent>
+        {showSourceLegend ? <TrendSourceLegend /> : null}
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -162,12 +201,18 @@ export function OverallPerformanceTrend({ history }: Props) {
                   fullLabel: string;
                   student: number;
                   class: number | null;
+                  sourceLabel?: string;
                 };
                 return (
                   <div className="rounded-lg border border-white/20 bg-slate-950/95 px-3 py-2 shadow-lg">
                     <p className="text-xs font-medium text-white mb-2">
                       {data.fullLabel}
                     </p>
+                    {data.sourceLabel ? (
+                      <p className="mb-2 text-[10px] uppercase tracking-wide text-white/45">
+                        {data.sourceLabel}
+                      </p>
+                    ) : null}
                     {payload.map((entry, idx) => {
                       const isStudent = entry.dataKey === "student";
                       return (
@@ -195,9 +240,25 @@ export function OverallPerformanceTrend({ history }: Props) {
               dataKey="student"
               stroke="#3b82f6"
               strokeWidth={3}
-              dot={{ fill: "#3b82f6", r: 6, strokeWidth: 2, stroke: "#ffffff" }}
+              dot={(props) => {
+                const { cx, cy, payload } = props;
+                if (cx == null || cy == null) return null;
+                const source =
+                  (payload as { source?: AcademicTermHistorySource } | undefined)
+                    ?.source ?? "legacy_fallback";
+                return (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={6}
+                    fill={trendDotColor(source)}
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                  />
+                );
+              }}
               name="Student Performance"
-              activeDot={{ r: 8, stroke: "#ffffff", strokeWidth: 2, fill: "#3b82f6" }}
+              activeDot={{ r: 8, stroke: "#ffffff", strokeWidth: 2 }}
             />
             {chartData.some((d) => d.class !== null) && (
               <Line

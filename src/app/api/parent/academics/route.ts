@@ -11,6 +11,18 @@ import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { TermResult } from "@/models/TermResult";
 import { SubjectGrade } from "@/models/SubjectGrade";
 import { Subject } from "@/models/Subject";
+import {
+  computeTermOverviewFromSubjectResults,
+  derivePerformanceTier,
+  legacyGradeToPerformanceRow,
+  mergeSubjectPerformanceRows,
+  resolveAcademicsDataSource,
+} from "@/lib/academics/compatibility/subject-result-adapters";
+import {
+  buildSubjectResultPerformanceRows,
+  loadSubjectResultsForStudents,
+} from "@/lib/academics/compatibility/load-subject-results";
+import type { StudentAcademicsDataSource } from "@/types/admin/student-academics";
 
 type TrendDirection = "up" | "down" | "stable";
 type PerformanceTier = "top" | "above_average" | "average" | "at_risk";
@@ -310,7 +322,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch subject grades for selected period
+    // Fetch subject grades for selected period (legacy fallback)
     const subjectGrades = selectedPeriodId
       ? await SubjectGrade.find({
           studentId: { $in: studentIds },
@@ -321,11 +333,33 @@ export async function GET(req: NextRequest) {
           .lean<SubjectGradeRow[]>()
       : ([] as SubjectGradeRow[]);
 
-    // Get all subjects referenced
+    const subjectResultsByStudent = selectedPeriodId
+      ? await loadSubjectResultsForStudents({
+          schoolId: context.schoolId,
+          studentIds,
+          academicPeriodId: selectedPeriodId,
+        })
+      : new Map<string, never[]>();
+
+    const previousSubjectResultsByStudent =
+      previousPeriod && selectedPeriodId
+        ? await loadSubjectResultsForStudents({
+            schoolId: context.schoolId,
+            studentIds,
+            academicPeriodId: previousPeriod._id,
+          })
+        : new Map<string, never[]>();
+
+    // Get all subjects referenced by legacy grades or engine results
     const allSubjectIds = new Set<string>();
     subjectGrades.forEach((sg) => {
       if (sg.subjectId) allSubjectIds.add(String(sg.subjectId));
     });
+    for (const results of subjectResultsByStudent.values()) {
+      for (const result of results) {
+        allSubjectIds.add(String(result.subjectId));
+      }
+    }
 
     const subjects = allSubjectIds.size > 0
       ? await Subject.find({
@@ -355,16 +389,82 @@ export async function GET(req: NextRequest) {
     const wardColors = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"];
     const wardSummaries: WardAcademicSummary[] = [];
     const subjectPerformances: SubjectPerformance[] = [];
+    let totalSubjectRowsFromEngine = 0;
+    let totalSubjectRowsFromLegacy = 0;
+    let summaryFromEngine = false;
+    let summaryFromLegacy = false;
 
-    students.forEach((student) => {
+    for (const student of students) {
       const studentId = String(student._id);
       const termResult = termResultMap.get(studentId);
-      const previousAverage = previousResultMap.get(studentId) ?? null;
+      const previousAverageFromTerm = previousResultMap.get(studentId) ?? null;
       const classGroupInfo = classGroupMap.get(String(student.classGroupId));
       const gradeName = classGroupInfo?.gradeId ? gradeMap.get(String(classGroupInfo.gradeId)) : null;
 
       const wardName = `${student.firstName || ""} ${student.lastName || ""}`.trim();
-      const currentAverage = termResult?.averageScore ?? null;
+
+      const engineResults = subjectResultsByStudent.get(studentId) ?? [];
+      const engineRows =
+        engineResults.length > 0
+          ? await buildSubjectResultPerformanceRows({
+              schoolId: context.schoolId,
+              results: engineResults,
+            })
+          : [];
+
+      const legacyRows = (subjectGradesByStudent.get(studentId) ?? [])
+        .map((sg) => {
+          const subjectId = String(sg.subjectId);
+          const subjectInfo = subjectMap.get(subjectId);
+          if (!subjectInfo) return null;
+          return legacyGradeToPerformanceRow({
+            subjectId,
+            subjectName: subjectInfo.name,
+            shortCode: subjectInfo.shortCode,
+            totalScore: sg.totalScore ?? null,
+            gradeLetter: sg.gradeLetter ?? null,
+            isPassed: typeof sg.isPassed === "boolean" ? sg.isPassed : null,
+          });
+        })
+        .filter((row): row is NonNullable<typeof row> => row != null);
+
+      const merged = mergeSubjectPerformanceRows(engineRows, legacyRows);
+      totalSubjectRowsFromEngine += merged.subjectRowsFromEngine;
+      totalSubjectRowsFromLegacy += merged.subjectRowsFromLegacy;
+
+      const engineOverview =
+        engineResults.length > 0 && selectedPeriodId
+          ? computeTermOverviewFromSubjectResults({
+              termId: String(selectedPeriodId),
+              label: "",
+              results: engineResults,
+            })
+          : null;
+
+      const currentAverage =
+        engineOverview?.averageScore ?? termResult?.averageScore ?? null;
+      const performanceTier =
+        engineOverview?.performanceTier ?? termResult?.performanceTier ?? null;
+
+      if (engineOverview?.averageScore != null) {
+        summaryFromEngine = true;
+      } else if (termResult?.averageScore != null) {
+        summaryFromLegacy = true;
+      }
+
+      let previousAverage = previousAverageFromTerm;
+      if (previousAverage == null && previousPeriod) {
+        const previousEngineResults = previousSubjectResultsByStudent.get(studentId) ?? [];
+        const previousOverview = computeTermOverviewFromSubjectResults({
+          termId: String(previousPeriod._id),
+          label: "",
+          results: previousEngineResults,
+        });
+        previousAverage = previousOverview?.averageScore ?? null;
+        if (previousOverview?.averageScore != null) {
+          summaryFromEngine = true;
+        }
+      }
 
       let trend: TrendDirection = "stable";
       if (currentAverage !== null && previousAverage !== null) {
@@ -372,30 +472,24 @@ export async function GET(req: NextRequest) {
         else if (currentAverage < previousAverage - 2) trend = "down";
       }
 
-      // Count passed/failed subjects from subject grades
-      const studentSubjectGrades = subjectGradesByStudent.get(studentId) || [];
       let passedCount = 0;
       let failedCount = 0;
 
-      studentSubjectGrades.forEach((sg) => {
-        if (sg.isPassed === true) passedCount++;
-        else if (sg.isPassed === false) failedCount++;
+      for (const row of merged.rows) {
+        if (row.isPassed === true) passedCount++;
+        else if (row.isPassed === false) failedCount++;
 
-        // Add to subject performances
-        const subjectInfo = subjectMap.get(String(sg.subjectId));
-        if (subjectInfo) {
-          subjectPerformances.push({
-            subjectId: String(sg.subjectId),
-            subjectName: subjectInfo.name,
-            shortCode: subjectInfo.shortCode,
-            wardId: studentId,
-            wardName,
-            totalScore: sg.totalScore ?? null,
-            gradeLetter: sg.gradeLetter ?? null,
-            isPassed: typeof sg.isPassed === "boolean" ? sg.isPassed : null,
-          });
-        }
-      });
+        subjectPerformances.push({
+          subjectId: row.subjectId,
+          subjectName: row.subjectName,
+          shortCode: row.shortCode,
+          wardId: studentId,
+          wardName,
+          totalScore: row.totalScore,
+          gradeLetter: row.gradeLetter,
+          isPassed: row.isPassed,
+        });
+      }
 
       wardSummaries.push({
         wardId: studentId,
@@ -410,12 +504,14 @@ export async function GET(req: NextRequest) {
         trend,
         classPosition: termResult?.classPosition ?? null,
         totalStudents: termResult?.totalStudents ?? null,
-        performanceTier: termResult?.performanceTier ?? null,
-        subjectCount: studentSubjectGrades.length || termResult?.totalSubjects || 0,
+        performanceTier:
+          performanceTier ??
+          derivePerformanceTier(currentAverage),
+        subjectCount: merged.rows.length || termResult?.totalSubjects || 0,
         passedCount,
         failedCount,
       });
-    });
+    }
 
     // Build comparison data
     const comparison: AcademicComparisonData[] = wardSummaries.map((ws, index) => ({
@@ -458,6 +554,13 @@ export async function GET(req: NextRequest) {
         })
       : null;
 
+    const { dataSource, dataSourceNotes } = resolveAcademicsDataSource({
+      subjectRowsFromEngine: totalSubjectRowsFromEngine,
+      subjectRowsFromLegacy: totalSubjectRowsFromLegacy,
+      summaryFromEngine,
+      summaryFromLegacy,
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -479,6 +582,8 @@ export async function GET(req: NextRequest) {
           name: p.name || "",
           label: p.label || p.name || "",
         })),
+        dataSource: dataSource as StudentAcademicsDataSource,
+        dataSourceNotes,
         wards: wardSummaries,
         comparison,
         topPerformingSubjects,

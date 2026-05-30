@@ -51,6 +51,8 @@ import {
   ChevronDown,
   ClipboardSignature,
   Presentation,
+  Percent,
+  ListChecks,
 } from "lucide-react";
 import { LearnLogoIcon } from "@/components/icons/LearnLogoIcon";
 import {
@@ -218,6 +220,21 @@ const navSections: NavSection[] = [
       {
         label: "Schemes of Learning",
         href: "/admin/schemes",
+        icon: ClipboardList,
+      },
+      {
+        label: "Grading Policies",
+        href: "/admin/academics/grading",
+        icon: Percent,
+      },
+      {
+        label: "Assessment Plans",
+        href: "/admin/academics/assessment-plans",
+        icon: ListChecks,
+      },
+      {
+        label: "Report card approval",
+        href: "/admin/reports/report-runs",
         icon: ClipboardList,
       },
       {

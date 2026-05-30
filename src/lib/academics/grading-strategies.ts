@@ -4,6 +4,12 @@ import type { ISubjectGrade, IAssessmentComponent } from "@/models/SubjectGrade"
 import type { AssessmentModel } from "@/constants/curriculum-profiles";
 import { resolveGradingScaleLetter } from "./calculateGrades";
 
+/**
+ * @deprecated Legacy curriculum-based grade strategies using hardcoded CA/exam type sets.
+ * Official calculations use grading policy components via the assessment engine.
+ * See docs/LEGACY_GRADEBOOK_MIGRATION.md
+ */
+
 type GradeResult = Pick<
   ISubjectGrade,
   | "caTotal"
@@ -219,6 +225,9 @@ const STRATEGY_MAP: Record<
   custom: caExamStrategy,
 };
 
+/**
+ * @deprecated Use assessment engine subject result calculation instead.
+ */
 export function calculateGradeByStrategy(
   assessmentModel: AssessmentModel,
   assessments: IAssessment[],

@@ -58,7 +58,10 @@ export interface OverallSummary {
 export interface ParentAcademicsDTO {
   currentPeriod: AcademicPeriodInfo | null;
   selectedPeriodId: string | null;
+  selectedPeriodLabel?: string | null;
   availablePeriods: AcademicPeriodInfo[];
+  dataSource?: "assessment_engine" | "legacy" | "mixed";
+  dataSourceNotes?: string[];
   wards: WardAcademicSummary[];
   comparison: AcademicComparisonData[];
   topPerformingSubjects: SubjectPerformance[];

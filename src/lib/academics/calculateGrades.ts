@@ -16,6 +16,11 @@ export function resolveGradingScaleLetter(
   );
 }
 
+/**
+ * @deprecated Legacy CA/exam grade calculation. Official reporting uses the assessment engine
+ * (`SubjectResult` + grading policy components). Kept for seed scripts and historical reference only.
+ * See docs/LEGACY_GRADEBOOK_MIGRATION.md
+ */
 export function calculateSubjectGradeFromAssessments(options: {
   assessments: IAssessment[];
   gradingScale: IGradingScale;

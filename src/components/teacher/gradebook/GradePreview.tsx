@@ -1,4 +1,7 @@
 "use client";
+
+/** @deprecated Legacy CA/exam weight preview — UI redirects to /teacher/marks (Slice 23). */
+
 import { BarChart3, Scale } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { GradebookGradingScale } from "@/hooks/teacher/useTeacherGradebookAssessments";

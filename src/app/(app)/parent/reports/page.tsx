@@ -237,6 +237,9 @@ function ReportsPageContent() {
         periodId: report.periodId,
         type: report.type,
       });
+      if (report.studentReportCardId) {
+        params.set("studentReportCardId", report.studentReportCardId);
+      }
 
       const res = await fetch(`/api/parent/reports/download?${params.toString()}`);
       if (!res.ok) {

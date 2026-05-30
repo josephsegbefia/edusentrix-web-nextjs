@@ -46,6 +46,7 @@ import {
 } from "recharts";
 import { useParentAcademics } from "@/hooks/parent/useParentAcademics";
 import type { WardAcademicSummary, SubjectPerformance } from "@/hooks/parent/useParentAcademics";
+import { AcademicsDataSourceNotice } from "@/components/academics/AcademicsDataSourceNotice";
 
 /* --------------------------------------------------------------------------------
    Helpers
@@ -488,6 +489,8 @@ function AcademicsPageContent() {
     comparison = [],
     topPerformingSubjects = [],
     needsImprovementSubjects = [],
+    dataSource,
+    dataSourceNotes,
     overallSummary = {
       averageAcrossWards: null,
       highestPerformer: null,
@@ -557,6 +560,11 @@ function AcademicsPageContent() {
           )}
         </div>
       </div>
+
+      <AcademicsDataSourceNotice
+        dataSource={dataSource}
+        dataSourceNotes={dataSourceNotes}
+      />
 
       {!hasData ? (
         /* Empty State */

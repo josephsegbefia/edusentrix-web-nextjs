@@ -121,14 +121,19 @@ const navSections: NavSection[] = [
         icon: Table2,
       },
       {
+        label: "Report cards",
+        href: "/teacher/homeroom/reports",
+        icon: FileText,
+      },
+      {
         label: "Students",
         href: "/teacher/students",
         icon: GraduationCap,
       },
       {
-        label: "Gradebook",
-        href: "/teacher/gradebook",
-        icon: BookOpen,
+        label: "Marks & Reports",
+        href: "/teacher/marks",
+        icon: ClipboardList,
       },
       {
         label: "Attendance",
@@ -345,7 +350,10 @@ function NavContent({
                   : item.badgeCount,
             }))
             .filter((item) =>
-              item.href === "/teacher/homeroom/timetable" ? Boolean(homeroomClassGroupId) : true
+              item.href === "/teacher/homeroom/timetable" ||
+              item.href === "/teacher/homeroom/reports"
+                ? Boolean(homeroomClassGroupId)
+                : true
             )
             .filter(
               (item) => !item.feature || hasTierFeature(enabledFeatures, item.feature)

@@ -103,12 +103,17 @@ export type RiskLevel = "low" | "medium" | "high";
 
 export type SchoolLevelForAcademics = "Basic" | "SHS";
 
+export type StudentAcademicsDataSource = "assessment_engine" | "legacy" | "mixed";
+
 export type StudentAcademicsDTO = {
   studentId: string;
   /** From School.type — same value for parent, admin, and student results surfaces. */
   schoolLevel: SchoolLevelForAcademics | null;
   selectedTermId: string | null;
   selectedTermLabel: string | null;
+  /** Indicates whether rows/summary came from the new engine, legacy gradebook, or both. */
+  dataSource?: StudentAcademicsDataSource;
+  dataSourceNotes?: string[];
   summary: StudentAcademicsSummaryDTO;
   term: StudentTermOverview[];
   subjects: StudentSubjectPerformanceRow[];

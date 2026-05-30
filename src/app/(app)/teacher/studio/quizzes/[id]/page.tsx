@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { AddToGradebookPanel } from "@/components/teacher/studio/AddToGradebookPanel";
 import { can } from "@/lib/auth/can";
 import { PERMISSIONS, type Permission } from "@/lib/rbac";
 
@@ -56,6 +57,7 @@ export default function TeacherQuizDetailPage() {
   const permissions = contextData?.data.permissions as Permission[] | undefined;
   const canCreate = can(permissions, PERMISSIONS.assignmentsCreate);
   const canPublish = can(permissions, PERMISSIONS.assignmentsPublish);
+  const canRecordMarks = can(permissions, PERMISSIONS.gradebookRecord);
   const assignment = data?.data.assignment;
   const questionList = assignment?.questions || [];
   const totalQuestionPoints = questionList.reduce(
@@ -594,6 +596,10 @@ export default function TeacherQuizDetailPage() {
           </Card>
         </div>
       </div>
+
+      {canRecordMarks && quizId && assignment.stats.graded > 0 ? (
+        <AddToGradebookPanel homeworkId={quizId} />
+      ) : null}
     </div>
   );
 }

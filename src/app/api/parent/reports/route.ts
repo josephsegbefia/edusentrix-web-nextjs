@@ -8,6 +8,7 @@ import { Guardian } from "@/models/Guardian";
 import { AcademicPeriod } from "@/models/AcademicPeriod";
 import { TermResult } from "@/models/TermResult";
 import { ClassGroup } from "@/models/ClassGroup";
+import { listReleasedStudentReportCards } from "@/lib/academics/reporting/load-student-report-card";
 
 type GuardianLink = {
   studentId: mongoose.Types.ObjectId;
@@ -53,6 +54,8 @@ interface AvailableReport {
   generatedAt: string | null;
   averageScore: number | null;
   classPosition: number | null;
+  studentReportCardId?: string | null;
+  source?: "snapshot" | "legacy";
 }
 
 export async function GET(req: NextRequest) {
@@ -136,8 +139,54 @@ export async function GET(req: NextRequest) {
       termResultLookup.set(key, tr);
     });
 
-    // Build available reports
+    const releasedCards = await listReleasedStudentReportCards({
+      schoolId: context.schoolId,
+      studentIds,
+      academicPeriodIds: periods.map((period) => period._id),
+    });
+
+    const periodMap = new Map(periods.map((period) => [String(period._id), period]));
+    const releasedKeys = new Set<string>();
+
     const reports: AvailableReport[] = [];
+
+    releasedCards.forEach((card) => {
+      const studentId = String(card.studentId);
+      const periodId = String(card.academicPeriodId);
+      const key = `${studentId}_${periodId}`;
+      releasedKeys.add(key);
+
+      const student = students.find((row) => String(row._id) === studentId);
+      if (!student) return;
+
+      const wardName = `${student.firstName || ""} ${student.lastName || ""}`.trim();
+      const classGroup = classGroupMap.get(String(student.classGroupId)) || "";
+      const period = periodMap.get(periodId);
+      const termSummary = card.termSummarySnapshot as
+        | { averageFinalScore?: number }
+        | undefined;
+      const studentSnapshot = card.studentSnapshot as { name?: string } | undefined;
+
+      reports.push({
+        id: `snapshot_${String(card._id)}`,
+        type: "report_card",
+        title: `Report Card - ${period?.label || period?.name || studentSnapshot?.name || wardName}`,
+        wardId: studentId,
+        wardName,
+        periodId,
+        periodLabel: period?.label || period?.name || "Academic Period",
+        classGroup,
+        status: "available",
+        generatedAt: card.releasedAt?.toISOString() || null,
+        averageScore:
+          typeof termSummary?.averageFinalScore === "number"
+            ? termSummary.averageFinalScore
+            : null,
+        classPosition: null,
+        studentReportCardId: String(card._id),
+        source: "snapshot",
+      });
+    });
 
     students.forEach((student) => {
       const studentId = String(student._id);
@@ -146,6 +195,10 @@ export async function GET(req: NextRequest) {
 
       periods.forEach((period) => {
         const key = `${studentId}_${String(period._id)}`;
+        if (releasedKeys.has(key)) {
+          return;
+        }
+
         const termResult = termResultLookup.get(key);
 
         // Term Report Card
@@ -162,6 +215,7 @@ export async function GET(req: NextRequest) {
           generatedAt: termResult?.calculatedAt?.toISOString() || null,
           averageScore: termResult?.averageScore || null,
           classPosition: termResult?.classPosition || null,
+          source: "legacy",
         });
       });
     });

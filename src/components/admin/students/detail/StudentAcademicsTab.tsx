@@ -14,6 +14,7 @@ import { OverallPerformanceTrend } from "./OverallPerformanceTrend";
 import { SubjectPerformanceOverTime } from "./SubjectPerformanceOverTime";
 import { AssessmentBreakdownModal } from "./AssessmentBreakdownModal";
 import { AIInsightsPanel } from "./AIInsightsPanel";
+import { AcademicsDataSourceNotice } from "@/components/academics/AcademicsDataSourceNotice";
 
 type Props = {
   studentId: string;
@@ -149,6 +150,8 @@ export function StudentAcademicsTab({ studentId }: Props) {
     riskLevel,
     strongestSubject,
     weakestSubject,
+    dataSource,
+    dataSourceNotes,
   } = academics;
 
   const hasScoredSubjectData = subjects.some(
@@ -166,6 +169,11 @@ export function StudentAcademicsTab({ studentId }: Props) {
 
   return (
     <div className="space-y-6">
+      <AcademicsDataSourceNotice
+        dataSource={dataSource}
+        dataSourceNotes={dataSourceNotes}
+      />
+
       {/* Summary Cards */}
       <AcademicSummaryCards
         summary={summary}

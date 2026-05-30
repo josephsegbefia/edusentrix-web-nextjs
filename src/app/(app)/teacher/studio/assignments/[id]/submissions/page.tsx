@@ -6,6 +6,10 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, ClipboardCheck } from "lucide-react";
 import { useAssignmentSubmissions } from "@/hooks/teacher/useAssignmentSubmissions";
 import { SubmissionInbox } from "@/components/teacher/studio/SubmissionInbox";
+import { AddToGradebookPanel } from "@/components/teacher/studio/AddToGradebookPanel";
+import { useTeacherContext } from "@/hooks/teacher/useTeacherContext";
+import { can } from "@/lib/auth/can";
+import { PERMISSIONS, type Permission } from "@/lib/rbac";
 import {
   PremiumSelect,
   PremiumSelectContent,
@@ -22,8 +26,12 @@ export default function AssignmentSubmissionsPage() {
   const [statusFilter, setStatusFilter] = React.useState("all");
 
   const { data, isLoading } = useAssignmentSubmissions(assignmentId);
+  const { data: contextData } = useTeacherContext();
+  const permissions = contextData?.data.permissions as Permission[] | undefined;
+  const canRecordMarks = can(permissions, PERMISSIONS.gradebookRecord);
   const submissions = data?.data.submissions || [];
   const assignment = data?.data.assignment;
+  const gradedCount = submissions.filter((submission) => submission.status === "graded").length;
   const assignmentType = (assignment as { type?: string } | undefined)?.type;
 
   if (!isLoading && assignmentType === "quiz") {
@@ -72,6 +80,10 @@ export default function AssignmentSubmissionsPage() {
           </PremiumSelectContent>
         </PremiumSelect>
       </div>
+
+      {canRecordMarks && assignmentId && gradedCount > 0 ? (
+        <AddToGradebookPanel homeworkId={assignmentId} compact />
+      ) : null}
 
       <Card className="border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg shadow-black/20 backdrop-blur">
         <CardHeader>

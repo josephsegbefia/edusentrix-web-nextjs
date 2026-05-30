@@ -34,6 +34,9 @@ export type GradebookClassOption = {
 type GradebookSelectorProps = {
   classes: GradebookClassOption[];
   loading?: boolean;
+  /** Base path before /[classGroupId]/[subjectId]. Defaults to Marks & Reports workspace. */
+  basePath?: string;
+  openLabel?: string;
 };
 
 function GradebookIconBadge({ children }: { children: React.ReactNode }) {
@@ -44,7 +47,12 @@ function GradebookIconBadge({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function GradebookSelector({ classes, loading }: GradebookSelectorProps) {
+export function GradebookSelector({
+  classes,
+  loading,
+  basePath = "/teacher/marks",
+  openLabel = "Open marks workspace",
+}: GradebookSelectorProps) {
   const router = useRouter();
   const [selectedClassId, setSelectedClassId] = React.useState<string>(classes[0]?.id ?? "");
   const [selectedSubjectId, setSelectedSubjectId] = React.useState<string>("");
@@ -76,7 +84,7 @@ export function GradebookSelector({ classes, loading }: GradebookSelectorProps) 
 
   const handleOpen = () => {
     if (!selectedClassId || !selectedSubjectId) return;
-    router.push(`/teacher/gradebook/${selectedClassId}/${selectedSubjectId}`);
+    router.push(`${basePath}/${selectedClassId}/${selectedSubjectId}`);
   };
 
   if (loading) {
@@ -175,7 +183,7 @@ export function GradebookSelector({ classes, loading }: GradebookSelectorProps) 
               disabled={!selectedClassId || !selectedSubjectId}
               className={glassPrimaryButtonClass}
             >
-              Open gradebook
+              {openLabel}
             </Button>
             {selectedClass ? (
               <span className="text-xs text-white/50">
@@ -192,7 +200,7 @@ export function GradebookSelector({ classes, loading }: GradebookSelectorProps) 
             <button
               key={`${group.id}-${subject.id}`}
               type="button"
-              onClick={() => router.push(`/teacher/gradebook/${group.id}/${subject.id}`)}
+              onClick={() => router.push(`${basePath}/${group.id}/${subject.id}`)}
               className={cn(
                 glassPanelClass,
                 "group p-4 text-left transition hover:-translate-y-0.5 hover:border-white/20"

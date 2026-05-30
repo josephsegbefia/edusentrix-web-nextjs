@@ -1,5 +1,7 @@
 "use client";
 
+/** @deprecated Legacy CA/exam grid — UI redirects to /teacher/marks (Slice 23). */
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { glassInsetClass, glassPanelClass } from "@/lib/ui/glass-surfaces";

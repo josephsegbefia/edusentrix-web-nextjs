@@ -17,6 +17,8 @@ export interface AvailableReport {
   generatedAt: string | null;
   averageScore: number | null;
   classPosition: number | null;
+  studentReportCardId?: string | null;
+  source?: "snapshot" | "legacy";
 }
 
 export interface WardOption {

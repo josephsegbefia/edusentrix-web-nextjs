@@ -1,20 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
+import type { ReportCardViewData } from "@/types/academics/report-card-view";
+
+type ReportCardResponse = {
+  success: boolean;
+  data: ReportCardViewData;
+  error?: string;
+};
 
 export function useReportCard(
   studentId: string | null | undefined,
   academicPeriodId: string | null | undefined
 ) {
-  return useQuery({
+  return useQuery<ReportCardViewData>({
     queryKey: ["report-card", studentId, academicPeriodId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/admin/reports/cards?studentId=${studentId}&academicPeriodId=${academicPeriodId}`
+        `/api/admin/reports/cards?studentId=${studentId}&academicPeriodId=${academicPeriodId}`,
+        { cache: "no-store" }
       );
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.error || "Failed to load report card");
+      const json = (await res.json()) as ReportCardResponse;
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to load report card");
       }
-      return res.json();
+      return json.data;
     },
     enabled: !!studentId && !!academicPeriodId,
   });

@@ -16,6 +16,17 @@ void User;
 import { calculateTrend } from "@/lib/academics/calculateGrades";
 import { calculateRiskLevel } from "@/lib/academics/calculateRiskLevel";
 import { calculateClassAverages } from "@/lib/academics/calculateClassAverages";
+import {
+  computeTermOverviewFromSubjectResults,
+  legacyGradeToPerformanceRow,
+  mergeSubjectPerformanceRows,
+  mergeTermOverview,
+  resolveAcademicsDataSource,
+} from "@/lib/academics/compatibility/subject-result-adapters";
+import {
+  buildSubjectResultPerformanceRows,
+  loadSubjectResultsGroupedByPeriod,
+} from "@/lib/academics/compatibility/load-subject-results";
 import { Student } from "@/models/Student";
 import { School } from "@/models/School";
 import type { SchoolLevelForAcademics } from "@/types/admin/student-academics";
@@ -111,6 +122,12 @@ export async function buildStudentAcademicsDTO(params: {
     }
   }
 
+  const subjectResultsByPeriodId = await loadSubjectResultsGroupedByPeriod({
+    schoolId: schoolKey,
+    studentId: studentKey,
+    academicPeriodIds: allPeriods.map((period) => period._id.toString()),
+  });
+
   // 3) Determine selected period (URL academicPeriodId, else isCurrent, else latest-by-endDate)
   let selectedPeriod: IAcademicPeriod | null = null;
 
@@ -182,8 +199,7 @@ export async function buildStudentAcademicsDTO(params: {
   const terms: StudentTermOverview[] = allPeriods.map((p) => {
     const pid = p._id.toString();
     const tr = termResultByPeriodId.get(pid) ?? null;
-
-    return {
+    const legacyOverview: StudentTermOverview = {
       termId: pid,
       label: formatPeriodLabel(p),
       averageScore: tr?.averageScore ?? null,
@@ -191,6 +207,14 @@ export async function buildStudentAcademicsDTO(params: {
       totalSubjects: tr?.totalSubjects ?? null,
       performanceTier: tr?.performanceTier ?? null,
     };
+
+    const engineOverview = computeTermOverviewFromSubjectResults({
+      termId: pid,
+      label: formatPeriodLabel(p),
+      results: subjectResultsByPeriodId.get(pid) ?? [],
+    });
+
+    return mergeTermOverview(engineOverview, legacyOverview);
   });
 
   // Ensure terms are sorted by endDate (oldest -> newest)
@@ -232,9 +256,21 @@ export async function buildStudentAcademicsDTO(params: {
     trendDirection = "stable";
   }
 
-  // 6) Subject breakdown for selected term (using SubjectGrade)
+  // 6) Subject breakdown for selected term (prefer SubjectResult, fallback SubjectGrade)
   let subjects: StudentSubjectPerformanceRow[] = [];
+  let subjectRowsFromEngine = 0;
+  let subjectRowsFromLegacy = 0;
+
   if (selectedTermId) {
+    const engineResults = subjectResultsByPeriodId.get(selectedTermId) ?? [];
+    const engineRows =
+      engineResults.length > 0
+        ? await buildSubjectResultPerformanceRows({
+            schoolId: schoolKey,
+            results: engineResults,
+          })
+        : [];
+
     // Check if Teacher model is registered
     const TeacherModel = mongoose.models.Teacher;
     const canPopulateTeacher = !!TeacherModel;
@@ -247,7 +283,6 @@ export async function buildStudentAcademicsDTO(params: {
       .sort({ updatedAt: -1, createdAt: -1, _id: -1 })
       .populate("subjectId", "name code");
 
-    // Only populate teacher if model is available
     if (canPopulateTeacher) {
       try {
         subjectGradesQuery.populate({
@@ -267,29 +302,29 @@ export async function buildStudentAcademicsDTO(params: {
       }
     )[];
 
-    // Use a Map to deduplicate by subjectId (in case of duplicates)
-    const subjectMap = new Map<string, StudentSubjectPerformanceRow>();
+    const legacyRows: StudentSubjectPerformanceRow[] = [];
+    const seenLegacySubjectIds = new Set<string>();
 
     subjectGrades.forEach((sg) => {
       const subject: any = sg.subjectId;
       const teacher: any = sg.teacherId;
       const teacherUser = teacher?.userId;
-
       const teacherName = buildTeacherName(teacherUser);
 
-      // Extract subjectId - handle both populated (object) and unpopulated (ObjectId) cases
       let subjectIdStr: string;
       if (subject && typeof subject === "object" && subject._id) {
-        // Subject is populated, use its _id
         subjectIdStr = toStringId(subject._id) || subject._id.toString();
       } else {
-        // Subject is not populated, use the ObjectId directly
         subjectIdStr = toStringId(sg.subjectId) || String(sg.subjectId);
       }
 
-      // Only add if not already present (deduplicate)
-      if (!subjectMap.has(subjectIdStr)) {
-        subjectMap.set(subjectIdStr, {
+      if (seenLegacySubjectIds.has(subjectIdStr)) {
+        return;
+      }
+      seenLegacySubjectIds.add(subjectIdStr);
+
+      legacyRows.push(
+        legacyGradeToPerformanceRow({
           subjectId: subjectIdStr,
           subjectName: subject?.name ?? "Unknown subject",
           shortCode: subject?.code ?? null,
@@ -300,12 +335,14 @@ export async function buildStudentAcademicsDTO(params: {
           gradeLetter: sg.gradeLetter ?? null,
           gradePoint: sg.gradePoint ?? null,
           isPassed: typeof sg.isPassed === "boolean" ? sg.isPassed : null,
-        });
-      }
+        })
+      );
     });
 
-    subjects = Array.from(subjectMap.values());
-    subjects.sort((a, b) => a.subjectName.localeCompare(b.subjectName));
+    const merged = mergeSubjectPerformanceRows(engineRows, legacyRows);
+    subjects = merged.rows;
+    subjectRowsFromEngine = merged.subjectRowsFromEngine;
+    subjectRowsFromLegacy = merged.subjectRowsFromLegacy;
   }
 
   // 7) Teacher comments for selected term
@@ -364,11 +401,28 @@ export async function buildStudentAcademicsDTO(params: {
   }
 
   // 8) Build summary block
+  const selectedEngineOverview = selectedTermId
+    ? computeTermOverviewFromSubjectResults({
+        termId: selectedTermId,
+        label: selectedTermLabel ?? "",
+        results: subjectResultsByPeriodId.get(selectedTermId) ?? [],
+      })
+    : null;
+
+  const summaryFromEngine = Boolean(selectedEngineOverview?.averageScore != null);
+  const summaryFromLegacy = Boolean(selectedTermResult?.averageScore != null);
+
   const summary = {
-    overallAverage: selectedTermResult?.averageScore ?? null,
+    overallAverage:
+      selectedEngineOverview?.averageScore ??
+      selectedTermResult?.averageScore ??
+      null,
     classPosition: selectedTermResult?.classPosition ?? null,
     totalStudents: selectedTermResult?.totalStudents ?? null,
-    performanceTier: selectedTermResult?.performanceTier ?? null,
+    performanceTier:
+      selectedEngineOverview?.performanceTier ??
+      selectedTermResult?.performanceTier ??
+      null,
     trend: trendDirection,
     trendDelta,
   };
@@ -437,44 +491,74 @@ export async function buildStudentAcademicsDTO(params: {
   > = {};
 
   if (subjects.length > 0 && terms.length > 0) {
-    // Fetch all SubjectGrade records for this student across all terms
-    const allSubjectGrades = (await SubjectGrade.find({
-      schoolId: schoolKey,
-      studentId: studentKey,
-      academicPeriodId: {
-        $in: terms.map((t) => t.termId).filter(Boolean),
-      },
-    })
-      .sort({ updatedAt: -1, createdAt: -1, _id: -1 })
-      .populate("subjectId", "name code")
-      .lean()) as unknown as (ISubjectGrade & { subjectId?: any })[];
-
-    const seenSubjectTermPairs = new Set<string>();
-
-    for (const sg of allSubjectGrades) {
-      const subjectIdStr = sg.subjectId?._id
-        ? toStringId(sg.subjectId._id)
-        : toStringId(sg.subjectId);
-      if (!subjectIdStr) continue;
-
-      const periodId = toStringId(sg.academicPeriodId);
-      if (!periodId) continue;
-      const pairKey = `${subjectIdStr}:${periodId}`;
-      if (seenSubjectTermPairs.has(pairKey)) continue;
-      seenSubjectTermPairs.add(pairKey);
-
-      const period = periodMap.get(periodId);
-      if (!period) continue;
-
-      if (!subjectHistory[subjectIdStr]) {
-        subjectHistory[subjectIdStr] = [];
+    for (const term of terms) {
+      if (!term.termId) continue;
+      const engineResults = subjectResultsByPeriodId.get(term.termId) ?? [];
+      if (engineResults.length > 0) {
+        const engineRows = await buildSubjectResultPerformanceRows({
+          schoolId: schoolKey,
+          results: engineResults,
+        });
+        for (const row of engineRows) {
+          if (!subjectHistory[row.subjectId]) {
+            subjectHistory[row.subjectId] = [];
+          }
+          subjectHistory[row.subjectId].push({
+            termId: term.termId,
+            termLabel: term.label,
+            totalScore: row.totalScore,
+          });
+        }
       }
+    }
 
-      subjectHistory[subjectIdStr].push({
-        termId: periodId,
-        termLabel: formatPeriodLabel(period),
-        totalScore: sg.totalScore ?? null,
-      });
+    const periodsWithEngineHistory = new Set(
+      Object.values(subjectHistory).flatMap((entries) => entries.map((entry) => entry.termId))
+    );
+
+    if (periodsWithEngineHistory.size < terms.length) {
+      // Fill missing periods from legacy SubjectGrade records.
+      const allSubjectGrades = (await SubjectGrade.find({
+        schoolId: schoolKey,
+        studentId: studentKey,
+        academicPeriodId: {
+          $in: terms.map((t) => t.termId).filter(Boolean),
+        },
+      })
+        .sort({ updatedAt: -1, createdAt: -1, _id: -1 })
+        .populate("subjectId", "name code")
+        .lean()) as unknown as (ISubjectGrade & { subjectId?: any })[];
+
+      const seenSubjectTermPairs = new Set<string>();
+
+      for (const sg of allSubjectGrades) {
+        const subjectIdStr = sg.subjectId?._id
+          ? toStringId(sg.subjectId._id)
+          : toStringId(sg.subjectId);
+        if (!subjectIdStr) continue;
+
+        const periodId = toStringId(sg.academicPeriodId);
+        if (!periodId) continue;
+        const pairKey = `${subjectIdStr}:${periodId}`;
+        if (seenSubjectTermPairs.has(pairKey)) continue;
+        seenSubjectTermPairs.add(pairKey);
+
+        const existing = subjectHistory[subjectIdStr]?.some((entry) => entry.termId === periodId);
+        if (existing) continue;
+
+        const period = periodMap.get(periodId);
+        if (!period) continue;
+
+        if (!subjectHistory[subjectIdStr]) {
+          subjectHistory[subjectIdStr] = [];
+        }
+
+        subjectHistory[subjectIdStr].push({
+          termId: periodId,
+          termLabel: formatPeriodLabel(period),
+          totalScore: sg.totalScore ?? null,
+        });
+      }
     }
 
     // Sort each subject's history by term order
@@ -555,12 +639,21 @@ export async function buildStudentAcademicsDTO(params: {
     };
   }
 
+  const { dataSource, dataSourceNotes } = resolveAcademicsDataSource({
+    subjectRowsFromEngine,
+    subjectRowsFromLegacy,
+    summaryFromEngine,
+    summaryFromLegacy,
+  });
+
   // 10) Final DTO for the student academics tab / gradebook
   const dto: StudentAcademicsDTO = {
     studentId: studentKey,
     schoolLevel,
     selectedTermId,
     selectedTermLabel,
+    dataSource,
+    dataSourceNotes,
     summary,
     term: terms,
     subjects,

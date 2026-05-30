@@ -9,6 +9,8 @@ import {
   resolveAuditIdempotencyKey,
 } from "@/lib/audit/fromApiRoute";
 import { buildStudentAcademicsDTO } from "@/lib/academics/buildStudentAcademicsDTO";
+import { buildSnapshotReportCardPdf } from "@/lib/academics/reporting/build-snapshot-report-card-pdf";
+import { resolveStudentReportCardViewData } from "@/lib/academics/reporting/resolve-student-report-card-view";
 import { Student } from "@/models/Student";
 import { ClassGroup } from "@/models/ClassGroup";
 
@@ -326,6 +328,7 @@ export async function GET(req: NextRequest) {
     const wardId = searchParams.get("wardId");
     const periodId = searchParams.get("periodId");
     const reportType = searchParams.get("type") || "term_report";
+    const studentReportCardId = searchParams.get("studentReportCardId");
 
     if (!wardId || !mongoose.Types.ObjectId.isValid(wardId)) {
       return NextResponse.json(
@@ -360,6 +363,88 @@ export async function GET(req: NextRequest) {
     if (!student) {
       return NextResponse.json(
         { success: false, error: "Student not found" },
+        { status: 404 }
+      );
+    }
+
+    const wardObjectId = student._id;
+    const periodObjectId =
+      periodId && mongoose.Types.ObjectId.isValid(periodId)
+        ? new mongoose.Types.ObjectId(periodId)
+        : null;
+    const snapshotCardId =
+      studentReportCardId && mongoose.Types.ObjectId.isValid(studentReportCardId)
+        ? new mongoose.Types.ObjectId(studentReportCardId)
+        : null;
+
+    const snapshotView =
+      snapshotCardId || (periodObjectId && reportType === "report_card")
+        ? await resolveStudentReportCardViewData({
+            schoolId: context.schoolId,
+            studentId: wardObjectId,
+            academicPeriodId: periodObjectId,
+            statuses: ["released"],
+            studentReportCardId: snapshotCardId,
+          })
+        : null;
+
+    if (snapshotView && snapshotView.source === "snapshot") {
+      const pdfBytes = await buildSnapshotReportCardPdf(snapshotView);
+      const studentName = snapshotView.student.name;
+      const fileStudent = sanitizeFilePart(studentName || "student-report");
+      const fileTerm = sanitizeFilePart(
+        `${snapshotView.period.term}-${snapshotView.period.yearLabel}` || "current-term"
+      );
+      const fileName = `${fileStudent}-${fileTerm}-report-card.pdf`;
+
+      try {
+        await writeRetryableAuditEvent({
+          actionCode: "report.downloaded.secure",
+          scopeType: "school",
+          scopeId: String(context.schoolId),
+          result: "succeeded",
+          target: {
+            targetEntityType: "Student",
+            targetEntityId: student._id,
+          },
+          context: buildParentAuditContext(req, {
+            userId: context.userId,
+            schoolId: context.schoolId,
+            idempotencyKey: resolveAuditIdempotencyKey(
+              req,
+              `report.snapshot:${wardId}:${snapshotView.studentReportCardId ?? periodId}:${reportType}`
+            ),
+          }),
+          payload: {
+            metadata: {
+              reportType: "report_card",
+              periodId: periodId || null,
+              wardId,
+              studentReportCardId: snapshotView.studentReportCardId ?? null,
+              source: "snapshot",
+            },
+          },
+          streamKey: `school:${String(context.schoolId)}:academics`,
+        });
+      } catch (auditErr) {
+        console.error("report.downloaded.secure audit failed:", auditErr);
+      }
+
+      const pdfArrayBuffer = new ArrayBuffer(pdfBytes.length);
+      new Uint8Array(pdfArrayBuffer).set(pdfBytes);
+
+      return new Response(pdfArrayBuffer, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${fileName}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+
+    if (reportType === "report_card") {
+      return NextResponse.json(
+        { success: false, error: "Released report card is not available for the selected period" },
         { status: 404 }
       );
     }

@@ -62,6 +62,11 @@ export function isSubscriptionPricingProposalSection(section: Pick<IProposalTemp
   );
 }
 
+export function isProposedSolutionProposalSection(section: Pick<IProposalTemplateSection, "key" | "title">) {
+  const text = sectionText(section);
+  return section.key === "solution" || text.includes("proposed solution");
+}
+
 export function isContactProposalSection(section: Pick<IProposalTemplateSection, "key" | "title">) {
   const text = sectionText(section);
   return section.key === "contact" || text.includes("contact") || text.includes("enquiries");
@@ -205,6 +210,18 @@ function fallbackDraft(input: {
     ].join("\n\n");
   }
 
+  if (isProposedSolutionProposalSection(input.section)) {
+    const selectedModules = input.selectedModules.slice(0, 12);
+    return [
+      `EduSentrix provides ${input.schoolName} with a unified school operations platform that brings administration, academics, finance, communication, reporting, and role-based access into one structured environment.`,
+      "The proposed solution is designed to reduce manual follow-up, improve visibility for school leadership, and give staff a clearer way to manage daily work across departments.",
+      selectedModules.length
+        ? ["Selected modules", ...selectedModules.map((module) => `- ${module}`)].join("\n")
+        : "The selected modules can be refined further after the school confirms its immediate operational priorities.",
+      "Together, these modules provide a practical implementation path that can be reviewed, phased, and adjusted around the school's readiness and rollout priorities.",
+    ].join("\n\n");
+  }
+
   return [
     `${input.schoolName} can use EduSentrix to strengthen the way this area of school operations is planned, monitored, and reviewed.`,
     `For ${input.section.title.toLowerCase()}, the platform brings the relevant information into one structured workspace, reducing manual follow-up and giving leadership clearer visibility.`,
@@ -238,6 +255,11 @@ export async function generateProposalSectionWithLeo(input: {
   }
 
   const sectionGuidance = {
+    formatting:
+      "Use clean proposal body copy only. Do not use markdown heading markers such as #, ##, ###, or ####. Do not use markdown bold markers such as **text**. Do not repeat the section title as the first line of the section body. If the section needs internal grouping, use a plain label line such as Selected modules or Starter, followed by short paragraphs or simple hyphen bullets.",
+    proposedSolution: isProposedSolutionProposalSection(input.section)
+      ? "This is the Proposed Solution section. Explain EduSentrix as a unified school operations platform tailored to the recipient school. Mention selected modules only as clean plain-text grouping: a short intro paragraph, a plain label line such as Selected modules, then concise hyphen bullets for relevant modules. Do not use markdown heading markers, bold labels, or a long catalogue-style paragraph. Do not repeat the section title inside the body."
+      : "",
     mobileApp: isMobileAppProposalSection(input.section)
       ? "This is the Companion Mobile App section. EduSentrix has two companion mobile apps: Jeda and EduSentrix Learn. Jeda is the mobile version of the EduSentrix web platform for convenient phone access to school workflows and information. EduSentrix Learn is the student learning companion that reinforces topics taught in school, supports revision, exam preparation, and continued learning outside the classroom. Keep the distinction clear. Do not describe EduSentrix Learn as the only companion app. Do not claim unsupported AI tutoring, offline mode, WhatsApp, or SMS features."
       : "",
@@ -298,7 +320,15 @@ export async function generateProposalSectionWithLeo(input: {
   const text = completion.choices[0]?.message?.content || "";
   const json = JSON.parse(text) as { content?: string };
   return {
-    content: sanitizeProposalHtml(String(json.content || "")),
+    content: sanitizeProposalHtml(normalizeLeoProposalContent(String(json.content || ""))),
     source: "leo",
   };
+}
+
+function normalizeLeoProposalContent(content: string) {
+  return content
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+    .replace(/__([^_\n]+)__/g, "$1")
+    .trim();
 }

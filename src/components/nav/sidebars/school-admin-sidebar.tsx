@@ -176,17 +176,29 @@ const navSections: NavSection[] = [
     title: "Academics",
     items: [
       {
-        label: "Grades",
+        label: "Grades & Subjects",
         href: "/admin/grades",
         icon: School,
+        children: [
+          {
+            label: "Subjects",
+            href: "/admin/subjects",
+            icon: BookOpen,
+          },
+          {
+            label: "Curriculum",
+            href: "/admin/settings/curriculum",
+            icon: GraduationCap,
+          },
+          {
+            label: "Schemes of Learning",
+            href: "/admin/schemes",
+            icon: ClipboardList,
+          },
+        ],
       },
       {
-        label: "Subjects",
-        href: "/admin/subjects",
-        icon: BookOpen,
-      },
-      {
-        label: "Lesson Notes",
+        label: "Lessons",
         href: "/admin/lesson-notes",
         icon: FileText,
         exact: true,
@@ -196,87 +208,81 @@ const navSections: NavSection[] = [
             href: "/admin/lesson-notes/review",
             icon: ClipboardCheck,
           },
+          {
+            label: "Lesson sessions",
+            href: "/admin/lessons/sessions",
+            icon: Presentation,
+          },
+          {
+            label: "Lesson analytics",
+            href: "/admin/lessons/analytics",
+            icon: BarChart3,
+          },
+          {
+            label: "Lesson audit log",
+            href: "/admin/lessons/audit",
+            icon: ScrollText,
+          },
         ],
       },
       {
-        label: "Lesson sessions",
-        href: "/admin/lessons/sessions",
-        icon: Presentation,
-      },
-      {
-        label: "Lesson analytics",
-        href: "/admin/lessons/analytics",
-        icon: BarChart3,
-      },
-      {
-        label: "Lesson audit log",
-        href: "/admin/lessons/audit",
-        icon: ScrollText,
-      },
-      {
-        label: "Curriculum",
-        href: "/admin/settings/curriculum",
-        icon: GraduationCap,
-      },
-      {
-        label: "Schemes of Learning",
-        href: "/admin/schemes",
-        icon: ClipboardList,
-      },
-      {
-        label: "Grading Policies",
-        href: "/admin/academics/grading",
-        icon: Percent,
-      },
-      {
-        label: "Assessment Plans",
-        href: "/admin/academics/assessment-plans",
-        icon: ListChecks,
-      },
-      {
-        label: "Exam Sessions",
-        href: "/admin/exams/sessions",
-        icon: CalendarRange,
-      },
-      {
-        label: "Exam Operations",
-        href: "/admin/exams/analytics",
-        icon: BarChart3,
-      },
-      {
-        label: "Exam Venues",
-        href: "/admin/exams/venues",
-        icon: Building2,
-      },
-      {
-        label: "Report card approval",
-        href: "/admin/reports/report-runs",
-        icon: ClipboardList,
-      },
-      {
-        label: "Examinations",
+        label: "Assessment & Exams",
         href: "/admin/examinations",
         icon: ClipboardCheck,
+        children: [
+          {
+            label: "Grading Policies",
+            href: "/admin/academics/grading",
+            icon: Percent,
+          },
+          {
+            label: "Assessment Plans",
+            href: "/admin/academics/assessment-plans",
+            icon: ListChecks,
+          },
+          {
+            label: "Question Bank",
+            href: "/admin/question-bank",
+            icon: Library,
+          },
+          {
+            label: "Exam Sessions",
+            href: "/admin/exams/sessions",
+            icon: CalendarRange,
+          },
+          {
+            label: "Exam Operations",
+            href: "/admin/exams/analytics",
+            icon: BarChart3,
+          },
+          {
+            label: "Exam Venues",
+            href: "/admin/exams/venues",
+            icon: Building2,
+          },
+          {
+            label: "Report card approval",
+            href: "/admin/reports/report-runs",
+            icon: ClipboardList,
+          },
+        ],
       },
       {
-        label: "Question Bank",
-        href: "/admin/question-bank",
-        icon: Library,
-      },
-      {
-        label: "Academic Calendar",
+        label: "Calendar & Progression",
         href: "/admin/academic-calendar",
         icon: CalendarRange,
-      },
-      {
-        label: "Academic Periods",
-        href: "/admin/periods",
-        icon: Calendar,
-      },
-      {
-        label: "Promotions",
-        href: "/admin/promotions",
-        icon: TrendingUp,
+        children: [
+          {
+            label: "Academic Periods",
+            href: "/admin/periods",
+            icon: Calendar,
+          },
+          {
+            label: "Promotions",
+            href: "/admin/promotions",
+            icon: TrendingUp,
+          },
+        ],
       },
       {
         label: "EduSentrix Learn",

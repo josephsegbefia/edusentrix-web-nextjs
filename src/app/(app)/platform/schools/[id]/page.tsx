@@ -9,6 +9,7 @@ import {
   BadgeCheck,
   Ban,
   Loader2,
+  Mail,
   Rocket,
   ShieldCheck,
   Trash2,
@@ -50,6 +51,13 @@ type SchoolDetail = {
   region: string | null;
   email: string | null;
   environmentType: string;
+  adminAccount: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    hasPlatformAccount: boolean;
+    pendingOnboarding: boolean;
+  } | null;
   setupProgress: {
     percent: number;
     completed: number;
@@ -155,6 +163,7 @@ export default function PlatformSchoolDetailPage() {
   const [assistReason, setAssistReason] = React.useState("");
   const [assistDuration, setAssistDuration] = React.useState("30");
   const [assistBusy, setAssistBusy] = React.useState(false);
+  const [adminInviteBusy, setAdminInviteBusy] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     if (!schoolId) return;
@@ -319,6 +328,26 @@ export default function PlatformSchoolDetailPage() {
     }
   }
 
+  async function sendSchoolAdminInvite() {
+    if (!schoolId) return;
+    try {
+      setAdminInviteBusy(true);
+      const res = await fetch(`/api/platform/schools/${schoolId}/admin-invite`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || "Failed to send admin invite");
+      }
+      toast.success(`Invite email sent to ${json.data?.email || "school admin"}.`);
+      await loadData();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send admin invite");
+    } finally {
+      setAdminInviteBusy(false);
+    }
+  }
+
   async function permanentDeleteSchool() {
     if (!schoolId || !data) return;
     if (deletePhrase.trim() !== PHRASE_DELETE_SCHOOL_PERMANENTLY) {
@@ -419,6 +448,25 @@ export default function PlatformSchoolDetailPage() {
                 type="button"
                 size="sm"
                 variant="outline"
+                className="w-fit border-emerald-400/30 bg-emerald-400/10 text-emerald-50 hover:bg-emerald-400/20"
+                disabled={
+                  adminInviteBusy ||
+                  !data?.adminAccount?.email ||
+                  Boolean(data?.adminAccount?.hasPlatformAccount)
+                }
+                onClick={() => void sendSchoolAdminInvite()}
+              >
+                {adminInviteBusy ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                Send admin invite
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
                 className="w-fit border-cyan-400/30 bg-cyan-400/10 text-cyan-50 hover:bg-cyan-400/20"
                 onClick={() => setAssistOpen(true)}
               >
@@ -469,7 +517,22 @@ export default function PlatformSchoolDetailPage() {
                 MongoDB data, Clerk users, and uploaded files for this school.
               </p>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
+            <CardContent className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-xs uppercase tracking-wide text-white/45">School Admin</p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {data.adminAccount?.name || "No admin name"}
+                </p>
+                <p className="mt-1 text-xs text-white/50">
+                  {data.adminAccount?.email || "No admin email linked"}
+                </p>
+                <p className="mt-2 text-xs text-white/45">
+                  {data.adminAccount?.hasPlatformAccount
+                    ? "Login account linked"
+                    : "Invite pending or not yet accepted"}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
               {data.status !== "deactivated" ? (
                 <Button
                   type="button"
@@ -509,6 +572,7 @@ export default function PlatformSchoolDetailPage() {
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete permanently
               </Button>
+              </div>
             </CardContent>
           </Card>
 

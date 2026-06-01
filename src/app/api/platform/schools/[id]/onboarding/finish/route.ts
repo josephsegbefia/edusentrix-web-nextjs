@@ -12,6 +12,7 @@ import {
 } from "@/lib/school-payments/payment-setup";
 import { applyLaunchCurriculum } from "@/lib/onboarding/launch-curriculum";
 import { getOnboardingTargetSchoolAdmin } from "@/lib/onboarding/target-school-admin";
+import { runMongoTransaction } from "@/lib/mongoose/run-transaction";
 
 const BodySchema = z
   .object({
@@ -23,6 +24,7 @@ const BodySchema = z
           startDate: z.string().min(1),
           endDate: z.string().min(1),
           isCurrent: z.boolean().optional(),
+          isYearEndTerminal: z.boolean().optional(),
         })
       )
       .optional(),
@@ -62,44 +64,38 @@ export async function POST(
     );
   }
 
-  const session = await mongoose.startSession();
   try {
-    session.startTransaction();
+    await runMongoTransaction(async (session) => {
+      if (periodList && periodList.length > 0) {
+        await applyLaunchCurriculum(
+          schoolIdObj,
+          {
+            periods: periodList ?? [],
+          },
+          { session }
+        );
+      }
 
-    if (periodList && periodList.length > 0) {
-      await applyLaunchCurriculum(
-        schoolIdObj,
+      await User.updateOne(
+        { _id: target._id, schoolId: schoolIdObj },
+        { $set: { pendingOnboarding: false } },
+        { session }
+      );
+      await School.updateOne(
+        { _id: schoolIdObj },
         {
-          periods: periodList ?? [],
+          $set: {
+            status: "active",
+            "onboarding.finishedAt": new Date(),
+          },
         },
         { session }
       );
-    }
-
-    await User.updateOne(
-      { _id: target._id, schoolId: schoolIdObj },
-      { $set: { pendingOnboarding: false } },
-      { session }
-    );
-    await School.updateOne(
-      { _id: schoolIdObj },
-      {
-        $set: {
-          status: "active",
-          "onboarding.finishedAt": new Date(),
-        },
-      },
-      { session }
-    );
-
-    await session.commitTransaction();
+    });
   } catch (e: unknown) {
-    await session.abortTransaction();
     const msg =
       e instanceof Error ? e.message : "Failed to finalize onboarding";
     return NextResponse.json({ error: msg }, { status: 400 });
-  } finally {
-    session.endSession();
   }
 
   const school = await School.findById(schoolIdObj)

@@ -7,6 +7,7 @@ export type LaunchPeriodInput = {
   startDate: string;
   endDate: string;
   isCurrent?: boolean;
+  isYearEndTerminal?: boolean;
 };
 
 function rangesOverlap(
@@ -70,6 +71,17 @@ export async function applyLaunchCurriculum(
   const currentIdx = sorted.findIndex((p) => p.isCurrent);
   const winnerIdx = currentIdx >= 0 ? currentIdx : sorted.length - 1;
 
+  const yearEndWinnerByLabel = new Map<string, number>();
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (!sorted[i].isYearEndTerminal) continue;
+    const label = sorted[i].yearLabel.trim();
+    if (yearEndWinnerByLabel.has(label)) {
+      sorted[i].isYearEndTerminal = false;
+    } else {
+      yearEndWinnerByLabel.set(label, i);
+    }
+  }
+
   const docs = sorted.map((p, i) => ({
     schoolId,
     yearLabel: p.yearLabel.trim(),
@@ -77,6 +89,7 @@ export async function applyLaunchCurriculum(
     startDate: new Date(p.startDate),
     endDate: new Date(p.endDate),
     isCurrent: i === winnerIdx,
+    isYearEndTerminal: Boolean(p.isYearEndTerminal),
   }));
 
   await AcademicPeriod.insertMany(docs, { session });

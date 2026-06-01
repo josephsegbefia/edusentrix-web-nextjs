@@ -72,12 +72,12 @@ const isPublicRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Legacy / mis-placed URL: was under /parent/* which uses the authenticated
   // parent app layout. Public uploads live under /upload/parent-document/* only.
-  const pathnameEarly = req.nextUrl.pathname;
+  const pathname = req.nextUrl.pathname;
   if (
-    pathnameEarly.startsWith("/parent/upload-document/") &&
-    pathnameEarly.length > "/parent/upload-document/".length
+    pathname.startsWith("/parent/upload-document/") &&
+    pathname.length > "/parent/upload-document/".length
   ) {
-    const token = pathnameEarly.slice("/parent/upload-document/".length);
+    const token = pathname.slice("/parent/upload-document/".length);
     const url = req.nextUrl.clone();
     url.pathname = `/upload/parent-document/${token}`;
     return NextResponse.redirect(url);
@@ -113,10 +113,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return; // Allow through without auth
   }
 
-  const { userId } = await auth();
-  const pathname = req.nextUrl.pathname;
-
-  // Allow all public routes to pass
+  // Allow all public routes to pass before touching Clerk auth. This is
+  // especially important for UploadThing callbacks/handshakes and webhooks.
   const isPublic =
     isPublicRoute(req) ||
     [
@@ -143,11 +141,14 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       "/api/platform/bootstrap",
     ].some((p) => pathname === p || pathname.startsWith(p));
 
-  if (!userId) {
-    if (!isPublic) {
-      return NextResponse.redirect(new URL("/sign-in", req.url));
-    }
+  if (isPublic) {
     return;
+  }
+
+  const { userId } = await auth();
+
+  if (!userId) {
+    return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
   // If already on password page, allow
@@ -159,7 +160,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     const user = await clerk.users.getUser(userId);
     const needsPassword = !user.passwordEnabled;
 
-    if (needsPassword && !isPublic) {
+    if (needsPassword) {
       const redirect = new URL("/account/set-password", req.url);
       return NextResponse.redirect(redirect);
     }

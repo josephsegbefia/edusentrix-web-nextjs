@@ -4,6 +4,10 @@ import React, { useMemo, useRef, useState } from "react";
 import { FileDropzone } from "./FileDropzone";
 import { useToast } from "@/hooks/useToast";
 import { useUploadThing } from "@/lib/uploadthing/react";
+import {
+  getUploadThingErrorMessage,
+  logUploadThingClientError,
+} from "@/lib/uploadthing/client-errors";
 
 type SubjectRole =
   | "students"
@@ -96,7 +100,8 @@ export function ImageUploader({
       setUploadProgress(Math.min(95, progress));
     },
     onUploadError: (error) => {
-      uploadErrorMessage.current = error.message || "Upload failed";
+      logUploadThingClientError(`${endpoint} onUploadError`, error);
+      uploadErrorMessage.current = getUploadThingErrorMessage(error);
     },
   });
 
@@ -143,7 +148,13 @@ export function ImageUploader({
         description: "Your image is ready to use.",
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Upload error";
+      if (error && typeof error === "object" && "message" in error) {
+        logUploadThingClientError(`${endpoint} handleUpload`, error as { message?: string; cause?: unknown });
+      }
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? getUploadThingErrorMessage(error as { message?: string; cause?: unknown })
+          : "Upload error";
       setLocalPreview(null);
       setUploadProgress(null);
       toast.error("Upload failed", {

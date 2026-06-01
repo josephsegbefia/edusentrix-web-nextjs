@@ -8,6 +8,7 @@ import {
   useFieldArray,
   type Control,
   type FieldErrors,
+  type Resolver,
   type UseFormSetValue,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +16,7 @@ import {
   CreateTeacherSchema,
   type CreateTeacherInput,
 } from "@/schemas/teacher";
+import type { CreateTeacherResponse } from "@/hooks/admin/useTeachers";
 import { useBusyToast } from "@/hooks/useBusyToast";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useToast } from "@/hooks/useToast";
@@ -48,7 +50,9 @@ import { formatClassGroupLabel } from "@/lib/utils/formatClassGroupLabel";
 
 type Props = {
   onClose: () => void;
-  onSubmit: (payload: CreateTeacherInput) => Promise<void>;
+  onSubmit: (
+    payload: CreateTeacherInput
+  ) => Promise<CreateTeacherResponse | void>;
   isLoading?: boolean;
 };
 
@@ -447,7 +451,7 @@ export default function CreateTeacherModal({
     getValues,
     formState: { errors, isSubmitting },
   } = useForm<CreateTeacherInput>({
-    resolver: zodResolver(CreateTeacherSchema),
+    resolver: zodResolver(CreateTeacherSchema) as Resolver<CreateTeacherInput>,
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -1000,7 +1004,11 @@ export default function CreateTeacherModal({
     }
     const teachingAssignments = (values.teachingAssignments || [])
       .filter((r) => r.subjectId && r.classGroupId)
-      .map(({ subjectId, classGroupId }) => ({ subjectId, classGroupId }));
+      .map(({ subjectId, classGroupId, gradeId }) => ({
+        subjectId,
+        classGroupId,
+        gradeId: gradeId || "",
+      }));
 
     const payload: CreateTeacherInput = {
       ...values,
@@ -1012,10 +1020,21 @@ export default function CreateTeacherModal({
         values.teachingAssignmentResolution ?? "add_alongside",
     };
     try {
-      await onSubmit(payload);
+      const result = await onSubmit(payload);
+      const devLogin = result?.data?.devLogin;
       toastSuccess("Teacher created", {
-        description:
-          "We've sent an invite email so they can set a password and onboard.",
+        description: devLogin
+          ? `Test login ready: ${devLogin.email} / ${devLogin.password}`
+          : "We've sent an invite email so they can set a password and onboard.",
+        duration: devLogin ? 20000 : undefined,
+        actionLabel: devLogin ? "Copy" : undefined,
+        onAction: devLogin
+          ? () => {
+              void navigator.clipboard.writeText(
+                `${devLogin.email}\n${devLogin.password}\n${devLogin.signInUrl}`
+              );
+            }
+          : undefined,
       });
       onClose();
     } catch (e: unknown) {

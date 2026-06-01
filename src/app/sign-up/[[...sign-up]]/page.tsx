@@ -33,6 +33,9 @@ const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_CLERK_GOOGLE_ENABLED === "true";
 const inputClass =
   "mt-2 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-sm text-white outline-none transition-all duration-200 placeholder:text-white/30 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_20px_rgba(14,165,233,0.1)] disabled:cursor-not-allowed disabled:opacity-50";
 
+const lockedInputClass =
+  "mt-2 h-12 w-full rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 text-sm text-emerald-50 outline-none placeholder:text-emerald-100/40";
+
 const otpInputClass =
   "h-14 w-full rounded-2xl border border-white/10 bg-white/5 px-4 text-center font-mono text-lg tracking-[0.45em] text-white outline-none transition-all duration-200 placeholder:text-white/20 focus:border-brand focus:bg-white/[0.07] focus:ring-2 focus:ring-brand/20 focus:shadow-[0_0_20px_rgba(14,165,233,0.1)] disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -101,6 +104,11 @@ function ErrorBlock() {
   return (
     <Clerk.GlobalError className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100" />
   );
+}
+
+function normalizeEmailParam(value: string | null) {
+  const email = value?.trim().toLowerCase() || "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
 }
 
 function SubmitButton({
@@ -281,6 +289,13 @@ function SignUpPageContent() {
     () => Boolean(searchParams.get("__clerk_ticket")),
     [searchParams]
   );
+  const invitedEmail = useMemo(
+    () =>
+      hasInvitationTicket
+        ? normalizeEmailParam(searchParams.get("invited_email"))
+        : "",
+    [hasInvitationTicket, searchParams]
+  );
 
   const handleSignOutAndContinue = useCallback(async () => {
     setIsSigningOut(true);
@@ -414,10 +429,19 @@ function SignUpPageContent() {
                             <FieldLabel>Email Address</FieldLabel>
                             <Clerk.Input
                               type="email"
-                              className={inputClass}
+                              className={invitedEmail ? lockedInputClass : inputClass}
                               placeholder="admin@school.edu"
                               autoComplete="email"
+                              value={invitedEmail || undefined}
+                              readOnly={Boolean(invitedEmail)}
+                              disabled={Boolean(invitedEmail)}
+                              aria-readonly={Boolean(invitedEmail)}
                             />
+                            {invitedEmail ? (
+                              <p className="mt-2 text-xs leading-5 text-emerald-200/70">
+                                This email is locked to the invitation.
+                              </p>
+                            ) : null}
                             <FieldError />
                           </Clerk.Field>
 
@@ -621,7 +645,10 @@ function SignUpPageContent() {
                               </button>
                             </SignUp.Action>
 
-                            <BackAction to="start" label="Use another email" />
+                            <BackAction
+                              to="start"
+                              label={invitedEmail ? "Back to password" : "Use another email"}
+                            />
 
                             <ErrorBlock />
                           </div>

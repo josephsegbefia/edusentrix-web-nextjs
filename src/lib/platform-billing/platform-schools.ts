@@ -4,6 +4,7 @@ import { maskAccountNumber } from "@/lib/platform-billing/payout-security";
 import { School } from "@/models/School";
 import { UsageMetric } from "@/models/UsageMetric";
 import { ProvisioningJob } from "@/models/ProvisioningJob";
+import { User } from "@/models/User";
 import {
   deriveSchoolPaymentSetupStatus,
   getSchoolPaymentSetupMeta,
@@ -118,7 +119,7 @@ export async function getPlatformSchoolDetail(schoolId: string) {
   }
 
   const schoolIdObj = new mongoose.Types.ObjectId(schoolId);
-  const [school, usageMetrics, latestProvisioningJob, setupProgress] =
+  const [school, usageMetrics, latestProvisioningJob, setupProgress, adminUser] =
     await Promise.all([
     School.findById(schoolIdObj)
       .select(
@@ -212,6 +213,21 @@ export async function getPlatformSchoolDetail(schoolId: string) {
         updatedAt?: Date;
       } | null>(),
     getSchoolSetupProgress(schoolIdObj),
+    User.findOne({
+      schoolId: schoolIdObj,
+      role: "school_admin",
+    })
+      .sort({ createdAt: 1 })
+      .select("_id email firstName lastName name clerkUserId pendingOnboarding")
+      .lean<{
+        _id: mongoose.Types.ObjectId;
+        email?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+        name?: string | null;
+        clerkUserId?: string | null;
+        pendingOnboarding?: boolean | null;
+      } | null>(),
   ]);
 
   if (!school) {
@@ -235,6 +251,18 @@ export async function getPlatformSchoolDetail(schoolId: string) {
     region: school.region || null,
     email: school.email || null,
     environmentType: school.environmentType || "production",
+    adminAccount: adminUser
+      ? {
+          id: String(adminUser._id),
+          name:
+            adminUser.name ||
+            [adminUser.firstName, adminUser.lastName].filter(Boolean).join(" ") ||
+            null,
+          email: adminUser.email || null,
+          hasPlatformAccount: Boolean(adminUser.clerkUserId),
+          pendingOnboarding: Boolean(adminUser.pendingOnboarding),
+        }
+      : null,
     setupProgress,
     paymentReady: isSchoolPaymentReady(school),
     paymentSetup: {

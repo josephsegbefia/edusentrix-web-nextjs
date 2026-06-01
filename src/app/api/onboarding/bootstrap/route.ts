@@ -3,17 +3,16 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { Invite, IInvite } from "@/models/Invite";
 import { School, ISchool } from "@/models/School";
-import { User } from "@/models/User";
+import { User, type IUser } from "@/models/User";
 import { enrichUserNamesFromApplication } from "@/lib/onboarding/enrichUserNamesFromApplication";
+import { runMongoTransaction } from "@/lib/mongoose/run-transaction";
 
 export async function GET() {
-  // 1) Require a signed-in Clerk session
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // 2) Load the Clerk user and primary email
   const clerk = await clerkClient();
   const clerkUser = await clerk.users.getUser(userId);
 
@@ -31,47 +30,73 @@ export async function GET() {
     );
   }
 
-  // 3) DB bootstrap / lookup
   await connectToDatabase();
 
-  let appUser = await User.findOne({ clerkUserId: clerkUser.id });
+  let appUser: IUser | null = null;
+  const existingUser = await User.findOne({ clerkUserId: clerkUser.id }).lean<IUser | null>();
 
-  // If we don't have a local user yet, create one from Clerk profile
-  if (!appUser) {
-    const roleFromMetadata =
-      (clerkUser.publicMetadata?.role as string | undefined) || undefined;
+  if (existingUser?.schoolId) {
+    appUser = existingUser;
+  } else {
+    try {
+      appUser = await runMongoTransaction(async (session) => {
+        let user = await User.findOne({ clerkUserId: clerkUser.id }).session(
+          session
+        );
 
-    appUser = await User.create({
-      clerkUserId: clerkUser.id,
-      email: primaryEmail.toLowerCase(),
-      firstName:
-        clerkUser.firstName ||
-        (clerkUser.publicMetadata?.firstName as string | undefined),
-      lastName:
-        clerkUser.lastName ||
-        (clerkUser.publicMetadata?.lastName as string | undefined),
-      role: roleFromMetadata || "school_admin",
-      pendingOnboarding: true,
-    });
-  }
+        if (!user) {
+          const roleFromMetadata =
+            (clerkUser.publicMetadata?.role as string | undefined) || undefined;
 
-  // 4) If the user isn't attached to a school yet, bind via latest valid invite
-  if (!appUser.schoolId) {
-    const invite = (await Invite.findOne({
-      email: primaryEmail.toLowerCase(),
-      status: "pending",
-      expiresAt: { $gt: new Date() },
-    })
-      .sort({ createdAt: -1 })
-      .lean()) as IInvite | null;
+          const created = await User.create(
+            [
+              {
+                clerkUserId: clerkUser.id,
+                email: primaryEmail.toLowerCase(),
+                firstName:
+                  clerkUser.firstName ||
+                  (clerkUser.publicMetadata?.firstName as string | undefined),
+                lastName:
+                  clerkUser.lastName ||
+                  (clerkUser.publicMetadata?.lastName as string | undefined),
+                role: roleFromMetadata || "school_admin",
+                pendingOnboarding: true,
+              },
+            ],
+            { session }
+          );
+          user = created[0];
+        }
 
-    if (invite) {
-      appUser.schoolId = invite.schoolId;
-      await appUser.save();
+        if (!user.schoolId) {
+          const invite = (await Invite.findOne({
+            email: primaryEmail.toLowerCase(),
+            status: "pending",
+            expiresAt: { $gt: new Date() },
+          })
+            .sort({ createdAt: -1 })
+            .session(session)
+            .lean()) as IInvite | null;
+
+          if (invite) {
+            await User.updateOne(
+              { _id: user._id },
+              { $set: { schoolId: invite.schoolId } },
+              { session }
+            );
+            user.schoolId = invite.schoolId;
+          }
+        }
+
+        return user.toObject() as IUser;
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to bootstrap onboarding";
+      return NextResponse.json({ error: message }, { status: 500 });
     }
   }
 
-  // 5) Fetch school profile
   const school = appUser.schoolId
     ? ((await School.findById(appUser.schoolId).lean()) as ISchool | null)
     : null;
@@ -88,7 +113,6 @@ export async function GET() {
     appUser.lastName
   );
 
-  // 6) Response in the same shape your frontend expects
   return NextResponse.json({
     user: {
       email: appUser.email,

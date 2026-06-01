@@ -7,6 +7,10 @@ import { School } from "@/models/School";
 import type { IUser } from "@/models/User";
 import { persistOnboardingSchoolProfile } from "@/lib/onboarding/persist-onboarding-school-profile";
 import { getOnboardingTargetSchoolAdmin } from "@/lib/onboarding/target-school-admin";
+import {
+  MongoTransactionError,
+  runMongoTransaction,
+} from "@/lib/mongoose/run-transaction";
 
 const BodySchema = z.object({
   name: z.string().min(2),
@@ -109,26 +113,22 @@ export async function POST(
     );
   }
 
-  const session = await mongoose.startSession();
   try {
-    session.startTransaction();
+    const result = await runMongoTransaction(async (session) => {
+      const school = await School.findById(schoolId).session(session);
+      if (!school) {
+        throw new MongoTransactionError("School not found", 404);
+      }
 
-    const school = await School.findById(schoolId).session(session);
-    if (!school) {
-      await session.abortTransaction();
-      console.log(`${routeTag} error`, { status: 404, message: "School not found", schoolId: schoolIdParam });
-      return NextResponse.json({ error: "School not found" }, { status: 404 });
-    }
+      return persistOnboardingSchoolProfile(
+        school,
+        parsed.data,
+        target,
+        gate.me._id as mongoose.Types.ObjectId,
+        session
+      );
+    });
 
-    const result = await persistOnboardingSchoolProfile(
-      school,
-      parsed.data,
-      target,
-      gate.me._id as mongoose.Types.ObjectId,
-      session
-    );
-
-    await session.commitTransaction();
     return NextResponse.json({
       success: true,
       data: {
@@ -137,7 +137,14 @@ export async function POST(
       },
     });
   } catch (e: unknown) {
-    await session.abortTransaction().catch(() => {});
+    if (e instanceof MongoTransactionError) {
+      console.log(`${routeTag} error`, {
+        status: e.statusCode,
+        message: e.message,
+        schoolId: schoolIdParam,
+      });
+      return NextResponse.json({ error: e.message }, { status: e.statusCode });
+    }
     const msg = e instanceof Error ? e.message : "Failed to save school profile";
     console.log(`${routeTag} error`, {
       status: 500,
@@ -151,7 +158,5 @@ export async function POST(
       { error: "Failed to save school profile", details: msg },
       { status: 500 }
     );
-  } finally {
-    session.endSession();
   }
 }

@@ -1029,7 +1029,7 @@ export default function TeachersPage() {
             clearSelection();
           }}
           onSubmit={async (payload) => {
-            await createTeacher.mutateAsync(payload);
+            return createTeacher.mutateAsync(payload);
           }}
           isLoading={createTeacher.isPending}
         />

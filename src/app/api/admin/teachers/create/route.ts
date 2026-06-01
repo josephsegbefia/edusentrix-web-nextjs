@@ -17,6 +17,7 @@ import { sendTrackedBrevoEmail } from "@/lib/email";
 import { recordActivity } from "@/lib/audit/recordActivity";
 import mongoose from "mongoose";
 import {
+  getAppUrl,
   getInvitationAcceptUrl,
   getInvitationRedirectUrl,
 } from "@/lib/utils/getAppUrl";
@@ -45,6 +46,91 @@ type Body = {
   /** If another teacher already has an active assignment for the same subject/class/period */
   teachingAssignmentResolution?: "add_alongside" | "replace" | "skip";
 };
+
+type DevTeacherLoginCredentials = {
+  enabled: true;
+  email: string;
+  password: string;
+  signInUrl: string;
+};
+
+function isDevTeacherLoginBypassEnabled() {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.E2E_TEACHER_LOGIN_BYPASS_ENABLED === "true"
+  );
+}
+
+function getDevTeacherPassword() {
+  return (
+    process.env.E2E_TEACHER_DEFAULT_PASSWORD?.trim() || "TeacherTest123!"
+  );
+}
+
+async function createOrUpdateDevTeacherClerkLogin({
+  email,
+  firstName,
+  lastName,
+  schoolId,
+  teacherUserId,
+}: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  schoolId: mongoose.Types.ObjectId;
+  teacherUserId: mongoose.Types.ObjectId;
+}) {
+  const clerk = await clerkClient();
+  const password = getDevTeacherPassword();
+  const matches = await clerk.users.getUserList({ emailAddress: [email] });
+  const existing = matches.data.find((candidate) =>
+    candidate.emailAddresses.some(
+      (address) => address.emailAddress.toLowerCase() === email
+    )
+  );
+  const metadata = {
+    role: "teacher",
+    schoolId: String(schoolId),
+  };
+
+  const clerkUser = existing
+    ? await clerk.users.updateUser(existing.id, {
+        firstName,
+        lastName,
+        password,
+        skipPasswordChecks: true,
+        publicMetadata: metadata,
+        privateMetadata: {
+          ...metadata,
+          userId: String(teacherUserId),
+          e2eTeacherLoginBypass: true,
+        },
+      })
+    : await clerk.users.createUser({
+        emailAddress: [email],
+        password,
+        firstName,
+        lastName,
+        skipPasswordChecks: true,
+        skipLegalChecks: true,
+        publicMetadata: metadata,
+        privateMetadata: {
+          ...metadata,
+          userId: String(teacherUserId),
+          e2eTeacherLoginBypass: true,
+        },
+      });
+
+  return {
+    clerkUserId: clerkUser.id,
+    credentials: {
+      enabled: true,
+      email,
+      password,
+      signInUrl: `${getAppUrl()}/sign-in`,
+    } satisfies DevTeacherLoginCredentials,
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -500,60 +586,81 @@ export async function POST(req: NextRequest) {
       "/teacher"
     )}`;
     let clerkInvitationId: string | undefined;
-    let invitationStatus: "pending" | "failed" = "pending";
+    let invitationStatus: "pending" | "failed" | "accepted" = "pending";
+    let devLoginCredentials: DevTeacherLoginCredentials | null = null;
+    const devLoginBypassEnabled = isDevTeacherLoginBypassEnabled();
 
-    try {
-      const clerk = await clerkClient();
-      const clerkInvitation = await clerk.invitations.createInvitation({
-        emailAddress: effectiveEmail,
-        redirectUrl,
-        notify: false,
-        publicMetadata: {
+    if (devLoginBypassEnabled) {
+      try {
+        const devLogin = await createOrUpdateDevTeacherClerkLogin({
+          email: effectiveEmail,
+          firstName: normalizedBody.firstName.trim(),
+          lastName: normalizedBody.lastName.trim(),
+          schoolId: schoolIdObj,
+          teacherUserId: teacherIdObj,
+        });
+        teacherUser.clerkUserId = devLogin.clerkUserId;
+        await teacherUser.save();
+        invitationStatus = "accepted";
+        devLoginCredentials = devLogin.credentials;
+      } catch (devLoginError) {
+        console.error("E2E teacher login bypass error:", devLoginError);
+        invitationStatus = "failed";
+      }
+    } else {
+      try {
+        const clerk = await clerkClient();
+        const clerkInvitation = await clerk.invitations.createInvitation({
+          emailAddress: effectiveEmail,
+          redirectUrl,
+          notify: false,
+          publicMetadata: {
+            role: "teacher",
+            schoolId: String(schoolIdObj),
+          },
+          ignoreExisting: true,
+        });
+        clerkInvitationId = clerkInvitation.id;
+
+        const school = await School.findById(schoolIdObj)
+          .select("name")
+          .lean();
+        const schoolName = school ? (school as any).name : "your school";
+
+        const { renderTemplate } = await import("@/lib/email/templates");
+        const rendered = renderTemplate("USER_INVITE", {
+          name: `${normalizedBody.firstName} ${normalizedBody.lastName}`,
           role: "teacher",
+          schoolName,
+          setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
+        });
+
+        await sendTrackedBrevoEmail({
+          to: effectiveEmail,
+          subject: rendered.subject,
+          htmlContent: rendered.htmlContent,
+          textContent: rendered.textContent,
+          templateKey: "TEACHER_INVITE",
           schoolId: String(schoolIdObj),
-        },
-        ignoreExisting: true,
-      });
-      clerkInvitationId = clerkInvitation.id;
-
-      const school = await School.findById(schoolIdObj)
-        .select("name")
-        .lean();
-      const schoolName = school ? (school as any).name : "your school";
-
-      const { renderTemplate } = await import("@/lib/email/templates");
-      const rendered = renderTemplate("USER_INVITE", {
-        name: `${normalizedBody.firstName} ${normalizedBody.lastName}`,
-        role: "teacher",
-        schoolName,
-        setupLink: getInvitationAcceptUrl(clerkInvitation, redirectUrl),
-      });
-
-      await sendTrackedBrevoEmail({
-        to: effectiveEmail,
-        subject: rendered.subject,
-        htmlContent: rendered.htmlContent,
-        textContent: rendered.textContent,
-        templateKey: "TEACHER_INVITE",
-        schoolId: String(schoolIdObj),
-        schoolName,
-        actorId: String(userId),
-        actorRole: "school_admin",
-        relatedEntityType: "invitation",
-      });
-      await trackUsage({
-        schoolId,
-        provider: "email",
-        metricKey: "transactional_emails_sent",
-        quantity: 1,
-        unitLabel: "emails",
-        allocationMethod: "direct",
-        sourceType: "manual",
-        notes: "Teacher invitation email sent.",
-      });
-    } catch (inviteError) {
-      console.error("Teacher invite (Clerk and/or invite email) error:", inviteError);
-      invitationStatus = "failed";
+          schoolName,
+          actorId: String(userId),
+          actorRole: "school_admin",
+          relatedEntityType: "invitation",
+        });
+        await trackUsage({
+          schoolId,
+          provider: "email",
+          metricKey: "transactional_emails_sent",
+          quantity: 1,
+          unitLabel: "emails",
+          allocationMethod: "direct",
+          sourceType: "manual",
+          notes: "Teacher invitation email sent.",
+        });
+      } catch (inviteError) {
+        console.error("Teacher invite (Clerk and/or invite email) error:", inviteError);
+        invitationStatus = "failed";
+      }
     }
 
     try {
@@ -567,7 +674,7 @@ export async function POST(req: NextRequest) {
         status: invitationStatus,
         clerkInvitationId,
         sentAt: new Date(),
-        acceptedAt: undefined,
+        acceptedAt: devLoginBypassEnabled ? new Date() : undefined,
         expiresAt,
         resendCount: 0,
         invitedBy: new mongoose.Types.ObjectId(userId),
@@ -577,7 +684,8 @@ export async function POST(req: NextRequest) {
           subjectIds: mergedSubjectIdStrings,
           teachingAssignments: normalizedBody.teachingAssignments || [],
           homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
-          invitationEmailSuppressed: false,
+          invitationEmailSuppressed: devLoginBypassEnabled,
+          e2eTeacherLoginBypass: devLoginBypassEnabled,
         },
       });
     } catch (inviteRecordError) {
@@ -598,7 +706,8 @@ export async function POST(req: NextRequest) {
         subjectIds: mergedSubjectIdStrings,
         teachingAssignments: normalizedBody.teachingAssignments || [],
         homeroomClassGroupId: normalizedBody.homeroomClassGroupId,
-        invitationSent: invitationStatus === "pending",
+        invitationSent: !devLoginBypassEnabled && invitationStatus === "pending",
+        e2eTeacherLoginBypass: devLoginBypassEnabled,
       },
     });
     await trackUsage({
@@ -638,6 +747,7 @@ export async function POST(req: NextRequest) {
           teachingAssignmentWarnings:
             assignmentWarnings.length > 0 ? assignmentWarnings : undefined,
           homeroomClassGroupId: normalizedBody.homeroomClassGroupId || null,
+          devLogin: devLoginCredentials,
         },
       },
       { status: 201 }

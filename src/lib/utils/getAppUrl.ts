@@ -42,11 +42,23 @@ export function getInvitationRedirectUrl(): string {
 }
 
 export function getInvitationAcceptUrl(
-  invitation: { url?: string | null } | null | undefined,
+  invitation:
+    | { url?: string | null; emailAddress?: string | null }
+    | null
+    | undefined,
   fallbackUrl?: string | null
 ): string {
+  const invitedEmail = invitation?.emailAddress?.trim();
   const acceptUrl = invitation?.url?.trim();
-  if (acceptUrl) return acceptUrl;
-  if (fallbackUrl) return fallbackUrl;
-  return getInvitationRedirectUrl();
+  const url = acceptUrl || fallbackUrl || getInvitationRedirectUrl();
+  if (!invitedEmail) return url;
+
+  try {
+    const parsed = new URL(url);
+    parsed.searchParams.set("invited_email", invitedEmail);
+    return parsed.toString();
+  } catch {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}invited_email=${encodeURIComponent(invitedEmail)}`;
+  }
 }

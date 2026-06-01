@@ -12,6 +12,7 @@ import { checkUsageLimit } from "@/lib/billing/check-usage-limit";
 import { trackUsage } from "@/lib/billing/trackUsage";
 import { enforceDemoPolicy } from "@/lib/demo/action-policy";
 import { canUploadLibraryBookCover } from "@/lib/library/library-upload-gate";
+import { resolveSchoolUploadAccess } from "@/lib/uploads/resolve-school-upload-access";
 
 const f = createUploadthing();
 const RouteInput = z.object({
@@ -53,6 +54,7 @@ type UploadMetadata = {
   schoolSlug: string;
   folder: string;
   role?: string;
+  isPlatformOperator?: boolean;
 };
 
 function slugify(value: string): string {
@@ -101,31 +103,29 @@ async function getUploaderContext(requestedSchoolId?: string) {
   if (!user) {
     throw new Error("User not found");
   }
-  const userSchoolId = user.schoolId?.toString();
-  let effectiveSchoolId = userSchoolId;
 
-  if (requestedSchoolId && requestedSchoolId !== userSchoolId) {
-    if (user.role !== "platform_admin") {
-      throw new Error("Forbidden school upload target");
-    }
-    effectiveSchoolId = requestedSchoolId;
+  const access = await resolveSchoolUploadAccess({
+    user,
+    requestedSchoolId,
+  });
+  if (!access.allowed) {
+    throw new Error(access.reason);
   }
 
-  if (!effectiveSchoolId) {
-    throw new Error("No school associated with user");
-  }
-
-  const school = await School.findById(effectiveSchoolId)
+  const school = await School.findById(access.effectiveSchoolId)
     .select("name")
     .lean<{ name?: string }>();
 
-  const schoolSlug = slugify(school?.name || effectiveSchoolId || "school");
+  const schoolSlug = slugify(
+    school?.name || access.effectiveSchoolId || "school"
+  );
 
   return {
     userId: user._id.toString(),
-    schoolId: effectiveSchoolId,
+    schoolId: access.effectiveSchoolId,
     schoolSlug,
     role: user.role || undefined,
+    isPlatformOperator: access.isPlatformOperator,
   };
 }
 
@@ -134,24 +134,37 @@ async function buildMetadata(
   files: ReadonlyArray<{ name: string; size?: number }>,
   requestedSchoolId?: string
 ) {
-  const context = await getUploaderContext(requestedSchoolId);
+  let context: UploadMetadata & { [UTFiles]?: unknown };
+  try {
+    context = await getUploaderContext(requestedSchoolId);
+  } catch (error) {
+    console.error("[uploadthing] getUploaderContext failed:", {
+      folder,
+      requestedSchoolId,
+      error: error instanceof Error ? error.message : error,
+    });
+    throw error;
+  }
   const timestamp = Date.now();
   const incomingBytes = files.reduce(
     (sum, file) => sum + Math.max(0, Number(file.size || 0)),
     0
   );
 
-  // Check document storage feature entitlement first (§13A.9).
-  const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
-  const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
-  const featureResult = await requireSchoolFeature(
-    context.schoolId,
-    FEATURE_KEYS.DOCUMENTS_STORAGE
-  );
-  if (!featureResult.allowed) {
-    throw new Error(
-      "Document storage is not available on your current plan. Please contact your platform administrator."
+  // Platform operators may upload during assisted onboarding before entitlements
+  // are fully provisioned. Match /api/uploads/sign behavior.
+  if (!context.isPlatformOperator) {
+    const { requireSchoolFeature } = await import("@/lib/subscriptions/guards");
+    const { FEATURE_KEYS } = await import("@/lib/subscriptions/feature-keys");
+    const featureResult = await requireSchoolFeature(
+      context.schoolId,
+      FEATURE_KEYS.DOCUMENTS_STORAGE
     );
+    if (!featureResult.allowed) {
+      throw new Error(
+        "Document storage is not available on your current plan. Please contact your platform administrator."
+      );
+    }
   }
 
   // Storage uploads are not AI — do not gate on expensive-ai access mode.

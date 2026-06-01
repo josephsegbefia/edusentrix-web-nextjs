@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { IProposal, IProposalPricing } from "@/models/Proposal";
+import { ProposalBranding, type IProposalBranding } from "@/models/ProposalBranding";
 import type { IProposalTemplateSection, ProposalType } from "@/models/ProposalTemplate";
 import { SubscriptionTier } from "@/models/SubscriptionTier";
 import { PLAN_CODES } from "@/lib/subscriptions/plan-codes";
@@ -12,6 +13,11 @@ type LeoSource = "leo" | "fallback";
 type ProposalForLeo = Pick<
   IProposal,
   "schoolName" | "schoolLocation" | "proposalType" | "selectedModules" | "pricing"
+>;
+
+type ProposalBrandingForLeo = Pick<
+  IProposalBranding,
+  "brandName" | "tagline" | "website" | "contactEmail" | "whatsapp" | "address"
 >;
 
 export type SubscriptionTierForLeo = {
@@ -54,6 +60,23 @@ export function isSubscriptionPricingProposalSection(section: Pick<IProposalTemp
     text.includes("cost") ||
     text.includes("investment")
   );
+}
+
+export function isContactProposalSection(section: Pick<IProposalTemplateSection, "key" | "title">) {
+  const text = sectionText(section);
+  return section.key === "contact" || text.includes("contact") || text.includes("enquiries");
+}
+
+export async function loadProposalBrandingForLeo(): Promise<ProposalBrandingForLeo> {
+  const branding = await ProposalBranding.findOne({}).lean();
+  return {
+    brandName: branding?.brandName || "EduSentrix",
+    tagline: branding?.tagline || "Modern School Management Platform",
+    website: branding?.website || "https://www.tryedusentrix.app",
+    contactEmail: branding?.contactEmail || "hello@tryedusentrix.app",
+    whatsapp: branding?.whatsapp || "0504211501",
+    address: branding?.address || "",
+  };
 }
 
 export function mergeDefaultProposalSections(
@@ -119,14 +142,40 @@ function fallbackDraft(input: {
   selectedModules: string[];
   subscriptionTiers: SubscriptionTierForLeo[];
   pricing?: IProposalPricing | null;
+  branding?: ProposalBrandingForLeo | null;
 }) {
   const modules = input.selectedModules.slice(0, 6).join(", ");
+  const sender = input.branding || {
+    brandName: "EduSentrix",
+    website: "https://www.tryedusentrix.app",
+    contactEmail: "hello@tryedusentrix.app",
+    whatsapp: "0504211501",
+    tagline: "Modern School Management Platform",
+    address: "",
+  };
+
+  if (isContactProposalSection(input.section)) {
+    return [
+      `For questions, clarifications, or next steps regarding this proposal for ${input.schoolName}, please contact ${sender.brandName}.`,
+      [
+        `${sender.brandName}`,
+        sender.contactEmail ? `Email: ${sender.contactEmail}` : "",
+        sender.website ? `Website: ${sender.website}` : "",
+        sender.whatsapp ? `Phone/WhatsApp: ${sender.whatsapp}` : "",
+        sender.address ? `Address: ${sender.address}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      `We would be happy to walk your team through the proposal, answer questions, and discuss the best rollout approach for ${input.schoolName}.`,
+    ].join("\n\n");
+  }
 
   if (isMobileAppProposalSection(input.section)) {
     return [
-      `${input.schoolName} can extend EduSentrix beyond the school office through the companion mobile experience for parents, guardians, staff, and students.`,
-      "A key part of this experience is EduSentrix Learn, the student mobile app designed to help learners revisit topics taught in class, study at their own pace, revise before assessments, and prepare more confidently for exams.",
-      "EduSentrix Learn should be positioned as a guided learning companion that reinforces classroom teaching instead of replacing teachers. The final copy should be adjusted to match the exact modules enabled for the school.",
+      `${input.schoolName} can extend EduSentrix beyond the school office through two companion mobile apps: Jeda and EduSentrix Learn.`,
+      "Jeda is the mobile version of the EduSentrix web platform, giving the school community a convenient way to access key school workflows and information from a phone.",
+      "EduSentrix Learn is the student learning companion. It helps learners revisit topics taught in class, reinforce what they have learned, revise before assessments, and prepare more confidently for exams.",
+      "The mobile experience should be positioned as support for classroom teaching and school operations, not as a replacement for teachers or school leadership.",
     ].join("\n\n");
   }
 
@@ -163,6 +212,7 @@ export async function generateProposalSectionWithLeo(input: {
   proposal: ProposalForLeo;
   section: IProposalTemplateSection;
   subscriptionTiers: SubscriptionTierForLeo[];
+  branding?: ProposalBrandingForLeo | null;
   instruction?: string | null;
   tone?: LeoTone;
 }): Promise<{ content: string; source: LeoSource }> {
@@ -174,6 +224,7 @@ export async function generateProposalSectionWithLeo(input: {
         selectedModules: input.proposal.selectedModules,
         subscriptionTiers: input.subscriptionTiers,
         pricing: input.proposal.pricing,
+        branding: input.branding,
       }),
       source: "fallback",
     };
@@ -181,11 +232,14 @@ export async function generateProposalSectionWithLeo(input: {
 
   const sectionGuidance = {
     mobileApp: isMobileAppProposalSection(input.section)
-      ? "This is the Companion Mobile App section. Explicitly mention EduSentrix Learn by name as the student mobile app that helps students learn topics taught in class on their own, revise, prepare for exams, and continue learning outside the classroom. Keep it truthful and do not claim unsupported AI tutoring, offline mode, WhatsApp, or SMS features."
+      ? "This is the Companion Mobile App section. EduSentrix has two companion mobile apps: Jeda and EduSentrix Learn. Jeda is the mobile version of the EduSentrix web platform for convenient phone access to school workflows and information. EduSentrix Learn is the student learning companion that reinforces topics taught in school, supports revision, exam preparation, and continued learning outside the classroom. Keep the distinction clear. Do not describe EduSentrix Learn as the only companion app. Do not claim unsupported AI tutoring, offline mode, WhatsApp, or SMS features."
       : "",
     pricing: isSubscriptionPricingProposalSection(input.section)
       ? "This is a pricing/subscription section. Use only the subscriptionTiers data provided. Present pricing as current indicative subscription options that must be reviewed before sending. Do not invent prices, discounts, contracts, validity dates, or commitments. Do not show the Pilot plan as a public plan unless proposalType is pilot."
       : "Do not include subscription pricing in this section unless the operator instruction explicitly asks for it.",
+    contact: isContactProposalSection(input.section)
+      ? "This is the proposal Contact section. The contact must be EduSentrix/Appsentrix as the sender, not the recipient school. Use senderContact.brandName, senderContact.contactEmail, senderContact.website, senderContact.whatsapp, and senderContact.address when available. The recipient school may be mentioned only as the school the proposal concerns. Do not output the recipient school name followed by its location as the contact owner."
+      : "Do not add a contact block in this section unless the operator instruction explicitly asks for it.",
   };
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -214,6 +268,14 @@ export async function generateProposalSectionWithLeo(input: {
             proposalType: input.proposal.proposalType,
             selectedModules: input.proposal.selectedModules,
             operatorPricingFields: input.proposal.pricing,
+          },
+          senderContact: input.branding || {
+            brandName: "EduSentrix",
+            tagline: "Modern School Management Platform",
+            website: "https://www.tryedusentrix.app",
+            contactEmail: "hello@tryedusentrix.app",
+            whatsapp: "0504211501",
+            address: "",
           },
           subscriptionTiers: input.subscriptionTiers,
           section: {

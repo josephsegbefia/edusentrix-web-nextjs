@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
-import mongoose from "mongoose";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User, type IUser } from "@/models/User";
 import { School } from "@/models/School";
 import { persistOnboardingSchoolProfile } from "@/lib/onboarding/persist-onboarding-school-profile";
+import {
+  MongoTransactionError,
+  runMongoTransaction,
+} from "@/lib/mongoose/run-transaction";
 
 const BodySchema = z.object({
   schoolId: z.string().min(1),
@@ -103,31 +106,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const session = await mongoose.startSession();
   try {
-    session.startTransaction();
+    const result = await runMongoTransaction(async (session) => {
+      const school = await School.findById(me.schoolId).session(session);
+      if (!school) {
+        throw new MongoTransactionError("School not found", 404);
+      }
 
-    const school = await School.findById(me.schoolId).session(session);
-    if (!school) {
-      await session.abortTransaction();
-      console.log(`${routeTag} error`, {
-        status: 404,
-        message: "School not found",
-        schoolId: String(me.schoolId),
-      });
-      return NextResponse.json({ error: "School not found" }, { status: 404 });
-    }
+      const { schoolId: _sid, ...form } = parsed.data;
+      return persistOnboardingSchoolProfile(
+        school,
+        form,
+        me,
+        me._id,
+        session
+      );
+    });
 
-    const { schoolId: _sid, ...form } = parsed.data;
-    const result = await persistOnboardingSchoolProfile(
-      school,
-      form,
-      me,
-      me._id,
-      session
-    );
-
-    await session.commitTransaction();
     return NextResponse.json({
       success: true,
       data: {
@@ -136,7 +131,13 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (e: unknown) {
-    await session.abortTransaction().catch(() => {});
+    if (e instanceof MongoTransactionError) {
+      console.log(`${routeTag} error`, {
+        status: e.statusCode,
+        message: e.message,
+      });
+      return NextResponse.json({ error: e.message }, { status: e.statusCode });
+    }
     const msg = e instanceof Error ? e.message : "Failed to save school profile";
     console.log(`${routeTag} error`, {
       status: 500,
@@ -150,7 +151,5 @@ export async function POST(req: NextRequest) {
       { error: "Failed to save school profile", details: msg },
       { status: 500 }
     );
-  } finally {
-    session.endSession();
   }
 }

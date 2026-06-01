@@ -28,6 +28,29 @@ export type UseTeachersArgs = {
   filters?: TeachersFilters;
 };
 
+export type CreateTeacherDevLogin = {
+  enabled: true;
+  email: string;
+  password: string;
+  signInUrl: string;
+};
+
+export type CreateTeacherResponse = {
+  success: true;
+  data: {
+    _id: string;
+    userId: string;
+    firstName?: string;
+    lastName?: string;
+    email: string;
+    subjectIds: string[];
+    teachingAssignments: Array<{ subjectId: string; classGroupId: string }>;
+    teachingAssignmentWarnings?: string[];
+    homeroomClassGroupId: string | null;
+    devLogin?: CreateTeacherDevLogin | null;
+  };
+};
+
 export function useTeachers({
   page = 1,
   limit = 25,
@@ -99,7 +122,7 @@ export function useCreateTeacher() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: CreateTeacherInput): Promise<void> => {
+    mutationFn: async (payload: CreateTeacherInput): Promise<CreateTeacherResponse> => {
       const res = await fetch("/api/admin/teachers/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,6 +132,7 @@ export function useCreateTeacher() {
         const error = await res.json().catch(() => ({ error: "Failed to create teacher" }));
         throw new Error(error.error || "Failed to create teacher");
       }
+      return res.json();
     },
     onSuccess: () => {
       // Invalidate teachers list queries

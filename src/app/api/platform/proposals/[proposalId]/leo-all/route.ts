@@ -8,6 +8,7 @@ import { hashProposalContent, logProposalActivity } from "@/lib/proposals/utils"
 import { serializeProposal } from "@/lib/proposals/serialize";
 import {
   generateProposalSectionWithLeo,
+  loadProposalBrandingForLeo,
   loadSubscriptionTiersForProposal,
   mergeDefaultProposalSections,
 } from "@/lib/proposals/leo-generation";
@@ -43,6 +44,7 @@ export async function POST(
     }
 
     const subscriptionTiers = await loadSubscriptionTiersForProposal(proposal.proposalType);
+    const branding = await loadProposalBrandingForLeo();
     const sections = mergeDefaultProposalSections(proposal.sections as unknown as Parameters<typeof mergeDefaultProposalSections>[0]);
     const generatedSections = [];
     let source: "leo" | "fallback" = "fallback";
@@ -52,6 +54,7 @@ export async function POST(
         proposal,
         section,
         subscriptionTiers,
+        branding,
         instruction: parsed.data.instruction,
         tone: parsed.data.tone,
       });

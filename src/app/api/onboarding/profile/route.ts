@@ -3,6 +3,10 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { connectToDatabase } from "@/db/connectToDatabase";
 import { User } from "@/models/User";
+import {
+  MongoTransactionError,
+  runMongoTransaction,
+} from "@/lib/mongoose/run-transaction";
 
 const Body = z.object({
   firstName: z.string().min(1),
@@ -26,21 +30,36 @@ export async function POST(req: Request) {
 
   await connectToDatabase();
 
-  await User.updateOne(
-    { clerkUserId: userId },
-    {
-      $set: {
-        firstName: parsed.data.firstName,
-        lastName: parsed.data.lastName,
-        phone: parsed.data.phone ?? null,
-        avatarUrl: parsed.data.avatarUrl ?? null,
-        avatarPublicId: parsed.data.avatarPublicId ?? null,
-        address: parsed.data.address ?? null,
-        dateOfBirth: parsed.data.dateOfBirth ?? null,
-      },
-    },
-    { upsert: false }
-  );
+  try {
+    await runMongoTransaction(async (session) => {
+      const result = await User.updateOne(
+        { clerkUserId: userId },
+        {
+          $set: {
+            firstName: parsed.data.firstName,
+            lastName: parsed.data.lastName,
+            phone: parsed.data.phone ?? null,
+            avatarUrl: parsed.data.avatarUrl ?? null,
+            avatarPublicId: parsed.data.avatarPublicId ?? null,
+            address: parsed.data.address ?? null,
+            dateOfBirth: parsed.data.dateOfBirth ?? null,
+          },
+        },
+        { session }
+      );
+
+      if (result.matchedCount === 0) {
+        throw new MongoTransactionError("User not found", 404);
+      }
+    });
+  } catch (error) {
+    if (error instanceof MongoTransactionError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    const message =
+      error instanceof Error ? error.message : "Failed to save profile";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

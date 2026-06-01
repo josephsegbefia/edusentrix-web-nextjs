@@ -7,6 +7,7 @@ import { Proposal } from "@/models/Proposal";
 import { logProposalActivity } from "@/lib/proposals/utils";
 import {
   generateProposalSectionWithLeo,
+  loadProposalBrandingForLeo,
   loadSubscriptionTiersForProposal,
 } from "@/lib/proposals/leo-generation";
 
@@ -39,10 +40,12 @@ export async function POST(
     if (!section) return NextResponse.json({ success: false, error: "Section not found" }, { status: 404 });
 
     const subscriptionTiers = await loadSubscriptionTiersForProposal(proposal.proposalType);
+    const branding = await loadProposalBrandingForLeo();
     const { content: draft, source } = await generateProposalSectionWithLeo({
       proposal,
       section,
       subscriptionTiers,
+      branding,
       instruction: parsed.data.instruction,
       tone: parsed.data.tone,
     });

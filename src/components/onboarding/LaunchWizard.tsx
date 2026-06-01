@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { addDays } from "date-fns/addDays";
 import { format } from "date-fns/format";
 import { parse as parseDateFns } from "date-fns/parse";
 import Image from "next/image";
@@ -29,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomDatePicker } from "@/components/ui/custom-date-picker";
 import {
@@ -46,6 +46,12 @@ import {
   type CurriculumCode,
 } from "@/constants/curriculum-profiles";
 import { EDUSENTRIX_LOGO_ALT, EDUSENTRIX_LOGO_PATH } from "@/lib/branding";
+import {
+  mergeLaunchPeriodsForTerms,
+  normalizeAcademicPeriodsInOrder,
+  reconcileLaunchPeriodYearLabels,
+  type LaunchPeriodDraft,
+} from "@/lib/academic-periods/launch-period-defaults";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -74,13 +80,7 @@ type Bootstrap = {
   targetUserId?: string;
 };
 
-type Period = {
-  yearLabel: string;
-  term: string;
-  startDate: string;
-  endDate: string;
-  isCurrent?: boolean;
-};
+type Period = LaunchPeriodDraft;
 
 const STEPS = [
   {
@@ -119,114 +119,11 @@ export type LaunchWizardProps = {
   platformSchoolId?: string;
 };
 
-function dayAtNoon(iso: string): Date {
-  const d = parseDateFns(iso, "yyyy-MM-dd", new Date());
-  d.setHours(12, 0, 0, 0);
-  return d;
-}
-
-function isoAddDays(iso: string, days: number): string {
-  return format(addDays(dayAtNoon(iso), days), "yyyy-MM-dd");
-}
-
-/** Per row only: end must be strictly after start (ISO yyyy-MM-dd compare). */
-function fixStrictEndAfterStartForAll(out: Period[]): void {
-  for (let i = 0; i < out.length; i++) {
-    if (!out[i].startDate || !out[i].endDate) continue;
-    const { startDate: start, endDate: end } = out[i];
-    if (end <= start) {
-      out[i].endDate = isoAddDays(start, 1);
-    }
-  }
-}
-
-/**
- * Full timeline reconcile: non-overlapping for the inclusive backend rule
- * (rangesOverlap: touching on the same day counts). Each term starts the day after
- * the previous term ends; end is always strictly after start.
- * Use on bootstrap / term list rebuild / final submit — not on every field edit,
- * or later terms' start dates feel "pinned" and ignore the calendar.
- */
-function normalizeAcademicPeriodsInOrder(periods: Period[]): Period[] {
-  if (periods.length === 0) return periods;
-  const out = periods.map((p) => ({ ...p }));
-
-  for (let i = 0; i < out.length; i++) {
-    if (!out[i].startDate || !out[i].endDate) continue;
-
-    if (i > 0 && out[i - 1].endDate) {
-      const prevEnd = out[i - 1].endDate;
-      if (out[i].startDate <= prevEnd) {
-        out[i].startDate = isoAddDays(prevEnd, 1);
-      }
-    }
-  }
-
-  fixStrictEndAfterStartForAll(out);
-  return out;
-}
-
-/** Default periods: each term starts the day after the previous term ends (~3 months long). */
-function createDefaultPeriodsSequential(termLabels: string[]): Period[] {
-  const labels = termLabels.length > 0 ? termLabels : ["Term 1"];
-  const periods: Period[] = [];
-  let prevEndIso: string | null = null;
-
-  for (let index = 0; index < labels.length; index++) {
-    let start: Date;
-    let end: Date;
-    if (index === 0) {
-      start = new Date();
-      end = new Date(start);
-      end.setMonth(end.getMonth() + 3);
-    } else if (prevEndIso) {
-      start = addDays(dayAtNoon(prevEndIso), 1);
-      end = new Date(start);
-      end.setMonth(end.getMonth() + 3);
-    } else {
-      start = new Date();
-      end = new Date(start);
-      end.setMonth(end.getMonth() + 3);
-    }
-
-    const p: Period = {
-      yearLabel: "",
-      term: labels[index],
-      startDate: format(start, "yyyy-MM-dd"),
-      endDate: format(end, "yyyy-MM-dd"),
-      isCurrent: index === 0,
-    };
-    periods.push(p);
-    prevEndIso = p.endDate;
-  }
-
-  return normalizeAcademicPeriodsInOrder(periods);
-}
-
 function createPeriodsForTerms(
   termLabels: string[],
   existingPeriods: Period[] = []
 ): Period[] {
-  const labels = termLabels.length > 0 ? termLabels : ["Term 1"];
-  const fallbackSequential = createDefaultPeriodsSequential(labels);
-  const existingCurrentIndex = existingPeriods.findIndex((period) => period.isCurrent);
-  const safeCurrentIndex = existingCurrentIndex >= 0 ? existingCurrentIndex : 0;
-
-  const merged = labels.map((label, index) => {
-    const fallback = fallbackSequential[index];
-    const existing =
-      existingPeriods[index] ||
-      existingPeriods.find((period) => period.term === label);
-
-    return {
-      yearLabel: existing?.yearLabel ?? fallback.yearLabel,
-      term: existing?.term || label,
-      startDate: existing?.startDate || fallback.startDate,
-      endDate: existing?.endDate || fallback.endDate,
-      isCurrent: index === Math.min(safeCurrentIndex, labels.length - 1),
-    };
-  });
-  return normalizeAcademicPeriodsInOrder(merged);
+  return mergeLaunchPeriodsForTerms(termLabels, existingPeriods);
 }
 
 function parseDateValue(value: string): Date | null {
@@ -406,9 +303,10 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
       const mapped = current.map((period, periodIndex) =>
         periodIndex === index ? { ...period, ...patch } : period
       );
-      const out = mapped.map((p) => ({ ...p }));
-      fixStrictEndAfterStartForAll(out);
-      return out;
+      if (patch.isYearEndTerminal !== undefined) {
+        return reconcileLaunchPeriodYearLabels(mapped);
+      }
+      return mapped;
     });
   }
 
@@ -529,13 +427,15 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
     }
 
     for (const period of periodsToSubmit) {
-      if (
-        !period.yearLabel?.trim() ||
-        !period.term ||
-        !period.startDate ||
-        !period.endDate
-      ) {
-        toast.error("Please complete all academic period fields");
+      const missing: string[] = [];
+      if (!period.yearLabel?.trim()) missing.push("academic year label");
+      if (!period.term?.trim()) missing.push("term");
+      if (!period.startDate) missing.push("start date");
+      if (!period.endDate) missing.push("end date");
+      if (missing.length > 0) {
+        toast.error(
+          `Complete ${period.term || "this period"}: ${missing.join(", ")}`
+        );
         return;
       }
       if (period.endDate <= period.startDate) {
@@ -564,6 +464,7 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
             startDate: period.startDate,
             endDate: period.endDate,
             isCurrent: period.isCurrent,
+            isYearEndTerminal: period.isYearEndTerminal ?? false,
           })),
         }),
       });
@@ -1085,7 +986,11 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                       {period.term}
                                     </p>
                                     <p className="mt-1 text-xs text-white/48">
-                                      {period.isCurrent ? "Current period" : "Open step"}
+                                      {period.isCurrent
+                                        ? "Current period"
+                                        : period.isYearEndTerminal
+                                          ? "Year-end period"
+                                          : "Open step"}
                                     </p>
                                   </button>
                                 );
@@ -1104,6 +1009,11 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                   {activePeriod.isCurrent ? (
                                     <span className="rounded-full border border-brand/20 bg-brand/12 px-3 py-1 text-sm font-medium text-white">
                                       Current
+                                    </span>
+                                  ) : null}
+                                  {activePeriod.isYearEndTerminal ? (
+                                    <span className="rounded-full border border-amber-400/20 bg-amber-500/12 px-3 py-1 text-sm font-medium text-amber-100">
+                                      Year-end
                                     </span>
                                   ) : null}
                                 </div>
@@ -1160,6 +1070,29 @@ export function LaunchWizard({ variant, platformSchoolId }: LaunchWizardProps) {
                                       placeholder="Select end date"
                                       className="w-full"
                                     />
+                                  </div>
+
+                                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="space-y-1">
+                                        <Label className={launchLabelClass}>
+                                          Year-end period
+                                        </Label>
+                                        <p className="text-sm leading-6 text-white/55">
+                                          Mark this when the period closes the academic year.
+                                          Term 3 is selected automatically. Promotions and
+                                          billing use this flag.
+                                        </p>
+                                      </div>
+                                      <Switch
+                                        checked={Boolean(activePeriod.isYearEndTerminal)}
+                                        onCheckedChange={(checked) =>
+                                          updatePeriod(activePeriodIndex, {
+                                            isYearEndTerminal: checked,
+                                          })
+                                        }
+                                      />
+                                    </div>
                                   </div>
 
                                   <Button

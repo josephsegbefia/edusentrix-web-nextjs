@@ -51,7 +51,7 @@ function defaultBody(proposal: PlatformProposal, adminName: string): string {
     "",
     `We are reaching out to introduce EduSentrix and to share our formal proposal for ${proposal.schoolName}.`,
     "",
-    "EduSentrix is a comprehensive school management platform built for Ghana's NaCCA curriculum, helping schools manage student records, lesson planning, attendance, fees, communications, and parent engagement — all in one place.",
+    "EduSentrix is a comprehensive school management platform built to support Ghana NaCCA, Cambridge, IB, British, American, and hybrid/custom curriculum models. It helps schools manage student records, lesson planning, attendance, fees, communications, parent engagement, and day-to-day operations in one place.",
     "",
     "Please find our proposal attached. It outlines the features, implementation approach, and pricing that best suits your school. We would love to discuss this further and answer any questions you may have.",
     "",

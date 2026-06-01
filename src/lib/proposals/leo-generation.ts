@@ -180,19 +180,26 @@ function fallbackDraft(input: {
   }
 
   if (isSubscriptionPricingProposalSection(input.section)) {
-    const planLines = input.subscriptionTiers.map((tier) => {
+    const planSections = input.subscriptionTiers.map((tier) => {
       const price = tier.pricePerStudentPerTerm
         ? `${tier.pricePerStudentPerTerm} per student per term`
         : "pricing configured by EduSentrix";
-      const minimum = tier.minimumTermFee ? `, minimum ${tier.minimumTermFee} per term` : "";
-      const discount = tier.annualDiscountPercent ? `, ${tier.annualDiscountPercent}% annual prepayment discount` : "";
-      return `${tier.name}: ${price}${minimum}${discount}.`;
+      const lines = [
+        tier.name,
+        tier.description ? `Description: ${tier.description}` : "",
+        `Billing cadence: ${tier.billingCadence}`,
+        `Price: ${price}`,
+        tier.minimumTermFee ? `Minimum term fee: ${tier.minimumTermFee}` : "",
+        tier.annualDiscountPercent ? `Annual prepayment discount: ${tier.annualDiscountPercent}%` : "",
+        tier.featureCount ? `Feature coverage: ${tier.featureCount} configured features.` : "",
+      ].filter(Boolean);
+      return lines.join("\n");
     });
 
     return [
       "EduSentrix subscription pricing should be presented from the current platform subscription tiers and confirmed before sending the proposal.",
-      planLines.length
-        ? planLines.join("\n")
+      planSections.length
+        ? planSections.join("\n\n")
         : "No active public subscription tiers were available when this draft was generated, so pricing should be confirmed from the platform subscription plan setup.",
       "This section is indicative proposal copy, not a signed quote or contract. Final fees should reflect the selected tier, billing cadence, active student count, applicable minimum fee, and any approved implementation or discount terms.",
     ].join("\n\n");
@@ -235,7 +242,7 @@ export async function generateProposalSectionWithLeo(input: {
       ? "This is the Companion Mobile App section. EduSentrix has two companion mobile apps: Jeda and EduSentrix Learn. Jeda is the mobile version of the EduSentrix web platform for convenient phone access to school workflows and information. EduSentrix Learn is the student learning companion that reinforces topics taught in school, supports revision, exam preparation, and continued learning outside the classroom. Keep the distinction clear. Do not describe EduSentrix Learn as the only companion app. Do not claim unsupported AI tutoring, offline mode, WhatsApp, or SMS features."
       : "",
     pricing: isSubscriptionPricingProposalSection(input.section)
-      ? "This is a pricing/subscription section. Use only the subscriptionTiers data provided. Present pricing as current indicative subscription options that must be reviewed before sending. Do not invent prices, discounts, contracts, validity dates, or commitments. Do not show the Pilot plan as a public plan unless proposalType is pilot."
+      ? "This is a pricing/subscription section. Use only the subscriptionTiers data provided. Present each subscription tier as its own clear subsection using the tier name as a plain line, followed by concise fields such as description, billing cadence, price, minimum term fee, annual discount, and feature coverage. Do not use markdown heading markers like #, ##, ###, or ####. Do not repeat the section title inside the section body. Do not include a closing sentence telling the reader to refer to a detailed feature list elsewhere in the proposal. Present pricing as current indicative subscription options that must be reviewed before sending. Do not invent prices, discounts, contracts, validity dates, or commitments. Do not show the Pilot plan as a public plan unless proposalType is pilot."
       : "Do not include subscription pricing in this section unless the operator instruction explicitly asks for it.",
     contact: isContactProposalSection(input.section)
       ? "This is the proposal Contact section. The contact must be EduSentrix/Appsentrix as the sender, not the recipient school. Use senderContact.brandName, senderContact.contactEmail, senderContact.website, senderContact.whatsapp, and senderContact.address when available. The recipient school may be mentioned only as the school the proposal concerns. Do not output the recipient school name followed by its location as the contact owner."
